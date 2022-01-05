@@ -1,0 +1,57 @@
+# Required should be there.
+# errors_on should not be there
+task:
+  required:
+    next:
+    command:
+  error_on:
+    branches:
+
+fail:
+  error_on:
+    next:
+    command:
+    branches:  
+    on_failure:
+    catalog:
+
+success:
+  error_on:
+    next:
+    command:
+    branches:  
+    on_failure:
+    catalog:
+
+
+as-is:
+  required:
+    next:
+
+parallel:
+  required:
+    branches:
+    next:
+  error_on:
+    command:
+    catalog:
+    source_data:
+
+map:
+  required:
+    iterate_on:
+    next:
+    branch:
+  error_on:
+    command:
+    catalog:
+    source_data:
+
+dag:
+  required:
+    dag_definition:
+    next:
+  error_on:
+    command:
+    catalog:
+    source_data:

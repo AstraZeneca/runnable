@@ -1,0 +1,87 @@
+site_name: Magnus
+site_description: "Pipelines made easy"
+
+docs_dir: "docs"
+theme:
+  name: material
+  font: false
+  shortcuts:
+    help: 191 # ?
+    next: 78 # n
+    previous: 80 # p
+    search: 83 # s
+  palette:
+    - scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/lightbulb
+        name: Switch to light mode
+  features:
+    - tabs
+    - navigation.top
+    - toc.integrate
+    - search.suggest
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+      separator: "_"
+      toc_depth: 2
+
+plugins:
+  - search
+
+nav:
+  - "Home": "index.md"
+  - "Getting started":
+      - "Installation": "getting_started/installation.md"
+      - "Command Line": "getting_started/command-line.md"
+      - "Example Run": "getting_started/example.md"
+      - "Explanation - input": "getting_started/brief-concepts-input.md"
+      - "Explanation - output": "getting_started/brief-concepts-output.md"
+      - "What next": "getting_started/what-next.md"
+      - "Why magnus": "getting_started/why-magnus.md"
+  - "Concepts":
+      - "Node": "concepts/nodes.md"
+      - "Dag": "concepts/dag.md"
+      - "Catalog":
+          - "Overview": "concepts/catalog.md"
+          - "Dummy Catalog": "concepts/catalog-implementations/dummy-catalog.md"
+          - "File System": "concepts/catalog-implementations/file-system.md"
+          - "Extensions": "concepts/catalog-implementations/extensions.md"
+      - "Secrets":
+          - "Overview": "concepts/secrets.md"
+          - "Dot Env": "concepts/secrets-implementations/dot-env.md"
+          - "Extensions": "concepts/secrets-implementations/extensions.md"
+      - "Run Log":
+          - "Overview": "concepts/run-log.md"
+          - "Bufferred": "concepts/run-log-implementations/bufferred.md"
+          - "File System": "concepts/run-log-implementations/file-system.md"
+          - "Extensions": "concepts/run-log-implementations/extensions.md"
+      - "Integration":
+          - "Overview": "concepts/integration.md"
+      - "Compute Mode":
+          - "Overview": "concepts/modes.md"
+          - "Local": "concepts/modes-implementations/local.md"
+          - "Local Container": "concepts/modes-implementations/local-container.md"
+          - "Extensions": "concepts/modes-implementations/extensions.md"
+  - "Tutorials":
+      - "Overview": "tutorial/tutorial.md"
+  - "Examples":
+      - "Overview": "examples.md"
+  - "Extensions":
+      - "Guide to Extensions": "extensions/extensions.md"
+  - "Releases": "RELEASES.md"
