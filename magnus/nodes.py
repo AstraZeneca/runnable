@@ -21,14 +21,11 @@ logger = logging.getLogger(defaults.NAME)
 
 class BaseExecutionType:  # pylint: disable=too-few-public-methods
     """
-    A base execution class which actually does the execution of command defined by the user
-
-    Raises:
-        NotImplementedError: Base class, hence not implemeted
+    A base execution class which does the execution of command defined by the user
     """
     execution_type = None
 
-    def execute_command(self, command: str, map_variable: str = ''):
+    def execute_command(self, command: str, map_variable: dict = None):
         """
         The function to execute the command mentioned in command.
 
@@ -39,7 +36,7 @@ class BaseExecutionType:  # pylint: disable=too-few-public-methods
         Args:
             command (str): The actual command to run
             parameters (dict, optional): The parameters available across the system. Defaults to None.
-            map_variable (str, optional): If the command is part of map node, the value of map. Defaults to ''.
+            map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
 
         Raises:
             NotImplementedError: [description]
@@ -72,7 +69,7 @@ class PythonExecutionType(BaseExecutionType):  # pylint: disable=too-few-public-
     """
     execution_type = 'python'
 
-    def execute_command(self, command, map_variable: dict = None,):
+    def execute_command(self, command, map_variable: dict = None):
         module, func = utils.get_module_and_func_names(command)
         sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
         imported_module = importlib.import_module(module)
@@ -82,11 +79,22 @@ class PythonExecutionType(BaseExecutionType):  # pylint: disable=too-few-public-
         filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
 
         logger.info(f'Calling {func} from {module} with {filtered_parameters}')
-        user_set_parameters = f(**filtered_parameters)
+        try:
+            user_set_parameters = f(**filtered_parameters)
+        except Exception as _e:
+            msg = (
+                f'Call to the function {command} with {filtered_parameters} did not succeed.\n'
+            )
+            logger.exception(msg)
+            logger.exception(_e)
+            raise
 
         if user_set_parameters:
             if not type(user_set_parameters) == dict:
-                raise Exception('Only dictionaries are supported as return values')
+                msg = (
+                    f'call to function {command} returns of type: {type(user_set_parameters)}. '
+                    'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
+                raise Exception(msg)
             for key, value in user_set_parameters.items():
                 logger.info(f'Setting User defined parameter {key} with value: {value}')
                 os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
@@ -102,8 +110,13 @@ class ShellExecutionType(BaseExecutionType):
         # TODO can we do this without shell=True. Hate that but could not find a way out
         # This is horribly weird, focussing only on python ways of doing for now
         # It might be that we have to write a bash/windows script that does things for us
-        # TODO: send in the map variable as environment variable
-        return subprocess.run(command.split(), check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess_env = os.environ.copy()
+        if map_variable:
+            subprocess_env[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+        return subprocess.run(
+            command.split(), check=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            env=subprocess_env)
 
 
 class BaseNode:
@@ -111,12 +124,13 @@ class BaseNode:
     Base class with common functionality provided for a Node of a graph.
 
     A node of a graph could be a
-        * single execution node as Task, Succcess, Fail.
-        * Could be graph in itself as Parallel, dag and map.
-        * could be a convenience rendering function like as-is.
+        * single execution node as task, succcess, fail.
+        * Could be graph in itself as parallel, dag and map.
+        * could be a convenience function like as-is.
 
     The name is relative to the DAG.
     The internal name of the node, is absolute name in dot path convention.
+        This has one to one mapping to the name in the run log
     The internal name of a node, should always be odd when split against dot.
 
     The internal branch name, only applies for branched nodes, is the branch it belongs to.
@@ -136,7 +150,8 @@ class BaseNode:
 
     def command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
         """
-        Replace spaces with special character for spaces
+        Replace spaces with special character for spaces.
+        Spaces in the naming of the node is convenient for the user but causes issues when used programmatically.
 
         Returns:
             str: The command friendly name of the node
@@ -146,7 +161,8 @@ class BaseNode:
     @classmethod
     def get_internal_name_from_command_name(cls, command_name: str) -> str:
         """
-        Replace Magnus specific whitespace character (%) with whitespace
+        Replace Magnus specific character (%) with whitespace.
+        The opposite of command_friendly_name.
 
         Args:
             command_name (str): The command friendly node name
@@ -156,19 +172,68 @@ class BaseNode:
         """
         return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, ' ')
 
+    @classmethod
+    def resolve_map_placeholders(cls, name: str, map_variable: dict = None) -> str:
+        """
+        If there is no map step used, then we just return the name as we find it.
+
+        If there is a map variable being used, replace every occurence of the map variable placeholder with
+        the value sequentially.
+
+        For example: 
+        1). dag:
+              start_at: step1
+              steps:
+                step1:
+                    type: map
+                    iterate_on: y
+                    iterate_as: y_i
+                    branch:
+                        start_at: map_step1
+                        steps:
+                            map_step1: # internal_name step1.placeholder.map_step1
+                                type: task
+                                command: a.map_func
+                                command_type: python
+                                next: map_success
+                            map_success:
+                                type: success
+                            map_failure:
+                                type: fail 
+
+            and if y is ['a', 'b', 'c']. 
+
+            This method would be called 3 times with map_variable = {'y_i': 'a'}, map_variable = {'y_i': 'b'} and 
+            map_variable = {'y_i': 'c'} corresponding to the three branches. 
+
+        For nested map branches, we would get the map_variables ordered heirarchically.
+
+        Args:
+            name (str): The name to resolve
+            map_variable (dict): The dictionary of map variables
+
+        Returns:
+            [str]: The resolved name
+        """
+        if not map_variable:
+            return name
+
+        for _, value in map_variable.items():
+            name = name.replace(defaults.MAP_PLACEHOLDER, value, 1)
+
+        return name
+
     def get_step_log_name(self, map_variable: dict = None) -> str:
         """
         For every step in the dag, there is a corresponding step log name.
         This method returns the step log name in dot path convention.
 
-        We should be able to return the corresponding step log from the run log store from this name.
-
         All node types except a map state has a "static" defined step_log names and are equivalent to internal_name.
         For nodes belonging to map state, the internal name has a placeholder that is replaced at runtime.
 
         Args:
-            map_variable (str): If the node is of type map, this is the iteration variable
-            For example: if we are iterating on [a, b, c], this would be 'a', 'b' or 'c'
+            map_variable (dict): If the node is of type map, the names are based on the current iteration state of the
+            parameter.
 
         Returns:
             str: The dot path name of the step log name
@@ -180,14 +245,12 @@ class BaseNode:
         For nodes that are internally branches, this method returns the branch log name.
         The branch log name is in dot path convention.
 
-        We should be able to retrieve the corresponding branch log from run log store from this name.
-
         For nodes that are not map, the internal branch name is equivalent to the branch name.
         For map nodes, the internal branch name has a placeholder that is replaced at runtime.
 
         Args:
-            map_variable ([type]): If the node type is of type map, this is the iteration variable.
-            For example: if we are iterating on [a, b, c], this would be 'a', 'b' or 'c'
+            map_variable (dict): If the node is of type map, the names are based on the current iteration state of the
+            parameter.
 
         Returns:
             str: The dot path name of the branch log
@@ -239,7 +302,8 @@ class BaseNode:
         raise Exception(f'Node of type {self.node_type} does not have any branches')
 
     def is_terminal_node(self):
-        """Returns whether a node has a next node
+        """
+        Returns whether a node has a next node
 
         Returns:
             bool: True or False of whether there is next node.
@@ -249,7 +313,8 @@ class BaseNode:
         return True
 
     def get_neighbours(self):
-        """Gets the connecting neighbour nodes, either the "next" node or "on_failure" node.
+        """
+        Gets the connecting neighbour nodes, either the "next" node or "on_failure" node.
 
         Returns:
             list: List of connected neighbours for a given node. Empty if terminal node.
@@ -293,15 +358,14 @@ class BaseNode:
             int: The number of maximum retries as defined by the config or 1.
         """
         if 'retry' in self.config:
-            retry = int(self.config['retry']) or 1
-            return retry
+            return int(self.config['retry']) or 1
         return 1
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         """
         The actual function that does the execution of the command in the config.
 
-        Should only be implemented for task and as-is and never for
+        Should only be implemented for task, success, fail and as-is and never for
         composite nodes.
 
         Args:
@@ -330,26 +394,6 @@ class BaseNode:
         """
         raise NotImplementedError
 
-    @classmethod
-    def resolve_map_placeholders(cls, name: str, map_variable: dict = None) -> str:
-        """
-        Replace map_placeholders with map_variables
-
-        Args:
-            name (str): The name to resolve
-            map_variable (dict): The dictionary of map variables
-
-        Returns:
-            [str]: The resolved name
-        """
-        if not map_variable:
-            return name
-
-        for _, value in map_variable.items():
-            name = name.replace(defaults.MAP_PLACEHOLDER, value, 1)
-
-        return name
-
 
 def validate_node(node: BaseNode) -> List[str]:
     """
@@ -373,8 +417,10 @@ def validate_node(node: BaseNode) -> List[str]:
     messages = []
     if '.' in node.name:
         messages.append('Node names cannot have . in them')
+
     if '%' in node.name:
         messages.append("Node names cannot have '%' in them")
+
     if 'required' in node_spec:
         for req in node_spec['required']:
             if not req in node.config:
@@ -601,7 +647,7 @@ class ParallelNode(BaseNode):
 
         The modes that render the job specifications, do not need to interact with this node at all as they have their
         own internal mechanisms of handing parallel states.
-        If they do not, find a better orchestrator or use as-is state to make it work.
+        If they do not, you can find a way using as-is nodes as hack nodes.
 
         The execution of a dag, could result in
             * The dag being completely executed with a definite (fail, success) state in case of
@@ -622,8 +668,9 @@ class ParallelNode(BaseNode):
             branch_log.status = defaults.PROCESSING
             executor.run_log_store.add_branch_log(branch_log, executor.run_id)
 
-        #pool = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
         jobs = []
+        # Given that we can have nesting and complex graphs, controlling the number of processess is hard.
+        # A better way is to actually submit the job to some process scheduler which does resource management
         for internal_branch_name, branch in self.branches.items():
             if executor.is_parallel_execution():
                 # Trigger parallel jobs
@@ -632,21 +679,18 @@ class ParallelNode(BaseNode):
                     'configuration_file': executor.configuration_file,
                     'pipeline_file': executor.pipeline_file,
                     'variables_file': executor.variables_file,
-                    'branch_name': internal_branch_name,
+                    'branch_name': internal_branch_name.replace(' ', defaults.COMMAND_FRIENDLY_CHARACTER),
                     'run_id': executor.run_id,
                     'map_variable': json.dumps(map_variable)
                 }
                 process = multiprocessing.Process(target=action, kwargs=kwargs)
                 jobs.append(process)
                 process.start()
-                # pool.apply_async(func=action, kwds=kwargs)pool.apply_async(func=action, kwds=kwargs)
 
             else:
                 # If parallel is not enabled, execute them sequentially
                 executor.execute_graph(branch, map_variable=map_variable, **kwargs)
 
-        # pool.close()
-        # pool.join()
         for job in jobs:
             job.join()  # Find status of the branches
 
@@ -681,14 +725,13 @@ class MapNode(BaseNode):
 
     The structure is genrally:
         MapNode:
-            Branch
+            branch
 
-        The config is expected to have a variable 'iterate_on' which is looked for in the parameters.
+        The config is expected to have a variable 'iterate_on' and iterate_as which are looked for in the parameters.
         for iter_variable in parameters['iterate_on']:
-            Execute the Branch
+            Execute the Branch by sending {'iterate_as': iter_variable}
 
     The internal naming convention creates branches dynamically based on the iteration value
-    Currently, only simple Task, fail, success nodes are tested.
     """
     node_type = 'map'
 
@@ -740,7 +783,7 @@ class MapNode(BaseNode):
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         """
-        This method should never be called for a node of type Parallel
+        This method should never be called for a node of type map
 
         Args:
             executor (BaseExecutor): The Executor class as defined by the config
@@ -756,15 +799,14 @@ class MapNode(BaseNode):
         This function does the actual execution of the branch of the map node.
 
         From a design perspective, this function should not be called if the execution mode is 3rd party orchestrated.
-        Only modes that are currently accepted are: local, local-container, local-aws-batch.
 
         The modes that render the job specifications, do not need to interact with this node at all as
         they have their own internal mechanisms of handing map states or dynamic parallel states.
-        If they do not, find a better orchestrator or use as-is state to make it work.
+        If they do not, you can find a way using as-is nodes as hack nodes.
 
         The actual logic is :
             * We iterate over the iterable as mentioned in the config
-            * For every value in the iterable we call the executor.execute_graph(branch, iter_variable)
+            * For every value in the iterable we call the executor.execute_graph(branch, iterate_as: iter_variable)
 
         The execution of a dag, could result in
             * The dag being completely executed with a definite (fail, success) state in case of local
@@ -796,8 +838,9 @@ class MapNode(BaseNode):
             branch_log.status = defaults.PROCESSING
             executor.run_log_store.add_branch_log(branch_log, executor.run_id)
 
-        #pool = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
         jobs = []
+        # Given that we can have nesting and complex graphs, controlling the number of processess is hard.
+        # A better way is to actually submit the job to some process scheduler which does resource management
         for iter_variable in iterate_on:
             effective_map_variable = map_variable or OrderedDict()
             effective_map_variable[self.iterate_as] = iter_variable
@@ -809,21 +852,18 @@ class MapNode(BaseNode):
                     'configuration_file': executor.configuration_file,
                     'pipeline_file': executor.pipeline_file,
                     'variables_file': executor.variables_file,
-                    'branch_name': self.branch.internal_branch_name,
+                    'branch_name': self.branch.internal_branch_name.replace(' ', defaults.COMMAND_FRIENDLY_CHARACTER),
                     'run_id': executor.run_id,
                     'map_variable': json.dumps(effective_map_variable)
                 }
                 process = multiprocessing.Process(target=action, kwargs=kwargs)
                 jobs.append(process)
                 process.start()
-                #pool.apply_async(func=action, kwds=kwargs)
 
             else:
                 # If parallel is not enabled, execute them sequentially
                 executor.execute_graph(self.branch, map_variable=effective_map_variable, **kwargs)
 
-        # pool.close()
-        # pool.join()
         for job in jobs:
             job.join()
         # # Find status of the branches
@@ -863,10 +903,6 @@ class DagNode(BaseNode):
             dag_definition: A YAML file that holds the dag in 'dag' block
 
         The config is expected to have a variable 'dag_definition'.
-
-    Currently, only simple Task, fail, success nodes are tested.
-    No variable substitution is allowed as of now.
-
     """
     node_type = 'dag'
 
@@ -928,7 +964,7 @@ class DagNode(BaseNode):
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         """
-        This method should never be called for a node of type Parallel
+        This method should never be called for a node of type dag
 
         Args:
             executor (BaseExecutor): The Executor class as defined by the config
@@ -944,10 +980,10 @@ class DagNode(BaseNode):
         This function does the actual execution of the branch of the dag node.
 
         From a design perspective, this function should not be called if the execution mode is 3rd party orchestrated.
-        Only modes that are currently accepted are: local, local-container, local-aws-batch.
+
         The modes that render the job specifications, do not need to interact with this node at all
         as they have their own internal mechanisms of handling sub dags.
-        If they do not, find a better orchestrator or use as-is state to make it work.
+        If they do not, you can find a way using as-is nodes as hack nodes.
 
         The actual logic is :
             * We just execute the branch as with any other composite nodes
@@ -1000,7 +1036,7 @@ class AsISNode(BaseNode):
     AsIs is a convenience design node.
 
     It always returns success in the attempt log and does nothing during interactive compute.
-        i.e. local, local-container, local-aws-batch
+
     The command given to execute is ignored but it does do the syncing of the catalog.
     This node is very akin to pass state in Step functions.
 

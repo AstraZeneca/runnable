@@ -27,6 +27,22 @@ def test_get_command_class_raises_exception_for_invalid_class():
         nodes.get_command_class(command_type='dummy1')
 
 
+def test_python_execute_command_raises_exception_if_function_fails(mocker, monkeypatch):
+    dummy_func = mocker.MagicMock(side_effect=Exception())
+
+    class DummyModule:
+        def __init__(self):
+            self.func = dummy_func
+    monkeypatch.setattr(nodes.utils, 'get_module_and_func_names', mocker.MagicMock(return_value=('idk', 'func')))
+    monkeypatch.setattr(nodes.importlib, 'import_module', mocker.MagicMock(return_value=DummyModule()))
+
+    monkeypatch.setattr(nodes.utils, 'filter_arguments_for_func', mocker.MagicMock(return_value={'a': 1}))
+
+    py_exec = nodes.PythonExecutionType()
+    with pytest.raises(Exception):
+        py_exec.execute_command(command='test')
+
+
 def test_python_execute_command_calls_with_no_parameters_if_none_sent(mocker, monkeypatch):
     dummy_func = mocker.MagicMock(return_value=None)
 
@@ -61,7 +77,7 @@ def test_python_execute_command_calls_with_parameters_if_sent_by_filter(mocker, 
     dummy_func.assert_called_once_with(a=1)
 
 
-def test_python_execute_command_sends_mapped_variable_as_iter_variable(mocker, monkeypatch):
+def test_python_execute_command_sends_no_mapped_variable_if_not_present_in_signature(mocker, monkeypatch):
     dummy_func = mocker.MagicMock(return_value=None)
 
     class DummyModule:
@@ -74,8 +90,26 @@ def test_python_execute_command_sends_mapped_variable_as_iter_variable(mocker, m
     monkeypatch.setattr(nodes.utils, 'filter_arguments_for_func', mocker.MagicMock(return_value={'a': 1}))
 
     py_exec = nodes.PythonExecutionType()
-    py_exec.execute_command(command='test', map_variable='iterme')
-    dummy_func.assert_called_once_with(a=1, ITER_VARIABLE='iterme')
+    py_exec.execute_command(command='test', map_variable={'map_name': 'map_value'})
+    dummy_func.assert_called_once_with(a=1)
+
+
+def test_python_execute_command_sends_mapped_variable_if_present_in_signature(mocker, monkeypatch):
+    dummy_func = mocker.MagicMock(return_value=None)
+
+    class DummyModule:
+        def __init__(self):
+            self.func = dummy_func
+
+    monkeypatch.setattr(nodes.utils, 'get_module_and_func_names', mocker.MagicMock(return_value=('idk', 'func')))
+    monkeypatch.setattr(nodes.importlib, 'import_module', mocker.MagicMock(return_value=DummyModule()))
+
+    monkeypatch.setattr(nodes.utils, 'filter_arguments_for_func', mocker.MagicMock(
+        return_value={'a': 1, 'map_name': 'map_value'}))
+
+    py_exec = nodes.PythonExecutionType()
+    py_exec.execute_command(command='test')
+    dummy_func.assert_called_once_with(a=1, map_name='map_value')
 
 
 def test_python_execute_command_raises_exception_if_return_value_is_not_dict(mocker, monkeypatch):
@@ -116,6 +150,21 @@ def test_python_execute_command_sets_env_variable_of_return_values(mocker, monke
     del os.environ[defaults.PARAMETER_PREFIX + 'a']
 
 
+def test_base_node_command_friendly_name_replaces_whitespace_with_character():
+    node = nodes.BaseNode(name='test', internal_name='test', config='test_config', execution_type=None)
+
+    assert node.command_friendly_name() == 'test'
+
+    node.internal_name = 'test '
+    assert node.command_friendly_name() == 'test' + defaults.COMMAND_FRIENDLY_CHARACTER
+
+
+def test_base_node_get_internal_name_from_command_name_replaces_character_with_whitespace():
+    assert nodes.BaseNode.get_internal_name_from_command_name('test') == 'test'
+
+    assert nodes.BaseNode.get_internal_name_from_command_name('test%') == 'test '
+
+
 def test_base_node_get_step_log_name_returns_internal_name_if_no_map_variable():
     node = nodes.BaseNode(name='test', internal_name='test', config='test_config', execution_type=None)
 
@@ -123,10 +172,18 @@ def test_base_node_get_step_log_name_returns_internal_name_if_no_map_variable():
 
 
 def test_base_node_get_step_log_name_returns_map_modified_internal_name_if_map_variable():
-    node = nodes.BaseNode(name='test', internal_name='test_' + defaults.MAP_PLACEHOLDER,
+    node = nodes.BaseNode(name='test', internal_name='test.' + defaults.MAP_PLACEHOLDER,
                           config='test_config', execution_type=None)
 
-    assert node.get_step_log_name(map_variable='a') == 'test_a'
+    assert node.get_step_log_name(map_variable={'map_key': 'a'}) == 'test.a'
+
+
+def test_base_node_get_step_log_name_returns_map_modified_internal_name_if_map_variable_multiple():
+    node = nodes.BaseNode(
+        name='test', internal_name='test.' + defaults.MAP_PLACEHOLDER + '.step.' + defaults.MAP_PLACEHOLDER,
+        config='test_config', execution_type=None)
+
+    assert node.get_step_log_name(map_variable={'map_key': 'a', 'map_key1': 'b'}) == 'test.a.step.b'
 
 
 def test_base_node_get_branch_log_name_returns_null_if_not_set():
@@ -144,9 +201,17 @@ def test_base_node_get_branch_log_name_returns_internal_name_if_set():
 
 def test_base_node_get_branch_log_name_returns_map_modified_internal_name_if_map_variable():
     node = nodes.BaseNode(name='test', internal_name='test_',  config='test_config',
-                          execution_type=None, internal_branch_name='test_' + defaults.MAP_PLACEHOLDER)
+                          execution_type=None, internal_branch_name='test.' + defaults.MAP_PLACEHOLDER)
 
-    assert node.get_branch_log_name(map_variable='a') == 'test_a'
+    assert node.get_branch_log_name(map_variable={'map_key': 'a'}) == 'test.a'
+
+
+def test_base_node_get_branch_log_name_returns_map_modified_internal_name_if_map_variable_multiple():
+    node = nodes.BaseNode(name='test', internal_name='test_',  config='test_config',
+                          execution_type=None,
+                          internal_branch_name='test.' + defaults.MAP_PLACEHOLDER + '.step.' + defaults.MAP_PLACEHOLDER)
+
+    assert node.get_branch_log_name(map_variable={'map_key': 'a', 'map_key1': 'b'}) == 'test.a.step.b'
 
 
 def test_base_node_get_on_failure_node_returns_none_if_not_defined():
@@ -269,6 +334,19 @@ def test_validate_node_sends_message_back_if_dot_present_in_name(mocker, monkeyp
     assert messages[0] == 'Node names cannot have . in them'
 
 
+def test_validate_node_sends_message_back_if_character_present_in_name(mocker, monkeypatch):
+    dummy_specs = {'dummy': {}}
+    monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
+
+    node = nodes.BaseNode(name='test%', internal_name='test',  config={}, execution_type=None)
+
+    node.node_type = 'dummy'
+    messages = nodes.validate_node(node)
+
+    assert len(messages) == 1
+    assert messages[0] == "Node names cannot have '%' in them"
+
+
 def test_validate_node_messages_empty_if_name_is_valid(mocker, monkeypatch):
     dummy_specs = {'dummy': {}}
     monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
@@ -376,7 +454,7 @@ def test_task_node_sets_attempt_log_success_in_no_exception_of_execution(mocker,
     assert mock_attempt_log.status == defaults.SUCCESS
 
 
-def test_task_node_sends_right_parameters_if_sent_to_execution(mocker, monkeypatch):
+def test_task_node_sends_map_variable_if_sent_to_execution(mocker, monkeypatch):
     mock_attempt_log = mocker.MagicMock()
     mock_execution_command = mocker.MagicMock()
 
@@ -388,10 +466,17 @@ def test_task_node_sends_right_parameters_if_sent_to_execution(mocker, monkeypat
     task_node.execution_type = mocker.MagicMock()
     task_node.execution_type.execute_command = mock_execution_command
 
-    task_node.execute(executor=mock_executor, parameters='parameters', map_variable='a')
+    task_node.execute(executor=mock_executor, map_variable={'map_key': 'a'})
 
     assert mock_attempt_log.status == defaults.SUCCESS
-    mock_execution_command.assert_called_once_with('nocommand', 'parameters', map_variable='a')
+    mock_execution_command.assert_called_once_with('nocommand', map_variable={'map_key': 'a'})
+
+
+def test_task_node_execute_as_graph_raises_exception():
+    task_node = nodes.TaskNode(name='test', internal_name='test', config={'command': 'nocommand'}, execution_type=None)
+
+    with pytest.raises(Exception):
+        task_node.execute_as_graph(None)
 
 
 def test_get_node_class_returns_the_correct_subclasses():
@@ -437,6 +522,13 @@ def test_fail_node_sets_attempt_log_success_even_in_exception(mocker, monkeypatc
     assert mock_attempt_log.status == defaults.SUCCESS
 
 
+def test_fail_node_execute_as_graph_raises_exception():
+    fail_node = nodes.FailNode(name='test', internal_name='test', config={'command': 'nocommand'}, execution_type=None)
+
+    with pytest.raises(Exception):
+        fail_node.execute_as_graph(None)
+
+
 def test_success_node_sets_branch_log_success(mocker, monkeypatch):
     mock_attempt_log = mocker.MagicMock()
     mock_branch_log = mocker.MagicMock()
@@ -465,6 +557,14 @@ def test_success_node_sets_attempt_log_success_even_in_exception(mocker, monkeyp
     node.execute(executor=mock_executor)
 
     assert mock_attempt_log.status == defaults.SUCCESS
+
+
+def test_success_node_execute_as_graph_raises_exception():
+    success_node = nodes.SuccessNode(name='test', internal_name='test',
+                                     config={'command': 'nocommand'}, execution_type=None)
+
+    with pytest.raises(Exception):
+        success_node.execute_as_graph(None)
 
 
 def test_parallel_node_raises_exception_for_empty_branches():
@@ -514,25 +614,22 @@ def test_parallel_node_execute_raises_exception(mocker, monkeypatch):
     with pytest.raises(Exception):
         node.execute(executor='test')
 
-# def test_parallel_node_execute_as_graph_sets_to_processing_first(mocker, monkeypatch):
-#     monkeypatch.setattr(nodes.ParallelNode, 'get_sub_graphs', mocker.MagicMock())
-#     mock_executor = mocker.MagicMock()
-#     mock_branch_log = mocker.MagicMock()
-#     mock_executor.run_log_store.create_branch_log = mocker.MagicMock(return_value=mock_branch_log)
-
-#     node = nodes.ParallelNode(name='test', internal_name='test', config={}, execution_type='python')
-#     node.branches = {'branch_a': {}}
-
 
 def test_nodes_map_node_raises_exception_if_config_not_have_iterate_on():
     with pytest.raises(Exception):
         nodes.MapNode(name='test', internal_name='test', config={}, execution_type='test')
 
 
+def test_nodes_map_node_raises_exception_if_config_not_have_iterate_as():
+    with pytest.raises(Exception):
+        nodes.MapNode(name='test', internal_name='test', config={'iterate_on': 'y'}, execution_type='test')
+
+
 def test_nodes_map_node_names_the_branch_as_defaults_place_holder(monkeypatch, mocker):
     monkeypatch.setattr(nodes.MapNode, 'get_sub_graph', mocker.MagicMock())
 
-    node = nodes.MapNode(name='test', internal_name='test', config={'iterate_on': 'a'}, execution_type='test')
+    node = nodes.MapNode(name='test', internal_name='test', config={
+                         'iterate_on': 'a', 'iterate_as': 'y_i'}, execution_type='test')
 
     assert node.branch_placeholder_name == defaults.MAP_PLACEHOLDER
 
@@ -542,7 +639,7 @@ def test_nodes_map_get_sub_graph_calls_create_graph_with_correct_naming(mocker, 
     monkeypatch.setattr(nodes, 'create_graph', mock_create_graph)
 
     _ = nodes.MapNode(name='test', internal_name='test', config={
-                      'iterate_on': 'a', 'branch': {}}, execution_type='test')
+        'iterate_on': 'a', 'iterate_as': 'y_i', 'branch': {}}, execution_type='test')
 
     mock_create_graph.assert_called_once_with({}, internal_branch_name='test.' + defaults.MAP_PLACEHOLDER)
 
@@ -552,7 +649,7 @@ def test_nodes_map_get_branch_by_name_returns_a_sub_graph(mocker, monkeypatch):
     monkeypatch.setattr(nodes, 'create_graph', mock_create_graph)
 
     node = nodes.MapNode(name='test', internal_name='test', config={
-        'iterate_on': 'a', 'branch': {}}, execution_type='test')
+        'iterate_on': 'a', 'iterate_as': 'y_i', 'branch': {}}, execution_type='test')
 
     assert node.get_branch_by_name('anyname') == 'a'
 
@@ -560,7 +657,8 @@ def test_nodes_map_get_branch_by_name_returns_a_sub_graph(mocker, monkeypatch):
 def test_nodes_map_node_execute_raises_exception(mocker, monkeypatch):
     monkeypatch.setattr(nodes.MapNode, 'get_sub_graph', mocker.MagicMock())
 
-    node = nodes.MapNode(name='test', internal_name='test', config={'iterate_on': 'a'}, execution_type='test')
+    node = nodes.MapNode(name='test', internal_name='test', config={
+                         'iterate_on': 'a', 'iterate_as': 'y_i'}, execution_type='test')
 
     with pytest.raises(Exception):
         node.execute('dummy')
@@ -628,6 +726,14 @@ def test_nodes_as_is_node_accepts_what_is_given():
     node = nodes.AsISNode(name='test', internal_name='test', config={'render_string': 'test'}, execution_type='test')
 
     assert node.render_string == 'test'
+
+
+def test_as_is_node_execute_as_graph_raises_exception():
+    as_is_node = nodes.AsISNode(name='test', internal_name='test',
+                                config={'command': 'nocommand'}, execution_type=None)
+
+    with pytest.raises(Exception):
+        as_is_node.execute_as_graph(None)
 
 
 def test_as_is_node_sets_attempt_log_success(mocker, monkeypatch):

@@ -282,10 +282,11 @@ def execute_single_brach(
                                            tag=tag,
                                            use_cached=False)
     mode_executor.cmd_line_arguments = kwargs
+    branch_internal_name = nodes.BaseNode.get_internal_name_from_command_name(branch_name)
 
     map_variable = utils.json_to_ordered_dict(map_variable)
 
-    branch_to_execute = graph.search_branch_by_internal_name(mode_executor.dag, branch_name)
+    branch_to_execute = graph.search_branch_by_internal_name(mode_executor.dag, branch_internal_name)
 
     logger.info('Executing the single branch of %s', branch_to_execute)
     mode_executor.execute_graph(dag=branch_to_execute, map_variable=map_variable)

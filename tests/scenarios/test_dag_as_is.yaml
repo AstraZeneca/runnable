@@ -1,0 +1,24 @@
+dag:
+  description: DAG for testing with as-is
+  start_at: step1
+  steps:
+    step1:
+      type: as-is
+      next: step2
+      catalog:
+        compute_data_folder: "tests/scenarios/test_data"
+        put:
+          - "*"
+    step2:
+      type: as-is
+      next: success
+      catalog:
+        compute_data_folder: "tests/scenarios/test_data"
+        get:
+          - "*"
+        put:
+          - "*"
+    success:
+      type: success
+    fail:
+      type: fail

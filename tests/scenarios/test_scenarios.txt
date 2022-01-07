@@ -1,0 +1,19 @@
+Test the following scenarios:
+
+For catalog settings:
+1). Using get from the catalog at the start of the pipeline should error out.
+2). Having no compute data folder should error out.
+
+
+For nodes:
+1). Simple dag with as-is nodes.
+2). Dag with parallel branches
+    a). Without parallel
+    b). with parallel
+3). Dag with map node.
+    a). Without parallel
+    b). with parallel
+4). Dag with embedded dag.
+5). Nested/complex dag.
+    a). Without parallel
+    b). With parallel
