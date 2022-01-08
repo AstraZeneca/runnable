@@ -72,7 +72,9 @@ class BaseCatalog:
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         # pylint: disable=unused-argument
         """
-        Get the catalog item by 'name' for the 'run id' and store it in compute data folder
+        Get the catalog item by 'name' for the 'run id' and store it in compute data folder.
+
+        The catalog location should have been created before you can get from it.
 
         Args:
             name (str): The name of the catalog item
@@ -185,7 +187,8 @@ class FileSystemCatalog(BaseCatalog):
         return self.config.get('catalog_location', defaults.CATALOG_LOCATION_FOLDER)
 
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
-        """ Get the file by matching glob pattern to the name
+        """
+        Get the file by matching glob pattern to the name
 
         Args:
             name ([str]): A glob matching the file name
@@ -219,7 +222,6 @@ class FileSystemCatalog(BaseCatalog):
             msg = (
                 f'Expected Catalog to be present at: {run_catalog} but not found.\n'
                 'Note: Please make sure that some data was put in the catalog before trying to get from it.\n'
-                'Hint: The starting step of the pipeline cannot get from the catalog.'
             )
             raise Exception(msg)
 

@@ -72,11 +72,8 @@ The available commands are:
                             help="Provide a config file which over-rides everything")
         parser.add_argument('--log-level', default=defaults.LOG_LEVEL, help='The logger level')
         parser.add_argument('--tag', help='A tag attached to the run')
-        parser.add_argument('--run-id', help='An optional run_id, one would be generated if not provided, see notes')
-        parser.add_argument(
-            '--use-cached', action='store_true', help='Please ensure you provided a full run-id if you are using this')
-        parser.add_argument(
-            '--use-cached-force', action='store_true', help='Ignores the differnce betweent the cached runs')
+        parser.add_argument('--run-id', help='An optional run_id, one would be generated if not provided')
+        parser.add_argument('--use-cached', help='Provide the previous run_id to re-run.')
 
         # now that we're inside a subcommand, ignore the first
         # TWO argvs, ie the command (git) and the subcommand (commit)
@@ -90,7 +87,7 @@ The available commands are:
         logger.setLevel(args.log_level)
         pipeline.execute(
             variables_file=args.var_file, configuration_file=args.config_file, pipeline_file=args.file, tag=args.tag,
-            run_id=args.run_id, use_cached=args.use_cached, use_cached_force=args.use_cached_force, **kwargs)
+            run_id=args.run_id, use_cached=args.use_cached, **kwargs)
 
     def execute_single_node(self):
         """

@@ -60,7 +60,7 @@ class BaseExecutor:
     def __init__(self, config):
         # pylint: disable=R0914,R0913
         self.config = config
-        # The remaining would be attafched later
+        # The remaining would be attached later
         self.pipeline_file = None
         self.variables_file = None
         self.run_id = None
@@ -75,9 +75,6 @@ class BaseExecutor:
         self.variables_file = None
         self.configuration_file = None
         self.cmd_line_arguments = {}
-        self.is_rerun_catalog_synced = False
-
-    # TODO: Get the maximum number of parallel processes from user
 
     def is_parallel_execution(self) -> bool:  # pylint: disable=R0201
         """
@@ -94,27 +91,25 @@ class BaseExecutor:
         Create a run log and put that in the run log store
         """
         run_log = self.run_log_store.create_run_log(self.run_id)
-        run_log.use_cached = self.use_cached
         run_log.tag = self.tag
+        run_log.use_cached = False
         run_log.status = defaults.PROCESSING
         run_log.dag_hash = self.dag_hash
 
+        parameters = self.cmd_line_arguments
         if self.previous_run_log:
             run_log.original_run_id = self.previous_run_log.run_id
             # Sync the previous run log catalog to this one.
             self.catalog_handler.sync_between_runs(previous_run_id=run_log.original_run_id, run_id=self.run_id)
-            self.is_rerun_catalog_synced = True
-        self.run_log_store.put_run_log(run_log)
-
-        # Update parameters
-        parameters = self.cmd_line_arguments
-        if self.previous_run_log:
+            run_log.use_cached = True
             parameters.update(self.previous_run_log.parameters)
-        self.run_log_store.set_parameters(self.run_id, parameters)
+
+        run_log.parameters = parameters
 
         # Update run_config
-        run_config = utils.get_run_config(self)
-        self.run_log_store.set_run_config(self.run_id, run_config)
+        run_log.run_config = utils.get_run_config(self)
+
+        self.run_log_store.put_run_log(run_log)
 
     def prepare_for_graph_execution(self):
         """
@@ -167,10 +162,17 @@ class BaseExecutor:
         4). Add the items onto the step log according to the stage
 
         Args:
-            node (Node): [description]
-            step_log (datastore.StepLog): [description]
-            stage (str): [description]
+            node (Node): The current node being processed
+            step_log (datastore.StepLog): The step log corresponding to that node
+            stage (str): One of get or put
         """
+        if stage not in ['get', 'put']:
+            msg = (
+                'Catalog service only accepts get/put possible actions as part of node execution.'
+                f'Sync catalog of the executor: {self.service_name} asks for {stage} which is not accepted'
+            )
+            raise Exception(msg)
+
         node_catalog_settings = node.get_catalog_settings()
         if not (node_catalog_settings and stage in node_catalog_settings):
             # Nothing to get/put from the catalog
@@ -405,7 +407,7 @@ class BaseExecutor:
 
             current_node = next_node_name
 
-        if map_variable:
+        if map_variable:  # TODO: Is this still valid?
             # We are in map state, this would not finish the graph
             return
         run_log = self.run_log_store.get_branch_log(working_on.internal_branch_name, self.run_id)

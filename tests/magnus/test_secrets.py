@@ -18,44 +18,21 @@ def test_base_secrets_get_raises_not_implemented_error():
         base_secret.get()
 
 
-# def test_get_secrets_handler_returns_dummy_secret_manager_if_no_config_found():
-#     assert isinstance(secrets.get_secrets_handler(secrets_config=None), secrets.DummySecretManager)
-
-
-def test_get_secrets_handler_raises_exception_if_config_provided_with_no_type():
-    secrets_config = {'would': 'fail'}
-    with pytest.raises(Exception):
-        secrets.get_secrets_handler(secrets_config)
-
-
-def test_get_secrets_handler_returns_the_correct_subclasses(monkeypatch):
-    class DummySecret:
-        service_name = 'dumdummy'
-
-        def __init__(self, *args, **kwargs):
-            pass
-
-    monkeypatch.setattr(secrets.BaseSecrets, '__subclasses__', lambda: [DummySecret])
-
-    obj = secrets.get_secrets_handler(secrets_config={'type': 'dumdummy'})
-    assert type(obj) == DummySecret
-
-
-def test_dummy_secrets_handler_returns_none_if_name_provided(mocker, monkeypatch):
+def test_do_nothing_secrets_handler_returns_none_if_name_provided(mocker, monkeypatch):
     mock_base_secret = mocker.MagicMock()
 
     monkeypatch.setattr(secrets, 'BaseSecrets', mock_base_secret)
 
-    dummy_secret = secrets.DummySecretManager(config=None)
+    dummy_secret = secrets.DoNothingSecretManager(config=None)
     assert dummy_secret.get('I dont exist') is None
 
 
-def test_dummy_secrets_handler_returns_empty_dict_if_name_not_provided(mocker, monkeypatch):
+def test_do_nothing__handler_returns_empty_dict_if_name_not_provided(mocker, monkeypatch):
     mock_base_secret = mocker.MagicMock()
 
     monkeypatch.setattr(secrets, 'BaseSecrets', mock_base_secret)
 
-    dummy_secret = secrets.DummySecretManager(config=None)
+    dummy_secret = secrets.DoNothingSecretManager(config=None)
     assert dummy_secret.get() == {}
 
 

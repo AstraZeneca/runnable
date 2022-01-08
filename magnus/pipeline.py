@@ -6,6 +6,7 @@ from magnus import utils
 from magnus import graph
 from magnus import nodes
 from magnus import defaults
+from magnus import exceptions
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -155,8 +156,7 @@ def execute(
         pipeline_file: str,
         tag: str = None,
         run_id: str = None,
-        use_cached: bool = False,
-        use_cached_force: bool = False,
+        use_cached: str = None,
         **kwargs):
     # pylint: disable=R0914,R0913
     """
@@ -168,15 +168,9 @@ def execute(
         pipeline_file (str): The config/dag file
         run_id (str): The run id of the run.
         tag (str): If a tag is provided at the run time
-        use_cached (bool): Is true for a re-run, otherwise false
-        use_cached_force (bool, optional): If you want to force a re-run even if the dag was found to be
-        changed. Defaults to False.
-
-    Raises:
-        Exception: If the dag hash has found not to be same in case of re-runs and use-cached was not used.
+        use_cached (str): The previous run_id to use.
     """
     # Re run settings
-    re_run_id = run_id  # Used only if we asked for a cached run
     run_id = utils.generate_run_id(run_id=run_id)
 
     mode_executor = prepare_configurations(variables_file=variables_file,
@@ -188,16 +182,21 @@ def execute(
 
     mode_executor.cmd_line_arguments = kwargs
     previous_run_log = None
-    # TODO: Need more design thought on this
-    if use_cached or use_cached_force:
-        previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=re_run_id, full=True)
+
+    if use_cached:
+        try:
+            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
+        except exceptions.RunLogNotFoundError as _e:
+            msg = (
+                f'There is no run by {use_cached} in the current run log store '
+                f'{mode_executor.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n'
+                'Note: Even if the previous run used a different run log store, provide the run log store in the format'
+                ' accepted by the current run log store.'
+            )
+            raise Exception(msg) from _e
+
         if previous_run_log.dag_hash != mode_executor.dag_hash:
             logger.warning('The previous dag does not match to the current one!')
-            if not use_cached_force:
-                message = 'Not using the cached run as the dag hash did not match, \
-                            use --use-cached-force if you want to force'
-                logger.error(message)
-                raise Exception(message)
         mode_executor.previous_run_log = previous_run_log
         logger.info('Found a previous run log and using it as cache')
 

@@ -32,7 +32,7 @@ DEFAULT_CATALOG = {
     'type': 'file-system'
 }
 DEFAULT_SECRETS = {
-    'type': 'dummy'
+    'type': 'do-nothing'
 }
 
 # Map state

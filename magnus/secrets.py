@@ -1,5 +1,6 @@
 import logging
 from functools import lru_cache
+from typing import Union
 
 from magnus import defaults
 from magnus import utils
@@ -13,10 +14,9 @@ class BaseSecrets:
     A base class for Secrets Handler.
     All implementations should extend this class.
 
-    Do not use __init__ in the chlid class to store configuration parameters,
-    as a general design guideline and use get_from_config methods to get values as required.
-
-    This would ensure that we can change the config when appropriate.
+    Note: As a general guideline, do not extract anything from the config to set class level attributes.
+          Intergration patterns modify the config after init to change behaviors.
+          Access config properties using getters/property of the class.
 
     Raises:
         NotImplementedError: Base class and not implemented
@@ -26,7 +26,7 @@ class BaseSecrets:
     def __init__(self, config: dict, **kwargs):  # pylint: disable=unused-argument
         self.config = config or {}
 
-    def get(self, name: str = None, **kwargs):
+    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
         """
         Return the secret by name.
         If no name is give, return all the secrets.
@@ -40,48 +40,20 @@ class BaseSecrets:
         raise NotImplementedError
 
 
-def get_secrets_handler(secrets_config: dict):
-    """
-    Given a config, return the appropriate secrets handler
-
-    Args:
-        secrets_config (dict): The config as per the definition
-
-    Raises:
-        Exception: If no secrets handler of the type could be found in implementations
-
-    Returns:
-       BaseSecrets : The secrets handler as per the dag definiont
-    """
-    if secrets_config:
-        secrets_type = secrets_config.get('type', None)
-        if not secrets_type:
-            raise Exception('Please provide a secrets type')
-
-        for sub_class in BaseSecrets.__subclasses__():
-            if secrets_type == sub_class.service_name:
-                return sub_class(config=secrets_config.get('config', {}))
-
-    logger.info('No secrets handler found')
-    return DummySecretManager(config={})
-
-
-class DummySecretManager(BaseSecrets):
+class DoNothingSecretManager(BaseSecrets):
     """
     Does nothing secret manager
     """
 
-    service_name = 'dummy'
+    service_name = 'do-nothing'
 
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
         self.secrets = {}
 
-    def get(self, name: str = None, **kwargs) -> dict:
+    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
         """
-        Get a secret of name from the secrets file.
-
-        If no name is provided, we return all
+        If a name is provided, return None else return empty dict.
 
         Args:
             name (str): The name of the secret to retrieve
@@ -130,10 +102,9 @@ class DotEnvSecrets(BaseSecrets):
         We assume that a dotenv file is of format,
             key=value  -> secrets[key]='value'
             key1=value1# comment  -> secrets[key1]='value1'
-            key2=value2 # comment. -> secrets[key2]='value2 '
+            key2=value2 # comment. -> secrets[key2]='value2'
 
-        The key/value pair is read as present in the file with spaces included.
-        Please be mindful of spaces.
+        We strip the secret value of any empty spaces at the start and end.
 
         Raises:
             Exception: If the file at secrets_location is not found.
@@ -152,7 +123,7 @@ class DotEnvSecrets(BaseSecrets):
                 key, value = data
                 self.secrets[key] = value.strip('\n')
 
-    def get(self, name: str = None, **kwargs) -> dict:
+    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
         """
         Get a secret of name from the secrets file.
 

@@ -11,8 +11,7 @@ class Graph:
     A class representing a graph.
 
     The representation is similar to AWS step functions.
-    We have nodes and traversal is based on start_at and on_failure
-    definitoin of individual nodes of the graph
+    We have nodes and traversal is based on start_at and on_failure definition of individual nodes of the graph
     """
 
     def __init__(self, start_at, description=None, max_time=86400, internal_branch_name=None):
@@ -24,7 +23,7 @@ class Graph:
 
     def get_node_by_name(self, name: str) -> object:
         """
-        Return the Node Object by the name
+        Return the Node object by the name
         The name is always relative to the graph
 
         Args:
@@ -82,6 +81,7 @@ class Graph:
         3). Confirming that the start_at is actually a node present in graph
         4). Detection of one and only one success node.
         5). Detection of one and only one fail node.
+        6). Missing nodes if referred by next or on_failure
 
         Raises:
             Exception: [description]
@@ -194,7 +194,8 @@ class Graph:
         return False
 
     def is_dag(self) -> bool:
-        """Determines whether the graph is acyclic and directed
+        """
+        Determines whether the graph is acyclic and directed
 
         Returns:
             bool: Returns True if it is directed and acyclic.
@@ -209,7 +210,8 @@ class Graph:
         return True
 
     def is_cyclic_util(self, node, visited, recstack) -> bool:
-        """recursive utily that determines if a node and neighbours has a cycle. Is used in is_dag method.
+        """
+        Recursive utily that determines if a node and neighbours has a cycle. Is used in is_dag method.
 
         Args:
             node (BaseNode): The node to check
@@ -235,7 +237,8 @@ class Graph:
         return False
 
     def missing_neighbours(self):
-        """Iterates through nodes and gets their connecting neighbours and checks if they exist in the graph.
+        """
+        Iterates through nodes and gets their connecting neighbours and checks if they exist in the graph.
 
         Returns:
             list: List of the missing nodes. Empty list if all neighbours are in the graph.

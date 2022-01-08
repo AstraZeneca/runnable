@@ -192,7 +192,7 @@ class LocalContainerDummyCatalog(BaseIntegration):
     """
     mode_type = 'local-container'
     service_type = 'catalog'  # One of secret, catalog, datastore
-    service_provider = 'dummy'  # The actual implementation of the service
+    service_provider = 'do-nothing'  # The actual implementation of the service
 
     def validate(self, **kwargs):
         logger.warning('Dummy catalog being set.')

@@ -1,5 +1,6 @@
-import pytest
 import os
+import pytest
+
 
 from magnus import utils  # pylint: disable=import-error
 from magnus import exceptions  # pylint: disable=import-error
@@ -34,54 +35,15 @@ def test_safe_make_dir_calls_with_correct_arguments(mocker, monkeypatch):
     mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
 
-def test_validate_run_id_errors_if_incorrect_format():
-    run_id = '1_2_3'
-    with pytest.raises(Exception):
-        utils.validate_run_id(run_id)
-
-
-def test_validate_run_id_correct_format():
-    utils.validate_run_id('1_2')
-    utils.validate_run_id('1')
-    utils.validate_run_id('')
-
-
-def test_generate_run_id_makes_one_if_not_provided(mocker, monkeypatch):
-    mock_validate = mocker.MagicMock()
-
-    monkeypatch.setattr(utils, 'validate_run_id', mock_validate)
-
+def test_generate_run_id_makes_one_if_not_provided():
     run_id = utils.generate_run_id()
-    assert len(run_id.split('_')) == 2
+    assert run_id
 
 
-def test_generate_run_id_raises_exception_if_validate_does(mocker, monkeypatch):
-    mock_validate = mocker.MagicMock(side_effect=Exception())
+def test_generate_run_id_returns_the_same_run_id_if_provided():
+    run_id = utils.generate_run_id('test')
 
-    monkeypatch.setattr(utils, 'validate_run_id', mock_validate)
-
-    with pytest.raises(Exception):
-        _ = utils.generate_run_id()
-
-
-def test_generate_run_id_only_retains_the_first_part(mocker, monkeypatch):
-    mock_validate = mocker.MagicMock()
-
-    monkeypatch.setattr(utils, 'validate_run_id', mock_validate)
-
-    run_id = utils.generate_run_id('retain_ignore')
-    retain, _ = run_id.split('_')
-    assert retain == 'retain'
-
-
-def test_generate_run_id_only_randoms_the_second_part_len(mocker, monkeypatch):
-    mock_validate = mocker.MagicMock()
-
-    monkeypatch.setattr(utils, 'validate_run_id', mock_validate)
-
-    run_id = utils.generate_run_id('retain_ignore')
-    _, random_gen = run_id.split('_')
-    assert len(random_gen) == defaults.RANDOM_RUN_ID_LEN
+    assert run_id == 'test'
 
 
 def test_apply_variables_raises_exception_if_variables_is_not_dict():
@@ -154,6 +116,18 @@ def test_load_yaml_raises_exception_if_yaml_load_does(mocker, monkeypatch):
         utils.load_yaml('test')
 
 
+def test_load_yaml_returns_from_yaml_load(mocker, monkeypatch):
+    mocker.patch('builtins.open', mocker.mock_open(read_data='data'))
+
+    mock_yaml_load = mocker.MagicMock(return_value='test')
+    mock_yaml = mocker.MagicMock()
+
+    mock_yaml.load = mock_yaml_load
+
+    monkeypatch.setattr(utils, 'YAML', mocker.MagicMock(return_value=mock_yaml))
+    assert 'test' == utils.load_yaml('does not matter')
+
+
 def test_is_a_git_repo_suppresses_exceptions(mocker, monkeypatch):
     mock_subprocess = mocker.MagicMock(side_effect=Exception())
 
@@ -170,7 +144,7 @@ def test_is_a_git_repo_returns_true_if_command_worked(mocker, monkeypatch):
     assert utils.is_a_git_repo()
 
 
-def test_get_current_code_commit_suppresses_exceptions(mocker, monkeypatch):
+def test_get_current_code_commit_does_suppresses_exceptions(mocker, monkeypatch):
     mock_is_a_git_repo = mocker.MagicMock(return_value=True)
 
     mock_subprocess = mocker.MagicMock(side_effect=Exception())
@@ -178,7 +152,8 @@ def test_get_current_code_commit_suppresses_exceptions(mocker, monkeypatch):
     monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
     monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
 
-    assert utils.get_current_code_commit() is None
+    with pytest.raises(Exception):
+        utils.get_current_code_commit()
 
 
 def test_get_current_code_returns_none_if_not_a_git_repo(mocker, monkeypatch):
@@ -244,15 +219,15 @@ def test_is_git_clean_returns_true_when_call_is_empty(mocker, monkeypatch):
     assert utils.is_git_clean() == (True, None)
 
 
-def test_get_git_remote_suppresses_exceptions(mocker, monkeypatch):
+def test_get_git_remote_does_not_suppresses_exceptions(mocker, monkeypatch):
     mock_is_a_git_repo = mocker.MagicMock(return_value=True)
 
     mock_subprocess = mocker.MagicMock(side_effect=Exception())
 
     monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
     monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
-
-    assert utils.get_git_remote() is None
+    with pytest.raises(Exception):
+        utils.get_git_remote()
 
 
 def test_get_git_remote_returns_none_if_not_a_git_repo(mocker, monkeypatch):
@@ -272,6 +247,41 @@ def test_get_git_remote_returns_calls_value(mocker, monkeypatch):
     monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
 
     assert utils.get_git_remote() == 'test'
+
+
+def test_get_git_code_identity_returns_default_in_case_of_exception(mocker, monkeypatch):
+    mock_get_current_code_commit = mocker.MagicMock(side_effect=Exception())
+
+    monkeypatch.setattr(utils, 'get_current_code_commit', mock_get_current_code_commit)
+
+    class MockCodeIdentity:
+        pass
+
+    run_log_store = mocker.MagicMock()
+    run_log_store.create_code_identity.return_value = MockCodeIdentity()
+
+    assert isinstance(utils.get_git_code_identity(run_log_store), MockCodeIdentity)
+
+
+def test_get_git_code_identity_returns_entities_from_other_functions(monkeypatch, mocker):
+    mock_get_current_code_commit = mocker.MagicMock(return_value='code commit')
+    mock_is_git_clean = mocker.MagicMock(return_value=(False, 'first file, second file'))
+    mock_get_git_remote = mocker.MagicMock(return_value='git remote')
+
+    monkeypatch.setattr(utils, 'get_current_code_commit', mock_get_current_code_commit)
+    monkeypatch.setattr(utils, 'is_git_clean', mock_is_git_clean)
+    monkeypatch.setattr(utils, 'get_git_remote', mock_get_git_remote)
+
+    mock_code_id = mocker.MagicMock()
+
+    run_log_store = mocker.MagicMock()
+    run_log_store.create_code_identity.return_value = mock_code_id
+
+    utils.get_git_code_identity(run_log_store)
+
+    assert mock_code_id.code_identifier == 'code commit'
+    assert mock_code_id.code_identifer_dependable is False
+    assert mock_code_id.code_identifier_url == 'git remote'
 
 
 def test_remove_prefix_returns_text_as_found_if_prefix_not_found():
@@ -382,16 +392,7 @@ def test_filter_arguments_for_func_works_only_named_arguments_in_func_spec():
 
     parameters = {'a': 1, 'b': 1}
 
-    assert parameters == utils.filter_arguments_for_func(my_func, parameters)
-
-
-def test_filter_arguments_for_func_works_with_keywords_arguments_in_func_spec():
-    def my_func(a=2, b=1):
-        pass
-
-    parameters = {'a': 1, 'b': 1}
-
-    assert parameters == utils.filter_arguments_for_func(my_func, parameters)
+    assert parameters == utils.filter_arguments_for_func(my_func, parameters, map_variable=None)
 
 
 def test_filter_arguments_for_func_returns_empty_if_no_parameters():
@@ -400,7 +401,17 @@ def test_filter_arguments_for_func_returns_empty_if_no_parameters():
 
     parameters = {}
 
-    assert parameters == utils.filter_arguments_for_func(my_func, parameters)
+    assert parameters == utils.filter_arguments_for_func(my_func, parameters, map_variable=None)
+
+
+def test_filter_arguments_for_func_identifies_args_from_map_variables():
+    def my_func(y_i, a=2, b=1):
+        pass
+
+    parameters = {'a': 1, 'b': 1}
+
+    assert {'a': 1, 'b': 1, 'y_i': 'y'} == utils.filter_arguments_for_func(
+        my_func, parameters, map_variable={'y_i': 'y'})
 
 
 def test_get_node_execution_command_returns_magnus_execute():
@@ -465,3 +476,44 @@ def test_get_node_execution_command_returns_magnus_execute_appends_map_variable(
 
     assert utils.get_node_execution_command(MockExecutor(), MockNode(), map_variable='test_map') == \
         'magnus execute_single_node test_run_id test_node_id --file test_pipeline_file --map-variable test_map'
+
+
+def test_get_service_base_class_throws_exception_for_unknown_service():
+    with pytest.raises(Exception):
+        utils.get_service_base_class('Does not exist')
+
+
+def test_get_subclasses_works_with_one_level():
+    class Parent:
+        pass
+
+    class Child(Parent):
+        pass
+
+    assert len(list(utils.get_subclasses(Parent))) == 1
+
+
+def test_get_subclasses_works_with_one_level_multiple():
+    class Parent:
+        pass
+
+    class Child(Parent):
+        pass
+
+    class Child1(Parent):
+        pass
+
+    assert len(list(utils.get_subclasses(Parent))) == 2
+
+
+def test_get_subclasses_works_with_two_level_multiple():
+    class Parent:
+        pass
+
+    class Child(Parent):
+        pass
+
+    class ChildOfChild(Child):
+        pass
+
+    assert len(list(utils.get_subclasses(Parent))) == 2

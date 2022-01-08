@@ -60,31 +60,11 @@ def safe_make_dir(directory: str):
     Path(directory).mkdir(parents=True, exist_ok=True)
 
 
-def validate_run_id(run_id: str):
-    """
-    A valid run_id should be of len (2) or less if split against _
-
-    Args:
-        run_id (str): The run_id to check
-
-    Raises:
-        Exception: If the run_id is not valid
-    """
-    if len(run_id.split('_')) > 2:
-        raise Exception('Run id is of format, <User Identifiable>_<Random Tag>, \
-                        please do not use underscores in your run_id')
-
-
 def generate_run_id(run_id: str = None) -> str:
     """
     Generate a new run_id.
 
     If the input run_id is none, we create one based on time stamp.
-    If a run_id is given, validate the run_id (len should be less than or equal to 2).
-
-    A FULL run_id = some_random-characters
-    If the run_id is FULL specification, we ignore the random part of it and add some random bits
-    If the run_id is not full, we add random bits to the end of it to make it FULL
 
     Args:
         run_id (str, optional): Input Run ID. Defaults to None
@@ -96,12 +76,7 @@ def generate_run_id(run_id: str = None) -> str:
     if not run_id:
         run_id = datetime.now().strftime('%Y%m%d%H%M%S')
 
-    validate_run_id(run_id)
-    # If we are, just add a random tag to the run_id
-    run_id = run_id.split('_')[0]
-
-    random_tag = str(uuid.uuid4())[:defaults.RANDOM_RUN_ID_LEN]
-    return run_id + '_' + random_tag
+    return run_id
 
 
 def apply_variables(apply_to: dict, variables: dict) -> dict:
@@ -200,7 +175,6 @@ def is_a_git_repo() -> bool:
         return True
     except:  # pylint: disable=W0702
         logger.error('No git repo found, unsafe hash')
-        raise
 
     return False
 
@@ -224,8 +198,6 @@ def get_current_code_commit() -> Union[str, None]:
         logger.exception('Error getting git hash')
         raise
 
-    return None
-
 
 def is_git_clean() -> Tuple[bool, Union[None, str]]:
     """
@@ -245,6 +217,7 @@ def is_git_clean() -> Tuple[bool, Union[None, str]]:
         return False, label
     except:  # pylint: disable=W0702
         logger.exception('Error checking if the code is git clean')
+
     return False, None
 
 
@@ -265,8 +238,7 @@ def get_git_remote() -> Union[str, None]:
         return label
     except:  # pylint: disable=W0702
         logger.exception('Error getting git remote')
-
-    return None
+        raise
 
 
 def get_local_docker_image_id(image_name: str) -> str:
@@ -303,18 +275,18 @@ def get_git_code_identity(run_log_store):
     Returns:
         magnus.datastore.CodeIdentity: The code identiy used by the run log store.
     """
+    code_identity = run_log_store.create_code_identity()
     try:
-        code_identity = run_log_store.create_code_identity()
         code_identity.code_identifier = get_current_code_commit()
         code_identity.code_identifier_type = 'git'
         code_identity.code_identifer_dependable, changed = is_git_clean()
         code_identity.code_identifier_url = get_git_remote()
         if changed:
             code_identity.code_identifier_message = 'changes found in ' + ', '.join(changed.split('\n'))
-        return code_identity
     except:
         logger.exception("Git code versioning problems")
-        return None
+
+    return code_identity
 
 
 def remove_prefix(text: str, prefix: str) -> str:
