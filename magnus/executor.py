@@ -9,6 +9,7 @@ from magnus import interaction
 from magnus import integration
 from magnus.nodes import BaseNode
 from magnus.graph import Graph
+from magnus import exceptions
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -216,7 +217,6 @@ class BaseExecutor:
             map_variable (str, optional): If the node is of a map state, map_variable is the value of the iterable.
                         Defaults to ''.
         """
-
         max_attempts = node.get_max_attempts()
         attempts = 0
         step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
@@ -290,8 +290,6 @@ class BaseExecutor:
             node (Node): The node to execute
             map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to ''.
-
-
         """
         step_log = self.run_log_store.create_step_log(node.name, node.get_step_log_name(map_variable))
 
@@ -299,16 +297,17 @@ class BaseExecutor:
 
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING
-        self.run_log_store.add_step_log(step_log, self.run_id)
+
+        # Add the step log to the database as per the situation.
 
         # If its a terminal node, complete it now
         if node.node_type in ['success', 'fail']:
+            self.run_log_store.add_step_log(step_log, self.run_id)
             self.execute_node(node, map_variable=map_variable, **kwargs)
             return
 
         # If previous run was successful, move on to the next step
         if not self.is_eligible_for_rerun(node, map_variable=map_variable):
-            step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
             step_log.mock = True
             step_log.status = defaults.SUCCESS
             self.run_log_store.add_step_log(step_log, self.run_id)
@@ -316,10 +315,12 @@ class BaseExecutor:
 
         # We call an internal function to iterate the sub graphs and execute them
         if node.node_type in ['parallel', 'dag', 'map']:
+            self.run_log_store.add_step_log(step_log, self.run_id)
             node.execute_as_graph(self, map_variable=map_variable, **kwargs)
             return
 
         # Executor specific way to trigger a job
+        self.run_log_store.add_step_log(step_log, self.run_id)
         self.trigger_job(node=node, map_variable=map_variable, **kwargs)
 
     def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
@@ -407,19 +408,14 @@ class BaseExecutor:
 
             current_node = next_node_name
 
-        if map_variable:  # TODO: Is this still valid?
-            # We are in map state, this would not finish the graph
-            return
-        run_log = self.run_log_store.get_branch_log(working_on.internal_branch_name, self.run_id)
+        run_log = self.run_log_store.get_branch_log(working_on.get_branch_log_name(map_variable), self.run_id)
 
         branch = 'graph'
         if working_on.internal_branch_name:
             branch = working_on.internal_branch_name
 
         logger.info(f'Finished execution of the {branch} with status {run_log.status}')
-
-        json_run_log = run_log.to_dict()
-        print(json.dumps(json_run_log, indent=4))
+        logger.info(json.dumps(run_log.to_dict(), indent=4))
 
     def is_eligible_for_rerun(self, node, map_variable: dict = None):
         """
@@ -433,35 +429,35 @@ class BaseExecutor:
 
         Args:
             node (Node): The node to check against re-run
-            map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable..
-                        Defaults to ''.
+            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable..
+                        Defaults to None.
 
         Returns:
             bool: Eligibilty for re-run. True means re-run, False means skip to the next step.
         """
         if self.previous_run_log:
-            logger.info('Scanning Original run logs')
-            previous_run_node = None
-            for step_name, step in self.previous_run_log.steps.items():
-                if step_name == node.name:
-                    previous_run_node = step
+            node_step_log_name = node.get_step_log_name(map_variable=map_variable)
+            logger.info(f'Scanning previous run logs for node logs of: {node_step_log_name}')
 
-            if not previous_run_node:
-                logger.warning(f'Did not find the node {node.name} in original run log')
-                return True
+            previous_node_log = None
+            try:
+                previous_node_log, _ = self.previous_run_log.search_step_by_internal_name(node_step_log_name)
+            except exceptions.StepLogNotFoundError:
+                logger.warning(f'Did not find the node {node.name} in previous run log')
+                return True  # We should re-run the node.
 
             step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
-            logger.info(f'The original step status: {previous_run_node.status}')
+            logger.info(f'The original step status: {previous_node_log.status}')
 
-            if previous_run_node.status == defaults.SUCCESS:
+            if previous_node_log.status == defaults.SUCCESS:
                 logger.info(f'The step {node.name} is marked success, not executing it')
                 step_log.status = defaults.SUCCESS
                 step_log.message = 'Node execution successful in previous run, skipping it'
                 self.run_log_store.add_step_log(step_log, self.run_id)
-                return False
+                return False  # We need not run the node
 
             # Remove previous run log to start execution from this step
-            logger.info(f'The new execution should run from this node {node.name}')
+            logger.info(f'The new execution should start executing graph from this node {node.name}')
             self.previous_run_log = None
         return True
 
@@ -520,7 +516,8 @@ class LocalContainerExecutor(BaseExecutor):
     dag:
       steps:
         step:
-          docker_image: The image that you want that single step to run in.
+          mode_config:
+            docker_image: The image that you want that single step to run in.
     This image would only be used for that step only.
 
     This mode does not build the docker image with the latest code for you, it is still left for the user to build
@@ -540,8 +537,18 @@ class LocalContainerExecutor(BaseExecutor):
         self.container_log_location = '/tmp/run_logs/'
         self.container_catalog_location = '/tmp/catalog/'
         self.container_secrets_location = '/tmp/dotenv'
-        self.docker_image = self.config.get('docker_image', None)
         self.volumes = {}
+
+    @property
+    def docker_image(self):
+        try:
+            return self.config.get('docker_image', None)
+        except AttributeError:
+            msg = (
+                f'Local container mode typically is used with a config containing the docker image.'
+            )
+            logger.warning(msg)
+            return None
 
     def is_parallel_execution(self):
         if self.config and 'enable_parallel' in self.config:
@@ -559,7 +566,7 @@ class LocalContainerExecutor(BaseExecutor):
         """
 
         super().add_code_identities(node, step_log)
-        mode_config = {**node.get_mode_config(), **self.config}
+        mode_config = {**self.config, **node.get_mode_config()}
 
         docker_image = mode_config.get('docker_image', None)
         if docker_image:
@@ -586,7 +593,6 @@ class LocalContainerExecutor(BaseExecutor):
         During the flow run, we have to spin up a container with the docker image mentioned
         and the right log locations
         """
-        # TODO docker exceptions should be marking the run as failure
         # Conditional import
         import docker  # pylint: disable=C0415
 
@@ -599,13 +605,14 @@ class LocalContainerExecutor(BaseExecutor):
         try:
             action = utils.get_node_execution_command(self, node, map_variable=map_variable)
             logger.info(f'Running the command {action}')
-            mode_config = {**node.get_mode_config(), **self.config}  #  Overrides node's mode config to global one
+            mode_config = {**self.config, **node.get_mode_config()}  #  Overrides global config with local one
             docker_image = mode_config.get('docker_image', None)
             if not docker_image:
                 raise Exception(
                     f'Please provide a docker_image using mode_config of the step {node.name} or at global mode')
 
             # TODO: Should consider using getpass.getuser() when running the docker container? Volume permissions
+            # TODO Consider using docker run and catching dockerError to catch exceptions
             container = client.containers.create(image=docker_image,
                                                  command=action,
                                                  auto_remove=True,

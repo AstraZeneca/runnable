@@ -14,6 +14,13 @@ For nodes:
     a). Without parallel
     b). with parallel
 4). Dag with embedded dag.
+    a). Without parallel
+    b). with parallel
 5). Nested/complex dag.
     a). Without parallel
     b). With parallel
+
+
+For re-runs.
+
+Do all the scenarios in local, local-container

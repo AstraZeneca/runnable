@@ -361,35 +361,6 @@ class RunLog:
         return run_log
 
 
-def get_run_log_store(config: dict) -> object:
-    """
-    Given a run log store config, return the implementation of the run log store.
-
-    If no config is provided, we return a BufferredRunLog store.
-
-    Args:
-        config (dict): The config of the run log as per the user config.
-
-    Raises:
-        Exception: If the type of run log store has not been implemented.
-
-    Returns:
-        object: The Run Log store implemetation as requested.
-    """
-    if config:
-        store_type = config.get('type', None)
-        if not store_type:
-            raise Exception('Store type in Run Log Config is required')
-
-        logger.info(f'Trying to get a Run Log Store of type: {store_type}')
-        for sub_class in BaseRunLogStore.__subclasses__():
-            if store_type == sub_class.service_name:
-                return sub_class(config.get('config', {}))
-
-    logger.warning('Getting a Buffered Run Log store as no config was provided')
-    return BufferRunLogstore(config={})
-
-
 # All outside modules should interact with dataclasses using the RunLogStore to promote extensibility
 # If you want to cusomtize dataclass, extend BaseRunLogStore and implement the methods as per the specification
 class BaseRunLogStore:
