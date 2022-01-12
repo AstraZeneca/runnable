@@ -16,7 +16,6 @@ class MagnusCLI:
     """
     Dispatcher pattern class for the CLI
     """
-    # TODO Lets create another package called pipeline-utils to have utilities, may be!!
 
     def __init__(self):
         parser = argparse.ArgumentParser(

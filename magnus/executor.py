@@ -14,7 +14,6 @@ from magnus import exceptions
 
 logger = logging.getLogger(defaults.NAME)
 
-# TODO: Implement single-node mode to run only one node of the graph.
 # TODO: A decorator or a programmatic way to define pipeline
 
 

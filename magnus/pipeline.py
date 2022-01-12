@@ -235,7 +235,6 @@ def execute_single_node(
     mode_executor.send_return_code(stage='execution')
 
 
-# TODO: The branches have to be command friendly too
 def execute_single_brach(
         variables_file: str,
         configuration_file: str,
