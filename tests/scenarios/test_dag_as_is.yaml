@@ -1,6 +1,3 @@
-mode:
-  type: "demo-renderer"
-
 dag:
   description: DAG for testing with as-is
   start_at: step1

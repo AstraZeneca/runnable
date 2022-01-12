@@ -133,23 +133,6 @@ def prepare_configurations(
     return mode_executor
 
 
-def send_return_code(mode_executor):
-    """
-    If the run log status is fail, let the caller know that by raising an exception
-
-    Args:
-        mode_executor (object): The implemented Executor class
-
-    Raises:
-        Exception: If the execution status of the pipeline is FAIL
-    """
-    run_id = mode_executor.run_id
-
-    run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
-    if run_log.status == defaults.FAIL:
-        raise Exception('Pipeline execution failed')
-
-
 def execute(
         variables_file: str,
         configuration_file: str,
@@ -206,7 +189,7 @@ def execute(
     logger.info('Executing the graph')
     mode_executor.execute_graph(dag=mode_executor.dag)
 
-    send_return_code(mode_executor)
+    mode_executor.send_return_code()
 
 
 def execute_single_node(
@@ -249,7 +232,7 @@ def execute_single_node(
     logger.info('Executing the single node of : %s', node_to_execute)
     mode_executor.execute_node(node=node_to_execute, map_variable=map_variable)
 
-    send_return_code(mode_executor)
+    mode_executor.send_return_code(stage='execution')
 
 
 # TODO: The branches have to be command friendly too
@@ -290,7 +273,7 @@ def execute_single_brach(
     logger.info('Executing the single branch of %s', branch_to_execute)
     mode_executor.execute_graph(dag=branch_to_execute, map_variable=map_variable)
 
-    send_return_code(mode_executor)
+    mode_executor.send_return_code()
 
 
 load_user_extensions()

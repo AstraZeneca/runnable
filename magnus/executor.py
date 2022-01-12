@@ -1,5 +1,6 @@
 import logging
 import json
+import re
 
 
 from magnus import datastore
@@ -379,7 +380,6 @@ class BaseExecutor:
             dag (Graph): The directed acyclic graph to traverse and execute.
             map_variable (dict, optional): If the node if of a map state, this corresponds to the value of the iterable.
                     Defaults to {}.
-
         """
         current_node = dag.start_at
         previous_node = None
@@ -460,6 +460,19 @@ class BaseExecutor:
             logger.info(f'The new execution should start executing graph from this node {node.name}')
             self.previous_run_log = None
         return True
+
+    def send_return_code(self, stage='traversal'):
+        """
+        Convenience function used by pipeline to send return code to the caller of the cli
+
+        Raises:
+            Exception: If the pipeline execution failed
+        """
+        run_id = self.run_id
+
+        run_log = self.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
+        if run_log.status == defaults.FAIL:
+            raise Exception('Pipeline execution failed')
 
 
 class LocalExecutor(BaseExecutor):
@@ -588,6 +601,19 @@ class LocalContainerExecutor(BaseExecutor):
         """
         self._spin_container(node, map_variable=map_variable, **kwargs)
 
+        # Check for the status of the node log and anything apart from Success is FAIL
+        # This typically happens if something is wrong with magnus or settings.
+        step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
+        if step_log.status != defaults.SUCCESS:
+            msg = (
+                'Node execution inside the container failed. Please check the logs.\n'
+                'Note: If you do not see any docker issue from your side and the code works properly on local mode '
+                'please raise a bug report.'
+            )
+            logger.warning(msg)
+            step_log.status = defaults.FAIL
+            self.run_log_store.add_step_log(step_log, self.run_id)
+
     def _spin_container(self, node, map_variable: dict = None, **kwargs):  # pylint: disable=unused-argument
         """
         During the flow run, we have to spin up a container with the docker image mentioned
@@ -605,14 +631,13 @@ class LocalContainerExecutor(BaseExecutor):
         try:
             action = utils.get_node_execution_command(self, node, map_variable=map_variable)
             logger.info(f'Running the command {action}')
-            mode_config = {**self.config, **node.get_mode_config()}  #  Overrides global config with local one
+            mode_config = {**self.config, **node.get_mode_config()}  #  Overrides global config with local
             docker_image = mode_config.get('docker_image', None)
             if not docker_image:
                 raise Exception(
                     f'Please provide a docker_image using mode_config of the step {node.name} or at global mode')
 
             # TODO: Should consider using getpass.getuser() when running the docker container? Volume permissions
-            # TODO Consider using docker run and catching dockerError to catch exceptions
             container = client.containers.create(image=docker_image,
                                                  command=action,
                                                  auto_remove=True,
@@ -632,3 +657,212 @@ class LocalContainerExecutor(BaseExecutor):
         except Exception as _e:
             logger.exception('Problems with spinning up the container')
             raise _e
+
+
+class DemoRenderer(BaseExecutor):
+    """
+    This renderer is an example of how you can render required job specifications as per your orchestration tool.
+
+    BaseExecutor implements many of the functionalities that are common and can be safe defaults.
+    In this renderer example: We just render a bash script that sequentially calls the steps.
+    We do not handle composite steps in this mode.
+
+    Example config:
+    mode:
+      type: demo-renderer
+    """
+    service_name = 'demo-renderer'
+
+    def is_parallel_execution(self) -> bool:  # pylint: disable=R0201
+        """
+        Controls the parallelization of branches in map and parallel state.
+
+        Most orchestrators control the parralization of the branches outside of magnus control.
+        i.e, You would render the parallel job job specification in the language of the orchestrator.
+
+        NOTE: Most often, this should be false for modes that rely upon other orchestration tools.
+
+        Returns:
+            bool: True if the mode allows parallel execution of branches.
+        """
+        return defaults.ENABLE_PARALLEL
+
+    def prepare_for_graph_execution(self):
+        """
+        This method would be called prior to calling execute_graph.
+        Perform any steps required before doing the graph execution.
+
+        NOTE: For most rendering jobs, we need not do anything but customize according to your needs.
+            You might want to over-ride this method to do nothing.
+        """
+        pass
+
+    def prepare_for_node_execution(self, node: BaseNode, map_variable: str = ''):
+        """
+        This method would be called prior to the node execution in the environment of the compute.
+
+        Use this method to set up the required things for the compute.
+        The most common examples might be to ensure that the appropriate run log is in place.
+
+        NOTE: You might need to over-ride this method.
+        For interactive modes, prepare_for_graph_execution takes care of a lot of set up. For orchestrated modes,
+        the same work has to be done by prepare_for_node_execution.
+        """
+        super().prepare_for_node_execution(node=node, map_variable=map_variable)
+
+        # Set up the run log or create it if not done previously
+        try:
+            # Try to get it if previous steps have created it
+            self.run_log_store.get_run_log_by_id(self.run_id)
+        except exceptions.RunLogNotFoundError:
+            # Create one if they are not created
+            self.set_up_run_log()
+
+        # Need to set up the step log for the first node as the entry point is different
+        step_log = self.run_log_store.create_step_log(node.name, node.get_step_log_name(map_variable))
+
+        self.add_code_identities(node=node, step_log=step_log)
+
+        step_log.step_type = node.node_type
+        step_log.status = defaults.PROCESSING
+        self.run_log_store.add_step_log(step_log, self.run_id)
+
+    def sync_catalog(self, node: BaseNode, step_log: datastore.StepLog, stage: str, synced_catalogs=None):
+        """
+        Syncs the catalog for both get and put stages.
+
+        The default executors implementation just delegates the functionlity to catalog handlers get or pur methods.
+
+        NOTE: Most often, you should not be over-riding this.
+        Custom funtionality can also be obtained by working on catalog handler implementation.
+        """
+        super().sync_catalog(node, step_log, stage)
+
+    def execute_node(self, node: BaseNode, map_variable: str = '', **kwargs):
+        """
+        This method does the actual execution of a task, as-is, success or fail node.
+
+        NOTE: Most often, you should not be over-riding this.
+        """
+        super().execute_node(node, map_variable=map_variable, **kwargs)
+
+        step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
+        if step_log.status == defaults.FAIL:
+            raise Exception(f'Step {node.name} failed')
+
+    def add_code_identities(self, node: BaseNode, step_log: object):
+        """
+        Add code identities specific to the implementation.
+
+        The Base class has an implementation of adding git code identities.
+
+        NOTE: Most often, you just call the super to add the git code identity and add
+        any other code identities that you want part of your implementation
+        """
+        super().add_code_identities(node, step_log)
+
+    def execute_from_graph(self, node: BaseNode, map_variable: str = '', **kwargs):
+        """
+        This method delegates the execution of composite nodes to the appropriate methods.
+
+        This method calls add_code_identities and trigger_job as part of its implemetation.
+        use them to add the funcionality specific to the compute environment.
+
+        NOTE: Most often, you should not be changing this implementation.
+        """
+        super().execute_from_graph(node=node, map_variable=map_variable, **kwargs)
+
+    def trigger_job(self, node: BaseNode, map_variable: str = '', **kwargs):
+        """
+        Executor specific way of triggering jobs.
+
+        This method has to be changed to do what exactly you want as part of your computational engine
+
+        If your compute is not local, use utils.get_node_execution_command(self, node, map_variable=map_variable)
+        to get the command to run a single node.
+
+        If the compute is local to the environment, calls prepare_for_node_execution and call execute_node
+        NOTE: This method should always be implemented.
+        """
+        self.prepare_for_node_execution(node, map_variable=map_variable)
+        self.execute_node(node=node, map_variable=map_variable, **kwargs)
+
+    def send_return_code(self, stage='traversal'):
+        """
+        Convenience function used by pipeline to send return code to the caller of the cli
+
+        Raises:
+            Exception: If the pipeline execution failed
+        """
+        if stage != 'traversal':  # traversal does no actual execution, so return code is pointless
+            run_id = self.run_id
+
+            run_log = self.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
+            if run_log.status == defaults.FAIL:
+                raise Exception('Pipeline execution failed')
+
+    def execute_graph(self, dag: Graph, map_variable: str = '', **kwargs):
+        """
+        Iterate through the graph and frame the bash script.
+
+        For more complex ouputs, dataclasses might be a better option.
+
+        NOTE: This method should be over-written to write the exact specification to the compute engine.
+
+        """
+        current_node = dag.start_at
+        previous_node = None
+        logger.info(f'Rendering job started at {current_node}')
+        bash_script_lines = []
+
+        while True:
+            working_on = dag.get_node_by_name(current_node)
+
+            if working_on.node_type in ['parallel', 'dag', 'map']:
+                raise NotImplementedError('In this demo version, composite nodes are not implemented')
+
+            if previous_node == current_node:
+                raise Exception('Potentially running in a infinite loop')
+
+            previous_node = current_node
+
+            logger.info(f'Creating execution log for {working_on}')
+
+            execute_node_command = utils.get_node_execution_command(self, working_on, over_write_run_id='$1')
+            current_job_id = re.sub('[^A-Za-z0-9]+', '', f'{current_node}_job_id')
+            fail_node_command = utils.get_node_execution_command(self, dag.get_fail_node(), over_write_run_id='$1')
+
+            if working_on.node_type not in ['success', 'fail']:
+                bash_script_lines.append(f'{execute_node_command}\n')
+
+                bash_script_lines.append('exit_code=$?\necho $exit_code\n')
+                # Write failure node
+                bash_script_lines.append(
+                    (
+                        'if [ $exit_code -ne 0 ];\nthen\n'
+                        f'\t $({fail_node_command})\n'
+                        '\texit 1\n'
+                        'fi\n'
+                    )
+                )
+
+            if working_on.node_type == 'success':
+                bash_script_lines.append(f'{execute_node_command}')
+            if working_on.node_type in ['success', 'fail']:
+                break
+
+            current_node = working_on.get_next_node()
+
+        with open('demo-bash.sh', 'w', encoding='utf-8') as fw:
+            fw.writelines(bash_script_lines)
+
+        msg = (
+            'demo-bash.sh for running the pipeline is written. To execute it \n'
+            '1). Activate the environment:\n'
+            '\t for example poetry shell or pipenv shell etc\n'
+            '2). Make the shell script executable.\n'
+            '\t chmod 755 demo-bash.sh\n'
+            '3). Run the script by: source demo-bash.sh <run_id>\n'
+            '\t The first argument to the script is the run id you want for the run.'
+        )
+        logger.info(msg)

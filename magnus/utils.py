@@ -421,7 +421,10 @@ def get_node_execution_command(executor, node, map_variable=None, over_write_run
         action = action + f' --var-file {executor.variables_file}'
 
     if map_variable:
-        action = action + f' --map-variable {json.dumps(map_variable)}'
+        action = action + f" --map-variable '{json.dumps(map_variable)}'"
+
+    if executor.configuration_file:
+        action = action + f' --config-file {executor.configuration_file}'
 
     return action
 

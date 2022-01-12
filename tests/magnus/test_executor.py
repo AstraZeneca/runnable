@@ -705,11 +705,37 @@ def test_local_container_executor_add_code_ids_uses_local_docker_image_if_provid
 
 def test_local_container_executor_calls_spin_container_during_trigger_job(mocker, monkeypatch):
     mock_spin_container = mocker.MagicMock()
+    mock_step_log = mocker.MagicMock()
+    mock_run_log_store = mocker.MagicMock()
+    mock_node = mocker.MagicMock()
+
+    mock_run_log_store.get_step_log.return_value = mock_step_log
+    mock_step_log.status = defaults.SUCCESS
 
     monkeypatch.setattr(executor.LocalContainerExecutor, '_spin_container', mock_spin_container)
 
     local_container_executor = executor.LocalContainerExecutor(config=None)
+    local_container_executor.run_log_store = mock_run_log_store
 
-    local_container_executor.trigger_job(node=None)
+    local_container_executor.trigger_job(node=mock_node)
 
     assert mock_spin_container.call_count == 1
+
+
+def test_local_container_executor_marks_step_fail_if_status_is_not_success(mocker, monkeypatch):
+    mock_spin_container = mocker.MagicMock()
+    mock_step_log = mocker.MagicMock()
+    mock_run_log_store = mocker.MagicMock()
+    mock_node = mocker.MagicMock()
+
+    mock_run_log_store.get_step_log.return_value = mock_step_log
+    mock_step_log.status = defaults.PROCESSING
+
+    monkeypatch.setattr(executor.LocalContainerExecutor, '_spin_container', mock_spin_container)
+
+    local_container_executor = executor.LocalContainerExecutor(config=None)
+    local_container_executor.run_log_store = mock_run_log_store
+
+    local_container_executor.trigger_job(node=mock_node)
+
+    assert mock_step_log.status == defaults.FAIL

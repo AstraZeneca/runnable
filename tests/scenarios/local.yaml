@@ -1,0 +1,4 @@
+mode:
+  type: local
+  config:
+    enable_parallel: "False"

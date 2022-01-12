@@ -184,18 +184,34 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
         self.service.config['location'] = self.executor.container_secrets_location
 
 
-# TODO: Give proper warnings if dummy catalog is being used.
-
-class LocalContainerDummyCatalog(BaseIntegration):
+class LocalContainerDoNothingCatalog(BaseIntegration):
     """
-    Integration between local container and dot env secrets
+    Integration between local container and do nothing catalog
     """
     mode_type = 'local-container'
     service_type = 'catalog'  # One of secret, catalog, datastore
     service_provider = 'do-nothing'  # The actual implementation of the service
 
     def validate(self, **kwargs):
-        logger.warning('Dummy catalog being set.')
+        msg = (
+            'A do-nothing catalog does not hold any data and therefore cannot pass data between nodes.'
+        )
+        logger.warning(msg)
+
+
+class LocalDoNothingCatalog(BaseIntegration):
+    """
+    Integration between local and do nothing catalog
+    """
+    mode_type = 'local'
+    service_type = 'catalog'  # One of secret, catalog, datastore
+    service_provider = 'do-nothing'  # The actual implementation of the service
+
+    def validate(self, **kwargs):
+        msg = (
+            'A do-nothing catalog does not hold any data and therefore cannot pass data between nodes.'
+        )
+        logger.warning(msg)
 
 
 class LocalContainerComputeFileSystemCatalog(BaseIntegration):
@@ -215,3 +231,6 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
 
     def configure_for_execution(self, **kwargs):
         self.service.config['catalog_location'] = self.executor.container_catalog_location
+
+
+# TODO: Write integration patterns for demo-renderer and other systems
