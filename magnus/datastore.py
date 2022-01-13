@@ -15,8 +15,8 @@ from magnus import exceptions
 
 logger = logging.getLogger(defaults.NAME)
 
-# Once defined these classes are frozen to any additions unless a default is provided
-#
+# Once defined these classes are sealed to any additions unless a default is provided
+# Breaking this rule will make magnus backwardly incompatible
 
 
 @dataclass_json
@@ -27,17 +27,9 @@ class DataCatalog:
     """
     name: str  #  The name of the dataset
     data_hash: str = None  # The sha1 hash of the file
-    catalog_relative_path: str = None  # The file path relative the catalog
+    catalog_relative_path: str = None  # The file path
     catalog_handler_location: str = None
     stage: str = None  # The stage at which we recorded it get, put etc
-
-    def __hash__(self):
-        return hash(self.catalog_relative_path)
-
-    def __eq__(self, other):
-        if not isinstance(other, DataCatalog):
-            return False
-        return other.catalog_relative_path == self.catalog_relative_path
 
 
 @dataclass_json

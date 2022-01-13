@@ -35,7 +35,7 @@ class BaseExecutor:
     execute_from_graph:
         This method is responsible for executing a node.
         But given that a node itself could be a dag in cases of parallel, map and dag, this method handles the cases.
-        If the node is of type task, success, fail: we can pretty much execute it and we call self.execute_node
+        If the node is of type task, success, fail: we can pretty much execute it and we call self.trigger_job.
         If the node is of type dag, map, parallel: We call the node's execute_as_graph function which internally
         triggers execute_graph in-turn iteratively traverses the graph.
 
@@ -54,7 +54,7 @@ class BaseExecutor:
     But in 3rd party orchestration mode, we might have to render the job specifications and the roles might be different
 
     Please see the implementations of local, local-container, local-aws-batch to perform interactive compute.
-    And aws-step-functions to see an example of what a 3rd party executor looks like.
+    And demo-renderer to see an example of what a 3rd party executor looks like.
     """
     service_name = None
 
@@ -117,7 +117,7 @@ class BaseExecutor:
         This method would be called prior to calling execute_graph.
         Perform any steps required before doing the graph execution.
 
-        The most common implementation is to prepare a Run Log for the run if the run uses local interactive compute.
+        The most common implementation is to prepare a run log for the run if the run uses local interactive compute.
 
         But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we need not do anything.
         """
@@ -135,7 +135,7 @@ class BaseExecutor:
 
     def prepare_for_node_execution(self, node: BaseNode, map_variable: dict = None):
         """
-        Perform any tweaks to the services prior to execution of the node.
+        Perform any modifications to the services prior to execution of the node.
 
         Args:
             node (Node): [description]
@@ -214,8 +214,8 @@ class BaseExecutor:
 
         Args:
             node (Node): The node to execute
-            map_variable (str, optional): If the node is of a map state, map_variable is the value of the iterable.
-                        Defaults to ''.
+            map_variable (dict, optional): If the node is of a map state, map_variable is the value of the iterable.
+                        Defaults to None.
         """
         max_attempts = node.get_max_attempts()
         attempts = 0
@@ -288,8 +288,8 @@ class BaseExecutor:
 
         Args:
             node (Node): The node to execute
-            map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
-                    Defaults to ''.
+            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
+                    Defaults to None.
         """
         step_log = self.run_log_store.create_step_log(node.name, node.get_step_log_name(map_variable))
 
@@ -299,7 +299,6 @@ class BaseExecutor:
         step_log.status = defaults.PROCESSING
 
         # Add the step log to the database as per the situation.
-
         # If its a terminal node, complete it now
         if node.node_type in ['success', 'fail']:
             self.run_log_store.add_step_log(step_log, self.run_id)
@@ -348,7 +347,7 @@ class BaseExecutor:
         Args:
             current_node (BaseNode): The current node.
             dag (Graph): The dag we are traversing.
-            map_variable (str): If the node belongs to a map branch.
+            map_variable (dict): If the node belongs to a map branch.
         """
 
         step_log = self.run_log_store.get_step_log(current_node.get_step_log_name(map_variable), self.run_id)
@@ -368,8 +367,6 @@ class BaseExecutor:
         """
         The parallelization is controlled by the nodes and not by this function.
 
-        The mode of traversal is Depth First traversal.
-
         Logically the method should:
             * Start at the dag.start_at of the dag.
             * Call the self.execute_from_graph(node)
@@ -378,7 +375,7 @@ class BaseExecutor:
         Args:
             dag (Graph): The directed acyclic graph to traverse and execute.
             map_variable (dict, optional): If the node if of a map state, this corresponds to the value of the iterable.
-                    Defaults to {}.
+                    Defaults to None.
         """
         current_node = dag.start_at
         previous_node = None
@@ -717,7 +714,7 @@ class DemoRenderer(BaseExecutor):
             # Create one if they are not created
             self.set_up_run_log()
 
-        # Need to set up the step log for the first node as the entry point is different
+        # Need to set up the step log for the node as the entry point is different
         step_log = self.run_log_store.create_step_log(node.name, node.get_step_log_name(map_variable))
 
         self.add_code_identities(node=node, step_log=step_log)

@@ -265,7 +265,7 @@ def get_local_docker_image_id(image_name: str) -> str:
 
 
 def get_git_code_identity(run_log_store):
-    # TODO: Test this implementation
+    # TODO: Test this implementation when git is not present
     """
     Returns a code identity object for version controlled code.
 

@@ -77,6 +77,7 @@ nav:
           - "Overview": "concepts/modes.md"
           - "Local": "concepts/modes-implementations/local.md"
           - "Local Container": "concepts/modes-implementations/local-container.md"
+          - "Demo Renderer": "concepts/modes-implementations/local-container.md"
           - "Extensions": "concepts/modes-implementations/extensions.md"
   - "Tutorials":
       - "Overview": "tutorial/tutorial.md"
