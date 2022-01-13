@@ -11,7 +11,7 @@ from string import Template as str_template
 from inspect import signature
 from typing import Tuple, Union, Callable
 
-from ruamel.yaml import YAML
+from ruamel.yaml import YAML  # type: ignore
 
 from magnus import defaults
 
@@ -34,13 +34,13 @@ def does_file_exist(file_path: str) -> bool:
     return my_file.is_file()
 
 
-def does_dir_exist(file_path: str) -> bool:
+def does_dir_exist(file_path: Union[str, Path]) -> bool:
     """
     Check if a directory exists.
     Implemented here to avoid repetition of logic
 
     Args:
-        file_path (str): The directory path to check
+        file_path (str or Path): The directory path to check
 
     Returns:
         bool: False if the directory does not exist, True otherwise
@@ -49,7 +49,7 @@ def does_dir_exist(file_path: str) -> bool:
     return my_file.is_dir()
 
 
-def safe_make_dir(directory: str):
+def safe_make_dir(directory: Union[str, Path]):
     """
     Safely make the directory.
     Ignore if it exists and create the parents if necessary.
@@ -370,7 +370,7 @@ def get_data_hash(file_name: str):
     return hash_bytestr_iter(file_as_blockiter(open(file_name, 'rb')), hashlib.sha256())  # pragma: no cover
 
 
-def filter_arguments_for_func(func: Callable, parameters: dict, map_variable: dict) -> dict:
+def filter_arguments_for_func(func: Callable, parameters: dict, map_variable: dict = None) -> dict:
     """
     Inspects the function to be called as part of the pipeline to find the arguments of the function.
     Matches the function arguments to the parameters available either by command line or by up stream steps.

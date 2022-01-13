@@ -1,7 +1,10 @@
 import logging
 
+from typing import Dict, List
+
 from magnus import defaults
 from magnus import exceptions
+from magnus import nodes
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -21,7 +24,7 @@ class Graph:
         self.internal_branch_name = internal_branch_name
         self.nodes = []
 
-    def get_node_by_name(self, name: str) -> object:
+    def get_node_by_name(self, name: str) -> nodes.BaseNode:
         """
         Return the Node object by the name
         The name is always relative to the graph
@@ -40,7 +43,7 @@ class Graph:
                 return node
         raise exceptions.NodeNotFoundError(name)
 
-    def get_node_by_internal_name(self, internal_name: str) -> object:
+    def get_node_by_internal_name(self, internal_name: str) -> nodes.BaseNode:
         """
         Return the node by the internal name of the node.
         The internal name uses dot path convention.
@@ -64,7 +67,7 @@ class Graph:
         node_str = ', '.join([x.name for x in self.nodes])
         return f'Starts at: {self.start_at} and has a max run time of {self.max_time} and {node_str}'
 
-    def add_node(self, node: object):
+    def add_node(self, node: nodes.BaseNode):
         """
         Add a node to the nodes of the graph
 
@@ -119,7 +122,7 @@ class Graph:
         if messages:
             raise Exception(',  '.join(messages))
 
-    def get_success_node(self) -> object:
+    def get_success_node(self) -> nodes.BaseNode:
         """
         Return the success node of the graph
 
@@ -134,7 +137,7 @@ class Graph:
                 return node
         raise Exception('No success node defined')
 
-    def get_fail_node(self) -> object:
+    def get_fail_node(self) -> nodes.BaseNode:
         """
         Returns the fail node of the graph
 
@@ -209,7 +212,7 @@ class Graph:
                     return False
         return True
 
-    def is_cyclic_util(self, node, visited, recstack) -> bool:
+    def is_cyclic_util(self, node: nodes.BaseNode, visited: Dict[str, bool], recstack: Dict[str, bool]) -> bool:
         """
         Recursive utily that determines if a node and neighbours has a cycle. Is used in is_dag method.
 
@@ -236,7 +239,7 @@ class Graph:
         recstack[node.name] = False
         return False
 
-    def missing_neighbours(self):
+    def missing_neighbours(self) -> List[nodes.BaseNode]:
         """
         Iterates through nodes and gets their connecting neighbours and checks if they exist in the graph.
 
@@ -256,7 +259,7 @@ class Graph:
         return missing_nodes
 
 
-def create_graph(dag_config: dict, internal_branch_name=None) -> Graph:
+def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
     # pylint: disable=R0914,R0913
     """
     Creates a dag object from the dag definition.
@@ -338,7 +341,7 @@ def search_node_by_internal_name(dag: Graph, internal_name: str):
     for i in range(len(dot_path)):
         if i % 2:
             # Its odd, so we are in brach name
-            current_branch = current_node.get_branch_by_name('.'.join(dot_path[:i+1]))
+            current_branch = current_node.get_branch_by_name('.'.join(dot_path[:i+1]))  # type: ignore
             logger.debug(f'Finding step for {internal_name} in branch: {current_branch}')
         else:
             # Its even, so we are in Step, we start here!
@@ -378,7 +381,7 @@ def search_branch_by_internal_name(dag: Graph, internal_name: str):
 
         if i % 2:
             # Its odd, so we are in brach name
-            current_branch = current_node.get_branch_by_name('.'.join(dot_path[:i+1]))
+            current_branch = current_node.get_branch_by_name('.'.join(dot_path[:i+1]))  # type: ignore
             logger.debug(f'Finding step for {internal_name} in branch: {current_branch}')
 
         else:

@@ -54,7 +54,7 @@ class BaseCatalog:
           Intergration patterns modify the config after init to change behaviors.
           Access config properties using getters/property of the class.
     """
-    service_name = None
+    service_name = ''
 
     def __init__(self, config, **kwargs):  # pylint: disable=unused-argument
         self.config = config or {}

@@ -15,9 +15,9 @@ class BaseIntegration:
     """
     Base class for handling integration between Executor and one of Catalog, Secrets, RunLogStore.
     """
-    mode_type = None
-    service_type = None  # One of secret, catalog, datastore
-    service_provider = None  # The actual implementation of the service
+    mode_type = ''
+    service_type = ''  # One of secret, catalog, datastore
+    service_provider = ''  # The actual implementation of the service
 
     def __init__(self, executor, integration_service):
         self.executor = executor

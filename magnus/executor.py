@@ -56,7 +56,7 @@ class BaseExecutor:
     Please see the implementations of local, local-container, local-aws-batch to perform interactive compute.
     And demo-renderer to see an example of what a 3rd party executor looks like.
     """
-    service_name = None
+    service_name = ''
 
     def __init__(self, config):
         # pylint: disable=R0914,R0913
@@ -255,7 +255,7 @@ class BaseExecutor:
         self.sync_catalog(node, step_log, stage='put', synced_catalogs=data_catalogs_get)
         self.run_log_store.add_step_log(step_log, self.run_id)
 
-    def add_code_identities(self, node: BaseNode, step_log: object, **kwargs):
+    def add_code_identities(self, node: BaseNode, step_log: datastore.StepLog, **kwargs):
         """
         Add code identities specific to the implementation.
 
@@ -565,7 +565,7 @@ class LocalContainerExecutor(BaseExecutor):
 
         return defaults.ENABLE_PARALLEL
 
-    def add_code_identities(self, node: BaseNode, step_log: object, **kwargs):
+    def add_code_identities(self, node: BaseNode, step_log: datastore.StepLog, **kwargs):
         """
         Call the Base class to add the git code identity and add docker identity
 
@@ -693,7 +693,7 @@ class DemoRenderer(BaseExecutor):
         """
         pass
 
-    def prepare_for_node_execution(self, node: BaseNode, map_variable: str = ''):
+    def prepare_for_node_execution(self, node: BaseNode, map_variable: dict = None):
         """
         This method would be called prior to the node execution in the environment of the compute.
 
@@ -734,7 +734,7 @@ class DemoRenderer(BaseExecutor):
         """
         super().sync_catalog(node, step_log, stage)
 
-    def execute_node(self, node: BaseNode, map_variable: str = '', **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
         This method does the actual execution of a task, as-is, success or fail node.
 
@@ -746,7 +746,7 @@ class DemoRenderer(BaseExecutor):
         if step_log.status == defaults.FAIL:
             raise Exception(f'Step {node.name} failed')
 
-    def add_code_identities(self, node: BaseNode, step_log: object):
+    def add_code_identities(self, node: BaseNode, step_log: datastore.StepLog, **kwargs):
         """
         Add code identities specific to the implementation.
 
@@ -757,7 +757,7 @@ class DemoRenderer(BaseExecutor):
         """
         super().add_code_identities(node, step_log)
 
-    def execute_from_graph(self, node: BaseNode, map_variable: str = '', **kwargs):
+    def execute_from_graph(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
         This method delegates the execution of composite nodes to the appropriate methods.
 
@@ -768,7 +768,7 @@ class DemoRenderer(BaseExecutor):
         """
         super().execute_from_graph(node=node, map_variable=map_variable, **kwargs)
 
-    def trigger_job(self, node: BaseNode, map_variable: str = '', **kwargs):
+    def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
         Executor specific way of triggering jobs.
 
@@ -797,7 +797,7 @@ class DemoRenderer(BaseExecutor):
             if run_log.status == defaults.FAIL:
                 raise Exception('Pipeline execution failed')
 
-    def execute_graph(self, dag: Graph, map_variable: str = '', **kwargs):
+    def execute_graph(self, dag: Graph, map_variable: dict = None, **kwargs):
         """
         Iterate through the graph and frame the bash script.
 

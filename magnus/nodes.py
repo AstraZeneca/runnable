@@ -7,13 +7,12 @@ import sys
 import json
 import multiprocessing
 from collections import OrderedDict
-from typing import List
+from typing import List, Union, Type
 
 from pkg_resources import resource_filename
 
 import magnus
 from magnus import utils
-from magnus.graph import create_graph
 from magnus import defaults
 
 logger = logging.getLogger(defaults.NAME)
@@ -23,7 +22,7 @@ class BaseExecutionType:  # pylint: disable=too-few-public-methods
     """
     A base execution class which does the execution of command defined by the user
     """
-    execution_type = None
+    execution_type = ''
 
     def execute_command(self, command: str, map_variable: dict = None):
         """
@@ -137,7 +136,7 @@ class BaseNode:
     The internal branch name should always be even when split against dot.
     """
 
-    node_type = None
+    node_type = ''
 
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
@@ -260,20 +259,20 @@ class BaseNode:
     def __str__(self):  # pragma: no cover
         return f'Node of type {self.node_type} and name {self.internal_name}'
 
-    def get_on_failure_node(self) -> str:
+    def get_on_failure_node(self) -> Union[str, None]:
         """
         If the node defines a on_failure node in the config, return this or None.
 
         The naming is relative to the dag, the caller is supposed to resolve it to the correct graph
 
         Returns:
-            str: The on_failure node defined by the dag or None
+            str: The on_failure node defined by the dag or ''
         """
         if 'on_failure' in self.config:
             return self.config['on_failure']
         return None
 
-    def get_catalog_settings(self) -> dict:
+    def get_catalog_settings(self) -> Union[dict, None]:
         """
         If the node defines a catalog settings, return it or None
 
@@ -330,7 +329,7 @@ class BaseNode:
 
         return neighbours
 
-    def get_next_node(self) -> str:
+    def get_next_node(self) -> Union[str, None]:
         """
         Return the next node as defined by the config.
 
@@ -434,7 +433,7 @@ def validate_node(node: BaseNode) -> List[str]:
     return messages
 
 
-def get_node_class(node_type: str) -> BaseNode:
+def get_node_class(node_type: str) -> Type[BaseNode]:
     """
     Given a node_type of a node, return the appropriate BaseNode implementation.
 
@@ -599,6 +598,8 @@ class ParallelNode(BaseNode):
         Returns:
             dict: A branch_name: dag for every branch mentioned in the branches
         """
+        from magnus.graph import create_graph  # pylint: disable=C0415
+
         branches = {}
         for branch_name, branch_config in self.config['branches'].items():
             sub_graph = create_graph(branch_config, internal_branch_name=self.internal_name + '.' + branch_name)
@@ -759,6 +760,8 @@ class MapNode(BaseNode):
         Returns:
             Graph: A graph object
         """
+        from magnus.graph import create_graph  # pylint: disable=C0415
+
         branch_config = self.config['branch']
         branch = create_graph(
             branch_config, internal_branch_name=self.internal_name + '.' + self.branch_placeholder_name)
@@ -936,6 +939,8 @@ class DagNode(BaseNode):
         Returns:
             Graph: A graph object
         """
+        from magnus.graph import create_graph  # pylint: disable=C0415
+
         dag_config = utils.load_yaml(self.sub_dag_file)
         if 'dag' not in dag_config:
             raise Exception(f'No DAG found in {self.sub_dag_file}, please provide it in dag block')

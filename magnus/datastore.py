@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections import OrderedDict
-from typing import List, Optional, Tuple, OrderedDict, Dict, DefaultDict
+from typing import List, Optional, Tuple, OrderedDict, Dict, DefaultDict, Union
 import json
 from pathlib import Path
 import logging
@@ -24,10 +24,10 @@ class DataCatalog(BaseModel):
     The captured attributes of a catalog item.
     """
     name: str  #  The name of the dataset
-    data_hash: str = None  # The sha1 hash of the file
-    catalog_relative_path: str = None  # The file path
-    catalog_handler_location: str = None
-    stage: str = None  # The stage at which we recorded it get, put etc
+    data_hash: str = ''  # The sha1 hash of the file
+    catalog_relative_path: str = ''  # The file path
+    catalog_handler_location: str = ''
+    stage: str = ''  # The stage at which we recorded it get, put etc
 
 
 class StepAttempt(BaseModel):
@@ -35,9 +35,9 @@ class StepAttempt(BaseModel):
     The captured attributes of an Attempt of a step.
     """
     attempt_numner: int = 0
-    start_time: str = None
-    end_time: str = None
-    duration: str = None  #  end_time - start_time
+    start_time: str = ''
+    end_time: str = ''
+    duration: str = ''  #  end_time - start_time
     status: str = 'FAIL'
     message: str = ''
 
@@ -46,11 +46,11 @@ class CodeIdentity(BaseModel):
     """
     The captured attributes of a code identity of a step.
     """
-    code_identifier: str = None  # GIT sha code or docker image id
-    code_identifier_type: str = None  # git or docker
+    code_identifier: str = ''  # GIT sha code or docker image id
+    code_identifier_type: str = ''  # git or docker
     code_identifer_dependable: bool = False  # If git, checks if the tree is clean.
-    code_identifier_url: str = None  # The git remote url or docker repository url
-    code_identifier_message: str = None  # Any optional message
+    code_identifier_url: str = ''  # The git remote url or docker repository url
+    code_identifier_message: str = ''  # Any optional message
 
 
 class StepLog(BaseModel):
@@ -61,7 +61,7 @@ class StepLog(BaseModel):
     internal_name: str  # Should be the dot notation of the step
     status: str = 'FAIL'  #  Should have a better default
     step_type: str = 'task'
-    message: str = None
+    message: str = ''
     mock: bool = False
     code_identities: List[CodeIdentity] = []
     attempts: List[StepAttempt] = []
@@ -113,7 +113,7 @@ class BranchLog(BaseModel):
     """
     internal_name: str
     status: str = 'FAIL'
-    steps: OrderedDict[str, StepLog] = {}  # StepLogs keyed by internal name
+    steps: OrderedDict[str, StepLog] = {}  # type: ignore # StepLogs keyed by internal name
 
     def get_data_catalogs_by_stage(self, stage='put') -> List[DataCatalog]:
         """
@@ -149,10 +149,10 @@ class RunLog(BaseModel):
     run_id: str
     dag_hash: Optional[str] = None
     use_cached: bool = False
-    tag: Optional[str] = None
-    original_run_id: Optional[str] = None
+    tag: Optional[str] = ''
+    original_run_id: Optional[str] = ''
     status: str = 'FAIL'
-    steps: OrderedDict[str, StepLog] = {}  # Has the steps keyed by internal_name
+    steps: OrderedDict[str, StepLog] = {}  # type: ignore # Has the steps keyed by internal_name
     parameters: dict = {}
     run_config: dict = {}
 
@@ -175,7 +175,7 @@ class RunLog(BaseModel):
 
         return list(set(data_catalogs))
 
-    def search_branch_by_internal_name(self, i_name: str) -> Tuple[BranchLog, StepLog]:
+    def search_branch_by_internal_name(self, i_name: str) -> Tuple[Union[BranchLog, RunLog], Union[StepLog, None]]:
         """
         Given a branch internal name, search for it in the run log.
 
@@ -207,7 +207,7 @@ class RunLog(BaseModel):
             if i % 2:
                 # Its odd, so we are in branch
                 # Get the branch that holds the step
-                current_branch = current_step.branches['.'.join(dot_path[:i+1])]
+                current_branch = current_step.branches['.'.join(dot_path[:i+1])]  # type: ignore
                 current_steps = current_branch.steps
                 logger.debug(f'Finding branch {i_name} in branch: {current_branch}')
             else:
@@ -222,7 +222,7 @@ class RunLog(BaseModel):
 
         raise exceptions.BranchLogNotFoundError(self.run_id, i_name)
 
-    def search_step_by_internal_name(self, i_name: str) -> Tuple[StepLog, BranchLog]:
+    def search_step_by_internal_name(self, i_name: str) -> Tuple[StepLog, Union[BranchLog, None]]:
         """
         Given a steps internal name, search for the step name.
 
@@ -247,7 +247,7 @@ class RunLog(BaseModel):
         for i in range(len(dot_path)):
             if i % 2:
                 # Its odd, so we are in brach name
-                current_branch = current_step.branches['.'.join(dot_path[:i+1])]
+                current_branch = current_step.branches['.'.join(dot_path[:i+1])]  # type: ignore
                 current_steps = current_branch.steps
                 logger.debug(f'Finding step log for {i_name} in branch: {current_branch}')
             else:
@@ -269,12 +269,12 @@ class BaseRunLogStore:
     """
     The base class of a Run Log Store with many common methods implemented
     """
-    service_name = None
+    service_name = ''
 
     def __init__(self, config):
         self.config = config
 
-    def create_run_log(self, run_id, **kwargs):
+    def create_run_log(self, run_id: str, **kwargs):
         """
         Creates a Run Log object by using the config
 
@@ -288,12 +288,16 @@ class BaseRunLogStore:
 
         raise NotImplementedError
 
-    def get_run_log_by_id(self, run_id, full=True, **kwargs):
+    def get_run_log_by_id(self, run_id: str, full: bool = True, **kwargs) -> RunLog:
         """
         Retrieves a Run log from the database using the config and the run_id
 
         Args:
             run_id (str): The run_id of the run
+            full (bool): return the full run log store or only the RunLog object
+
+        Returns:
+            RunLog: The RunLog object identified by the run_id
 
         Logically the method should:
             * Returns the run_log defined by id from the data store defined by the config
@@ -305,7 +309,7 @@ class BaseRunLogStore:
 
         raise NotImplementedError
 
-    def put_run_log(self, run_log, **kwargs):
+    def put_run_log(self, run_log: RunLog, **kwargs):
         """
         Puts the Run Log in the database as defined by the config
 
@@ -320,7 +324,7 @@ class BaseRunLogStore:
         """
         raise NotImplementedError
 
-    def get_parameters(self, run_id, **kwargs):  # pylint: disable=unused-argument
+    def get_parameters(self, run_id: str, **kwargs) -> dict:  # pylint: disable=unused-argument
         """
         Get the parameters from the Run log defined by the run_id
 
@@ -339,7 +343,7 @@ class BaseRunLogStore:
         run_log = self.get_run_log_by_id(run_id=run_id)
         return run_log.parameters
 
-    def set_parameters(self, run_id, parameters, **kwargs):  # pylint: disable=unused-argument
+    def set_parameters(self, run_id: str, parameters: dict, **kwargs):  # pylint: disable=unused-argument
         """
         Update the parameters of the Run log with the new parameters
 
@@ -386,7 +390,7 @@ class BaseRunLogStore:
         run_log.run_config.update(run_config)
         self.put_run_log(run_log=run_log)
 
-    def create_step_log(self, name, internal_name, **kwargs):  # pylint: disable=unused-argument
+    def create_step_log(self, name: str, internal_name: str, **kwargs):  # pylint: disable=unused-argument
         """
         Create a step log by the name and internal name
 
@@ -404,7 +408,7 @@ class BaseRunLogStore:
         logger.info(f'{self.service_name} Creating a Step Log: {name}')
         return StepLog(name=name, internal_name=internal_name, status=defaults.CREATED)
 
-    def get_step_log(self, internal_name, run_id, **kwargs):  # pylint: disable=unused-argument
+    def get_step_log(self, internal_name: str, run_id: str, **kwargs) -> StepLog:  # pylint: disable=unused-argument
         """
         Get a step log from the datastore for run_id and the internal naming of the step log
 
@@ -431,7 +435,7 @@ class BaseRunLogStore:
         step_log, _ = run_log.search_step_by_internal_name(internal_name)
         return step_log
 
-    def add_step_log(self, step_log, run_id, **kwargs):  # pylint: disable=unused-argument
+    def add_step_log(self, step_log: StepLog, run_id: str, **kwargs):  # pylint: disable=unused-argument
         """
         Add the step log in the run log as identifed by the run_id in the datastore
 
@@ -461,21 +465,21 @@ class BaseRunLogStore:
         branch.steps[step_log.internal_name] = step_log
         self.put_run_log(run_log=run_log)
 
-    def create_branch_log(self, internal_branch_name, **kwargs):  # pylint: disable=unused-argument
+    def create_branch_log(self, internal_branch_name: str, **kwargs) -> BranchLog:  # pylint: disable=unused-argument
         """
         Creates a uncommited branch log object by the internal name given
 
         Args:
-            internal_branch_name ([type]): [description]
+            internal_branch_name (str): Creates a branch log by name internal_branch_name
 
         Returns:
-            [type]: [description]
+            BranchLog: Uncommited and initialised with defaults BranchLog object
         """
         # Create a new BranchLog
         logger.info(f'{self.service_name} Creating a Branch Log : {internal_branch_name}')
         return BranchLog(internal_name=internal_branch_name, status=defaults.CREATED)
 
-    def get_branch_log(self, internal_branch_name: str, run_id: str, **kwargs) -> object:  # pylint: disable=unused-argument
+    def get_branch_log(self, internal_branch_name: str, run_id: str, **kwargs) -> Union[BranchLog, RunLog]:  # pylint: disable=unused-argument
         """
         Returns the branch log by the internal branch name for the run id
 
@@ -486,15 +490,15 @@ class BaseRunLogStore:
             run_id (str): The run id of interest
 
         Returns:
-            object: The branch log or the run log as requested.
+            BranchLog: The branch log or the run log as requested.
         """
         run_log = self.get_run_log_by_id(run_id=run_id)
         if not internal_branch_name:
             return run_log
         branch, _ = run_log.search_branch_by_internal_name(internal_branch_name)
-        return branch  # , branch_step
+        return branch
 
-    def add_branch_log(self, branch_log: str, run_id: str, **kwargs):  # pylint: disable=unused-argument
+    def add_branch_log(self, branch_log: Union[BranchLog, RunLog], run_id: str, **kwargs):  # pylint: disable=unused-argument
         """
         The method should:
         # Get the run log
@@ -505,17 +509,17 @@ class BaseRunLogStore:
         The branch log could some times be a Run log and should be handled appropriately
 
         Args:
-            branch_log (str): The branch log/run log to add to the database
+            branch_log (BranchLog): The branch log/run log to add to the database
             run_id (str): The run id to which the branch/run log is added
         """
 
         internal_branch_name = None
 
-        if hasattr(branch_log, 'internal_name'):
+        if isinstance(branch_log, BranchLog):
             internal_branch_name = branch_log.internal_name
 
         if not internal_branch_name:
-            self.put_run_log(branch_log)  # We are dealing with base dag here
+            self.put_run_log(branch_log)  # type: ignore # We are dealing with base dag here
             return
 
         run_log = self.get_run_log_by_id(run_id=run_id)
@@ -523,25 +527,25 @@ class BaseRunLogStore:
         step_name = '.'.join(internal_branch_name.split('.')[:-1])
         step, _ = run_log.search_step_by_internal_name(step_name)
 
-        step.branches[internal_branch_name] = branch_log
+        step.branches[internal_branch_name] = branch_log  # type: ignore
         self.put_run_log(run_log)
 
-    def create_attempt_log(self, **kwargs) -> object:  # pylint: disable=unused-argument
+    def create_attempt_log(self, **kwargs) -> StepAttempt:  # pylint: disable=unused-argument
         """
         Returns an uncommited step attempt log.
 
         Returns:
-            object: An uncommited step attempt log
+            StepAttempt: An uncommited step attempt log
         """
         logger.info(f'{self.service_name} Creating an attempt log')
         return StepAttempt()
 
-    def create_code_identity(self, **kwargs) -> object:  # pylint: disable=unused-argument
+    def create_code_identity(self, **kwargs) -> CodeIdentity:  # pylint: disable=unused-argument
         """
         Creates an uncommited Code identiy class
 
         Returns:
-            object: An uncommited code identity class
+            CodeIdentity: An uncommited code identity class
         """
         logger.info(f'{self.service_name} Creating Code identity')
         return CodeIdentity()
@@ -585,7 +589,7 @@ class BufferRunLogstore(BaseRunLogStore):
         super().__init__(config)
         self.run_log = None  # For a buffered Run Log, this is the database
 
-    def create_run_log(self, run_id, **kwargs):
+    def create_run_log(self, run_id: str, **kwargs) -> RunLog:
         # Creates a Run log
         # Adds it to the db
         # Return the log
@@ -593,13 +597,13 @@ class BufferRunLogstore(BaseRunLogStore):
         self.run_log = RunLog(run_id=run_id, status=defaults.CREATED)
         return self.run_log
 
-    def get_run_log_by_id(self, run_id, full=True, **kwargs):
+    def get_run_log_by_id(self, run_id: str, full: bool = True, **kwargs):
         # Returns the run_log defined by id
         # Raises Exception if not found
         logger.info(f'{self.service_name} Getting the run log from DB for {run_id}')
         return self.run_log
 
-    def put_run_log(self, run_log, **kwargs):
+    def put_run_log(self, run_log: RunLog, **kwargs):
         # Puts the run_log into the database
         logger.info(f'{self.service_name} Putting the run log in the DB: {run_log.run_id}')
         self.run_log = run_log
@@ -662,7 +666,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
         with json_file_path.open('w') as fw:
             json.dump(run_log.dict(), fw, ensure_ascii=True, indent=4)  # pylint: disable=no-member
 
-    def get_from_folder(self, run_id) -> RunLog:
+    def get_from_folder(self, run_id: str) -> RunLog:
         """
         Look into the run log folder for the run log for the run id.
 
@@ -690,7 +694,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
             run_log = RunLog(**json_str)  # pylint: disable=no-member
         return run_log
 
-    def create_run_log(self, run_id, **kwargs):
+    def create_run_log(self, run_id: str, **kwargs) -> RunLog:
         # Creates a Run log
         # Adds it to the db
         logger.info(f'{self.service_name} Creating a Run Log for : {run_id}')
@@ -698,7 +702,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
         self.write_to_folder(run_log)
         return run_log
 
-    def get_run_log_by_id(self, run_id, full=True, **kwargs):
+    def get_run_log_by_id(self, run_id: str, full: bool = True, **kwargs) -> RunLog:
         # Returns the run_log defined by id
         # Raises Exception if not found
         try:
@@ -708,7 +712,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
         except FileNotFoundError as e:
             raise exceptions.RunLogNotFoundError(run_id) from e
 
-    def put_run_log(self, run_log, **kwargs):
+    def put_run_log(self, run_log: RunLog, **kwargs):
         # Puts the run_log into the database
         logger.info(f'{self.service_name} Putting the run log in the DB: {run_log.run_id}')
         self.write_to_folder(run_log)

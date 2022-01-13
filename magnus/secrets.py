@@ -21,7 +21,7 @@ class BaseSecrets:
     Raises:
         NotImplementedError: Base class and not implemented
     """
-    service_name = None
+    service_name = ''
 
     def __init__(self, config: dict, **kwargs):  # pylint: disable=unused-argument
         self.config = config or {}
@@ -65,7 +65,7 @@ class DoNothingSecretManager(BaseSecrets):
             [type]: [description]
         """
         if name:
-            return None
+            return ''
         return {}
 
 
