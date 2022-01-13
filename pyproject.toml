@@ -6,12 +6,12 @@ authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.6.1"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 yachalk = "*"
-dataclasses-json = "*"
 docker ={ version = "*", optional = true } 
+pydantic = "^1.9.0"
 
 [tool.poetry.extras]
 docker = ['docker']

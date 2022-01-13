@@ -1,12 +1,12 @@
-from dataclasses import dataclass, field
+from __future__ import annotations
 from collections import OrderedDict
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, OrderedDict, Dict, DefaultDict
 import json
 from pathlib import Path
 import logging
 import sys
 
-from dataclasses_json import dataclass_json
+from pydantic import BaseModel, Field
 
 from magnus import utils
 from magnus import defaults
@@ -16,12 +16,10 @@ from magnus import exceptions
 logger = logging.getLogger(defaults.NAME)
 
 # Once defined these classes are sealed to any additions unless a default is provided
-# Breaking this rule will make magnus backwardly incompatible
+# Breaking this rule might make magnus backwardly incompatible
 
 
-@dataclass_json
-@dataclass
-class DataCatalog:
+class DataCatalog(BaseModel):
     """
     The captured attributes of a catalog item.
     """
@@ -32,94 +30,30 @@ class DataCatalog:
     stage: str = None  # The stage at which we recorded it get, put etc
 
 
-@dataclass_json
-@dataclass
-class StepAttempt:
+class StepAttempt(BaseModel):
     """
     The captured attributes of an Attempt of a step.
     """
     attempt_numner: int = 0
     start_time: str = None
     end_time: str = None
-    duration: Optional[str] = None  #  end_time - start_time
+    duration: str = None  #  end_time - start_time
     status: str = 'FAIL'
-    message: Optional[str] = ''
+    message: str = ''
 
 
-@dataclass_json
-@dataclass
-class CodeIdentity:
+class CodeIdentity(BaseModel):
     """
     The captured attributes of a code identity of a step.
     """
-    code_identifier: Optional[str] = None  # GIT sha code or docker image id
-    code_identifier_type: Optional[str] = None  # git or docker
+    code_identifier: str = None  # GIT sha code or docker image id
+    code_identifier_type: str = None  # git or docker
     code_identifer_dependable: bool = False  # If git, checks if the tree is clean.
-    code_identifier_url: Optional[str] = None  # The git remote url or docker repository url
-    code_identifier_message: Optional[str] = None  # Any optional message
+    code_identifier_url: str = None  # The git remote url or docker repository url
+    code_identifier_message: str = None  # Any optional message
 
 
-@dataclass_json
-@dataclass
-class BranchLog:
-    """
-    The dataclass of captured data about a branch of a composite node.
-
-    Returns:
-        [type]: [description]
-    """
-    internal_name: str
-    status: str = 'FAIL'
-    steps: OrderedDict = field(default_factory=OrderedDict)  # StepLogs keyed by internal name
-
-    def get_data_catalogs_by_stage(self, stage='put') -> List[DataCatalog]:
-        """
-        Given a stage, return the data catalogs according to the stage
-
-        Args:
-            stage (str, optional): The stage at which the data was cataloged. Defaults to 'put'.
-
-        Raises:
-            Exception: If the stage was not in get or put.
-
-        Returns:
-            List[DataCatalog]: The list of data catalogs as per the stage.
-        """
-        if stage not in ['get', 'put']:
-            raise Exception('Stage should be in get or put')
-
-        data_catalogs = []
-        for _, step in self.steps.items():
-            data_catalogs.extend(step.get_data_catalogs_by_stage(stage=stage))
-
-        return data_catalogs
-
-    @classmethod
-    def decode_from_dict(cls, branch_dict: dict) -> object:
-        """
-        Decode a dictionary into a BranchLog.
-
-        Since the BranchLog has StepLogs and StepLogs have BranchLogs, we have to
-        create a custom function.
-
-        Args:
-            branch_dict (dict): The dictionary of branch log
-
-        Returns:
-            object: The object form of BranchLog
-        """
-        # TODO handle python < 3.7
-        branch = cls.from_dict(branch_dict)  # pylint: disable=no-member
-
-        for step_name, step in branch.steps.items():
-            branch.steps[step_name] = StepLog.decode_from_dict(step)
-
-        return branch
-
-
-@dataclass_json
-@dataclass
-class StepLog:
+class StepLog(BaseModel):
     """
     The data class capturing the data of a Step
     """
@@ -127,13 +61,13 @@ class StepLog:
     internal_name: str  # Should be the dot notation of the step
     status: str = 'FAIL'  #  Should have a better default
     step_type: str = 'task'
-    message: Optional[str] = None
+    message: str = None
     mock: bool = False
-    code_identities: List[CodeIdentity] = field(default_factory=list)
-    attempts: List[StepAttempt] = field(default_factory=list)
-    user_defined_metrics: dict = field(default_factory=dict)
-    branches: dict = field(default_factory=dict)  # Keyed in by the branch key name
-    data_catalog: List[DataCatalog] = field(default_factory=list)
+    code_identities: List[CodeIdentity] = []
+    attempts: List[StepAttempt] = []
+    user_defined_metrics: dict = {}
+    branches: Dict[str, BranchLog] = {}  # Keyed in by the branch key name
+    data_catalog: List[DataCatalog] = []
 
     def get_data_catalogs_by_stage(self, stage='put') -> List[DataCatalog]:
         """
@@ -169,53 +103,46 @@ class StepLog:
         for data_catalog in data_catalogs:
             self.data_catalog.append(data_catalog)
 
-    @classmethod
-    def decode_from_dict(cls, step_dict: dict) -> object:
-        """
-        For python versions, less than 3.7 dataclasses and dataclass_json do not work well.
-        This has to be fixed if the need is found.
 
-        In all other cases, since StepLogs have BranchLog and BranchLog has StepLog,
-        we have to write a custom decoder.
+class BranchLog(BaseModel):
+    """
+    The dataclass of captured data about a branch of a composite node.
+
+    Returns:
+        [type]: [description]
+    """
+    internal_name: str
+    status: str = 'FAIL'
+    steps: OrderedDict[str, StepLog] = {}  # StepLogs keyed by internal name
+
+    def get_data_catalogs_by_stage(self, stage='put') -> List[DataCatalog]:
+        """
+        Given a stage, return the data catalogs according to the stage
 
         Args:
-            step_dict (dict): The dictionary representation of step log.
+            stage (str, optional): The stage at which the data was cataloged. Defaults to 'put'.
 
         Raises:
-            Exception: If the python version is not supported.
+            Exception: If the stage was not in get or put.
 
         Returns:
-            object: The object representation of StepLog
+            List[DataCatalog]: The list of data catalogs as per the stage.
         """
-        # TODO need to handle branches for python version < 3.7
-        if sys.version_info.major < 3:
-            raise Exception('Python version should at least be 3!')  #  Should never happen
-        if sys.version_info.minor < 7:
-            # Custom decoding should happen as back-ported dataclasses do not work well with dataclasses-json
-            step_log = cls(**step_dict)
+        if stage not in ['get', 'put']:
+            raise Exception('Stage should be in get or put')
 
-            code_ids = []
-            for code_id in step_log.code_identities:
-                code_ids.append(CodeIdentity(**code_id))
-            step_log.code_identities = code_ids
+        data_catalogs = []
+        for _, step in self.steps.items():
+            data_catalogs.extend(step.get_data_catalogs_by_stage(stage=stage))
 
-            attempts = []
-            for attempt in step_log.attempts:
-                attempts.append(StepAttempt(**attempt))
-            step_log.attempts = attempts
-
-            return step_log
-
-        step = cls.from_dict(step_dict)  # pylint: disable=no-member
-        for branch_name, branch in step.branches.items():
-            step.branches[branch_name] = BranchLog.decode_from_dict(branch)
-
-        return step
+        return data_catalogs
 
 
-@dataclass_json
-@dataclass
-class RunLog:
+# Needed for BranchLog of StepLog to be referenced
+StepLog.update_forward_refs()
+
+
+class RunLog(BaseModel):
     """
     The data captured as part of Run Log
     """
@@ -225,9 +152,9 @@ class RunLog:
     tag: Optional[str] = None
     original_run_id: Optional[str] = None
     status: str = 'FAIL'
-    steps: OrderedDict = field(default_factory=OrderedDict)  # Has the steps keyed by internal_name
-    parameters: dict = field(default_factory=dict)
-    run_config: dict = field(default_factory=dict)
+    steps: OrderedDict[str, StepLog] = {}  # Has the steps keyed by internal_name
+    parameters: dict = {}
+    run_config: dict = {}
 
     def get_data_catalogs_by_stage(self, stage: str = 'put') -> List[DataCatalog]:
         """
@@ -334,27 +261,10 @@ class RunLog:
 
         raise exceptions.StepLogNotFoundError(self.run_id, i_name)
 
-    @ classmethod
-    def decode_from_dict(cls, json_str: str) -> object:
-        """
-        Since we have a custom step/branch log, we have to pass the decoding of the run log
-        through those functions.
-
-        Args:
-            json_str (str): The json representation of the run log
-
-        Returns:
-            object: The run log object
-        """
-        run_log = cls.from_dict(json_str)  # pylint: disable=no-member
-        for name, step in run_log.steps.items():
-            run_log.steps[name] = StepLog.decode_from_dict(step)  # pylint: disable=no-member
-
-        return run_log
-
 
 # All outside modules should interact with dataclasses using the RunLogStore to promote extensibility
 # If you want to cusomtize dataclass, extend BaseRunLogStore and implement the methods as per the specification
+
 class BaseRunLogStore:
     """
     The base class of a Run Log Store with many common methods implemented
@@ -563,7 +473,7 @@ class BaseRunLogStore:
         """
         # Create a new BranchLog
         logger.info(f'{self.service_name} Creating a Branch Log : {internal_branch_name}')
-        return BranchLog(internal_branch_name, status=defaults.CREATED)
+        return BranchLog(internal_name=internal_branch_name, status=defaults.CREATED)
 
     def get_branch_log(self, internal_branch_name: str, run_id: str, **kwargs) -> object:  # pylint: disable=unused-argument
         """
@@ -750,7 +660,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
         json_file_path = write_to_path / f'{run_id}.json'
 
         with json_file_path.open('w') as fw:
-            json.dump(run_log.to_dict(), fw, ensure_ascii=True, indent=4)  # pylint: disable=no-member
+            json.dump(run_log.dict(), fw, ensure_ascii=True, indent=4)  # pylint: disable=no-member
 
     def get_from_folder(self, run_id) -> RunLog:
         """
@@ -777,14 +687,14 @@ class FileSystemRunLogstore(BaseRunLogStore):
 
         with json_file_path.open('r') as fr:
             json_str = json.load(fr)
-            run_log = RunLog.decode_from_dict(json_str)  # pylint: disable=no-member
+            run_log = RunLog(**json_str)  # pylint: disable=no-member
         return run_log
 
     def create_run_log(self, run_id, **kwargs):
         # Creates a Run log
         # Adds it to the db
         logger.info(f'{self.service_name} Creating a Run Log for : {run_id}')
-        run_log = RunLog(run_id, status=defaults.CREATED)
+        run_log = RunLog(run_id=run_id, status=defaults.CREATED)
         self.write_to_folder(run_log)
         return run_log
 

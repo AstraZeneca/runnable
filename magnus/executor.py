@@ -411,7 +411,7 @@ class BaseExecutor:
             branch = working_on.internal_branch_name
 
         logger.info(f'Finished execution of the {branch} with status {run_log.status}')
-        logger.info(json.dumps(run_log.to_dict(), indent=4))
+        logger.info(json.dumps(run_log.dict(), indent=4))
 
     def is_eligible_for_rerun(self, node, map_variable: dict = None):
         """
