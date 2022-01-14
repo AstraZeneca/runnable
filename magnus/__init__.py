@@ -36,4 +36,4 @@ class ColorFormatter(logging.Formatter):
         return color(message)
 
 
-logging.ColorFormatter = ColorFormatter
+logging.ColorFormatter = ColorFormatter  # type: ignore

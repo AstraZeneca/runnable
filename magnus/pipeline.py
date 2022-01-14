@@ -1,6 +1,7 @@
 import logging
 import json
 
+from typing import Union
 
 from magnus import utils
 from magnus import graph
@@ -43,8 +44,8 @@ def prepare_configurations(
         configuration_file: str,
         pipeline_file: str,
         run_id: str,
-        tag: str,
-        use_cached: bool):
+        tag: Union[str, None],
+        use_cached: Union[str, None]):
     # pylint: disable=R0914
     """
     Replace the placeholders in the dag/config against the variables file.
@@ -56,7 +57,7 @@ def prepare_configurations(
         pipeline_file (str): The config/dag file
         run_id (str): The run id of the run.
         tag (str): If a tag is provided at the run time
-        use_cached (bool): Is true for a re-run, otherwise false
+        use_cached (str): Provide the run_id of the older run
 
     Returns:
         executor.BaseExecutor : A prepared executor as per the dag/config
@@ -219,18 +220,18 @@ def execute_single_node(
                                            pipeline_file=pipeline_file,
                                            run_id=run_id,
                                            tag=tag,
-                                           use_cached=False)
+                                           use_cached='')
     mode_executor.cmd_line_arguments = kwargs
     step_internal_name = nodes.BaseNode.get_internal_name_from_command_name(step_name)
 
-    map_variable = utils.json_to_ordered_dict(map_variable)
+    map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
     node_to_execute, _ = graph.search_node_by_internal_name(mode_executor.dag, step_internal_name)
 
-    mode_executor.prepare_for_node_execution(node_to_execute, map_variable=map_variable)
+    mode_executor.prepare_for_node_execution(node_to_execute, map_variable=map_variable_dict)
 
     logger.info('Executing the single node of : %s', node_to_execute)
-    mode_executor.execute_node(node=node_to_execute, map_variable=map_variable)
+    mode_executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
 
     mode_executor.send_return_code(stage='execution')
 
@@ -261,16 +262,16 @@ def execute_single_brach(
                                            pipeline_file=pipeline_file,
                                            run_id=run_id,
                                            tag=tag,
-                                           use_cached=False)
+                                           use_cached='')
     mode_executor.cmd_line_arguments = kwargs
     branch_internal_name = nodes.BaseNode.get_internal_name_from_command_name(branch_name)
 
-    map_variable = utils.json_to_ordered_dict(map_variable)
+    map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
     branch_to_execute = graph.search_branch_by_internal_name(mode_executor.dag, branch_internal_name)
 
     logger.info('Executing the single branch of %s', branch_to_execute)
-    mode_executor.execute_graph(dag=branch_to_execute, map_variable=map_variable)
+    mode_executor.execute_graph(dag=branch_to_execute, map_variable=map_variable_dict)
 
     mode_executor.send_return_code()
 

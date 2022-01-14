@@ -84,13 +84,14 @@ def get_integration_handler(executor: object, service: object) -> BaseIntegratio
     service_type = get_service_type(service)
     service_name = getattr(service, 'service_name')
     for sub_class in BaseIntegration.__subclasses__():
-        if sub_class.service_type == service_type and \
-                sub_class.mode_type == executor.service_name and \
-                sub_class.service_provider == service_name:
+        if (sub_class.service_type == service_type and  # type: ignore
+                sub_class.mode_type == executor.service_name and  # type: ignore
+                sub_class.service_provider == service_name):
             logger.info(f'Identified an intergration pattern {sub_class.__name__}')
             return sub_class(executor, service)
 
-    logger.warning(f'Could not find an integration pattern for {executor.service_name} and {service_name}')
+    logger.warning(
+        f'Could not find an integration pattern for {executor.service_name} and {service_name}')  # type: ignore
     return BaseIntegration(executor, service)
 
 

@@ -77,11 +77,6 @@ The available commands are:
         # now that we're inside a subcommand, ignore the first
         # TWO argvs, ie the command (git) and the subcommand (commit)
         args, kwargs = self._resolve_args(sys.argv, parser)
-        if args.use_cached:
-            if not args.run_id:
-                raise Exception('A run-id should be provded for a use-cached situation')
-            if len(args.run_id.split('_')) != 2:
-                raise Exception('Please provide a full run-id if you want to re-run and use cache')
 
         logger.setLevel(args.log_level)
         pipeline.execute(

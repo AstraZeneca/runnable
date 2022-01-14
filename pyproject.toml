@@ -12,6 +12,8 @@ python = "^3.6.1"
 yachalk = "*"
 docker ={ version = "*", optional = true } 
 pydantic = "^1.9.0"
+pytest = "^6.2.5"
+pytest-mock = "^3.6.1"
 
 [tool.poetry.extras]
 docker = ['docker']

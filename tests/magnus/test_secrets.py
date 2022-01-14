@@ -24,7 +24,7 @@ def test_do_nothing_secrets_handler_returns_none_if_name_provided(mocker, monkey
     monkeypatch.setattr(secrets, 'BaseSecrets', mock_base_secret)
 
     dummy_secret = secrets.DoNothingSecretManager(config=None)
-    assert dummy_secret.get('I dont exist') is None
+    assert dummy_secret.get('I dont exist') is ''
 
 
 def test_do_nothing__handler_returns_empty_dict_if_name_not_provided(mocker, monkeypatch):

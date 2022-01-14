@@ -1,4 +1,6 @@
 import os
+import json
+import sys
 import pytest
 
 
@@ -383,7 +385,7 @@ def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch
 
     mock_client.images.get = mocker.MagicMock(side_effect=Exception('No Image exists'))
 
-    assert utils.get_local_docker_image_id('test') is None
+    assert utils.get_local_docker_image_id('test') is ''
 
 
 def test_filter_arguments_for_func_works_only_named_arguments_in_func_spec():
@@ -419,6 +421,7 @@ def test_get_node_execution_command_returns_magnus_execute():
         run_id = 'test_run_id'
         pipeline_file = 'test_pipeline_file'
         variables_file = None
+        configuration_file = None
 
     class MockNode:
         internal_name = 'test_node_id'
@@ -435,6 +438,7 @@ def test_get_node_execution_command_overwrites_run_id_if_asked():
         run_id = 'test_run_id'
         pipeline_file = 'test_pipeline_file'
         variables_file = None
+        configuration_file = None
 
     class MockNode:
         internal_name = 'test_node_id'
@@ -451,6 +455,7 @@ def test_get_node_execution_command_returns_magnus_execute_appends_variables_fil
         run_id = 'test_run_id'
         pipeline_file = 'test_pipeline_file'
         variables_file = 'test_variables_file'
+        configuration_file = None
 
     class MockNode:
         internal_name = 'test_node_id'
@@ -467,6 +472,7 @@ def test_get_node_execution_command_returns_magnus_execute_appends_map_variable(
         run_id = 'test_run_id'
         pipeline_file = 'test_pipeline_file'
         variables_file = None
+        configuration_file = None
 
     class MockNode:
         internal_name = 'test_node_id'
@@ -474,8 +480,10 @@ def test_get_node_execution_command_returns_magnus_execute_appends_map_variable(
         def command_friendly_name(self):
             return 'test_node_id'
 
-    assert utils.get_node_execution_command(MockExecutor(), MockNode(), map_variable='test_map') == \
-        'magnus execute_single_node test_run_id test_node_id --file test_pipeline_file --map-variable test_map'
+    map_variable = {'test_map': 'map_value'}
+    json_dump = json.dumps(map_variable)
+    assert utils.get_node_execution_command(MockExecutor(), MockNode(), map_variable=map_variable) == \
+        f"magnus execute_single_node test_run_id test_node_id --file test_pipeline_file --map-variable '{json_dump}'"
 
 
 def test_get_service_base_class_throws_exception_for_unknown_service():

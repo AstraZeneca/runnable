@@ -14,9 +14,14 @@ from typing import Tuple, Union, Callable
 from ruamel.yaml import YAML  # type: ignore
 
 from magnus import defaults
-
+from magnus import executor
 
 logger = logging.getLogger(defaults.NAME)
+
+try:
+    import docker
+except ImportError:
+    logger.warning('docker was not installed, local-container mode will not function')
 
 
 def does_file_exist(file_path: str) -> bool:
@@ -252,7 +257,6 @@ def get_local_docker_image_id(image_name: str) -> str:
         str: The docker image digest
     """
     try:
-        import docker
         client = docker.from_env()
         image = client.images.get(image_name)
         return image.attrs['Id']
@@ -261,7 +265,7 @@ def get_local_docker_image_id(image_name: str) -> str:
     except:
         logger.exception(f'Could not find the image by name {image_name}')
 
-    return None
+    return ''
 
 
 def get_git_code_identity(run_log_store):
@@ -519,7 +523,7 @@ def get_duration_between_datetime_strings(start_time: str, end_time: str) -> str
     return str(end - start)
 
 
-def get_run_config(executor: object) -> dict:
+def get_run_config(executor: executor.BaseExecutor) -> dict:
     """
     Given an executor with assigned services, return the run_config
 

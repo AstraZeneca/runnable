@@ -23,29 +23,6 @@ def test_branchlog_calls_step_logs_catalogs(mocker):
     mock_get_data_catalogs_by_stage.assert_called_once_with(stage='put')
 
 
-def test_branchlog_decode_from_dict_sends_dict_to_step_log_to_create_object(mocker, monkeypatch):
-    branch_dict = {
-        'internal_name': 'test',
-        'status': 'SUCCESS',
-        'steps': {
-            'step1': 1,
-            'step2': 2
-        }
-    }
-
-    mock_step_log_decode_from_dict = mocker.MagicMock(return_value='a_step')
-    monkeypatch.setattr(datastore.StepLog, 'decode_from_dict', mock_step_log_decode_from_dict)
-
-    branch = datastore.BranchLog.decode_from_dict(branch_dict=branch_dict)
-
-    assert branch.internal_name == 'test'
-    assert branch.status == 'SUCCESS'
-
-    assert len(branch.steps) == 2
-
-    assert mock_step_log_decode_from_dict.call_count == 2
-
-
 def test_steplog_get_data_catalogs_by_state_raises_exception_for_incorrect_stage():
     step_log = datastore.StepLog(name='test', internal_name='test')
     with pytest.raises(Exception):
@@ -104,30 +81,6 @@ def test_steplog_add_data_catalogs_appends_to_existing_catalog():
     step_log.add_data_catalogs(data_catalogs=['b'])
 
     assert step_log.data_catalog == ['a', 'b']
-
-
-def test_steplog_decode_from_dict_uses_branchlog_to_decode(mocker, monkeypatch):
-    step_dict = {
-        'name': 'test',
-        'internal_name': 'test',
-        'status': 'SUCCESS',
-        'branches': {
-            'branch1': 1,
-            'branch2': 2
-        }
-    }
-
-    mock_branch_log_decode_from_dict = mocker.MagicMock(return_value='a_branch')
-    monkeypatch.setattr(datastore.BranchLog, 'decode_from_dict', mock_branch_log_decode_from_dict)
-
-    step = datastore.StepLog.decode_from_dict(step_dict=step_dict)
-
-    assert step.internal_name == 'test'
-    assert step.status == 'SUCCESS'
-
-    assert len(step.branches) == 2
-
-    assert mock_branch_log_decode_from_dict.call_count == 2
 
 
 def test_runlog_get_data_catalogs_by_state_raises_exception_for_incorrect_stage():

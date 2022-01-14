@@ -81,7 +81,7 @@ def get_secret(secret_name: str = None) -> str:
         exceptions.SecretNotFoundError: Secret not found in the secrets manager.
     """
     from magnus.pipeline import global_executor  # pylint: disable=import-outside-toplevel
-    secrets_handler = global_executor.secrets_handler
+    secrets_handler = global_executor.secrets_handler  # type: ignore
 
     try:
         return secrets_handler.get(name=secret_name)
@@ -103,9 +103,10 @@ def get_from_catalog(name: str, destination_folder: str = None):
     from magnus.pipeline import global_executor  # pylint: disable=import-outside-toplevel
 
     if not destination_folder:
-        destination_folder = global_executor.catalog_handler.compute_data_folder
+        destination_folder = global_executor.catalog_handler.compute_data_folder  # type: ignore
 
-    global_executor.catalog_handler.get(name, run_id=global_executor.run_id, compute_data_folder=destination_folder)
+    global_executor.catalog_handler.get(name, run_id=global_executor.run_id,  # type: ignore
+                                        compute_data_folder=destination_folder)
 
 
 def put_in_catalog(filepath: str):
@@ -121,5 +122,5 @@ def put_in_catalog(filepath: str):
 
     file_path = Path(filepath)
 
-    global_executor.catalog_handler.put(file_path.name, run_id=global_executor.run_id,
+    global_executor.catalog_handler.put(file_path.name, run_id=global_executor.run_id,  # type: ignore
                                         compute_data_folder=file_path.parent)

@@ -25,27 +25,6 @@ def test_load_user_extensions_reads_extension_file(monkeypatch, mocker):
     mock_load_yaml.assert_called_once_with(defaults.USER_CONFIG_FILE)
 
 
-def test_send_return_code_does_nothing_if_success(mocker, monkeypatch):
-    mock_mode_executor = mocker.MagicMock()
-    mock_run_log = mocker.MagicMock()
-
-    mock_mode_executor.run_log_store.get_run_log_by_id.return_value = mock_run_log
-    mock_run_log.status = defaults.SUCCESS
-
-    pipeline.send_return_code(mock_mode_executor)
-
-
-def test_send_return_code_raises_exception_if_failure(mocker, monkeypatch):
-    mock_mode_executor = mocker.MagicMock()
-    mock_run_log = mocker.MagicMock()
-
-    mock_mode_executor.run_log_store.get_run_log_by_id.return_value = mock_run_log
-    mock_run_log.status = defaults.FAIL
-
-    with pytest.raises(Exception):
-        pipeline.send_return_code(mock_mode_executor)
-
-
 def test_prepare_configurations_does_not_apply_variables_if_none_sent(mocker, monkeypatch):
     mock_utils = mocker.MagicMock()
     mock_load_yaml = mocker.MagicMock(return_value={'dag': 1})
@@ -56,7 +35,8 @@ def test_prepare_configurations_does_not_apply_variables_if_none_sent(mocker, mo
     monkeypatch.setattr(pipeline, 'json', mocker.MagicMock())
     monkeypatch.setattr(pipeline, 'graph', mocker.MagicMock())
 
-    pipeline.prepare_configurations(variables_file='', pipeline_file='', run_id=1, tag='tag', use_cached=False)
+    pipeline.prepare_configurations(variables_file='', pipeline_file='', run_id=1,
+                                    tag='tag', configuration_file='', use_cached=False)
     assert mock_load_yaml.call_count == 1
 
 
@@ -70,7 +50,8 @@ def test_prepare_configurations_apply_variables_if_sent(mocker, monkeypatch):
     monkeypatch.setattr(pipeline, 'json', mocker.MagicMock())
     monkeypatch.setattr(pipeline, 'graph', mocker.MagicMock())
 
-    pipeline.prepare_configurations(variables_file='var', pipeline_file='', run_id=1, tag='tag', use_cached=False)
+    pipeline.prepare_configurations(variables_file='var', pipeline_file='', run_id=1,
+                                    tag='tag', configuration_file='', use_cached=False)
     assert mock_load_yaml.call_count == 2
 
 
@@ -94,7 +75,8 @@ def test_prepare_configurations_stores_dag_hash_and_graph_to_executor(mocker, mo
     monkeypatch.setattr(pipeline, 'json', mocker.MagicMock())
     monkeypatch.setattr(pipeline, 'graph', mock_graph)
 
-    pipeline.prepare_configurations(variables_file='var', pipeline_file='', run_id=1, tag='tag', use_cached=False)
+    pipeline.prepare_configurations(variables_file='var', pipeline_file='', run_id=1,
+                                    configuration_file='', tag='tag', use_cached=False)
 
     assert mock_executor_obj.dag_hash == 'hash'
     assert mock_executor_obj.dag == 1
