@@ -576,7 +576,7 @@ def test_parallel_node_raises_exception_for_empty_branches():
 def test_parallel_node_get_sub_graphs_creates_graphs(mocker, monkeypatch):
     mock_create_graph = mocker.MagicMock(return_value='agraphobject')
 
-    monkeypatch.setattr(graph, 'create_graph', mock_create_graph)
+    monkeypatch.setattr(nodes, 'create_graph', mock_create_graph)
 
     parallel_config = {
         'branches': {
@@ -637,7 +637,7 @@ def test_nodes_map_node_names_the_branch_as_defaults_place_holder(monkeypatch, m
 
 def test_nodes_map_get_sub_graph_calls_create_graph_with_correct_naming(mocker, monkeypatch):
     mock_create_graph = mocker.MagicMock()
-    monkeypatch.setattr(graph, 'create_graph', mock_create_graph)
+    monkeypatch.setattr(nodes, 'create_graph', mock_create_graph)
 
     _ = nodes.MapNode(name='test', internal_name='test', config={
         'iterate_on': 'a', 'iterate_as': 'y_i', 'branch': {}}, execution_type='test')
@@ -647,7 +647,7 @@ def test_nodes_map_get_sub_graph_calls_create_graph_with_correct_naming(mocker, 
 
 def test_nodes_map_get_branch_by_name_returns_a_sub_graph(mocker, monkeypatch):
     mock_create_graph = mocker.MagicMock(return_value='a')
-    monkeypatch.setattr(graph, 'create_graph', mock_create_graph)
+    monkeypatch.setattr(nodes, 'create_graph', mock_create_graph)
 
     node = nodes.MapNode(name='test', internal_name='test', config={
         'iterate_on': 'a', 'iterate_as': 'y_i', 'branch': {}}, execution_type='test')
@@ -684,7 +684,7 @@ def test_nodes_dag_node_get_sub_graph_calls_create_graph_with_correct_parameters
     mock_create_graph = mocker.MagicMock(return_value='branch')
 
     monkeypatch.setattr(nodes.utils, 'load_yaml', mock_load_yaml)
-    monkeypatch.setattr(graph, 'create_graph', mock_create_graph)
+    monkeypatch.setattr(nodes, 'create_graph', mock_create_graph)
 
     _ = nodes.DagNode(name='test', internal_name='test', config={'dag_definition': 'a'}, execution_type='test')
 

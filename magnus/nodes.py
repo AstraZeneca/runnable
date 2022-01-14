@@ -14,6 +14,7 @@ from pkg_resources import resource_filename
 import magnus
 from magnus import utils
 from magnus import defaults
+from magnus.graph import create_graph
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -598,7 +599,6 @@ class ParallelNode(BaseNode):
         Returns:
             dict: A branch_name: dag for every branch mentioned in the branches
         """
-        from magnus.graph import create_graph  # pylint: disable=C0415
 
         branches = {}
         for branch_name, branch_config in self.config['branches'].items():
@@ -760,7 +760,6 @@ class MapNode(BaseNode):
         Returns:
             Graph: A graph object
         """
-        from magnus.graph import create_graph  # pylint: disable=C0415
 
         branch_config = self.config['branch']
         branch = create_graph(
@@ -939,7 +938,6 @@ class DagNode(BaseNode):
         Returns:
             Graph: A graph object
         """
-        from magnus.graph import create_graph  # pylint: disable=C0415
 
         dag_config = utils.load_yaml(self.sub_dag_file)
         if 'dag' not in dag_config:

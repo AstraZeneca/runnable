@@ -29,6 +29,16 @@ class DataCatalog(BaseModel):
     catalog_handler_location: str = ''
     stage: str = ''  # The stage at which we recorded it get, put etc
 
+    # Needed for set operations to work on DataCatalog objects
+    def __hash__(self):
+        return hash(self.name)
+
+    # Needed for set operations to work on DataCatalog objects
+    def __eq__(self, other):
+        if not isinstance(other, DataCatalog):
+            return False
+        return other.name == self.name
+
 
 class StepAttempt(BaseModel):
     """
@@ -85,11 +95,12 @@ class StepLog(BaseModel):
         if stage not in ['get', 'put']:
             raise Exception('Stage should be in get or put')
 
+        data_catalogs = []
         if self.branches:
             for _, branch in self.branches.items():
-                self.data_catalog.extend(branch.get_data_catalogs_by_stage(stage=stage))
+                data_catalogs.extend(branch.get_data_catalogs_by_stage(stage=stage))
 
-        return [dc for dc in self.data_catalog if dc.stage == stage]
+        return [dc for dc in self.data_catalog if dc.stage == stage] + data_catalogs
 
     def add_data_catalogs(self, data_catalogs: List[DataCatalog]):
         """
@@ -168,8 +179,8 @@ class RunLog(BaseModel):
         """
         if stage not in ['get', 'put']:
             raise Exception('Only get or put are allowed in stage')
-        data_catalogs = []
 
+        data_catalogs = []
         for _, step in self.steps.items():
             data_catalogs.extend(step.get_data_catalogs_by_stage(stage=stage))
 

@@ -1,10 +1,12 @@
 import logging
 
-from typing import Dict, List
+from typing import Dict, List, TYPE_CHECKING
 
 from magnus import defaults
 from magnus import exceptions
-from magnus import nodes
+
+if TYPE_CHECKING:
+    from magnus.nodes import BaseNode
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -24,7 +26,7 @@ class Graph:
         self.internal_branch_name = internal_branch_name
         self.nodes = []
 
-    def get_node_by_name(self, name: str) -> nodes.BaseNode:
+    def get_node_by_name(self, name: str) -> 'BaseNode':
         """
         Return the Node object by the name
         The name is always relative to the graph
@@ -43,7 +45,7 @@ class Graph:
                 return node
         raise exceptions.NodeNotFoundError(name)
 
-    def get_node_by_internal_name(self, internal_name: str) -> nodes.BaseNode:
+    def get_node_by_internal_name(self, internal_name: str) -> 'BaseNode':
         """
         Return the node by the internal name of the node.
         The internal name uses dot path convention.
@@ -67,7 +69,7 @@ class Graph:
         node_str = ', '.join([x.name for x in self.nodes])
         return f'Starts at: {self.start_at} and has a max run time of {self.max_time} and {node_str}'
 
-    def add_node(self, node: nodes.BaseNode):
+    def add_node(self, node: 'BaseNode'):
         """
         Add a node to the nodes of the graph
 
@@ -122,7 +124,7 @@ class Graph:
         if messages:
             raise Exception(',  '.join(messages))
 
-    def get_success_node(self) -> nodes.BaseNode:
+    def get_success_node(self) -> 'BaseNode':
         """
         Return the success node of the graph
 
@@ -137,7 +139,7 @@ class Graph:
                 return node
         raise Exception('No success node defined')
 
-    def get_fail_node(self) -> nodes.BaseNode:
+    def get_fail_node(self) -> 'BaseNode':
         """
         Returns the fail node of the graph
 
@@ -212,7 +214,7 @@ class Graph:
                     return False
         return True
 
-    def is_cyclic_util(self, node: nodes.BaseNode, visited: Dict[str, bool], recstack: Dict[str, bool]) -> bool:
+    def is_cyclic_util(self, node: 'BaseNode', visited: Dict[str, bool], recstack: Dict[str, bool]) -> bool:
         """
         Recursive utily that determines if a node and neighbours has a cycle. Is used in is_dag method.
 
@@ -239,7 +241,7 @@ class Graph:
         recstack[node.name] = False
         return False
 
-    def missing_neighbours(self) -> List[nodes.BaseNode]:
+    def missing_neighbours(self) -> List['BaseNode']:
         """
         Iterates through nodes and gets their connecting neighbours and checks if they exist in the graph.
 

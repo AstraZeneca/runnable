@@ -3,6 +3,30 @@ import pytest
 from magnus import datastore
 
 
+def test_data_catalog_eq_is_equal_if_name_is_same():
+    this = datastore.DataCatalog(name='test')
+    that = datastore.DataCatalog(name='test')
+
+    assert this == that
+    assert len(set([this, that])) == 1
+
+
+def test_data_catalog_eq_is_not_equal_if_name_is_not_same():
+    this = datastore.DataCatalog(name='test')
+    that = datastore.DataCatalog(name='test1')
+
+    assert this != that
+    assert len(set([this, that])) == 2
+
+
+def test_data_catalog_eq_is_not_equal_if_objs_are_not_same(mocker):
+    this = datastore.DataCatalog(name='test')
+    that = mocker.MagicMock()
+
+    assert this != that
+    assert len(set([this, that])) == 2
+
+
 def test_branchlog_get_data_catalogs_by_state_raises_exception_for_incorrect_stage():
     branch_log = datastore.BranchLog(internal_name='test')
     with pytest.raises(Exception):
@@ -43,29 +67,6 @@ def test_steplog_get_data_catalogs_filters_by_stage(mocker):
     assert step_log.get_data_catalogs_by_stage(stage='get') == [mock_data_catalog_get]
 
 
-# def test_steplog_get_data_catalogs_filters_by_stage_with_branches(mocker):
-#     step_log = datastore.StepLog(name='test', internal_name='test')
-
-#     mock_data_catalog_put = mocker.MagicMock()
-#     mock_data_catalog_put.stage = 'put'
-#     mock_data_catalog_put_branch = mocker.MagicMock()
-#     mock_data_catalog_put_branch.stage = 'put'
-#     mock_data_catalog_get = mocker.MagicMock()
-#     mock_data_catalog_get.stage = 'get'
-
-#     step_log.data_catalog = [mock_data_catalog_get, mock_data_catalog_put]
-
-#     mock_branch = mocker.MagicMock()
-#     mock_branch.get_data_catalogs_by_stage.return_value = mock_data_catalog_put_branch
-#     step_log.branches['test_branch'] = mock_branch
-
-#     print(mock_branch.__dict__)
-#     print(step_log.branches)
-
-#     assert step_log.get_data_catalogs_by_stage() == [mock_data_catalog_put, mock_data_catalog_put_branch]
-#     assert step_log.get_data_catalogs_by_stage(stage='get') == [mock_data_catalog_get]
-
-
 def test_steplog_add_data_catalogs_inits_a_new_data_catalog():
     step_log = datastore.StepLog(name='test', internal_name='test')
 
@@ -98,20 +99,27 @@ def test_runlog_search_branch_by_internal_name_returns_run_log_if_internal_name_
     assert step is None
 
 
-# def test_runlog_search_branch_by_internal_name_for_1_level(mocker):
-#     i_name = 'parallel_step.branch1.step_inside'
+def test_step_log_get_data_catalogs_by_stage_gets_catalogs_from_branches(mocker, monkeypatch):
+    mock_branch_log = mocker.MagicMock()
+    mock_branch_log.get_data_catalogs_by_stage.return_value = ['from_branch']
 
-#     run_log = datastore.RunLog(run_id='run_id')
+    step_log = datastore.StepLog(name='test', internal_name='for_testing')
 
-#     run_log.steps = {
-#         'parallel_step': {
-#             'branches': {
-#                 'run_log.parallel_step.step_inside': 'step_inside'
-#             }
-#         }
-#     }
+    step_log.branches['single_branch'] = mock_branch_log
 
-#     branch, step = run_log.search_branch_by_internal_name(i_name=i_name)
+    assert ['from_branch'] == step_log.get_data_catalogs_by_stage()
 
-#     assert branch == 'parallel_step'
-#     assert step == 'step_inside'
+
+def test_step_log_get_data_catalogs_by_stage_adds_catalogs_from_branches_to_current_ones(mocker, monkeypatch):
+    mock_branch_log = mocker.MagicMock()
+    mock_branch_log.get_data_catalogs_by_stage.return_value = ['from_branch']
+
+    mock_data_catalog = mocker.MagicMock()
+    mock_data_catalog.stage = 'put'
+
+    step_log = datastore.StepLog(name='test', internal_name='for_testing')
+
+    step_log.branches['single_branch'] = mock_branch_log
+    step_log.data_catalog = [mock_data_catalog]
+
+    assert [mock_data_catalog, 'from_branch'] == step_log.get_data_catalogs_by_stage()
