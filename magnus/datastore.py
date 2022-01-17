@@ -283,7 +283,7 @@ class BaseRunLogStore:
     service_name = ''
 
     def __init__(self, config):
-        self.config = config
+        self.config = config or {}
 
     def create_run_log(self, run_id: str, **kwargs):
         """
@@ -641,26 +641,14 @@ class FileSystemRunLogstore(BaseRunLogStore):
         log_folder: The folder to out the logs. Defaults to .run_log_store
     """
     service_name = 'file-system'
+    CONFIG_KEY_LOG_FOLDER = 'log_folder'
 
-    def __init__(self, config):
-        super().__init__(config)
-        self.write_to_key = 'log_folder'
+    @property
+    def log_folder_name(self) -> str:
+        if self.config:
+            return self.config.get(self.CONFIG_KEY_LOG_FOLDER, defaults.LOG_LOCATION_FOLDER)
 
-    def get_folder_name(self) -> str:
-        """
-        Get the run log store folder name on the local machine.
-
-        If no folder name was provded, return the default log folder name
-
-        Returns:
-            str: The run log store folder path
-        """
-        write_to = defaults.LOG_LOCATION_FOLDER
-        if self.write_to_key in self.config:
-            write_to = self.config[self.write_to_key]
-
-        utils.safe_make_dir(write_to)
-        return write_to
+        return defaults.LOG_LOCATION_FOLDER
 
     def write_to_folder(self, run_log: RunLog):
         """
@@ -669,7 +657,9 @@ class FileSystemRunLogstore(BaseRunLogStore):
         Args:
             run_log (RunLog): The run log to be added to the database
         """
-        write_to = self.get_folder_name()
+        write_to = self.log_folder_name
+        utils.safe_make_dir(write_to)
+
         write_to_path = Path(write_to)
         run_id = run_log.run_id
         json_file_path = write_to_path / f'{run_id}.json'
@@ -693,7 +683,8 @@ class FileSystemRunLogstore(BaseRunLogStore):
         Returns:
             RunLog: The decoded Run log
         """
-        write_to = self.get_folder_name()
+        write_to = self.log_folder_name
+
         read_from_path = Path(write_to)
         json_file_path = read_from_path / f'{run_id}.json'
 

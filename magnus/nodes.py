@@ -100,6 +100,47 @@ class PythonExecutionType(BaseExecutionType):  # pylint: disable=too-few-public-
                 os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
 
 
+class PythonLambdaExecutionType(BaseExecutionType):  # pylint: disable=too-few-public-methods
+    """
+    The execution class for python command
+    """
+    execution_type = 'python-lambda'
+
+    def execute_command(self, command, map_variable: dict = None):
+        if '_' in command or '__' in command:
+            msg = (
+                f'Command given to {self.execution_type} cannot have _ or __ in them. '
+                'The string is supposed to be for simple expressions only.'
+            )
+            raise Exception(msg)
+
+        f = eval(command)
+
+        parameters = utils.get_user_set_parameters(remove=False)
+        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
+
+        logger.info(f'Calling lambda function: {command} with {filtered_parameters}')
+        try:
+            user_set_parameters = f(**filtered_parameters)
+        except Exception as _e:
+            msg = (
+                f'Call to the function {command} with {filtered_parameters} did not succeed.\n'
+            )
+            logger.exception(msg)
+            logger.exception(_e)
+            raise
+
+        if user_set_parameters:
+            if not type(user_set_parameters) == dict:
+                msg = (
+                    f'call to function {command} returns of type: {type(user_set_parameters)}. '
+                    'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
+                raise Exception(msg)
+            for key, value in user_set_parameters.items():
+                logger.info(f'Setting User defined parameter {key} with value: {value}')
+                os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
+
+
 class ShellExecutionType(BaseExecutionType):
     """
     The execution class for shell based commands

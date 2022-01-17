@@ -6,8 +6,19 @@ modules of magnus are written with extensibility as a non-negotiable design guid
 Before you want to extend the capabilities, lets have a look at the flow of code.
 ## Flow of code
 
-When working with magnus, you would typically put all your dag definitions and parameterised system providers in one
-file and all the variables in another. 
+A dag execution involves two different phases:
+
+- **Traversal of the dag**: In this phase, we are concerned about how to traverse the dag and reach different
+nodes of the graph. Lets call the compute environment of the dag traversal *CE-Traversal*.
+
+- **Execution of the nodes**: In this phase, we are concerned about executing the node of the graph i.e, making the parameters accessible for the dag, making the catalog or secrets available for node execution. Lets call the compute environment of the node execution, *CE-Execution*.
+
+With this set-up, we have 4 different possibilites.
+
+- CE-Traversal by magnus, CE-Execution by magnus: In this mode of execution, magnus handles both the traversal and execution of the nodes and the compute environment for both the phases are the same, for example: *local* compute mode.
+
+- CE-Traversal by mangus, CE-Execution by mangus but different environments:
+
 
 ## Configuraton
 

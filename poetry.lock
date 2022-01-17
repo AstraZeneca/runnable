@@ -16,7 +16,7 @@ wrapt = ">=1.11,<1.14"
 name = "atomicwrites"
 version = "1.4.0"
 description = "Atomic file writes."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
@@ -24,7 +24,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 name = "attrs"
 version = "21.4.0"
 description = "Classes Without Boilerplate"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
@@ -81,7 +81,7 @@ importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
 name = "colorama"
 version = "0.4.4"
 description = "Cross-platform colored terminal text."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
@@ -170,7 +170,7 @@ python-versions = ">=3.5"
 name = "importlib-metadata"
 version = "4.8.3"
 description = "Read metadata from Python packages"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -202,7 +202,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 name = "iniconfig"
 version = "1.1.1"
 description = "iniconfig: brain-dead simple config-ini parsing"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -305,7 +305,7 @@ i18n = ["babel (>=2.9.0)"]
 
 [[package]]
 name = "mkdocs-material"
-version = "8.1.6"
+version = "8.1.7"
 description = "A Material Design theme for MkDocs"
 category = "dev"
 optional = false
@@ -357,7 +357,7 @@ python-versions = "*"
 name = "packaging"
 version = "21.3"
 description = "Core utilities for Python packages"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -380,7 +380,7 @@ test = ["appdirs (==1.4.4)", "pytest (>=6)", "pytest-cov (>=2.7)", "pytest-mock 
 name = "pluggy"
 version = "1.0.0"
 description = "plugin and hook calling mechanisms for python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -395,7 +395,7 @@ testing = ["pytest", "pytest-benchmark"]
 name = "py"
 version = "1.11.0"
 description = "library with cross-python path, ini-parsing, io, code, log facilities"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
@@ -463,7 +463,7 @@ Markdown = ">=3.2"
 name = "pyparsing"
 version = "3.0.6"
 description = "Python parsing module"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -474,7 +474,7 @@ diagrams = ["jinja2", "railroad-diagrams"]
 name = "pytest"
 version = "6.2.5"
 description = "pytest: simple powerful testing with Python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -511,7 +511,7 @@ testing = ["fields", "hunter", "process-tests", "six", "pytest-xdist", "virtuale
 name = "pytest-mock"
 version = "3.6.1"
 description = "Thin-wrapper around the mock package for easier use with pytest"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -612,7 +612,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
@@ -757,7 +757,7 @@ docker = ["docker"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.1"
-content-hash = "8712f044de22c9181d7ebe10896fc7efe7aa3d1881a19e44ffe7fb704d7c1294"
+content-hash = "bc1b33eb9a591c81fb8398310af411a7efadd8e95138bec76b3b78693f5e393b"
 
 [metadata.files]
 astroid = [
@@ -1012,8 +1012,8 @@ mkdocs = [
     {file = "mkdocs-1.2.3.tar.gz", hash = "sha256:89f5a094764381cda656af4298727c9f53dc3e602983087e1fe96ea1df24f4c1"},
 ]
 mkdocs-material = [
-    {file = "mkdocs-material-8.1.6.tar.gz", hash = "sha256:12eb74faf018950f51261a773f9bea12cc296ec4bdbb2c8cf74102ee35b6df79"},
-    {file = "mkdocs_material-8.1.6-py2.py3-none-any.whl", hash = "sha256:b2303413e3154502759f90ee2720b451be8855f769c385d8fb06a93ce54aafe2"},
+    {file = "mkdocs-material-8.1.7.tar.gz", hash = "sha256:16a50e3f08f1e41bdc3115a00045d174e7fd8219c26917d0d0b48b2cc9d5a18f"},
+    {file = "mkdocs_material-8.1.7-py2.py3-none-any.whl", hash = "sha256:71bcac6795b22dcf8bab8b9ad3fe462242c4cd05d28398281902425401f23462"},
 ]
 mkdocs-material-extensions = [
     {file = "mkdocs-material-extensions-1.0.3.tar.gz", hash = "sha256:bfd24dfdef7b41c312ede42648f9eb83476ea168ec163b613f9abd12bbfddba2"},

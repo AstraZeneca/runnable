@@ -184,7 +184,10 @@ class FileSystemCatalog(BaseCatalog):
         Returns:
             str: The catalog location as defined by the config or magnus default '.catalog'
         """
-        return self.config.get('catalog_location', defaults.CATALOG_LOCATION_FOLDER)
+        if self.config:
+            return self.config.get('catalog_location', defaults.CATALOG_LOCATION_FOLDER)
+
+        return defaults.CATALOG_LOCATION_FOLDER
 
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         """
