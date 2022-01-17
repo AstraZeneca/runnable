@@ -44,7 +44,7 @@ class StepAttempt(BaseModel):
     """
     The captured attributes of an Attempt of a step.
     """
-    attempt_numner: int = 0
+    attempt_number: int = 0
     start_time: str = ''
     end_time: str = ''
     duration: str = ''  #  end_time - start_time
@@ -58,7 +58,7 @@ class CodeIdentity(BaseModel):
     """
     code_identifier: str = ''  # GIT sha code or docker image id
     code_identifier_type: str = ''  # git or docker
-    code_identifer_dependable: bool = False  # If git, checks if the tree is clean.
+    code_identifier_dependable: bool = False  # If git, checks if the tree is clean.
     code_identifier_url: str = ''  # The git remote url or docker repository url
     code_identifier_message: str = ''  # Any optional message
 
@@ -274,7 +274,7 @@ class RunLog(BaseModel):
 
 
 # All outside modules should interact with dataclasses using the RunLogStore to promote extensibility
-# If you want to cusomtize dataclass, extend BaseRunLogStore and implement the methods as per the specification
+# If you want to customize dataclass, extend BaseRunLogStore and implement the methods as per the specification
 
 class BaseRunLogStore:
     """
@@ -414,7 +414,7 @@ class BaseRunLogStore:
             internal_name (str): The internal naming of the step log. The internal naming is a dot path convention
 
         Returns:
-            StepLog: A uncommmited step log object
+            StepLog: A uncommitted step log object
         """
         logger.info(f'{self.service_name} Creating a Step Log: {name}')
         return StepLog(name=name, internal_name=internal_name, status=defaults.CREATED)
@@ -448,7 +448,7 @@ class BaseRunLogStore:
 
     def add_step_log(self, step_log: StepLog, run_id: str, **kwargs):  # pylint: disable=unused-argument
         """
-        Add the step log in the run log as identifed by the run_id in the datastore
+        Add the step log in the run log as identified by the run_id in the datastore
 
         The method should:
              * Call get_run_log_by_id(run_id) to retrieve the run_log
@@ -478,13 +478,13 @@ class BaseRunLogStore:
 
     def create_branch_log(self, internal_branch_name: str, **kwargs) -> BranchLog:  # pylint: disable=unused-argument
         """
-        Creates a uncommited branch log object by the internal name given
+        Creates a uncomitted branch log object by the internal name given
 
         Args:
             internal_branch_name (str): Creates a branch log by name internal_branch_name
 
         Returns:
-            BranchLog: Uncommited and initialised with defaults BranchLog object
+            BranchLog: Uncommitted and initialized with defaults BranchLog object
         """
         # Create a new BranchLog
         logger.info(f'{self.service_name} Creating a Branch Log : {internal_branch_name}')
@@ -513,7 +513,7 @@ class BaseRunLogStore:
         """
         The method should:
         # Get the run log
-        # Get the branch and step containining the branch
+        # Get the branch and step containing the branch
         # Add the branch to the step
         # Write the run_log
 
@@ -543,20 +543,20 @@ class BaseRunLogStore:
 
     def create_attempt_log(self, **kwargs) -> StepAttempt:  # pylint: disable=unused-argument
         """
-        Returns an uncommited step attempt log.
+        Returns an uncommitted step attempt log.
 
         Returns:
-            StepAttempt: An uncommited step attempt log
+            StepAttempt: An uncommitted step attempt log
         """
         logger.info(f'{self.service_name} Creating an attempt log')
         return StepAttempt()
 
     def create_code_identity(self, **kwargs) -> CodeIdentity:  # pylint: disable=unused-argument
         """
-        Creates an uncommited Code identiy class
+        Creates an uncommitted Code identity class
 
         Returns:
-            CodeIdentity: An uncommited code identity class
+            CodeIdentity: An uncommitted code identity class
         """
         logger.info(f'{self.service_name} Creating Code identity')
         return CodeIdentity()

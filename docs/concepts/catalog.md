@@ -39,7 +39,7 @@ Any configuration variables accepted by the catalog provider.
 
 ## Configuration within Step
 
-Within a step of the dag, the catalog can be configued by
+Within a step of the dag, the catalog can be configured by
 
 ```yaml
 catalog:
@@ -117,9 +117,9 @@ def my_function():
 ---
 
 
-## Parameterised definition
+## Parameterized definition
 
-As with any part of the mangus configuration, you can parameterise the configuration of catalog to switch between 
+As with any part of the magnus configuration, you can parameterize the configuration of catalog to switch between 
 catalog providers without changing the base definition. 
 
 Please follow the example provided [here](../dag/#parameterized_definition) for more information. 

@@ -1,12 +1,12 @@
 # Run Log
 
-In magnus, Run log captures all the information required to accurately describe a run. It shoould not 
+In magnus, Run log captures all the information required to accurately describe a run. It should not 
 confused with your application logs, which are project dependent. Independent of the providers of any systems 
 (compute, secrets, run log, catalog), the structure of the run log would remain the same and should enable 
 you to compare between runs. 
 
 To accurately recreate an older run either for debugging purposes or for reproducibility, it should capture all 
-the variables of the system and their state during the run. For the purpse of data science applications, 
+the variables of the system and their state during the run. For the purple of data science applications, 
 it boils down to:
 
 - Data: The source of the data and the version of it. 
@@ -18,7 +18,7 @@ The Run Log helps in storing them systematically for every run with the best pos
 
 ## Structure of Run Log
 
-A typical run log has the following structure, with a few defintions given inline.
+A typical run log has the following structure, with a few definitions given inline.
 
 ```json
 {
@@ -36,7 +36,7 @@ A typical run log has the following structure, with a few defintions given inlin
 ### run_id
 Every run in magnus is given a unique ```run_id```.
 
-In magnus, a ```run_id``` is of 2 parts, seperated by '_'
+In magnus, a ```run_id``` is of 2 parts, separated by '_'
 
 - fixed segment: This can be provided by the user or from an older run_id.
 - random segment: A random 6 letter tag attached to the fixed segment. 
@@ -69,7 +69,7 @@ A flag to denote the status of the run. The status could be:
 
 ### parameters
 
-A dictiionary of key-value pairs available to all the nodes. 
+A dictionary of key-value pairs available to all the nodes. 
 
 Any ```kwargs``` present in the function signature, called as part of the pipeline, are resolved against this 
 dictionary and the values are set during runtime. 
@@ -109,7 +109,7 @@ The name of the step log follows a convention, we refer, to as *dot path* conven
 
 All the steps of the parent dag have the same exact name as the step name provided in the dag. 
 
-The naming of the steps of the nested branches like parallel, map or dag are gviven below.
+The naming of the steps of the nested branches like parallel, map or dag are given below.
 #### parallel step
 
 The steps of the parallel branch follow parent_step.branch_name.child_step name.
@@ -246,14 +246,14 @@ As part of the log, magnus captures any possible identification of the state of 
 
 This section is only present for *Execution* nodes.
 
-An example code identy if the code is git controlled
+An example code identity if the code is git controlled
 
 ```json
 "code_identities": [
     {
         "code_identifier": "1486bd7fbe27d57ff4a9612e8dabe6a914bc4eb5", # Git commit id
         "code_identifier_type": "git", # Git
-        "code_identifer_dependable": true, # A flag to track if git tree is clean
+        "code_identifier_dependable": true, # A flag to track if git tree is clean
         "code_identifier_url": "ssh://git@##################.git", # The remote URL of the repo
         "code_identifier_message": "" # Lists all the files that were found to be unclean as per git
     }
@@ -268,14 +268,14 @@ For example:
     {
         "code_identifier": "1486bd7fbe27d57ff4a9612e8dabe6a914bc4eb5", # Git commit id
         "code_identifier_type": "git", # Git
-        "code_identifer_dependable": true, # A flag to track if git tree is clean
+        "code_identifier_dependable": true, # A flag to track if git tree is clean
         "code_identifier_url": "ssh://git@##################.git", # The remote URL of the repo
         "code_identifier_message": "" # Lists all the files that were found to be unclean as per git
     },
     {
         "code_identifier": "", # Docker image digest
         "code_identifier_type": "docker", # Git
-        "code_identifer_dependable": true, # Always true as docker image id is dependable
+        "code_identifier_dependable": true, # Always true as docker image id is dependable
         "code_identifier_url": "", # The docker registry URL
         "code_identifier_message": ""
     }
@@ -287,17 +287,17 @@ For example:
 An attempt log capturing meta data about the attempt made to execute the node. 
 This section is only present for *Execution* nodes.
 
-The structure of attempt log along with inline defintions
+The structure of attempt log along with inline definitions
 
 ```json
 "attempts": [
     {
-        "attempt_numner": 0, # The sequence number of attempt.
+        "attempt_number": 0, # The sequence number of attempt.
         "start_time": "", # The start time of the attempt
         "end_time": "", # The end time of the attempt
         "duration": null, # The duration of the time taken for the command to execute
         "status": "",
-        "message": "" # If any exception was raised, this field captures the message of the execption
+        "message": "" # If any exception was raised, this field captures the message of the exception
     }
 ]
 ```
@@ -348,7 +348,7 @@ If this function was executed as part of the pipeline, you should see the follow
 }
 ```
 
-The same could also be acheived without ```import magnus``` by exporting environment varialbes with prefix of
+The same could also be acheived without ```import magnus``` by exporting environment variables with prefix of
 ```MAGNUS_TRACK_```
 
 ```python
@@ -414,9 +414,9 @@ Buffered Run Log is provided as default if nothing is given.
 
 Any configuration parameters the run log provider accepts. 
 
-## Parameterised definition
+## Parameterized definition
 
-As with any part of the mangus configuration, you can parameterise the configuration of Run Log to switch between 
+As with any part of the magnus configuration, you can parameterize the configuration of Run Log to switch between 
 Run Log providers without changing the base definition. 
 
 Please follow the example provided [here](../dag/#parameterized_definition) for more information. 

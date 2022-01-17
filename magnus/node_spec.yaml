@@ -11,7 +11,7 @@ fail:
   error_on:
     next:
     command:
-    branches:  
+    branches:
     on_failure:
     catalog:
 
@@ -19,10 +19,9 @@ success:
   error_on:
     next:
     command:
-    branches:  
+    branches:
     on_failure:
     catalog:
-
 
 as-is:
   required:

@@ -19,7 +19,7 @@ def my_function():
 ```
 
 
-The pipeline which contians one node to call the above function. 
+The pipeline which contains one node to call the above function. 
 
 ```yaml
 dag:
@@ -29,7 +29,7 @@ dag:
     step 1:
       type: task 
       next: success
-      command: my_module.my_funcion
+      command: my_module.my_function
       command_type: python
     success:
       type: success
@@ -52,7 +52,7 @@ dag:
     step 1:
       type: as-is # The function would not execute as this is as-is node
       next: success
-      command: my_module.my_funcion
+      command: my_module.my_function
       command_type: python
     success:
       type: success
@@ -61,7 +61,7 @@ dag:
 ```
 
 
-## Using shell commands as part of the pipline
+## Using shell commands as part of the pipeline
 
 In magnus, a pipeline can have shell commands as part of the pipeline. The only caveat in doing so is magnus
 would not be able to support ```parameters```, ```secrets``` or any of the built-in functions. The cataloging 
@@ -105,7 +105,7 @@ def second_function():
 ```
 
 
-The pipeline which contians first_function of the above module and then to the call the second_function is given
+The pipeline which contains first_function of the above module and then to the call the second_function is given
 below.
 
 ```yaml
@@ -116,12 +116,12 @@ dag:
     step 1:
       type: task 
       next: step 2
-      command: my_module.first_funcion
+      command: my_module.first_function
       command_type: python
     step 2:
       type: task 
       next: success
-      command: my_module.second_funcion
+      command: my_module.second_function
       command_type: python
     success:
       type: success
@@ -151,7 +151,7 @@ def second_function():
 
 
 def handle_error():
-    print('Send an email notifiction')
+    print('Send an email notification')
     ## Some logic to send error notification
     ...
 
@@ -168,13 +168,13 @@ dag:
     step 1:
       type: task 
       next: step 2
-      command: my_module.first_funcion
+      command: my_module.first_function
       command_type: python
       on_failure: graceful exit
     step 2:
       type: task 
       next: success
-      command: my_module.second_funcion
+      command: my_module.second_function
       command_type: python
       on_failure: graceful exit
     graceful exit:

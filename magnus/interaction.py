@@ -111,7 +111,7 @@ def get_from_catalog(name: str, destination_folder: str = None):
 
 def put_in_catalog(filepath: str):
     """
-    A conveniece interaction function to put the file in the catalog.
+    A convenience interaction function to put the file in the catalog.
 
     Note: We do not perform any kind of serialization/deserialization in this way.
 

@@ -46,7 +46,7 @@ class BaseExecutionType:  # pylint: disable=too-few-public-methods
 
 def get_command_class(command_type: str) -> BaseExecutionType:
     """
-    Given a command exeuction type, return the class that implements the execution type.
+    Given a command execution type, return the class that implements the execution type.
 
     Args:
         command_type (str): The command execution type you want, shell, python are examples
@@ -165,7 +165,7 @@ class BaseNode:
     Base class with common functionality provided for a Node of a graph.
 
     A node of a graph could be a
-        * single execution node as task, succcess, fail.
+        * single execution node as task, success, fail.
         * Could be graph in itself as parallel, dag and map.
         * could be a convenience function like as-is.
 
@@ -218,7 +218,7 @@ class BaseNode:
         """
         If there is no map step used, then we just return the name as we find it.
 
-        If there is a map variable being used, replace every occurence of the map variable placeholder with
+        If there is a map variable being used, replace every occurrence of the map variable placeholder with
         the value sequentially.
 
         For example: 
@@ -331,7 +331,7 @@ class BaseNode:
 
         The name is expected to follow a dot path convention.
 
-        This method will raise an exception if the node does not have any brances.
+        This method will raise an exception if the node does not have any branches.
         i.e: task, success, fail and as-is would raise an exception
 
         Args:
@@ -353,23 +353,23 @@ class BaseNode:
             return False
         return True
 
-    def get_neighbours(self):
+    def get_neighbors(self):
         """
-        Gets the connecting neighbour nodes, either the "next" node or "on_failure" node.
+        Gets the connecting neighbor nodes, either the "next" node or "on_failure" node.
 
         Returns:
-            list: List of connected neighbours for a given node. Empty if terminal node.
+            list: List of connected neighbors for a given node. Empty if terminal node.
         """
-        neighbours = []
+        neighbors = []
         next_node = self.get_next_node()
         if next_node:
-            neighbours += [next_node]
+            neighbors += [next_node]
 
         fail_node = self.get_on_failure_node()
         if fail_node:
-            neighbours += [fail_node]
+            neighbors += [fail_node]
 
-        return neighbours
+        return neighbors
 
     def get_next_node(self) -> Union[str, None]:
         """
@@ -411,7 +411,7 @@ class BaseNode:
 
         Args:
             executor (magnus.executor.BaseExecutor): The executor mode class
-            mock (bool, optional): Dont run, just pretend. Defaults to False.
+            mock (bool, optional): Don't run, just pretend. Defaults to False.
             map_variable (str, optional): The value of the map iteration variable, if part of a map node.
                 Defaults to ''.
 
@@ -702,7 +702,7 @@ class ParallelNode(BaseNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-        # Preapre the branch logs
+        # Prepare the branch logs
         for internal_branch_name, branch in self.branches.items():
             effective_branch_name = self.resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
 
@@ -811,7 +811,7 @@ class MapNode(BaseNode):
         """
         Retrieve a branch by name.
 
-        In the case of a Map Object, the branch naming is dynamic as it is parameterised on iterable.
+        In the case of a Map Object, the branch naming is dynamic as it is parameterized on iterable.
         This method takes no responsibility in checking the validity of the naming.
 
         Returns a Graph Object

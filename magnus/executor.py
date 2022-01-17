@@ -203,7 +203,7 @@ class BaseExecutor:
         Most frequently, this core logic should not be touched either in interactive mode or 3rd party orchestration
         mode.
 
-        While in interactive mode, we just compute, in 3rd party interactive mode, we call this function fron the CLI
+        While in interactive mode, we just compute, in 3rd party interactive mode, we call this function from the CLI
 
         In most cases,
             * We get the corresponding step_log of the node and the parameters.
@@ -232,7 +232,7 @@ class BaseExecutor:
             try:
                 attempt_log = node.execute(executor=self, mock=mock,
                                            map_variable=map_variable, **kwargs)
-                attempt_log.attempt_numner = attempts
+                attempt_log.attempt_number = attempts
                 step_log.attempts.append(attempt_log)
                 if attempt_log.status == defaults.FAIL:
                     raise Exception()
@@ -280,9 +280,9 @@ class BaseExecutor:
             * fail: We can delegate to execute_node
 
         For nodes that are internally graphs:
-            * parallel: Delegate the reponsibility of execution to the node.execute_as_graph()
-            * dag: Delegate the reponsibility of execution to the node.execute_as_graph()
-            * map: Delegate the reponsibility of execution to the node.execute_as_graph()
+            * parallel: Delegate the responsibility of execution to the node.execute_as_graph()
+            * dag: Delegate the responsibility of execution to the node.execute_as_graph()
+            * map: Delegate the responsibility of execution to the node.execute_as_graph()
 
         Check the implementations of local, local-container, local-aws-batch for different examples of implementation
 
@@ -370,7 +370,7 @@ class BaseExecutor:
         Logically the method should:
             * Start at the dag.start_at of the dag.
             * Call the self.execute_from_graph(node)
-            * depending upon the status of the exeuction, either move to the success node or failure node.
+            * depending upon the status of the execution, either move to the success node or failure node.
 
         Args:
             dag (Graph): The directed acyclic graph to traverse and execute.
@@ -429,7 +429,7 @@ class BaseExecutor:
                         Defaults to None.
 
         Returns:
-            bool: Eligibilty for re-run. True means re-run, False means skip to the next step.
+            bool: Eligibility for re-run. True means re-run, False means skip to the next step.
         """
         if self.previous_run_log:
             node_step_log_name = node.get_step_log_name(map_variable=map_variable)
@@ -513,7 +513,7 @@ class LocalContainerExecutor(BaseExecutor):
 
     Ensure that the local compute has enough resources to finish all your jobs.
 
-    The image of the run, could either be provided as default in the configuraiton of the mode
+    The image of the run, could either be provided as default in the configuration of the mode
     i.e.:
     mode:
       type: 'local-container'
@@ -583,7 +583,7 @@ class LocalContainerExecutor(BaseExecutor):
 
             code_id.code_identifier = utils.get_local_docker_image_id(docker_image)
             code_id.code_identifier_type = 'docker'
-            code_id.code_identifer_dependable = True
+            code_id.code_identifier_dependable = True
             code_id.code_identifier_url = 'local docker host'
             step_log.code_identities.append(code_id)
 
@@ -673,7 +673,7 @@ class DemoRenderer(BaseExecutor):
         """
         Controls the parallelization of branches in map and parallel state.
 
-        Most orchestrators control the parralization of the branches outside of magnus control.
+        Most orchestrators control the parallelization of the branches outside of magnus control.
         i.e, You would render the parallel job job specification in the language of the orchestrator.
 
         NOTE: Most often, this should be false for modes that rely upon other orchestration tools.
@@ -727,10 +727,10 @@ class DemoRenderer(BaseExecutor):
         """
         Syncs the catalog for both get and put stages.
 
-        The default executors implementation just delegates the functionlity to catalog handlers get or pur methods.
+        The default executors implementation just delegates the functionality to catalog handlers get or pur methods.
 
         NOTE: Most often, you should not be over-riding this.
-        Custom funtionality can also be obtained by working on catalog handler implementation.
+        Custom functionality can also be obtained by working on catalog handler implementation.
         """
         super().sync_catalog(node, step_log, stage)
 
@@ -761,8 +761,8 @@ class DemoRenderer(BaseExecutor):
         """
         This method delegates the execution of composite nodes to the appropriate methods.
 
-        This method calls add_code_identities and trigger_job as part of its implemetation.
-        use them to add the funcionality specific to the compute environment.
+        This method calls add_code_identities and trigger_job as part of its implementation.
+        use them to add the functionality specific to the compute environment.
 
         NOTE: Most often, you should not be changing this implementation.
         """
@@ -801,7 +801,7 @@ class DemoRenderer(BaseExecutor):
         """
         Iterate through the graph and frame the bash script.
 
-        For more complex ouputs, dataclasses might be a better option.
+        For more complex outputs, dataclasses might be a better option.
 
         NOTE: This method should be over-written to write the exact specification to the compute engine.
 

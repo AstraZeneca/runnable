@@ -282,7 +282,7 @@ def test_get_git_code_identity_returns_entities_from_other_functions(monkeypatch
     utils.get_git_code_identity(run_log_store)
 
     assert mock_code_id.code_identifier == 'code commit'
-    assert mock_code_id.code_identifer_dependable is False
+    assert mock_code_id.code_identifier_dependable is False
     assert mock_code_id.code_identifier_url == 'git remote'
 
 

@@ -27,7 +27,7 @@ except ImportError:
 def does_file_exist(file_path: str) -> bool:
     """
     Check if a file exists.
-    Implemeted here to avoid repetition of logic.
+    Implemented here to avoid repetition of logic.
 
     Args:
         file_path (str): The file path to check
@@ -101,7 +101,7 @@ def apply_variables(apply_to: dict, variables: dict) -> dict:
         Exception: If the variables is not dict
 
     Returns:
-        dict: A trasformed dict with variables applied
+        dict: A transformed dict with variables applied
     """
     if type(variables) != dict:
         raise Exception('Argument Variables should be dict')
@@ -277,13 +277,13 @@ def get_git_code_identity(run_log_store):
         run_log_store (magnus.datastore.BaseRunLogStore): The run log store used in this process
 
     Returns:
-        magnus.datastore.CodeIdentity: The code identiy used by the run log store.
+        magnus.datastore.CodeIdentity: The code identity used by the run log store.
     """
     code_identity = run_log_store.create_code_identity()
     try:
         code_identity.code_identifier = get_current_code_commit()
         code_identity.code_identifier_type = 'git'
-        code_identity.code_identifer_dependable, changed = is_git_clean()
+        code_identity.code_identifier_dependable, changed = is_git_clean()
         code_identity.code_identifier_url = get_git_remote()
         if changed:
             code_identity.code_identifier_message = 'changes found in ' + ', '.join(changed.split('\n'))
@@ -312,7 +312,7 @@ def remove_prefix(text: str, prefix: str) -> str:
 def get_tracked_data() -> dict:
     """
     Scans the environment variables to find any user tracked variables that have a prefix MAGNUS_TRACK_
-    Removes the environment varaible to prevent any clashes in the future steps
+    Removes the environment variable to prevent any clashes in the future steps
 
     Returns:
         dict: A dictionary of user tracked data
@@ -402,7 +402,7 @@ def filter_arguments_for_func(func: Callable, parameters: dict, map_variable: di
 
 def get_node_execution_command(executor, node, map_variable=None, over_write_run_id=None) -> str:
     """
-    A utility function to standardise execution call to a node via command line.
+    A utility function to standardize execution call to a node via command line.
 
     Args:
         executor (object): The executor class.
@@ -462,7 +462,7 @@ def get_service_base_class(service_type: str):
         from magnus import secrets  # pylint: disable=C0415
         return secrets.BaseSecrets
 
-    raise Exception('Service type is not recognised')
+    raise Exception('Service type is not recognized')
 
 
 def get_subclasses(cls):
@@ -472,7 +472,7 @@ def get_subclasses(cls):
     This method would return even in case of heirarchial sub classes.
 
     Yields:
-        obect: The subclass
+        object: The subclass
     """
     for subclass in cls.__subclasses__():
         yield from get_subclasses(subclass)

@@ -1,6 +1,6 @@
 # Why Magnus
 
-Magnus is never set out to replace  production grade orchestrators like AWS Step functions or argo or kubeflow. These 
+Magnus is never set out to replace  production grade orchestrators like AWS Step functions or argo. These 
 orchestrators are proven to be robust and are constantly improved to align to best practices. We agree that, we should 
 always use these tools for production grade deployments.
 
@@ -12,7 +12,7 @@ production infrastructure and practices while abstracting a lof of underlying co
 
 Magnus treats the *dag* definition as a contract between the data science team and the engineering team. While the dag 
 could be run on local computers or in cloud by the data science team during the development/experiment phase, the dag 
-is translated to choosen orchestrators language during deployment by the engineering team. This also enables the data 
+is translated to chosen orchestrators language during deployment by the engineering team. This also enables the data 
 science team to think along the lines of pipelines and orchestration without infrastructure complexities. 
 
 We also found that, a few implementations in magnus to be more convenient than the counterparts it tries to 
@@ -50,7 +50,7 @@ new [compute environments](../../concepts/modes-implementations/extensions/) (k8
 
 ## Near Zero code change from local to production
 
-Magnus was designed to make data science teams closer to operational world. The code and orchestraton are ready to 
+Magnus was designed to make data science teams closer to operational world. The code and orchestration are ready to 
 be productionized as soon as you are ready. The only change to enable that would be a config (even 
 simpler if you use variables, [check here](../../concepts/dag/#parameterized_definition)).
 
@@ -59,7 +59,7 @@ simpler if you use variables, [check here](../../concepts/dag/#parameterized_def
 The technological decisions made today for your project may not be correct one in a few months for a lot of varied 
 reasons. You might want to change your cloud provider or orchestrating tools or secrets manager and it should be easy 
 to do so. With magnus, you can easily switch without touching your project code/practices. Since the configuration 
-could also be parameterised, switching might be as simple as changing one file. For more details check here. 
+could also be parameterized, switching might be as simple as changing one file. For more details check here. 
 
 And one of the design principles in magnus was to limit needing to ```import magnus``` to achieve functionality. 
 This also means that you can move away from magnus if its no longer supporting you. :-)

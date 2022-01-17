@@ -2,7 +2,7 @@
 
 Local container is an interactive mode. In this mode, the traversal of the dag is done on the 
 local computer but the
-actual exeuction happens on a container (running on local machine). This mode should enable you to test
+actual execution happens on a container (running on local machine). This mode should enable you to test
 the pipeline and execution of your code in containers. This mode could also be useful in 
 debugging a container based cloud run. 
 
@@ -28,8 +28,8 @@ mode:
 
 ### Enabling parallel
 
-By default, none of the branches in parallel or a map node are executed parallely. 
-You can enable it by setting enable_parallel to 'true' (case-insenstive). 
+By default, none of the branches in parallel or a map node are executed parallelly. 
+You can enable it by setting enable_parallel to 'true' (case-insensitive). 
 
 
 !!! Note
@@ -51,7 +51,7 @@ The ```docker_image``` to run the individual nodes of the graph.
 An example docker image to start with:
 
 ```dockerfile
-# Python 3.7 Image without Dependecies
+# Python 3.7 Image without Dependencies
 FROM python:3.7
 
 LABEL maintainer=<Your Name here>
@@ -75,7 +75,7 @@ RUN pipenv install
 
 ### Node over-rides
 
-The docker image provided at ```mode``` can be over-riden by individual nodes of the graph by providing a 
+The docker image provided at ```mode``` can be over-ridden by individual nodes of the graph by providing a 
 ```mode_config``` as part of the definition. 
 
 For example:

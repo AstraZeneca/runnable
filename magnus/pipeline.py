@@ -184,7 +184,7 @@ def execute(
         mode_executor.previous_run_log = previous_run_log
         logger.info('Found a previous run log and using it as cache')
 
-    # Preapre for graph exeuction
+    # Prepare for graph execution
     mode_executor.prepare_for_graph_execution()
 
     logger.info('Executing the graph')

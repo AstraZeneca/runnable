@@ -28,7 +28,7 @@ def get_run_log_store():
 
 def is_catalog_out_of_sync(catalog, synced_catalogs=None) -> bool:
     """
-    Check if the catalog items are out of sync from alredy cataloged objects.
+    Check if the catalog items are out of sync from already cataloged objects.
     If they are, return False.
     If the object does not exist or synced catalog does not exist, return True
     """

@@ -22,10 +22,10 @@ class MagnusCLI:
             description='Magnus CLI',
             usage='''pipeline <command> [<args>]
 
-Welcome to magnus. Please choose the command you wanto run. 
+Welcome to magnus. Please choose the command you want to run. 
 
 The available commands are:
-   exectute   exectutes the pipeline
+   execute   executes the pipeline
    demo       Create an example pipeline in the working directory
    version    gives out the version of the pipeline cli
 ''')
@@ -63,7 +63,7 @@ The available commands are:
         Entry point to interactive modules
         """
         parser = argparse.ArgumentParser(
-            description='Exectute the pipeline based on the definition')
+            description='Execute the pipeline based on the definition')
         # prefixing the argument with -- means it's optional
         parser.add_argument('-f', '--file', default='pipeline.yaml', help='The pipeline definition location')
         parser.add_argument('-v', '--var-file', default=None, help='Variables used in pipeline')
@@ -89,7 +89,7 @@ The available commands are:
         Interactive modes can use this when graph traversal and actual execution are in different environments
         """
         parser = argparse.ArgumentParser(
-            description='Exectute a single node of the pipeline')
+            description='Execute a single node of the pipeline')
         # prefixing the argument with -- means it's optional
         parser.add_argument('run_id', help='Run id of the run')
         parser.add_argument('step_name', help='The internal step name of the pipeline to run')
@@ -116,7 +116,7 @@ The available commands are:
         Mostly used by interactive modes where parallelization of branch is enabled
         """
         parser = argparse.ArgumentParser(
-            description='Exectute a single node of the pipeline')
+            description='Execute a single node of the pipeline')
         # prefixing the argument with -- means it's optional
         parser.add_argument('run_id', help='Run id of the run')
         parser.add_argument('branch_name', help='The internal branch name of the pipeline to run')

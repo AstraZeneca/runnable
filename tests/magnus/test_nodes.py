@@ -764,24 +764,24 @@ def test_is_terminal_node_when_no_next():
     assert node.is_terminal_node()
 
 
-def test_get_neighbours_no_neighbours():
+def test_get_neighbors_no_neighbors():
     node = nodes.BaseNode(name='test', internal_name='test_',  config={},
                           execution_type=None, internal_branch_name='test_')
-    assert node.get_neighbours() == []
+    assert node.get_neighbors() == []
 
 
-def test_get_neighbours_only_next():
+def test_get_neighbors_only_next():
     node = nodes.BaseNode(name='test', internal_name='test_',  config={'next': 'a'},
                           execution_type=None, internal_branch_name='test_')
-    neighbours = node.get_neighbours()
-    assert len(neighbours) == 1
-    assert neighbours[0] == 'a'
+    neighbors = node.get_neighbors()
+    assert len(neighbors) == 1
+    assert neighbors[0] == 'a'
 
 
-def test_get_neighbours_both_next_and_on_failure():
+def test_get_neighbors_both_next_and_on_failure():
     node = nodes.BaseNode(name='test', internal_name='test_',  config={'next': 'a', 'on_failure': 'b'},
                           execution_type=None, internal_branch_name='test_')
-    neighbours = node.get_neighbours()
-    assert len(neighbours) == 2
-    assert neighbours[0] == 'a'
-    assert neighbours[1] == 'b'
+    neighbors = node.get_neighbors()
+    assert len(neighbors) == 2
+    assert neighbors[0] == 'a'
+    assert neighbors[1] == 'b'

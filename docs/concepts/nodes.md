@@ -6,7 +6,7 @@ Nodes are fundamentally the smallest logical unit of work that you want to execu
 guidelines on how big or small a node should be, we advice that the node becomes a part of narrative of the 
 whole project. 
 
-For example, lets take a scenario where you peform some data cleaning task before you are ready to transform/train 
+For example, lets take a scenario where you perform some data cleaning task before you are ready to transform/train 
 a machine learning model. The data cleaning task could be one single *task* node or single *dag* node 
 (which internally is a graph) if you have too many steps. The choice is completely yours to make and 
 depends on the narrative of the project. 
@@ -150,12 +150,12 @@ sync-out all files started with *cleaned* to the catalog after the execution.
 Logically, magnus does the following when executing a task:
 
 1. Check the catalog-get list for any files that have to be synced to compute data folder.
-2. Inspect the function call to determine the argumnts required to make the function call.
+2. Inspect the function call to determine the arguments required to make the function call.
     Retrieve them from the parameters or fail if not present. 
 3. Check if the function call has to executed in case of re-runs. If the previous re-run  of the step 
 was successful, we skip it.
 4. Make the actual function call, if we need to, and determine the result.
-5. Check the catalog-put list for any files that have to be synced back to catlog from the compute data folder.
+5. Check the catalog-put list for any files that have to be synced back to catalog from the compute data folder.
 
 ### Example of a pipeline with one task node, success node and failure node.
 ```yaml
@@ -229,7 +229,7 @@ On_failure could be an use case where you want to send a failure notification be
 
 ### branches (required)
 
-The branches of the step that you want to parallelize. Each branch follows the same defintion as a dag in itself. 
+The branches of the step that you want to parallelize. Each branch follows the same definition as a dag in itself. 
 
 ### Example
 
@@ -280,7 +280,7 @@ Supported nesting:
 
 ## Dag
 
-Dag is a composite node which has one branch defined elsewhere. It is used to logically seperate the complex details
+Dag is a composite node which has one branch defined elsewhere. It is used to logically separate the complex details
 of a pipeline into modular units. For example, a typical data science project would have a data gathering, data
 cleaning, data transformation, modelling, prediction as steps. And it is understandable that these individual steps
 could get complex and require many steps to function. Instead of complicating the parent pipeline, we can abstract the 
@@ -354,11 +354,11 @@ dag:
 ```
 
 In this example, the parent dag only captures the high level tasks required to perform a data science experiment
-while the details of how data cleaning should be done are mentioend in data-cleaning.yaml. 
+while the details of how data cleaning should be done are mentioned in data-cleaning.yaml. 
 
 TODO:
 
-- [ ] Variable subsitution in nested dag
+- [ ] Variable substitution in nested dag
 
 Supported nesting:
 
@@ -369,8 +369,8 @@ Supported nesting:
 
 ## Map
 
-Map is a composite node consisting of one branch that can be iterated over a parameter. A typical usecase would be 
-performing the same data cleaning operation on a bunch of files or the columns of a dataframe. The parameter over which 
+Map is a composite node consisting of one branch that can be iterated over a parameter. A typical use case would be 
+performing the same data cleaning operation on a bunch of files or the columns of a data frame. The parameter over which 
 the branch is iterated over should be provided and also be available to the dag at the execution time. 
 
 The configuration of the map node:
@@ -389,7 +389,7 @@ All the task nodes of the branch should be accepting a keyword argument **ITER_V
 pass the current iteration value into the function. 
 
 ### branch (required)
-The branch to iterate over ther parameter. The branch definition should follow the same rules as a dag definition. 
+The branch to iterate over the parameter. The branch definition should follow the same rules as a dag definition. 
 
 ### next (required)
 The name of the node in the graph to go if the node succeeds
@@ -475,7 +475,7 @@ Supported nesting:
 
 As-is a convenience node or a designers node. It can be used to mock nodes while designing the overall pipeline design 
 without implementing anything in *interactive* modes. The same node can be used to render required 
-templates in *orchestratoin* modes. 
+templates in *orchestration* modes. 
 
 The configuration of as-is node:
 
@@ -532,7 +532,7 @@ In this example, we only wrote a skeleton of the pipeline and none of the steps 
 ### Example as template
 
 Taking the same example, we can imagine that there is an executor which can deploy the trained ML model and requires 
-a template to be generated as part of the continous integration. 
+a template to be generated as part of the continuos integration. 
 
 ```yaml
 mode:
@@ -567,8 +567,8 @@ dag:
       type: fail
 ```
 
-In *interactive* modes the as-is does not do anything and succeeds everytime but the same dag in *orchestrated* modes 
-can render a template that could be part of continous integration process. 
+In *interactive* modes the as-is does not do anything and succeeds every time but the same dag in *orchestrated* modes 
+can render a template that could be part of continuos integration process. 
 
 Data science and ML research teams would thrive in interactive modes, given their experimental nature of work. As-Is 
 nodes gives a way to do experiments without changing the dag definition once it is ready to be deployed.
@@ -604,7 +604,7 @@ Example:
 
 ```python
 
-def my_cool_funcion():
+def my_cool_function():
   return {'arg1': 'hello', 'arg2': {'hello', 'world'} }
 
 ```
@@ -615,7 +615,7 @@ Or
 
 from magnus import store_parameter
 
-def my_cool_funcion():
+def my_cool_function():
   store_parameter(arg1='hello', 'arg2'={'hello', 'world'})
 
 ```
@@ -626,7 +626,7 @@ Or
 import os
 import json
 
-def my_cool_funcion():
+def my_cool_function():
   os.environ['MAGNUS_PRM_' + 'arg1'] = 'hello'
   os.environ['MAGNUS_PRM_' + 'arg2'] = json.dumps({'hello', 'world'})
 ```

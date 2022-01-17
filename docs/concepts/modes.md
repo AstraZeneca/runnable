@@ -15,13 +15,13 @@ Magnus takes care of traversal of the dag and execution of the graph in the comp
 of this mode or local, local container, local aws batch etc.
 
 - **Orchestration mode**: In this mode, the dag definition is translated to your preferred orchestration language
-of dag definition. To still achieve the capabilities of interactive mode, the orchestration languge is
+of dag definition. To still achieve the capabilities of interactive mode, the orchestration language is
 directed to call an internal method instead of your actual function.
 
 Specifically, the orchestration is asked to call
 
 ```shell
-mangus execute_single_node --file my-project.yaml --var-file variables.yaml --step-name step-to-call
+magnus execute_single_node --file my-project.yaml --var-file variables.yaml --step-name step-to-call
 ```
 
 The branches of the original dag are also translated to the orchestrators language if its supported. If the
@@ -49,9 +49,9 @@ Local mode is provided by default if nothing is provided.
 
 Any configuration parameters the mode provider accepts. 
 
-## Parameterised definition
+## Parameterized definition
 
-As with any part of the mangus configuration, you can parameterise the configuration of Mode to switch between 
+As with any part of the magnus configuration, you can parameterize the configuration of Mode to switch between 
 Mode providers without changing the base definition. 
 
 Please follow the example provided [here](../dag/#parameterized_definition) for more information. 

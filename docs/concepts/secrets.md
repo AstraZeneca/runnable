@@ -30,17 +30,17 @@ Any configuration parameters the secret provider accepts.
 Magnus allows Run Log store to have secrets as placeholders for a few providers. Please refer to the Run Log store 
 providers for the format.
 
-## Imteraction within code
+## Interaction within code
 
 Secrets is the only implementation that requires you to ```import magnus``` in the code to access secrets.
 This is mostly to follow the best safety guidelines though we are actively investigating options. 
 
 Once a secret configuration is defined as above, you can access the secret by using ```get_secret``` of magnus. 
-If a key is providd to the API, we return only the value associated with the secret by the key. 
+If a key is provided to the API, we return only the value associated with the secret by the key. 
 If a key is not provided, we return all the key value secret pairs provided. 
 The API would raise an exception if a secret by the key requested does not exist.
 
-Currently, there is no providsion to update/edit secrets via code. 
+Currently, there is no provision to update/edit secrets via code. 
 
 
 For example if the secret key-value pairs are:
@@ -66,9 +66,9 @@ def my_cool_function():
 secret would have a value of ```42``` while all_secrets would be a dictionary ```{'secret_answer': 42, 'secret_question': 'everything'}```
 
 
-## Parameterised definition
+## Parameterized definition
 
-As with any part of the mangus configuration, you can parameterise the configuration of secrets to switch between 
+As with any part of the magnus configuration, you can parameterize the configuration of secrets to switch between 
 providers without changing the base definition. 
 
 Please follow the example provided [here](../dag/#parameterized_definition) for more information. 

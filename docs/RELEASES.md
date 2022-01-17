@@ -6,7 +6,7 @@
 - Working file-system
 - Working file-system, db, Buffered Run Log store
 - Working dotenv secrets.
-- parameterised dag/config definition
+- parameterized dag/config definition
 - Close to 50% unit testing.
 - Documentation without tutorials.
 

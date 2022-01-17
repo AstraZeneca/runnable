@@ -6,4 +6,4 @@ but there are many features that are interesting and might be of use to you in w
 You can read about them in [Concepts](../../concepts/nodes) or see them in action in [Tutorials](../../tutorial/tutorial). 
 
 You can even write [extensions](../../extensions/extensions) to magnus to see a feature that we 
-have not implemted, guide to extensions is provided here.
+have not implemented, guide to extensions is provided here.

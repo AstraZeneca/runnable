@@ -10,7 +10,7 @@ When to use:
 - When you want to compare logs between runs.
 - During testing in cloud/local environments.
 - For production grade runs in cloud environments. 
-- When you have parallel branches as part of your pipeline defintion.
+- When you have parallel branches as part of your pipeline definition.
 - All compute modes accept this as a Run Log store. 
  
 

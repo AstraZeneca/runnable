@@ -93,7 +93,7 @@ class Graph:
         """
         messages = []
 
-        missing_nodes = self.missing_neighbours()
+        missing_nodes = self.missing_neighbors()
         if missing_nodes:
             message = 'The graph has references to nodes (next, on_failure), these nodes are missing from the DAG:\n'
             message += f'{", ".join(missing_nodes)}'
@@ -216,7 +216,7 @@ class Graph:
 
     def is_cyclic_util(self, node: 'BaseNode', visited: Dict[str, bool], recstack: Dict[str, bool]) -> bool:
         """
-        Recursive utily that determines if a node and neighbours has a cycle. Is used in is_dag method.
+        Recursive utility that determines if a node and neighbors has a cycle. Is used in is_dag method.
 
         Args:
             node (BaseNode): The node to check
@@ -229,35 +229,35 @@ class Graph:
         visited[node.name] = True
         recstack[node.name] = True
 
-        neighbours = node.get_neighbours()
-        for neighbour in neighbours:
-            neighbour_node = self.get_node_by_name(neighbour)
-            if not visited[neighbour]:
-                if self.is_cyclic_util(neighbour_node, visited, recstack):
+        neighbors = node.get_neighbors()
+        for neighbor in neighbors:
+            neighbor_node = self.get_node_by_name(neighbor)
+            if not visited[neighbor]:
+                if self.is_cyclic_util(neighbor_node, visited, recstack):
                     return True
-            elif recstack[neighbour]:
+            elif recstack[neighbor]:
                 return True
 
         recstack[node.name] = False
         return False
 
-    def missing_neighbours(self) -> List['BaseNode']:
+    def missing_neighbors(self) -> List['BaseNode']:
         """
-        Iterates through nodes and gets their connecting neighbours and checks if they exist in the graph.
+        Iterates through nodes and gets their connecting neighbors and checks if they exist in the graph.
 
         Returns:
-            list: List of the missing nodes. Empty list if all neighbours are in the graph.
+            list: List of the missing nodes. Empty list if all neighbors are in the graph.
         """
         missing_nodes = []
         for node in self.nodes:
-            neighbours = node.get_neighbours()
-            for neighbour in neighbours:
+            neighbors = node.get_neighbors()
+            for neighbor in neighbors:
                 try:
-                    self.get_node_by_name(neighbour)
+                    self.get_node_by_name(neighbor)
                 except exceptions.NodeNotFoundError:
                     logger.exception('Could not find the node')
-                    if neighbour not in missing_nodes:
-                        missing_nodes.append(neighbour)
+                    if neighbor not in missing_nodes:
+                        missing_nodes.append(neighbor)
         return missing_nodes
 
 

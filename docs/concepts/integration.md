@@ -4,7 +4,7 @@ Magnus at the core provides 4 services
 
 - A computational execution plan or an Executor.
 - A run log store to store metadata and run logs.
-- A cataloging functionality to pass data between steps and auditability trace.
+- A cataloging functionality to pass data between steps and audibility trace.
 - A framework to handle secrets.
 
 The executor plays the role of talking to other 3 service providers to process the graph, keep track of the status
