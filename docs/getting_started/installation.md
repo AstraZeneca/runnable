@@ -11,17 +11,17 @@ pip install magnus-core
 ---
 !!! Note
 
-   
+   The core package of magnus is magnus-core and not magnus.
 
 ---
 
-We recommend that you install magnus in a virtualenv specific to the project and also poetry for your
+We recommend that you install magnus in a virtual environment specific to the project and also poetry for your
 application development. 
 
 The command to install in a poetry managed virtual environment
 
 ```
-poetry install magnus
+poetry add magnus-core
 ```
 
 

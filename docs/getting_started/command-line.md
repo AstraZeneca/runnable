@@ -6,6 +6,15 @@ You can execute a pipeline by the following command:
 magnus execute
 ```
 
+---
+!!! Note
+
+   For the above command to work, make sure you are in the environment where magnus was installed.
+   
+   If you are using poetry, you can also invoke magnus by ```poetry run magnus execute```
+
+---
+
 ## Dag definition/config
 
 The file containing the dag definition and the config to be used. 
@@ -21,7 +30,19 @@ The yaml file containing the variables or placeholder values in the dag definiti
 Provided by ```-v```, ```--var-file``` option on magnus cli. 
 
 Defaults to None, if nothing is provided. 
-[Read more about parameterised defintions](../../concepts/dag/#parameterized_definition).
+[Read more about parameterized definitions](../../concepts/dag/#parameterized_definition).
+
+
+## Configurations file
+
+The yaml file containing the configurations used to run magnus. The configurations provided here would over-ride any
+configuration variables.
+
+Provided by ```-c```, ```--config-file``` option on magnus cli. 
+
+Defaults to None, if nothing is provided. 
+Read more about different ways you can configure magnus runs here.
+
 
 ## Log level
 
@@ -35,7 +56,7 @@ Defaults to INFO if nothing is provided.
 
 ## Tag
 
-A friendly way to tag exeperiments or runs together. 
+A friendly way to tag experiments or runs together. 
 
 Provided by ```--tag``` option on magnus cli. 
 
@@ -49,27 +70,14 @@ Provided by ```--run-id``` on magnus cli.
 
 We generate one based on Timestamp if one is not provided. 
 
-Run Id has a nuance around it in magnus, please [read more here](../../concepts/run-log/#run_id). 
 
 ## Use cached
 
 Enables you to re-run a previous run provided by the run-id.
 
-This run would have its own unique run_id as explained here. 
-
 Example:
 
 ```shell
-magnus execute --file example.yaml --run-id 20210506051758_51b665 --use-cached
+magnus execute --file example.yaml --run-id 20210506051758_ --use-cached old_run_id
 ```
 
-## Use cached force
-
-Magnus does a check on the dag definition before attempting a re-run and it will fail if the dag definitions
-are not exactly the same. You can force a re-run by using this option. 
-
-Example:
-
-```shell
-magnus execute --file example.yaml --run-id 20210506051758_51b665 --use-cached-force
-```

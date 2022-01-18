@@ -26,8 +26,6 @@ Welcome to magnus. Please choose the command you want to run.
 
 The available commands are:
    execute   executes the pipeline
-   demo       Create an example pipeline in the working directory
-   version    gives out the version of the pipeline cli
 ''')
         parser.add_argument('command', help='Subcommand to run')
         # parse_args defaults to [1:] for args, but you need to

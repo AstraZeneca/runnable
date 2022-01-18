@@ -1,7 +1,7 @@
 NAME = 'magnus'
 
 # CLI settings
-LOG_LEVEL = 'INFO'
+LOG_LEVEL = 'WARNING'
 
 # Interaction settings
 TRACK_PREFIX = 'MAGNUS_TRACK_'

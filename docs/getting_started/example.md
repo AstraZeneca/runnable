@@ -11,102 +11,181 @@ To give you a flavour of how magnus works, lets create a simple pipeline.
 
 Copy the contents of this yaml into getting-started.yaml.
 
+---
+!!! Note
+
+   The below execution would create a folder called 'data' in the current working directory.
+   The command as given should work in linux/macOS but for windows, please change accordingly.
+
+---
+
 ``` yaml
 dag:
   description: Getting started
-  start_at: step1 
+  start_at: step parameters
   steps:
-    step1:
-      type: as-is
-      next: step2
-    step2:
+    step parameters:
+      type: task
+      command_type: python-lambda
+      command: "lambda x: {'x': int(x) + 1}"
+      next: step shell
+    step shell:
+      type: task
+      command_type: shell
+      command: mkdir data ; env >> data/data.txt # For Linux/macOS
+      #command: mkdir data
+      next: success
+      catalog:
+        put:
+          - "*"
+    success:
       type: success
-    step3:
+    fail:
       type: fail
 ```
 
 And let's run the pipeline using:
 ``` shell
-magnus execute --file getting-started.yaml
+ magnus execute --file getting-started.yaml --x 3
 ```
 
-You should see a lot of logs along with a [*Run Log*](../../concepts/run-log) in your terminal similar to this:
+You should see a list of warnings but your terminal output should look something similar to this:
 
 ``` json
 {
-    "dag_hash": "b2f3284a59b0097184f6f95d55b8f0be94694319",
-    "original_run_id": null,
-    "parameters": {},
-    "run_id": "20210424123209_717c16",
+    "run_id": "20220118114608",
+    "dag_hash": "ce0676d63e99c34848484f2df1744bab8d45e33a",
+    "use_cached": false,
+    "tag": null,
+    "original_run_id": "",
     "status": "SUCCESS",
     "steps": {
-        "step1": {
-            "attempts": [
-                {
-                    "attempt_numner": 0,
-                    "duration": "0:00:00.000018",
-                    "end_time": "2021-04-24 12:32:09.787580",
-                    "message": "",
-                    "start_time": "2021-04-24 12:32:09.787541",
-                    "status": "SUCCESS"
-                }
-            ],
-            "branches": {},
-            "code_identities": [
-                {
-                    "code_identifer_dependable": false,
-                    "code_identifier": "c223668de72afe98253bd6895b6b3389bc8099e5",
-                    "code_identifier_message": "changes found in <Intentially removed>",
-                    "code_identifier_type": "git",
-                    "code_identifier_url": "INTENTIONALLY REMOVED, POINTS TO GIT REMOTE"
-                }
-            ],
-            "data_catalog": [],
-            "internal_name": "step1",
-            "message": null,
-            "mock": false,
-            "name": "step1",
+        "step parameters": {
+            "name": "step parameters",
+            "internal_name": "step parameters",
             "status": "SUCCESS",
-            "step_type": "as-is",
-            "user_defined_metrics": {}
-        },
-        "step2": {
-            "attempts": [
-                {
-                    "attempt_numner": 0,
-                    "duration": "0:00:00.000018",
-                    "end_time": "2021-04-24 12:32:09.854140",
-                    "message": "",
-                    "start_time": "2021-04-24 12:32:09.854028",
-                    "status": "SUCCESS"
-                }
-            ],
-            "branches": {},
+            "step_type": "task",
+            "message": "",
+            "mock": false,
             "code_identities": [
                 {
-                    "code_identifer_dependable": false,
-                    "code_identifier": "c223668de72afe98253bd6895b6b3389bc8099e5",
-                    "code_identifier_message": "changes found in <Intentially removed>",
+                    "code_identifier": "c5d2f4aa8dd354740d1b2f94b6ee5c904da5e63c",
                     "code_identifier_type": "git",
-                    "code_identifier_url": "INTENTIONALLY REMOVED, POINTS TO GIT REMOTE"
+                    "code_identifier_dependable": false,
+                    "code_identifier_url": "<INTENTIONALLY REMOVED>",
+                    "code_identifier_message": "<INTENTIONALLY REMOVED>"
                 }
             ],
-            "data_catalog": [],
-            "internal_name": "step2",
-            "message": null,
+            "attempts": [
+                {
+                    "attempt_number": 0,
+                    "start_time": "2022-01-18 11:46:08.530138",
+                    "end_time": "2022-01-18 11:46:08.530561",
+                    "duration": "0:00:00.000423",
+                    "status": "SUCCESS",
+                    "message": ""
+                }
+            ],
+            "user_defined_metrics": {},
+            "branches": {},
+            "data_catalog": []
+        },
+        "step shell": {
+            "name": "step shell",
+            "internal_name": "step shell",
+            "status": "SUCCESS",
+            "step_type": "task",
+            "message": "",
             "mock": false,
-            "name": "step2",
+            "code_identities": [
+                {
+                    "code_identifier": "c5d2f4aa8dd354740d1b2f94b6ee5c904da5e63c",
+                    "code_identifier_type": "git",
+                    "code_identifier_dependable": false,
+                    "code_identifier_url": "<INTENTIONALLY REMOVED>",
+                    "code_identifier_message": "<INTENTIONALLY REMOVED>"
+                }
+            ],
+            "attempts": [
+                {
+                    "attempt_number": 0,
+                    "start_time": "2022-01-18 11:46:08.576522",
+                    "end_time": "2022-01-18 11:46:08.588158",
+                    "duration": "0:00:00.011636",
+                    "status": "SUCCESS",
+                    "message": ""
+                }
+            ],
+            "user_defined_metrics": {},
+            "branches": {},
+            "data_catalog": [
+                {
+                    "name": "data.txt",
+                    "data_hash": "8f25ba24e56f182c5125b9ede73cab6c16bf193e3ad36b75ba5145ff1b5db583",
+                    "catalog_relative_path": "20220118114608/data.txt",
+                    "catalog_handler_location": ".catalog",
+                    "stage": "put"
+                }
+            ]
+        },
+        "success": {
+            "name": "success",
+            "internal_name": "success",
             "status": "SUCCESS",
             "step_type": "success",
-            "user_defined_metrics": {}
+            "message": "",
+            "mock": false,
+            "code_identities": [
+                {
+                    "code_identifier": "c5d2f4aa8dd354740d1b2f94b6ee5c904da5e63c",
+                    "code_identifier_type": "git",
+                    "code_identifier_dependable": false,
+                    "code_identifier_url": "<INTENTIONALLY REMOVED>",
+                    "code_identifier_message": "<INTENTIONALLY REMOVED>"
+                }
+            ],
+            "attempts": [
+                {
+                    "attempt_number": 0,
+                    "start_time": "2022-01-18 11:46:08.639563",
+                    "end_time": "2022-01-18 11:46:08.639680",
+                    "duration": "0:00:00.000117",
+                    "status": "SUCCESS",
+                    "message": ""
+                }
+            ],
+            "user_defined_metrics": {},
+            "branches": {},
+            "data_catalog": []
         }
     },
-    "tag": null,
-    "use_cached": false
+    "parameters": {
+        "x": 4
+    },
+    "run_config": {
+        "executor": {
+            "type": "local",
+            "config": {}
+        },
+        "run_log_store": {
+            "type": "buffered",
+            "config": {}
+        },
+        "catalog": {
+            "type": "file-system",
+            "config": {}
+        },
+        "secrets": {
+            "type": "do-nothing",
+            "config": {}
+        }
+    }
 }
 ```
 
-# ✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨
-Congratulations! you just ran your first pipeline.
+You should see that ```data``` folder being created with a file called ```data.txt``` in it.
+This is according to the command in ```step shell```. 
 
-Now, lets take a step back and break down what happened.
+You should also see a folder ```.catalog``` being created with a single folder corresponding to the run_id of this run.
+
+Let's take a closer look at the input and output in the next sections.

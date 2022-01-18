@@ -20,7 +20,7 @@ emulate. For example: passing variables between steps in AWS Step function is co
 using containers as one of the steps. The same step when wrapped around magnus before step function makes it easier. 
 
 
-Here are some of the key points on choosing magnus over others.
+Here are some of the key points on choosing magnus.
 
 ## Reproducibility of Experiments
 

@@ -48,7 +48,6 @@ nav:
   - "Home": "index.md"
   - "Getting started":
       - "Installation": "getting_started/installation.md"
-      - "Command Line": "getting_started/command-line.md"
       - "Example Run": "getting_started/example.md"
       - "Explanation - input": "getting_started/brief-concepts-input.md"
       - "Explanation - output": "getting_started/brief-concepts-output.md"
@@ -68,7 +67,7 @@ nav:
           - "Extensions": "concepts/secrets-implementations/extensions.md"
       - "Run Log":
           - "Overview": "concepts/run-log.md"
-          - "Bufferred": "concepts/run-log-implementations/bufferred.md"
+          - "Buffered": "concepts/run-log-implementations/bufferred.md"
           - "File System": "concepts/run-log-implementations/file-system.md"
           - "Extensions": "concepts/run-log-implementations/extensions.md"
       - "Integration":

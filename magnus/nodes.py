@@ -4,6 +4,7 @@ import importlib
 import subprocess
 import os
 import sys
+import shlex
 import json
 import multiprocessing
 from collections import OrderedDict
@@ -154,10 +155,10 @@ class ShellExecutionType(BaseExecutionType):
         subprocess_env = os.environ.copy()
         if map_variable:
             subprocess_env[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
-        return subprocess.run(
-            command.split(), check=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            env=subprocess_env)
+        result = subprocess.run(command, check=True, env=subprocess_env, shell=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        print(result.stdout)
+        print(result.stderr)
 
 
 class BaseNode:
@@ -199,7 +200,7 @@ class BaseNode:
         """
         return self.internal_name.replace(' ', replace_with)
 
-    @classmethod
+    @ classmethod
     def get_internal_name_from_command_name(cls, command_name: str) -> str:
         """
         Replace Magnus specific character (%) with whitespace.
@@ -213,7 +214,7 @@ class BaseNode:
         """
         return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, ' ')
 
-    @classmethod
+    @ classmethod
     def resolve_map_placeholders(cls, name: str, map_variable: dict = None) -> str:
         """
         If there is no map step used, then we just return the name as we find it.
@@ -221,7 +222,7 @@ class BaseNode:
         If there is a map variable being used, replace every occurrence of the map variable placeholder with
         the value sequentially.
 
-        For example: 
+        For example:
         1). dag:
               start_at: step1
               steps:
@@ -240,12 +241,12 @@ class BaseNode:
                             map_success:
                                 type: success
                             map_failure:
-                                type: fail 
+                                type: fail
 
-            and if y is ['a', 'b', 'c']. 
+            and if y is ['a', 'b', 'c'].
 
-            This method would be called 3 times with map_variable = {'y_i': 'a'}, map_variable = {'y_i': 'b'} and 
-            map_variable = {'y_i': 'c'} corresponding to the three branches. 
+            This method would be called 3 times with map_variable = {'y_i': 'a'}, map_variable = {'y_i': 'b'} and
+            map_variable = {'y_i': 'c'} corresponding to the three branches.
 
         For nested map branches, we would get the map_variables ordered heirarchically.
 

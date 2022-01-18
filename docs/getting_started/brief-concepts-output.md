@@ -5,10 +5,11 @@
 While the dag defines the work that has to be done, it is only a piece of the whole puzzle.
 
 As clearly explained in [this paper by Sculley et al.](https://papers.nips.cc/paper/2015/file/86df7dcfd896fcaf2674f757a2463eba-Paper.pdf), 
-the actual machine learning/data science related code is only fraction of all the systems that have to work together to make it work.
+the actual machine learning/data science related code is only fraction of all the systems that have to be in place
+to make it work.
 
-We implemented magnus with a clear understanding of the complexity while keeping the interface to the data scientists/ML researchers
-as simple as possible.
+We implemented magnus with a clear understanding of the complexity while keeping the interface to the 
+data scientists/ML researchers as simple as possible.
 
 ---
 
@@ -17,63 +18,61 @@ Though the example pipeline we just ran did nothing useful, it helps in understa
 
 ``` json
 {
-    "dag_hash": "b2f3284a59b0097184f6f95d55b8f0be94694319",
-    "original_run_id": null,
-    "parameters": {},
-    "run_id": "20210424123209_717c16",
+    "run_id": "20220118114608",
+    "dag_hash": "ce0676d63e99c34848484f2df1744bab8d45e33a",
+    "use_cached": false,
+    "tag": null,
+    "original_run_id": "",
     "status": "SUCCESS",
     "steps":{
       ...
     },
-    "tag": null,
-    "use_cached": false
+    "parameters": {
+        "x": 4
+    },
+    "run_config": {
+        "executor": {
+            "type": "local",
+            "config": {}
+        },
+        "run_log_store": {
+            "type": "buffered",
+            "config": {}
+        },
+        "catalog": {
+            "type": "file-system",
+            "config": {}
+        },
+        "secrets": {
+            "type": "do-nothing",
+            "config": {}
+        }
+    }
+}
 }
 ```
-## Tagging experiments
 
-You can use the *tag* feature to logically group several executions, you can provide a tag at the run-time as below.
+## Run id
 
-``` shell
-magnus execute --file getting-started.yaml --tag example
-``` 
+Every run of magnus has a unique identifier called run_id. Magnus by default creates one based on timestamp but you
+can provide one at run time for better control.
 
-## Enabling re-runs
+```magnus execute --file getting-started.yaml --run-id my_first --x 3```
+
+## Reproducibility
 
 All code breaks at some point and being able to replicate the exact cause of error is essential for a quick resolution. 
-Magnus tracks three possible sources of changes that could have led to a different outcome of an experiment.
+Magnus tracks four possible sources of changes that could have led to a different outcome of an experiment.
 
 * dag: What was actually run as part of the experiment. The [dag_hash](../../concepts/run-log/#dag_hash) in the 
 log is the SHA id of the actual dag
 * code: If the code is git versioned, magnus tracks the [code commit id](../../concepts/run-log/#code_identity) 
-and modified files as part of the logs. If the run is containarized, magnus also tracks the 
+and modified files as part of the logs. If the run is containerized, magnus also tracks the 
 docker image digest as part of the log. 
 * data: Any data generated as part of the nodes can be cataloged along with the 
 [SHA identity](../../concepts/run-log/#data_catalog) of the file. 
+* config: The run config used to make the run is also stored as part of the run logs.
 
-
-You can re-run an older run by providing the run_id like so:
-
-``` shell
-magnus execute --file getting-started.yaml --run-id 20210424123209_717c16 --use-cached
-``` 
-
-which could give a log similar to:
-``` json
-{
-    "dag_hash": "b2f3284a59b0097184f6f95d55b8f0be94694319",
-    "original_run_id": "20210424123209_717c16",
-    "parameters": {},
-    "run_id": "20210424123209_717b32",
-    "status": "SUCCESS",
-    "steps":{
-      ...
-    },
-    "tag": null,
-    "use_cached": true
-}
-```
-
-By comparing the two different run logs, you should be able to identify changes between them.
 
 The [run log structure](../../concepts/run-log) of the output is exactly the same independent of where the actual run happens. This should enable 
 to replicate a run that happened in an K8 environment, for example, in your local computer to debug.
