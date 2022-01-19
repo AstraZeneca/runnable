@@ -215,14 +215,14 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
             logger.warning(msg)
 
     def configure_for_traversal(self, **kwargs):
-        write_to = self.service.get_folder_name()
+        write_to = self.service.log_folder_name
         self.executor.volumes[str(Path(write_to).resolve())] = {
             'bind': f'{self.executor.container_log_location}',
             'mode': 'rw'
         }
 
     def configure_for_execution(self, **kwargs):
-        self.service.config[self.service.write_to_key] = self.executor.container_log_location
+        self.service.config[self.service.CONFIG_KEY_LOG_FOLDER] = self.executor.container_log_location
 
 
 class LocalContainerComputeDotEnvSecrets(BaseIntegration):

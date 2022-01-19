@@ -58,7 +58,7 @@ def test_dot_env_secrets_get_returns_all_secrets_if_no_name_provided(mocker, mon
     mock_base_secret = mocker.MagicMock()
 
     monkeypatch.setattr(secrets, 'BaseSecrets', mock_base_secret)
-    monkeypatch.setattr(secrets.DotEnvSecrets, 'load_secrets', mocker.MagicMock())
+    monkeypatch.setattr(secrets.DotEnvSecrets, '_load_secrets', mocker.MagicMock())
 
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
     dot_env_secret.secrets = 'TopSecret'
@@ -68,7 +68,7 @@ def test_dot_env_secrets_get_returns_all_secrets_if_no_name_provided(mocker, mon
 
 def test_dot_env_secrets_get_returns_secret_if_one_provided(mocker, monkeypatch):
     monkeypatch.setattr(secrets, 'BaseSecrets', mocker.MagicMock())
-    monkeypatch.setattr(secrets.DotEnvSecrets, 'load_secrets', mocker.MagicMock())
+    monkeypatch.setattr(secrets.DotEnvSecrets, '_load_secrets', mocker.MagicMock())
 
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
     dot_env_secret.secrets['give'] = 'this'
@@ -80,7 +80,7 @@ def test_dot_env_secrets_raises_exception_if_secret_not_found(mocker, monkeypatc
     mock_base_secret = mocker.MagicMock()
 
     monkeypatch.setattr(secrets, 'BaseSecrets', mock_base_secret)
-    monkeypatch.setattr(secrets.DotEnvSecrets, 'load_secrets', mocker.MagicMock())
+    monkeypatch.setattr(secrets.DotEnvSecrets, '_load_secrets', mocker.MagicMock())
 
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
     dot_env_secret.secrets['give'] = 'this'
@@ -132,5 +132,5 @@ def test_dot_env_load_secrets_populates_correct_secrets_if_valid(mocker, monkeyp
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
 
     mocker.patch('builtins.open', mocker.mock_open(read_data='data=data1\n'))
-    dot_env_secret.load_secrets()
+    dot_env_secret._load_secrets()
     assert dot_env_secret.secrets == {'data': 'data1'}

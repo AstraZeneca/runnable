@@ -844,7 +844,7 @@ class DemoRenderer(BaseExecutor):
 
             if working_on.node_type not in ['success', 'fail']:
                 if working_on.node_type == 'as-is':
-                    bash_script_lines.append(working_on.render_string + '\n')
+                    bash_script_lines.append(working_on.render_string + '\n')  # type: ignore
                 else:
                     bash_script_lines.append(f'{execute_node_command}\n')
 
