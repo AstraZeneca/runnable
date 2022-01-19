@@ -1,17 +1,24 @@
 # Dag
 
-Dag or directed acyclic graphs are a way to define your work flows. Its a graph representation of the series of tasks you want to perform and the order of it. 
+Dag or directed acyclic graphs are a way to define your work flows. Its a graph representation of the series of 
+tasks you want to perform and the order of it. 
 
-In magnus, a lot of design emphasis was on making sure that a dag once defined should not change for deployment purposes. The dag is also version controlled and as part of your code repositories to promote good software engineering practices. These design decisions should enable experimentation to happen in *interactive* modes while engineering teams can use their preferred **Continuos Integration** tools to operationalize experiments once they are mature without changing code or the dag. 
+In magnus, a lot of design emphasis was on making sure that a dag once defined should not change for 
+deployment purposes. The dag is also version controlled and as part of your code repositories to promote good 
+software engineering practices. These design decisions should enable experimentation to happen in 
+*interactive* modes while engineering teams can use their preferred **Continuos Integration** tools to 
+operationalize experiments once they are mature without changing code or the dag. 
 
-We see the dag as a **contract** between the engineering teams and data science teams. While the data science teams can focus on **what** should be the part of the pipeline, the engineering teams can focus on the **how** to operationalize it. 
+We see the dag as a **contract** between the engineering teams and data science teams. While the data science teams 
+can focus on **what** should be the part of the pipeline, the engineering teams can focus on the 
+**how** to operationalize it. 
 
 The configuration of a dag:
 ```yaml
 dag:
   start_at:
-  description:
-  max_time:
+  description: #optional
+  max_time: # Optional
   steps:
 ```
 
@@ -111,12 +118,4 @@ Magnus would resolve the placeholders at the load of the dag definition.
 Parameters are a great way to have a generalized definition of the dag and the config parameters. Internally, we
 use variables to switch between different configs for testing different implementations of executor, run log, catalog
 and secrets without changing the pipeline definition file. 
-
-The same concept can be used in operationalizing data science pipelines. While the data scientists use one set of 
-variables for their experimentation, the engineering team can rely upon a a different set of variables to change the
-implementation of the pipeline.
-
-TODO:
-
-- Variable substitution in dag nodes
 

@@ -1,11 +1,11 @@
-# Dummy catalog provider
+# Do nothing catalog provider
 
 Use this catalog provider if you do not want to use the cataloging functionality.
 
 The complete configuration:
 ```yaml
 catalog:
-  type: dummy
+  type: do-nothing
   
 dag:
   ...

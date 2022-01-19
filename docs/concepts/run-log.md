@@ -36,14 +36,7 @@ A typical run log has the following structure, with a few definitions given inli
 ### run_id
 Every run in magnus is given a unique ```run_id```.
 
-In magnus, a ```run_id``` is of 2 parts, separated by '_'
-
-- fixed segment: This can be provided by the user or from an older run_id.
-- random segment: A random 6 letter tag attached to the fixed segment. 
-
-This ensures that a run_id is always unique to a run. 
-
-Even in the case of an user providing a run_id, we generate a new run_id by preserving the fixed segment.
+Magnus creates one based on the timestamp is one is not provided during the run time.
 
 ### dag_hash
 

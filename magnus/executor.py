@@ -709,7 +709,13 @@ class DemoRenderer(BaseExecutor):
         # Set up the run log or create it if not done previously
         try:
             # Try to get it if previous steps have created it
-            self.run_log_store.get_run_log_by_id(self.run_id)
+            run_log = self.run_log_store.get_run_log_by_id(self.run_id)
+            if run_log.status in [defaults.FAIL, defaults.SUCCESS]:
+                msg = (
+                    f'The run_log for run_id: {self.run_id} already exists and is in {run_log.status} state.'
+                    ' Make sure that this was not run before.'
+                )
+                raise Exception(msg)
         except exceptions.RunLogNotFoundError:
             # Create one if they are not created
             self.set_up_run_log()
@@ -809,7 +815,15 @@ class DemoRenderer(BaseExecutor):
         current_node = dag.start_at
         previous_node = None
         logger.info(f'Rendering job started at {current_node}')
-        bash_script_lines = []
+        bash_script_lines = [
+            ('for ARGUMENT in "${@:2}"\n'
+             'do\n'
+             '\tKEY=$(echo $ARGUMENT | cut -f1 -d=)\n'
+             '\tVALUE=$(echo $ARGUMENT | cut -f2 -d=)\n'
+             '\texport "MAGNUS_PRM_$KEY"=$VALUE\n'
+             'done\n'
+             )
+        ]
 
         while True:
             working_on = dag.get_node_by_name(current_node)

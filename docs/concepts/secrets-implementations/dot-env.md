@@ -38,13 +38,8 @@ The format of contents of the secrets file should be
 secret_name=secret_value#Any comment that you want to pass
 ```
 
-Please note that, we do not strip any spaces after or before anything as they could be part of your secret.
-
 Any content after ```#``` is considered a comment and ignored. 
 
 A exception would be raised if the secret naming does not follow these standards. 
 
-### Todo
-
-- [] Allow json strings as secret values
 

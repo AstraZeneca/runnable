@@ -60,7 +60,7 @@ In the example, we use three different type of nodes:
   Is some callable/executable code. 
   Python functions are default and fully [supported tasks](../../concepts/nodes/#task).
 
-  As with example, you can also use python lambda expressions with task type of python-lambda.
+  As shown in the example, you can also use python lambda expressions with task type of python-lambda.
   
   Or shell with a caveat that [any interactions](../brief-concepts-output/#interaction_in_code) with magnus or 
   secret management within magnus is not possible.

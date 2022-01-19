@@ -51,14 +51,15 @@ nav:
       - "Example Run": "getting_started/example.md"
       - "Explanation - input": "getting_started/brief-concepts-input.md"
       - "Explanation - output": "getting_started/brief-concepts-output.md"
-      - "What next": "getting_started/what-next.md"
+      - "Example Deployment": "getting_started/example-deployment.md"
+      - "Wrap up": "getting_started/wrap-up.md"
       - "Why magnus": "getting_started/why-magnus.md"
   - "Concepts":
       - "Node": "concepts/nodes.md"
       - "Dag": "concepts/dag.md"
       - "Catalog":
           - "Overview": "concepts/catalog.md"
-          - "Dummy Catalog": "concepts/catalog-implementations/dummy-catalog.md"
+          - "Do Nothing Catalog": "concepts/catalog-implementations/do-nothing.md"
           - "File System": "concepts/catalog-implementations/file-system.md"
           - "Extensions": "concepts/catalog-implementations/extensions.md"
       - "Secrets":
@@ -76,8 +77,9 @@ nav:
           - "Overview": "concepts/modes.md"
           - "Local": "concepts/modes-implementations/local.md"
           - "Local Container": "concepts/modes-implementations/local-container.md"
-          - "Demo Renderer": "concepts/modes-implementations/local-container.md"
+          - "Demo Renderer": "concepts/modes-implementations/demo-renderer.md"
           - "Extensions": "concepts/modes-implementations/extensions.md"
+      - "Configurations": "concepts/configurations.md"
   - "Tutorials":
       - "Overview": "tutorial/tutorial.md"
   - "Examples":

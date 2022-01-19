@@ -27,7 +27,7 @@ nesting simple to promote readability.
 ---
 !!! Note
 
-    Node names cannot have . in them. 
+    Node names cannot have . or % in them. 
     Any valid python string is acceptable as a name of the step.
 
 ---
@@ -39,14 +39,14 @@ part of the the pipeline. In magnus, a task node has the following configuration
 
 ```yaml
 step name:
-  retry: 1
+  retry: 1 # Defaults to 1
   type: task
   next: 
   command: 
-  command_type:
-  on_failure: 
-  mode_config:
-  catalog:
+  command_type: # Defaults to python
+  on_failure:  # Defaults to None
+  mode_config: # Defaults to None
+  catalog: # Defaults to None
     compute_data_folder:
     get:
     put:
@@ -66,14 +66,23 @@ def my_cool_function():
 ```
 
 ### command_type (optional)
-Defaults to python if nothing is provided and currently the only python, shell are supported types. 
+Defaults to python if nothing is provided and currently the only python, shell, python-lambda are supported types. 
 
 For command_type of shell, magnus does not provide any interaction modules or secrets management.
+
+For command_type python-lambda, you can provide a lambda expression as command. For example:
+
+```
+lambda x : int(x) + 1
+```
+
+is a valid lambda expression. Note that, you cannot have ```_```or ```__``` as part of your string. This is just a 
+security feature to [avoid malicious code injections](https://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html).
 
 ### retry (optional)
 The number of attempts to make before failing the node. Default to 1.
 
-### next (required)
+### next (required)
 The name of the node in the graph to go if the node succeeds.
 
 ### on_failure (optional)
@@ -218,14 +227,14 @@ step name:
     branch_b:
       ...
 ```
-### next (required)
+### next (required)
 The name of the node in the graph to go if the node succeeds
 
 ### on_failure (optional)
 The name of the node in the graph to go if the node fails. 
 This is optional as we would move to the fail node of the graph if one is not provided. 
 
-On_failure could be an use case where you want to send a failure notification before marking the run as failure. 
+on_failure could be an use case where you want to send a failure notification before marking the run as failure. 
 
 ### branches (required)
 
@@ -265,11 +274,6 @@ Feature generation:
 In the example, "One hot encoding" and "Scaler" are two branches that are defined using the same definition 
 language as a dag and both together form the Feature generation step of the parent dag. 
 
-Supported nesting:
-
-- [x] parallel nodes: You can nest parallel nodes within parallel nodes.
-- [ ] dag node: Currently not supported/tested
-- [ ] map node: Currently not supported/tested 
 
 ---
 !!! Note
@@ -293,7 +297,7 @@ step name:
   type: dag
   dag_definition: 
   next:
-  on_failure:
+  on_failure: # optional
 ```
 
 ### dag_definition
@@ -301,7 +305,7 @@ step name:
 The yaml file containing the dag definition in "dag" block of the file. The dag definition should follow the same rules
 as any other dag in magnus. 
 
-### next (required)
+### next (required)
 The name of the node in the graph to go if the node succeeds
 
 ### on_failure (optional)
@@ -356,18 +360,8 @@ dag:
 In this example, the parent dag only captures the high level tasks required to perform a data science experiment
 while the details of how data cleaning should be done are mentioned in data-cleaning.yaml. 
 
-TODO:
 
-- [ ] Variable substitution in nested dag
-
-Supported nesting:
-
-- [ ] parallel nodes: Currently Not supported/tested
-- [ ] dag node: Currently not supported/tested
-- [ ] map node: Currently not supported/tested 
-
-
-## Map
+## Map
 
 Map is a composite node consisting of one branch that can be iterated over a parameter. A typical use case would be 
 performing the same data cleaning operation on a bunch of files or the columns of a data frame. The parameter over which 
@@ -378,20 +372,29 @@ The configuration of the map node:
 step name:
   type: map
   iterate_on: 
+  iterate_as: 
   next: 
+  on_failure: # Optional
   branch:
 ```
 
 ### iterate_on (required)
-The name of the parameter to iterate on. The parameter should be of type List in python and should be available. 
+The name of the parameter to iterate on. The parameter should be of type List in python and should be available in the 
+parameter space.
 
-All the task nodes of the branch should be accepting a keyword argument **ITER_VARIABLE** that would be used to
-pass the current iteration value into the function. 
+### iterate_as (required)
+The name of the argument that is expected by the task.
+
+For example:
+
+- Set a parameter by name x which is a list [1, 2, 3]
+- A python task node as part of the map dag definition expects this argument as x_i as part function signature.
+- You should set ```iterate_on``` as ```x``` and ```iterate_as``` as ```x_i```
 
 ### branch (required)
 The branch to iterate over the parameter. The branch definition should follow the same rules as a dag definition. 
 
-### next (required)
+### next (required)
 The name of the node in the graph to go if the node succeeds
 
 ### on_failure (optional)
@@ -413,6 +416,7 @@ dag:
       type: map
       next: Success
       iterate_on: file_list
+      iterate_as: file_name
       branch:
         start_at: Task Clean Files
         steps:
@@ -441,27 +445,15 @@ To be comprehensive, here is the stub implementations of the python code
 # in my_module.py
 
 def list_files():
-    file_list = []
+    file_list = ['a', 'b', 'c']
     # do some compute to figure out the actual list of files would be
     # By returning a dictionary, you can set parameters that would be available for down stream steps. 
     return {'file_list' : file_list}
 
-def clean_file(ITER_VARIABLE=None):
-    # ITER_VARIABLE would hold an element of the file_list at a time.
+def clean_file(file_name):
     # Retrieve the file or use catalog to retrieve the file and perform the cleaning steps
     pass
 ```
-
-TODO:
-
-- [ ] User provided variable name of the iterable instead of ITER_VARIABLE
-- [ ] Cataloging glob pattern to include ITER Variable.
-
-Supported nesting:
-
-- [ ] parallel nodes: Currently Not supported/tested
-- [ ] dag node: Currently not supported/tested
-- [ ] map node: Currently not supported/tested 
 
 
 ---
@@ -491,14 +483,14 @@ step name:
 
 The command is purely optional in as-is node and even if one is provided it is not executed.
 
-### next (required)
+### next (required)
 
 The name of the node in the graph to go if the node succeeds
 
 
 ### render_string (optional)
 
-The placeholder template you want to render in *orchestration* mode. 
+The placeholder template you want to render during translation. 
 
 ### Example as mock node
 
@@ -572,6 +564,10 @@ can render a template that could be part of continuos integration process.
 
 Data science and ML research teams would thrive in interactive modes, given their experimental nature of work. As-Is 
 nodes gives a way to do experiments without changing the dag definition once it is ready to be deployed.
+
+As-is nodes also provide a way to inject scripts as steps for orchestrators that do not support all the 
+features of magnus. For example, if an orchestrator mode of your liking does not support map state, you can 
+use as-is to inject a script that behaves like a map state and triggers all the required jobs.
 
 
 ## Passing data 

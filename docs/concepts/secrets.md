@@ -25,15 +25,16 @@ There is no default secrets provider.
 Any configuration parameters the secret provider accepts. 
 
 
-## Interaction with Run Log Store
+## Interaction with other services
 
-Magnus allows Run Log store to have secrets as placeholders for a few providers. Please refer to the Run Log store 
-providers for the format.
+Other service providers, like run log store or catalog, can access the secrets by using the 
+```global_executor.secrets_handler``` of ```pipeline``` module during the run time. This could be useful for 
+constructing connection strings to database or AWS connections.
 
 ## Interaction within code
 
 Secrets is the only implementation that requires you to ```import magnus``` in the code to access secrets.
-This is mostly to follow the best safety guidelines though we are actively investigating options. 
+This is mostly to follow the best safety guidelines. 
 
 Once a secret configuration is defined as above, you can access the secret by using ```get_secret``` of magnus. 
 If a key is provided to the API, we return only the value associated with the secret by the key. 
@@ -72,10 +73,6 @@ As with any part of the magnus configuration, you can parameterize the configura
 providers without changing the base definition. 
 
 Please follow the example provided [here](../dag/#parameterized_definition) for more information. 
-
-### TODO
-
-- [ ] Expose secrets as ENV variables with a known prefix and remove them after function call
 
 
 ## Extensions

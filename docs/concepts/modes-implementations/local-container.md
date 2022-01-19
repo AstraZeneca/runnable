@@ -61,7 +61,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install pipenv
+RUN pip install poetry
 
 ENV VIRTUAL_ENV=/opt/venv
 RUN python -m virtualenv --python=/usr/local/bin/python $VIRTUAL_ENV
@@ -70,7 +70,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY . /app
 WORKDIR /app
 
-RUN pipenv install
+RUN poetry install
 ```
 
 ### Node over-rides
@@ -110,8 +110,3 @@ dag:
 
 In the above example, if we assume project_default and step1_image to be 2 different images that satisfy
 the requirements, step1 would run in step1_image while the remaining nodes would run in project_default image. 
-
-
-TODO:
-
-- Test on Windows

@@ -50,6 +50,7 @@ dag:
     step name:
       ...
       catalog:
+        compute_data_folder: # optional
         get:
           - list
         put:
@@ -57,6 +58,10 @@ dag:
     
     ...
 ```
+### compute_data_folder
+
+The ```compute_data_folder``` for a single step could be different from the global ```compute_data_folder``` 
+and you can provide it by using the catalog settings for that step.
 
 The actual cataloging is done in two stages:
 
@@ -70,8 +75,8 @@ to match the name to pattern.
 ---
 !!! Note
 
-    The ```put``` stage of the cataloging checks if the data source has been obtained from ```get``` phase and only puts a new
-    record if there were changes observed during the execution of the node. 
+    The ```put``` stage of the cataloging checks if the data source has been obtained from ```get``` phase and 
+    only puts a new record if there were changes observed during the execution of the node. 
 ---
 
 ## Interaction within code

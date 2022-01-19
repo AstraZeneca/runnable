@@ -90,7 +90,7 @@ def prepare_configurations(
     run_log_config = configuration.get('run_log_store', {})
     if not run_log_config:
         default_run_log_config = magnus_defaults.get('run_log_store', defaults.DEFAULT_RUN_LOG_STORE)
-        run_log_config = pipeline_config.get('run_log', {}) or default_run_log_config
+        run_log_config = pipeline_config.get('run_log_store', {}) or default_run_log_config
     run_log_store = utils.get_provider_by_name_and_type('run_log_store', run_log_config)
 
     # Catalog handler settings, configuration over-rides everything
