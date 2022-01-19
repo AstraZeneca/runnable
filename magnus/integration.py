@@ -107,7 +107,7 @@ def get_integration_handler(executor: 'BaseExecutor', service: object) -> BaseIn
 
     if not integrations:
         logger.warning(
-            f'Could not find an integration pattern for {executor.service_name} and {service_name}')  # type: ignore
+            f'Could not find an integration pattern for {executor.service_name} and {service_name} for {service_type}')  # type: ignore
         return BaseIntegration(executor, service)
 
     return integrations[0]
