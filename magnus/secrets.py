@@ -97,7 +97,7 @@ class DotEnvSecrets(BaseSecrets):
 
         return secrets_location
 
-    def load_secrets(self):
+    def _load_secrets(self):
         """
         We assume that a dotenv file is of format,
             key=value  -> secrets[key]='value'
@@ -138,7 +138,7 @@ class DotEnvSecrets(BaseSecrets):
         Returns:
             [type]: [description]
         """
-        self.load_secrets()
+        self._load_secrets()
         if not name:
             return self.secrets
 
