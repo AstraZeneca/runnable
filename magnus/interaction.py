@@ -27,7 +27,7 @@ def track_this(**kwargs):
         os.environ[defaults.TRACK_PREFIX + key] = json.dumps(value)
 
 
-def store_parameter(**kwargs):
+def store_parameter(**kwargs: dict):
     """
     Set up the keyword args as environment variables for parameters tracking
     purposes as part pf the run.

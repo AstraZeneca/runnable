@@ -126,11 +126,9 @@ the command section while asking magnus to put the files the catalog after execu
 
 Logically, you can instruct magnus to:
 
-- ```get``` files from the catalog before the execution to a specific ```compute folder```
-
+- ```get``` files from the catalog before the execution to a specific ```compute data folder```
 - execute the command 
-
-- ```put``` the files from the ```compute folder``` to the catalog.
+- ```put``` the files from the ```compute data folder``` to the catalog.
 
 By default, magnus would look into ```data``` folder but you can over-ride this by providing ```compute_folder``` in the
 config. Glob patterns for file searching are allowed. Please read more about the catalog [here](../../concepts/catalog).

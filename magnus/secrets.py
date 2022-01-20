@@ -93,7 +93,7 @@ class DotEnvSecrets(BaseSecrets):
         """
         secrets_location = defaults.DOTENV_FILE_LOCATION
         if self.config and 'location' in self.config:
-            secrets_location = self.config['location']
+            secrets_location = self.config['location'] or secrets_location
 
         return secrets_location
 
