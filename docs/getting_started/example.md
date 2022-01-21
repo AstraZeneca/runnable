@@ -33,7 +33,6 @@ dag:
       type: task
       command_type: shell
       command: mkdir data ; env >> data/data.txt # For Linux/macOS
-      #command: mkdir data
       next: success
       catalog:
         put:

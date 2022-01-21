@@ -278,7 +278,11 @@ class RunLog(BaseModel):
 
 class BaseRunLogStore:
     """
-    The base class of a Run Log Store with many common methods implemented
+    The base class of a Run Log Store with many common methods implemented.
+
+    Note: As a general guideline, do not extract anything from the config to set class level attributes.
+          Integration patterns modify the config after init to change behaviors.
+          Access config properties using getters/property of the class.
     """
     service_name = ''
 
