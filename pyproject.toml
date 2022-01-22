@@ -26,6 +26,7 @@ mkdocs = "*"
 mkdocs-material = "*"
 mypy = "^0.931"
 tox = "^3.24.5"
+pre-commit = "*"
 
 [tool.poetry.scripts]
 magnus= 'magnus.cli:main'
