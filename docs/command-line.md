@@ -78,5 +78,5 @@ Enables you to re-run a previous run provided by the run-id.
 Example:
 
 ```shell
-magnus execute --file example.yaml --run-id 20210506051758_ --use-cached old_run_id
+magnus execute --file example.yaml --run-id 20210506051758 --use-cached old_run_id
 ```
