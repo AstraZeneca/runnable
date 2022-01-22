@@ -2,9 +2,8 @@ import os
 
 import pytest
 
-
-from magnus import nodes  # pylint: disable=import-error
 from magnus import defaults  # pylint: disable=import-error
+from magnus import nodes  # pylint: disable=import-error
 from magnus import graph
 
 

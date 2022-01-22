@@ -1,13 +1,8 @@
-import logging
 import json
-
+import logging
 from typing import Union
 
-from magnus import utils
-from magnus import graph
-from magnus import nodes
-from magnus import defaults
-from magnus import exceptions
+from magnus import defaults, exceptions, graph, nodes, utils
 
 logger = logging.getLogger(defaults.NAME)
 

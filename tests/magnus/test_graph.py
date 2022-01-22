@@ -1,9 +1,9 @@
-from magnus.nodes import BaseNode
 import pytest
 
-from magnus import graph  # pylint: disable=import-error
-from magnus import exceptions  # pylint: disable=import-error
 from magnus import defaults  # pylint: disable=import-error
+from magnus import exceptions  # pylint: disable=import-error
+from magnus import graph  # pylint: disable=import-error
+from magnus.nodes import BaseNode
 
 
 def get_new_graph(start_at='this', internal_branch_name='i_name'):

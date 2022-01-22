@@ -2,9 +2,7 @@ import logging
 from functools import lru_cache
 from typing import Union
 
-from magnus import defaults
-from magnus import utils
-from magnus import exceptions
+from magnus import defaults, exceptions, utils
 
 logger = logging.getLogger(defaults.NAME)
 

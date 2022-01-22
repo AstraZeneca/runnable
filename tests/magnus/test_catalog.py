@@ -1,8 +1,8 @@
 import pytest
 
 from magnus import catalog  # pylint: disable=import-error
-from magnus import pipeline  # pylint: disable=import-error
 from magnus import defaults  # pylint: disable=import-error
+from magnus import pipeline  # pylint: disable=import-error
 
 
 def test_get_run_log_store_returns_global_executor_run_log_store(mocker, monkeypatch):

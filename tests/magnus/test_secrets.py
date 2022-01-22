@@ -1,8 +1,9 @@
 from pathlib import Path
+
 import pytest
 
-from magnus import secrets  # pylint: disable=import-error
 from magnus import defaults  # pylint: disable=import-error
+from magnus import secrets  # pylint: disable=import-error
 
 
 def test_base_secrets_init_config_empty_dict():

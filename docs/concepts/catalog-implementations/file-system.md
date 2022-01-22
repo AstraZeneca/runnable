@@ -7,8 +7,8 @@ The complete configuration:
 catalog:
   type: file-system
   config:
-    compute_data_folder : 
-    catalog_location: 
+    compute_data_folder :
+    catalog_location:
 
 dag:
   ...
@@ -16,7 +16,7 @@ dag:
 
 ## compute_data_folder
 
-Catalog would need a local compute data folder to get/put the contents. 
+Catalog would need a local compute data folder to get/put the contents.
 This is defaulted to ```data``` folder if nothing is provided.
 
 Individual steps of the dag could over-ride this global default.
@@ -49,14 +49,14 @@ dag:
 ```
 
 In this example, while the global default of the ```compute_data_folder``` is ```data/```, the step ```Cool function```
-stored the generated data in ```data/processed_data/``` and this would be used for cataloging. 
+stored the generated data in ```data/processed_data/``` and this would be used for cataloging.
 
-The same can also be achieved by using a glob pattern of ```processed_data/*``` if you prefer. 
+The same can also be achieved by using a glob pattern of ```processed_data/*``` if you prefer.
 
 ## catalog_location
 
-By default, the catalog would be stored at ```.catalog``` of the root directory of the project. You can override this 
-by providing an alternate location. 
+By default, the catalog would be stored at ```.catalog``` of the root directory of the project. You can override this
+by providing an alternate location.
 
 Example:
 ```yaml
@@ -66,13 +66,13 @@ catalog:
     catalog_location: /tmp/data
 ```
 
-Would start using ```/tmp/data/``` to catalog the data. 
+Would start using ```/tmp/data/``` to catalog the data.
 
 
 ---
 !!! Note
 
-    FileSystem catalog is only applicable if all of the steps are on the same compute. 
+    FileSystem catalog is only applicable if all of the steps are on the same compute.
 
     To re-run an older run on a different compute, you can simply place the files in the catalog location of the re-run
     if its not centrally accessible.

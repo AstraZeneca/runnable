@@ -3,7 +3,7 @@
 ## A single node pipeline
 
 Every pipeline in magnus should have a ```success``` node and ```fail``` node.
-The starting node of the pipeline is denoted by ```start_at``` and every node needs to define the next 
+The starting node of the pipeline is denoted by ```start_at``` and every node needs to define the next
 node to traverse during successful execution of the current node using ```next```.
 
 Nodes can optionally mention the node to traverse during failure using ```on_failure```.
@@ -19,15 +19,15 @@ def my_function():
 ```
 
 
-The pipeline which contains one node to call the above function. 
+The pipeline which contains one node to call the above function.
 
 ```yaml
 dag:
   description: A single node pipeline
-  start_at: step 1 
+  start_at: step 1
   steps:
     step 1:
-      type: task 
+      type: task
       next: success
       command: my_module.my_function
       command_type: python
@@ -49,7 +49,7 @@ Example:
 ```yaml
 dag:
   description: A single node pipeline with mock
-  start_at: step 1 
+  start_at: step 1
   steps:
     step 1:
       type: as-is # The function would not execute as this is as-is node
@@ -67,8 +67,8 @@ dag:
 ## Using shell commands as part of the pipeline
 
 In magnus, a pipeline can have shell commands as part of the pipeline. The only caveat in doing so is magnus
-would not be able to support returning ```parameters```, ```secrets``` or any of the built-in functions. The cataloging 
-functionality of magnus still would work via the configuration file. 
+would not be able to support returning ```parameters```, ```secrets``` or any of the built-in functions. The cataloging
+functionality of magnus still would work via the configuration file.
 
 Parameters can be accessed by looking for environment variables with a prefix of ```MAGNUS_PRM_```.
 
@@ -81,10 +81,10 @@ Example: Step 1 of the below pipeline would
 ```yaml
 dag:
   description: A single node pipeline with shell
-  start_at: step 1 
+  start_at: step 1
   steps:
     step 1:
-      type: task 
+      type: task
       next: success
       command: python -m my_module.my_function # You can use this to call some executable in the PATH
       command_type: shell
@@ -102,16 +102,16 @@ dag:
 ---
 ## Using python lambda expressions in pipeline
 
-You can use python lambda expressions as a node type. Please note that you cannot have ```_``` or ```__``` as part of 
-the expression. This is to prevent any malicious code to be passed into the expression. In the example below, 
-```step 1``` takes in a parameter ```x``` and returns the integer ```x + 1```. 
+You can use python lambda expressions as a node type. Please note that you cannot have ```_``` or ```__``` as part of
+the expression. This is to prevent any malicious code to be passed into the expression. In the example below,
+```step 1``` takes in a parameter ```x``` and returns the integer ```x + 1```.
 
 Example:
 
 ```yaml
 dag:
   description: A single node pipeline with python lambda
-  start_at: step 1 
+  start_at: step 1
   steps:
     step 1:
       command_type: python-lambda
@@ -127,7 +127,7 @@ dag:
 
 ## A multi node pipeline
 
-A pipeline can have many nodes as part of its execution. 
+A pipeline can have many nodes as part of its execution.
 
 Example:
 
@@ -149,15 +149,15 @@ The pipeline which calls first_function of the above module and then to the call
 ```yaml
 dag:
   description: A multi node pipeline
-  start_at: step 1 
+  start_at: step 1
   steps:
     step 1:
-      type: task 
+      type: task
       next: step 2
       command: my_module.first_function
       command_type: python
     step 2:
-      type: task 
+      type: task
       next: success
       command: my_module.second_function
       command_type: python
@@ -171,10 +171,10 @@ dag:
 
 ## Using on-failure to handle errors
 
-You can instruct magnus to traverse to a different node of the dag if the current node fails to execute. 
-A non-zero exit status of the python function or shell command is considered a failure. 
+You can instruct magnus to traverse to a different node of the dag if the current node fails to execute.
+A non-zero exit status of the python function or shell command is considered a failure.
 
-The default behavior in case of a failure of a node is, if no ```on_failure``` is defined, is to 
+The default behavior in case of a failure of a node is, if no ```on_failure``` is defined, is to
 traverse to the ```fail``` node of the graph and mark the execution of the dag as failure.
 
 The execution of a dag is considered failure if and only if the ```fail``` node of the graph is reached.
@@ -203,22 +203,22 @@ The pipeline definition to call ```my_module.handle_error``` in case of a failur
 ```yaml
 dag:
   description: A multi node pipeline with on_failure
-  start_at: step 1 
+  start_at: step 1
   steps:
     step 1:
-      type: task 
+      type: task
       next: step 2
       command: my_module.first_function
       command_type: python
       on_failure: graceful exit
     step 2:
-      type: task 
+      type: task
       next: success
       command: my_module.second_function
       command_type: python
       on_failure: graceful exit
     graceful exit:
-      type: task 
+      type: task
       next: fail
       command: my_module.handle_error
       command_type: python
@@ -243,15 +243,15 @@ The example pipeline to call all the below functions is given here:
 ```yaml
 dag:
   description: A multi node pipeline to pass parameters
-  start_at: step 1 
+  start_at: step 1
   steps:
     step 1:
-      type: task 
+      type: task
       next: step 2
       command: my_module.first_function
       command_type: python
     step 2:
-      type: task 
+      type: task
       next: success
       command: my_module.second_function
       command_type: python
@@ -278,15 +278,15 @@ def second_function(a):
 ```
 
 In the above code, ```first_function``` is returning a dictionary setting ```a``` to be 4. If the function was called
-as a step in the magnus pipeline, magnus adds the key-value pair of ```a=4``` to the parameter space. Note that 
+as a step in the magnus pipeline, magnus adds the key-value pair of ```a=4``` to the parameter space. Note that
 ```first_function``` can return a dictionary containing as many key-value pairs as needed, magnus would add all of them
 to the parameter space.
 
 ```second_function``` is expecting a ```named``` argument ```a```. If the function was called as a step in the magnus
-pipeline, magnus would look for a parameter ```a``` in the parameter space and assign it. 
+pipeline, magnus would look for a parameter ```a``` in the parameter space and assign it.
 
 Very loosely, the whole process can be thought of as: ```second_function(**first_function())```. Since magnus holds
-parameter space, the functions need not be consecutive and magnus handles the passing only the required arguments into 
+parameter space, the functions need not be consecutive and magnus handles the passing only the required arguments into
 the function.
 
 
@@ -336,7 +336,7 @@ def second_function():
 
 ## Passing parameters to the first node of the pipeline
 
-There are several ways to set parameters at the start of the execution of the pipeline. Please choose one that fits 
+There are several ways to set parameters at the start of the execution of the pipeline. Please choose one that fits
 your situation.
 
 ### During execution of pipeline by magnus
@@ -366,7 +366,7 @@ You can pass the parameter during the execution of the run like below.
 magnus execute --file getting-started.yaml --x 3
 ```
 
-**Note**: this method only works if the pipeline is executed by magnus. All parameters would be read 
+**Note**: this method only works if the pipeline is executed by magnus. All parameters would be read
 as ```string``` and have to casted appropriately by the code.
 
 ### Using environment variables
@@ -380,7 +380,7 @@ The below command does the same job of passing ```x``` as 3.
 MAGNUS_PRM_x=3; magnus execute --file getting-started.yaml
 ```
 
-You can pass in as many parameters as you want by prefixing them with ```MAGNUS_PRM_```. All parameters would be read 
+You can pass in as many parameters as you want by prefixing them with ```MAGNUS_PRM_```. All parameters would be read
 as ```string``` and have to casted appropriately by the code.
 
 This method of sending parameters by environmental variables is independent of who does the pipeline execution.
@@ -448,7 +448,7 @@ Glob patterns are perfectly allowed and you can it to selectively ```get``` or `
 
 ### Using the in-built functions
 
-You can interact with the catalog from the python code too if that is convenient. 
+You can interact with the catalog from the python code too if that is convenient.
 
 ```python
 # In my_module.py
@@ -475,9 +475,9 @@ def second_function():
 
 ```
 
-The python function ```first_function``` makes the ```compute_data_folder``` and instructs the catalog to put it the 
-catalog. The python function ```second_function``` instructs the catalog to get the file by name ```data.txt``` from 
-the catalog and put it in the folder ```data/```. You can use glob patterns both in ```put_in_catalog``` or 
+The python function ```first_function``` makes the ```compute_data_folder``` and instructs the catalog to put it the
+catalog. The python function ```second_function``` instructs the catalog to get the file by name ```data.txt``` from
+the catalog and put it in the folder ```data/```. You can use glob patterns both in ```put_in_catalog``` or
 ```get_from_catalog```.
 
 The corresponding pipeline definition need not even aware of the cataloging happening by the functions.
@@ -485,15 +485,15 @@ The corresponding pipeline definition need not even aware of the cataloging happ
 ```yaml
 dag:
   description: A multi node pipeline
-  start_at: step 1 
+  start_at: step 1
   steps:
     step 1:
-      type: task 
+      type: task
       next: step 2
       command: my_module.first_function
       command_type: python
     step 2:
-      type: task 
+      type: task
       next: success
       command: my_module.second_function
       command_type: python
@@ -508,16 +508,16 @@ dag:
 
 In magnus, you can only ```get``` from catalog if the catalog location already exists. Calling ```put``` in catalog,
 which safely makes the catalog location if it does not exist, before you are trying to ```get``` from the catalog
-ensures that the catalog location is always present. 
+ensures that the catalog location is always present.
 
-But there are situations where you want to call ```get``` before you ```put``` data in the catalog location by the 
+But there are situations where you want to call ```get``` before you ```put``` data in the catalog location by the
 steps of the pipeline. For example, you want to source a data file generated by external processes and transform them
-in your pipeline. You can achieve that by the fact all catalog providers (eg. file-system and extensions) use 
-```run_id``` as the directory (or partition) of the catalog. 
+in your pipeline. You can achieve that by the fact all catalog providers (eg. file-system and extensions) use
+```run_id``` as the directory (or partition) of the catalog.
 
 To source data from external sources for a particular run,
 
-- Create a ```run_id``` that you want to use for pipeline execution. 
+- Create a ```run_id``` that you want to use for pipeline execution.
 - Create the directory (or partition) in the catalog location by that ```run_id```
 - Copy the contents that you want the pipeline steps to access in the catalog location.
 - Run the magnus pipeline by providing the ```run_id``` i.e ```magnus execute --run-id run_id --file <>```
@@ -527,8 +527,8 @@ Since the catalog location already exists, ```get``` from the catalog will sourc
 ---
 ## Accessing secrets within code.
 
-Secrets are the only service that magnus provides where you need to ```import magnus``` in your source code. This is 
-to ensure that the integrity of the secrets are held and handled safely. 
+Secrets are the only service that magnus provides where you need to ```import magnus``` in your source code. This is
+to ensure that the integrity of the secrets are held and handled safely.
 
 A typical configuration of the secrets is:
 
@@ -538,7 +538,7 @@ secrets:
   config:
 ```
 
-By default, magnus chooses a ```do-nothing``` secrets provider which holds no secrets. For local development, 
+By default, magnus chooses a ```do-nothing``` secrets provider which holds no secrets. For local development,
 ```dotenv``` secrets manager is useful and the config is as below.
 
 ```yaml
@@ -571,7 +571,7 @@ def first_function():
     print(secrets) # Should print {'secret_name': 'secret_value'}
 ```
 
-The pipeline to run the above function as a step of the pipeline. 
+The pipeline to run the above function as a step of the pipeline.
 
 ```yaml
 secrets:
@@ -581,10 +581,10 @@ secrets:
 
 dag:
   description: Demo of secrets
-  start_at: step 1 
+  start_at: step 1
   steps:
     step 1:
-      type: task 
+      type: task
       next: success
       command: my_module.first_function
       command_type: python
@@ -597,7 +597,7 @@ dag:
 ---
 ## Parallel node
 
-We will be using ```as-is``` nodes as part of the examples to keep it simple but the concepts of nesting/branching 
+We will be using ```as-is``` nodes as part of the examples to keep it simple but the concepts of nesting/branching
 remain the same even in the case of actual tasks.
 
 Example of a parallel node:
@@ -911,7 +911,7 @@ You can nest a ```parallel``` node, ```dag``` or a ```map``` node within paralle
 
 ### Enabling parallel execution
 
-Though the dag definition defines a ```parallel``` node, the execution of the dag and the parallelism is actually 
+Though the dag definition defines a ```parallel``` node, the execution of the dag and the parallelism is actually
 controlled by the executor. In ```local``` mode, you can enable parallel branch execution by modifying the config.
 
 ```yaml
@@ -924,8 +924,8 @@ mode:
 Points to note:
 
 - The ```enable_parallel``` flag in the config is a string "true"
-- Run log stores which use a single file as their log source (eg. file-system) cannot reliably run parallel executions 
-  as race conditions to modify the same file can happen leaving the run log in inconsistent state. The logs of the 
+- Run log stores which use a single file as their log source (eg. file-system) cannot reliably run parallel executions
+  as race conditions to modify the same file can happen leaving the run log in inconsistent state. The logs of the
   execution would also warn the same. Partitioned run log stores (eg. db) can be reliable run log stores.
 
 ---
@@ -972,13 +972,13 @@ dag:
 
 ```
 
-Nested dag's should allow for a very modular design where individual dag's do well defined tasks but the nested dag 
+Nested dag's should allow for a very modular design where individual dag's do well defined tasks but the nested dag
 can stitch them to complete the whole task.
 
-As with parallel execution, the individual steps of the dag are named in 
+As with parallel execution, the individual steps of the dag are named in
 [```dot path convention```](../concepts/run-log/#naming_step_log)
 
---- 
+---
 ## Looping a branch over an iterable parameter
 
 Often, you would need to do the same repetitive tasks over a list and magnus allows you to do that.
@@ -1025,7 +1025,7 @@ step2 is a node of type map which will iterate on ```variables``` and execute th
 definition of step2 for every value in the iterable ```variables```.
 
 The ```branch``` definition of the step2 basically creates one more parameter ```state_<variable>=5``` by the lambda
-expression. You can see these parameters as part of the run log show below.  
+expression. You can see these parameters as part of the run log show below.
 
 <details>
   <summary>Click to show the run log</summary>
@@ -1356,8 +1356,8 @@ The individual steps of the dag are named in  [```dot path convention```](../con
 
 ### Enabling parallel execution
 
-Though the dag definition defines a ```map``` node where the branches can be executed in parallel, 
-the execution of the dag and the parallelism is actually 
+Though the dag definition defines a ```map``` node where the branches can be executed in parallel,
+the execution of the dag and the parallelism is actually
 controlled by the executor. In ```local``` mode, you can enable parallel branch execution by modifying the config.
 
 ```yaml
@@ -1370,25 +1370,25 @@ mode:
 Points to note:
 
 - The ```enable_parallel``` flag in the config is a string "true"
-- Run log stores which use a single file as their log source (eg. file-system) cannot reliably run parallel executions 
-  as race conditions to modify the same file can happen leaving the run log in inconsistent state. The logs of the 
+- Run log stores which use a single file as their log source (eg. file-system) cannot reliably run parallel executions
+  as race conditions to modify the same file can happen leaving the run log in inconsistent state. The logs of the
   execution would also warn the same. Partitioned run log stores (eg. db) can be reliable run log stores.
 
 ---
 ## Nesting and complex dags
 
-Magnus does not limit you at all in nesting at any level. You have construct deep nesting levels easily and magnus 
-would execute them as you designed. 
+Magnus does not limit you at all in nesting at any level. You have construct deep nesting levels easily and magnus
+would execute them as you designed.
 
 As a general coding practice, having deeply nested branches could be hard to read and maintain.
 
-***NOTE***: There is a possibility that you can nest the same dag within the dag definition resulting in a infinite 
+***NOTE***: There is a possibility that you can nest the same dag within the dag definition resulting in a infinite
 loop. We are actively finding ways to detect these situations and warn you.
 
 ---
 ## Advanced use as-is
 
-Node type ```as-is``` defined in magnus can be a very powerful tool in some deployment patterns. 
+Node type ```as-is``` defined in magnus can be a very powerful tool in some deployment patterns.
 
 For example in the below dag definition, the step ```step echo``` does nothing as part of ```local``` execution.
 
@@ -1428,8 +1428,8 @@ dag:
 ```
 
 But a deployment pattern, like ```demo-renderer```, can use it to inject a command into the bash script. To test it out,
-uncomment the config to change to mode to ```demo-renderer``` and the run log store to be ```file-system``` and 
-execute it like below. 
+uncomment the config to change to mode to ```demo-renderer``` and the run log store to be ```file-system``` and
+execute it like below.
 
 ```magnus execute --file getting-started.yaml```
 
@@ -1469,24 +1469,24 @@ fi
 magnus execute_single_node $1 success --file getting-started.yaml
 ```
 
-The shell script is translation of the dag into a series of bash commands but notice the command ```echo hello``` as 
+The shell script is translation of the dag into a series of bash commands but notice the command ```echo hello``` as
 part of the script. While the ```local``` mode interpreted that node as a stub or a mock node, the ```demo-renderer```
 mode used the ```render_string``` variable of the node ```config``` to inject a script.
 
-This feature is very useful when you want certain few steps (may be email notifications) to be only possible in 
-production like environments but want to mock the during dev/experimental set up. 
+This feature is very useful when you want certain few steps (may be email notifications) to be only possible in
+production like environments but want to mock the during dev/experimental set up.
 
-***NOTE***: When trying to ```locally``` re-run a dag definition with ```as-is``` node used to inject scripts, 
-the run would start from ```as-is``` step onwards independent of the source of failure. You can change this 
-behavior by writing extensions which skip over ```as-is``` nodes during re-run. 
+***NOTE***: When trying to ```locally``` re-run a dag definition with ```as-is``` node used to inject scripts,
+the run would start from ```as-is``` step onwards independent of the source of failure. You can change this
+behavior by writing extensions which skip over ```as-is``` nodes during re-run.
 ## Controlling the log level of magnus
 
-The default log level of magnus is WARNING but you can change it at the point of execution to one of 
+The default log level of magnus is WARNING but you can change it at the point of execution to one of
 ```['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET]``` by using the command line argument --log-level.
 
 For example:
 
-```magnus execute --file <dag definition file> --log-level DEBUG``` 
+```magnus execute --file <dag definition file> --log-level DEBUG```
 
 would set the magnus log level to DEBUG. This setting only affects magnus logs and will not alter your application log
 levels.
@@ -1494,7 +1494,7 @@ levels.
 ---
 ## Order of configurations
 
-Magnus supports many ways of providing configurations but there is a order of preference. 
+Magnus supports many ways of providing configurations but there is a order of preference.
 
 Magnus defaults to the following if no config is provided.
 
@@ -1544,10 +1544,10 @@ secrets:
 ```
 
 You can over-ride the defaults either set by magnus or ```magnus-config.yaml``` by providing the config in the dag
-definition file. 
+definition file.
 
 For example, in the dag definition below only the ```secrets``` providers config is over-ridden by the config present
-in the dag definition file. Compute mode, catalog and run log store configurations remain the same to defaults. 
+in the dag definition file. Compute mode, catalog and run log store configurations remain the same to defaults.
 
 ```yaml
 secrets:
@@ -1556,10 +1556,10 @@ secrets:
 
 dag:
   description: Demo of secrets
-  start_at: step 1 
+  start_at: step 1
   steps:
     step 1:
-      type: task 
+      type: task
       next: success
       command: my_module.first_function
       command_type: python
@@ -1570,9 +1570,9 @@ dag:
 ```
 
 Finally, you can also over-ride the configurations set in the dag definition file by providing a custom configuration
-file containing only the configurations. 
+file containing only the configurations.
 
-For example, you can provide a dag definition file as above with ```do-nothing``` secrets handler but by providing 
+For example, you can provide a dag definition file as above with ```do-nothing``` secrets handler but by providing
 the below configurations file at the run time, you can over-ride it to ```dotenv```.
 
 ```yaml
@@ -1600,7 +1600,7 @@ are generic enough to be open sourced back to the community. But there is always
 specific to your team or project. You can implement custom extensions to either compute mode, run log store, catalog or
 secrets as part of your source folder and let magnus know to use them.
 
-For example, consider the use case of a custom secrets handler that only serves your team needs, called CustomSecrets 
+For example, consider the use case of a custom secrets handler that only serves your team needs, called CustomSecrets
 which extends ```BaseSecrets``` provided by magnus like below. The secrets manager does nothing special and always
 returns 'always the same' as the secret value.
 
@@ -1650,4 +1650,3 @@ Magnus would import the contents of the module defined in extensions and would d
 to ```CustomSecrets```.
 
 We would love it if you share your custom extension code or the design aspect as it builds the community.
-

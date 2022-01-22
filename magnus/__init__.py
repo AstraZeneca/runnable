@@ -3,14 +3,8 @@ import logging
 
 from yachalk import chalk
 
-from magnus.interaction import track_this
-from magnus.interaction import store_parameter
-from magnus.interaction import get_parameter
-from magnus.interaction import get_secret
-
-from magnus.interaction import get_from_catalog
-from magnus.interaction import put_in_catalog
-
+from magnus.interaction import (get_from_catalog, get_parameter, get_secret,
+                                put_in_catalog, store_parameter, track_this)
 
 chalk_colors = {
     'debug': chalk.grey,

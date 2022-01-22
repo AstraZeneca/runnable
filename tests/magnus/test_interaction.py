@@ -1,9 +1,10 @@
-import pytest
 import os
 
-from magnus import interaction  # pylint: disable=import-error
+import pytest
+
 from magnus import defaults  # pylint: disable=import-error
 from magnus import exceptions  # pylint: disable=import-error
+from magnus import interaction  # pylint: disable=import-error
 
 
 def test_track_this_adds_values_to_environ():

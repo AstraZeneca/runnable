@@ -1,17 +1,17 @@
 # Buffered Run Log store
 
-This Run Log store does not store the logs any where but in memory during the execution of the pipeline. 
+This Run Log store does not store the logs any where but in memory during the execution of the pipeline.
 
 When to use:
 
 - During development phase of the project and there is no need to compare outputs between runs.
-- For a quick debug of a run. 
+- For a quick debug of a run.
 
 When not to use:
 
-- When you need to compare outputs between runs or experiments. 
+- When you need to compare outputs between runs or experiments.
 - Close to production runs or in production unless you do not want to store any run logs.
-- Other than Local compute mode, no other compute modes accept this as a Run Log store. 
+- Other than Local compute mode, no other compute modes accept this as a Run Log store.
 
 ## Configuration
 

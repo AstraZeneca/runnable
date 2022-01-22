@@ -1,20 +1,19 @@
-import logging
-from datetime import datetime
 import importlib
-import subprocess
-import os
-import sys
-import shlex
 import json
+import logging
 import multiprocessing
+import os
+import shlex
+import subprocess
+import sys
 from collections import OrderedDict
-from typing import List, Union, Type
+from datetime import datetime
+from typing import List, Type, Union
 
 from pkg_resources import resource_filename
 
 import magnus
-from magnus import utils
-from magnus import defaults
+from magnus import defaults, utils
 from magnus.graph import create_graph
 
 logger = logging.getLogger(defaults.NAME)

@@ -1,8 +1,6 @@
 import pytest
 
-from magnus import datastore
-from magnus import exceptions
-from magnus import defaults
+from magnus import datastore, defaults, exceptions
 
 
 def test_data_catalog_eq_is_equal_if_name_is_same():

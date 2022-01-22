@@ -6,7 +6,7 @@ The complete configuration:
 ```yaml
 catalog:
   type: do-nothing
-  
+
 dag:
   ...
 ```

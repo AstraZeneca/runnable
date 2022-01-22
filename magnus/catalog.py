@@ -1,14 +1,10 @@
 import logging
-from pathlib import Path
-import shutil
 import os
-
+import shutil
+from pathlib import Path
 from typing import List
 
-
-from magnus import defaults
-from magnus import utils
-
+from magnus import defaults, utils
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -22,7 +18,8 @@ def get_run_log_store():
     Returns:
         object: The run log store
     """
-    from magnus.pipeline import global_executor  # pylint: disable=import-outside-toplevel
+    from magnus.pipeline import \
+        global_executor  # pylint: disable=import-outside-toplevel
     return global_executor.run_log_store
 
 

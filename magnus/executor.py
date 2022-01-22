@@ -1,16 +1,11 @@
-import logging
 import json
+import logging
 import re
 
-
-from magnus import datastore
-from magnus import utils
-from magnus import defaults
-from magnus import interaction
-from magnus import integration
-from magnus.nodes import BaseNode
+from magnus import (datastore, defaults, exceptions, integration, interaction,
+                    utils)
 from magnus.graph import Graph
-from magnus import exceptions
+from magnus.nodes import BaseNode
 
 logger = logging.getLogger(defaults.NAME)
 

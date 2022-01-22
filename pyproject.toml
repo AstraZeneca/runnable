@@ -10,12 +10,12 @@ python = "^3.6.1"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 yachalk = "*"
-docker ={ version = "*", optional = true } 
+docker ={ version = "*", optional = true }
 pydantic = "^1.9.0"
 
 [tool.poetry.extras]
 docker = ['docker']
- 
+
 [tool.poetry.dev-dependencies]
 autopep8 = "*"
 pylint = "*"

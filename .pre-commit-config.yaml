@@ -14,12 +14,3 @@ repos:
     rev: "5.7.0"
     hooks:
       - id: isort
-  # pylint relies on local imports a venv will fail to import locally installed
-  # pakages hence repo = local
-  - repo: local
-    hooks:
-      - id: pylint
-        name: pylint
-        entry: pylint --rcfile=.pylintrc
-        language: system
-        types: [python]

@@ -1,12 +1,10 @@
-import os
 import json
 import logging
-from typing import Union
+import os
 from pathlib import Path
+from typing import Union
 
-from magnus import defaults
-from magnus import utils
-from magnus import exceptions
+from magnus import defaults, exceptions, utils
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -80,7 +78,8 @@ def get_secret(secret_name: str = None) -> str:
     Raises:
         exceptions.SecretNotFoundError: Secret not found in the secrets manager.
     """
-    from magnus.pipeline import global_executor  # pylint: disable=import-outside-toplevel
+    from magnus.pipeline import \
+        global_executor  # pylint: disable=import-outside-toplevel
     secrets_handler = global_executor.secrets_handler  # type: ignore
 
     try:
@@ -100,7 +99,8 @@ def get_from_catalog(name: str, destination_folder: str = None):
         destination_folder (None): The place to put the file. defaults to compute data folder
 
     """
-    from magnus.pipeline import global_executor  # pylint: disable=import-outside-toplevel
+    from magnus.pipeline import \
+        global_executor  # pylint: disable=import-outside-toplevel
 
     if not destination_folder:
         destination_folder = global_executor.catalog_handler.compute_data_folder  # type: ignore
@@ -118,7 +118,8 @@ def put_in_catalog(filepath: str):
     Args:
         filepath (str): The path of the file to put in the catalog
     """
-    from magnus.pipeline import global_executor  # pylint: disable=import-outside-toplevel
+    from magnus.pipeline import \
+        global_executor  # pylint: disable=import-outside-toplevel
 
     file_path = Path(filepath)
 

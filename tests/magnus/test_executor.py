@@ -1,8 +1,6 @@
 import pytest
 
-from magnus import executor
-from magnus import defaults
-from magnus import exceptions
+from magnus import defaults, exceptions, executor
 
 
 def test_base_executor_is_parallel_execution_uses_default():

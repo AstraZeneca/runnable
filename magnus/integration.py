@@ -2,11 +2,10 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-
 from magnus import defaults
-from magnus.secrets import BaseSecrets
 from magnus.catalog import BaseCatalog
 from magnus.datastore import BaseRunLogStore
+from magnus.secrets import BaseSecrets
 
 if TYPE_CHECKING:
     from magnus.executor import BaseExecutor
