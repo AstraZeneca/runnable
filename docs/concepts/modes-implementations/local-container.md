@@ -1,15 +1,15 @@
 # Local Container
 
-Local container is an interactive mode. In this mode, the traversal of the dag is done on the 
+Local container is an interactive mode. In this mode, the traversal of the dag is done on the
 local computer but the
 actual execution happens on a container (running on local machine). This mode should enable you to test
-the pipeline and execution of your code in containers. This mode could also be useful in 
-debugging a container based cloud run. 
+the pipeline and execution of your code in containers. This mode could also be useful in
+debugging a container based cloud run.
 
 In this mode, max run time is completely ignored.
 
-Apart from Buffered Run Log store, all other run log stores are compatible. 
-All secrets and catalog providers are compatible with this mode. 
+Apart from Buffered Run Log store, all other run log stores are compatible.
+All secrets and catalog providers are compatible with this mode.
 
 !!! Note
     Magnus does not build the docker image for you but uses a docker image provided.
@@ -22,14 +22,14 @@ The full configuration of this mode is:
 mode:
   type: local-container
   config:
-    enable_parallel: 
-    docker_image: 
+    enable_parallel:
+    docker_image:
 ```
 
 ### Enabling parallel
 
-By default, none of the branches in parallel or a map node are executed parallelly. 
-You can enable it by setting enable_parallel to 'true' (case-insensitive). 
+By default, none of the branches in parallel or a map node are executed parallelly.
+You can enable it by setting enable_parallel to 'true' (case-insensitive).
 
 
 !!! Note
@@ -38,7 +38,7 @@ You can enable it by setting enable_parallel to 'true' (case-insensitive).
 
 ### Docker image
 
-The ```docker_image``` to run the individual nodes of the graph. 
+The ```docker_image``` to run the individual nodes of the graph.
 
 !!! Requirements
     The docker image should have magnus installed in it and available as CMD.
@@ -75,15 +75,15 @@ RUN poetry install
 
 ### Node over-rides
 
-The docker image provided at ```mode``` can be over-ridden by individual nodes of the graph by providing a 
-```mode_config``` as part of the definition. 
+The docker image provided at ```mode``` can be over-ridden by individual nodes of the graph by providing a
+```mode_config``` as part of the definition.
 
 For example:
 
 ```yaml
 run_log:
   type: file-system
-  
+
 mode:
   type: local-container
   config:
@@ -91,7 +91,7 @@ mode:
 
 dag:
   description: Getting started
-  start_at: step1 
+  start_at: step1
   steps:
     step1:
       type: as-is
@@ -109,4 +109,4 @@ dag:
 ```
 
 In the above example, if we assume project_default and step1_image to be 2 different images that satisfy
-the requirements, step1 would run in step1_image while the remaining nodes would run in project_default image. 
+the requirements, step1 would run in step1_image while the remaining nodes would run in project_default image.

@@ -1,12 +1,11 @@
-from logging.config import fileConfig
-import logging
-
 import argparse
+import logging
 import sys
+from logging.config import fileConfig
+
 from pkg_resources import resource_filename
 
-from magnus import defaults
-from magnus import pipeline
+from magnus import defaults, pipeline
 
 fileConfig(resource_filename(__name__, 'log_config.ini'))
 logger = logging.getLogger(defaults.NAME)
@@ -22,7 +21,7 @@ class MagnusCLI:
             description='Magnus CLI',
             usage='''pipeline <command> [<args>]
 
-Welcome to magnus. Please choose the command you want to run. 
+Welcome to magnus. Please choose the command you want to run.
 
 The available commands are:
    execute   executes the pipeline

@@ -1,20 +1,19 @@
-import subprocess
-import logging
-from datetime import datetime
-import uuid
-from pathlib import Path
-from collections import OrderedDict
-import os
-import json
 import hashlib
-from string import Template as str_template
+import json
+import logging
+import os
+import subprocess
+import uuid
+from collections import OrderedDict
+from datetime import datetime
 from inspect import signature
-from typing import Tuple, Union, Callable
+from pathlib import Path
+from string import Template as str_template
+from typing import Callable, Tuple, Union
 
 from ruamel.yaml import YAML  # type: ignore
 
-from magnus import defaults
-from magnus import executor
+from magnus import defaults, executor
 
 logger = logging.getLogger(defaults.NAME)
 

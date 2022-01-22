@@ -1,20 +1,20 @@
 # Run Log
 
-In magnus, Run log captures all the information required to accurately describe a run. It should not 
-confused with your application logs, which are project dependent. Independent of the providers of any systems 
-(compute, secrets, run log, catalog), the structure of the run log would remain the same and should enable 
-you to compare between runs. 
+In magnus, Run log captures all the information required to accurately describe a run. It should not
+confused with your application logs, which are project dependent. Independent of the providers of any systems
+(compute, secrets, run log, catalog), the structure of the run log would remain the same and should enable
+you to compare between runs.
 
-To accurately recreate an older run either for debugging purposes or for reproducibility, it should capture all 
-the variables of the system and their state during the run. For the purple of data science applications, 
+To accurately recreate an older run either for debugging purposes or for reproducibility, it should capture all
+the variables of the system and their state during the run. For the purple of data science applications,
 it boils down to:
 
-- Data: The source of the data and the version of it. 
-- Code: The code used to run the the experiment and the version of it. 
-- Environment: The environment the code ran in with all the system installations. 
-- Configuration: The pipeline definition and the configuration. 
+- Data: The source of the data and the version of it.
+- Code: The code used to run the the experiment and the version of it.
+- Environment: The environment the code ran in with all the system installations.
+- Configuration: The pipeline definition and the configuration.
 
-The Run Log helps in storing them systematically for every run with the best possible information on all of the above. 
+The Run Log helps in storing them systematically for every run with the best possible information on all of the above.
 
 ## Structure of Run Log
 
@@ -28,7 +28,7 @@ A typical run log has the following structure, with a few definitions given inli
     "tag": , # A friendly name given to a group of runs
     "original_run_id": , # The run id of the older run in case of a re-run
     "status": ,
-    "steps": { }, 
+    "steps": { },
     "parameters": { }
 }
 ```
@@ -40,49 +40,49 @@ Magnus creates one based on the timestamp is one is not provided during the run 
 
 ### dag_hash
 
-The SHA id of the pipeline itself is stored here. 
+The SHA id of the pipeline itself is stored here.
 
 In the case of re-run, we check the newly run pipeline hash against the older run to ensure they are the same. You
-can force to re-run too if you are aware of the differences. 
+can force to re-run too if you are aware of the differences.
 
 ### tag
 
-A friendly name that could be used to group multiple runs together. You can ```group``` multiple runs by the tag to 
-compare and track the experiments done in the group. 
+A friendly name that could be used to group multiple runs together. You can ```group``` multiple runs by the tag to
+compare and track the experiments done in the group.
 
 ### status
 
 A flag to denote the status of the run. The status could be:
 
-- success : If the graph or sub-graph succeeded, i.e reached the success node. 
+- success : If the graph or sub-graph succeeded, i.e reached the success node.
 - fail: If the graph or sub-graph reached the fail node. Please note that a  failure of a node does not imply failure of
-    the graph as you can configure conditional traversal of the nodes. 
+    the graph as you can configure conditional traversal of the nodes.
 - processing: A temporary status if any of the nodes are currently being processed.
 - triggered: A temporary status if any of the nodes triggered a remote job (in cloud, for example).
 
 ### parameters
 
-A dictionary of key-value pairs available to all the nodes. 
+A dictionary of key-value pairs available to all the nodes.
 
-Any ```kwargs``` present in the function signature, called as part of the pipeline, are resolved against this 
-dictionary and the values are set during runtime. 
+Any ```kwargs``` present in the function signature, called as part of the pipeline, are resolved against this
+dictionary and the values are set during runtime.
 
 ### steps
 
-steps is a dictionary containing step log for every individual step of the pipeline. The structure of step log is 
-described below. 
+steps is a dictionary containing step log for every individual step of the pipeline. The structure of step log is
+described below.
 
 ## Structure of Step Log
 
-Every step of the dag have a corresponding step log. 
+Every step of the dag have a corresponding step log.
 
-The general structure follows, with a few explanations given inline. 
+The general structure follows, with a few explanations given inline.
 
 ```json
 "step name": {
     "name": , # The name of the step as given in the dag definition
     "internal_name": , # The name of the step log in dot path convention
-    "status": , 
+    "status": ,
     "step_type": , # The type of step as per the dag definition
     "message": , # Any message added to step by the run
     "mock": , # Is True if the step was skipped in case of a re-run
@@ -98,9 +98,9 @@ The general structure follows, with a few explanations given inline.
 ```
 
 ### Naming Step Log
-The name of the step log follows a convention, we refer, to as *dot path* convention. 
+The name of the step log follows a convention, we refer, to as *dot path* convention.
 
-All the steps of the parent dag have the same exact name as the step name provided in the dag. 
+All the steps of the parent dag have the same exact name as the step name provided in the dag.
 
 The naming of the steps of the nested branches like parallel, map or dag are given below.
 #### parallel step
@@ -110,7 +110,7 @@ The steps of the parallel branch follow parent_step.branch_name.child_step name.
 <details>
 <summary>Example</summary>
 
-The step log names are given in-line for ease of reading. 
+The step log names are given in-line for ease of reading.
 ```yaml
 dag:
   start_at: Simple Step
@@ -152,12 +152,12 @@ dag:
 #### dag step
 
 The steps of the dag branch follow parent_step.branch.child_step_name.
-Here *branch* is a special name given to keep the naming always consistent. 
+Here *branch* is a special name given to keep the naming always consistent.
 
 <details>
 <summary>Example</summary>
 
-The step log names are given in-line for ease of reading. 
+The step log names are given in-line for ease of reading.
 ```yaml
 dag:
   start_at: Simple Step
@@ -205,12 +205,12 @@ dag:
       next: Success
       branch:
         steps:
-          Child Step: 
+          Child Step:
             type: as-is
             next: Success
-          Success: 
+          Success:
             type: success
-          Fail: 
+          Fail:
             type: fail
     Success: # dot path name: Success
       type: success
@@ -219,7 +219,7 @@ dag:
 ```
 
 If the value of parameter y turns out to be ['A', 'B'], the step log naming convention would by dynamic and have
-Map.A.Child Step, Map.A.Success, Map.A.Fail and Map.B.Child Step, Map.B.Success, Map.B.Fail 
+Map.A.Child Step, Map.A.Success, Map.A.Fail and Map.B.Child Step, Map.B.Success, Map.B.Fail
 
 </details>
 
@@ -230,12 +230,12 @@ A flag to denote the status of the step. The status could be:
 
 - success : If the step succeeded.
 - fail: If the step failed.
-- processing: A temporary status if current step is being processed. 
+- processing: A temporary status if current step is being processed.
 
 
 ### code identity
 
-As part of the log, magnus captures any possible identification of the state of the code and environment. 
+As part of the log, magnus captures any possible identification of the state of the code and environment.
 
 This section is only present for *Execution* nodes.
 
@@ -277,7 +277,7 @@ For example:
 
 ### attempts
 
-An attempt log capturing meta data about the attempt made to execute the node. 
+An attempt log capturing meta data about the attempt made to execute the node.
 This section is only present for *Execution* nodes.
 
 The structure of attempt log along with inline definitions
@@ -303,8 +303,8 @@ The status of an attempt log could be one of:
 
 ### user defined metrics
 
-As part of the execution, there is a provision to store metrics in the run log. These metrics would be stored in this 
-section of the log. 
+As part of the execution, there is a provision to store metrics in the run log. These metrics would be stored in this
+section of the log.
 
 Example of storing metrics:
 ```python
@@ -367,24 +367,24 @@ which have a structure similar to the Run Log.
 
 ### data catalog
 
-Data generated as part of individual steps of the pipeline can use the catalog to make the data available for the 
+Data generated as part of individual steps of the pipeline can use the catalog to make the data available for the
 downstream steps or for reproducibility of the run. The catalog metadata is stored here in this section.
 
 The structure of the data catalog is as follows with inline definition.
 
 ```json
-"data_catalog": 
+"data_catalog":
     [
         {
             "name": "", # The name of the file
             "stored_at": "", # The location at which it is stored
             "data_hash": "", # The SHA id of the data
-            "stage": "" # The stage at which the data is cataloged. 
+            "stage": "" # The stage at which the data is cataloged.
         }
     ]
 ```
 
-More information about cataloging is found here. 
+More information about cataloging is found here.
 
 
 ## Configuration
@@ -393,30 +393,30 @@ Configuration of a Run Log Store is as follows:
 
 ```yaml
 run_log:
-  type: 
+  type:
   config:
 ```
 
 ### type
 
-The type of run log provider you want. This should be one of the run log types already available. 
+The type of run log provider you want. This should be one of the run log types already available.
 
-Buffered Run Log is provided as default if nothing is given. 
+Buffered Run Log is provided as default if nothing is given.
 
 ### config
 
-Any configuration parameters the run log provider accepts. 
+Any configuration parameters the run log provider accepts.
 
 ## Parameterized definition
 
-As with any part of the magnus configuration, you can parameterize the configuration of Run Log to switch between 
-Run Log providers without changing the base definition. 
+As with any part of the magnus configuration, you can parameterize the configuration of Run Log to switch between
+Run Log providers without changing the base definition.
 
-Please follow the example provided [here](../dag/#parameterized_definition) for more information. 
+Please follow the example provided [here](../dag/#parameterized_definition) for more information.
 
 
 
 ## Extensions
 
 You can easily extend magnus to bring in your custom provider, if a default
-implementation does not exist or you are not happy with the implementation. 
+implementation does not exist or you are not happy with the implementation.

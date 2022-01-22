@@ -2,14 +2,14 @@ To extend and implement a custom secrets handler, you need to over-ride the appr
 
 
 Please refer to [*Guide to extensions* ](../../../extensions/extensions/) for a detailed explanation and the need for
-implementing a *Integration* pattern along with the extension. 
+implementing a *Integration* pattern along with the extension.
 
 Extensions that are being actively worked on and listed to be released as part of ```magnus-extensions```
 
 - aws-secrets-manager : Using aws-secrets-manager as secret store.
 
 ```python
-# You can find this in the source code at: magnus/secrets.py along with a few example 
+# You can find this in the source code at: magnus/secrets.py along with a few example
 # implementations of do-nothing and dotenv
 class BaseSecrets:
     """
@@ -41,4 +41,3 @@ class BaseSecrets:
         """
         raise NotImplementedError
 ```
-

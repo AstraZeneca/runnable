@@ -183,7 +183,7 @@ You should see a list of warnings but your terminal output should look something
 ```
 
 You should see that ```data``` folder being created with a file called ```data.txt``` in it.
-This is according to the command in ```step shell```. 
+This is according to the command in ```step shell```.
 
 You should also see a folder ```.catalog``` being created with a single folder corresponding to the run_id of this run.
 

@@ -2,47 +2,47 @@
 
 ---
 
-Nodes are fundamentally the smallest logical unit of work that you want to execute. Though there is no explicit 
-guidelines on how big or small a node should be, we advice that the node becomes a part of narrative of the 
-whole project. 
+Nodes are fundamentally the smallest logical unit of work that you want to execute. Though there is no explicit
+guidelines on how big or small a node should be, we advice that the node becomes a part of narrative of the
+whole project.
 
-For example, lets take a scenario where you perform some data cleaning task before you are ready to transform/train 
-a machine learning model. The data cleaning task could be one single *task* node or single *dag* node 
-(which internally is a graph) if you have too many steps. The choice is completely yours to make and 
-depends on the narrative of the project. 
+For example, lets take a scenario where you perform some data cleaning task before you are ready to transform/train
+a machine learning model. The data cleaning task could be one single *task* node or single *dag* node
+(which internally is a graph) if you have too many steps. The choice is completely yours to make and
+depends on the narrative of the project.
 
-Nodes in magnus can be logically split into 3 types: 
+Nodes in magnus can be logically split into 3 types:
 
-- **Execution**: fundamentally this is a **python function call or Shell command** that you want to call as part of the 
-pipeline. Task and As-Is node is the only nodes of this type. 
+- **Execution**: fundamentally this is a **python function call or Shell command** that you want to call as part of the
+pipeline. Task and As-Is node is the only nodes of this type.
 
-- **Status**: nodes that denote the eventual status of a graph/sub-graph. Success or Fail nodes are 
-examples of this type. All dag definitions should have **one and exactly one** node of this type and 
-the status of the dag is basically the type of status node it hits at the end. 
+- **Status**: nodes that denote the eventual status of a graph/sub-graph. Success or Fail nodes are
+examples of this type. All dag definitions should have **one and exactly one** node of this type and
+the status of the dag is basically the type of status node it hits at the end.
 
-- **Composite**: nodes that are **sub-graphs** by itself. Parallel, Dag and Map are examples of this type and 
-all three have different use cases. Nesting of composite nodes is possible, though we advise to keep the 
+- **Composite**: nodes that are **sub-graphs** by itself. Parallel, Dag and Map are examples of this type and
+all three have different use cases. Nesting of composite nodes is possible, though we advise to keep the
 nesting simple to promote readability.
 
 ---
 !!! Note
 
-    Node names cannot have . or % in them. 
+    Node names cannot have . or % in them.
     Any valid python string is acceptable as a name of the step.
 
 ---
 
 ## Task
 
-The smallest executable of the pipeline or in python language, the function call that you want to call as 
+The smallest executable of the pipeline or in python language, the function call that you want to call as
 part of the the pipeline. In magnus, a task node has the following configuration.
 
 ```yaml
 step name:
   retry: 1 # Defaults to 1
   type: task
-  next: 
-  command: 
+  next:
+  command:
   command_type: # Defaults to python
   on_failure:  # Defaults to None
   mode_config: # Defaults to None
@@ -53,7 +53,7 @@ step name:
 ```
 ### command (required)
 
-The name of the actual function/shell executable you want to call as part of the pipeline. 
+The name of the actual function/shell executable you want to call as part of the pipeline.
 
 For example, for the following function, the command would be ```my_module.my_cool_function```.
 
@@ -66,7 +66,7 @@ def my_cool_function():
 ```
 
 ### command_type (optional)
-Defaults to python if nothing is provided and currently the only python, shell, python-lambda are supported types. 
+Defaults to python if nothing is provided and currently the only python, shell, python-lambda are supported types.
 
 For command_type of shell, magnus does not provide any interaction modules or secrets management.
 
@@ -76,7 +76,7 @@ For command_type python-lambda, you can provide a lambda expression as command. 
 lambda x : int(x) + 1
 ```
 
-is a valid lambda expression. Note that, you cannot have ```_```or ```__``` as part of your string. This is just a 
+is a valid lambda expression. Note that, you cannot have ```_```or ```__``` as part of your string. This is just a
 security feature to [avoid malicious code injections](https://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html).
 
 ### retry (optional)
@@ -86,10 +86,10 @@ The number of attempts to make before failing the node. Default to 1.
 The name of the node in the graph to go if the node succeeds.
 
 ### on_failure (optional)
-The name of the node in the graph to go if the node fails. 
-This is optional as we would move to the fail node of the graph if one is not provided. 
+The name of the node in the graph to go if the node fails.
+This is optional as we would move to the fail node of the graph if one is not provided.
 
-On_failure could be an use case where you want to send a failure notification before marking the run as failure. 
+On_failure could be an use case where you want to send a failure notification before marking the run as failure.
 
 ### mode_config (optional)
 Use this section to pass instructions to the executor.
@@ -125,23 +125,23 @@ dag:
 ```
 
 In the above example, while all the steps except for ```Clean Up``` happen in python3.7 docker image, the ```Clean Up```
-happens in Ubuntu. 
+happens in Ubuntu.
 
 mode_config provides a way for dag to have customizable instructions to the executor.
 
 ### catalog (optional)
 
 compute_data_folder: The folder where we need to sync-in or sync-out the data to the [catalog](../catalog).
-If it is not provided, 
+If it is not provided,
 it defaults to the global catalog settings.
 
 get: The files to sync-in from the catalog to the compute data folder, prior execution.
 
 put: The files to sync-out from the compute data folder to the catalog, post execution.
 
-Glob pattern naming in get or put are fully supported, internally we use 
-[Pathlib match function](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.match) 
-to match the name to pattern. 
+Glob pattern naming in get or put are fully supported, internally we use
+[Pathlib match function](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.match)
+to match the name to pattern.
 
 Example catalog settings:
 ```yaml
@@ -152,7 +152,7 @@ catalog:
   put:
     - 'cleaned*'
 ```
-In this, we sync-in all the files from the catalog to the compute data folder, data prior to the execution and 
+In this, we sync-in all the files from the catalog to the compute data folder, data prior to the execution and
 sync-out all files started with *cleaned* to the catalog after the execution.
 
 <br>
@@ -160,8 +160,8 @@ Logically, magnus does the following when executing a task:
 
 1. Check the catalog-get list for any files that have to be synced to compute data folder.
 2. Inspect the function call to determine the arguments required to make the function call.
-    Retrieve them from the parameters or fail if not present. 
-3. Check if the function call has to executed in case of re-runs. If the previous re-run  of the step 
+    Retrieve them from the parameters or fail if not present.
+3. Check if the function call has to executed in case of re-runs. If the previous re-run  of the step
 was successful, we skip it.
 4. Make the actual function call, if we need to, and determine the result.
 5. Check the catalog-put list for any files that have to be synced back to catalog from the compute data folder.
@@ -186,7 +186,7 @@ dag:
 ## Success
 
 A status node of the graph. There should be **one and only one** success node per graph.
-The traversal of the graph stops at this node with marking the run as success. 
+The traversal of the graph stops at this node with marking the run as success.
 In magnus, this node can be configured as:
 
 ```yaml
@@ -210,9 +210,9 @@ No other fields are required and should not be provided.
 
 ## Parallel
 
-Parallel node is a composite node that in it-self has sub-graphs. A good example is to construct independent 
-features of a training data in machine learning experiments. The number of branches in parallel node is static 
-and pre-determined. Each branch follows the same definition language as the graph. 
+Parallel node is a composite node that in it-self has sub-graphs. A good example is to construct independent
+features of a training data in machine learning experiments. The number of branches in parallel node is static
+and pre-determined. Each branch follows the same definition language as the graph.
 
 The configuration of a parallel node could be done as:
 
@@ -231,26 +231,26 @@ step name:
 The name of the node in the graph to go if the node succeeds
 
 ### on_failure (optional)
-The name of the node in the graph to go if the node fails. 
-This is optional as we would move to the fail node of the graph if one is not provided. 
+The name of the node in the graph to go if the node fails.
+This is optional as we would move to the fail node of the graph if one is not provided.
 
-on_failure could be an use case where you want to send a failure notification before marking the run as failure. 
+on_failure could be an use case where you want to send a failure notification before marking the run as failure.
 
 ### branches (required)
 
-The branches of the step that you want to parallelize. Each branch follows the same definition as a dag in itself. 
+The branches of the step that you want to parallelize. Each branch follows the same definition as a dag in itself.
 
 ### Example
 
 ```yaml
 Feature generation:
-  type: parallel 
+  type: parallel
   next: ML training
   branches:
-    One hot encoding: 
-      start_at: encoder 
+    One hot encoding:
+      start_at: encoder
       steps:
-        encoder: 
+        encoder:
           type: task
           next: success_state
           command: my_encoder.encode
@@ -268,17 +268,17 @@ Feature generation:
         success_state:
           type: success
         fail_state:
-          type: fail  
+          type: fail
 ```
 
-In the example, "One hot encoding" and "Scaler" are two branches that are defined using the same definition 
-language as a dag and both together form the Feature generation step of the parent dag. 
+In the example, "One hot encoding" and "Scaler" are two branches that are defined using the same definition
+language as a dag and both together form the Feature generation step of the parent dag.
 
 
 ---
 !!! Note
 
-    A parallel state in the dag is just a definition, the actual implementation depends upon the mode 
+    A parallel state in the dag is just a definition, the actual implementation depends upon the mode
     and the support for parallelization.
 ---
 
@@ -287,7 +287,7 @@ language as a dag and both together form the Feature generation step of the pare
 Dag is a composite node which has one branch defined elsewhere. It is used to logically separate the complex details
 of a pipeline into modular units. For example, a typical data science project would have a data gathering, data
 cleaning, data transformation, modelling, prediction as steps. And it is understandable that these individual steps
-could get complex and require many steps to function. Instead of complicating the parent pipeline, we can abstract the 
+could get complex and require many steps to function. Instead of complicating the parent pipeline, we can abstract the
 individual steps into its own dag nodes.
 
 The configuration of a dag node is:
@@ -295,7 +295,7 @@ The configuration of a dag node is:
 ```yaml
 step name:
   type: dag
-  dag_definition: 
+  dag_definition:
   next:
   on_failure: # optional
 ```
@@ -303,14 +303,14 @@ step name:
 ### dag_definition
 
 The yaml file containing the dag definition in "dag" block of the file. The dag definition should follow the same rules
-as any other dag in magnus. 
+as any other dag in magnus.
 
 ### next (required)
 The name of the node in the graph to go if the node succeeds
 
 ### on_failure (optional)
-The name of the node in the graph to go if the node fails. 
-This is optional as we would move to the fail node of the graph if one is not provided. 
+The name of the node in the graph to go if the node fails.
+This is optional as we would move to the fail node of the graph if one is not provided.
 
 
 ### Example
@@ -358,28 +358,28 @@ dag:
 ```
 
 In this example, the parent dag only captures the high level tasks required to perform a data science experiment
-while the details of how data cleaning should be done are mentioned in data-cleaning.yaml. 
+while the details of how data cleaning should be done are mentioned in data-cleaning.yaml.
 
 
 ## Map
 
-Map is a composite node consisting of one branch that can be iterated over a parameter. A typical use case would be 
-performing the same data cleaning operation on a bunch of files or the columns of a data frame. The parameter over which 
-the branch is iterated over should be provided and also be available to the dag at the execution time. 
+Map is a composite node consisting of one branch that can be iterated over a parameter. A typical use case would be
+performing the same data cleaning operation on a bunch of files or the columns of a data frame. The parameter over which
+the branch is iterated over should be provided and also be available to the dag at the execution time.
 
 The configuration of the map node:
 ```yaml
 step name:
   type: map
-  iterate_on: 
-  iterate_as: 
-  next: 
+  iterate_on:
+  iterate_as:
+  next:
   on_failure: # Optional
   branch:
 ```
 
 ### iterate_on (required)
-The name of the parameter to iterate on. The parameter should be of type List in python and should be available in the 
+The name of the parameter to iterate on. The parameter should be of type List in python and should be available in the
 parameter space.
 
 ### iterate_as (required)
@@ -392,14 +392,14 @@ For example:
 - You should set ```iterate_on``` as ```x``` and ```iterate_as``` as ```x_i```
 
 ### branch (required)
-The branch to iterate over the parameter. The branch definition should follow the same rules as a dag definition. 
+The branch to iterate over the parameter. The branch definition should follow the same rules as a dag definition.
 
 ### next (required)
 The name of the node in the graph to go if the node succeeds
 
 ### on_failure (optional)
-The name of the node in the graph to go if the node fails. 
-This is optional as we would move to the fail node of the graph if one is not provided. 
+The name of the node in the graph to go if the node fails.
+This is optional as we would move to the fail node of the graph if one is not provided.
 
 
 ### Example
@@ -434,10 +434,10 @@ dag:
       type: fail
 ```
 
-In this example dag definition, 
+In this example dag definition,
 
 - We start with the step *List files*, that generates a list of files to be cleaned and sets it as a parameter
-- The step *Clean files* contains a branch that would be iterated over the list of files found in the previous step. 
+- The step *Clean files* contains a branch that would be iterated over the list of files found in the previous step.
 
 To be comprehensive, here is the stub implementations of the python code
 
@@ -447,7 +447,7 @@ To be comprehensive, here is the stub implementations of the python code
 def list_files():
     file_list = ['a', 'b', 'c']
     # do some compute to figure out the actual list of files would be
-    # By returning a dictionary, you can set parameters that would be available for down stream steps. 
+    # By returning a dictionary, you can set parameters that would be available for down stream steps.
     return {'file_list' : file_list}
 
 def clean_file(file_name):
@@ -459,23 +459,23 @@ def clean_file(file_name):
 ---
 !!! Note
 
-    A map state in the dag is just a definition, the actual implementation depends upon the mode 
+    A map state in the dag is just a definition, the actual implementation depends upon the mode
     and the support for parallelization.
 ---
 
 ## As-Is
 
-As-is a convenience node or a designers node. It can be used to mock nodes while designing the overall pipeline design 
-without implementing anything in *interactive* modes. The same node can be used to render required 
-templates in *orchestration* modes. 
+As-is a convenience node or a designers node. It can be used to mock nodes while designing the overall pipeline design
+without implementing anything in *interactive* modes. The same node can be used to render required
+templates in *orchestration* modes.
 
 The configuration of as-is node:
 
 ```yaml
 step name:
   type: as-is
-  command: 
-  next: 
+  command:
+  next:
   render_string:
 ```
 
@@ -490,7 +490,7 @@ The name of the node in the graph to go if the node succeeds
 
 ### render_string (optional)
 
-The placeholder template you want to render during translation. 
+The placeholder template you want to render during translation.
 
 ### Example as mock node
 
@@ -519,12 +519,12 @@ dag:
       type: fail
 ```
 
-In this example, we only wrote a skeleton of the pipeline and none of the steps are actually implemented. 
+In this example, we only wrote a skeleton of the pipeline and none of the steps are actually implemented.
 
 ### Example as template
 
-Taking the same example, we can imagine that there is an executor which can deploy the trained ML model and requires 
-a template to be generated as part of the continuos integration. 
+Taking the same example, we can imagine that there is an executor which can deploy the trained ML model and requires
+a template to be generated as part of the continuos integration.
 
 ```yaml
 mode:
@@ -559,30 +559,30 @@ dag:
       type: fail
 ```
 
-In *interactive* modes the as-is does not do anything and succeeds every time but the same dag in *orchestrated* modes 
-can render a template that could be part of continuos integration process. 
+In *interactive* modes the as-is does not do anything and succeeds every time but the same dag in *orchestrated* modes
+can render a template that could be part of continuos integration process.
 
-Data science and ML research teams would thrive in interactive modes, given their experimental nature of work. As-Is 
+Data science and ML research teams would thrive in interactive modes, given their experimental nature of work. As-Is
 nodes gives a way to do experiments without changing the dag definition once it is ready to be deployed.
 
-As-is nodes also provide a way to inject scripts as steps for orchestrators that do not support all the 
-features of magnus. For example, if an orchestrator mode of your liking does not support map state, you can 
+As-is nodes also provide a way to inject scripts as steps for orchestrators that do not support all the
+features of magnus. For example, if an orchestrator mode of your liking does not support map state, you can
 use as-is to inject a script that behaves like a map state and triggers all the required jobs.
 
 
-## Passing data 
+## Passing data
 
-In magnus, we classify 2 kinds of data sets that can be passed around to down stream steps. 
+In magnus, we classify 2 kinds of data sets that can be passed around to down stream steps.
 
-- Data: Processed files by an upstream step should be available for downstream steps when required. 
-[Catalog](../catalog) provides the way to do this. 
+- Data: Processed files by an upstream step should be available for downstream steps when required.
+[Catalog](../catalog) provides the way to do this.
 
-- Parameters: Any JSON serializable data can be passed to down stream steps. 
+- Parameters: Any JSON serializable data can be passed to down stream steps.
 
 ### Parameters from command line
 
 All keyword arguments sent to magnus command line, apart from what magnus reserved ones, are available
-as parameters to any of the steps. 
+as parameters to any of the steps.
 
 Example:
 
@@ -590,11 +590,11 @@ Example:
 magnus execute --file getting-started.yaml --arg1 hello --arg2 world
 ```
 
-In this case, arg1 and arg2 are available as parameters to downstream steps. 
+In this case, arg1 and arg2 are available as parameters to downstream steps.
 
 ### Storing parameters
 
-Any JSON serializable dictionary returned from a task node is available as parameters to downstream steps. 
+Any JSON serializable dictionary returned from a task node is available as parameters to downstream steps.
 
 Example:
 
@@ -638,10 +638,10 @@ Any parameters set either at command line or by upstream nodes can be accessed b
 def my_cool_function(arg1, arg2=None):
   pass
 
-``` 
+```
 The function is inspected to find all *named* args and provided value if the key exists in the parameters.
 
-or 
+or
 
 ``` python
 
@@ -651,8 +651,8 @@ def my_cool_function():
   arg1 = os.environ['MAGNUS_PRM_arg1']
   arg2 = os.environ['MAGNUS_PRM_arg2']
 
-``` 
-or 
+```
+or
 
 ``` python
 
@@ -664,7 +664,7 @@ def my_cool_function():
 
 ```
 
-or 
+or
 ``` python
 from magnus import get_parameter
 
@@ -674,4 +674,4 @@ def my_cool_function():
   arg2 = args['arg2']
 
 ```
-Calling get_parameter with no key returns all parameters. 
+Calling get_parameter with no key returns all parameters.

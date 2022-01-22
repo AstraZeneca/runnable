@@ -1,5 +1,6 @@
-from magnus import integration  # pylint: disable=import-error
-from magnus import secrets, catalog, datastore  # pylint: disable=import-error
+from magnus import \
+    integration  # pylint: disable=import-error; pylint: disable=import-error
+from magnus import catalog, datastore, secrets
 
 
 def test_base_integration_validate_does_nothing():

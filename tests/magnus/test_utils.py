@@ -1,12 +1,12 @@
-import os
 import json
+import os
 import sys
+
 import pytest
 
-
-from magnus import utils  # pylint: disable=import-error
-from magnus import exceptions  # pylint: disable=import-error
 from magnus import defaults  # pylint: disable=import-error
+from magnus import exceptions  # pylint: disable=import-error
+from magnus import utils  # pylint: disable=import-error
 
 
 def test_does_file_exist_returns_true_if_path_true(mocker, monkeypatch):

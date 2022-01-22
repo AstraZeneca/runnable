@@ -12,14 +12,14 @@ of the run, pass data between steps and provide secrets.
 
 Depending upon the stage of execution, the executor might do one of the two actions
 
-- **traversing the graph**: For compute modes that just render instructions for other engines, the executor first 
-    traverses the graph to understand the plan but does not actually execute. For interactive modes, the executor 
+- **traversing the graph**: For compute modes that just render instructions for other engines, the executor first
+    traverses the graph to understand the plan but does not actually execute. For interactive modes, the executor
     traverses to set up the right environment for execution but defers the execution for later stage.
 
 - **executing the node**: The executor is actually in the compute environment that it has to be and executes the task.
 
 Magnus is designed to make the executor talk to the service providers at both these stages to understand the changes
-needed for the config to make it happen via the ```BaseIntegration``` pattern. 
+needed for the config to make it happen via the ```BaseIntegration``` pattern.
 
 ```python
 class BaseIntegration:
@@ -61,8 +61,8 @@ class BaseIntegration:
 ```
 
 Consider the example of S3 Run log store. For the execution engine of ```local```, the aws credentials file is available
-on the local machine and we can store the run logs in the S3 bucket. But for the mode ```local-container```, the 
-aws credentials file has to be mounted in the container for the container to have access to S3. 
+on the local machine and we can store the run logs in the S3 bucket. But for the mode ```local-container```, the
+aws credentials file has to be mounted in the container for the container to have access to S3.
 
 This could be achieved by writing an integration pattern between S3 and ```local-container``` to do the same.
 

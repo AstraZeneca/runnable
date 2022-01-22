@@ -1,9 +1,7 @@
 import logging
+from typing import TYPE_CHECKING, Dict, List
 
-from typing import Dict, List, TYPE_CHECKING
-
-from magnus import defaults
-from magnus import exceptions
+from magnus import defaults, exceptions
 
 if TYPE_CHECKING:
     from magnus.nodes import BaseNode
@@ -281,7 +279,7 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
     """
     # Conditional import to avoid circular import
     # pylint: disable=C0415
-    from magnus.nodes import get_node_class, validate_node, get_command_class
+    from magnus.nodes import get_command_class, get_node_class, validate_node
 
     description = dag_config.get('description', None)
     max_time = dag_config.get('max_time', defaults.MAX_TIME)

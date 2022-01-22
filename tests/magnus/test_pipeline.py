@@ -1,7 +1,6 @@
 import pytest
 
-from magnus import pipeline
-from magnus import defaults
+from magnus import defaults, pipeline
 
 
 def test_load_user_extensions_does_nothing_if_no_extensions_provided(monkeypatch, mocker):

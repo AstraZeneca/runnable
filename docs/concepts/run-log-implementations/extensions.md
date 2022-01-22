@@ -4,7 +4,7 @@ Most of the methods of the ```BaseRunLogStore``` have default implementations an
 in the case of a single file as a source of run log.
 
 Please refer to [*Guide to extensions* ](../../../extensions/extensions/) for a detailed explanation and the need for
-implementing a *Integration* pattern along with the extension. 
+implementing a *Integration* pattern along with the extension.
 
 Extensions that are being actively worked on and listed to be released as part of ```magnus-extensions```
 
@@ -14,12 +14,12 @@ Extensions that are being actively worked on and listed to be released as part o
 - s3 : Using s3 to store a single JSON file as the run log.
 
 ```python
-# You can find this in the source code at: magnus/datastore.py along with a few example 
+# You can find this in the source code at: magnus/datastore.py along with a few example
 # implementations of buffered and file-system
 class BaseRunLogStore:
     """
     The base class of a Run Log Store with many common methods implemented.
-    
+
     Note: As a general guideline, do not extract anything from the config to set class level attributes.
           Integration patterns modify the config after init to change behaviors.
           Access config properties using getters/property of the class.

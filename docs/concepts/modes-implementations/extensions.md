@@ -1,6 +1,6 @@
 To extend and implement a custom compute mode, you need to over-ride the appropriate methods of the ```Base``` class.
 
-Most of the methods of the ```BaseRunLogStore``` have default implementations and need not be over-written in a few 
+Most of the methods of the ```BaseRunLogStore``` have default implementations and need not be over-written in a few
 situations.
 
 Please refer to [*Guide to extensions* ](../../../extensions/extensions/) for a detailed explanation and the need for
@@ -12,7 +12,7 @@ In summary, the extension will fall into one of the four possible possibilities:
 - Magnus traverses, execution environment same as traversal. eg: local
 - Magnus traverses, execution environment not same as traversal. eg: local-container
 - Magnus does not traverse, execution environment not same as traversal. eg: demo-renderer
-- Magnus does not traverse, execution environment same as traversal. eg: 
+- Magnus does not traverse, execution environment same as traversal. eg:
 [advanced use of as-is](../../../examples/#advanced_use_as-is)
 
 
@@ -24,7 +24,7 @@ Extensions that are being actively worked on and listed to be released as part o
 - aws-step-function: Translates the dag into a Step function.
 
 ```python
-# You can find this in the source code at: magnus/executor.py along with a few example 
+# You can find this in the source code at: magnus/executor.py along with a few example
 # implementations of local, local-container, demo-renderer
 class BaseExecutor:
     """
@@ -479,4 +479,3 @@ class BaseExecutor:
         if run_log.status == defaults.FAIL:
             raise Exception('Pipeline execution failed')
 ```
-

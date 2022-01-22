@@ -1,17 +1,15 @@
 from __future__ import annotations
-from collections import OrderedDict
-from typing import List, Optional, Tuple, OrderedDict, Dict, DefaultDict, Union
+
 import json
-from pathlib import Path
 import logging
 import sys
+from collections import OrderedDict
+from pathlib import Path
+from typing import DefaultDict, Dict, List, Optional, OrderedDict, Tuple, Union
 
 from pydantic import BaseModel, Field
 
-from magnus import utils
-from magnus import defaults
-from magnus import exceptions
-
+from magnus import defaults, exceptions, utils
 
 logger = logging.getLogger(defaults.NAME)
 

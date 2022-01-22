@@ -2,7 +2,7 @@
 
 ## pip
 
-magnus is a python package and should be installed as any other. 
+magnus is a python package and should be installed as any other.
 
 ```shell
 pip install magnus-core
@@ -16,12 +16,10 @@ pip install magnus-core
 ---
 
 We recommend that you install magnus in a virtual environment specific to the project and also poetry for your
-application development. 
+application development.
 
 The command to install in a poetry managed virtual environment
 
 ```
 poetry add magnus-core
 ```
-
-
