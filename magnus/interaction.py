@@ -85,7 +85,8 @@ def get_secret(secret_name: str = None) -> str:
     try:
         return secrets_handler.get(name=secret_name)
     except exceptions.SecretNotFoundError:
-        logger.exception(f'No secret by the name {secret_name} found in the store')
+        logger.exception(
+            f'No secret by the name {secret_name} found in the store')
         raise
 
 

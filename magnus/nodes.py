@@ -71,12 +71,14 @@ class PythonExecutionType(BaseExecutionType):  # pylint: disable=too-few-public-
 
     def execute_command(self, command, map_variable: dict = None):
         module, func = utils.get_module_and_func_names(command)
-        sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
+        # Need to add the current directory to path
+        sys.path.insert(0, os.getcwd())
         imported_module = importlib.import_module(module)
         f = getattr(imported_module, func)
 
         parameters = utils.get_user_set_parameters(remove=False)
-        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
+        filtered_parameters = utils.filter_arguments_for_func(
+            f, parameters, map_variable)
 
         logger.info(f'Calling {func} from {module} with {filtered_parameters}')
         try:
@@ -96,7 +98,8 @@ class PythonExecutionType(BaseExecutionType):  # pylint: disable=too-few-public-
                     'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
                 raise Exception(msg)
             for key, value in user_set_parameters.items():
-                logger.info(f'Setting User defined parameter {key} with value: {value}')
+                logger.info(
+                    f'Setting User defined parameter {key} with value: {value}')
                 os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
 
 
@@ -117,9 +120,11 @@ class PythonLambdaExecutionType(BaseExecutionType):  # pylint: disable=too-few-p
         f = eval(command)
 
         parameters = utils.get_user_set_parameters(remove=False)
-        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
+        filtered_parameters = utils.filter_arguments_for_func(
+            f, parameters, map_variable)
 
-        logger.info(f'Calling lambda function: {command} with {filtered_parameters}')
+        logger.info(
+            f'Calling lambda function: {command} with {filtered_parameters}')
         try:
             user_set_parameters = f(**filtered_parameters)
         except Exception as _e:
@@ -137,7 +142,8 @@ class PythonLambdaExecutionType(BaseExecutionType):  # pylint: disable=too-few-p
                     'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
                 raise Exception(msg)
             for key, value in user_set_parameters.items():
-                logger.info(f'Setting User defined parameter {key} with value: {value}')
+                logger.info(
+                    f'Setting User defined parameter {key} with value: {value}')
                 os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
 
 
@@ -153,7 +159,8 @@ class ShellExecutionType(BaseExecutionType):
         # It might be that we have to write a bash/windows script that does things for us
         subprocess_env = os.environ.copy()
         if map_variable:
-            subprocess_env[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+            subprocess_env[defaults.PARAMETER_PREFIX +
+                           'MAP_VARIABLE'] = json.dumps(map_variable)
         result = subprocess.run(command, check=True, env=subprocess_env, shell=True,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         print(result.stdout)
@@ -185,7 +192,8 @@ class BaseNode:
         self.name = name
         self.internal_name = internal_name  #  Dot notation naming of the steps
         self.config = config
-        self.internal_branch_name = internal_branch_name  # parallel, map, dag only have internal names
+        # parallel, map, dag only have internal names
+        self.internal_branch_name = internal_branch_name
         self.execution_type = execution_type
         self.branches = None
 
@@ -340,7 +348,8 @@ class BaseNode:
         Raises:
             Exception: [description]
         """
-        raise Exception(f'Node of type {self.node_type} does not have any branches')
+        raise Exception(
+            f'Node of type {self.node_type} does not have any branches')
 
     def is_terminal_node(self):
         """
@@ -450,7 +459,8 @@ def validate_node(node: BaseNode) -> List[str]:
     Returns:
         List[str]: The list of error messages, if found
     """
-    specs = utils.load_yaml(resource_filename(__name__, defaults.NODE_SPEC_FILE))
+    specs = utils.load_yaml(resource_filename(
+        __name__, defaults.NODE_SPEC_FILE))
     if node.node_type not in specs:
         raise Exception('Undefined node type, please update specs')
 
@@ -511,7 +521,8 @@ class TaskNode(BaseNode):
             command = self.config['command']
             if not mock:
                 # Do not run if we are mocking the execution, could be useful for caching and dry runs
-                self.execution_type.execute_command(command, map_variable=map_variable)
+                self.execution_type.execute_command(
+                    command, map_variable=map_variable)
         except Exception as _e:  # pylint: disable=W0703
             logger.exception('Task failed')
             attempt_log.status = defaults.FAIL
@@ -550,11 +561,13 @@ class FailNode(BaseNode):
             run_or_branch_log = executor.run_log_store.get_branch_log(
                 self.get_branch_log_name(map_variable), executor.run_id)
             run_or_branch_log.status = defaults.FAIL
-            executor.run_log_store.add_branch_log(run_or_branch_log, executor.run_id)
+            executor.run_log_store.add_branch_log(
+                run_or_branch_log, executor.run_id)
         except:  # pylint: disable=W0703
             logger.exception('Fail node execution failed')
         finally:
-            attempt_log.status = defaults.SUCCESS  # This is a dummy node, so we ignore errors and mark SUCCESS
+            # This is a dummy node, so we ignore errors and mark SUCCESS
+            attempt_log.status = defaults.SUCCESS
             attempt_log.end_time = str(datetime.now())
             attempt_log.duration = utils.get_duration_between_datetime_strings(
                 attempt_log.start_time, attempt_log.end_time)
@@ -588,11 +601,13 @@ class SuccessNode(BaseNode):
             run_or_branch_log = executor.run_log_store.get_branch_log(
                 self.get_branch_log_name(map_variable), executor.run_id)
             run_or_branch_log.status = defaults.SUCCESS
-            executor.run_log_store.add_branch_log(run_or_branch_log, executor.run_id)
+            executor.run_log_store.add_branch_log(
+                run_or_branch_log, executor.run_id)
         except:  # pylint: disable=W0703
             logger.exception('Success node execution failed')
         finally:
-            attempt_log.status = defaults.SUCCESS  # This is a dummy node and we make sure we mark it as success
+            # This is a dummy node and we make sure we mark it as success
+            attempt_log.status = defaults.SUCCESS
             attempt_log.end_time = str(datetime.now())
             attempt_log.duration = utils.get_duration_between_datetime_strings(
                 attempt_log.start_time, attempt_log.end_time)
@@ -629,7 +644,8 @@ class ParallelNode(BaseNode):
 
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
+        super().__init__(name, internal_name, config, execution_type,
+                         internal_branch_name=internal_branch_name)
         self.branches = self.get_sub_graphs()
 
     def get_sub_graphs(self):
@@ -643,7 +659,8 @@ class ParallelNode(BaseNode):
 
         branches = {}
         for branch_name, branch_config in self.config['branches'].items():
-            sub_graph = create_graph(branch_config, internal_branch_name=self.internal_name + '.' + branch_name)
+            sub_graph = create_graph(
+                branch_config, internal_branch_name=self.internal_name + '.' + branch_name)
             branches[self.internal_name + '.' + branch_name] = sub_graph
 
         if not branches:
@@ -666,7 +683,8 @@ class ParallelNode(BaseNode):
         if branch_name in self.branches:
             return self.branches[branch_name]
 
-        raise Exception(f'No branch by name: {branch_name} is present in {self.name}')
+        raise Exception(
+            f'No branch by name: {branch_name} is present in {self.name}')
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         """
@@ -704,9 +722,11 @@ class ParallelNode(BaseNode):
         """
         # Prepare the branch logs
         for internal_branch_name, branch in self.branches.items():
-            effective_branch_name = self.resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
+            effective_branch_name = self.resolve_map_placeholders(
+                internal_branch_name, map_variable=map_variable)
 
-            branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
+            branch_log = executor.run_log_store.create_branch_log(
+                effective_branch_name)
             branch_log.status = defaults.PROCESSING
             executor.run_log_store.add_branch_log(branch_log, executor.run_id)
 
@@ -731,7 +751,8 @@ class ParallelNode(BaseNode):
 
             else:
                 # If parallel is not enabled, execute them sequentially
-                executor.execute_graph(branch, map_variable=map_variable, **kwargs)
+                executor.execute_graph(
+                    branch, map_variable=map_variable, **kwargs)
 
         for job in jobs:
             job.join()  # Find status of the branches
@@ -739,8 +760,10 @@ class ParallelNode(BaseNode):
         step_success_bool = True
         waiting = False
         for internal_branch_name, branch in self.branches.items():
-            effective_branch_name = self.resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
-            branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
+            effective_branch_name = self.resolve_map_placeholders(
+                internal_branch_name, map_variable=map_variable)
+            branch_log = executor.run_log_store.get_branch_log(
+                effective_branch_name, executor.run_id)
             if branch_log.status == defaults.FAIL:
                 step_success_bool = False
 
@@ -748,8 +771,10 @@ class ParallelNode(BaseNode):
                 waiting = True
 
         # Collate all the results and update the status of the step
-        effective_internal_name = self.resolve_map_placeholders(self.internal_name, map_variable=map_variable)
-        step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
+        effective_internal_name = self.resolve_map_placeholders(
+            self.internal_name, map_variable=map_variable)
+        step_log = executor.run_log_store.get_step_log(
+            effective_internal_name, executor.run_id)
         step_log.status = defaults.PROCESSING
 
         if step_success_bool:  #  If none failed and nothing is waiting
@@ -779,14 +804,17 @@ class MapNode(BaseNode):
 
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
+        super().__init__(name, internal_name, config, execution_type,
+                         internal_branch_name=internal_branch_name)
         self.iterate_on = self.config.get('iterate_on', None)
         self.iterate_as = self.config.get('iterate_as', None)
 
         if not self.iterate_on:
-            raise Exception('A node type of map requires a parameter iterate_on, please define it in the config')
+            raise Exception(
+                'A node type of map requires a parameter iterate_on, please define it in the config')
         if not self.iterate_as:
-            raise Exception('A node type of map requires a parameter iterate_as, please define it in the config')
+            raise Exception(
+                'A node type of map requires a parameter iterate_as, please define it in the config')
 
         self.branch_placeholder_name = defaults.MAP_PLACEHOLDER
         self.branch = self.get_sub_graph()
@@ -877,7 +905,8 @@ class MapNode(BaseNode):
             effective_branch_name = self.resolve_map_placeholders(
                 self.internal_name + '.' + str(iter_variable),
                 map_variable=map_variable)
-            branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
+            branch_log = executor.run_log_store.create_branch_log(
+                effective_branch_name)
             branch_log.status = defaults.PROCESSING
             executor.run_log_store.add_branch_log(branch_log, executor.run_id)
 
@@ -905,7 +934,8 @@ class MapNode(BaseNode):
 
             else:
                 # If parallel is not enabled, execute them sequentially
-                executor.execute_graph(self.branch, map_variable=effective_map_variable, **kwargs)
+                executor.execute_graph(
+                    self.branch, map_variable=effective_map_variable, **kwargs)
 
         for job in jobs:
             job.join()
@@ -924,8 +954,10 @@ class MapNode(BaseNode):
                 waiting = True
 
         # Collate all the results and update the status of the step
-        effective_internal_name = self.resolve_map_placeholders(self.internal_name, map_variable=map_variable)
-        step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
+        effective_internal_name = self.resolve_map_placeholders(
+            self.internal_name, map_variable=map_variable)
+        step_log = executor.run_log_store.get_step_log(
+            effective_internal_name, executor.run_id)
         step_log.status = defaults.PROCESSING
 
         if step_success_bool:  #  If none failed and nothing is waiting
@@ -951,11 +983,13 @@ class DagNode(BaseNode):
 
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
+        super().__init__(name, internal_name, config, execution_type,
+                         internal_branch_name=internal_branch_name)
         self.sub_dag_file = self.config.get('dag_definition', None)
 
         if not self.sub_dag_file:
-            raise Exception('A node type of dag requires a parameter dag_definition, please define it in the config')
+            raise Exception(
+                'A node type of dag requires a parameter dag_definition, please define it in the config')
 
         self.branch = self.get_sub_graph()
 
@@ -982,7 +1016,8 @@ class DagNode(BaseNode):
 
         dag_config = utils.load_yaml(self.sub_dag_file)
         if 'dag' not in dag_config:
-            raise Exception(f'No DAG found in {self.sub_dag_file}, please provide it in dag block')
+            raise Exception(
+                f'No DAG found in {self.sub_dag_file}, please provide it in dag block')
 
         branch = create_graph(dag_config['dag'],
                               internal_branch_name=self._internal_branch_name)
@@ -1002,7 +1037,8 @@ class DagNode(BaseNode):
             Exception: If the branch_name is not 'dag'
         """
         if branch_name != self._internal_branch_name:
-            raise Exception(f'Node of type {self.node_type} only allows a branch of name {defaults.DAG_BRANCH_NAME}')
+            raise Exception(
+                f'Node of type {self.node_type} only allows a branch of name {defaults.DAG_BRANCH_NAME}')
 
         return self.branch
 
@@ -1047,23 +1083,29 @@ class DagNode(BaseNode):
         step_success_bool = True
         waiting = False
 
-        effective_branch_name = self.resolve_map_placeholders(self._internal_branch_name, map_variable=map_variable)
-        effective_internal_name = self.resolve_map_placeholders(self.internal_name, map_variable=map_variable)
+        effective_branch_name = self.resolve_map_placeholders(
+            self._internal_branch_name, map_variable=map_variable)
+        effective_internal_name = self.resolve_map_placeholders(
+            self.internal_name, map_variable=map_variable)
 
-        branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
+        branch_log = executor.run_log_store.create_branch_log(
+            effective_branch_name)
         branch_log.status = defaults.PROCESSING
         executor.run_log_store.add_branch_log(branch_log, executor.run_id)
 
-        executor.execute_graph(self.branch, map_variable=map_variable, **kwargs)
+        executor.execute_graph(
+            self.branch, map_variable=map_variable, **kwargs)
 
-        branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
+        branch_log = executor.run_log_store.get_branch_log(
+            effective_branch_name, executor.run_id)
         if branch_log.status == defaults.FAIL:
             step_success_bool = False
 
         if branch_log.status == defaults.PROCESSING:
             waiting = True
 
-        step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
+        step_log = executor.run_log_store.get_step_log(
+            effective_internal_name, executor.run_id)
         step_log.status = defaults.PROCESSING
 
         if step_success_bool:  #  If none failed and nothing is waiting
@@ -1092,7 +1134,8 @@ class AsISNode(BaseNode):
 
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
+        super().__init__(name, internal_name, config, execution_type,
+                         internal_branch_name=internal_branch_name)
         self.render_string = self.config.get('render_string', None)
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
@@ -1111,7 +1154,8 @@ class AsISNode(BaseNode):
         attempt_log = executor.run_log_store.create_attempt_log()
 
         attempt_log.start_time = str(datetime.now())
-        attempt_log.status = defaults.SUCCESS  # This is a dummy node and always will be success
+        # This is a dummy node and always will be success
+        attempt_log.status = defaults.SUCCESS
 
         attempt_log.end_time = str(datetime.now())
         attempt_log.duration = utils.get_duration_between_datetime_strings(

@@ -59,7 +59,8 @@ def test_dot_env_secrets_get_returns_all_secrets_if_no_name_provided(mocker, mon
     mock_base_secret = mocker.MagicMock()
 
     monkeypatch.setattr(secrets, 'BaseSecrets', mock_base_secret)
-    monkeypatch.setattr(secrets.DotEnvSecrets, '_load_secrets', mocker.MagicMock())
+    monkeypatch.setattr(secrets.DotEnvSecrets,
+                        '_load_secrets', mocker.MagicMock())
 
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
     dot_env_secret.secrets = 'TopSecret'
@@ -69,7 +70,8 @@ def test_dot_env_secrets_get_returns_all_secrets_if_no_name_provided(mocker, mon
 
 def test_dot_env_secrets_get_returns_secret_if_one_provided(mocker, monkeypatch):
     monkeypatch.setattr(secrets, 'BaseSecrets', mocker.MagicMock())
-    monkeypatch.setattr(secrets.DotEnvSecrets, '_load_secrets', mocker.MagicMock())
+    monkeypatch.setattr(secrets.DotEnvSecrets,
+                        '_load_secrets', mocker.MagicMock())
 
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
     dot_env_secret.secrets['give'] = 'this'
@@ -81,7 +83,8 @@ def test_dot_env_secrets_raises_exception_if_secret_not_found(mocker, monkeypatc
     mock_base_secret = mocker.MagicMock()
 
     monkeypatch.setattr(secrets, 'BaseSecrets', mock_base_secret)
-    monkeypatch.setattr(secrets.DotEnvSecrets, '_load_secrets', mocker.MagicMock())
+    monkeypatch.setattr(secrets.DotEnvSecrets,
+                        '_load_secrets', mocker.MagicMock())
 
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
     dot_env_secret.secrets['give'] = 'this'
@@ -92,7 +95,8 @@ def test_dot_env_secrets_raises_exception_if_secret_not_found(mocker, monkeypatc
 
 def test_dot_env_load_secrets_raises_exception_if_file_does_not_exist(mocker, monkeypatch):
     monkeypatch.setattr(secrets, 'lru_cache', mocker.MagicMock())
-    monkeypatch.setattr(secrets.utils, 'does_file_exist', mocker.MagicMock(return_value=False))
+    monkeypatch.setattr(secrets.utils, 'does_file_exist',
+                        mocker.MagicMock(return_value=False))
 
     monkeypatch.setattr(secrets, 'BaseSecrets', mocker.MagicMock())
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
@@ -103,7 +107,8 @@ def test_dot_env_load_secrets_raises_exception_if_file_does_not_exist(mocker, mo
 
 def test_dot_env_load_secrets_raises_exception_if_secret_formatting_is_invalid(mocker, monkeypatch):
     monkeypatch.setattr(secrets, 'lru_cache', mocker.MagicMock())
-    monkeypatch.setattr(secrets.utils, 'does_file_exist', mocker.MagicMock(return_value=True))
+    monkeypatch.setattr(secrets.utils, 'does_file_exist',
+                        mocker.MagicMock(return_value=True))
 
     monkeypatch.setattr(secrets, 'BaseSecrets', mocker.MagicMock())
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
@@ -115,19 +120,22 @@ def test_dot_env_load_secrets_raises_exception_if_secret_formatting_is_invalid(m
 
 def test_dot_env_load_secrets_raises_exception_if_secret_formatting_is_invalid_ge_2(mocker, monkeypatch):
     monkeypatch.setattr(secrets, 'lru_cache', mocker.MagicMock())
-    monkeypatch.setattr(secrets.utils, 'does_file_exist', mocker.MagicMock(return_value=True))
+    monkeypatch.setattr(secrets.utils, 'does_file_exist',
+                        mocker.MagicMock(return_value=True))
 
     monkeypatch.setattr(secrets, 'BaseSecrets', mocker.MagicMock())
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
 
     with pytest.raises(Exception):
-        mocker.patch('builtins.open', mocker.mock_open(read_data=['data=data1=']))
+        mocker.patch('builtins.open', mocker.mock_open(
+            read_data=['data=data1=']))
         dot_env_secret.load_secrets()
 
 
 def test_dot_env_load_secrets_populates_correct_secrets_if_valid(mocker, monkeypatch):
     monkeypatch.setattr(secrets, 'lru_cache', mocker.MagicMock())
-    monkeypatch.setattr(secrets.utils, 'does_file_exist', mocker.MagicMock(return_value=True))
+    monkeypatch.setattr(secrets.utils, 'does_file_exist',
+                        mocker.MagicMock(return_value=True))
 
     monkeypatch.setattr(secrets, 'BaseSecrets', mocker.MagicMock())
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})

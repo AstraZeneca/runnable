@@ -62,14 +62,19 @@ The available commands are:
         parser = argparse.ArgumentParser(
             description='Execute the pipeline based on the definition')
         # prefixing the argument with -- means it's optional
-        parser.add_argument('-f', '--file', default='pipeline.yaml', help='The pipeline definition location')
-        parser.add_argument('-v', '--var-file', default=None, help='Variables used in pipeline')
+        parser.add_argument('-f', '--file', default='pipeline.yaml',
+                            help='The pipeline definition location')
+        parser.add_argument('-v', '--var-file', default=None,
+                            help='Variables used in pipeline')
         parser.add_argument('-c', '--config-file', default=None,
                             help="Provide a config file which over-rides everything")
-        parser.add_argument('--log-level', default=defaults.LOG_LEVEL, help='The logger level')
+        parser.add_argument(
+            '--log-level', default=defaults.LOG_LEVEL, help='The logger level')
         parser.add_argument('--tag', help='A tag attached to the run')
-        parser.add_argument('--run-id', help='An optional run_id, one would be generated if not provided')
-        parser.add_argument('--use-cached', help='Provide the previous run_id to re-run.')
+        parser.add_argument(
+            '--run-id', help='An optional run_id, one would be generated if not provided')
+        parser.add_argument(
+            '--use-cached', help='Provide the previous run_id to re-run.')
 
         # now that we're inside a subcommand, ignore the first
         # TWO argvs, ie the command (git) and the subcommand (commit)
@@ -89,13 +94,18 @@ The available commands are:
             description='Execute a single node of the pipeline')
         # prefixing the argument with -- means it's optional
         parser.add_argument('run_id', help='Run id of the run')
-        parser.add_argument('step_name', help='The internal step name of the pipeline to run')
-        parser.add_argument('--map-variable', default='', help='The map iterator variable dictionary')
-        parser.add_argument('-f', '--file', default='pipeline.yaml', help='The pipeline definition location')
-        parser.add_argument('-v', '--var-file', default=None, help='Variables used in pipeline')
+        parser.add_argument(
+            'step_name', help='The internal step name of the pipeline to run')
+        parser.add_argument('--map-variable', default='',
+                            help='The map iterator variable dictionary')
+        parser.add_argument('-f', '--file', default='pipeline.yaml',
+                            help='The pipeline definition location')
+        parser.add_argument('-v', '--var-file', default=None,
+                            help='Variables used in pipeline')
         parser.add_argument('-c', '--config-file', default=None,
                             help="Provide a config file which over-rides everything")
-        parser.add_argument('--log-level', default=defaults.LOG_LEVEL, help='The logger level')
+        parser.add_argument(
+            '--log-level', default=defaults.LOG_LEVEL, help='The logger level')
         parser.add_argument('--tag', help='A tag attached to the run')
 
         # now that we're inside a subcommand, ignore the first
@@ -116,13 +126,18 @@ The available commands are:
             description='Execute a single node of the pipeline')
         # prefixing the argument with -- means it's optional
         parser.add_argument('run_id', help='Run id of the run')
-        parser.add_argument('branch_name', help='The internal branch name of the pipeline to run')
-        parser.add_argument('--map-variable', default='', help='The map iterator variable')
-        parser.add_argument('-f', '--file', default='pipeline.yaml', help='The pipeline definition location')
-        parser.add_argument('-v', '--var-file', default=None, help='Variables used in pipeline')
+        parser.add_argument(
+            'branch_name', help='The internal branch name of the pipeline to run')
+        parser.add_argument('--map-variable', default='',
+                            help='The map iterator variable')
+        parser.add_argument('-f', '--file', default='pipeline.yaml',
+                            help='The pipeline definition location')
+        parser.add_argument('-v', '--var-file', default=None,
+                            help='Variables used in pipeline')
         parser.add_argument('-c', '--config-file', default=None,
                             help="Provide a config file which over-rides everything")
-        parser.add_argument('--log-level', default=defaults.LOG_LEVEL, help='The logger level')
+        parser.add_argument(
+            '--log-level', default=defaults.LOG_LEVEL, help='The logger level')
         parser.add_argument('--tag', help='A tag attached to the run')
 
         # now that we're inside a subcommand, ignore the first

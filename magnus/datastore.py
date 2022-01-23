@@ -56,7 +56,8 @@ class CodeIdentity(BaseModel):
     """
     code_identifier: str = ''  # GIT sha code or docker image id
     code_identifier_type: str = ''  # git or docker
-    code_identifier_dependable: bool = False  # If git, checks if the tree is clean.
+    # If git, checks if the tree is clean.
+    code_identifier_dependable: bool = False
     code_identifier_url: str = ''  # The git remote url or docker repository url
     code_identifier_message: str = ''  # Any optional message
 
@@ -96,7 +97,8 @@ class StepLog(BaseModel):
         data_catalogs = []
         if self.branches:
             for _, branch in self.branches.items():
-                data_catalogs.extend(branch.get_data_catalogs_by_stage(stage=stage))
+                data_catalogs.extend(
+                    branch.get_data_catalogs_by_stage(stage=stage))
 
         return [dc for dc in self.data_catalog if dc.stage == stage] + data_catalogs
 
@@ -122,7 +124,8 @@ class BranchLog(BaseModel):
     """
     internal_name: str
     status: str = 'FAIL'
-    steps: OrderedDict[str, StepLog] = {}  # type: ignore # StepLogs keyed by internal name
+    # type: ignore # StepLogs keyed by internal name
+    steps: OrderedDict[str, StepLog] = {}
 
     def get_data_catalogs_by_stage(self, stage='put') -> List[DataCatalog]:
         """
@@ -161,7 +164,8 @@ class RunLog(BaseModel):
     tag: Optional[str] = ''
     original_run_id: Optional[str] = ''
     status: str = 'FAIL'
-    steps: OrderedDict[str, StepLog] = {}  # type: ignore # Has the steps keyed by internal_name
+    # type: ignore # Has the steps keyed by internal_name
+    steps: OrderedDict[str, StepLog] = {}
     parameters: dict = {}
     run_config: dict = {}
 
@@ -216,16 +220,20 @@ class RunLog(BaseModel):
             if i % 2:
                 # Its odd, so we are in branch
                 # Get the branch that holds the step
-                current_branch = current_step.branches['.'.join(dot_path[:i+1])]  # type: ignore
+                current_branch = current_step.branches['.'.join(
+                    dot_path[:i+1])]  # type: ignore
                 current_steps = current_branch.steps
-                logger.debug(f'Finding branch {i_name} in branch: {current_branch}')
+                logger.debug(
+                    f'Finding branch {i_name} in branch: {current_branch}')
             else:
                 # Its even, so we are in step, we start here!
                 # Get the step that holds the branch
                 current_step = current_steps['.'.join(dot_path[:i+1])]
-                logger.debug(f'Finding branch for {i_name} in step: {current_step}')
+                logger.debug(
+                    f'Finding branch for {i_name} in step: {current_step}')
 
-        logger.debug(f'current branch : {current_branch}, current step {current_step}')
+        logger.debug(
+            f'current branch : {current_branch}, current step {current_step}')
         if current_branch and current_step:
             return current_branch, current_step
 
@@ -256,15 +264,19 @@ class RunLog(BaseModel):
         for i in range(len(dot_path)):
             if i % 2:
                 # Its odd, so we are in brach name
-                current_branch = current_step.branches['.'.join(dot_path[:i+1])]  # type: ignore
+                current_branch = current_step.branches['.'.join(
+                    dot_path[:i+1])]  # type: ignore
                 current_steps = current_branch.steps
-                logger.debug(f'Finding step log for {i_name} in branch: {current_branch}')
+                logger.debug(
+                    f'Finding step log for {i_name} in branch: {current_branch}')
             else:
                 # Its even, so we are in step, we start here!
                 current_step = current_steps['.'.join(dot_path[:i+1])]
-                logger.debug(f'Finding step log for {i_name} in step: {current_step}')
+                logger.debug(
+                    f'Finding step log for {i_name} in step: {current_step}')
 
-        logger.debug(f'current branch : {current_branch}, current step {current_step}')
+        logger.debug(
+            f'current branch : {current_branch}, current step {current_step}')
         if current_branch and current_step:
             return current_step, current_branch
 
@@ -443,7 +455,8 @@ class BaseRunLogStore:
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
             StepLogNotFoundError: If the step log for internal_name is not found in the datastore for run_id
         """
-        logger.info(f'{self.service_name} Getting the step log: {internal_name} of {run_id}')
+        logger.info(
+            f'{self.service_name} Getting the step log: {internal_name} of {run_id}')
         run_log = self.get_run_log_by_id(run_id=run_id)
         step_log, _ = run_log.search_step_by_internal_name(internal_name)
         return step_log
@@ -467,7 +480,8 @@ class BaseRunLogStore:
             BranchLogNotFoundError: If the branch of the step log for internal_name is not found in the datastore
                                     for run_id
         """
-        logger.info(f'{self.service_name} Adding the step log to DB: {step_log.name}')
+        logger.info(
+            f'{self.service_name} Adding the step log to DB: {step_log.name}')
         run_log = self.get_run_log_by_id(run_id=run_id)
 
         branch_to_add = '.'.join(step_log.internal_name.split('.')[:-1])
@@ -489,7 +503,8 @@ class BaseRunLogStore:
             BranchLog: Uncommitted and initialized with defaults BranchLog object
         """
         # Create a new BranchLog
-        logger.info(f'{self.service_name} Creating a Branch Log : {internal_branch_name}')
+        logger.info(
+            f'{self.service_name} Creating a Branch Log : {internal_branch_name}')
         return BranchLog(internal_name=internal_branch_name, status=defaults.CREATED)
 
     def get_branch_log(self, internal_branch_name: str, run_id: str, **kwargs) -> Union[BranchLog, RunLog]:  # pylint: disable=unused-argument
@@ -508,7 +523,8 @@ class BaseRunLogStore:
         run_log = self.get_run_log_by_id(run_id=run_id)
         if not internal_branch_name:
             return run_log
-        branch, _ = run_log.search_branch_by_internal_name(internal_branch_name)
+        branch, _ = run_log.search_branch_by_internal_name(
+            internal_branch_name)
         return branch
 
     def add_branch_log(self, branch_log: Union[BranchLog, RunLog], run_id: str, **kwargs):  # pylint: disable=unused-argument
@@ -532,7 +548,8 @@ class BaseRunLogStore:
             internal_branch_name = branch_log.internal_name
 
         if not internal_branch_name:
-            self.put_run_log(branch_log)  # type: ignore # We are dealing with base dag here
+            # type: ignore # We are dealing with base dag here
+            self.put_run_log(branch_log)
             return
 
         run_log = self.get_run_log_by_id(run_id=run_id)
@@ -606,19 +623,22 @@ class BufferRunLogstore(BaseRunLogStore):
         # Creates a Run log
         # Adds it to the db
         # Return the log
-        logger.info(f'{self.service_name} Creating a Run Log and adding it to DB')
+        logger.info(
+            f'{self.service_name} Creating a Run Log and adding it to DB')
         self.run_log = RunLog(run_id=run_id, status=defaults.CREATED)
         return self.run_log
 
     def get_run_log_by_id(self, run_id: str, full: bool = True, **kwargs):
         # Returns the run_log defined by id
         # Raises Exception if not found
-        logger.info(f'{self.service_name} Getting the run log from DB for {run_id}')
+        logger.info(
+            f'{self.service_name} Getting the run log from DB for {run_id}')
         return self.run_log
 
     def put_run_log(self, run_log: RunLog, **kwargs):
         # Puts the run_log into the database
-        logger.info(f'{self.service_name} Putting the run log in the DB: {run_log.run_id}')
+        logger.info(
+            f'{self.service_name} Putting the run log in the DB: {run_log.run_id}')
         self.run_log = run_log
 
 
@@ -667,7 +687,8 @@ class FileSystemRunLogstore(BaseRunLogStore):
         json_file_path = write_to_path / f'{run_id}.json'
 
         with json_file_path.open('w') as fw:
-            json.dump(run_log.dict(), fw, ensure_ascii=True, indent=4)  # pylint: disable=no-member
+            json.dump(run_log.dict(), fw, ensure_ascii=True,
+                      indent=4)  # pylint: disable=no-member
 
     def get_from_folder(self, run_id: str) -> RunLog:
         """
@@ -691,7 +712,8 @@ class FileSystemRunLogstore(BaseRunLogStore):
         json_file_path = read_from_path / f'{run_id}.json'
 
         if not json_file_path.exists():
-            raise FileNotFoundError(f'Expected {json_file_path} is not present')
+            raise FileNotFoundError(
+                f'Expected {json_file_path} is not present')
 
         with json_file_path.open('r') as fr:
             json_str = json.load(fr)
@@ -710,7 +732,8 @@ class FileSystemRunLogstore(BaseRunLogStore):
         # Returns the run_log defined by id
         # Raises Exception if not found
         try:
-            logger.info(f'{self.service_name} Getting a Run Log for : {run_id}')
+            logger.info(
+                f'{self.service_name} Getting a Run Log for : {run_id}')
             run_log = self.get_from_folder(run_id)
             return run_log
         except FileNotFoundError as e:
@@ -718,5 +741,6 @@ class FileSystemRunLogstore(BaseRunLogStore):
 
     def put_run_log(self, run_log: RunLog, **kwargs):
         # Puts the run_log into the database
-        logger.info(f'{self.service_name} Putting the run log in the DB: {run_log.run_id}')
+        logger.info(
+            f'{self.service_name} Putting the run log in the DB: {run_log.run_id}')
         self.write_to_folder(run_log)

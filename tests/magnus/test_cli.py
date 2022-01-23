@@ -53,7 +53,8 @@ def test_execute_calls_pipeline_execute_with_right_variables(monkeypatch, mocker
     mock_resolve_args = mocker.MagicMock()
     monkeypatch.setattr(cli.MagnusCLI, '_resolve_args', mock_resolve_args)
 
-    monkeypatch.setattr(cli.MagnusCLI, '__init__', mocker.MagicMock(return_value=None))
+    monkeypatch.setattr(cli.MagnusCLI, '__init__',
+                        mocker.MagicMock(return_value=None))
 
     mock_pipeline_execute = mocker.MagicMock()
     monkeypatch.setattr(cli.pipeline, 'execute', mock_pipeline_execute)
@@ -84,10 +85,12 @@ def test_execute_calls_pipeline_execute_single_node_with_right_variables(monkeyp
     mock_resolve_args = mocker.MagicMock()
     monkeypatch.setattr(cli.MagnusCLI, '_resolve_args', mock_resolve_args)
 
-    monkeypatch.setattr(cli.MagnusCLI, '__init__', mocker.MagicMock(return_value=None))
+    monkeypatch.setattr(cli.MagnusCLI, '__init__',
+                        mocker.MagicMock(return_value=None))
 
     mock_pipeline_execute = mocker.MagicMock()
-    monkeypatch.setattr(cli.pipeline, 'execute_single_node', mock_pipeline_execute)
+    monkeypatch.setattr(cli.pipeline, 'execute_single_node',
+                        mock_pipeline_execute)
 
     mock_args = mocker.MagicMock()
     mock_args.step_name = 'step_name'
@@ -118,10 +121,12 @@ def test_execute_calls_pipeline_execute_single_branch_with_right_variables(monke
     mock_resolve_args = mocker.MagicMock()
     monkeypatch.setattr(cli.MagnusCLI, '_resolve_args', mock_resolve_args)
 
-    monkeypatch.setattr(cli.MagnusCLI, '__init__', mocker.MagicMock(return_value=None))
+    monkeypatch.setattr(cli.MagnusCLI, '__init__',
+                        mocker.MagicMock(return_value=None))
 
     mock_pipeline_execute = mocker.MagicMock()
-    monkeypatch.setattr(cli.pipeline, 'execute_single_brach', mock_pipeline_execute)
+    monkeypatch.setattr(cli.pipeline, 'execute_single_brach',
+                        mock_pipeline_execute)
 
     mock_args = mocker.MagicMock()
     mock_args.branch_name = 'branch_name'

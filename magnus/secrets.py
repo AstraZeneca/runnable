@@ -110,14 +110,17 @@ class DotEnvSecrets(BaseSecrets):
         """
         secrets_location = self.get_secrets_location()
         if not utils.does_file_exist(secrets_location):
-            raise Exception(f'Did not find the secrets file in {secrets_location}')
+            raise Exception(
+                f'Did not find the secrets file in {secrets_location}')
 
         with open(secrets_location, 'r') as fr:
             for secret_line in fr:
-                secret_line = secret_line.split('#')[0]  #  To remove any comments the user might have put
+                #  To remove any comments the user might have put
+                secret_line = secret_line.split('#')[0]
                 data = secret_line.split('=')
                 if len(data) != 2:
-                    raise Exception('A secret should be of format, secret_name=secret_value[# any comment]')
+                    raise Exception(
+                        'A secret should be of format, secret_name=secret_value[# any comment]')
                 key, value = data
                 self.secrets[key] = value.strip('\n')
 
@@ -144,4 +147,5 @@ class DotEnvSecrets(BaseSecrets):
             return self.secrets[name]
 
         secrets_location = self.get_secrets_location()
-        raise exceptions.SecretNotFoundError(secret_name=name, secret_setting=secrets_location)
+        raise exceptions.SecretNotFoundError(
+            secret_name=name, secret_setting=secrets_location)

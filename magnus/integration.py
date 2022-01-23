@@ -67,7 +67,8 @@ def get_service_type(service_provider: object) -> str:
     if isinstance(service_provider, BaseRunLogStore):
         return 'run_log_store'
 
-    raise Exception('Service Provider is not a inherited from any of the Base Service providers')
+    raise Exception(
+        'Service Provider is not a inherited from any of the Base Service providers')
 
 
 def get_integration_handler(executor: 'BaseExecutor', service: object) -> BaseIntegration:
@@ -93,7 +94,8 @@ def get_integration_handler(executor: 'BaseExecutor', service: object) -> BaseIn
         if (sub_class.service_type == service_type and  # type: ignore
                 sub_class.mode_type == executor.service_name and  # type: ignore
                 sub_class.service_provider == service_name):
-            logger.info(f'Identified an intergration pattern {sub_class.__name__}')
+            logger.info(
+                f'Identified an intergration pattern {sub_class.__name__}')
             integrations.append(sub_class(executor, service))
 
     if len(integrations) > 1:
@@ -192,7 +194,8 @@ class LocalContainerComputeBufferedRunLogStore(BaseIntegration):
     service_provider = 'buffered'  # The actual implementation of the service
 
     def validate(self, **kwargs):
-        raise Exception('Only local compute mode is possible for buffered run log store')
+        raise Exception(
+            'Only local compute mode is possible for buffered run log store')
 
 
 class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
@@ -233,7 +236,8 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
     service_provider = 'dotenv'  # The actual implementation of the service
 
     def validate(self, **kwargs):
-        logger.warning('Using dot env for non local deployments is not ideal, consider options')
+        logger.warning(
+            'Using dot env for non local deployments is not ideal, consider options')
 
     def configure_for_traversal(self, **kwargs):
         secrets_location = self.service.get_secrets_location()

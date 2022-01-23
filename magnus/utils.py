@@ -20,7 +20,8 @@ logger = logging.getLogger(defaults.NAME)
 try:
     import docker
 except ImportError:
-    logger.warning('docker was not installed, local-container mode will not function')
+    logger.warning(
+        'docker was not installed, local-container mode will not function')
 
 
 def does_file_exist(file_path: str) -> bool:
@@ -260,7 +261,8 @@ def get_local_docker_image_id(image_name: str) -> str:
         image = client.images.get(image_name)
         return image.attrs['Id']
     except ImportError:  # pragma: no cover
-        logger.warning('Did not find docker installed, some functionality might be affected')
+        logger.warning(
+            'Did not find docker installed, some functionality might be affected')
     except:
         logger.exception(f'Could not find the image by name {image_name}')
 
@@ -285,7 +287,8 @@ def get_git_code_identity(run_log_store):
         code_identity.code_identifier_dependable, changed = is_git_clean()
         code_identity.code_identifier_url = get_git_remote()
         if changed:
-            code_identity.code_identifier_message = 'changes found in ' + ', '.join(changed.split('\n'))
+            code_identity.code_identifier_message = 'changes found in ' + \
+                ', '.join(changed.split('\n'))
     except:
         logger.exception("Git code versioning problems")
 
@@ -499,12 +502,14 @@ def get_provider_by_name_and_type(service_type: str, service_details: dict):
     if 'config' in service_details:
         service_config = service_details.get('config', {})
 
-    logger.info(f'Trying to get a service of {service_type} of the name {service_name} with config: {service_config}')
+    logger.info(
+        f'Trying to get a service of {service_type} of the name {service_name} with config: {service_config}')
     for sub_class in get_subclasses(base_class):
         if service_name == sub_class.service_name:
             return sub_class(service_config)
 
-    raise Exception(f'Could not find the service of type: {service_type} with config: {service_details}')
+    raise Exception(
+        f'Could not find the service of type: {service_type} with config: {service_details}')
 
 
 def get_duration_between_datetime_strings(start_time: str, end_time: str) -> str:

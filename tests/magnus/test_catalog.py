@@ -29,7 +29,8 @@ def test_is_catalog_out_of_sync_returns_false_for_same_objects():
     catalog_item.data_hash = 'hash'
 
     synced_catalog = [catalog_item]
-    assert catalog.is_catalog_out_of_sync(catalog_item, synced_catalog) is False
+    assert catalog.is_catalog_out_of_sync(
+        catalog_item, synced_catalog) is False
 
 
 def test_is_catalog_out_of_sync_returns_true_for_different_hash():
@@ -46,7 +47,8 @@ def test_is_catalog_out_of_sync_returns_true_for_different_hash():
     catalog_item2.data_hash = 'not-hash'
 
     synced_catalog = [catalog_item1]
-    assert catalog.is_catalog_out_of_sync(catalog_item2, synced_catalog) is True
+    assert catalog.is_catalog_out_of_sync(
+        catalog_item2, synced_catalog) is True
 
 
 def test_is_catalog_out_of_sync_returns_true_for_different_paths():
@@ -63,7 +65,8 @@ def test_is_catalog_out_of_sync_returns_true_for_different_paths():
     catalog_item2.data_hash = 'hash'
 
     synced_catalog = [catalog_item1]
-    assert catalog.is_catalog_out_of_sync(catalog_item2, synced_catalog) is True
+    assert catalog.is_catalog_out_of_sync(
+        catalog_item2, synced_catalog) is True
 
 
 def test_base_catalog_inits_empty_config_if_none_config():
@@ -144,7 +147,8 @@ def test_file_system_catalog_get_creates_catalog_location_using_run_id(monkeypat
     with pytest.raises(Exception):
         catalog_handler.get('testing', run_id='dummy_run_id')
 
-    mock_does_dir_exist.assert_any_call(catalog.Path('this_location') / 'dummy_run_id')
+    mock_does_dir_exist.assert_any_call(
+        catalog.Path('this_location') / 'dummy_run_id')
 
 
 def test_file_system_catalog_get_uses_compute_data_folder_provided(monkeypatch, mocker):
@@ -156,7 +160,8 @@ def test_file_system_catalog_get_uses_compute_data_folder_provided(monkeypatch, 
 
     catalog_handler = catalog.FileSystemCatalog(config={'type': 'file-system'})
     with pytest.raises(Exception):
-        catalog_handler.get('testing', run_id='dummy_run_id', compute_data_folder='this_compute_folder')
+        catalog_handler.get('testing', run_id='dummy_run_id',
+                            compute_data_folder='this_compute_folder')
 
     mock_does_dir_exist.assert_called_once_with('this_compute_folder')
 
@@ -169,7 +174,8 @@ def test_file_system_catalog_get_raises_exception_if_compute_data_folder_does_no
 
     catalog_handler = catalog.FileSystemCatalog(config={'type': 'file-system'})
     with pytest.raises(Exception):
-        catalog_handler.get('testing', run_id='dummy_run_id', compute_data_folder='this_compute_folder')
+        catalog_handler.get('testing', run_id='dummy_run_id',
+                            compute_data_folder='this_compute_folder')
 
 
 def test_file_system_catalog_get_raises_exception_if_catalog_does_not_exist(monkeypatch, mocker):
@@ -186,12 +192,14 @@ def test_file_system_catalog_get_raises_exception_if_catalog_does_not_exist(monk
 
     catalog_handler = catalog.FileSystemCatalog(config={'type': 'file-system'})
     with pytest.raises(Exception):
-        catalog_handler.get('testing', run_id='dummy_run_id', compute_data_folder='this_compute_folder')
+        catalog_handler.get('testing', run_id='dummy_run_id',
+                            compute_data_folder='this_compute_folder')
 
 
 def test_file_system_catalog_get_copies_files_from_catalog_to_compute_folder(mocker, monkeypatch):
     monkeypatch.setattr(catalog.utils, 'safe_make_dir', mocker.MagicMock())
-    monkeypatch.setattr(catalog.utils, 'does_dir_exist', mocker.MagicMock(return_value=True))
+    monkeypatch.setattr(catalog.utils, 'does_dir_exist',
+                        mocker.MagicMock(return_value=True))
     monkeypatch.setattr(catalog.utils, 'remove_prefix', mocker.MagicMock())
     monkeypatch.setattr(catalog.utils, 'get_data_hash', mocker.MagicMock())
 
@@ -223,7 +231,8 @@ def test_file_system_catalog_get_copies_files_from_catalog_to_compute_folder(moc
 
 def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_synced_changed(mocker, monkeypatch):
     monkeypatch.setattr(catalog.utils, 'safe_make_dir', mocker.MagicMock())
-    monkeypatch.setattr(catalog.utils, 'does_dir_exist', mocker.MagicMock(return_value=True))
+    monkeypatch.setattr(catalog.utils, 'does_dir_exist',
+                        mocker.MagicMock(return_value=True))
     monkeypatch.setattr(catalog.utils, 'remove_prefix', mocker.MagicMock())
     monkeypatch.setattr(catalog.utils, 'get_data_hash', mocker.MagicMock())
 
@@ -240,7 +249,8 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
     monkeypatch.setattr(catalog.Path, 'glob', mock_glob)
 
     monkeypatch.setattr(catalog, 'get_run_log_store', mocker.MagicMock())
-    monkeypatch.setattr(catalog, 'is_catalog_out_of_sync', mocker.MagicMock(return_value=True))
+    monkeypatch.setattr(catalog, 'is_catalog_out_of_sync',
+                        mocker.MagicMock(return_value=True))
 
     mock_copy = mocker.MagicMock()
     monkeypatch.setattr(catalog.shutil, 'copy', mock_copy)
@@ -250,13 +260,16 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
     catalog_handler.put('testing', run_id='dummy_run_id')
 
     assert mock_copy.call_count == 2
-    mock_copy.assert_any_call(file1, catalog.Path('this_location') / 'dummy_run_id')
-    mock_copy.assert_any_call(file2, catalog.Path('this_location') / 'dummy_run_id')
+    mock_copy.assert_any_call(file1, catalog.Path(
+        'this_location') / 'dummy_run_id')
+    mock_copy.assert_any_call(file2, catalog.Path(
+        'this_location') / 'dummy_run_id')
 
 
 def test_file_system_catalog_put_does_not_copy_files_from_compute_folder_to_catalog_if_synced_same(mocker, monkeypatch):
     monkeypatch.setattr(catalog.utils, 'safe_make_dir', mocker.MagicMock())
-    monkeypatch.setattr(catalog.utils, 'does_dir_exist', mocker.MagicMock(return_value=True))
+    monkeypatch.setattr(catalog.utils, 'does_dir_exist',
+                        mocker.MagicMock(return_value=True))
     monkeypatch.setattr(catalog.utils, 'remove_prefix', mocker.MagicMock())
     monkeypatch.setattr(catalog.utils, 'get_data_hash', mocker.MagicMock())
 
@@ -273,7 +286,8 @@ def test_file_system_catalog_put_does_not_copy_files_from_compute_folder_to_cata
     monkeypatch.setattr(catalog.Path, 'glob', mock_glob)
 
     monkeypatch.setattr(catalog, 'get_run_log_store', mocker.MagicMock())
-    monkeypatch.setattr(catalog, 'is_catalog_out_of_sync', mocker.MagicMock(return_value=False))
+    monkeypatch.setattr(catalog, 'is_catalog_out_of_sync',
+                        mocker.MagicMock(return_value=False))
 
     mock_copy = mocker.MagicMock()
     monkeypatch.setattr(catalog.shutil, 'copy', mock_copy)
@@ -314,7 +328,8 @@ def test_file_system_catalog_put_uses_compute_folder_provided(monkeypatch, mocke
 
     catalog_handler = catalog.FileSystemCatalog(config={'type': 'file-system'})
     with pytest.raises(Exception):
-        catalog_handler.put('testing', run_id='dummy_run_id', compute_data_folder='not_data')
+        catalog_handler.put('testing', run_id='dummy_run_id',
+                            compute_data_folder='not_data')
 
     mock_does_dir_exist.assert_called_once_with('not_data')
 
@@ -331,7 +346,8 @@ def test_file_system_catalog_put_raises_exception_if_compute_data_folder_does_no
 
     catalog_handler = catalog.FileSystemCatalog(config={'type': 'file-system'})
     with pytest.raises(Exception):
-        catalog_handler.put('testing', run_id='dummy_run_id', compute_data_folder='this_compute_folder')
+        catalog_handler.put('testing', run_id='dummy_run_id',
+                            compute_data_folder='this_compute_folder')
 
 
 def test_file_system_catalog_put_creates_catalog_location_using_run_id(monkeypatch, mocker):
@@ -348,7 +364,8 @@ def test_file_system_catalog_put_creates_catalog_location_using_run_id(monkeypat
     with pytest.raises(Exception):
         catalog_handler.put('testing', run_id='dummy_run_id')
 
-    mock_safe_make_dir.assert_called_once_with(catalog.Path('this_location') / 'dummy_run_id')
+    mock_safe_make_dir.assert_called_once_with(
+        catalog.Path('this_location') / 'dummy_run_id')
 
 
 def test_file_system_sync_between_runs_raises_exception_if_previous_catalog_does_not_exist(monkeypatch, mocker):

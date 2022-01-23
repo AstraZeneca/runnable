@@ -56,7 +56,8 @@ def test_apply_variables_raises_exception_if_variables_is_not_dict():
 def test_apply_variables_applies_variables():
     apply_to = '${var}_${var1}'
 
-    transformed = utils.apply_variables(apply_to, variables={'var': 'hello', 'var1': 'me'})
+    transformed = utils.apply_variables(
+        apply_to, variables={'var': 'hello', 'var1': 'me'})
     assert transformed == 'hello_me'
 
 
@@ -113,7 +114,8 @@ def test_load_yaml_raises_exception_if_yaml_load_does(mocker, monkeypatch):
 
     mock_yaml.load = mock_yaml_load
 
-    monkeypatch.setattr(utils, 'YAML', mocker.MagicMock(return_value=mock_yaml))
+    monkeypatch.setattr(
+        utils, 'YAML', mocker.MagicMock(return_value=mock_yaml))
     with pytest.raises(Exception):
         utils.load_yaml('test')
 
@@ -126,7 +128,8 @@ def test_load_yaml_returns_from_yaml_load(mocker, monkeypatch):
 
     mock_yaml.load = mock_yaml_load
 
-    monkeypatch.setattr(utils, 'YAML', mocker.MagicMock(return_value=mock_yaml))
+    monkeypatch.setattr(
+        utils, 'YAML', mocker.MagicMock(return_value=mock_yaml))
     assert 'test' == utils.load_yaml('does not matter')
 
 
@@ -254,7 +257,8 @@ def test_get_git_remote_returns_calls_value(mocker, monkeypatch):
 def test_get_git_code_identity_returns_default_in_case_of_exception(mocker, monkeypatch):
     mock_get_current_code_commit = mocker.MagicMock(side_effect=Exception())
 
-    monkeypatch.setattr(utils, 'get_current_code_commit', mock_get_current_code_commit)
+    monkeypatch.setattr(utils, 'get_current_code_commit',
+                        mock_get_current_code_commit)
 
     class MockCodeIdentity:
         pass
@@ -262,15 +266,18 @@ def test_get_git_code_identity_returns_default_in_case_of_exception(mocker, monk
     run_log_store = mocker.MagicMock()
     run_log_store.create_code_identity.return_value = MockCodeIdentity()
 
-    assert isinstance(utils.get_git_code_identity(run_log_store), MockCodeIdentity)
+    assert isinstance(utils.get_git_code_identity(
+        run_log_store), MockCodeIdentity)
 
 
 def test_get_git_code_identity_returns_entities_from_other_functions(monkeypatch, mocker):
     mock_get_current_code_commit = mocker.MagicMock(return_value='code commit')
-    mock_is_git_clean = mocker.MagicMock(return_value=(False, 'first file, second file'))
+    mock_is_git_clean = mocker.MagicMock(
+        return_value=(False, 'first file, second file'))
     mock_get_git_remote = mocker.MagicMock(return_value='git remote')
 
-    monkeypatch.setattr(utils, 'get_current_code_commit', mock_get_current_code_commit)
+    monkeypatch.setattr(utils, 'get_current_code_commit',
+                        mock_get_current_code_commit)
     monkeypatch.setattr(utils, 'is_git_clean', mock_is_git_clean)
     monkeypatch.setattr(utils, 'get_git_remote', mock_get_git_remote)
 
@@ -383,7 +390,8 @@ def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch
 
     monkeypatch.setattr(utils, 'docker', mock_docker)
 
-    mock_client.images.get = mocker.MagicMock(side_effect=Exception('No Image exists'))
+    mock_client.images.get = mocker.MagicMock(
+        side_effect=Exception('No Image exists'))
 
     assert utils.get_local_docker_image_id('test') is ''
 
@@ -394,7 +402,8 @@ def test_filter_arguments_for_func_works_only_named_arguments_in_func_spec():
 
     parameters = {'a': 1, 'b': 1}
 
-    assert parameters == utils.filter_arguments_for_func(my_func, parameters, map_variable=None)
+    assert parameters == utils.filter_arguments_for_func(
+        my_func, parameters, map_variable=None)
 
 
 def test_filter_arguments_for_func_returns_empty_if_no_parameters():
@@ -403,7 +412,8 @@ def test_filter_arguments_for_func_returns_empty_if_no_parameters():
 
     parameters = {}
 
-    assert parameters == utils.filter_arguments_for_func(my_func, parameters, map_variable=None)
+    assert parameters == utils.filter_arguments_for_func(
+        my_func, parameters, map_variable=None)
 
 
 def test_filter_arguments_for_func_identifies_args_from_map_variables():

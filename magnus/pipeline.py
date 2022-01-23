@@ -70,7 +70,8 @@ def prepare_configurations(
         configuration = utils.load_yaml(configuration_file)
 
     # apply variables
-    pipeline_config = utils.apply_variables(pipeline_config, variables=variables)
+    pipeline_config = utils.apply_variables(
+        pipeline_config, variables=variables)
 
     logger.info('The input pipeline:')
     logger.info(json.dumps(pipeline_config, indent=4))
@@ -84,30 +85,41 @@ def prepare_configurations(
     # Run log settings, configuration over-rides everything
     run_log_config = configuration.get('run_log_store', {})
     if not run_log_config:
-        default_run_log_config = magnus_defaults.get('run_log_store', defaults.DEFAULT_RUN_LOG_STORE)
-        run_log_config = pipeline_config.get('run_log_store', {}) or default_run_log_config
-    run_log_store = utils.get_provider_by_name_and_type('run_log_store', run_log_config)
+        default_run_log_config = magnus_defaults.get(
+            'run_log_store', defaults.DEFAULT_RUN_LOG_STORE)
+        run_log_config = pipeline_config.get(
+            'run_log_store', {}) or default_run_log_config
+    run_log_store = utils.get_provider_by_name_and_type(
+        'run_log_store', run_log_config)
 
     # Catalog handler settings, configuration over-rides everything
     catalog_config = configuration.get('catalog', {})
     if not catalog_config:
-        default_catalog_config = magnus_defaults.get('catalog', defaults.DEFAULT_CATALOG)
-        catalog_config = pipeline_config.get('catalog', {}) or default_catalog_config
-    catalog_handler = utils.get_provider_by_name_and_type('catalog', catalog_config)
+        default_catalog_config = magnus_defaults.get(
+            'catalog', defaults.DEFAULT_CATALOG)
+        catalog_config = pipeline_config.get(
+            'catalog', {}) or default_catalog_config
+    catalog_handler = utils.get_provider_by_name_and_type(
+        'catalog', catalog_config)
 
     # Secret handler settings, configuration over-rides everything
     secrets_config = configuration.get('secrets', {})
     if not secrets_config:
-        default_secrets_config = magnus_defaults.get('secrets', defaults.DEFAULT_SECRETS)
-        secrets_config = pipeline_config.get('secrets', {}) or default_secrets_config
-    secrets_handler = utils.get_provider_by_name_and_type('secrets', secrets_config)
+        default_secrets_config = magnus_defaults.get(
+            'secrets', defaults.DEFAULT_SECRETS)
+        secrets_config = pipeline_config.get(
+            'secrets', {}) or default_secrets_config
+    secrets_handler = utils.get_provider_by_name_and_type(
+        'secrets', secrets_config)
 
     # Mode configurations, configuration over rides everything
     mode_config = configuration.get('mode', {})
     if not mode_config:
-        default_mode_config = magnus_defaults.get('executor', defaults.DEFAULT_EXECUTOR)
+        default_mode_config = magnus_defaults.get(
+            'executor', defaults.DEFAULT_EXECUTOR)
         mode_config = pipeline_config.get('mode', {}) or default_mode_config
-    mode_executor = utils.get_provider_by_name_and_type('executor', mode_config)
+    mode_executor = utils.get_provider_by_name_and_type(
+        'executor', mode_config)
 
     mode_executor.pipeline_file = pipeline_file
     mode_executor.dag = dag
@@ -164,7 +176,8 @@ def execute(
 
     if use_cached:
         try:
-            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
+            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(
+                run_id=use_cached, full=True)
         except exceptions.RunLogNotFoundError as _e:
             msg = (
                 f'There is no run by {use_cached} in the current run log store '
@@ -175,7 +188,8 @@ def execute(
             raise Exception(msg) from _e
 
         if previous_run_log.dag_hash != mode_executor.dag_hash:
-            logger.warning('The previous dag does not match to the current one!')
+            logger.warning(
+                'The previous dag does not match to the current one!')
         mode_executor.previous_run_log = previous_run_log
         logger.info('Found a previous run log and using it as cache')
 
@@ -217,16 +231,20 @@ def execute_single_node(
                                            tag=tag,
                                            use_cached='')
     mode_executor.cmd_line_arguments = kwargs
-    step_internal_name = nodes.BaseNode.get_internal_name_from_command_name(step_name)
+    step_internal_name = nodes.BaseNode.get_internal_name_from_command_name(
+        step_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    node_to_execute, _ = graph.search_node_by_internal_name(mode_executor.dag, step_internal_name)
+    node_to_execute, _ = graph.search_node_by_internal_name(
+        mode_executor.dag, step_internal_name)
 
-    mode_executor.prepare_for_node_execution(node_to_execute, map_variable=map_variable_dict)
+    mode_executor.prepare_for_node_execution(
+        node_to_execute, map_variable=map_variable_dict)
 
     logger.info('Executing the single node of : %s', node_to_execute)
-    mode_executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
+    mode_executor.execute_node(
+        node=node_to_execute, map_variable=map_variable_dict)
 
     mode_executor.send_return_code(stage='execution')
 
@@ -259,14 +277,17 @@ def execute_single_brach(
                                            tag=tag,
                                            use_cached='')
     mode_executor.cmd_line_arguments = kwargs
-    branch_internal_name = nodes.BaseNode.get_internal_name_from_command_name(branch_name)
+    branch_internal_name = nodes.BaseNode.get_internal_name_from_command_name(
+        branch_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    branch_to_execute = graph.search_branch_by_internal_name(mode_executor.dag, branch_internal_name)
+    branch_to_execute = graph.search_branch_by_internal_name(
+        mode_executor.dag, branch_internal_name)
 
     logger.info('Executing the single branch of %s', branch_to_execute)
-    mode_executor.execute_graph(dag=branch_to_execute, map_variable=map_variable_dict)
+    mode_executor.execute_graph(
+        dag=branch_to_execute, map_variable=map_variable_dict)
 
     mode_executor.send_return_code()
 

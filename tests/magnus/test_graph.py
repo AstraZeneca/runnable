@@ -139,11 +139,16 @@ def test_fail_node_validation_returns_true_if_eq_1(new_graph):
 
 def test_validate_does_not_raise_exception_if_all_pass(monkeypatch, mocker):
     try:
-        monkeypatch.setattr(graph.Graph, 'missing_neighbors', mocker.MagicMock(return_value=[]))
-        monkeypatch.setattr(graph.Graph, 'is_dag', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'is_start_node_present', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'success_node_validation', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'fail_node_validation', mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'missing_neighbors',
+                            mocker.MagicMock(return_value=[]))
+        monkeypatch.setattr(graph.Graph, 'is_dag',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'is_start_node_present',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'success_node_validation',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'fail_node_validation',
+                            mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
         new_graph.validate()
     except:
@@ -152,55 +157,80 @@ def test_validate_does_not_raise_exception_if_all_pass(monkeypatch, mocker):
 
 def test_validate_raises_exception_if_is_dag_fails(mocker, monkeypatch):
     with pytest.raises(Exception):
-        monkeypatch.setattr(graph.Graph, 'missing_neighbors', mocker.MagicMock(return_value=[]))
-        monkeypatch.setattr(graph.Graph, 'is_dag', mocker.MagicMock(return_value=False))
-        monkeypatch.setattr(graph.Graph, 'is_start_node_present', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'success_node_validation', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'fail_node_validation', mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'missing_neighbors',
+                            mocker.MagicMock(return_value=[]))
+        monkeypatch.setattr(graph.Graph, 'is_dag',
+                            mocker.MagicMock(return_value=False))
+        monkeypatch.setattr(graph.Graph, 'is_start_node_present',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'success_node_validation',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'fail_node_validation',
+                            mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
         new_graph.validate()
 
 
 def test_validate_raises_exception_if_is_start_node_present_fails(mocker, monkeypatch):
     with pytest.raises(Exception):
-        monkeypatch.setattr(graph.Graph, 'missing_neighbors', mocker.MagicMock(return_value=[]))
-        monkeypatch.setattr(graph.Graph, 'is_dag', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'is_start_node_present', mocker.MagicMock(return_value=False))
-        monkeypatch.setattr(graph.Graph, 'success_node_validation', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'fail_node_validation', mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'missing_neighbors',
+                            mocker.MagicMock(return_value=[]))
+        monkeypatch.setattr(graph.Graph, 'is_dag',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'is_start_node_present',
+                            mocker.MagicMock(return_value=False))
+        monkeypatch.setattr(graph.Graph, 'success_node_validation',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'fail_node_validation',
+                            mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
         new_graph.validate()
 
 
 def test_validate_raises_exception_if_success_node_validation_fails(mocker, monkeypatch):
     with pytest.raises(Exception):
-        monkeypatch.setattr(graph.Graph, 'missing_neighbors', mocker.MagicMock(return_value=[]))
-        monkeypatch.setattr(graph.Graph, 'is_dag', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'is_start_node_present', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'success_node_validation', mocker.MagicMock(return_value=False))
-        monkeypatch.setattr(graph.Graph, 'fail_node_validation', mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'missing_neighbors',
+                            mocker.MagicMock(return_value=[]))
+        monkeypatch.setattr(graph.Graph, 'is_dag',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'is_start_node_present',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'success_node_validation',
+                            mocker.MagicMock(return_value=False))
+        monkeypatch.setattr(graph.Graph, 'fail_node_validation',
+                            mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
         new_graph.validate()
 
 
 def test_validate_raises_exception_if_fail_node_validation_fails(mocker, monkeypatch):
     with pytest.raises(Exception):
-        monkeypatch.setattr(graph.Graph, 'missing_neighbors', mocker.MagicMock(return_value=[]))
-        monkeypatch.setattr(graph.Graph, 'is_dag', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'is_start_node_present', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'success_node_validation', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'fail_node_validation', mocker.MagicMock(return_value=False))
+        monkeypatch.setattr(graph.Graph, 'missing_neighbors',
+                            mocker.MagicMock(return_value=[]))
+        monkeypatch.setattr(graph.Graph, 'is_dag',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'is_start_node_present',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'success_node_validation',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'fail_node_validation',
+                            mocker.MagicMock(return_value=False))
         new_graph = get_new_graph()
         new_graph.validate()
 
 
 def test_validate_raises_exception_if_missing_neighbors(mocker, monkeypatch):
     with pytest.raises(Exception):
-        monkeypatch.setattr(graph.Graph, 'missing_neighbors', mocker.MagicMock(return_value=['missing']))
-        monkeypatch.setattr(graph.Graph, 'is_dag', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'is_start_node_present', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'success_node_validation', mocker.MagicMock(return_value=True))
-        monkeypatch.setattr(graph.Graph, 'fail_node_validation', mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'missing_neighbors',
+                            mocker.MagicMock(return_value=['missing']))
+        monkeypatch.setattr(graph.Graph, 'is_dag',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'is_start_node_present',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'success_node_validation',
+                            mocker.MagicMock(return_value=True))
+        monkeypatch.setattr(graph.Graph, 'fail_node_validation',
+                            mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
         new_graph.validate()
 
@@ -322,7 +352,8 @@ def test_create_graph_raises_exception_if_node_fails(mocker, monkeypatch):
 
     monkeypatch.setattr('magnus.nodes.get_node_class', get_node_class)
     monkeypatch.setattr('magnus.nodes.get_command_class', get_command_class)
-    monkeypatch.setattr('magnus.nodes.validate_node', mocker.MagicMock(return_value=['wrong']))
+    monkeypatch.setattr('magnus.nodes.validate_node',
+                        mocker.MagicMock(return_value=['wrong']))
 
     with pytest.raises(Exception):
         graph.create_graph(dag_config, internal_branch_name=None)

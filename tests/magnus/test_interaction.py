@@ -36,19 +36,22 @@ def test_store_parameter_adds_multiple_values_to_environ():
 
 
 def test_get_parameter_returns_all_parameters_if_no_key_provided(mocker, monkeypatch):
-    monkeypatch.setattr(interaction.utils, 'get_user_set_parameters', mocker.MagicMock(return_value='this'))
+    monkeypatch.setattr(interaction.utils, 'get_user_set_parameters',
+                        mocker.MagicMock(return_value='this'))
 
     assert interaction.get_parameter() == 'this'
 
 
 def test_get_parameter_returns_parameters_if_provided(mocker, monkeypatch):
-    monkeypatch.setattr(interaction.utils, 'get_user_set_parameters', mocker.MagicMock(return_value={'this': 'that'}))
+    monkeypatch.setattr(interaction.utils, 'get_user_set_parameters',
+                        mocker.MagicMock(return_value={'this': 'that'}))
 
     assert interaction.get_parameter('this') == 'that'
 
 
 def test_get_parameter_returns_parameters_raises_exception_if_key_not_found(mocker, monkeypatch):
-    monkeypatch.setattr(interaction.utils, 'get_user_set_parameters', mocker.MagicMock(return_value={'this': 'that'}))
+    monkeypatch.setattr(interaction.utils, 'get_user_set_parameters',
+                        mocker.MagicMock(return_value={'this': 'that'}))
 
     with pytest.raises(Exception):
         interaction.get_parameter('this1')
@@ -77,7 +80,8 @@ def test_get_secret_raises_exception_if_secrets_handler_raises(mocker, monkeypat
     mock_secrets_handler = mocker.MagicMock()
     mock_global_exec.secrets_handler = mock_secrets_handler
 
-    mock_secrets_handler.get.side_effect = exceptions.SecretNotFoundError('test', 'test')
+    mock_secrets_handler.get.side_effect = exceptions.SecretNotFoundError(
+        'test', 'test')
     with pytest.raises(exceptions.SecretNotFoundError):
         assert interaction.get_secret('secret')
 
@@ -95,7 +99,8 @@ def test_get_from_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
 
     interaction.get_from_catalog('this')
 
-    mock_catalog_handler_get.assert_called_once_with('this', compute_data_folder='compute_folder', run_id='RUN_ID')
+    mock_catalog_handler_get.assert_called_once_with(
+        'this', compute_data_folder='compute_folder', run_id='RUN_ID')
 
 
 def test_get_from_catalog_uses_destination_folder(mocker, monkeypatch):
@@ -111,7 +116,8 @@ def test_get_from_catalog_uses_destination_folder(mocker, monkeypatch):
 
     interaction.get_from_catalog('this', destination_folder='use_this_folder')
 
-    mock_catalog_handler_get.assert_called_once_with('this', compute_data_folder='use_this_folder', run_id='RUN_ID')
+    mock_catalog_handler_get.assert_called_once_with(
+        'this', compute_data_folder='use_this_folder', run_id='RUN_ID')
 
 
 def test_put_in_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
@@ -131,4 +137,5 @@ def test_put_in_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
 
     interaction.put_in_catalog('this_file')
 
-    mock_catalog_handler_put.assert_called_once_with('file_name', compute_data_folder='in_this_folder', run_id='RUN_ID')
+    mock_catalog_handler_put.assert_called_once_with(
+        'file_name', compute_data_folder='in_this_folder', run_id='RUN_ID')
