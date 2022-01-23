@@ -2,19 +2,19 @@
 from setuptools import setup
 
 packages = \
-['magnus', 'magnus.executor_extensions']
+    ['magnus', 'magnus.executor_extensions']
 
 package_data = \
-{'': ['*']}
+    {'': ['*']}
 
 install_requires = \
-['dataclasses-json', 'ruamel.yaml', 'ruamel.yaml.clib', 'yachalk']
+    ['dataclasses-json', 'ruamel.yaml', 'ruamel.yaml.clib', 'yachalk']
 
 extras_require = \
-{'docker': ['docker']}
+    {'docker': ['docker']}
 
 entry_points = \
-{'console_scripts': ['magnus = magnus.cli:main']}
+    {'console_scripts': ['magnus = magnus.cli:main']}
 
 setup_kwargs = {
     'name': 'magnus',

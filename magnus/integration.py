@@ -39,7 +39,7 @@ class BaseIntegration:
         By default, no change is required.
         """
 
-    def configure_for_execution(self,  **kwargs):
+    def configure_for_execution(self, **kwargs):
         """
         Do any changes needed to both executor and service provider during execution of a node.
 

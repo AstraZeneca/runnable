@@ -216,13 +216,13 @@ class RunLog(BaseModel):
             if i % 2:
                 # Its odd, so we are in branch
                 # Get the branch that holds the step
-                current_branch = current_step.branches['.'.join(dot_path[:i+1])]  # type: ignore
+                current_branch = current_step.branches['.'.join(dot_path[:i + 1])]  # type: ignore
                 current_steps = current_branch.steps
                 logger.debug(f'Finding branch {i_name} in branch: {current_branch}')
             else:
                 # Its even, so we are in step, we start here!
                 # Get the step that holds the branch
-                current_step = current_steps['.'.join(dot_path[:i+1])]
+                current_step = current_steps['.'.join(dot_path[:i + 1])]
                 logger.debug(f'Finding branch for {i_name} in step: {current_step}')
 
         logger.debug(f'current branch : {current_branch}, current step {current_step}')
@@ -256,12 +256,12 @@ class RunLog(BaseModel):
         for i in range(len(dot_path)):
             if i % 2:
                 # Its odd, so we are in brach name
-                current_branch = current_step.branches['.'.join(dot_path[:i+1])]  # type: ignore
+                current_branch = current_step.branches['.'.join(dot_path[:i + 1])]  # type: ignore
                 current_steps = current_branch.steps
                 logger.debug(f'Finding step log for {i_name} in branch: {current_branch}')
             else:
                 # Its even, so we are in step, we start here!
-                current_step = current_steps['.'.join(dot_path[:i+1])]
+                current_step = current_steps['.'.join(dot_path[:i + 1])]
                 logger.debug(f'Finding step log for {i_name} in step: {current_step}')
 
         logger.debug(f'current branch : {current_branch}, current step {current_step}')

@@ -325,11 +325,11 @@ def test_get_user_set_parameters_returns_the_parameter_if_prefix_match_string(mo
 def test_get_user_set_parameters_removes_the_parameter_if_prefix_match_remove(monkeypatch):
     monkeypatch.setenv(defaults.PARAMETER_PREFIX + 'key', '1')
 
-    assert defaults.PARAMETER_PREFIX+'key' in os.environ
+    assert defaults.PARAMETER_PREFIX + 'key' in os.environ
 
     utils.get_user_set_parameters(remove=True)
 
-    assert defaults.PARAMETER_PREFIX+'key' not in os.environ
+    assert defaults.PARAMETER_PREFIX + 'key' not in os.environ
 
 
 def test_get_tracked_data_does_nothing_if_prefix_does_not_match(monkeypatch):

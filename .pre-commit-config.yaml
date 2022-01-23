@@ -18,3 +18,4 @@ repos:
     rev: "v1.6.0" # Use the sha / tag you want to point at
     hooks:
       - id: autopep8
+        args: ["--max-line-length=120", "--in-place", "--recursive"]
