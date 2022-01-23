@@ -36,7 +36,7 @@ def test_init():
 def test_init_default():
     new_graph = graph.Graph(start_at='this')
     assert new_graph.start_at == 'this'
-    assert new_graph.internal_branch_name == None
+    assert new_graph.internal_branch_name is None
     assert len(new_graph.nodes) == 0
 
 
@@ -146,7 +146,7 @@ def test_validate_does_not_raise_exception_if_all_pass(monkeypatch, mocker):
         monkeypatch.setattr(graph.Graph, 'fail_node_validation', mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
         new_graph.validate()
-    except:
+    except BaseException:
         assert False
 
 

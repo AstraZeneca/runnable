@@ -90,7 +90,7 @@ class PythonExecutionType(BaseExecutionType):  # pylint: disable=too-few-public-
             raise
 
         if user_set_parameters:
-            if not type(user_set_parameters) == dict:
+            if not isinstance(user_set_parameters, dict):
                 msg = (
                     f'call to function {command} returns of type: {type(user_set_parameters)}. '
                     'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
@@ -131,7 +131,7 @@ class PythonLambdaExecutionType(BaseExecutionType):  # pylint: disable=too-few-p
             raise
 
         if user_set_parameters:
-            if not type(user_set_parameters) == dict:
+            if not isinstance(user_set_parameters, dict):
                 msg = (
                     f'call to function {command} returns of type: {type(user_set_parameters)}. '
                     'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
@@ -551,7 +551,7 @@ class FailNode(BaseNode):
                 self.get_branch_log_name(map_variable), executor.run_id)
             run_or_branch_log.status = defaults.FAIL
             executor.run_log_store.add_branch_log(run_or_branch_log, executor.run_id)
-        except:  # pylint: disable=W0703
+        except BaseException:  # pylint: disable=W0703
             logger.exception('Fail node execution failed')
         finally:
             attempt_log.status = defaults.SUCCESS  # This is a dummy node, so we ignore errors and mark SUCCESS
@@ -589,7 +589,7 @@ class SuccessNode(BaseNode):
                 self.get_branch_log_name(map_variable), executor.run_id)
             run_or_branch_log.status = defaults.SUCCESS
             executor.run_log_store.add_branch_log(run_or_branch_log, executor.run_id)
-        except:  # pylint: disable=W0703
+        except BaseException:  # pylint: disable=W0703
             logger.exception('Success node execution failed')
         finally:
             attempt_log.status = defaults.SUCCESS  # This is a dummy node and we make sure we mark it as success
@@ -837,7 +837,7 @@ class MapNode(BaseNode):
         """
         raise Exception('Node is of type composite, error in traversal rules')
 
-    def execute_as_graph(self, executor, map_variable: dict = None,  **kwargs):
+    def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
         """
         This function does the actual execution of the branch of the map node.
 

@@ -102,7 +102,7 @@ def apply_variables(apply_to: dict, variables: dict) -> dict:
     Returns:
         dict: A transformed dict with variables applied
     """
-    if type(variables) != dict:
+    if not isinstance(variables, dict):
         raise Exception('Argument Variables should be dict')
 
     json_d = json.dumps(apply_to)
@@ -177,7 +177,7 @@ def is_a_git_repo() -> bool:
             command.split()).strip().decode('utf-8')
         logger.info('Found the code to be git versioned')
         return True
-    except:  # pylint: disable=W0702
+    except BaseException:  # pylint: disable=W0702
         logger.error('No git repo found, unsafe hash')
 
     return False
@@ -198,7 +198,7 @@ def get_current_code_commit() -> Union[str, None]:
             command.split()).strip().decode('utf-8')
         logger.info("Found the git commit to be: %s", label)
         return label
-    except:  # pylint: disable=W0702
+    except BaseException:  # pylint: disable=W0702
         logger.exception('Error getting git hash')
         raise
 
@@ -219,7 +219,7 @@ def is_git_clean() -> Tuple[bool, Union[None, str]]:
         if not label:
             return True, None
         return False, label
-    except:  # pylint: disable=W0702
+    except BaseException:  # pylint: disable=W0702
         logger.exception('Error checking if the code is git clean')
 
     return False, None
@@ -240,7 +240,7 @@ def get_git_remote() -> Union[str, None]:
             command.split()).strip().decode('utf-8')
         logger.info('Found the git remote to be: %s', label)
         return label
-    except:  # pylint: disable=W0702
+    except BaseException:  # pylint: disable=W0702
         logger.exception('Error getting git remote')
         raise
 
@@ -261,7 +261,7 @@ def get_local_docker_image_id(image_name: str) -> str:
         return image.attrs['Id']
     except ImportError:  # pragma: no cover
         logger.warning('Did not find docker installed, some functionality might be affected')
-    except:
+    except BaseException:
         logger.exception(f'Could not find the image by name {image_name}')
 
     return ''
@@ -286,7 +286,7 @@ def get_git_code_identity(run_log_store):
         code_identity.code_identifier_url = get_git_remote()
         if changed:
             code_identity.code_identifier_message = 'changes found in ' + ', '.join(changed.split('\n'))
-    except:
+    except BaseException:
         logger.exception("Git code versioning problems")
 
     return code_identity

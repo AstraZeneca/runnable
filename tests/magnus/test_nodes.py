@@ -19,7 +19,7 @@ def test_get_command_class_returns_the_correct_subclasses():
         execution_type = 'dummy'
 
     obj = nodes.get_command_class(command_type='dummy')
-    assert type(obj) == DummyExecutionType
+    assert isinstance(obj, DummyExecutionType)
 
 
 def test_get_command_class_raises_exception_for_invalid_class():
@@ -200,14 +200,14 @@ def test_base_node_get_branch_log_name_returns_internal_name_if_set():
 
 
 def test_base_node_get_branch_log_name_returns_map_modified_internal_name_if_map_variable():
-    node = nodes.BaseNode(name='test', internal_name='test_',  config='test_config',
+    node = nodes.BaseNode(name='test', internal_name='test_', config='test_config',
                           execution_type=None, internal_branch_name='test.' + defaults.MAP_PLACEHOLDER)
 
     assert node.get_branch_log_name(map_variable={'map_key': 'a'}) == 'test.a'
 
 
 def test_base_node_get_branch_log_name_returns_map_modified_internal_name_if_map_variable_multiple():
-    node = nodes.BaseNode(name='test', internal_name='test_',  config='test_config',
+    node = nodes.BaseNode(name='test', internal_name='test_', config='test_config',
                           execution_type=None,
                           internal_branch_name='test.' + defaults.MAP_PLACEHOLDER + '.step.' + defaults.MAP_PLACEHOLDER)
 
@@ -215,72 +215,72 @@ def test_base_node_get_branch_log_name_returns_map_modified_internal_name_if_map
 
 
 def test_base_node_get_on_failure_node_returns_none_if_not_defined():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
 
     assert node.get_on_failure_node() is None
 
 
 def test_base_node_get_on_failure_node_returns_node_name_if_defined():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={'on_failure': 'fail'}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={'on_failure': 'fail'}, execution_type=None)
 
     assert node.get_on_failure_node() == 'fail'
 
 
 def test_base_node_get_catalog_settings_returns_none_if_not_defined():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
 
     assert node.get_catalog_settings() is None
 
 
 def test_base_node_get_catalog_settings_returns_node_name_if_defined():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={'catalog': 'some settings'}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={'catalog': 'some settings'}, execution_type=None)
 
     assert node.get_catalog_settings() == 'some settings'
 
 
 def test_base_node_get_branch_by_name_raises_exception():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={'catalog': 'some settings'}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={'catalog': 'some settings'}, execution_type=None)
 
     with pytest.raises(Exception):
         node.get_branch_by_name('fail')
 
 
 def test_base_node_get_next_node_returns_config_next():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={'next': 'IamNext'}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={'next': 'IamNext'}, execution_type=None)
 
     assert node.get_next_node() == 'IamNext'
 
 
 def test_base_node_get_mode_config_returns_mode_config_if_present():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={'mode_config': 'some settings'},
+    node = nodes.BaseNode(name='test', internal_name='test', config={'mode_config': 'some settings'},
                           execution_type=None)
     assert node.get_mode_config() == 'some settings'
 
 
 def test_base_node_get_mode_config_returns_empty_dict_if_not_present():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
     assert node.get_mode_config() == {}
 
 
 def test_base_node_get_max_attempts_returns_max_attempts_as_in_config():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={'retry': 2}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={'retry': 2}, execution_type=None)
     assert node.get_max_attempts() == 2
 
 
 def test_base_node_get_max_attempts_returns_max_attempts_as_1_if_not_in_config():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
     assert node.get_max_attempts() == 1
 
 
 def test_base_node_execute_raises_not_implemented_error():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
 
     with pytest.raises(NotImplementedError):
         node.execute(executor='test')
 
 
 def test_base_node_execute_as_graph_raises_not_implemented_error():
-    node = nodes.BaseNode(name='test', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
 
     with pytest.raises(NotImplementedError):
         node.execute_as_graph(executor='test')
@@ -291,7 +291,7 @@ def test_validate_node_gets_specs_from_default_specs(mocker, monkeypatch):
 
     monkeypatch.setattr(nodes.utils, 'load_yaml', mock_load_yaml)
 
-    node = nodes.BaseNode(name='test', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
 
     with pytest.raises(Exception):
         nodes.validate_node(node)
@@ -303,7 +303,7 @@ def test_validate_node_raises_exception_for_unspecified_node(mocker, monkeypatch
     dummy_specs = {'test': {}}
     monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
 
-    node = nodes.BaseNode(name='test', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
 
     node.node_type = 'test1'
     with pytest.raises(Exception):
@@ -314,7 +314,7 @@ def test_validate_node_does_not_raise_exception_for_specified_node(mocker, monke
     dummy_specs = {'dummy': {}}
     monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
 
-    node = nodes.BaseNode(name='test', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
 
     node.node_type = 'dummy'
 
@@ -325,7 +325,7 @@ def test_validate_node_sends_message_back_if_dot_present_in_name(mocker, monkeyp
     dummy_specs = {'dummy': {}}
     monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
 
-    node = nodes.BaseNode(name='test.', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test.', internal_name='test', config={}, execution_type=None)
 
     node.node_type = 'dummy'
     messages = nodes.validate_node(node)
@@ -338,7 +338,7 @@ def test_validate_node_sends_message_back_if_character_present_in_name(mocker, m
     dummy_specs = {'dummy': {}}
     monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
 
-    node = nodes.BaseNode(name='test%', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test%', internal_name='test', config={}, execution_type=None)
 
     node.node_type = 'dummy'
     messages = nodes.validate_node(node)
@@ -351,7 +351,7 @@ def test_validate_node_messages_empty_if_name_is_valid(mocker, monkeypatch):
     dummy_specs = {'dummy': {}}
     monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
 
-    node = nodes.BaseNode(name='test', internal_name='test',  config={}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
 
     node.node_type = 'dummy'
     messages = nodes.validate_node(node)
@@ -363,7 +363,7 @@ def test_validate_node_sends_messages_if_required_are_not_present(mocker, monkey
     dummy_specs = {'dummy': {'required': ['dummy_required']}}
     monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
 
-    node = nodes.BaseNode(name='test', internal_name='test',  config={'dummy_required1': True}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={'dummy_required1': True}, execution_type=None)
 
     node.node_type = 'dummy'
     messages = nodes.validate_node(node)
@@ -376,7 +376,7 @@ def test_validate_node_sends_empty_if_required_present(mocker, monkeypatch):
     dummy_specs = {'dummy': {'required': ['dummy_required']}}
     monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
 
-    node = nodes.BaseNode(name='test', internal_name='test',  config={'dummy_required': True}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={'dummy_required': True}, execution_type=None)
 
     node.node_type = 'dummy'
     messages = nodes.validate_node(node)
@@ -388,7 +388,7 @@ def test_validate_node_sends_messages_if_error_on_are_present(mocker, monkeypatc
     dummy_specs = {'dummy': {'error_on': ['dummy_required']}}
     monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
 
-    node = nodes.BaseNode(name='test', internal_name='test',  config={'dummy_required': True}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={'dummy_required': True}, execution_type=None)
 
     node.node_type = 'dummy'
     messages = nodes.validate_node(node)
@@ -401,7 +401,7 @@ def test_validate_node_sends_empty_if_error_on_not_present(mocker, monkeypatch):
     dummy_specs = {'dummy': {'error_on': ['dummy_required']}}
     monkeypatch.setattr(nodes.utils, 'load_yaml', mocker.MagicMock(return_value=dummy_specs))
 
-    node = nodes.BaseNode(name='test', internal_name='test',  config={'dummy_required1': True}, execution_type=None)
+    node = nodes.BaseNode(name='test', internal_name='test', config={'dummy_required1': True}, execution_type=None)
 
     node.node_type = 'dummy'
     messages = nodes.validate_node(node)
@@ -750,27 +750,27 @@ def test_as_is_node_sets_attempt_log_success(mocker, monkeypatch):
 
 
 def test_is_terminal_node_when_has_next():
-    node = nodes.BaseNode(name='test', internal_name='test_',  config={'next': 'yes'},
+    node = nodes.BaseNode(name='test', internal_name='test_', config={'next': 'yes'},
                           execution_type=None, internal_branch_name='test_')
 
     assert not node.is_terminal_node()
 
 
 def test_is_terminal_node_when_no_next():
-    node = nodes.BaseNode(name='test', internal_name='test_',  config={'none': 'no'},
+    node = nodes.BaseNode(name='test', internal_name='test_', config={'none': 'no'},
                           execution_type=None, internal_branch_name='test_')
 
     assert node.is_terminal_node()
 
 
 def test_get_neighbors_no_neighbors():
-    node = nodes.BaseNode(name='test', internal_name='test_',  config={},
+    node = nodes.BaseNode(name='test', internal_name='test_', config={},
                           execution_type=None, internal_branch_name='test_')
     assert node.get_neighbors() == []
 
 
 def test_get_neighbors_only_next():
-    node = nodes.BaseNode(name='test', internal_name='test_',  config={'next': 'a'},
+    node = nodes.BaseNode(name='test', internal_name='test_', config={'next': 'a'},
                           execution_type=None, internal_branch_name='test_')
     neighbors = node.get_neighbors()
     assert len(neighbors) == 1
@@ -778,7 +778,7 @@ def test_get_neighbors_only_next():
 
 
 def test_get_neighbors_both_next_and_on_failure():
-    node = nodes.BaseNode(name='test', internal_name='test_',  config={'next': 'a', 'on_failure': 'b'},
+    node = nodes.BaseNode(name='test', internal_name='test_', config={'next': 'a', 'on_failure': 'b'},
                           execution_type=None, internal_branch_name='test_')
     neighbors = node.get_neighbors()
     assert len(neighbors) == 2
