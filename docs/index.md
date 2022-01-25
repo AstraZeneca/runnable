@@ -51,3 +51,5 @@ by just changing a config and not code.
 
 Magnus does not aim to replace existing and well constructed orchestrators like AWS Step functions or
 [argo](https://argoproj.github.io/workflows/) but complements them in a unified, simple and intuitive way.
+
+Please find the [github project here](https://github.com/project-magnus).

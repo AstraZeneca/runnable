@@ -44,6 +44,10 @@ by just changing a config and not code.
 Magnus does not aim to replace existing and well constructed orchestrators like AWS Step functions or
 [argo](https://argoproj.github.io/workflows/) but complements them in a unified, simple and intuitive way.
 
+## Documentation
+
+[More details about the project and how to use it available here](https://project-magnus.github.io/magnus-core/).
+
 ## Installation
 
 ### pip
@@ -51,15 +55,8 @@ Magnus does not aim to replace existing and well constructed orchestrators like 
 magnus is a python package and should be installed as any other.
 
 ```shell
-pip install magnus-core
+pip install magnus
 ```
-
----
-!!! Note
-
-   The core package of magnus is magnus-core and not magnus.
-
----
 
 # Example Run
 
@@ -89,7 +86,6 @@ dag:
       type: task
       command_type: shell
       command: mkdir data ; env >> data/data.txt # For Linux/macOS
-      #command: mkdir data
       next: success
       catalog:
         put:
@@ -244,4 +240,5 @@ This is according to the command in ```step shell```.
 
 You should also see a folder ```.catalog``` being created with a single folder corresponding to the run_id of this run.
 
-Head over to the documentation for more details.
+To understand more about the input and output, please head over to the 
+[documentation](https://project-magnus.github.io/magnus-core/).
