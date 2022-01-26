@@ -1,5 +1,17 @@
 # Hello from magnus
 
+Magnus is a datascience pipeline definition and execution tool. It provides a way to:
+
+- Define a pipeline steps and the flow.
+- Run the pipeline in any environment, local is default.
+- Store the run metadata and data catalogs and re-run in case of failures.
+
+Once the pipeline is proven to be correct and functional in any environment, there is zero code change 
+required to deploy it elsewhere. The behavior of the runs are identical in all environments. Magnus 
+is not a queuing or schedueling engine, but delegates that responsibility to chosen deployment patterns.
+
+### Short Summary
+
 Magnus provides four capabilities for data teams:
 
 - **Compute execution plan**: A DAG representation of work that you want to get done. Individual nodes of the DAG
