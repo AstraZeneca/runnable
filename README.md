@@ -1,6 +1,6 @@
 # Hello from magnus
 
-Magnus is a datascience pipeline definition and execution tool. It provides a way to:
+Magnus is a data science pipeline definition and execution tool. It provides a way to:
 
 - Define a pipeline steps and the flow.
 - Run the pipeline in any environment, local is default.
