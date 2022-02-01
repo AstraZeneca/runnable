@@ -8,7 +8,7 @@ Magnus is a data science pipeline definition and execution tool. It provides a w
 
 Once the pipeline is proven to be correct and functional in any environment, there is zero code change 
 required to deploy it elsewhere. The behavior of the runs are identical in all environments. Magnus 
-is not a queuing or schedueling engine, but delegates that responsibility to chosen deployment patterns.
+is not a queuing or scheduling engine, but delegates that responsibility to chosen deployment patterns.
 
 ### Short Summary
 
@@ -58,7 +58,7 @@ Magnus does not aim to replace existing and well constructed orchestrators like 
 
 ## Documentation
 
-[More details about the project and how to use it available here](https://project-magnus.github.io/magnus-core/).
+[More details about the project and how to use it available here](https://astrazeneca.github.io/magnus-core/).
 
 ## Installation
 
