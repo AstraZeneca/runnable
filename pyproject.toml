@@ -4,6 +4,11 @@ version = "0.1.0"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/AstraZeneca/magnus-core"
+repository = "https://github.com/AstraZeneca/magnus-core"
+documentation = "https://astrazeneca.github.io/magnus-core/"
+ 
 
 [tool.poetry.dependencies]
 python = "^3.6.1"
