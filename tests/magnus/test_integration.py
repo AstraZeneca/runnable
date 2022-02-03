@@ -66,20 +66,3 @@ def test_get_integration_handler_returns_base_integration_if_subclass_not_found(
 
     obj = integration.get_integration_handler(mock_executor, mock_service)
     assert isinstance(obj, integration.BaseIntegration)
-
-
-def test_get_integration_handler_returns_correct_integration_if_exists(mocker, monkeypatch):
-    monkeypatch.setattr(integration, 'get_service_type', lambda x: 'DummyServiceType')
-    mock_service = mocker.MagicMock()
-    mock_service.service_name = 'DummyName'
-
-    mock_executor = mocker.MagicMock()
-    mock_executor.service_name = 'DummyExecutor'
-
-    class DummyIntegrationHandler(integration.BaseIntegration):
-        mode_type = 'DummyExecutor'
-        service_type = 'DummyServiceType'
-        service_provider = 'DummyName'
-
-    obj = integration.get_integration_handler(mock_executor, mock_service)
-    assert isinstance(obj, DummyIntegrationHandler)

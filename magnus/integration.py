@@ -10,6 +10,8 @@ from magnus.secrets import BaseSecrets
 if TYPE_CHECKING:
     from magnus.executor import BaseExecutor
 
+from stevedore import extension
+
 logger = logging.getLogger(defaults.NAME)
 
 
@@ -89,12 +91,18 @@ def get_integration_handler(executor: 'BaseExecutor', service: object) -> BaseIn
     service_type = get_service_type(service)
     service_name = getattr(service, 'service_name')
     integrations = []
-    for sub_class in BaseIntegration.__subclasses__():
-        if (sub_class.service_type == service_type and  # type: ignore
-                sub_class.mode_type == executor.service_name and  # type: ignore
-                sub_class.service_provider == service_name):
-            logger.info(f'Identified an intergration pattern {sub_class.__name__}')
-            integrations.append(sub_class(executor, service))
+
+    mgr = extension.ExtensionManager(
+        namespace='magnus.integration.BaseIntegration',
+        invoke_on_load=True,
+        invoke_kwds={'executor': executor, 'integration_service': service}
+    )
+    for name, kls in mgr.items():
+        if (kls.obj.service_type == service_type and  # type: ignore
+                kls.obj.mode_type == executor.service_name and  # type: ignore
+                kls.obj.service_provider == service_name):
+            logger.info(f'Identified an intergration pattern {kls.obj}')
+            integrations.append(kls.obj)
 
     if len(integrations) > 1:
         msg = (

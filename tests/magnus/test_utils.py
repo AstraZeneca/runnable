@@ -489,39 +489,3 @@ def test_get_node_execution_command_returns_magnus_execute_appends_map_variable(
 def test_get_service_base_class_throws_exception_for_unknown_service():
     with pytest.raises(Exception):
         utils.get_service_base_class('Does not exist')
-
-
-def test_get_subclasses_works_with_one_level():
-    class Parent:
-        pass
-
-    class Child(Parent):
-        pass
-
-    assert len(list(utils.get_subclasses(Parent))) == 1
-
-
-def test_get_subclasses_works_with_one_level_multiple():
-    class Parent:
-        pass
-
-    class Child(Parent):
-        pass
-
-    class Child1(Parent):
-        pass
-
-    assert len(list(utils.get_subclasses(Parent))) == 2
-
-
-def test_get_subclasses_works_with_two_level_multiple():
-    class Parent:
-        pass
-
-    class Child(Parent):
-        pass
-
-    class ChildOfChild(Child):
-        pass
-
-    assert len(list(utils.get_subclasses(Parent))) == 2

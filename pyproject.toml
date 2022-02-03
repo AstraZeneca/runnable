@@ -1,9 +1,14 @@
 [tool.poetry]
 name = "magnus"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/AstraZeneca/magnus-core"
+repository = "https://github.com/AstraZeneca/magnus-core"
+documentation = "https://astrazeneca.github.io/magnus-core/"
+ 
 
 [tool.poetry.dependencies]
 python = "^3.6.1"
@@ -12,6 +17,7 @@ python = "^3.6.1"
 yachalk = "*"
 docker ={ version = "*", optional = true }
 pydantic = "^1.9.0"
+stevedore = "^3.5.0"
 
 [tool.poetry.extras]
 docker = ['docker']
@@ -30,6 +36,36 @@ pre-commit = "*"
 
 [tool.poetry.scripts]
 magnus= 'magnus.cli:main'
+
+[tool.poetry.plugins."magnus.executor.BaseExecutor"]
+"local" = "magnus.executor:LocalExecutor"
+"local-container" = "magnus.executor:LocalContainerExecutor"
+"demo-renderer" = "magnus.executor:DemoRenderer"
+
+[tool.poetry.plugins."magnus.catalog.BaseCatalog"]
+"do-nothing" = "magnus.catalog:DoNothingCatalog"
+"file-system" = "magnus.catalog:FileSystemCatalog"
+
+[tool.poetry.plugins."magnus.secrets.BaseSecrets"]
+"do-nothing" = "magnus.secrets:DoNothingSecretManager"
+"dotenv" = "magnus.secrets:DotEnvSecrets"
+
+[tool.poetry.plugins."magnus.datastore.BaseRunLogStore"]
+"buffered" = "magnus.datastore:BufferRunLogstore"
+"file-system" = "magnus.datastore:FileSystemRunLogstore"
+
+[tool.poetry.plugins."magnus.integration.BaseIntegration"]
+# {executor.name}-{service}-{service.name}
+"local-run_log_store-buffered" = "magnus.integration:LocalComputeBufferedRunLogStore"
+"local-run_log_store-file-system" = "magnus.integration:LocalComputeFileSystemRunLogStore"
+"local-container-run_log_store-buffered" = "magnus.integration:LocalContainerComputeBufferedRunLogStore"
+"local-container-run_log_store-file-system" = "magnus.integration:LocalContainerComputeFileSystemRunLogstore"
+"local-container-secrets-dotenv" = "magnus.integration:LocalContainerComputeDotEnvSecrets"
+"local-container-catalog-do-nothing" = "magnus.integration:LocalContainerDoNothingCatalog"
+"local-catalog-do-nothing" = "magnus.integration:LocalDoNothingCatalog"
+"local-container-catalog-file-system" = "magnus.integration:LocalContainerComputeFileSystemCatalog"
+"demo-renderer-run_log_store-buffered" = "magnus.integration:DemoRenderBufferedRunLogStore"
+
 
 
 [build-system]
