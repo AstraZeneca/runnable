@@ -12,6 +12,7 @@ from string import Template as str_template
 from typing import Callable, Tuple, Union
 
 from ruamel.yaml import YAML  # type: ignore
+from stevedore import driver
 
 from magnus import defaults, executor
 
@@ -432,55 +433,39 @@ def get_node_execution_command(executor, node, map_variable=None, over_write_run
     return action
 
 
-def get_service_base_class(service_type: str):
+def get_service_namespace(service_type: str) -> str:
     """
-    Return the BaseClass for a service type
+    Return the namespace of the service type
 
     Args:
-        service_type (str): Should be one of executor, run_log_store, catalog or secrets
+        service_type (str): Should be one of executor, run_log_store, catalog, secrets
 
     Raises:
         Exception: If the service type is not one of the accepted values
 
     Object:
-        [type]: A base class of the service
+        str: The name space of the base class 
     """
     if service_type == 'executor':
-        from magnus import executor  # pylint: disable=C0415
-        return executor.BaseExecutor
+        return 'magnus.executor.BaseExecutor'
 
     if service_type == 'run_log_store':
-        from magnus import datastore  # pylint: disable=C0415
-        return datastore.BaseRunLogStore
+        return 'magnus.datastore.BaseRunLogStore'
 
     if service_type == 'catalog':
-        from magnus import catalog  # pylint: disable=C0415
-        return catalog.BaseCatalog
+        return 'magnus.catalog.BaseCatalog'
 
     if service_type == 'secrets':
-        from magnus import secrets  # pylint: disable=C0415
-        return secrets.BaseSecrets
+        return 'magnus.secrets.BaseSecrets'
 
     raise Exception('Service type is not recognized')
 
 
-def get_subclasses(cls):
-    """
-    Give a class, return all its subclasses.
-
-    This method would return even in case of heirarchial sub classes.
-
-    Yields:
-        object: The subclass
-    """
-    for subclass in cls.__subclasses__():
-        yield from get_subclasses(subclass)
-        yield subclass
-
-
 def get_provider_by_name_and_type(service_type: str, service_details: dict):
-    """Given a service type, one of executor, run_log_store, catalog, secrets and the config
+    """
+    Given a service type, one of executor, run_log_store, catalog, secrets and the config
     return the exact child class implementing the service.
+    We use stevedore to do the work for us.
 
     Args:
         service_type (str): One of executor, run_log_store, catalog, secrets
@@ -492,7 +477,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: dict):
     Returns:
         object: A service object
     """
-    base_class = get_service_base_class(service_type=service_type)
+    namespace = get_service_namespace(service_type=service_type)
 
     service_name = service_details['type']
     service_config = {}
@@ -500,11 +485,16 @@ def get_provider_by_name_and_type(service_type: str, service_details: dict):
         service_config = service_details.get('config', {})
 
     logger.info(f'Trying to get a service of {service_type} of the name {service_name} with config: {service_config}')
-    for sub_class in get_subclasses(base_class):
-        if service_name == sub_class.service_name:
-            return sub_class(service_config)
-
-    raise Exception(f'Could not find the service of type: {service_type} with config: {service_details}')
+    try:
+        mgr = driver.DriverManager(
+            namespace=namespace,
+            name=service_name,
+            invoke_on_load=True,
+            invoke_kwds={'config': service_config}
+        )
+        return mgr.driver
+    except Exception as _e:
+        raise Exception(f'Could not find the service of type: {service_type} with config: {service_details}') from _e
 
 
 def get_duration_between_datetime_strings(start_time: str, end_time: str) -> str:
