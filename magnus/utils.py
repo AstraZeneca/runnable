@@ -477,7 +477,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: dict):
     Returns:
         object: A service object
     """
-    namespace = get_service_namespace(service_type=service_type)
+    namespace = service_type
 
     service_name = service_details['type']
     service_config = {}

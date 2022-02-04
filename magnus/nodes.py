@@ -19,147 +19,6 @@ from magnus.graph import create_graph
 logger = logging.getLogger(defaults.NAME)
 
 
-class BaseExecutionType:  # pylint: disable=too-few-public-methods
-    """
-    A base execution class which does the execution of command defined by the user
-    """
-    execution_type = ''
-
-    def execute_command(self, command: str, map_variable: dict = None):
-        """
-        The function to execute the command mentioned in command.
-
-        The parameters are filtered based on the 'command' signature
-
-        And map_variable is sent in as an argument into the function.
-
-        Args:
-            command (str): The actual command to run
-            parameters (dict, optional): The parameters available across the system. Defaults to None.
-            map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
-
-        Raises:
-            NotImplementedError: [description]
-        """
-        raise NotImplementedError
-
-
-def get_command_class(command_type: str) -> BaseExecutionType:
-    """
-    Given a command execution type, return the class that implements the execution type.
-
-    Args:
-        command_type (str): The command execution type you want, shell, python are examples
-
-    Raises:
-        Exception: If the command execution type is not implemented
-
-    Returns:
-        BaseExecutionType: The implemention of the command execution type
-    """
-    for sub_class in BaseExecutionType.__subclasses__():
-        if command_type == sub_class.execution_type:
-            return sub_class()
-    raise Exception(f'Command type {command_type} not found')
-
-
-class PythonExecutionType(BaseExecutionType):  # pylint: disable=too-few-public-methods
-    """
-    The execution class for python command
-    """
-    execution_type = 'python'
-
-    def execute_command(self, command, map_variable: dict = None):
-        module, func = utils.get_module_and_func_names(command)
-        sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
-        imported_module = importlib.import_module(module)
-        f = getattr(imported_module, func)
-
-        parameters = utils.get_user_set_parameters(remove=False)
-        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
-
-        logger.info(f'Calling {func} from {module} with {filtered_parameters}')
-        try:
-            user_set_parameters = f(**filtered_parameters)
-        except Exception as _e:
-            msg = (
-                f'Call to the function {command} with {filtered_parameters} did not succeed.\n'
-            )
-            logger.exception(msg)
-            logger.exception(_e)
-            raise
-
-        if user_set_parameters:
-            if not isinstance(user_set_parameters, dict):
-                msg = (
-                    f'call to function {command} returns of type: {type(user_set_parameters)}. '
-                    'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
-                raise Exception(msg)
-            for key, value in user_set_parameters.items():
-                logger.info(f'Setting User defined parameter {key} with value: {value}')
-                os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
-
-
-class PythonLambdaExecutionType(BaseExecutionType):  # pylint: disable=too-few-public-methods
-    """
-    The execution class for python command
-    """
-    execution_type = 'python-lambda'
-
-    def execute_command(self, command, map_variable: dict = None):
-        if '_' in command or '__' in command:
-            msg = (
-                f'Command given to {self.execution_type} cannot have _ or __ in them. '
-                'The string is supposed to be for simple expressions only.'
-            )
-            raise Exception(msg)
-
-        f = eval(command)
-
-        parameters = utils.get_user_set_parameters(remove=False)
-        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
-
-        logger.info(f'Calling lambda function: {command} with {filtered_parameters}')
-        try:
-            user_set_parameters = f(**filtered_parameters)
-        except Exception as _e:
-            msg = (
-                f'Call to the function {command} with {filtered_parameters} did not succeed.\n'
-            )
-            logger.exception(msg)
-            logger.exception(_e)
-            raise
-
-        if user_set_parameters:
-            if not isinstance(user_set_parameters, dict):
-                msg = (
-                    f'call to function {command} returns of type: {type(user_set_parameters)}. '
-                    'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
-                raise Exception(msg)
-            for key, value in user_set_parameters.items():
-                logger.info(f'Setting User defined parameter {key} with value: {value}')
-                os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
-
-
-class ShellExecutionType(BaseExecutionType):
-    """
-    The execution class for shell based commands
-    """
-    execution_type = 'shell'
-
-    def execute_command(self, command, map_variable: dict = None):
-        # TODO can we do this without shell=True. Hate that but could not find a way out
-        # This is horribly weird, focussing only on python ways of doing for now
-        # It might be that we have to write a bash/windows script that does things for us
-        subprocess_env = os.environ.copy()
-        if map_variable:
-            subprocess_env[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
-        result = subprocess.run(command, check=True, env=subprocess_env, shell=True,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        print(result.stdout)
-        print(result.stderr)
-
-
 class BaseNode:
     """
     Base class with common functionality provided for a Node of a graph.
@@ -508,10 +367,9 @@ class TaskNode(BaseNode):
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
-            command = self.config['command']
             if not mock:
                 # Do not run if we are mocking the execution, could be useful for caching and dry runs
-                self.execution_type.execute_command(command, map_variable=map_variable)
+                self.execution_type.execute_command(map_variable=map_variable)
         except Exception as _e:  # pylint: disable=W0703
             logger.exception('Task failed')
             attempt_log.status = defaults.FAIL

@@ -1,6 +1,8 @@
 import logging
 from typing import TYPE_CHECKING, Dict, List
 
+from stevedore import driver
+
 from magnus import defaults, exceptions
 
 if TYPE_CHECKING:
@@ -279,7 +281,7 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
     """
     # Conditional import to avoid circular import
     # pylint: disable=C0415
-    from magnus.nodes import get_command_class, get_node_class, validate_node
+    from magnus.nodes import get_node_class, validate_node
 
     description = dag_config.get('description', None)
     max_time = dag_config.get('max_time', defaults.MAX_TIME)
@@ -296,13 +298,27 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
         logger.info(f'Adding node {step} with :{step_config}')
 
         node_class = get_node_class(step_config['type'])
-        command_class = get_command_class(step_config.get('command_type', defaults.COMMAND_TYPE))
+        task_type = step_config.get('command_type', defaults.COMMAND_TYPE)
+
+        try:
+            mgr = driver.DriverManager(
+                namespace="task",
+                name=task_type,
+                invoke_on_load=True,
+                invoke_kwds={'command': step_config.get('command', None)}
+            )
+        except Exception as _e:
+            msg = (
+                f"Could not find the task type {task_type}. Please ensure you have installed the extension that"
+                " provides the task type. \nCore supports: python(default), python-lambda, shell, notebook"
+            )
+            raise Exception(msg) from _e
 
         internal_name = step
         if internal_branch_name:
             internal_name = internal_branch_name + '.' + step
         node = node_class(name=step, internal_name=internal_name,
-                          config=step_config, execution_type=command_class,
+                          config=step_config, execution_type=mgr.driver,
                           internal_branch_name=internal_branch_name)
 
         messages.extend(validate_node(node))
