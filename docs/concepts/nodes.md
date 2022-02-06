@@ -66,18 +66,7 @@ def my_cool_function():
 ```
 
 ### command_type (optional)
-Defaults to python if nothing is provided and currently the only python, shell, python-lambda are supported types.
-
-For command_type of shell, magnus does not provide any interaction modules or secrets management.
-
-For command_type python-lambda, you can provide a lambda expression as command. For example:
-
-```
-lambda x : int(x) + 1
-```
-
-is a valid lambda expression. Note that, you cannot have ```_```or ```__``` as part of your string. This is just a
-security feature to [avoid malicious code injections](https://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html).
+Defaults to python if nothing is provided. For more information, please refer [command types](../command-types)
 
 ### retry (optional)
 The number of attempts to make before failing the node. Default to 1.

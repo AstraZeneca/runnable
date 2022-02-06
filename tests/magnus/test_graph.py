@@ -248,17 +248,13 @@ def test_create_graph_inits_graph_populates_nodes(mocker, monkeypatch):
     monkeypatch.setattr(graph.Graph, 'add_node', mocker.MagicMock())
 
     node_class = mocker.MagicMock(return_value=None)
-    command_class = mocker.MagicMock(return_value=None)
     get_node_class = mocker.MagicMock(return_value=node_class)
-    get_command_class = mocker.MagicMock(return_value=command_class)
 
     monkeypatch.setattr('magnus.nodes.get_node_class', get_node_class)
-    monkeypatch.setattr('magnus.nodes.get_command_class', get_command_class)
     monkeypatch.setattr('magnus.nodes.validate_node', mocker.MagicMock())
 
     graph.create_graph(dag_config, internal_branch_name=None)
 
-    get_command_class.assert_called_once_with(defaults.COMMAND_TYPE)
     get_node_class.assert_called_once_with('test')
 
     _, kwargs = node_class.call_args
@@ -282,17 +278,13 @@ def test_create_graph_inits_graph_populates_nodes_with_internal_branch(mocker, m
     monkeypatch.setattr(graph.Graph, 'add_node', mocker.MagicMock())
 
     node_class = mocker.MagicMock(return_value=None)
-    command_class = mocker.MagicMock(return_value=None)
     get_node_class = mocker.MagicMock(return_value=node_class)
-    get_command_class = mocker.MagicMock(return_value=command_class)
 
     monkeypatch.setattr('magnus.nodes.get_node_class', get_node_class)
-    monkeypatch.setattr('magnus.nodes.get_command_class', get_command_class)
     monkeypatch.setattr('magnus.nodes.validate_node', mocker.MagicMock())
 
     graph.create_graph(dag_config, internal_branch_name='i_name')
 
-    get_command_class.assert_called_once_with(defaults.COMMAND_TYPE)
     get_node_class.assert_called_once_with('test')
 
     _, kwargs = node_class.call_args
@@ -318,10 +310,8 @@ def test_create_graph_raises_exception_if_node_fails(mocker, monkeypatch):
     node_class = mocker.MagicMock(return_value=None)
     command_class = mocker.MagicMock(return_value=None)
     get_node_class = mocker.MagicMock(return_value=node_class)
-    get_command_class = mocker.MagicMock(return_value=command_class)
 
     monkeypatch.setattr('magnus.nodes.get_node_class', get_node_class)
-    monkeypatch.setattr('magnus.nodes.get_command_class', get_command_class)
     monkeypatch.setattr('magnus.nodes.validate_node', mocker.MagicMock(return_value=['wrong']))
 
     with pytest.raises(Exception):

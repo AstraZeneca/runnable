@@ -9,7 +9,7 @@ from datetime import datetime
 from inspect import signature
 from pathlib import Path
 from string import Template as str_template
-from typing import Callable, Tuple, Union
+from typing import Callable, Tuple, Union, List, Mapping
 
 from ruamel.yaml import YAML  # type: ignore
 from stevedore import driver
@@ -387,17 +387,26 @@ def filter_arguments_for_func(func: Callable, parameters: dict, map_variable: di
         dict: The parameters matching the function signature
     """
     sign = signature(func)
-    filtered_parameters = {}
+    return filter_arguments_from_parameters(parameters=parameters,
+                                            signature_parameters=sign.parameters,
+                                            map_variable=map_variable)
+
+
+def filter_arguments_from_parameters(
+        parameters: dict, signature_parameters: Union[List, Mapping],
+        map_variable: dict = None) -> dict:
+    arguments = {}
+
     for param, value in parameters.items():
-        if param in sign.parameters:
-            filtered_parameters[param] = value
+        if param in signature_parameters:
+            arguments[param] = value
 
     if map_variable:
         for iterate_as, value in map_variable.items():
-            if iterate_as in sign.parameters:
-                filtered_parameters[iterate_as] = value
+            if iterate_as in signature_parameters:
+                arguments[iterate_as] = value
 
-    return filtered_parameters
+    return arguments
 
 
 def get_node_execution_command(executor, node, map_variable=None, over_write_run_id=None) -> str:
@@ -477,7 +486,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: dict):
     Returns:
         object: A service object
     """
-    namespace = service_type
+    namespace = get_service_namespace(service_type=service_type)
 
     service_name = service_details['type']
     service_config = {}

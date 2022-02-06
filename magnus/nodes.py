@@ -47,6 +47,7 @@ class BaseNode:
         self.internal_branch_name = internal_branch_name  # parallel, map, dag only have internal names
         self.execution_type = execution_type
         self.branches = None
+        self.is_composite = False
 
     def command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
         """
@@ -369,7 +370,7 @@ class TaskNode(BaseNode):
             attempt_log.status = defaults.SUCCESS
             if not mock:
                 # Do not run if we are mocking the execution, could be useful for caching and dry runs
-                self.execution_type.execute_command(map_variable=map_variable)
+                self.execution_type.execute_command(step_config=self.config, map_variable=map_variable)
         except Exception as _e:  # pylint: disable=W0703
             logger.exception('Task failed')
             attempt_log.status = defaults.FAIL
@@ -489,6 +490,7 @@ class ParallelNode(BaseNode):
         # pylint: disable=R0914,R0913
         super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
         self.branches = self.get_sub_graphs()
+        self.is_composite = True
 
     def get_sub_graphs(self):
         """
@@ -640,6 +642,7 @@ class MapNode(BaseNode):
         super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
         self.iterate_on = self.config.get('iterate_on', None)
         self.iterate_as = self.config.get('iterate_as', None)
+        self.is_composite = True
 
         if not self.iterate_on:
             raise Exception('A node type of map requires a parameter iterate_on, please define it in the config')
@@ -811,6 +814,7 @@ class DagNode(BaseNode):
         # pylint: disable=R0914,R0913
         super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
         self.sub_dag_file = self.config.get('dag_definition', None)
+        self.is_composite = True
 
         if not self.sub_dag_file:
             raise Exception('A node type of dag requires a parameter dag_definition, please define it in the config')
@@ -951,6 +955,7 @@ class AsISNode(BaseNode):
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
         super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
+        # TODO: Move render string inside the command_config
         self.render_string = self.config.get('render_string', None)
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):

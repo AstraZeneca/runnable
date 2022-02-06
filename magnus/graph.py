@@ -5,6 +5,7 @@ from stevedore import driver
 
 from magnus import defaults, exceptions
 
+
 if TYPE_CHECKING:
     from magnus.nodes import BaseNode
 
@@ -297,15 +298,17 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
         step_config = dag_config['steps'][step]
         logger.info(f'Adding node {step} with :{step_config}')
 
-        node_class = get_node_class(step_config['type'])
         task_type = step_config.get('command_type', defaults.COMMAND_TYPE)
+        command_config = step_config.get('command_config', {})
 
+        logger.info(f"Trying to get a task of type {task_type}")
         try:
-            mgr = driver.DriverManager(
-                namespace="task",
+            task_mgr = driver.DriverManager(
+                namespace="magnus.tasks.BaseTaskType",
                 name=task_type,
                 invoke_on_load=True,
-                invoke_kwds={'command': step_config.get('command', None)}
+                invoke_kwds={'command': step_config.get('command', None),
+                             'config': command_config}
             )
         except Exception as _e:
             msg = (
@@ -317,12 +320,25 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
         internal_name = step
         if internal_branch_name:
             internal_name = internal_branch_name + '.' + step
-        node = node_class(name=step, internal_name=internal_name,
-                          config=step_config, execution_type=mgr.driver,
-                          internal_branch_name=internal_branch_name)
 
-        messages.extend(validate_node(node))
-        graph.add_node(node)
+        try:
+            node_mgr = driver.DriverManager(
+                namespace="magnus.nodes.BaseNode",
+                name=step_config['type'],
+                invoke_on_load=True,
+                invoke_kwds={"name": step, "internal_name": internal_name,
+                             "config": step_config, "execution_type": task_mgr.driver,
+                             "internal_branch_name": internal_branch_name}
+            )
+        except Exception as _e:
+            msg = (
+                f"Could not find the node type {step_config['type']}. Please ensure you have installed "
+                "the extension that provides the node type."
+                "\nCore supports: task, success, fail, parallel, dag, map, as-is")
+            raise Exception(msg) from _e
+
+        messages.extend(validate_node(node_mgr.driver))
+        graph.add_node(node_mgr.driver)
 
     if messages:
         raise Exception(', '.join(messages))

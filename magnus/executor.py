@@ -31,7 +31,7 @@ class BaseExecutor:
         This method is responsible for executing a node.
         But given that a node itself could be a dag in cases of parallel, map and dag, this method handles the cases.
         If the node is of type task, success, fail: we can pretty much execute it and we call self.trigger_job.
-        If the node is of type dag, map, parallel: We call the node's execute_as_graph function which internally
+        If the node is of type composite: We call the node's execute_as_graph function which internally
         triggers execute_graph in-turn iteratively traverses the graph.
 
 
@@ -308,7 +308,7 @@ class BaseExecutor:
             return
 
         # We call an internal function to iterate the sub graphs and execute them
-        if node.node_type in ['parallel', 'dag', 'map']:
+        if node.is_composite:
             self.run_log_store.add_step_log(step_log, self.run_id)
             node.execute_as_graph(self, map_variable=map_variable, **kwargs)
             return
@@ -823,7 +823,7 @@ class DemoRenderer(BaseExecutor):
         while True:
             working_on = dag.get_node_by_name(current_node)
 
-            if working_on.node_type in ['parallel', 'dag', 'map']:
+            if working_on.is_composite:
                 raise NotImplementedError('In this demo version, composite nodes are not implemented')
 
             if previous_node == current_node:
