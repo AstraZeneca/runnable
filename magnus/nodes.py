@@ -335,25 +335,6 @@ def validate_node(node: BaseNode) -> List[str]:
     return messages
 
 
-def get_node_class(node_type: str) -> Type[BaseNode]:
-    """
-    Given a node_type of a node, return the appropriate BaseNode implementation.
-
-    Args:
-        node_type (str): The type of node asked by the config.
-
-    Raises:
-        Exception: If the node type is not found in implementations
-
-    Returns:
-        BaseNode: The node class of type node_type
-    """
-    for sub_class in BaseNode.__subclasses__():
-        if node_type == sub_class.node_type:
-            return sub_class
-    raise Exception(f'Node type {node_type} not found')
-
-
 class TaskNode(BaseNode):
     """
     A node of type Task.

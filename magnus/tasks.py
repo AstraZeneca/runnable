@@ -70,9 +70,9 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
             os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
 
 
-class PythonExecutionType(BaseTaskType):  # pylint: disable=too-few-public-methods
+class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """
-    The execution class for python command
+    The task class for python command
     """
     task_type = 'python'
 
@@ -99,9 +99,9 @@ class PythonExecutionType(BaseTaskType):  # pylint: disable=too-few-public-metho
         self.set_parameters(user_set_parameters)
 
 
-class PythonLambdaExecutionType(BaseTaskType):  # pylint: disable=too-few-public-methods
+class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """
-    The execution class for python-lambda command
+    The task class for python-lambda command
     """
     task_type = 'python-lambda'
 
@@ -132,9 +132,9 @@ class PythonLambdaExecutionType(BaseTaskType):  # pylint: disable=too-few-public
         self.set_parameters(user_set_parameters)
 
 
-class NotebookExecutionType(BaseTaskType):
+class NotebookTaskType(BaseTaskType):
     """
-    The execution class for Notebook based execution
+    The task class for Notebook based execution
     """
     task_type = 'notebook'
 
@@ -171,9 +171,9 @@ class NotebookExecutionType(BaseTaskType):
             raise Exception(msg) from e
 
 
-class ShellExecutionType(BaseTaskType):
+class ShellTaskType(BaseTaskType):
     """
-    The execution class for shell based commands
+    The task class for shell based commands
     """
     task_type = 'shell'
 
