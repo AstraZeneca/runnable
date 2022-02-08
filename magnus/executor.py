@@ -2,6 +2,7 @@ import json
 import logging
 import re
 
+
 from magnus import (datastore, defaults, exceptions, integration, interaction,
                     utils)
 from magnus.graph import Graph
@@ -838,8 +839,10 @@ class DemoRenderer(BaseExecutor):
             fail_node_command = utils.get_node_execution_command(self, dag.get_fail_node(), over_write_run_id='$1')
 
             if working_on.node_type not in ['success', 'fail']:
-                if working_on.node_type == 'as-is' and working_on.render_string:  # type: ignore
-                    bash_script_lines.append(working_on.render_string + '\n')  # type: ignore
+                if working_on.node_type == 'as-is':
+                    command_config = working_on.config.get('command_config', {})
+                    if 'render_string' in command_config:
+                        bash_script_lines.append(command_config['render_string'] + '\n')
                 else:
                     bash_script_lines.append(f'{execute_node_command}\n')
 

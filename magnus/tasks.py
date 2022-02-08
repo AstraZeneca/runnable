@@ -11,6 +11,11 @@ from magnus import defaults
 
 logger = logging.getLogger(defaults.NAME)
 
+try:
+    import papermill as pm
+except ImportError:
+    pm = None
+
 
 class BaseTaskType:  # pylint: disable=too-few-public-methods
     """
@@ -138,9 +143,17 @@ class NotebookTaskType(BaseTaskType):
     """
     task_type = 'notebook'
 
+    def __init__(self, command: str, config: dict = None):
+        if not command.endswith('.ipynb'):
+            raise Exception('Notebook task should point to a ipynb file')
+
+        super().__init__(command, config)
+
     def execute_command(self, map_variable: dict = None, **kwargs):
         try:
-            import papermill as pm
+            if not pm:
+                raise ImportError('Papermill is required for notebook type node')
+
             parameters = self.get_parameters()
 
             notebook_parameters = pm.inspect_notebook(self.command)

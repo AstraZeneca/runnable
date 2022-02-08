@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
@@ -19,7 +19,6 @@ pydantic = "^1.9.0"
 stevedore = "^3.5.0"
 docker ={ version = "*", optional = true }
 papermill ={ version = "*", optional = true }
-jupyter = "^1.0.0"
 
 [tool.poetry.extras]
 docker = ['docker']

@@ -664,3 +664,92 @@ def my_cool_function():
 
 ```
 Calling get_parameter with no key returns all parameters.
+
+
+## Extensions
+
+You can extend and implement your own ```node_types``` by extending the ```BaseNode``` class.
+
+The base class has the following methods with only one of the two methods to be implemented for custom implementations.
+
+If the ```node.is_composite``` is ```True```, implement the ```execute_as_graph``` method.
+If the ```node.is_composite``` is ```False```, implement the ```execute``` method.
+
+```python
+# Source code present at magnus/nodes.py
+class BaseNode:
+    """
+    Base class with common functionality provided for a Node of a graph.
+
+    A node of a graph could be a
+        * single execution node as task, success, fail.
+        * Could be graph in itself as parallel, dag and map.
+        * could be a convenience function like as-is.
+
+    The name is relative to the DAG.
+    The internal name of the node, is absolute name in dot path convention.
+        This has one to one mapping to the name in the run log
+    The internal name of a node, should always be odd when split against dot.
+
+    The internal branch name, only applies for branched nodes, is the branch it belongs to.
+    The internal branch name should always be even when split against dot.
+    """
+
+    node_type = ''
+
+    def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
+        # pylint: disable=R0914,R0913
+        self.name = name
+        self.internal_name = internal_name  #  Dot notation naming of the steps
+        self.config = config
+        self.internal_branch_name = internal_branch_name  # parallel, map, dag only have internal names
+        self.execution_type = execution_type
+        self.branches = None
+        self.is_composite = False # Change this to True if the node is composite
+
+    ...
+    # Truncated base methods as they should not be changed
+
+    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
+        """
+        The actual function that does the execution of the command in the config.
+
+        Should only be implemented for task, success, fail and as-is and never for
+        composite nodes.
+
+        Args:
+            executor (magnus.executor.BaseExecutor): The executor mode class
+            mock (bool, optional): Don't run, just pretend. Defaults to False.
+            map_variable (str, optional): The value of the map iteration variable, if part of a map node.
+                Defaults to ''.
+
+        Raises:
+            NotImplementedError: Base class, hence not implemented.
+        """
+        raise NotImplementedError
+
+    def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
+        """
+        This function would be called to set up the execution of the individual
+        branches of a composite node.
+
+        Function should only be implemented for composite nodes like dag, map, parallel.
+
+        Args:
+            executor (magnus.executor.BaseExecutor): The executor mode.
+
+        Raises:
+            NotImplementedError: Base class, hence not implemented.
+        """
+        raise NotImplementedError
+```
+
+
+The custom extensions should be registered as part of the namespace: ```magnus.nodes.BaseNode``` for it to be
+loaded.
+
+```toml
+# For example, as part of your pyproject.toml
+[tool.poetry.plugins."magnus.nodes.BaseNode"]
+"mail" = "YOUR_PACKAGE:MailTeam"
+```

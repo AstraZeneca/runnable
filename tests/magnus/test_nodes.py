@@ -541,16 +541,11 @@ def test_nodes_dag_node_execute_raises_exception(mocker, monkeypatch):
         node.execute('dummy')
 
 
-def test_nodes_as_is_node_defaults_render_string_to_none():
-    node = nodes.AsISNode(name='test', internal_name='test', config={}, execution_type='test')
-
-    assert node.render_string is None
-
-
 def test_nodes_as_is_node_accepts_what_is_given():
-    node = nodes.AsISNode(name='test', internal_name='test', config={'render_string': 'test'}, execution_type='test')
+    node = nodes.AsISNode(name='test', internal_name='test', config={
+                          'command_config': {'render_string': 'test'}}, execution_type='test')
 
-    assert node.render_string == 'test'
+    assert node.config['command_config']['render_string'] == 'test'
 
 
 def test_as_is_node_execute_as_graph_raises_exception():

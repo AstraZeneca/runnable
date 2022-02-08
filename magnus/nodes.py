@@ -936,8 +936,6 @@ class AsISNode(BaseNode):
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
         super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
-        # TODO: Move render string inside the command_config
-        self.render_string = self.config.get('render_string', None)
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         """
