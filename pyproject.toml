@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
@@ -15,12 +15,15 @@ python = "^3.6.1"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 yachalk = "*"
-docker ={ version = "*", optional = true }
 pydantic = "^1.9.0"
 stevedore = "^3.5.0"
+docker ={ version = "*", optional = true }
+papermill ={ version = "*", optional = true }
 
 [tool.poetry.extras]
 docker = ['docker']
+notebook = ['papermill']
+
 
 [tool.poetry.dev-dependencies]
 autopep8 = "*"
@@ -37,23 +40,28 @@ pre-commit = "*"
 [tool.poetry.scripts]
 magnus= 'magnus.cli:main'
 
+# Plugins for Executors
 [tool.poetry.plugins."magnus.executor.BaseExecutor"]
 "local" = "magnus.executor:LocalExecutor"
 "local-container" = "magnus.executor:LocalContainerExecutor"
 "demo-renderer" = "magnus.executor:DemoRenderer"
 
+# Plugins for Catalog
 [tool.poetry.plugins."magnus.catalog.BaseCatalog"]
 "do-nothing" = "magnus.catalog:DoNothingCatalog"
 "file-system" = "magnus.catalog:FileSystemCatalog"
 
+# Plugins for Secrets
 [tool.poetry.plugins."magnus.secrets.BaseSecrets"]
 "do-nothing" = "magnus.secrets:DoNothingSecretManager"
 "dotenv" = "magnus.secrets:DotEnvSecrets"
 
+# Plugins for Run Log store
 [tool.poetry.plugins."magnus.datastore.BaseRunLogStore"]
 "buffered" = "magnus.datastore:BufferRunLogstore"
 "file-system" = "magnus.datastore:FileSystemRunLogstore"
 
+# Plugins for Integration
 [tool.poetry.plugins."magnus.integration.BaseIntegration"]
 # {executor.name}-{service}-{service.name}
 "local-run_log_store-buffered" = "magnus.integration:LocalComputeBufferedRunLogStore"
@@ -66,6 +74,22 @@ magnus= 'magnus.cli:main'
 "local-container-catalog-file-system" = "magnus.integration:LocalContainerComputeFileSystemCatalog"
 "demo-renderer-run_log_store-buffered" = "magnus.integration:DemoRenderBufferedRunLogStore"
 
+# Plugins for Tasks
+[tool.poetry.plugins."magnus.tasks.BaseTaskType"]
+"python" = "magnus.tasks:PythonTaskType"
+"python-lambda" = "magnus.tasks:PythonLambdaTaskType"
+"shell" = "magnus.tasks:ShellTaskType"
+"notebook" = "magnus.tasks:NotebookTaskType"
+
+# Plugins for Nodes
+[tool.poetry.plugins."magnus.nodes.BaseNode"]
+"task" = "magnus.nodes:TaskNode"
+"fail" = "magnus.nodes:FailNode"
+"success" = "magnus.nodes:SuccessNode"
+"parallel" = "magnus.nodes:ParallelNode"
+"map" = "magnus.nodes:MapNode"
+"dag" = "magnus.nodes:DagNode"
+"as-is" = "magnus.nodes:AsISNode"
 
 
 [build-system]

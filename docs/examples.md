@@ -102,7 +102,7 @@ dag:
 ---
 ## Using python lambda expressions in pipeline
 
-You can use python lambda expressions as a node type. Please note that you cannot have ```_``` or ```__``` as part of
+You can use python lambda expressions as a task type. Please note that you cannot have ```_``` or ```__``` as part of
 the expression. This is to prevent any malicious code to be passed into the expression. In the example below,
 ```step 1``` takes in a parameter ```x``` and returns the integer ```x + 1```.
 
@@ -122,6 +122,40 @@ dag:
     failure:
       type: fail
 ```
+
+---
+
+## Using notebook in pipeline
+
+You can use notebooks as a ```command_type``` of a step in the pipeline.  The only caveat in doing so is magnus
+would not be able to support returning ```parameters```, ```secrets``` or any of the built-in functions. The cataloging
+functionality of magnus still would work via the configuration file.
+
+We use [papermill](https://papermill.readthedocs.io/en/latest/) to inspect the parameters and send them dynamically 
+from the parameter space.
+
+The command refers to the notebook that you want to use as a task and it should point to the notebook.
+The output notebook naming could be provided by using the ```command_config``` section or would be defaulted to the 
+notebook mentioned in ```command``` section post-fixed with ```_out```.
+
+
+```yaml
+dag:
+  description: A single node pipeline with notebook
+  start_at: step 1
+  steps:
+    step 1:
+      command_type: notebook
+      command: pre_processing.iypnb
+      next: success
+      command_config:
+        notebook_output_path: notebooks/output.ipynb
+    success:
+      type: success
+    failure:
+      type: fail
+```
+
 
 ---
 
@@ -1393,11 +1427,11 @@ Node type ```as-is``` defined in magnus can be a very powerful tool in some depl
 For example in the below dag definition, the step ```step echo``` does nothing as part of ```local``` execution.
 
 ```yaml
-# mode:
-#   type: demo-renderer
+mode:
+  type: demo-renderer
 
-# run_log_store:
-#   type: file-system
+run_log_store:
+  type: file-system
 
 dag:
   description: Getting started
@@ -1419,7 +1453,8 @@ dag:
     step echo:
       type: as-is
       command_type: shell
-      render_string: echo hello
+      command_config:
+        render_string: echo hello
       next: success
     success:
       type: success

@@ -4,150 +4,6 @@ import pytest
 
 from magnus import defaults  # pylint: disable=import-error
 from magnus import nodes  # pylint: disable=import-error
-from magnus import graph
-
-
-def test_base_execution_execute_command_raises_not_implemented_error():
-    base_execution_type = nodes.BaseExecutionType()
-
-    with pytest.raises(NotImplementedError):
-        base_execution_type.execute_command(command='fail')
-
-
-def test_get_command_class_returns_the_correct_subclasses():
-    class DummyExecutionType(nodes.BaseExecutionType):
-        execution_type = 'dummy'
-
-    obj = nodes.get_command_class(command_type='dummy')
-    assert isinstance(obj, DummyExecutionType)
-
-
-def test_get_command_class_raises_exception_for_invalid_class():
-    with pytest.raises(Exception):
-        nodes.get_command_class(command_type='dummy1')
-
-
-def test_python_execute_command_raises_exception_if_function_fails(mocker, monkeypatch):
-    dummy_func = mocker.MagicMock(side_effect=Exception())
-
-    class DummyModule:
-        def __init__(self):
-            self.func = dummy_func
-    monkeypatch.setattr(nodes.utils, 'get_module_and_func_names', mocker.MagicMock(return_value=('idk', 'func')))
-    monkeypatch.setattr(nodes.importlib, 'import_module', mocker.MagicMock(return_value=DummyModule()))
-
-    monkeypatch.setattr(nodes.utils, 'filter_arguments_for_func', mocker.MagicMock(return_value={'a': 1}))
-
-    py_exec = nodes.PythonExecutionType()
-    with pytest.raises(Exception):
-        py_exec.execute_command(command='test')
-
-
-def test_python_execute_command_calls_with_no_parameters_if_none_sent(mocker, monkeypatch):
-    dummy_func = mocker.MagicMock(return_value=None)
-
-    class DummyModule:
-        def __init__(self):
-            self.func = dummy_func
-
-    monkeypatch.setattr(nodes.utils, 'get_module_and_func_names', mocker.MagicMock(return_value=('idk', 'func')))
-    monkeypatch.setattr(nodes.importlib, 'import_module', mocker.MagicMock(return_value=DummyModule()))
-
-    monkeypatch.setattr(nodes.utils, 'filter_arguments_for_func', mocker.MagicMock(return_value={}))
-
-    py_exec = nodes.PythonExecutionType()
-    py_exec.execute_command(command='test')
-    dummy_func.assert_called_once()
-
-
-def test_python_execute_command_calls_with_parameters_if_sent_by_filter(mocker, monkeypatch):
-    dummy_func = mocker.MagicMock(return_value=None)
-
-    class DummyModule:
-        def __init__(self):
-            self.func = dummy_func
-
-    monkeypatch.setattr(nodes.utils, 'get_module_and_func_names', mocker.MagicMock(return_value=('idk', 'func')))
-    monkeypatch.setattr(nodes.importlib, 'import_module', mocker.MagicMock(return_value=DummyModule()))
-
-    monkeypatch.setattr(nodes.utils, 'filter_arguments_for_func', mocker.MagicMock(return_value={'a': 1}))
-
-    py_exec = nodes.PythonExecutionType()
-    py_exec.execute_command(command='test')
-    dummy_func.assert_called_once_with(a=1)
-
-
-def test_python_execute_command_sends_no_mapped_variable_if_not_present_in_signature(mocker, monkeypatch):
-    dummy_func = mocker.MagicMock(return_value=None)
-
-    class DummyModule:
-        def __init__(self):
-            self.func = dummy_func
-
-    monkeypatch.setattr(nodes.utils, 'get_module_and_func_names', mocker.MagicMock(return_value=('idk', 'func')))
-    monkeypatch.setattr(nodes.importlib, 'import_module', mocker.MagicMock(return_value=DummyModule()))
-
-    monkeypatch.setattr(nodes.utils, 'filter_arguments_for_func', mocker.MagicMock(return_value={'a': 1}))
-
-    py_exec = nodes.PythonExecutionType()
-    py_exec.execute_command(command='test', map_variable={'map_name': 'map_value'})
-    dummy_func.assert_called_once_with(a=1)
-
-
-def test_python_execute_command_sends_mapped_variable_if_present_in_signature(mocker, monkeypatch):
-    dummy_func = mocker.MagicMock(return_value=None)
-
-    class DummyModule:
-        def __init__(self):
-            self.func = dummy_func
-
-    monkeypatch.setattr(nodes.utils, 'get_module_and_func_names', mocker.MagicMock(return_value=('idk', 'func')))
-    monkeypatch.setattr(nodes.importlib, 'import_module', mocker.MagicMock(return_value=DummyModule()))
-
-    monkeypatch.setattr(nodes.utils, 'filter_arguments_for_func', mocker.MagicMock(
-        return_value={'a': 1, 'map_name': 'map_value'}))
-
-    py_exec = nodes.PythonExecutionType()
-    py_exec.execute_command(command='test')
-    dummy_func.assert_called_once_with(a=1, map_name='map_value')
-
-
-def test_python_execute_command_raises_exception_if_return_value_is_not_dict(mocker, monkeypatch):
-    dummy_func = mocker.MagicMock(return_value=1)
-
-    class DummyModule:
-        def __init__(self):
-            self.func = dummy_func
-
-    monkeypatch.setattr(nodes.utils, 'get_module_and_func_names', mocker.MagicMock(return_value=('idk', 'func')))
-    monkeypatch.setattr(nodes.importlib, 'import_module', mocker.MagicMock(return_value=DummyModule()))
-
-    monkeypatch.setattr(nodes.utils, 'filter_arguments_for_func', mocker.MagicMock(return_value={'a': 1}))
-
-    py_exec = nodes.PythonExecutionType()
-    with pytest.raises(Exception):
-        py_exec.execute_command(command='test', map_variable='iterme')
-
-
-def test_python_execute_command_sets_env_variable_of_return_values(mocker, monkeypatch):
-    dummy_func = mocker.MagicMock(return_value={'a': 10})
-
-    class DummyModule:
-        def __init__(self):
-            self.func = dummy_func
-
-    monkeypatch.setattr(nodes.utils, 'get_module_and_func_names', mocker.MagicMock(return_value=('idk', 'func')))
-    monkeypatch.setattr(nodes.importlib, 'import_module', mocker.MagicMock(return_value=DummyModule()))
-
-    monkeypatch.setattr(nodes.utils, 'filter_arguments_for_func', mocker.MagicMock(return_value={'a': 1}))
-
-    py_exec = nodes.PythonExecutionType()
-    py_exec.execute_command(command='test', map_variable='iterme')
-
-    assert defaults.PARAMETER_PREFIX + 'a' in os.environ
-    assert os.environ[defaults.PARAMETER_PREFIX + 'a'] == '10'
-
-    del os.environ[defaults.PARAMETER_PREFIX + 'a']
 
 
 def test_base_node_command_friendly_name_replaces_whitespace_with_character():
@@ -454,42 +310,11 @@ def test_task_node_sets_attempt_log_success_in_no_exception_of_execution(mocker,
     assert mock_attempt_log.status == defaults.SUCCESS
 
 
-def test_task_node_sends_map_variable_if_sent_to_execution(mocker, monkeypatch):
-    mock_attempt_log = mocker.MagicMock()
-    mock_execution_command = mocker.MagicMock()
-
-    mock_executor = mocker.MagicMock()
-    mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
-
-    task_node = nodes.TaskNode(name='test', internal_name='test', config={'command': 'nocommand'}, execution_type=None)
-
-    task_node.execution_type = mocker.MagicMock()
-    task_node.execution_type.execute_command = mock_execution_command
-
-    task_node.execute(executor=mock_executor, map_variable={'map_key': 'a'})
-
-    assert mock_attempt_log.status == defaults.SUCCESS
-    mock_execution_command.assert_called_once_with('nocommand', map_variable={'map_key': 'a'})
-
-
 def test_task_node_execute_as_graph_raises_exception():
     task_node = nodes.TaskNode(name='test', internal_name='test', config={'command': 'nocommand'}, execution_type=None)
 
     with pytest.raises(Exception):
         task_node.execute_as_graph(None)
-
-
-def test_get_node_class_returns_the_correct_subclasses():
-    class DummyNode(nodes.BaseNode):
-        node_type = 'dummy'
-
-    obj = nodes.get_node_class(node_type='dummy')
-    assert obj == DummyNode
-
-
-def test_get_node_class_raises_exception_if_node_class_not_found():
-    with pytest.raises(Exception):
-        nodes.get_node_class(node_type='dummy1')
 
 
 def test_fail_node_sets_branch_log_fail(mocker, monkeypatch):
@@ -716,16 +541,11 @@ def test_nodes_dag_node_execute_raises_exception(mocker, monkeypatch):
         node.execute('dummy')
 
 
-def test_nodes_as_is_node_defaults_render_string_to_none():
-    node = nodes.AsISNode(name='test', internal_name='test', config={}, execution_type='test')
-
-    assert node.render_string is None
-
-
 def test_nodes_as_is_node_accepts_what_is_given():
-    node = nodes.AsISNode(name='test', internal_name='test', config={'render_string': 'test'}, execution_type='test')
+    node = nodes.AsISNode(name='test', internal_name='test', config={
+                          'command_config': {'render_string': 'test'}}, execution_type='test')
 
-    assert node.render_string == 'test'
+    assert node.config['command_config']['render_string'] == 'test'
 
 
 def test_as_is_node_execute_as_graph_raises_exception():

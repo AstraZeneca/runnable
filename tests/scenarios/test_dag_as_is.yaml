@@ -5,6 +5,7 @@ dag:
     step1:
       type: as-is
       next: step2
+      command_type: shell
       catalog:
         compute_data_folder: "tests/scenarios/test_data"
         put:

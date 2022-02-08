@@ -288,6 +288,7 @@ def test_base_executor_execute_from_graph_triggers_job_for_simple_nodes(mocker, 
     mock_run_log_store.create_step_log.return_value = mock_step_log
 
     mock_node.node_type = 'task'
+    mock_node.is_composite = False
     monkeypatch.setattr(executor.BaseExecutor, 'add_code_identities', mocker.MagicMock())
     monkeypatch.setattr(executor.BaseExecutor, 'trigger_job', mock_trigger_job)
 
