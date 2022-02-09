@@ -2,8 +2,7 @@ import os
 
 import pytest
 
-from magnus import tasks
-from magnus import defaults
+from magnus import defaults, tasks
 
 
 def test_base_task_execute_command_raises_not_implemented_error():
