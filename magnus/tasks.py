@@ -1,13 +1,11 @@
-import os
-import json
-import subprocess
 import importlib
-import sys
+import json
 import logging
+import os
+import subprocess
+import sys
 
-
-from magnus import utils
-from magnus import defaults
+from magnus import defaults, utils
 
 logger = logging.getLogger(defaults.NAME)
 
