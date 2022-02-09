@@ -6,8 +6,8 @@ Magnus is a data science pipeline definition and execution tool. It provides a w
 - Run the pipeline in any environment, local is default.
 - Store the run metadata and data catalogs and re-run in case of failures.
 
-Once the pipeline is proven to be correct and functional in any environment, there is zero code change 
-required to deploy it elsewhere. The behavior of the runs are identical in all environments. Magnus 
+Once the pipeline is proven to be correct and functional in any environment, there is zero code change
+required to deploy it elsewhere. The behavior of the runs are identical in all environments. Magnus
 is not a queuing or scheduling engine, but delegates that responsibility to chosen deployment patterns.
 
 ### Short Summary
@@ -252,5 +252,5 @@ This is according to the command in ```step shell```.
 
 You should also see a folder ```.catalog``` being created with a single folder corresponding to the run_id of this run.
 
-To understand more about the input and output, please head over to the 
+To understand more about the input and output, please head over to the
 [documentation](https://project-magnus.github.io/magnus-core/).

@@ -2,7 +2,6 @@ import json
 import logging
 import re
 
-
 from magnus import (datastore, defaults, exceptions, integration, interaction,
                     utils)
 from magnus.graph import Graph

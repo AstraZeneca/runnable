@@ -8,7 +8,7 @@ readme = "README.md"
 homepage = "https://github.com/AstraZeneca/magnus-core"
 repository = "https://github.com/AstraZeneca/magnus-core"
 documentation = "https://astrazeneca.github.io/magnus-core/"
- 
+
 
 [tool.poetry.dependencies]
 python = "^3.6.1"
