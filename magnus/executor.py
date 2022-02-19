@@ -2,7 +2,6 @@ import json
 import logging
 import re
 
-
 from magnus import (datastore, defaults, exceptions, integration, interaction,
                     utils)
 from magnus.graph import Graph
@@ -522,7 +521,8 @@ class LocalContainerExecutor(BaseExecutor):
       steps:
         step:
           mode_config:
-            docker_image: The image that you want that single step to run in.
+            local-container:
+                docker_image: The image that you want that single step to run in.
     This image would only be used for that step only.
 
     This mode does not build the docker image with the latest code for you, it is still left for the user to build
@@ -571,7 +571,7 @@ class LocalContainerExecutor(BaseExecutor):
         """
 
         super().add_code_identities(node, step_log)
-        mode_config = {**self.config, **node.get_mode_config()}
+        mode_config = {**self.config, **node.get_mode_config(self.service_name)}
 
         docker_image = mode_config.get('docker_image', None)
         if docker_image:
@@ -623,7 +623,8 @@ class LocalContainerExecutor(BaseExecutor):
         try:
             action = utils.get_node_execution_command(self, node, map_variable=map_variable)
             logger.info(f'Running the command {action}')
-            mode_config = {**self.config, **node.get_mode_config()}  #  Overrides global config with local
+            #  Overrides global config with local
+            mode_config = {**self.config, **node.get_mode_config(self.service_name)}
             docker_image = mode_config.get('docker_image', None)
             if not docker_image:
                 raise Exception(

@@ -242,14 +242,19 @@ class BaseNode:
             return self.config['next']
         return None
 
-    def get_mode_config(self) -> dict:
+    def get_mode_config(self, mode_type) -> dict:
         """
         Return the mode config of the node, if defined, or empty dict
+
+        Args:
+            mode_type (str): The mode type that the config refers to.
 
         Returns:
             dict: The mode config, if defined or an empty dict
         """
-        return self.config.get('mode_config', {}) or {}
+        if 'mode_config' in self.config:
+            return self.config['mode_config'].get(mode_type, {}) or {}
+        return {}
 
     def get_max_attempts(self) -> int:
         """
