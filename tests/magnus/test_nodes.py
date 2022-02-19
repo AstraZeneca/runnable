@@ -108,14 +108,15 @@ def test_base_node_get_next_node_returns_config_next():
 
 
 def test_base_node_get_mode_config_returns_mode_config_if_present():
-    node = nodes.BaseNode(name='test', internal_name='test', config={'mode_config': 'some settings'},
+    node = nodes.BaseNode(name='test', internal_name='test',
+                          config={'mode_config': {'local': 'some settings'}},
                           execution_type=None)
-    assert node.get_mode_config() == 'some settings'
+    assert node.get_mode_config('local') == 'some settings'
 
 
 def test_base_node_get_mode_config_returns_empty_dict_if_not_present():
     node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
-    assert node.get_mode_config() == {}
+    assert node.get_mode_config('local') == {}
 
 
 def test_base_node_get_max_attempts_returns_max_attempts_as_in_config():

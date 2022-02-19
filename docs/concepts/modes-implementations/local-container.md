@@ -76,7 +76,8 @@ RUN poetry install
 ### Node over-rides
 
 The docker image provided at ```mode``` can be over-ridden by individual nodes of the graph by providing a
-```mode_config``` as part of the definition.
+```mode_config``` as part of the definition. Since ```mode_config``` is universally used by all modes, the
+over-rides should be provided within the context of the executor type.
 
 For example:
 
@@ -96,7 +97,8 @@ dag:
     step1:
       type: as-is
       mode_config:
-        docker_image: step1_image
+        local-container:
+          docker_image: step1_image
       command: my_function_does_all.func
       next: step2
     step2:
