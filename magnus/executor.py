@@ -2,7 +2,6 @@ import json
 import logging
 import re
 
-
 from magnus import (datastore, defaults, exceptions, integration, interaction,
                     utils)
 from magnus.graph import Graph
@@ -71,7 +70,7 @@ class BaseExecutor:
         self.secrets_handler = None
         self.variables_file = None
         self.configuration_file = None
-        self.cmd_line_arguments = {}
+        self.application_parameters = {}
 
     def is_parallel_execution(self) -> bool:  # pylint: disable=R0201
         """
@@ -93,7 +92,7 @@ class BaseExecutor:
         run_log.status = defaults.PROCESSING
         run_log.dag_hash = self.dag_hash
 
-        parameters = self.cmd_line_arguments
+        parameters = self.application_parameters
         if self.previous_run_log:
             run_log.original_run_id = self.previous_run_log.run_id
             # Sync the previous run log catalog to this one.

@@ -136,7 +136,7 @@ def execute(
         tag: str = None,
         run_id: str = None,
         use_cached: str = None,
-        **kwargs):
+        parameters_file: str = None):
     # pylint: disable=R0914,R0913
     """
     The entry point to magnus execution. This method would prepare the configurations and delegates traversal to the
@@ -159,7 +159,11 @@ def execute(
                                            tag=tag,
                                            use_cached=use_cached)
 
-    mode_executor.cmd_line_arguments = kwargs
+    parameters = {}
+    if parameters_file:
+        parameters = utils.load_yaml(parameters_file)
+    mode_executor.application_parameters = parameters
+
     previous_run_log = None
 
     if use_cached:
@@ -195,8 +199,7 @@ def execute_single_node(
         step_name: str,
         map_variable: str,
         run_id: str,
-        tag: str = None,
-        **kwargs):
+        tag: str = None):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a single node of magnus. Orchestration modes should extensivesly use this
@@ -216,7 +219,7 @@ def execute_single_node(
                                            run_id=run_id,
                                            tag=tag,
                                            use_cached='')
-    mode_executor.cmd_line_arguments = kwargs
+
     step_internal_name = nodes.BaseNode.get_internal_name_from_command_name(step_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
@@ -238,8 +241,7 @@ def execute_single_brach(
         branch_name: str,
         map_variable: str,
         run_id: str,
-        tag: str = None,
-        **kwargs):
+        tag: str = None):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a branch of the graph. Interactive modes in parallel runs use this to execute
@@ -258,7 +260,7 @@ def execute_single_brach(
                                            run_id=run_id,
                                            tag=tag,
                                            use_cached='')
-    mode_executor.cmd_line_arguments = kwargs
+
     branch_internal_name = nodes.BaseNode.get_internal_name_from_command_name(branch_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)

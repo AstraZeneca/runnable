@@ -9,7 +9,7 @@ from datetime import datetime
 from inspect import signature
 from pathlib import Path
 from string import Template as str_template
-from typing import Callable, Tuple, Union, List, Mapping
+from typing import Callable, List, Mapping, Tuple, Union
 
 from ruamel.yaml import YAML  # type: ignore
 from stevedore import driver
@@ -408,6 +408,7 @@ def filter_arguments_from_parameters(
     return arguments
 
 
+# TODO: Need to send in the tag if provided
 def get_node_execution_command(executor, node, map_variable=None, over_write_run_id=None) -> str:
     """
     A utility function to standardize execution call to a node via command line.
@@ -452,7 +453,7 @@ def get_service_namespace(service_type: str) -> str:
         Exception: If the service type is not one of the accepted values
 
     Object:
-        str: The name space of the base class 
+        str: The name space of the base class
     """
     if service_type == 'executor':
         return 'magnus.executor.BaseExecutor'
