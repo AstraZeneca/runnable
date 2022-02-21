@@ -408,7 +408,6 @@ def filter_arguments_from_parameters(
     return arguments
 
 
-# TODO: Need to send in the tag if provided
 def get_node_execution_command(executor, node, map_variable=None, over_write_run_id=None) -> str:
     """
     A utility function to standardize execution call to a node via command line.
@@ -438,6 +437,12 @@ def get_node_execution_command(executor, node, map_variable=None, over_write_run
 
     if executor.configuration_file:
         action = action + f' --config-file {executor.configuration_file}'
+
+    if executor.parameters_file:
+        action = action + f' --parameters-file {executor.parameters_file}'
+
+    if executor.tag:
+        action = action + f' --tag {executor.tag}'
 
     return action
 

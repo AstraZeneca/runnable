@@ -70,7 +70,7 @@ class BaseExecutor:
         self.secrets_handler = None
         self.variables_file = None
         self.configuration_file = None
-        self.application_parameters = {}
+        self.parameters_file = None
 
     def is_parallel_execution(self) -> bool:  # pylint: disable=R0201
         """
@@ -92,7 +92,10 @@ class BaseExecutor:
         run_log.status = defaults.PROCESSING
         run_log.dag_hash = self.dag_hash
 
-        parameters = self.application_parameters
+        parameters = {}
+        if self.parameters_file:
+            parameters = utils.load_yaml(self.parameters_file)
+
         if self.previous_run_log:
             run_log.original_run_id = self.previous_run_log.run_id
             # Sync the previous run log catalog to this one.
