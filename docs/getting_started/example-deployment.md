@@ -137,14 +137,14 @@ We can execute the pipeline defined in the ```demo-bash.sh``` by
 ```shell
 chmod 755 demo-bash.sh
 
-./demo-bash.sh my_first_bash x=3
+./demo-bash.sh my_first_bash
 ```
 
 **Points to note**
 
 1. run_id, my_first_bash, is no longer optional parameter and should be provided as the first positional parameter.
 
-2. The parameter ```x``` can be passed in as command line argument as designed by the shell script.
+2). The parameters file was part of the translation step and is provided to the shell script.
 
 Since the run log store is ```file-system```, there should be a directory, ```.run_log_store```, created with a single
 run log in it by the name ```my_first_bash.json```.
