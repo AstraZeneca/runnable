@@ -92,3 +92,32 @@ Example:
 ```shell
 magnus execute --file example.yaml --run-id 20210506051758 --use-cached old_run_id
 ```
+
+## Extensions
+
+Magnus internally uses click to perform CLI operations and base command is given below.
+
+```python
+@with_plugins(iter_entry_points('magnus.cli_plugins'))
+@click.group()
+@click.version_option()
+def cli():
+    """
+    Welcome to magnus. Please provide the command that you want to use.
+    All commands have options that you can see by magnus <command> --help
+    """
+    pass
+
+```
+
+You can provide custom extensions to the command line capabilities by extending the namespace ```magnus.cli_plugins```
+
+```toml
+# For example, as part of your pyproject.toml
+[tool.poetry.plugins."magnus.cli_plugins"]
+"aws-ecr = "YOUR_PACKAGE:push_to_ecr"
+```
+
+This extension than can be used as
+
+```magnus aws-ecr <parameters and options>```

@@ -815,15 +815,7 @@ class DemoRenderer(BaseExecutor):
         current_node = dag.start_at
         previous_node = None
         logger.info(f'Rendering job started at {current_node}')
-        bash_script_lines = [
-            ('for ARGUMENT in "${@:2}"\n'
-             'do\n'
-             '\tKEY=$(echo $ARGUMENT | cut -f1 -d=)\n'
-             '\tVALUE=$(echo $ARGUMENT | cut -f2 -d=)\n'
-             '\texport "MAGNUS_PRM_$KEY"=$VALUE\n'
-             'done\n'
-             )
-        ]
+        bash_script_lines = []
 
         while True:
             working_on = dag.get_node_by_name(current_node)

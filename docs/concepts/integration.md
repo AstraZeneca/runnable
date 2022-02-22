@@ -60,6 +60,22 @@ class BaseIntegration:
         """
 ```
 
+The custom extensions should be registered as part of the namespace: ```magnus.integration.BaseIntegration``` for it
+to be loaded.
+
+```toml
+# For example, as part of your pyproject.toml
+[tool.poetry.plugins."magnus.integration.BaseIntegration"]
+# {executor.name}-{service}-{service.name}
+"local-secrets-vault" = "YOUR_PACKAGE:LocalComputeSecretsVault"
+```
+
+All extensions need to be unique given a ```mode_type```, ```service_type``` and ```service_provider```.
+Duplicate integrations will be raised as an exception.
+
+
+## Example
+
 Consider the example of S3 Run log store. For the execution engine of ```local```, the aws credentials file is available
 on the local machine and we can store the run logs in the S3 bucket. But for the mode ```local-container```, the
 aws credentials file has to be mounted in the container for the container to have access to S3.

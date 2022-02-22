@@ -318,3 +318,13 @@ class BaseRunLogStore:
         logger.info(f'{self.service_name} Creating Data Catalog for {name}')
         return DataCatalog(name=name)
 ```
+
+
+The custom extensions should be registered as part of the namespace: ```magnus.datastore.BaseRunLogStore``` for it
+to be loaded.
+
+```toml
+# For example, as part of your pyproject.toml
+[tool.poetry.plugins."magnus.datastore.BaseRunLogStore"]
+"api" = "YOUR_PACKAGE:API"
+```
