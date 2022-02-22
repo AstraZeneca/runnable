@@ -2,10 +2,10 @@
 
 ## Python
 
-By default, ```python``` is the command type. You can mention the python function that you want to invoke 
+By default, ```python``` is the command type. You can mention the python function that you want to invoke
 using the ```command``` section.
 
-For example, in the dag definition below, the command type is defaulted to python and magnus invokes 
+For example, in the dag definition below, the command type is defaulted to python and magnus invokes
 ```my_module.my_function``` as part of the step.
 
 ```yaml
@@ -25,8 +25,8 @@ More [examples](../../examples)
 
 ## Shell
 
-You can have shell commands as part of magnus dag definition. The ```command``` provided in the config is 
-invoked as part of the step. 
+You can have shell commands as part of magnus dag definition. The ```command``` provided in the config is
+invoked as part of the step.
 
 For example, in the dag definition below, ```step``` invokes the ```ls``` command as part of the pipeline.
 You can use this ```command_type``` to have non-python executables as part of your pipeline.
@@ -41,7 +41,7 @@ dag:
 ```
 
 Please note that, magnus will be able to send in the existing parameters using environmental variables prefixed with
-```MAGNUS_PRM_``` but would not be able to collect any return parameters. Similarly, the functionality of 
+```MAGNUS_PRM_``` but would not be able to collect any return parameters. Similarly, the functionality of
 secrets should be handled by the ```script``` and would not be done by magnus.
 
 The cataloging functionality works as designed and can be used to sync data in and out the ```compute_data_folder```.
@@ -57,7 +57,7 @@ lambda x : int(x) + 1
 ```
 
 is a valid lambda expression. Note that, you cannot have ```_```or ```__``` as part of your string. This is just a
-security feature to 
+security feature to
 [avoid malicious code injections](https://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html).
 
 The parameters used as part of the lambda expression are introspected and provided dynamically from the parameter space.
@@ -67,7 +67,7 @@ This command type is designed to provide simpler ways to manipulate parameter sp
 ## Notebook
 
 In magnus, you can execute Jupyter notebooks by ```command_type: notebook```. The ```command``` should be the path
-to the notebook you want to execute. 
+to the notebook you want to execute.
 
 ---
 !!! Note
@@ -103,7 +103,7 @@ You can also provide additional arguments to papermill by providing a mapping ``
 ```command_config```.
 
 
-Please note that, magnus will not be able to collect any return parameters. Similarly, the functionality of 
+Please note that, magnus will not be able to collect any return parameters. Similarly, the functionality of
 secrets should be handled by the ```notebook``` and would not be done by magnus.
 
 The cataloging functionality works as designed.
@@ -181,5 +181,3 @@ loaded.
 "sql" = "YOUR_PACKAGE:SQLtaskType"
 
 ```
-
-

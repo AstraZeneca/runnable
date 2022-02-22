@@ -5,7 +5,6 @@ from stevedore import driver
 
 from magnus import defaults, exceptions
 
-
 if TYPE_CHECKING:
     from magnus.nodes import BaseNode
 
