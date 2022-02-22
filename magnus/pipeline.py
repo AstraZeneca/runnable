@@ -40,7 +40,8 @@ def prepare_configurations(
         pipeline_file: str,
         run_id: str,
         tag: Union[str, None],
-        use_cached: Union[str, None]):
+        use_cached: Union[str, None],
+        parameters_file: str = None):
     # pylint: disable=R0914
     """
     Replace the placeholders in the dag/config against the variables file.
@@ -125,6 +126,7 @@ def prepare_configurations(
     mode_executor.secrets_handler = secrets_handler
     mode_executor.variables_file = variables_file
     mode_executor.configuration_file = configuration_file
+    mode_executor.parameters_file = parameters_file
 
     return mode_executor
 
@@ -136,7 +138,7 @@ def execute(
         tag: str = None,
         run_id: str = None,
         use_cached: str = None,
-        **kwargs):
+        parameters_file: str = None):
     # pylint: disable=R0914,R0913
     """
     The entry point to magnus execution. This method would prepare the configurations and delegates traversal to the
@@ -148,6 +150,7 @@ def execute(
         run_id (str): The run id of the run.
         tag (str): If a tag is provided at the run time
         use_cached (str): The previous run_id to use.
+        parameters_file (str): The parameters being sent in to the application
     """
     # Re run settings
     run_id = utils.generate_run_id(run_id=run_id)
@@ -157,9 +160,8 @@ def execute(
                                            pipeline_file=pipeline_file,
                                            run_id=run_id,
                                            tag=tag,
-                                           use_cached=use_cached)
-
-    mode_executor.cmd_line_arguments = kwargs
+                                           use_cached=use_cached,
+                                           parameters_file=parameters_file)
     previous_run_log = None
 
     if use_cached:
@@ -196,11 +198,13 @@ def execute_single_node(
         map_variable: str,
         run_id: str,
         tag: str = None,
-        **kwargs):
+        parameters_file: str = None):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a single node of magnus. Orchestration modes should extensivesly use this
     entry point.
+
+    It should have similar set up of configurations to execute because orchestrator modes can initiate the execution.
 
     Args:
         variables_file (str): The variables file, if used or None
@@ -208,6 +212,7 @@ def execute_single_node(
         pipeline_file (str): The config/dag file
         run_id (str): The run id of the run.
         tag (str): If a tag is provided at the run time
+        parameters_file (str): The parameters being sent in to the application
 
     """
     mode_executor = prepare_configurations(variables_file=variables_file,
@@ -215,8 +220,9 @@ def execute_single_node(
                                            pipeline_file=pipeline_file,
                                            run_id=run_id,
                                            tag=tag,
-                                           use_cached='')
-    mode_executor.cmd_line_arguments = kwargs
+                                           use_cached='',
+                                           parameters_file=parameters_file)
+
     step_internal_name = nodes.BaseNode.get_internal_name_from_command_name(step_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
@@ -237,13 +243,13 @@ def execute_single_brach(
         pipeline_file: str,
         branch_name: str,
         map_variable: str,
-        run_id: str,
-        tag: str = None,
-        **kwargs):
+        run_id: str):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a branch of the graph. Interactive modes in parallel runs use this to execute
-    branches in parallel
+    branches in parallel.
+
+    This entry point is never used by its own but rather from a node. So the arguments sent into this are fewer.
 
     Args:
         variables_file (str): The variables file, if used or None
@@ -256,9 +262,9 @@ def execute_single_brach(
                                            configuration_file=configuration_file,
                                            pipeline_file=pipeline_file,
                                            run_id=run_id,
-                                           tag=tag,
+                                           tag=None,
                                            use_cached='')
-    mode_executor.cmd_line_arguments = kwargs
+
     branch_internal_name = nodes.BaseNode.get_internal_name_from_command_name(branch_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)

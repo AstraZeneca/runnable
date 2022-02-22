@@ -18,7 +18,6 @@ def test_base_executor_set_up_run_log_with_no_previous_run_log(mocker, monkeypat
 
     base_executor.run_log_store = mock_run_log_store
     base_executor.run_id = 'run_id'
-    base_executor.cmd_line_arguments = {'a': 1}
 
     monkeypatch.setattr(executor.utils, 'get_run_config', mocker.MagicMock(return_value={'executor': 'test'}))
 
@@ -26,7 +25,6 @@ def test_base_executor_set_up_run_log_with_no_previous_run_log(mocker, monkeypat
 
     assert mock_run_log.status == defaults.PROCESSING
     assert mock_run_log.use_cached == False
-    assert mock_run_log.parameters == {'a': 1}
     assert mock_run_log.run_config == {'executor': 'test'}
 
 
@@ -43,7 +41,7 @@ def test_base_executor_set_up_run_log_with_previous_run_log(mocker, monkeypatch)
 
     base_executor.run_log_store = mock_run_log_store
     base_executor.run_id = 'run_id'
-    base_executor.cmd_line_arguments = {'a': 1}
+
     base_executor.previous_run_log = mock_previous_run_log
     base_executor.catalog_handler = mocker.MagicMock()
 
@@ -53,7 +51,7 @@ def test_base_executor_set_up_run_log_with_previous_run_log(mocker, monkeypatch)
 
     assert mock_run_log.status == defaults.PROCESSING
     assert mock_run_log.use_cached == True
-    assert mock_run_log.parameters == {'a': 1, 'b': 1}
+    assert mock_run_log.parameters == {'b': 1}
     assert mock_run_log.run_config == {'executor': 'test'}
 
 

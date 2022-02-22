@@ -422,6 +422,8 @@ def test_get_node_execution_command_returns_magnus_execute():
         pipeline_file = 'test_pipeline_file'
         variables_file = None
         configuration_file = None
+        parameters_file = None
+        tag = None
 
     class MockNode:
         internal_name = 'test_node_id'
@@ -439,6 +441,8 @@ def test_get_node_execution_command_overwrites_run_id_if_asked():
         pipeline_file = 'test_pipeline_file'
         variables_file = None
         configuration_file = None
+        parameters_file = None
+        tag = None
 
     class MockNode:
         internal_name = 'test_node_id'
@@ -456,6 +460,8 @@ def test_get_node_execution_command_returns_magnus_execute_appends_variables_fil
         pipeline_file = 'test_pipeline_file'
         variables_file = 'test_variables_file'
         configuration_file = None
+        parameters_file = None
+        tag = None
 
     class MockNode:
         internal_name = 'test_node_id'
@@ -467,12 +473,34 @@ def test_get_node_execution_command_returns_magnus_execute_appends_variables_fil
         'magnus execute_single_node test_run_id test_node_id --file test_pipeline_file --var-file test_variables_file'
 
 
+def test_get_node_execution_command_returns_magnus_execute_appends_parameters_file():
+    class MockExecutor:
+        run_id = 'test_run_id'
+        pipeline_file = 'test_pipeline_file'
+        variables_file = None
+        configuration_file = None
+        parameters_file = 'test_parameters_file'
+        tag = None
+
+    class MockNode:
+        internal_name = 'test_node_id'
+
+        def command_friendly_name(self):
+            return 'test_node_id'
+
+    assert utils.get_node_execution_command(MockExecutor(), MockNode()) == \
+        'magnus execute_single_node test_run_id test_node_id --file test_pipeline_file' \
+        ' --parameters-file test_parameters_file'
+
+
 def test_get_node_execution_command_returns_magnus_execute_appends_map_variable():
     class MockExecutor:
         run_id = 'test_run_id'
         pipeline_file = 'test_pipeline_file'
         variables_file = None
         configuration_file = None
+        parameters_file = None
+        tag = None
 
     class MockNode:
         internal_name = 'test_node_id'

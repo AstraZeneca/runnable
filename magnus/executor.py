@@ -70,7 +70,7 @@ class BaseExecutor:
         self.secrets_handler = None
         self.variables_file = None
         self.configuration_file = None
-        self.cmd_line_arguments = {}
+        self.parameters_file = None
 
     def is_parallel_execution(self) -> bool:  # pylint: disable=R0201
         """
@@ -92,7 +92,10 @@ class BaseExecutor:
         run_log.status = defaults.PROCESSING
         run_log.dag_hash = self.dag_hash
 
-        parameters = self.cmd_line_arguments
+        parameters = {}
+        if self.parameters_file:
+            parameters = utils.load_yaml(self.parameters_file)
+
         if self.previous_run_log:
             run_log.original_run_id = self.previous_run_log.run_id
             # Sync the previous run log catalog to this one.
@@ -521,7 +524,8 @@ class LocalContainerExecutor(BaseExecutor):
       steps:
         step:
           mode_config:
-            docker_image: The image that you want that single step to run in.
+            local-container:
+                docker_image: The image that you want that single step to run in.
     This image would only be used for that step only.
 
     This mode does not build the docker image with the latest code for you, it is still left for the user to build
@@ -570,7 +574,7 @@ class LocalContainerExecutor(BaseExecutor):
         """
 
         super().add_code_identities(node, step_log)
-        mode_config = {**self.config, **node.get_mode_config()}
+        mode_config = {**self.config, **node.get_mode_config(self.service_name)}
 
         docker_image = mode_config.get('docker_image', None)
         if docker_image:
@@ -622,7 +626,8 @@ class LocalContainerExecutor(BaseExecutor):
         try:
             action = utils.get_node_execution_command(self, node, map_variable=map_variable)
             logger.info(f'Running the command {action}')
-            mode_config = {**self.config, **node.get_mode_config()}  #  Overrides global config with local
+            #  Overrides global config with local
+            mode_config = {**self.config, **node.get_mode_config(self.service_name)}
             docker_image = mode_config.get('docker_image', None)
             if not docker_image:
                 raise Exception(

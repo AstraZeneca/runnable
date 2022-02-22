@@ -394,14 +394,18 @@ dag:
       type: fail
 ```
 
+!!! warning "Changed in v0.2"
+
 You can pass the parameter during the execution of the run like below.
 
 ```shell
-magnus execute --file getting-started.yaml --x 3
+magnus execute --file getting-started.yaml --parameters-file parameters.yaml
 ```
 
-**Note**: this method only works if the pipeline is executed by magnus. All parameters would be read
-as ```string``` and have to casted appropriately by the code.
+```yaml
+# in parameters.yaml
+x: 3
+```
 
 ### Using environment variables
 

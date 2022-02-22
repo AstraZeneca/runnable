@@ -108,9 +108,15 @@ dag:
       type: fail
 ```
 
+Since the pipeline expects a parameter ```x```, lets provide that using ```parameters.yaml```
+
+```yaml
+x: 3
+```
+
 And let's run the pipeline using:
 ``` shell
- magnus execute --file getting-started.yaml --x 3
+ magnus execute --file getting-started.yaml --parameters-file parameters.yaml
 ```
 
 You should see a list of warnings but your terminal output should look something similar to this:

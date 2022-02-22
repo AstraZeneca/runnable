@@ -1,6 +1,6 @@
 To extend and implement a custom compute mode, you need to over-ride the appropriate methods of the ```Base``` class.
 
-Most of the methods of the ```BaseRunLogStore``` have default implementations and need not be over-written in a few
+Most of the methods of the ```BaseExecutor``` have default implementations and need not be over-written in a few
 situations.
 
 Please refer to [*Guide to extensions* ](../../../extensions/extensions/) for a detailed explanation and the need for
@@ -16,12 +16,19 @@ In summary, the extension will fall into one of the four possible possibilities:
 [advanced use of as-is](../../../examples/#advanced_use_as-is)
 
 
-
-
 Extensions that are being actively worked on and listed to be released as part of ```magnus-extensions```
 
 - local-aws-batch : A decentralized AWS batch compute
 - aws-step-function: Translates the dag into a Step function.
+
+
+## Step over-rides
+
+Individual steps can provide custom config specific to a mode implementation by using ```mode_config``` block in the
+step definition. An example of such over-ride can be seen in ```local-container``` which over-rides the default
+global docker image to run.
+
+
 
 ```python
 # You can find this in the source code at: magnus/executor.py along with a few example

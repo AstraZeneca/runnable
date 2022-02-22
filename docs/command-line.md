@@ -44,6 +44,18 @@ Defaults to None, if nothing is provided.
 Read more about different ways you can configure magnus runs here.
 
 
+!!! warning "Changed in v0.2"
+
+## Parameters file
+
+The yaml file containing the initial set of parameters that the application can access. Individual steps of the
+pipeline can still add/update parameters as required.
+
+Provided by ```-p```, ```--parameters-file``` option to magnus cli.
+
+Defaults to None, if nothing is provided.
+You can also pass parameters by environmental variables prefixed by ```MAGNUS_PRM_```
+
 ## Log level
 
 To control the logging level of magnus only. This does not affect your application logs what so ever.

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.1.2"
+version = "0.2.0"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
@@ -17,8 +17,10 @@ python = "^3.6.1"
 yachalk = "*"
 pydantic = "^1.9.0"
 stevedore = "^3.5.0"
+"click" = "*"
 docker ={ version = "*", optional = true }
 papermill ={ version = "*", optional = true }
+click-plugins = "^1.1.1"
 
 [tool.poetry.extras]
 docker = ['docker']
@@ -38,7 +40,7 @@ tox = "^3.24.5"
 pre-commit = "*"
 
 [tool.poetry.scripts]
-magnus= 'magnus.cli:main'
+magnus= 'magnus.cli:cli'
 
 # Plugins for Executors
 [tool.poetry.plugins."magnus.executor.BaseExecutor"]
@@ -91,6 +93,7 @@ magnus= 'magnus.cli:main'
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
 
+# TODO: Can we use this to configure magnus?
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
