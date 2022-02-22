@@ -77,16 +77,18 @@ You can define more [complex node types (parallel, embedded dag, map) too](../..
 
 ## Parameters
 
-Any unreserved keyword argument sent to command line would be added to the parameter
-space but as a string. For example, the command used to execute the pipeline,
 
-```magnus execute --file getting-started.yaml --x 3```
 
-sets the parameter *x* as "3".
+!!! warning "Changed in v0.2"
+
+
+Initial parameters to the pipeline could be sent by sending in a parameters file during execution.
+
+
 
 The lambda expression, ```lambda x: {'x': int(x) + 1}```, then can use the parameter and update it
 (in this case, x = x + 1 = 4) by returning a dictionary. The [parameter space](../../concepts/nodes/#passing_data)
-is updated with the key-value pair. Parameters can be passed to python functions using a similar logic.
+is updated with the key-value pair. Parameters can be passed to python functions using a similar fashion.
 
 Shell executions have access to the parameters too with key being prefixed by MAGNUS_PRM_. Any JSON serializable
 key-value pairs can be used. You can confirm this by searching for ```MAGNUS_PRM_``` in ```data/data.txt```.

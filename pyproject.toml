@@ -93,15 +93,7 @@ magnus= 'magnus.cli:cli'
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
 
-
-# Plugins for CLI commands
-[tool.poetry.plugins."magnus.cli.plugins"]
-"execute" = "magnus.cli:ExecuteGraphCLICommand"
-"execute_single_node" = "magnus.cli:ExecuteSingleNodeCLICommand"
-"execute_single_branch" = "magnus.cli:ExecuteSingleBranchCLICommand"
-"notebook" = "magnus.tasks:NotebookTaskType"
-
-# Have a tool section to build/configure magnus
+# TODO: Can we use this to configure magnus?
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

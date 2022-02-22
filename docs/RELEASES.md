@@ -1,5 +1,15 @@
 # Release history
 
+## v0.2 (2022-02-22)
+
+- Moved magnus CLI to click.
+- magnus command group can be extended to add more commands by other packages.
+
+Breaking changes:
+
+- Contextualized config parameters for executors
+- Parameters to be sent in via parameters file
+
 ## v0.1.2 (2022-02-08)
 
 - Command config provided for all command types to pass in additional configuration.

@@ -570,13 +570,20 @@ In magnus, we classify 2 kinds of data sets that can be passed around to down st
 
 ### Parameters from command line
 
-All keyword arguments sent to magnus command line, apart from what magnus reserved ones, are available
-as parameters to any of the steps.
+!!! warning "Changed in v0.2"
+
+Initial parameters to the application can be sent in via a parameters file.
 
 Example:
 
 ```shell
-magnus execute --file getting-started.yaml --arg1 hello --arg2 world
+magnus execute --file getting-started.yaml --parameters-file parameters.yaml
+```
+
+```yaml
+# in parameters.yaml
+arg1 : test
+arg2: dev
 ```
 
 In this case, arg1 and arg2 are available as parameters to downstream steps.

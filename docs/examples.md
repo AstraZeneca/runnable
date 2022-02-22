@@ -131,11 +131,11 @@ You can use notebooks as a ```command_type``` of a step in the pipeline.  The on
 would not be able to support returning ```parameters```, ```secrets``` or any of the built-in functions. The cataloging
 functionality of magnus still would work via the configuration file.
 
-We use [papermill](https://papermill.readthedocs.io/en/latest/) to inspect the parameters and send them dynamically 
+We use [papermill](https://papermill.readthedocs.io/en/latest/) to inspect the parameters and send them dynamically
 from the parameter space.
 
 The command refers to the notebook that you want to use as a task and it should point to the notebook.
-The output notebook naming could be provided by using the ```command_config``` section or would be defaulted to the 
+The output notebook naming could be provided by using the ```command_config``` section or would be defaulted to the
 notebook mentioned in ```command``` section post-fixed with ```_out```.
 
 
@@ -394,14 +394,18 @@ dag:
       type: fail
 ```
 
+!!! warning "Changed in v0.2"
+
 You can pass the parameter during the execution of the run like below.
 
 ```shell
-magnus execute --file getting-started.yaml --x 3
+magnus execute --file getting-started.yaml --parameters-file parameters.yaml
 ```
 
-**Note**: this method only works if the pipeline is executed by magnus. All parameters would be read
-as ```string``` and have to casted appropriately by the code.
+```yaml
+# in parameters.yaml
+x: 3
+```
 
 ### Using environment variables
 
