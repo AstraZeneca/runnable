@@ -41,3 +41,12 @@ class BaseSecrets:
         """
         raise NotImplementedError
 ```
+
+The custom extensions should be registered as part of the namespace: ```magnus.secrets.BaseSecrets``` for it
+to be loaded.
+
+```toml
+# For example, as part of your pyproject.toml
+[tool.poetry.plugins."magnus.secrets.BaseSecrets"]
+"vault" = "YOUR_PACKAGE:Vault"
+```

@@ -11,7 +11,7 @@ fileConfig(resource_filename(__name__, 'log_config.ini'))
 logger = logging.getLogger(defaults.NAME)
 
 
-@with_plugins(iter_entry_points('core_package.cli_plugins'))
+@with_plugins(iter_entry_points('magnus.cli_plugins'))
 @click.group()
 @click.version_option()
 def cli():

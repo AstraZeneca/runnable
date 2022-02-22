@@ -486,3 +486,13 @@ class BaseExecutor:
         if run_log.status == defaults.FAIL:
             raise Exception('Pipeline execution failed')
 ```
+
+
+The custom extensions should be registered as part of the namespace: ```magnus.executor.BaseExecutor``` for it to be
+loaded.
+
+```toml
+# For example, as part of your pyproject.toml
+[tool.poetry.plugins."magnus.executor.BaseExecutor"]
+"gcp" = "YOUR_PACKAGE:GCP"
+```

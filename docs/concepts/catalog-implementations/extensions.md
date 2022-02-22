@@ -91,3 +91,12 @@ class BaseCatalog:
         """
         raise NotImplementedError
 ```
+
+The custom extensions should be registered as part of the namespace: ```magnus.catalog.BaseCatalog``` for it to be
+loaded.
+
+```toml
+# For example, as part of your pyproject.toml
+[tool.poetry.plugins."magnus.catalog.BaseCatalog"]
+"nfs" = "YOUR_PACKAGE:NFS"
+```
