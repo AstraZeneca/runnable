@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import re
@@ -411,7 +412,7 @@ class BaseExecutor:
         logger.info(f'Finished execution of the {branch} with status {run_log.status}')
         print(json.dumps(run_log.dict(), indent=4))
 
-    def is_eligible_for_rerun(self, node, map_variable: dict = None):
+    def is_eligible_for_rerun(self, node: BaseNode, map_variable: dict = None):
         """
         In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
         necessary.
@@ -467,6 +468,58 @@ class BaseExecutor:
         run_log = self.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
         if run_log.status == defaults.FAIL:
             raise Exception('Pipeline execution failed')
+
+    def resolve_node_config(self, node: BaseNode):
+        """
+        The mode_config section can contain specific over-rides to an global executor config.
+        To avoid too much clutter in the dag definition, we allow the configuration file to have placeholders block.
+        The nodes can over-ride the global config by referring to key in the placeholder.
+
+        For example:
+        # configuration.yaml
+        mode:
+          type: cloud-implementation
+          config:
+            k1: v1
+            k3: v3
+            placeholders:
+              k2: v2 # Could be a mapping internally.
+
+        # in pipeline definition.yaml
+        dag:
+          steps:
+            step1:
+              mode_config:
+                cloud-implementation:
+                  k1: value_specific_to_node
+                  k2:
+
+        This method should resolve the node_config to {'k1': 'value_specific_to_node', 'k2': 'v2', 'k3': 'v3'}
+
+        Args:
+            node (BaseNode): The current node being processed.
+        """
+        effective_node_config = copy.deepcopy(self.config)
+        ctx_node_config = node.get_mode_config(self.service_name)
+
+        placeholders = self.config.get('placeholders', None)
+
+        for key, value in ctx_node_config.items():
+            if not value:
+                if key in placeholders:  # Update via placeholder only if value is None
+                    try:
+                        effective_node_config.update(placeholders[key])
+                    except TypeError:
+                        logger.error(f'Expected value to the {key} to be a mapping but found {type(placeholders[key])}')
+                    continue
+                logger.info(f"For key: {key} in the {node.name} mode_config, there is no value provided and no \
+                    corresponding placeholder was found")
+
+            effective_node_config[key] = value
+
+        effective_node_config.pop('placeholders', None)
+
+        return effective_node_config
 
 
 class LocalExecutor(BaseExecutor):
@@ -574,7 +627,7 @@ class LocalContainerExecutor(BaseExecutor):
         """
 
         super().add_code_identities(node, step_log)
-        mode_config = {**self.config, **node.get_mode_config(self.service_name)}
+        mode_config = self.resolve_node_config(node)
 
         docker_image = mode_config.get('docker_image', None)
         if docker_image:
@@ -627,7 +680,7 @@ class LocalContainerExecutor(BaseExecutor):
             action = utils.get_node_execution_command(self, node, map_variable=map_variable)
             logger.info(f'Running the command {action}')
             #  Overrides global config with local
-            mode_config = {**self.config, **node.get_mode_config(self.service_name)}
+            mode_config = self.resolve_node_config(node)
             docker_image = mode_config.get('docker_image', None)
             if not docker_image:
                 raise Exception(

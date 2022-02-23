@@ -52,7 +52,7 @@ class BaseExecutor:
         This method is responsible for executing a node.
         But given that a node itself could be a dag in cases of parallel, map and dag, this method handles the cases.
         If the node is of type task, success, fail: we can pretty much execute it and we call self.trigger_job.
-        If the node is of type dag, map, parallel: We call the node's execute_as_graph function which internally
+        If the node is of type composite: We call the node's execute_as_graph function which internally
         triggers execute_graph in-turn iteratively traverses the graph.
 
 
@@ -91,7 +91,7 @@ class BaseExecutor:
         self.secrets_handler = None
         self.variables_file = None
         self.configuration_file = None
-        self.cmd_line_arguments = {}
+        self.parameters_file = None
 
     def is_parallel_execution(self) -> bool:  # pylint: disable=R0201
         """
@@ -113,7 +113,10 @@ class BaseExecutor:
         run_log.status = defaults.PROCESSING
         run_log.dag_hash = self.dag_hash
 
-        parameters = self.cmd_line_arguments
+        parameters = {}
+        if self.parameters_file:
+            parameters = utils.load_yaml(self.parameters_file)
+
         if self.previous_run_log:
             run_log.original_run_id = self.previous_run_log.run_id
             # Sync the previous run log catalog to this one.
@@ -329,7 +332,7 @@ class BaseExecutor:
             return
 
         # We call an internal function to iterate the sub graphs and execute them
-        if node.node_type in ['parallel', 'dag', 'map']:
+        if node.is_composite:
             self.run_log_store.add_step_log(step_log, self.run_id)
             node.execute_as_graph(self, map_variable=map_variable, **kwargs)
             return
@@ -429,7 +432,7 @@ class BaseExecutor:
         logger.info(f'Finished execution of the {branch} with status {run_log.status}')
         print(json.dumps(run_log.dict(), indent=4))
 
-    def is_eligible_for_rerun(self, node, map_variable: dict = None):
+    def is_eligible_for_rerun(self, node: BaseNode, map_variable: dict = None):
         """
         In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
         necessary.
@@ -485,6 +488,58 @@ class BaseExecutor:
         run_log = self.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
         if run_log.status == defaults.FAIL:
             raise Exception('Pipeline execution failed')
+
+    def resolve_node_config(self, node: BaseNode):
+        """
+        The mode_config section can contain specific over-rides to an global executor config.
+        To avoid too much clutter in the dag definition, we allow the configuration file to have placeholders block.
+        The nodes can over-ride the global config by referring to key in the placeholder.
+
+        For example:
+        # configuration.yaml
+        mode:
+          type: cloud-implementation
+          config:
+            k1: v1
+            k3: v3
+            placeholders:
+              k2: v2 # Could be a mapping internally.
+
+        # in pipeline definition.yaml
+        dag:
+          steps:
+            step1:
+              mode_config:
+                cloud-implementation:
+                  k1: value_specific_to_node
+                  k2:
+
+        This method should resolve the node_config to {'k1': 'value_specific_to_node', 'k2': 'v2', 'k3': 'v3'}
+
+        Args:
+            node (BaseNode): The current node being processed.
+        """
+        effective_node_config = copy.deepcopy(self.config)
+        ctx_node_config = node.get_mode_config(self.service_name)
+
+        placeholders = self.config.get('placeholders', None)
+
+        for key, value in ctx_node_config.items():
+            if not value:
+                if key in placeholders:  # Update via placeholder only if value is None
+                    try:
+                        effective_node_config.update(placeholders[key])
+                    except TypeError:
+                        logger.error(f'Expected value to the {key} to be a mapping but found {type(placeholders[key])}')
+                    continue
+                logger.info(f"For key: {key} in the {node.name} mode_config, there is no value provided and no \
+                    corresponding placeholder was found")
+
+            effective_node_config[key] = value
+
+        effective_node_config.pop('placeholders', None)
+
+        return effective_node_config
 ```
 
 
