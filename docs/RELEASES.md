@@ -1,5 +1,15 @@
 # Release history
 
+## v0.2.2 (2022-02-23)
+
+- Enabling configurations to have placeholders that individual nodes can use to over-ride.
+- Provided API in the executor to resolve the effective config by using global and local config
+
+## v0.2.1 (2022-02-22)
+
+- Updated docs to clarify the extension capabilities of the CLI and nodes
+- Removed demo-renderer argument parsing block as parameters come from parameters
+
 ## v0.2 (2022-02-22)
 
 - Moved magnus CLI to click.

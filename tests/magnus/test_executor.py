@@ -560,6 +560,65 @@ def test_base_executor_execute_graph_breaks_if_node_status_is_terminal(mocker, m
     assert mock_execute_from_graph.call_count == 1
 
 
+def test_base_executor_resolve_node_config_gives_global_config_if_node_does_not_override(mocker, monkeypatch):
+    mock_node = mocker.MagicMock()
+    mock_node.get_mode_config.return_value = {}
+
+    base_executor = executor.BaseExecutor(config={'a': 1})
+
+    assert base_executor.resolve_node_config(mock_node) == {'a': 1}
+
+
+def test_base_executor_resolve_node_config_updates_global_config_if_node_overrides(mocker, monkeypatch):
+    mock_node = mocker.MagicMock()
+    mock_node.get_mode_config.return_value = {'a': 2}
+
+    base_executor = executor.BaseExecutor(config={'a': 1})
+
+    assert base_executor.resolve_node_config(mock_node) == {'a': 2}
+
+
+def test_base_executor_resolve_node_config_updates_global_config_if_node_adds(mocker, monkeypatch):
+    mock_node = mocker.MagicMock()
+    mock_node.get_mode_config.return_value = {'b': 2}
+
+    base_executor = executor.BaseExecutor(config={'a': 1})
+
+    assert base_executor.resolve_node_config(mock_node) == {'a': 1, 'b': 2}
+
+
+def test_base_executor_resolve_node_config_updates_global_config_from_placeholders(mocker, monkeypatch):
+    mock_node = mocker.MagicMock()
+    mock_node.get_mode_config.return_value = {'b': 2, 'replace': None}
+
+    config = {
+        'a': 1,
+        'placeholders': {
+            'replace': {'c': 3}
+        }
+
+    }
+    base_executor = executor.BaseExecutor(config=config)
+
+    assert base_executor.resolve_node_config(mock_node) == {'a': 1, 'c': 3, 'b': 2}
+
+
+def test_base_executor_resolve_node_supresess_global_config_from_placeholders_if_its_not_mapping(mocker, monkeypatch):
+    mock_node = mocker.MagicMock()
+    mock_node.get_mode_config.return_value = {'b': 2, 'replace': None}
+
+    config = {
+        'a': 1,
+        'placeholders': {
+            'replace': [1, 2, 3]
+        }
+
+    }
+    base_executor = executor.BaseExecutor(config=config)
+
+    assert base_executor.resolve_node_config(mock_node) == {'a': 1, 'b': 2}
+
+
 def test_base_executor_execute_graph_raises_exception_if_loop(mocker, monkeypatch):
     mock_dag = mocker.MagicMock()
     mock_execute_from_graph = mocker.MagicMock()
