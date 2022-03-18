@@ -24,6 +24,7 @@ mode:
   config:
     enable_parallel:
     docker_image:
+    environment: # is passed in to docker.containers.create(environment=environment)
 ```
 
 ### Enabling parallel
@@ -75,7 +76,7 @@ RUN poetry install
 
 ### Node over-rides
 
-The docker image provided at ```mode``` can be over-ridden by individual nodes of the graph by providing a
+The docker image/environment provided at ```mode``` can be over-ridden by individual nodes of the graph by providing a
 ```mode_config``` as part of the definition. Since ```mode_config``` is universally used by all modes, the
 over-rides should be provided within the context of the executor type.
 
