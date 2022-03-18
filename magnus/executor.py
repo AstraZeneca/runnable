@@ -682,6 +682,7 @@ class LocalContainerExecutor(BaseExecutor):
             #  Overrides global config with local
             mode_config = self.resolve_node_config(node)
             docker_image = mode_config.get('docker_image', None)
+            environment = mode_config.get('environment', {})
             if not docker_image:
                 raise Exception(
                     f'Please provide a docker_image using mode_config of the step {node.name} or at global mode')
@@ -691,7 +692,8 @@ class LocalContainerExecutor(BaseExecutor):
                                                  command=action,
                                                  auto_remove=True,
                                                  volumes=self.volumes,
-                                                 network_mode='host')
+                                                 network_mode='host',
+                                                 environment=environment)
             container.start()
             stream = container.logs(stream=True, follow=True)
             while True:
