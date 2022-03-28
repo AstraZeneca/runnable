@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import json
 import logging
-import sys
 from collections import OrderedDict
 from pathlib import Path
-from typing import DefaultDict, Dict, List, Optional, OrderedDict, Tuple, Union
+from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from magnus import defaults, exceptions, utils
 
@@ -54,11 +53,11 @@ class CodeIdentity(BaseModel):
     """
     The captured attributes of a code identity of a step.
     """
-    code_identifier: str = ''  # GIT sha code or docker image id
-    code_identifier_type: str = ''  # git or docker
-    code_identifier_dependable: bool = False  # If git, checks if the tree is clean.
-    code_identifier_url: str = ''  # The git remote url or docker repository url
-    code_identifier_message: str = ''  # Any optional message
+    code_identifier: Optional[str] = ''  # GIT sha code or docker image id
+    code_identifier_type: Optional[str] = ''  # git or docker
+    code_identifier_dependable: Optional[bool] = False  # If git, checks if the tree is clean.
+    code_identifier_url: Optional[str] = ''  # The git remote url or docker repository url
+    code_identifier_message: Optional[str] = ''  # Any optional message
 
 
 class StepLog(BaseModel):
