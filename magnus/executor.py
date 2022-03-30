@@ -72,6 +72,7 @@ class BaseExecutor:
         self.variables_file = None
         self.configuration_file = None
         self.parameters_file = None
+        self.single_step = None
 
     def is_parallel_execution(self) -> bool:  # pylint: disable=R0201
         """
@@ -304,12 +305,21 @@ class BaseExecutor:
             self.execute_node(node, map_variable=map_variable, **kwargs)
             return
 
-        # If previous run was successful, move on to the next step
-        if not self.is_eligible_for_rerun(node, map_variable=map_variable):
-            step_log.mock = True
-            step_log.status = defaults.SUCCESS
-            self.run_log_store.add_step_log(step_log, self.run_id)
-            return
+        # In single step
+        if self.single_step:
+            # If the node name does not match, we move on to the next node.
+            if not node.name == self.single_step:
+                step_log.mock = True
+                step_log.status = defaults.SUCCESS
+                self.run_log_store.add_step_log(step_log, self.run_id)
+                return
+        else:  # We are not in single step mode
+            # If previous run was successful, move on to the next step
+            if not self.is_eligible_for_rerun(node, map_variable=map_variable):
+                step_log.mock = True
+                step_log.status = defaults.SUCCESS
+                self.run_log_store.add_step_log(step_log, self.run_id)
+                return
 
         # We call an internal function to iterate the sub graphs and execute them
         if node.is_composite:

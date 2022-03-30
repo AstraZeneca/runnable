@@ -15,6 +15,8 @@ def load_user_extensions():
     """
     User can provide extensions as part of their code base, magnus-config.yaml provides the place to put them.
     Look for them and load the extensions if provided.
+
+    # TODO: With introduction of stevedore, this fails. Should find a way to do this the stevedore way
     """
     user_configs = {}
     if utils.does_file_exist(defaults.USER_CONFIG_FILE):
@@ -182,6 +184,75 @@ def execute(
         logger.info('Found a previous run log and using it as cache')
 
     # Prepare for graph execution
+    mode_executor.prepare_for_graph_execution()
+
+    logger.info('Executing the graph')
+    mode_executor.execute_graph(dag=mode_executor.dag)
+
+    mode_executor.send_return_code()
+
+
+def execute_single_step(
+        variables_file: str,
+        configuration_file: str,
+        pipeline_file: str,
+        step_name: str,
+        run_id: str,
+        tag: str = None,
+        parameters_file: str = None,
+        use_cached: str = None,):
+    # pylint: disable=R0914,R0913
+    """
+    The entry point into executing a single step of magnus.
+
+    It should have similar set up of configurations to execute because orchestrator modes can initiate the execution.
+
+    Args:
+        variables_file (str): The variables file, if used or None
+        step_name : The name of the step to execute in dot path convention
+        pipeline_file (str): The config/dag file
+        run_id (str): The run id of the run.
+        tag (str): If a tag is provided at the run time
+        parameters_file (str): The parameters being sent in to the application
+
+    """
+    run_id = utils.generate_run_id(run_id=run_id)
+
+    mode_executor = prepare_configurations(variables_file=variables_file,
+                                           configuration_file=configuration_file,
+                                           pipeline_file=pipeline_file,
+                                           run_id=run_id,
+                                           tag=tag,
+                                           use_cached='',
+                                           parameters_file=parameters_file)
+
+    try:
+        _ = mode_executor.dag.get_node_by_name(step_name)
+    except exceptions.NodeNotFoundError as e:
+        msg = (
+            f"The node by name {step_name} is not found in the graph. Please provide a valid node name"
+        )
+        raise Exception(msg) from e
+
+    previous_run_log = None
+    if use_cached:
+        try:
+            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
+        except exceptions.RunLogNotFoundError as _e:
+            msg = (
+                f'There is no run by {use_cached} in the current run log store '
+                f'{mode_executor.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n'
+                'Note: Even if the previous run used a different run log store, provide the run log store in the format'
+                ' accepted by the current run log store.'
+            )
+            raise Exception(msg) from _e
+
+        if previous_run_log.dag_hash != mode_executor.dag_hash:
+            logger.warning('The previous dag does not match to the current one!')
+        mode_executor.previous_run_log = previous_run_log
+        logger.info('Found a previous run log and using it as cache')
+
+    mode_executor.single_step = step_name
     mode_executor.prepare_for_graph_execution()
 
     logger.info('Executing the graph')

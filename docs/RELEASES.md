@@ -1,5 +1,19 @@
 # Release history
 
+
+## v0.3.0 (2022-03-30)
+
+- Supporting execute_step which executes only a single node of the pipeline
+
+## v0.2.4 (2022-03-28)
+
+- Bug fix with optional git commit identifiers.
+
+
+## v0.2.3 (2022-03-18)
+
+- local container mode has a provision to send in environment variables to the container from the config.
+
 ## v0.2.2 (2022-02-23)
 
 - Enabling configurations to have placeholders that individual nodes can use to over-ride.
