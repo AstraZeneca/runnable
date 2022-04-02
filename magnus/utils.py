@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import subprocess
-import uuid
 from collections import OrderedDict
 from datetime import datetime
 from inspect import signature
@@ -201,6 +200,19 @@ def get_current_code_commit() -> Union[str, None]:
         return label
     except BaseException:  # pylint: disable=W0702
         logger.exception('Error getting git hash')
+        raise
+
+
+def archive_git_tracked(name: str):
+    command = f'git archive -v -o {name}.tar.gz --format=tar.gz HEAD'
+
+    if not is_a_git_repo():
+        raise Exception("Not a git repo")
+    try:
+        subprocess.check_output(
+            command.split()).strip().decode('utf-8')
+    except BaseException:  # pylint: disable=W0702
+        logger.exception('Error archiving repo')
         raise
 
 
