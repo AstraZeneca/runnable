@@ -1,5 +1,9 @@
 # Release history
 
+## v0.3.1 (2022-04-23)
+
+- Bug fix with executor interactions with run log store parameters.
+
 
 ## v0.3.0 (2022-03-30)
 

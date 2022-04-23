@@ -105,7 +105,8 @@ class BaseExecutor:
             run_log.use_cached = True
             parameters.update(self.previous_run_log.parameters)
 
-        run_log.parameters = parameters
+        # Any interaction with run log store attributes should happen via API if available.
+        self.run_log_store.set_parameters(run_id=self.run_id, parameters=parameters)
 
         # Update run_config
         run_log.run_config = utils.get_run_config(self)
