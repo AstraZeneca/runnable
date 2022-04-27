@@ -167,6 +167,59 @@ The options have the same meaning as executing a pipeline.
 **Design thought:** This method could be handy to debug a single node of the pipeline or run a single step of the pipeline
 in other environments by changing the config.
 
+
+## Building docker images
+
+This method is a utility tool to assist in building docker images.
+
+It is preferred that you have a docker file that you can provide to the utility tool using the ```-f/--docker-file```
+option. We can auto-generate a opinionated dockerfile but it is unlikely to fit your needs perfectly.
+
+For the auto-generation of the dockerfile:
+
+- You can provide the style of dependency management. Currently, poetry, pipenv are supported. Any other would revert
+to using requirements.txt dependency style.
+- The base image is python 3.7
+- By default, we add only git tracked contents into the ```app``` folder of the image. But you can over-ride it
+with ```--all``` option to add all content to the image.
+
+Please be aware that using ```--all``` might add sensitive data into the docker image.
+
+The options available are:
+
+```
+Usage: magnus build_docker [OPTIONS] IMAGE_NAME
+
+  A utility function to create docker images from the existing codebase.
+
+  It is advised to provide your own dockerfile as much as possible. If you do
+  not have one handy, you can use --dry-run functionality to see if the auto-
+  generated one suits your needs.
+
+  If you are auto-generating the dockerfile: BEWARE!! Over-riding the default
+  options assumes you know what you are doing! BEWARE!!
+
+  1). By default, only git tracked files are added to the docker image.
+
+  2). The auto-generated dockerfile uses, python 3.7 as the default image and
+  adds the current folder.
+
+Options:
+  -f, --docker-file TEXT  The dockerfile to be used. If None, we generate one
+  -s, --style TEXT        The method used to get requirements  [default:
+                          poetry]
+  -t, --tag TEXT          The tag assigned to the image  [default: latest]
+  -c, --commit-tag        Use commit id as tag. Over-rides tag option
+                          [default: False]
+  -d, --dry-run           Generate the dockerfile, but NOT the image
+                          [default: False]
+  --git-tracked / --all   Controls what should be added to image. All vs git-
+                          tracked  [default: git-tracked]
+  --help                  Show this message and exit.
+```
+
+
+
 ## Extensions
 
 Magnus internally uses click to perform CLI operations and base command is given below.
