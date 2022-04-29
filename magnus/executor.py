@@ -109,9 +109,9 @@ class BaseExecutor:
         self.run_log_store.set_parameters(run_id=self.run_id, parameters=parameters)
 
         # Update run_config
-        run_log.run_config = utils.get_run_config(self)
+        run_config = utils.get_run_config(self)
 
-        self.run_log_store.put_run_log(run_log)
+        self.run_log_store.set_run_config(run_id=self.run_id, run_config=run_config)
 
     def prepare_for_graph_execution(self):
         """
