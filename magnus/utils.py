@@ -351,7 +351,12 @@ def get_user_set_parameters(remove: bool = False) -> dict:
     for env_var, value in os.environ.items():
         if env_var.startswith(defaults.PARAMETER_PREFIX):
             key = remove_prefix(env_var, defaults.PARAMETER_PREFIX)
-            parameters[key.lower()] = json.loads(value)
+            try:
+                parameters[key.lower()] = json.loads(value)
+            except json.decoder.JSONDecodeError:
+                logger.error(f'Parameter {key} could not be JSON decoded, adding the literal value')
+                parameters[key.lower()] = value
+
             if remove:
                 del os.environ[env_var]
     return parameters
