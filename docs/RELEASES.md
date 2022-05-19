@@ -1,5 +1,13 @@
 # Release history
 
+## v0.3.4 (2022-05-19)
+
+- Bug fix with JSON decoding of parameters
+
+## v0.3.3 (2022-04-23)
+
+- Bug fix with executor interactions with run log store parameters.
+
 ## v0.3.2 (2022-04-23)
 
 - Added the functionality of build_docker to the CLI.
