@@ -206,6 +206,8 @@ class FileSystemCatalog(BaseCatalog):
         if compute_data_folder:
             copy_to = compute_data_folder
 
+        copy_to = Path(copy_to)
+
         if not utils.does_dir_exist(copy_to):
             msg = (
                 f'Expected compute data folder to be present at: {copy_to} but not found. \n'
@@ -233,14 +235,23 @@ class FileSystemCatalog(BaseCatalog):
         data_catalogs = []
         run_log_store = get_run_log_store()
         for file in glob_files:
-            data_catalog = run_log_store.create_data_catalog(str(file.name))
+            if file.is_dir():
+                # Need not add a data catalog for the folder
+                continue
+
+            relative_file_path = file.relative_to(run_catalog)
+
+            data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
             data_catalog.catalog_handler_location = catalog_location
-            data_catalog.catalog_relative_path = utils.remove_prefix(str(file), catalog_location)
+            data_catalog.catalog_relative_path = str(relative_file_path)
             data_catalog.data_hash = utils.get_data_hash(str(file))
             data_catalog.stage = 'get'
             data_catalogs.append(data_catalog)
 
-            shutil.copy(file, copy_to)
+            # Make the directory in the data folder if required
+            Path(copy_to / relative_file_path.parent).mkdir(parents=True, exist_ok=True)
+            shutil.copy(file, copy_to / relative_file_path)
+
             logger.info(f'Copied {file} from {run_catalog} to {copy_to}')
 
         return data_catalogs
@@ -268,6 +279,7 @@ class FileSystemCatalog(BaseCatalog):
         copy_from = self.compute_data_folder
         if compute_data_folder:
             copy_from = compute_data_folder
+        copy_from = Path(copy_from)
 
         catalog_location = self.get_catalog_location()
         run_catalog = Path(catalog_location) / run_id
@@ -284,22 +296,32 @@ class FileSystemCatalog(BaseCatalog):
 
         # Iterate through the contents of copy_from and if the name matches, we move them to the run_catalog
         # We should also return a list of datastore.DataCatalog items
-        glob_files = Path(copy_from).glob(name)
+
+        glob_files = copy_from.glob(name)
         logger.debug(f'Glob identified {glob_files} as matches to from the compute data folder: {copy_from}')
 
         data_catalogs = []
         run_log_store = get_run_log_store()
         for file in glob_files:
-            data_catalog = run_log_store.create_data_catalog(str(file.name))
+            if file.is_dir():
+                # Need not add a data catalog for the folder
+                continue
+
+            relative_file_path = file.relative_to('.')
+
+            data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
             data_catalog.catalog_handler_location = catalog_location
-            data_catalog.catalog_relative_path = run_id + os.sep + str(file.name)
+            data_catalog.catalog_relative_path = run_id + os.sep + str(relative_file_path)
             data_catalog.data_hash = utils.get_data_hash(str(file))
             data_catalog.stage = 'put'
             data_catalogs.append(data_catalog)
 
             if is_catalog_out_of_sync(data_catalog, synced_catalogs):
                 logger.info(f'{data_catalog.name} was found to be changed, syncing')
-                shutil.copy(file, run_catalog)
+
+                # Make the directory in the catalog if required
+                Path(run_catalog / relative_file_path.parent).mkdir(parents=True, exist_ok=True)
+                shutil.copy(file, run_catalog / relative_file_path)
             else:
                 logger.info(f'{data_catalog.name} was found to be unchanged, ignoring syncing')
         return data_catalogs

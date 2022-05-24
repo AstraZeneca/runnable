@@ -1,5 +1,9 @@
 # Release history
 
+## v0.3.5 (2022-05-24)
+
+- Cataloging happens w.r.t to source location for flexibility
+
 ## v0.3.4 (2022-05-19)
 
 - Bug fix with JSON decoding of parameters
