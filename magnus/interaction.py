@@ -125,3 +125,21 @@ def put_in_catalog(filepath: str):
 
     global_executor.catalog_handler.put(file_path.name, run_id=global_executor.run_id,  # type: ignore
                                         compute_data_folder=file_path.parent)
+
+
+def get_run_id() -> str:
+    """
+    Returns the run_id of the current run
+    """
+    from magnus.pipeline import \
+        global_executor  # pylint: disable=import-outside-toplevel
+
+    return global_executor.run_id
+
+
+def store_run_id():
+    """
+    Stores the run_id as environment variable for the steps to use.
+    """
+    run_id = get_run_id()
+    os.environ[defaults.ENV_RUN_ID] = run_id

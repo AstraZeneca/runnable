@@ -38,6 +38,29 @@ Every run in magnus is given a unique ```run_id```.
 
 Magnus creates one based on the timestamp is one is not provided during the run time.
 
+During the execution of the run, the ```run_id``` can be obtained in the following ways:
+
+
+```python
+from magnus import get_run_id
+
+def my_function():
+    run_id = get_run_id() # Returns the run_id of the current run
+```
+
+
+or using environmental variable ```MAGNUS_RUN_ID```.
+
+```python
+import os
+
+def my_function():
+    run_id = os.environ['MAGNUS_RUN_ID'] # Returns the run_id of the current run
+```
+
+
+
+
 ### dag_hash
 
 The SHA id of the pipeline itself is stored here.
