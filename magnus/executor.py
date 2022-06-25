@@ -224,6 +224,7 @@ class BaseExecutor:
 
         parameters = self.run_log_store.get_parameters(run_id=self.run_id)
         interaction.store_parameter(**parameters)
+        interaction.store_run_id()
 
         data_catalogs_get = self.sync_catalog(node, step_log, stage='get')
 
