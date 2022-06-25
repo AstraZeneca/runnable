@@ -54,6 +54,16 @@ nav:
       - "Example Deployment": "getting_started/example-deployment.md"
       - "Wrap up": "getting_started/wrap-up.md"
       - "Why magnus": "getting_started/why-magnus.md"
+  - "Tutorial":
+      - "Overview": "tutorial/overview.md"
+      - "Single notebook": "tutorial/single-notebook.md"
+      - "Modular notebooks": "tutorial/modular-notebooks.md"
+      - "Switching configs": "tutorial/switching-configs.md"
+      - "Using parallels": "tutorial/using-parallel.md"
+      - "Dynamic looping": "tutorial/dynamic-looping.md"
+      - "Modular pipelines": "tutorial/modular-dags.md"
+      - "Script based": "tutorial/script-based.md"
+      - "What next?": "tutorial/wrap-up.md"
   - "Concepts":
       - "Node": "concepts/nodes.md"
       - "Command types": "concepts/command-types.md"
