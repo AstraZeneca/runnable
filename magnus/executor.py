@@ -514,7 +514,7 @@ class BaseExecutor:
         effective_node_config = copy.deepcopy(self.config)
         ctx_node_config = node.get_mode_config(self.service_name)
 
-        placeholders = self.config.get('placeholders', None)
+        placeholders = self.config.get('placeholders', {})
 
         for key, value in ctx_node_config.items():
             if not value:

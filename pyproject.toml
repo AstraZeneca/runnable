@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.3.6"
+version = "0.3.7"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
