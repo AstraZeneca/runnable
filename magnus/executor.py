@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+import os
 import re
 
 from magnus import (datastore, defaults, exceptions, integration, interaction,
@@ -223,8 +224,13 @@ class BaseExecutor:
         step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
 
         parameters = self.run_log_store.get_parameters(run_id=self.run_id)
+        # Set up environment variables for the execution
         interaction.store_parameter(**parameters)
         interaction.store_run_id()
+
+        mode_config = self.resolve_node_config(node)
+        for env_secret_key, secret_key in mode_config.get('secret_as_env', {}).items():
+            os.environ[env_secret_key] = interaction.get_secret(secret_key)
 
         data_catalogs_get = self.sync_catalog(node, step_log, stage='get')
 
