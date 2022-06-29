@@ -1,5 +1,20 @@
 # Release history
 
+
+## v0.3.8 (2022-06-29)
+
+- Exposing secrets as environment variables if the user requested via secret_as_env in the config.
+    The key of the secret_as_env should be the name of the environment variable while the value should be a secret name.
+
+
+## v0.3.7 (2022-06-27)
+
+- Fixing a bug with empty placeholders
+
+## v0.3.6 (2022-06-25)
+
+- Run ID is exposed to the user as interaction function or via environment variable MAGNUS_RUN_ID
+
 ## v0.3.5 (2022-05-24)
 
 - Cataloging happens w.r.t to source location for flexibility
