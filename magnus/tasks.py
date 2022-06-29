@@ -88,6 +88,9 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         parameters = self.get_parameters()
         filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
 
+        if map_variable:
+            os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+
         logger.info(f'Calling {func} from {module} with {filtered_parameters}')
         try:
             user_set_parameters = f(**filtered_parameters)
@@ -98,6 +101,9 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             logger.exception(msg)
             logger.exception(_e)
             raise
+
+        if map_variable:
+            del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
 
         self.set_parameters(user_set_parameters)
 
@@ -121,6 +127,9 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
         parameters = self.get_parameters()
         filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
 
+        if map_variable:
+            os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+
         logger.info(f'Calling lambda function: {self.command} with {filtered_parameters}')
         try:
             user_set_parameters = f(**filtered_parameters)
@@ -131,6 +140,9 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
             logger.exception(msg)
             logger.exception(_e)
             raise
+
+        if map_variable:
+            del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
 
         self.set_parameters(user_set_parameters)
 
@@ -158,6 +170,9 @@ class NotebookTaskType(BaseTaskType):
             filtered_parameters = utils.filter_arguments_from_parameters(parameters=parameters,
                                                                          signature_parameters=notebook_parameters,
                                                                          map_variable=map_variable)
+            if map_variable:
+                os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+
             notebook_output_path = self.config.get('notebook_output_path',
                                                    ''.join(self.command.split('.')[:-1]) + '_out.ipynb')
             kernel = self.config.get('notebook_kernel', None)
@@ -175,6 +190,10 @@ class NotebookTaskType(BaseTaskType):
                 kwds['kernel_name'] = kernel
 
             pm.execute_notebook(**kwds)
+
+            if map_variable:
+                del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+
         except ImportError as e:
             msg = (
                 f'Task type of notebook requires papermill to be installed. Please install via optional: notebook'
@@ -194,9 +213,12 @@ class ShellTaskType(BaseTaskType):
         # It might be that we have to write a bash/windows script that does things for us
         # Need to over-ride set parameters too
         subprocess_env = os.environ.copy()
+
         if map_variable:
             subprocess_env[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+
         result = subprocess.run(self.command, check=True, env=subprocess_env, shell=True,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
         print(result.stdout)
         print(result.stderr)

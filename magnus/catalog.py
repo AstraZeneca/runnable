@@ -216,7 +216,7 @@ class FileSystemCatalog(BaseCatalog):
             raise Exception(msg)
 
         catalog_location = self.get_catalog_location()
-        run_catalog = Path(catalog_location) / run_id
+        run_catalog = Path(catalog_location) / run_id / copy_to
 
         logger.debug(f'Copying objects to {copy_to} from the run catalog location of {run_catalog}')
 
