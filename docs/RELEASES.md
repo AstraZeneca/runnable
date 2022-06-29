@@ -1,5 +1,11 @@
 # Release history
 
+## v0.3.9 (2022-06-29)
+
+- Bug fix in catalog get function, Issue 54.
+- Enhancement of sending log levels to different executing environments, Issue 53
+- Map variable sent in as environment variable to non-shell tasks, Issue 51
+
 
 ## v0.3.8 (2022-06-29)
 
