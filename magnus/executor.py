@@ -659,12 +659,24 @@ class LocalContainerExecutor(BaseExecutor):
 
     def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
-        In local container mode, we just spin the container to execute magnus execute_single_node
+        If the config has "run_in_local: True", we compute it on local system instead of container.
+        In local container mode, we just spin the container to execute magnus execute_single_node.
 
         Args:
             node (BaseNode): The node we are currently executing
             map_variable (str, optional): If the node is part of the map branch. Defaults to ''.
         """
+        mode_config = self.resolve_node_config(node)
+
+        if "run_in_local" in mode_config and mode_config["run_in_local"]:
+            # Do not change config but only validate the configuration.
+            integration.validate(self, self.run_log_store)
+            integration.validate(self, self.catalog_handler)
+            integration.validate(self, self.secrets_handler)
+
+            self.execute_node(node=node, map_variable=map_variable, **kwargs)
+            return
+
         self._spin_container(node, map_variable=map_variable, **kwargs)
 
         # Check for the status of the node log and anything apart from Success is FAIL
