@@ -1,17 +1,19 @@
 # Release history
 
+## v0.3.10 (2022-06-30)
+
+- Local container mode can accept a config parameter to allow it to run local system, Issue 52
+
 ## v0.3.9 (2022-06-29)
 
 - Bug fix in catalog get function, Issue 54.
 - Enhancement of sending log levels to different executing environments, Issue 53
 - Map variable sent in as environment variable to non-shell tasks, Issue 51
 
-
 ## v0.3.8 (2022-06-29)
 
 - Exposing secrets as environment variables if the user requested via secret_as_env in the config.
     The key of the secret_as_env should be the name of the environment variable while the value should be a secret name.
-
 
 ## v0.3.7 (2022-06-27)
 
