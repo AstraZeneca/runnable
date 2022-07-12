@@ -1,4 +1,5 @@
 import logging
+import os
 from functools import lru_cache
 from typing import Union
 
@@ -64,6 +65,43 @@ class DoNothingSecretManager(BaseSecrets):
         """
         if name:
             return ''
+        return {}
+
+
+class EnvSecretsManager(BaseSecrets):
+    """
+    A secret manager via environment variables.
+
+    This secret manager returns nothing if the key does not match
+    """
+
+    service_name = 'env-secrets-manager'
+
+    def __init__(self, config, **kwargs):
+        super().__init__(config, **kwargs)
+
+    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
+        """
+        If a name is provided, we look for that in the environment.
+        If a environment variable by that name is not found, we raise an Exception.
+
+        If a name is not provided, we return an empty dictionary.
+
+        Args:
+            name (str): The name of the secret to retrieve
+
+        Raises:
+            Exception: If the secret by the name is not found.
+
+        Returns:
+            [type]: [description]
+        """
+        if name:
+            try:
+                return os.environ[name]
+            except KeyError:
+                raise exceptions.SecretNotFoundError(secret_name=name, secret_setting="environment")
+
         return {}
 
 

@@ -1,5 +1,10 @@
 # Release history
 
+## v0.3.11 (2022-07-12)
+
+- Added a env-secrets-manager which gets its secrets from environment, Issue 58
+
+
 ## v0.3.10 (2022-06-30)
 
 - Local container mode can accept a config parameter to allow it to run local system, Issue 52
