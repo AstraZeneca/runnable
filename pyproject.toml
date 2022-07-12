@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.3.10"
+version = "0.3.11"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
@@ -11,7 +11,7 @@ documentation = "https://astrazeneca.github.io/magnus-core/"
 
 
 [tool.poetry.dependencies]
-python = "^3.6.1"
+python = "^3.7.1"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 yachalk = "*"
@@ -57,6 +57,7 @@ magnus= 'magnus.cli:cli'
 [tool.poetry.plugins."magnus.secrets.BaseSecrets"]
 "do-nothing" = "magnus.secrets:DoNothingSecretManager"
 "dotenv" = "magnus.secrets:DotEnvSecrets"
+"env-secrets-manager" = "magnus.secrets:EnvSecretsManager"
 
 # Plugins for Run Log store
 [tool.poetry.plugins."magnus.datastore.BaseRunLogStore"]
@@ -93,7 +94,6 @@ magnus= 'magnus.cli:cli'
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
 
-# TODO: Can we use this to configure magnus?
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
