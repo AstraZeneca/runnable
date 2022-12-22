@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Union
 
 from magnus import defaults, exceptions, utils
+from magnus.executor import StepExecutor
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -143,3 +144,27 @@ def store_run_id():
     """
     run_id = get_run_id()
     os.environ[defaults.ENV_RUN_ID] = run_id
+
+
+class step(object):
+
+    def __init__(self, name: str, run_id_env_variable: str, catalog_config: dict):
+        """
+        This decorator could be used to make the function within the scope of magnus.
+
+        Args:
+            name (str): The name of the step. The step log would have the same name
+            run_id_env_variable (str): The environment variable containing the run_id.
+            catalog_config (dict): The configuration of the catalog.
+        """
+        self.name = name
+        self.run_id_env_variable = run_id_env_variable
+        self.catalog_config = catalog_config
+
+    def __call__(self, func):
+        """
+        The function is converted into a node and called via the magnus framework.
+        """
+        def wrapped_f(*args):
+            executor = StepExecutor(config={})
+        return wrapped_f
