@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import sys
 from pathlib import Path
 from typing import Callable, Union
 
@@ -21,9 +20,12 @@ def track_this(**kwargs):
     Args:
         kwargs (dict): The dictionary of key value pairs to track.
     """
+    from magnus.pipeline import \
+        global_executor  # pylint: disable=import-outside-toplevel
     for key, value in kwargs.items():
         logger.info(f'Tracking {key} with value: {value}')
         os.environ[defaults.TRACK_PREFIX + key] = json.dumps(value)
+        global_executor.experiment_tracker.set_metric(key, value)
 
 
 def store_parameter(**kwargs: dict):
@@ -180,6 +182,9 @@ class step(object):
         secrets_config = configuration.get('secrets', defaults.DEFAULT_SECRETS)
         secrets_handler = utils.get_provider_by_name_and_type('secrets', secrets_config)
 
+        tracker_config = configuration.get('experiment_tracker', defaults.DEFAULT_EXPERIMENT_TRACKER)
+        tracker_handler = utils.get_provider_by_name_and_type('experiment_tracker', tracker_config)
+
         # Mode configurations, configuration over rides everything
         mode_config = configuration.get('mode', defaults.DEFAULT_EXECUTOR)
         mode_executor = utils.get_provider_by_name_and_type('executor', mode_config)
@@ -196,6 +201,7 @@ class step(object):
         mode_executor.run_log_store = run_log_store
         mode_executor.catalog_handler = catalog_handler
         mode_executor.secrets_handler = secrets_handler
+        mode_executor.experiment_tracker = tracker_handler
         mode_executor.run_id = run_id
         mode_executor.parameters_file = parameters_file
         self.executor = mode_executor
@@ -218,8 +224,6 @@ class step(object):
         """
         The function is converted into a node and called via the magnus framework.
         """
-        sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
-        print('here')
 
         def wrapped_f(*args):
 
@@ -232,7 +236,6 @@ class step(object):
             }
             node = graph.create_node(name=self.name, step_config=step_config)
             self.executor.execute_from_graph(node=node)
-            self.executor.send_return_code(stage='execution')
             run_log = self.executor.run_log_store.get_run_log_by_id(run_id=self.executor.run_id, full=False)
             print(json.dumps(run_log.dict(), indent=4))
         return wrapped_f

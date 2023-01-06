@@ -35,6 +35,9 @@ DEFAULT_CATALOG = {
 DEFAULT_SECRETS = {
     'type': 'do-nothing'
 }
+DEFAULT_EXPERIMENT_TRACKER = {
+    'type': 'do-nothing'
+}
 
 # Map state
 MAP_PLACEHOLDER = 'map_variable_placeholder'

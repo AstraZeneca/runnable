@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Union
 
-from magnus import defaults, exceptions, graph, nodes, utils
+from magnus import defaults, exceptions, graph, utils
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -97,6 +97,13 @@ def prepare_configurations(
         secrets_config = pipeline_config.get('secrets', {}) or default_secrets_config
     secrets_handler = utils.get_provider_by_name_and_type('secrets', secrets_config)
 
+    # experiment tracker settings, configuration over-rides everything
+    tracker_config = configuration.get('experiment_tracker', {})
+    if not tracker_config:
+        default_tracker_config = magnus_defaults.get('experiment_tracker', defaults.DEFAULT_EXPERIMENT_TRACKER)
+        tracker_config = pipeline_config.get('experiment_tracker', {}) or default_tracker_config
+    tracker_handler = utils.get_provider_by_name_and_type('experiment_tracker', tracker_config)
+
     # Mode configurations, configuration over rides everything
     mode_config = configuration.get('mode', {})
     if not mode_config:
@@ -118,6 +125,7 @@ def prepare_configurations(
     mode_executor.catalog_handler = catalog_handler
     mode_executor.dag_hash = dag_hash
     mode_executor.secrets_handler = secrets_handler
+    mode_executor.experiment_tracker = tracker_handler
     mode_executor.variables_file = variables_file
     mode_executor.configuration_file = configuration_file
     mode_executor.parameters_file = parameters_file
@@ -278,6 +286,7 @@ def execute_single_node(
         parameters_file (str): The parameters being sent in to the application
 
     """
+    from magnus import nodes
     mode_executor = prepare_configurations(variables_file=variables_file,
                                            configuration_file=configuration_file,
                                            pipeline_file=pipeline_file,
@@ -321,6 +330,7 @@ def execute_single_brach(
         run_id (str): The run id of the run.
         tag (str): If a tag is provided at the run time
     """
+    from magnus import nodes
     mode_executor = prepare_configurations(variables_file=variables_file,
                                            configuration_file=configuration_file,
                                            pipeline_file=pipeline_file,

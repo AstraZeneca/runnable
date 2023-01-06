@@ -64,6 +64,11 @@ magnus= 'magnus.cli:cli'
 "buffered" = "magnus.datastore:BufferRunLogstore"
 "file-system" = "magnus.datastore:FileSystemRunLogstore"
 
+# Plugins for Experiment tracker
+[tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]
+"do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
+
+
 # Plugins for Integration
 [tool.poetry.plugins."magnus.integration.BaseIntegration"]
 # {executor.name}-{service}-{service.name}

@@ -70,6 +70,7 @@ class BaseExecutor:
         self.dag_hash = None
         self.catalog_handler = None
         self.secrets_handler = None
+        self.experiment_tracker = None
         self.variables_file = None
         self.configuration_file = None
         self.parameters_file = None
@@ -488,7 +489,6 @@ class BaseExecutor:
         run_id = self.run_id
 
         run_log = self.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
-        print(run_log)
         if run_log.status == defaults.FAIL:
             raise Exception('Pipeline execution failed')
 

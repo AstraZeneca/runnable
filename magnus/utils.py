@@ -492,6 +492,9 @@ def get_service_namespace(service_type: str) -> str:
     if service_type == 'secrets':
         return 'magnus.secrets.BaseSecrets'
 
+    if service_type == 'experiment_tracker':
+        return 'magnus.experiment_tracker.BaseExperimentTracker'
+
     raise Exception('Service type is not recognized')
 
 
@@ -569,6 +572,9 @@ def get_run_config(executor: executor.BaseExecutor) -> dict:
 
     run_config['secrets'] = {'type': executor.secrets_handler.service_name,
                              'config': executor.secrets_handler.config}
+
+    run_config['experiment_tracker'] = {'type': executor.experiment_tracker.service_name,
+                                        'config': executor.experiment_tracker.config}
 
     return run_config
 
