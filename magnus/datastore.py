@@ -613,7 +613,10 @@ class BufferRunLogstore(BaseRunLogStore):
         # Returns the run_log defined by id
         # Raises Exception if not found
         logger.info(f'{self.service_name} Getting the run log from DB for {run_id}')
-        return self.run_log
+        if self.run_log:
+            return self.run_log
+
+        raise exceptions.RunLogNotFoundError(run_id)
 
     def put_run_log(self, run_log: RunLog, **kwargs):
         # Puts the run_log into the database

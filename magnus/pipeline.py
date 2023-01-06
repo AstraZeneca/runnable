@@ -8,32 +8,24 @@ logger = logging.getLogger(defaults.NAME)
 
 # Set this global executor to the fitted executor for access later
 global_executor = None  # pylint: disable=invalid-name
-magnus_defaults = {}  # pylint: disable=invalid-name
 
 
-def load_user_extensions():
+def get_default_configs() -> dict:
     """
     User can provide extensions as part of their code base, magnus-config.yaml provides the place to put them.
-    Look for them and load the extensions if provided.
-
-    # TODO: With introduction of stevedore, this fails. Should find a way to do this the stevedore way
     """
     user_configs = {}
     if utils.does_file_exist(defaults.USER_CONFIG_FILE):
         user_configs = utils.load_yaml(defaults.USER_CONFIG_FILE)
 
     if not user_configs:
-        return
-
-    extensions = user_configs.get('extensions', [])
-    for extension in extensions:
-        logger.info('Loading User extension: %s', extension)
-        __import__(extension)
+        return {}
 
     user_defaults = user_configs.get('defaults', {})
     if user_defaults:
-        global magnus_defaults  # pylint: disable=W0603,invalid-name,
-        magnus_defaults = user_defaults
+        return user_defaults
+
+    return {}
 
 
 def prepare_configurations(
@@ -60,7 +52,7 @@ def prepare_configurations(
     Returns:
         executor.BaseExecutor : A prepared executor as per the dag/config
     """
-    global magnus_defaults
+    magnus_defaults = get_default_configs()
 
     pipeline_config = utils.load_yaml(pipeline_file)
 
@@ -346,6 +338,3 @@ def execute_single_brach(
     mode_executor.execute_graph(dag=branch_to_execute, map_variable=map_variable_dict)
 
     mode_executor.send_return_code()
-
-
-load_user_extensions()

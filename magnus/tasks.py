@@ -73,6 +73,33 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
             os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
 
 
+class PythonFunctionType(BaseTaskType):
+    task_type = 'python-function'
+
+    def execute_command(self, map_variable: dict = None, **kwargs):
+        parameters = self.get_parameters()
+        filtered_parameters = utils.filter_arguments_for_func(self.command, parameters, map_variable)
+
+        if map_variable:
+            os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+
+        logger.info(f'Calling {self.command} with {filtered_parameters}')
+        try:
+            user_set_parameters = self.command(**filtered_parameters)
+        except Exception as _e:
+            msg = (
+                f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
+            )
+            logger.exception(msg)
+            logger.exception(_e)
+            raise
+
+        if map_variable:
+            del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+
+        self.set_parameters(user_set_parameters)
+
+
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """
     The task class for python command

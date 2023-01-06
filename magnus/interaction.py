@@ -1,11 +1,11 @@
 import json
 import logging
 import os
+import sys
 from pathlib import Path
-from typing import Union
+from typing import Callable, Union
 
-from magnus import defaults, exceptions, utils
-from magnus.executor import StepExecutor
+from magnus import defaults, exceptions, graph, pipeline, utils
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -148,23 +148,91 @@ def store_run_id():
 
 class step(object):
 
-    def __init__(self, name: str, run_id_env_variable: str, catalog_config: dict):
+    def __init__(
+            self, name: Union[str, callable],
+            catalog_config: dict = None, magnus_config: str = None,
+            parameters_file: str = None):
         """
         This decorator could be used to make the function within the scope of magnus.
 
         Args:
-            name (str): The name of the step. The step log would have the same name
-            run_id_env_variable (str): The environment variable containing the run_id.
-            catalog_config (dict): The configuration of the catalog.
+            name (str, callable): The name of the step. The step log would have the same name
+            catalog_config (dict): The configuration of the catalog per step.
+            magnus_config (str): The name of the file having the magnus config, defaults to None.
         """
+        if isinstance(name, Callable):
+            name = name()
         self.name = name
-        self.run_id_env_variable = run_id_env_variable
         self.catalog_config = catalog_config
+
+        configuration = pipeline.get_default_configs()
+        if magnus_config:
+            configuration = utils.load_yaml(magnus_config)
+
+        run_log_config = configuration.get('run_log_store', defaults.DEFAULT_RUN_LOG_STORE)
+        run_log_store = utils.get_provider_by_name_and_type('run_log_store', run_log_config)
+
+        # Catalog handler settings, configuration over-rides everything
+        catalog_config = configuration.get('catalog', defaults.DEFAULT_CATALOG)
+        catalog_handler = utils.get_provider_by_name_and_type('catalog', catalog_config)
+
+        # Secret handler settings, configuration over-rides everything
+        secrets_config = configuration.get('secrets', defaults.DEFAULT_SECRETS)
+        secrets_handler = utils.get_provider_by_name_and_type('secrets', secrets_config)
+
+        # Mode configurations, configuration over rides everything
+        mode_config = configuration.get('mode', defaults.DEFAULT_EXECUTOR)
+        mode_executor = utils.get_provider_by_name_and_type('executor', mode_config)
+
+        run_id = mode_executor.step_decorator_run_id
+        if not run_id:
+            msg = (
+                f'Step decorator expects run id from environment.'
+                'For executor of type {mode_executor.service_name}, please provide a value for'
+                '{mode_executor.run_id_key_from_env}.'
+            )
+            raise Exception(msg)
+
+        mode_executor.run_log_store = run_log_store
+        mode_executor.catalog_handler = catalog_handler
+        mode_executor.secrets_handler = secrets_handler
+        mode_executor.run_id = run_id
+        mode_executor.parameters_file = parameters_file
+        self.executor = mode_executor
+        pipeline.global_executor = self.executor
+
+        try:
+            # Try to get it if previous steps have created it
+            run_log = self.executor.run_log_store.get_run_log_by_id(self.executor.run_id)
+            if run_log.status in [defaults.FAIL, defaults.SUCCESS]:
+                msg = (
+                    f'The run_log for run_id: {self.run_id} already exists and is in {run_log.status} state.'
+                    ' Make sure that this was not run before.'
+                )
+                raise Exception(msg)
+        except exceptions.RunLogNotFoundError:
+            # Create one if they are not created
+            self.executor.set_up_run_log()
 
     def __call__(self, func):
         """
         The function is converted into a node and called via the magnus framework.
         """
+        sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
+        print('here')
+
         def wrapped_f(*args):
-            executor = StepExecutor(config={})
+
+            step_config = {
+                'command': func,
+                'command_type': 'python-function',
+                'type': 'task',
+                'next': 'not defined',
+                'catalog': self.catalog_config
+            }
+            node = graph.create_node(name=self.name, step_config=step_config)
+            self.executor.execute_from_graph(node=node)
+            self.executor.send_return_code(stage='execution')
+            run_log = self.executor.run_log_store.get_run_log_by_id(run_id=self.executor.run_id, full=False)
+            print(json.dumps(run_log.dict(), indent=4))
         return wrapped_f

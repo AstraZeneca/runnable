@@ -270,7 +270,7 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
     Use internal_branch_name to fit the right dot path convention.
 
     Args:
-        dag_config (dict): The dag defintion
+        dag_config (dict): The dag definition
         internal_branch_name ([type], optional): In case of sub-graph, the name of the node. Defaults to None.
 
     Raises:
@@ -297,47 +297,9 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
         step_config = dag_config['steps'][step]
         logger.info(f'Adding node {step} with :{step_config}')
 
-        task_type = step_config.get('command_type', defaults.COMMAND_TYPE)
-        command_config = step_config.get('command_config', {})
-
-        logger.info(f"Trying to get a task of type {task_type}")
-        try:
-            task_mgr = driver.DriverManager(
-                namespace="magnus.tasks.BaseTaskType",
-                name=task_type,
-                invoke_on_load=True,
-                invoke_kwds={'command': step_config.get('command', None),
-                             'config': command_config}
-            )
-        except Exception as _e:
-            msg = (
-                f"Could not find the task type {task_type}. Please ensure you have installed the extension that"
-                " provides the task type. \nCore supports: python(default), python-lambda, shell, notebook"
-            )
-            raise Exception(msg) from _e
-
-        internal_name = step
-        if internal_branch_name:
-            internal_name = internal_branch_name + '.' + step
-
-        try:
-            node_mgr = driver.DriverManager(
-                namespace="magnus.nodes.BaseNode",
-                name=step_config['type'],
-                invoke_on_load=True,
-                invoke_kwds={"name": step, "internal_name": internal_name,
-                             "config": step_config, "execution_type": task_mgr.driver,
-                             "internal_branch_name": internal_branch_name}
-            )
-        except Exception as _e:
-            msg = (
-                f"Could not find the node type {step_config['type']}. Please ensure you have installed "
-                "the extension that provides the node type."
-                "\nCore supports: task, success, fail, parallel, dag, map, as-is")
-            raise Exception(msg) from _e
-
-        messages.extend(validate_node(node_mgr.driver))
-        graph.add_node(node_mgr.driver)
+        node = create_node(step, step_config=step_config, internal_branch_name=internal_branch_name)
+        messages.extend(validate_node(node))
+        graph.add_node(node)
 
     if messages:
         raise Exception(', '.join(messages))
@@ -345,6 +307,48 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
     graph.validate()
 
     return graph
+
+
+def create_node(name: str, step_config: dict, internal_branch_name: str = None):
+    task_type = step_config.get('command_type', defaults.COMMAND_TYPE)
+    command_config = step_config.get('command_config', {})
+
+    logger.info(f"Trying to get a task of type {task_type}")
+    try:
+        task_mgr = driver.DriverManager(
+            namespace="magnus.tasks.BaseTaskType",
+            name=task_type,
+            invoke_on_load=True,
+            invoke_kwds={'command': step_config.get('command', None),
+                         'config': command_config}
+        )
+    except Exception as _e:
+        msg = (
+            f"Could not find the task type {task_type}. Please ensure you have installed the extension that"
+            " provides the task type. \nCore supports: python(default), python-lambda, shell, notebook"
+        )
+        raise Exception(msg) from _e
+
+    internal_name = name
+    if internal_branch_name:
+        internal_name = internal_branch_name + '.' + name
+
+    try:
+        node_mgr = driver.DriverManager(
+            namespace="magnus.nodes.BaseNode",
+            name=step_config['type'],
+            invoke_on_load=True,
+            invoke_kwds={"name": name, "internal_name": internal_name,
+                         "config": step_config, "execution_type": task_mgr.driver,
+                         "internal_branch_name": internal_branch_name}
+        )
+        return node_mgr.driver
+    except Exception as _e:
+        msg = (
+            f"Could not find the node type {step_config['type']}. Please ensure you have installed "
+            "the extension that provides the node type."
+            "\nCore supports: task, success, fail, parallel, dag, map, as-is")
+        raise Exception(msg) from _e
 
 
 def search_node_by_internal_name(dag: Graph, internal_name: str):

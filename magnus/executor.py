@@ -75,6 +75,10 @@ class BaseExecutor:
         self.parameters_file = None
         self.single_step = None
 
+    @property
+    def step_decorator_run_id(self):
+        return os.environ.get('MAGNUS_RUN_ID', None)
+
     def is_parallel_execution(self) -> bool:  # pylint: disable=R0201
         """
         Controls the parallelization of branches in map and parallel state.
@@ -484,6 +488,7 @@ class BaseExecutor:
         run_id = self.run_id
 
         run_log = self.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
+        print(run_log)
         if run_log.status == defaults.FAIL:
             raise Exception('Pipeline execution failed')
 
@@ -958,56 +963,3 @@ class DemoRenderer(BaseExecutor):
             '\t The first argument to the script is the run id you want for the run.'
         )
         logger.info(msg)
-
-
-class StepExecutor(BaseExecutor):
-    service_name = 'step-executor'
-
-    def execute_from_graph(self, node: BaseNode, map_variable: dict = None, **kwargs):
-        """
-        This is the entry point to from the graph execution.
-
-        While the self.execute_graph is responsible for traversing the graph, this function is responsible for
-        actual execution of the node.
-
-        If the node type is:
-            * task : We can delegate to execute_node after checking the eligibility for re-run in cases of a re-run
-            * success: We can delegate to execute_node
-            * fail: We can delegate to execute_node
-
-        For nodes that are internally graphs:
-            * parallel: Delegate the responsibility of execution to the node.execute_as_graph()
-            * dag: Delegate the responsibility of execution to the node.execute_as_graph()
-            * map: Delegate the responsibility of execution to the node.execute_as_graph()
-
-        Check the implementations of local, local-container, local-aws-batch for different examples of implementation
-
-        Args:
-            node (Node): The node to execute
-            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
-                    Defaults to None.
-        """
-        step_log = self.run_log_store.create_step_log(node.name, node.get_step_log_name(map_variable))
-
-        self.add_code_identities(node=node, step_log=step_log)
-
-        step_log.step_type = node.node_type
-        step_log.status = defaults.PROCESSING
-
-        # Executor specific way to trigger a job
-        self.run_log_store.add_step_log(step_log, self.run_id)
-        self.trigger_job(node=node, map_variable=map_variable, **kwargs)
-
-    def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
-        """
-        Executor specific way of triggering jobs.
-
-        Args:
-            node (BaseNode): The node to execute
-            map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
-                    Defaults to ''.
-
-        Raises: NotImplementedError Base class hence not implemented
-        """
-        self.prepare_for_node_execution(node, map_variable=map_variable)
-        self.execute_node(node=node, map_variable=map_variable, **kwargs)
