@@ -166,6 +166,11 @@ class step(object):
             name = name()
         self.name = name
         self.catalog_config = catalog_config
+        self.active = True  # Check if we are executing the function via pipeline
+
+        if pipeline.global_executor:
+            self.active = False
+            return
 
         configuration = pipeline.get_default_configs()
         if magnus_config:
@@ -226,6 +231,9 @@ class step(object):
         """
 
         def wrapped_f(*args):
+            if not self.active:
+                # If we are not running via decorator, execute the function
+                return func(*args)
 
             step_config = {
                 'command': func,
