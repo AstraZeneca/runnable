@@ -11,7 +11,7 @@ documentation = "https://astrazeneca.github.io/magnus-core/"
 
 
 [tool.poetry.dependencies]
-python = "^3.7.1"
+python = "^3.8"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 yachalk = "*"
@@ -21,6 +21,10 @@ stevedore = "^3.5.0"
 docker ={ version = "*", optional = true }
 papermill ={ version = "*", optional = true }
 click-plugins = "^1.1.1"
+mlflow-skinny = "^2.1.1"
+pandas = "^1.5.2"
+scikit-learn = "^1.2.0"
+jupyterlab = "^3.5.2"
 
 [tool.poetry.extras]
 docker = ['docker']
@@ -67,7 +71,7 @@ magnus= 'magnus.cli:cli'
 # Plugins for Experiment tracker
 [tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]
 "do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
-
+"mlflow" = "magnus.experiment_tracker:MLFlowExperimentTracker"
 
 # Plugins for Integration
 [tool.poetry.plugins."magnus.integration.BaseIntegration"]

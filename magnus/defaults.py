@@ -1,7 +1,16 @@
+from enum import Enum
+
 NAME = 'magnus'
 
 # CLI settings
 LOG_LEVEL = 'WARNING'
+
+
+class EXECUTION_PLAN(Enum):
+    # execution_plans
+    pipeline = 1
+    decorator = 2
+
 
 # Interaction settings
 TRACK_PREFIX = 'MAGNUS_TRACK_'

@@ -9,23 +9,31 @@ from magnus import defaults, exceptions, graph, pipeline, utils
 logger = logging.getLogger(defaults.NAME)
 
 
-def track_this(**kwargs):
+def track_this(step: int = 0, **kwargs):
     """
     Set up the keyword args as environment variables for tracking purposes as
-    part pf the run.
+    part of the run.
 
     For every key-value pair found in kwargs, we set up an environmental variable of
-    MAGNUS_TRACK_key = json.dumps(value)
+    MAGNUS_TRACK_key_{step} = json.dumps(value)
+
+    If step=0, we ignore step for magnus purposes.
 
     Args:
         kwargs (dict): The dictionary of key value pairs to track.
     """
     from magnus.pipeline import \
         global_executor  # pylint: disable=import-outside-toplevel
+
+    prefix = defaults.TRACK_PREFIX
+
+    if step:
+        prefix += f'{str(step)}_'
+
     for key, value in kwargs.items():
         logger.info(f'Tracking {key} with value: {value}')
-        os.environ[defaults.TRACK_PREFIX + key] = json.dumps(value)
-        global_executor.experiment_tracker.set_metric(key, value)
+        os.environ[prefix + key] = json.dumps(value)
+        global_executor.experiment_tracker.set_metric(key, value, step=step)
 
 
 def store_parameter(**kwargs: dict):
@@ -54,7 +62,7 @@ def get_parameter(key=None) -> Union[str, dict]:
         key (str, optional): The parameter key to retrieve. Defaults to None.
 
     Raises:
-        Exception: If the menionted key was not part of the paramters
+        Exception: If the mentioned key was not part of the paramters
 
     Returns:
         Union[str, dict]: A single value of str or a dictionary if no key was specified
@@ -157,6 +165,8 @@ class step(object):
         """
         This decorator could be used to make the function within the scope of magnus.
 
+        Since we are not orchestrating, it is expected that resource management happens outside this scope.
+
         Args:
             name (str, callable): The name of the step. The step log would have the same name
             catalog_config (dict): The configuration of the catalog per step.
@@ -164,58 +174,37 @@ class step(object):
         """
         if isinstance(name, Callable):
             name = name()
+
         self.name = name
         self.catalog_config = catalog_config
         self.active = True  # Check if we are executing the function via pipeline
 
-        if pipeline.global_executor:
+        if pipeline.global_executor \
+                and pipeline.global_executor.execution_plan == defaults.EXECUTION_PLAN.pipeline:
             self.active = False
             return
 
-        configuration = pipeline.get_default_configs()
-        if magnus_config:
-            configuration = utils.load_yaml(magnus_config)
+        self.executor = pipeline.prepare_configurations(
+            configuration_file=magnus_config, parameters_file=parameters_file)
 
-        run_log_config = configuration.get('run_log_store', defaults.DEFAULT_RUN_LOG_STORE)
-        run_log_store = utils.get_provider_by_name_and_type('run_log_store', run_log_config)
-
-        # Catalog handler settings, configuration over-rides everything
-        catalog_config = configuration.get('catalog', defaults.DEFAULT_CATALOG)
-        catalog_handler = utils.get_provider_by_name_and_type('catalog', catalog_config)
-
-        # Secret handler settings, configuration over-rides everything
-        secrets_config = configuration.get('secrets', defaults.DEFAULT_SECRETS)
-        secrets_handler = utils.get_provider_by_name_and_type('secrets', secrets_config)
-
-        tracker_config = configuration.get('experiment_tracker', defaults.DEFAULT_EXPERIMENT_TRACKER)
-        tracker_handler = utils.get_provider_by_name_and_type('experiment_tracker', tracker_config)
-
-        # Mode configurations, configuration over rides everything
-        mode_config = configuration.get('mode', defaults.DEFAULT_EXECUTOR)
-        mode_executor = utils.get_provider_by_name_and_type('executor', mode_config)
-
-        run_id = mode_executor.step_decorator_run_id
+        self.executor.execution_plan = defaults.EXECUTION_PLAN.decorator
+        run_id = self.executor.step_decorator_run_id
         if not run_id:
             msg = (
                 f'Step decorator expects run id from environment.'
-                'For executor of type {mode_executor.service_name}, please provide a value for'
-                '{mode_executor.run_id_key_from_env}.'
             )
             raise Exception(msg)
 
-        mode_executor.run_log_store = run_log_store
-        mode_executor.catalog_handler = catalog_handler
-        mode_executor.secrets_handler = secrets_handler
-        mode_executor.experiment_tracker = tracker_handler
-        mode_executor.run_id = run_id
-        mode_executor.parameters_file = parameters_file
-        self.executor = mode_executor
-        pipeline.global_executor = self.executor
+        self.executor.run_id = run_id
 
         try:
             # Try to get it if previous steps have created it
             run_log = self.executor.run_log_store.get_run_log_by_id(self.executor.run_id)
             if run_log.status in [defaults.FAIL, defaults.SUCCESS]:
+                """
+                This check is mostly useless as we do not know when the graph ends as they are created dynamically.
+                This only prevents from using a run_id which has reached a final state.
+                """
                 msg = (
                     f'The run_log for run_id: {self.run_id} already exists and is in {run_log.status} state.'
                     ' Make sure that this was not run before.'
@@ -247,3 +236,13 @@ class step(object):
             run_log = self.executor.run_log_store.get_run_log_by_id(run_id=self.executor.run_id, full=False)
             print(json.dumps(run_log.dict(), indent=4))
         return wrapped_f
+
+
+class Node:
+    # A way for the user to define a node.
+    pass
+
+
+class Pipeline:
+    # A way for the user to define a pipeline
+    pass

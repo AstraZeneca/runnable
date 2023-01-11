@@ -11,8 +11,6 @@ from magnus.nodes import BaseNode
 
 logger = logging.getLogger(defaults.NAME)
 
-# TODO: A decorator or a programmatic way to define pipeline
-
 
 class BaseExecutor:
     """
@@ -75,6 +73,7 @@ class BaseExecutor:
         self.configuration_file = None
         self.parameters_file = None
         self.single_step = None
+        self.execution_plan = None
 
     @property
     def step_decorator_run_id(self):
@@ -474,7 +473,7 @@ class BaseExecutor:
                 self.run_log_store.add_step_log(step_log, self.run_id)
                 return False  # We need not run the node
 
-            # Remove previous run log to start execution from this step
+            #  Remove previous run log to start execution from this step
             logger.info(f'The new execution should start executing graph from this node {node.name}')
             self.previous_run_log = None
         return True

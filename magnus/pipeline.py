@@ -29,12 +29,12 @@ def get_default_configs() -> dict:
 
 
 def prepare_configurations(
-        variables_file: str,
-        configuration_file: str,
-        pipeline_file: str,
-        run_id: str,
-        tag: Union[str, None],
-        use_cached: Union[str, None],
+        variables_file: str = None,
+        configuration_file: str = None,
+        pipeline_file: str = None,
+        run_id: str = None,
+        tag: Union[str, None] = None,
+        use_cached: Union[str, None] = False,
         parameters_file: str = None):
     # pylint: disable=R0914
     """
@@ -54,8 +54,6 @@ def prepare_configurations(
     """
     magnus_defaults = get_default_configs()
 
-    pipeline_config = utils.load_yaml(pipeline_file)
-
     variables = {}
     if variables_file:
         variables = utils.load_yaml(variables_file)
@@ -64,55 +62,55 @@ def prepare_configurations(
     if configuration_file:
         configuration = utils.load_yaml(configuration_file)
 
-    # apply variables
-    pipeline_config = utils.apply_variables(pipeline_config, variables=variables)
-
-    logger.info('The input pipeline:')
-    logger.info(json.dumps(pipeline_config, indent=4))
-
-    # Create the graph
-    dag_config = pipeline_config['dag']
-    dag_hash = utils.get_dag_hash(dag_config)
-    # TODO: Dag nodes should not self refer themselves
-    dag = graph.create_graph(dag_config)
+    # apply variables, depreciating until we see a value
+    # pipeline_config = utils.apply_variables(pipeline_config, variables=variables)
 
     # Run log settings, configuration over-rides everything
     run_log_config = configuration.get('run_log_store', {})
     if not run_log_config:
-        default_run_log_config = magnus_defaults.get('run_log_store', defaults.DEFAULT_RUN_LOG_STORE)
-        run_log_config = pipeline_config.get('run_log_store', {}) or default_run_log_config
+        run_log_config = magnus_defaults.get('run_log_store', defaults.DEFAULT_RUN_LOG_STORE)
     run_log_store = utils.get_provider_by_name_and_type('run_log_store', run_log_config)
 
     # Catalog handler settings, configuration over-rides everything
     catalog_config = configuration.get('catalog', {})
     if not catalog_config:
-        default_catalog_config = magnus_defaults.get('catalog', defaults.DEFAULT_CATALOG)
-        catalog_config = pipeline_config.get('catalog', {}) or default_catalog_config
+        catalog_config = magnus_defaults.get('catalog', defaults.DEFAULT_CATALOG)
     catalog_handler = utils.get_provider_by_name_and_type('catalog', catalog_config)
 
     # Secret handler settings, configuration over-rides everything
     secrets_config = configuration.get('secrets', {})
     if not secrets_config:
-        default_secrets_config = magnus_defaults.get('secrets', defaults.DEFAULT_SECRETS)
-        secrets_config = pipeline_config.get('secrets', {}) or default_secrets_config
+        secrets_config = magnus_defaults.get('secrets', defaults.DEFAULT_SECRETS)
     secrets_handler = utils.get_provider_by_name_and_type('secrets', secrets_config)
 
     # experiment tracker settings, configuration over-rides everything
     tracker_config = configuration.get('experiment_tracker', {})
     if not tracker_config:
-        default_tracker_config = magnus_defaults.get('experiment_tracker', defaults.DEFAULT_EXPERIMENT_TRACKER)
-        tracker_config = pipeline_config.get('experiment_tracker', {}) or default_tracker_config
+        tracker_config = magnus_defaults.get('experiment_tracker', defaults.DEFAULT_EXPERIMENT_TRACKER)
     tracker_handler = utils.get_provider_by_name_and_type('experiment_tracker', tracker_config)
 
     # Mode configurations, configuration over rides everything
     mode_config = configuration.get('mode', {})
     if not mode_config:
-        default_mode_config = magnus_defaults.get('executor', defaults.DEFAULT_EXECUTOR)
-        mode_config = pipeline_config.get('mode', {}) or default_mode_config
+        mode_config = magnus_defaults.get('executor', defaults.DEFAULT_EXECUTOR)
     mode_executor = utils.get_provider_by_name_and_type('executor', mode_config)
 
-    mode_executor.pipeline_file = pipeline_file
-    mode_executor.dag = dag
+    if pipeline_file:
+        # There are use cases where we are only preparing the executor
+        pipeline_config = utils.load_yaml(pipeline_file)
+        logger.info('The input pipeline:')
+        logger.info(json.dumps(pipeline_config, indent=4))
+
+        # Create the graph
+        dag_config = pipeline_config['dag']
+        dag_hash = utils.get_dag_hash(dag_config)
+        # TODO: Dag nodes should not self refer themselves
+        dag = graph.create_graph(dag_config)
+
+        mode_executor.pipeline_file = pipeline_file
+        mode_executor.dag = dag
+        mode_executor.dag_hash = dag_hash
+
     mode_executor.run_id = run_id
     mode_executor.tag = tag
     mode_executor.use_cached = use_cached
@@ -123,7 +121,6 @@ def prepare_configurations(
 
     mode_executor.run_log_store = run_log_store
     mode_executor.catalog_handler = catalog_handler
-    mode_executor.dag_hash = dag_hash
     mode_executor.secrets_handler = secrets_handler
     mode_executor.experiment_tracker = tracker_handler
     mode_executor.variables_file = variables_file
@@ -164,6 +161,7 @@ def execute(
                                            tag=tag,
                                            use_cached=use_cached,
                                            parameters_file=parameters_file)
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
     previous_run_log = None
 
     if use_cached:
@@ -225,7 +223,7 @@ def execute_single_step(
                                            tag=tag,
                                            use_cached='',
                                            parameters_file=parameters_file)
-
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
     try:
         _ = mode_executor.dag.get_node_by_name(step_name)
     except exceptions.NodeNotFoundError as e:
@@ -294,7 +292,7 @@ def execute_single_node(
                                            tag=tag,
                                            use_cached='',
                                            parameters_file=parameters_file)
-
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
     step_internal_name = nodes.BaseNode.get_internal_name_from_command_name(step_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
@@ -337,7 +335,7 @@ def execute_single_brach(
                                            run_id=run_id,
                                            tag=None,
                                            use_cached='')
-
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
     branch_internal_name = nodes.BaseNode.get_internal_name_from_command_name(branch_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)

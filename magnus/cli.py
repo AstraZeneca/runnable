@@ -119,6 +119,24 @@ def execute_single_branch(run_id, branch_name, map_variable, file, var_file, con
                                   run_id=run_id)
 
 
+@cli.command("execute_notebook", short_help="Internal entry point to execute a single branch")
+@click.argument('filename')
+@click.option('-c', '--config-file', default=None,
+              help="config file, in yaml, to be used for the run", show_default=True)
+@click.option('-p', '--parameters-file', default=None,
+              help="Parameters, in yaml,  accessible by the application", show_default=True)
+@click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
+              type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
+@click.option('--data-folder', '-d', default='data/', help="The catalog data folder")
+@click.option('--get-from-catalog', '-get', default=None, multiple=True, help="The data to get from the catalog")
+@click.option('--put-in-catalog', '-put', default=None, multiple=True, help="The data to put from the catalog")
+@click.option('--tag', help='A tag attached to the run')
+@click.option('--run-id', help='An optional run_id, one would be generated if not provided')
+def execute_notebook(filename, config_file, parameters_file, log_level, data_folder,
+                     get_from_catalog, put_in_catalog, tag, run_id):
+    logger.setLevel(log_level)
+
+
 @cli.command('build_docker', short_help="Utility tool to build docker images")
 @click.argument('image_name')
 @click.option('-f', '--docker-file', default=None, help="The dockerfile to be used. If None, we generate one")
