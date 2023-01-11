@@ -10,7 +10,11 @@ class EXECUTION_PLAN(Enum):
     # execution_plans
     pipeline = 1
     decorator = 2
+    notebook = 3
 
+
+# Config file environment variable
+MAGNUS_CONFIG_FILE = 'MAGNUS_CONFIG_FILE'
 
 # Interaction settings
 TRACK_PREFIX = 'MAGNUS_TRACK_'

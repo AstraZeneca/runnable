@@ -260,6 +260,28 @@ class Graph:
                         missing_nodes.append(neighbor)
         return missing_nodes
 
+    def add_terminal_nodes(self, success_node_name: str = 'success', failure_node_name: str = 'fail',
+                           internal_branch_name: str = None):
+        """
+        Add the success and fail nodes to the graph
+
+        Args:
+            success_node_name (str, optional): The name of the success node. Defaults to 'success'.
+            failure_node_name (str, optional): The name of the failure node. Defaults to 'fail'.
+        """
+        success_step_config = {
+            'type': 'success'
+        }
+        success_node = create_node(success_node_name, step_config=success_step_config,
+                                   internal_branch_name=internal_branch_name)
+        fail_step_config = {
+            'type': 'fail'
+        }
+        fail_node = create_node(failure_node_name, step_config=fail_step_config,
+                                internal_branch_name=internal_branch_name)
+        self.add_node(success_node)
+        self.add_node(fail_node)
+
 
 def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
     # pylint: disable=R0914,R0913

@@ -156,6 +156,12 @@ def store_run_id():
     os.environ[defaults.ENV_RUN_ID] = run_id
 
 
+def magnus_session():
+    configuration_file = os.environ.get(defaults.MAGNUS_CONFIG_FILE, None)
+    executor = pipeline.prepare_configurations(configuration_file=configuration_file)
+    executor.execution_plan = defaults.EXECUTION_PLAN.notebook
+
+
 class step(object):
 
     def __init__(
@@ -180,7 +186,7 @@ class step(object):
         self.active = True  # Check if we are executing the function via pipeline
 
         if pipeline.global_executor \
-                and pipeline.global_executor.execution_plan == defaults.EXECUTION_PLAN.pipeline:
+                and pipeline.global_executor.execution_plan != defaults.EXECUTION_PLAN.decorator:
             self.active = False
             return
 
