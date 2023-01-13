@@ -1,3 +1,4 @@
+import functools
 import json
 import logging
 import os
@@ -142,23 +143,18 @@ def get_run_id() -> str:
     """
     Returns the run_id of the current run
     """
-    from magnus.pipeline import \
-        global_executor  # pylint: disable=import-outside-toplevel
-
-    return global_executor.run_id
+    return os.environ.get(defaults.ENV_RUN_ID, None)
 
 
-def store_run_id():
-    """
-    Stores the run_id as environment variable for the steps to use.
-    """
-    run_id = get_run_id()
-    os.environ[defaults.ENV_RUN_ID] = run_id
+def get_tag() -> str:
+    return os.environ.get(defaults.MAGNUS_RUN_TAG, None)
 
 
 def magnus_session():
     configuration_file = os.environ.get(defaults.MAGNUS_CONFIG_FILE, None)
-    executor = pipeline.prepare_configurations(configuration_file=configuration_file)
+    run_id = get_run_id()
+    tag = get_tag()
+    executor = pipeline.prepare_configurations(configuration_file=configuration_file, run_id=run_id, tag=tag)
     executor.execution_plan = defaults.EXECUTION_PLAN.notebook
 
 
@@ -202,6 +198,7 @@ class step(object):
             raise Exception(msg)
 
         self.executor.run_id = run_id
+        utils.set_magnus_environment_variables(run_id=run_id, configuration_file=magnus_config, tag=get_tag())
 
         try:
             # Try to get it if previous steps have created it
@@ -224,11 +221,11 @@ class step(object):
         """
         The function is converted into a node and called via the magnus framework.
         """
-
-        def wrapped_f(*args):
+        @functools.wraps(func)
+        def wrapped_f(*args, **kwargs):
             if not self.active:
                 # If we are not running via decorator, execute the function
-                return func(*args)
+                return func(*args, **kwargs)
 
             step_config = {
                 'command': func,

@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 from typing import Union
 
 from magnus import defaults, exceptions, graph, utils
@@ -57,15 +56,14 @@ def prepare_configurations(
 
     variables = {}
     if variables_file:
-        variables = utils.load_yaml(variables_file)
+        variables = utils.gather_variables()
 
     configuration = {}
     if configuration_file:
         configuration = utils.load_yaml(configuration_file)
-        os.environ[defaults.MAGNUS_CONFIG_FILE] = configuration_file
 
-    # apply variables, depreciating until we see a value
-    # pipeline_config = utils.apply_variables(pipeline_config, variables=variables)
+    # apply variables
+    configuration = utils.apply_variables(configuration, variables)
 
     # Run log settings, configuration over-rides everything
     run_log_config = configuration.get('run_log_store', {})
@@ -100,6 +98,8 @@ def prepare_configurations(
     if pipeline_file:
         # There are use cases where we are only preparing the executor
         pipeline_config = utils.load_yaml(pipeline_file)
+        pipeline_config = utils.apply_variables(pipeline_config, variables=variables)
+
         logger.info('The input pipeline:')
         logger.info(json.dumps(pipeline_config, indent=4))
 
@@ -133,7 +133,6 @@ def prepare_configurations(
 
 
 def execute(
-        variables_file: str,
         configuration_file: str,
         pipeline_file: str,
         tag: str = None,
@@ -156,14 +155,14 @@ def execute(
     # Re run settings
     run_id = utils.generate_run_id(run_id=run_id)
 
-    mode_executor = prepare_configurations(variables_file=variables_file,
-                                           configuration_file=configuration_file,
+    mode_executor = prepare_configurations(configuration_file=configuration_file,
                                            pipeline_file=pipeline_file,
                                            run_id=run_id,
                                            tag=tag,
                                            use_cached=use_cached,
                                            parameters_file=parameters_file)
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
     previous_run_log = None
 
     if use_cached:
@@ -193,7 +192,6 @@ def execute(
 
 
 def execute_single_step(
-        variables_file: str,
         configuration_file: str,
         pipeline_file: str,
         step_name: str,
@@ -218,14 +216,14 @@ def execute_single_step(
     """
     run_id = utils.generate_run_id(run_id=run_id)
 
-    mode_executor = prepare_configurations(variables_file=variables_file,
-                                           configuration_file=configuration_file,
+    mode_executor = prepare_configurations(configuration_file=configuration_file,
                                            pipeline_file=pipeline_file,
                                            run_id=run_id,
                                            tag=tag,
                                            use_cached='',
                                            parameters_file=parameters_file)
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
     try:
         _ = mode_executor.dag.get_node_by_name(step_name)
     except exceptions.NodeNotFoundError as e:
@@ -262,7 +260,6 @@ def execute_single_step(
 
 
 def execute_single_node(
-        variables_file: str,
         configuration_file: str,
         pipeline_file: str,
         step_name: str,
@@ -287,14 +284,15 @@ def execute_single_node(
 
     """
     from magnus import nodes
-    mode_executor = prepare_configurations(variables_file=variables_file,
-                                           configuration_file=configuration_file,
+    mode_executor = prepare_configurations(configuration_file=configuration_file,
                                            pipeline_file=pipeline_file,
                                            run_id=run_id,
                                            tag=tag,
                                            use_cached='',
                                            parameters_file=parameters_file)
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+
     step_internal_name = nodes.BaseNode.get_internal_name_from_command_name(step_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
@@ -310,12 +308,12 @@ def execute_single_node(
 
 
 def execute_single_brach(
-        variables_file: str,
         configuration_file: str,
         pipeline_file: str,
         branch_name: str,
         map_variable: str,
-        run_id: str):
+        run_id: str,
+        tag: str = None):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a branch of the graph. Interactive modes in parallel runs use this to execute
@@ -331,13 +329,14 @@ def execute_single_brach(
         tag (str): If a tag is provided at the run time
     """
     from magnus import nodes
-    mode_executor = prepare_configurations(variables_file=variables_file,
-                                           configuration_file=configuration_file,
+    mode_executor = prepare_configurations(configuration_file=configuration_file,
                                            pipeline_file=pipeline_file,
                                            run_id=run_id,
-                                           tag=None,
+                                           tag=tag,
                                            use_cached='')
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+
     branch_internal_name = nodes.BaseNode.get_internal_name_from_command_name(branch_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
@@ -356,6 +355,7 @@ def execute_notebook(
         configuration_file: str,
         tag: str = None,
         run_id: str = None,
+        kernel: str = None,
         parameters_file: str = None):
     # pylint: disable=R0914,R0913
     """
@@ -374,6 +374,8 @@ def execute_notebook(
         parameters_file=parameters_file)
 
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.notebook
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+
     # Prepare the graph with a single node
     dag = graph.Graph(start_at='executing notebook')
     step_config = {
@@ -381,7 +383,8 @@ def execute_notebook(
         'command_type': 'notebook',
         'type': 'task',
         'next': 'success',
-        'catalog': catalog_config
+        'catalog': catalog_config,
+        'config': {'kernel': kernel}
     }
     node = graph.create_node(name=f'executing notebook', step_config=step_config)
 

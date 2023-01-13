@@ -449,9 +449,6 @@ def get_node_execution_command(executor, node, map_variable=None, over_write_run
               f'--log-level {log_level}'
               )
 
-    if executor.variables_file:
-        action = action + f' --var-file {executor.variables_file}'
-
     if map_variable:
         action = action + f" --map-variable '{json.dumps(map_variable)}'"
 
@@ -594,3 +591,25 @@ def json_to_ordered_dict(json_str: str) -> OrderedDict:
         return json.loads(json_str, object_pairs_hook=OrderedDict)
 
     return OrderedDict()
+
+
+def set_magnus_environment_variables(run_id: str = None, configuration_file: str = None, tag: str = None):
+    if run_id:
+        os.environ[defaults.ENV_RUN_ID] = run_id
+
+    if configuration_file:
+        os.environ[defaults.MAGNUS_CONFIG_FILE] = configuration_file
+
+    if tag:
+        os.environ[defaults.MAGNUS_RUN_TAG] = tag
+
+
+def gather_variables():
+    variables = {}
+
+    for env_var, value in os.environ.items():
+        if env_var.startswith(defaults.VARIABLE_PREFIX):
+            key = remove_prefix(env_var, defaults.VARIABLE_PREFIX)
+            variables[key] = value
+
+    return variables

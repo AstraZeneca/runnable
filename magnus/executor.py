@@ -69,7 +69,6 @@ class BaseExecutor:
         self.catalog_handler = None
         self.secrets_handler = None
         self.experiment_tracker = None
-        self.variables_file = None
         self.configuration_file = None
         self.parameters_file = None
         self.single_step = None
@@ -230,7 +229,6 @@ class BaseExecutor:
         parameters = self.run_log_store.get_parameters(run_id=self.run_id)
         # Set up environment variables for the execution
         interaction.store_parameter(**parameters)
-        interaction.store_run_id()
 
         mode_config = self.resolve_node_config(node)
         for env_secret_key, secret_key in mode_config.get('secret_as_env', {}).items():

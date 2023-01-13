@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 from stevedore import extension
 
 logger = logging.getLogger(defaults.NAME)
+logging.getLogger('stevedore').setLevel(logging.CRITICAL)
 
 
 class BaseIntegration:
