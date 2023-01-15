@@ -9,6 +9,9 @@ logger = logging.getLogger(defaults.NAME)
 # Set this global executor to the fitted executor for access later
 global_executor = None  # pylint: disable=invalid-name
 
+# TODO: Store the pipeline in the run_log
+# TODO: For entrypoints that are not via pipeline, refer to the run_log for the dag definition
+
 
 def get_default_configs() -> dict:
     """
@@ -29,7 +32,6 @@ def get_default_configs() -> dict:
 
 
 def prepare_configurations(
-        variables_file: str = None,
         configuration_file: str = None,
         pipeline_file: str = None,
         run_id: str = None,
@@ -54,9 +56,7 @@ def prepare_configurations(
     """
     magnus_defaults = get_default_configs()
 
-    variables = {}
-    if variables_file:
-        variables = utils.gather_variables()
+    variables = utils.gather_variables()
 
     configuration = {}
     if configuration_file:
@@ -91,6 +91,7 @@ def prepare_configurations(
 
     # Mode configurations, configuration over rides everything
     mode_config = configuration.get('mode', {})
+    print(mode_config)
     if not mode_config:
         mode_config = magnus_defaults.get('executor', defaults.DEFAULT_EXECUTOR)
     mode_executor = utils.get_provider_by_name_and_type('executor', mode_config)
@@ -125,9 +126,9 @@ def prepare_configurations(
     mode_executor.catalog_handler = catalog_handler
     mode_executor.secrets_handler = secrets_handler
     mode_executor.experiment_tracker = tracker_handler
-    mode_executor.variables_file = variables_file
     mode_executor.configuration_file = configuration_file
     mode_executor.parameters_file = parameters_file
+    mode_executor.variables = variables
 
     return mode_executor
 
@@ -145,7 +146,6 @@ def execute(
     executor
 
     Args:
-        variables_file (str): The variables file, if used or None
         pipeline_file (str): The config/dag file
         run_id (str): The run id of the run.
         tag (str): If a tag is provided at the run time
@@ -269,7 +269,7 @@ def execute_single_node(
         parameters_file: str = None):
     # pylint: disable=R0914,R0913
     """
-    The entry point into executing a single node of magnus. Orchestration modes should extensivesly use this
+    The entry point into executing a single node of magnus. Orchestration modes should extensively use this
     entry point.
 
     It should have similar set up of configurations to execute because orchestrator modes can initiate the execution.

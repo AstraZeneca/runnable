@@ -203,10 +203,11 @@ class step(object):
         try:
             # Try to get it if previous steps have created it
             run_log = self.executor.run_log_store.get_run_log_by_id(self.executor.run_id)
-            if run_log.status in [defaults.FAIL, defaults.SUCCESS]:
+            if run_log.status in [defaults.FAIL, defaults.SUCCESS]:  # TODO: Remove this in preference to defaults
                 """
                 This check is mostly useless as we do not know when the graph ends as they are created dynamically.
                 This only prevents from using a run_id which has reached a final state.
+                #TODO: There is a need to create a status called step_success
                 """
                 msg = (
                     f'The run_log for run_id: {self.run_id} already exists and is in {run_log.status} state.'
@@ -237,6 +238,7 @@ class step(object):
             node = graph.create_node(name=self.name, step_config=step_config)
             self.executor.execute_from_graph(node=node)
             run_log = self.executor.run_log_store.get_run_log_by_id(run_id=self.executor.run_id, full=False)
+            # TODO: If the previous step succeeded, make the status of the run log step_success
             print(json.dumps(run_log.dict(), indent=4))
         return wrapped_f
 

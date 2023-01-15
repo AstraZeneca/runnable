@@ -68,6 +68,7 @@ class BaseExecutor:
         self.dag_hash = None
         self.catalog_handler = None
         self.secrets_handler = None
+        self.variables = {}
         self.experiment_tracker = None
         self.configuration_file = None
         self.parameters_file = None
@@ -91,6 +92,8 @@ class BaseExecutor:
     def set_up_run_log(self):
         """
         Create a run log and put that in the run log store
+        #TODO: Have a flag exists_ok which ignores creation if run_log already exists
+        #TODO: This method could be _
         """
         run_log = self.run_log_store.create_run_log(self.run_id)
         run_log.tag = self.tag
@@ -171,6 +174,8 @@ class BaseExecutor:
             node (Node): The current node being processed
             step_log (datastore.StepLog): The step log corresponding to that node
             stage (str): One of get or put
+
+        #TODO: This method could be _
         """
         if stage not in ['get', 'put']:
             msg = (
@@ -221,6 +226,9 @@ class BaseExecutor:
             node (Node): The node to execute
             map_variable (dict, optional): If the node is of a map state, map_variable is the value of the iterable.
                         Defaults to None.
+
+        #TODO: This method could be _
+        #TODO: The attempts should ideally by handled outside of this function
         """
         max_attempts = node.get_max_attempts()
         attempts = 0
@@ -449,6 +457,8 @@ class BaseExecutor:
 
         Returns:
             bool: Eligibility for re-run. True means re-run, False means skip to the next step.
+
+        #TODO: This method could be _
         """
         if self.previous_run_log:
             node_step_log_name = node.get_step_log_name(map_variable=map_variable)
@@ -518,6 +528,8 @@ class BaseExecutor:
 
         Args:
             node (BaseNode): The current node being processed.
+
+        #TODO: This method could be _
         """
         effective_node_config = copy.deepcopy(self.config)
         ctx_node_config = node.get_mode_config(self.service_name)
@@ -715,6 +727,7 @@ class LocalContainerExecutor(BaseExecutor):
             mode_config = self.resolve_node_config(node)
             docker_image = mode_config.get('docker_image', None)
             environment = mode_config.get('environment', {})
+            environment.update(self.variables)
             if not docker_image:
                 raise Exception(
                     f'Please provide a docker_image using mode_config of the step {node.name} or at global mode')

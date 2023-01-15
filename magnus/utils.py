@@ -572,6 +572,7 @@ def get_run_config(executor: executor.BaseExecutor) -> dict:
 
     run_config['experiment_tracker'] = {'type': executor.experiment_tracker.service_name,
                                         'config': executor.experiment_tracker.config}
+    run_config['variables'] = executor.variables
 
     return run_config
 

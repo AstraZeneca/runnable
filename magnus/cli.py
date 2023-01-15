@@ -144,6 +144,8 @@ def execute_notebook(filename, config_file, parameters_file, log_level, kernel, 
                               parameters_file=parameters_file, kernel=kernel, tag=tag, run_id=run_id)
 
 
+# TODO: Create execute function command
+
 @cli.command('build_docker', short_help="Utility tool to build docker images")
 @click.argument('image_name')
 @click.option('-f', '--docker-file', default=None, help="The dockerfile to be used. If None, we generate one")

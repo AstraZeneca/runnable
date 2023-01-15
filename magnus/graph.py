@@ -26,6 +26,12 @@ class Graph:
         self.internal_branch_name = internal_branch_name
         self.nodes = []
 
+    def to_dict(self) -> dict:
+        """
+        Return a dict representation of the graph, the inverse of create graph
+        """
+        pass
+
     def get_node_by_name(self, name: str) -> 'BaseNode':
         """
         Return the Node object by the name
