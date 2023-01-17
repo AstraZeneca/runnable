@@ -89,35 +89,47 @@ class BaseExecutor:
         """
         return defaults.ENABLE_PARALLEL
 
-    def set_up_run_log(self):
+    def set_up_run_log(self, exists_ok=False):
         """
         Create a run log and put that in the run log store
-        #TODO: Have a flag exists_ok which ignores creation if run_log already exists
+
+        If exists_ok, we allow the run log to be already present in the run log store
         #TODO: This method could be _
         """
-        run_log = self.run_log_store.create_run_log(self.run_id)
-        run_log.tag = self.tag
-        run_log.use_cached = False
-        run_log.status = defaults.PROCESSING
-        run_log.dag_hash = self.dag_hash
+        try:
+            _ = self.run_log_store.get_run_log_by_id(run_id=self.run_id, full=False)
+        except exceptions.RunLogNotFoundError:
+            pass
+        except exceptions.RunLogExistsError:
+            if exists_ok:
+                return
+            raise
+
+        run_log = {}
+        run_log['run_id'] = self.run_id
+        run_log['tag'] = self.tag
+        run_log['use_cached'] = False
+        run_log['status'] = defaults.PROCESSING
+        run_log['dag_hash'] = self.dag_hash
 
         parameters = {}
         if self.parameters_file:
             parameters = utils.load_yaml(self.parameters_file)
 
         if self.previous_run_log:
-            run_log.original_run_id = self.previous_run_log.run_id
+            run_log['original_run_id'] = self.previous_run_log.run_id
             # Sync the previous run log catalog to this one.
-            self.catalog_handler.sync_between_runs(previous_run_id=run_log.original_run_id, run_id=self.run_id)
-            run_log.use_cached = True
+            self.catalog_handler.sync_between_runs(previous_run_id=self.previous_run_log.run_id, run_id=self.run_id)
+            run_log['use_cached'] = True
             parameters.update(self.previous_run_log.parameters)
+
+        run_log = self.run_log_store.create_run_log(**run_log)
 
         # Any interaction with run log store attributes should happen via API if available.
         self.run_log_store.set_parameters(run_id=self.run_id, parameters=parameters)
 
         # Update run_config
         run_config = utils.get_run_config(self)
-
         self.run_log_store.set_run_config(run_id=self.run_id, run_config=run_config)
 
     def prepare_for_graph_execution(self):

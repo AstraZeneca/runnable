@@ -573,6 +573,7 @@ def get_run_config(executor: executor.BaseExecutor) -> dict:
     run_config['experiment_tracker'] = {'type': executor.experiment_tracker.service_name,
                                         'config': executor.experiment_tracker.config}
     run_config['variables'] = executor.variables
+    run_config['pipeline'] = executor.dag._to_dict()
 
     return run_config
 

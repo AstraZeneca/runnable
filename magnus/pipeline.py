@@ -9,8 +9,8 @@ logger = logging.getLogger(defaults.NAME)
 # Set this global executor to the fitted executor for access later
 global_executor = None  # pylint: disable=invalid-name
 
-# TODO: Store the pipeline in the run_log
 # TODO: For entrypoints that are not via pipeline, refer to the run_log for the dag definition
+# TODO: Tests and mypy
 
 
 def get_default_configs() -> dict:
@@ -91,7 +91,6 @@ def prepare_configurations(
 
     # Mode configurations, configuration over rides everything
     mode_config = configuration.get('mode', {})
-    print(mode_config)
     if not mode_config:
         mode_config = magnus_defaults.get('executor', defaults.DEFAULT_EXECUTOR)
     mode_executor = utils.get_provider_by_name_and_type('executor', mode_config)

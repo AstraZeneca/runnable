@@ -26,11 +26,19 @@ class Graph:
         self.internal_branch_name = internal_branch_name
         self.nodes = []
 
-    def to_dict(self) -> dict:
+    def _to_dict(self) -> dict:
         """
-        Return a dict representation of the graph, the inverse of create graph
+        Return a dict representation of the graph
         """
-        pass
+        dag = {}
+        dag['start_at'] = self.start_at
+        dag['description'] = self.description
+        dag['max_time'] = self.max_time
+        dag['steps'] = []
+        for node in self.nodes:
+            dag['steps'].append(node._to_dict())
+
+        return dag
 
     def get_node_by_name(self, name: str) -> 'BaseNode':
         """

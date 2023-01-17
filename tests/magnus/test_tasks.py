@@ -19,19 +19,19 @@ def test_base_task_get_parameters_gets_from_utils(mocker, monkeypatch):
 
     base_execution_type = tasks.BaseTaskType(command=None)
 
-    base_execution_type.get_parameters()
+    base_execution_type._get_parameters()
     mock_get_user_set_parameters.assert_called_once_with(remove=False)
 
 
 def test_base_task_set_parameters_does_nothing_if_no_parameters_sent():
     base_execution_type = tasks.BaseTaskType(command=None)
-    base_execution_type.set_parameters()
+    base_execution_type._set_parameters()
 
 
 def test_base_task_set_parameters_raises_exception_if_parameters_are_not_dict():
     base_execution_type = tasks.BaseTaskType(command=None)
     with pytest.raises(Exception):
-        base_execution_type.set_parameters(parameters=[1, 2, 3])
+        base_execution_type._set_parameters(parameters=[1, 2, 3])
 
 
 def test_base_task_set_parameters_sets_environ_vars_if_sent(mocker, monkeypatch):
@@ -40,7 +40,7 @@ def test_base_task_set_parameters_sets_environ_vars_if_sent(mocker, monkeypatch)
     monkeypatch.setattr(tasks.os, 'environ', mock_os_environ)
 
     base_execution_type = tasks.BaseTaskType(command=None)
-    base_execution_type.set_parameters(parameters={'x': 10})
+    base_execution_type._set_parameters(parameters={'x': 10})
 
     assert mock_os_environ[defaults.PARAMETER_PREFIX + 'x'] == '10'
 

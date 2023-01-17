@@ -25,7 +25,17 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
         self.command = command
         self.config = config or {}
 
-    def get_parameters(self, map_variable: dict = None, **kwargs) -> dict:
+    def _to_dict(self) -> dict:
+        """
+        Return a dictionary representation of the task
+        """
+        task = {}
+        task['command'] = self.command
+        task['config'] = self.config
+
+        return task
+
+    def _get_parameters(self, map_variable: dict = None, **kwargs) -> dict:
         """
         Return the parameters in scope for the execution
 
@@ -51,7 +61,7 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
         """
         raise NotImplementedError()
 
-    def set_parameters(self, parameters: dict = None, **kwargs):
+    def _set_parameters(self, parameters: dict = None, **kwargs):
         """
         Set the parameters back to the environment variables.
 
@@ -77,7 +87,7 @@ class PythonFunctionType(BaseTaskType):
     task_type = 'python-function'
 
     def execute_command(self, map_variable: dict = None, **kwargs):
-        parameters = self.get_parameters()
+        parameters = self._get_parameters()
         filtered_parameters = utils.filter_arguments_for_func(self.command, parameters, map_variable)
 
         if map_variable:
@@ -97,7 +107,7 @@ class PythonFunctionType(BaseTaskType):
         if map_variable:
             del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
 
-        self.set_parameters(user_set_parameters)
+        self._set_parameters(user_set_parameters)
 
 
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
@@ -112,7 +122,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         imported_module = importlib.import_module(module)
         f = getattr(imported_module, func)
 
-        parameters = self.get_parameters()
+        parameters = self._get_parameters()
         filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
 
         if map_variable:
@@ -132,7 +142,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         if map_variable:
             del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
 
-        self.set_parameters(user_set_parameters)
+        self._set_parameters(user_set_parameters)
 
 
 class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
@@ -151,7 +161,7 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 
         f = eval(self.command)
 
-        parameters = self.get_parameters()
+        parameters = self._get_parameters()
         filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
 
         if map_variable:
@@ -171,7 +181,7 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
         if map_variable:
             del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
 
-        self.set_parameters(user_set_parameters)
+        self._set_parameters(user_set_parameters)
 
 
 class NotebookTaskType(BaseTaskType):
@@ -191,7 +201,7 @@ class NotebookTaskType(BaseTaskType):
             if not pm:
                 raise ImportError('Papermill is required for notebook type node')
 
-            parameters = self.get_parameters()
+            parameters = self._get_parameters()
 
             notebook_parameters = pm.inspect_notebook(self.command)
             filtered_parameters = utils.filter_arguments_from_parameters(parameters=parameters,

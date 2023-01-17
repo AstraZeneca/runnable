@@ -159,7 +159,7 @@ class RunLog(BaseModel):
     use_cached: bool = False
     tag: Optional[str] = ''
     original_run_id: Optional[str] = ''
-    status: str = 'FAIL'
+    status: str = defaults.FAIL
     steps: OrderedDict[str, StepLog] = {}  # type: ignore # Has the steps keyed by internal_name
     parameters: dict = {}
     run_config: dict = {}
@@ -286,7 +286,8 @@ class BaseRunLogStore:
     def __init__(self, config):
         self.config = config or {}
 
-    def create_run_log(self, run_id: str, **kwargs):
+    def create_run_log(self, run_id: str, dag_hash: str = None, use_cached: bool = False,
+                       tag: str = '', original_run_id: str = '', status: str = defaults.CREATED, **kwargs):
         """
         Creates a Run Log object by using the config
 
@@ -601,12 +602,14 @@ class BufferRunLogstore(BaseRunLogStore):
         super().__init__(config)
         self.run_log = None  # For a buffered Run Log, this is the database
 
-    def create_run_log(self, run_id: str, **kwargs) -> RunLog:
+    def create_run_log(self, run_id: str, dag_hash: str = None, use_cached: bool = False,
+                       tag: str = '', original_run_id: str = '', status: str = defaults.CREATED, **kwargs) -> RunLog:
         # Creates a Run log
         # Adds it to the db
         # Return the log
         logger.info(f'{self.service_name} Creating a Run Log and adding it to DB')
-        self.run_log = RunLog(run_id=run_id, status=defaults.CREATED)
+        self.run_log = RunLog(run_id=run_id, dag_hash=dag_hash, use_cached=use_cached,
+                              tag=tag, original_run_id=original_run_id, status=status)
         return self.run_log
 
     def get_run_log_by_id(self, run_id: str, full: bool = True, **kwargs):
@@ -700,11 +703,19 @@ class FileSystemRunLogstore(BaseRunLogStore):
             run_log = RunLog(**json_str)  # pylint: disable=no-member
         return run_log
 
-    def create_run_log(self, run_id: str, **kwargs) -> RunLog:
+    def create_run_log(self, run_id: str, dag_hash: str = None, use_cached: bool = False,
+                       tag: str = '', original_run_id: str = '', status: str = defaults.CREATED, **kwargs) -> RunLog:
         # Creates a Run log
         # Adds it to the db
+        try:
+            self.get_run_log_by_id(run_id=run_id, full=False)
+            raise exceptions.RunLogExistsError(run_id=run_id)
+        except exceptions.RunLogNotFoundError:
+            pass
+
         logger.info(f'{self.service_name} Creating a Run Log for : {run_id}')
-        run_log = RunLog(run_id=run_id, status=defaults.CREATED)
+        run_log = RunLog(run_id=run_id, dag_hash=dag_hash, use_cached=use_cached,
+                         tag=tag, original_run_id=original_run_id, status=status)
         self.write_to_folder(run_log)
         return run_log
 

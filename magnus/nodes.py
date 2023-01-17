@@ -44,6 +44,13 @@ class BaseNode:
         self.branches = None
         self.is_composite = False
 
+    def _to_dict(self) -> dict:
+        node_dict = {}
+        node_dict['name'] = self.name
+        node_dict['config'] = self.config
+
+        return node_dict
+
     def command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
         """
         Replace spaces with special character for spaces.
@@ -51,6 +58,7 @@ class BaseNode:
 
         Returns:
             str: The command friendly name of the node
+        #TODO: This method could be _
         """
         return self.internal_name.replace(' ', replace_with)
 
@@ -65,6 +73,7 @@ class BaseNode:
 
         Returns:
             str: The internal name of the step
+        #TODO: This method could be _
         """
         return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, ' ')
 
@@ -110,6 +119,7 @@ class BaseNode:
 
         Returns:
             [str]: The resolved name
+        #TODO: This method could be _
         """
         if not map_variable:
             return name
@@ -133,6 +143,7 @@ class BaseNode:
 
         Returns:
             str: The dot path name of the step log name
+        #TODO: This method could be _
         """
         return self.resolve_map_placeholders(self.internal_name, map_variable=map_variable)
 
@@ -150,6 +161,7 @@ class BaseNode:
 
         Returns:
             str: The dot path name of the branch log
+        #TODO: This method could be _
         """
         return self.resolve_map_placeholders(self.internal_branch_name, map_variable=map_variable)
 
@@ -164,6 +176,7 @@ class BaseNode:
 
         Returns:
             str: The on_failure node defined by the dag or ''
+        #TODO: This method could be _
         """
         if 'on_failure' in self.config:
             return self.config['on_failure']
@@ -175,6 +188,7 @@ class BaseNode:
 
         Returns:
             dict: catalog settings defined as per the node or None
+        #TODO: This method could be _
         """
         if 'catalog' in self.config:
             return self.config['catalog']
@@ -194,6 +208,7 @@ class BaseNode:
 
         Raises:
             Exception: [description]
+        #TODO: This method could be _
         """
         raise Exception(f'Node of type {self.node_type} does not have any branches')
 
@@ -203,6 +218,7 @@ class BaseNode:
 
         Returns:
             bool: True or False of whether there is next node.
+        #TODO: This method could be _
         """
         if 'next' in self.config:
             return False
@@ -214,6 +230,7 @@ class BaseNode:
 
         Returns:
             list: List of connected neighbors for a given node. Empty if terminal node.
+        #TODO: This method could be _
         """
         neighbors = []
         next_node = self.get_next_node()
@@ -232,6 +249,7 @@ class BaseNode:
 
         Returns:
             str: The node name, relative to the dag, as defined by the config
+        #TODO: This method could be _
         """
         if not self.is_terminal_node():
             return self.config['next']
@@ -246,6 +264,7 @@ class BaseNode:
 
         Returns:
             dict: The mode config, if defined or an empty dict
+        #TODO: This method could be _
         """
         if 'mode_config' in self.config:
             return self.config['mode_config'].get(mode_type, {}) or {}
@@ -257,6 +276,7 @@ class BaseNode:
 
         Returns:
             int: The number of maximum retries as defined by the config or 1.
+        #TODO: This method could be _
         """
         if 'retry' in self.config:
             return int(self.config['retry']) or 1
