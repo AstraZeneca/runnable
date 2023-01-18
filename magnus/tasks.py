@@ -10,7 +10,7 @@ from magnus import defaults, utils
 logger = logging.getLogger(defaults.NAME)
 
 try:
-    import papermill as pm
+    import ploomber_engine as pm
 except ImportError:
     pm = None
 
@@ -200,32 +200,28 @@ class NotebookTaskType(BaseTaskType):
     def execute_command(self, map_variable: dict = None, **kwargs):
         try:
             if not pm:
-                raise ImportError('Papermill is required for notebook type node')
+                raise ImportError('Ploomber enginer is required for notebook type node')
 
             parameters = self._get_parameters()
+            filtered_parameters = parameters
 
-            notebook_parameters = pm.inspect_notebook(self.command)
-            filtered_parameters = utils.filter_arguments_from_parameters(parameters=parameters,
-                                                                         signature_parameters=notebook_parameters,
-                                                                         map_variable=map_variable)
             if map_variable:
                 os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
 
             notebook_output_path = self.config.get('notebook_output_path',
                                                    ''.join(self.command.split('.')[:-1]) + '_out.ipynb')
-            kernel = self.config.get('notebook_kernel', None)
-            papermill_optional_args = self.config.get('optional_papermill_args', {})
+
+            ploomber_optional_args = self.config.get('optional_ploomber_args', {})
 
             kwds = {
                 'input_path': self.command,
                 'output_path': notebook_output_path,
                 'parameters': filtered_parameters,
+                'log_output': True,
+                'progress_bar': False
             }
 
-            kwds.update(papermill_optional_args)
-
-            if kernel:
-                kwds['kernel_name'] = kernel
+            kwds.update(ploomber_optional_args)
 
             pm.execute_notebook(**kwds)
 
@@ -234,7 +230,7 @@ class NotebookTaskType(BaseTaskType):
 
         except ImportError as e:
             msg = (
-                f'Task type of notebook requires papermill to be installed. Please install via optional: notebook'
+                f'Task type of notebook requires ploomber engine to be installed. Please install via optional: notebook'
             )
             raise Exception(msg) from e
 

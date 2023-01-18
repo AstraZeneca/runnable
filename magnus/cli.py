@@ -122,12 +122,11 @@ def execute_single_branch(run_id, branch_name, map_variable, file, config_file, 
               help="Parameters, in yaml,  accessible by the application", show_default=True)
 @click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
               type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
-@click.option('--kernel', default=None, help='The kernel to run the notebook in', show_default=True,)
 @click.option('--data-folder', '-d', default='data/', help="The catalog data folder")
 @click.option('--put-in-catalog', '-put', default=None, multiple=True, help="The data to put from the catalog")
 @click.option('--tag', help='A tag attached to the run')
 @click.option('--run-id', help='An optional run_id, one would be generated if not provided')
-def execute_notebook(filename, config_file, parameters_file, log_level, kernel, data_folder,
+def execute_notebook(filename, config_file, parameters_file, log_level, data_folder,
                      put_in_catalog, tag, run_id):
     """
     Entry point to execute a Jupyter notebook in isolation.
@@ -141,7 +140,7 @@ def execute_notebook(filename, config_file, parameters_file, log_level, kernel, 
         'put': list(put_in_catalog) if put_in_catalog else None
     }
     pipeline.execute_notebook(notebook_file=filename, catalog_config=catalog_config, configuration_file=config_file,
-                              parameters_file=parameters_file, kernel=kernel, tag=tag, run_id=run_id)
+                              parameters_file=parameters_file, tag=tag, run_id=run_id)
 
 
 # TODO: Create execute function command

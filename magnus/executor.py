@@ -598,7 +598,7 @@ class LocalExecutor(BaseExecutor):
             node (BaseNode): [description]
             map_variable (str, optional): [description]. Defaults to ''.
         """
-        self.prepare_for_node_execution(node, map_variable=map_variable)
+        self.prepare_for_node_execution()
         self.execute_node(node=node, map_variable=map_variable, **kwargs)
 
 
@@ -805,7 +805,7 @@ class DemoRenderer(BaseExecutor):
         """
         pass
 
-    def prepare_for_node_execution(self, node: BaseNode, map_variable: dict = None):
+    def prepare_for_node_execution(self):
         """
         This method would be called prior to the node execution in the environment of the compute.
 
@@ -816,7 +816,7 @@ class DemoRenderer(BaseExecutor):
         For interactive modes, prepare_for_graph_execution takes care of a lot of set up. For orchestrated modes,
         the same work has to be done by prepare_for_node_execution.
         """
-        super().prepare_for_node_execution(node=node, map_variable=map_variable)
+        super().prepare_for_node_execution()
 
         # Set up the run log or create it if not done previously
         try:
@@ -898,7 +898,7 @@ class DemoRenderer(BaseExecutor):
         If the compute is local to the environment, calls prepare_for_node_execution and call execute_node
         NOTE: This method should always be implemented.
         """
-        self.prepare_for_node_execution(node, map_variable=map_variable)
+        self.prepare_for_node_execution()
         self.execute_node(node=node, map_variable=map_variable, **kwargs)
 
     def send_return_code(self, stage='traversal'):

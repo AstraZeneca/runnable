@@ -360,7 +360,6 @@ def execute_notebook(
         configuration_file: str,
         tag: str = None,
         run_id: str = None,
-        kernel: str = None,
         parameters_file: str = None):
     # pylint: disable=R0914,R0913
     """
@@ -386,7 +385,6 @@ def execute_notebook(
         'type': 'task',
         'next': 'success',
         'catalog': catalog_config,
-        'config': {'kernel': kernel}
     }
     node = graph.create_node(name=f'executing notebook', step_config=step_config)
 

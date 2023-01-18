@@ -19,16 +19,16 @@ pydantic = "^1.9.0"
 stevedore = "^3.5.0"
 "click" = "*"
 docker ={ version = "*", optional = true }
-papermill ={ version = "*", optional = true }
 click-plugins = "^1.1.1"
 mlflow-skinny = "^2.1.1"
 pandas = "^1.5.2"
 scikit-learn = "^1.2.0"
 jupyterlab = "^3.5.2"
+ploomber-engine ={ version= "^0.0.19", optional = true }
 
 [tool.poetry.extras]
 docker = ['docker']
-notebook = ['papermill']
+notebook = ['ploomber-engine']
 
 
 [tool.poetry.dev-dependencies]
