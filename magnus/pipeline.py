@@ -161,9 +161,10 @@ def execute(
                                            use_cached=use_cached,
                                            parameters_file=parameters_file)
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
-    previous_run_log = None
 
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+
+    previous_run_log = None
     if use_cached:
         try:
             previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
@@ -292,13 +293,18 @@ def execute_single_node(
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
+    mode_executor.prepare_for_node_execution()
+
+    if not mode_executor.dag:
+        # There are a few entry points that make graph dynamically and do not have a dag defined statically.
+        run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
+        mode_executor.dag = graph.create_graph(run_log.run_config['pipeline'])
+
     step_internal_name = nodes.BaseNode.get_internal_name_from_command_name(step_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
     node_to_execute, _ = graph.search_node_by_internal_name(mode_executor.dag, step_internal_name)
-
-    mode_executor.prepare_for_node_execution(node_to_execute, map_variable=map_variable_dict)
 
     logger.info('Executing the single node of : %s', node_to_execute)
     mode_executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
@@ -360,9 +366,6 @@ def execute_notebook(
     """
     The entry point to magnus execution of a notebook. This method would prepare the configurations and
     delegates traversal to the executor
-
-    Args:
-
     """
     run_id = utils.generate_run_id(run_id=run_id)
 

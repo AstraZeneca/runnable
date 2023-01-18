@@ -76,7 +76,8 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
             msg = (
                 f'call to function {self.command} returns of type: {type(parameters)}. '
                 'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
-            raise Exception(msg)
+            logger.warn(msg)
+            return
 
         for key, value in parameters.items():
             logger.info(f'Setting User defined parameter {key} with value: {value}')

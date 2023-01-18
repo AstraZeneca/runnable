@@ -81,7 +81,7 @@ def execute_step(step_name, file, config_file, parameters_file, log_level, tag, 
 @click.argument('run_id')
 @click.argument('step_name')
 @click.option('--map-variable', default='', help='The map variable dictionary in str', show_default=True)
-@click.option('-f', '--file', default='pipeline.yaml', help='The pipeline definition file', show_default=True)
+@click.option('-f', '--file', default='', help='The pipeline definition file', show_default=True)
 @click.option('-c', '--config-file', default=None,
               help="config file, in yaml, to be used for the run", show_default=True)
 @click.option('-p', '--parameters-file', default=None,

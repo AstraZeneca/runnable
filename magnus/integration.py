@@ -255,6 +255,23 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
         self.service.config['location'] = self.executor.container_secrets_location
 
 
+class LocalContainerComputeEnvSecretsManager(BaseIntegration):
+    """
+    Integration between local container and env secrets manager
+    """
+    mode_type = 'local-container'
+    service_type = 'secrets'  # One of secret, catalog, datastore
+    service_provider = 'env-secrets-manager'  # The actual implementation of the service
+
+    def validate(self, **kwargs):
+        msg = (
+            'Local container mode cannot be used with environment secrets manager. '
+            'Please use a supported secrets manager'
+        )
+        logger.exception(msg)
+        raise Exception(msg)
+
+
 class LocalContainerDoNothingCatalog(BaseIntegration):
     """
     Integration between local container and do nothing catalog

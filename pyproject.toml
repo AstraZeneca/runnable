@@ -81,6 +81,7 @@ magnus= 'magnus.cli:cli'
 "local-container-run_log_store-buffered" = "magnus.integration:LocalContainerComputeBufferedRunLogStore"
 "local-container-run_log_store-file-system" = "magnus.integration:LocalContainerComputeFileSystemRunLogstore"
 "local-container-secrets-dotenv" = "magnus.integration:LocalContainerComputeDotEnvSecrets"
+"local-container-secrets-environment" = "magnus.integration:LocalContainerComputeEnvSecretsManager"
 "local-container-catalog-do-nothing" = "magnus.integration:LocalContainerDoNothingCatalog"
 "local-catalog-do-nothing" = "magnus.integration:LocalDoNothingCatalog"
 "local-container-catalog-file-system" = "magnus.integration:LocalContainerComputeFileSystemCatalog"

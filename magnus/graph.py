@@ -34,9 +34,9 @@ class Graph:
         dag['start_at'] = self.start_at
         dag['description'] = self.description
         dag['max_time'] = self.max_time
-        dag['steps'] = []
+        dag['steps'] = {}
         for node in self.nodes:
-            dag['steps'].append(node._to_dict())
+            dag['steps'][node.name] = node._to_dict()
 
         return dag
 

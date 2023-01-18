@@ -37,17 +37,24 @@ def track_this(step: int = 0, **kwargs):
         global_executor.experiment_tracker.set_metric(key, value, step=step)
 
 
-def store_parameter(**kwargs: dict):
+def store_parameter(update: bool = True, **kwargs: dict):
     """
     Set up the keyword args as environment variables for parameters tracking
     purposes as part pf the run.
+
+    If update_existing is True, we override the current value if the parameter already exists.
 
     For every key-value pair found in kwargs, we set up an environmental variable of
     MAGNUS_PRM_key = json.dumps(value)
     """
     for key, value in kwargs.items():
         logger.info(f'Storing parameter {key} with value: {value}')
-        os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
+        environ_key = defaults.PARAMETER_PREFIX + key
+
+        if environ_key in os.environ and not update:
+            return
+
+        os.environ[environ_key] = json.dumps(value)
 
 
 def get_parameter(key=None) -> Union[str, dict]:
@@ -202,6 +209,7 @@ class step(object):
 
         try:
             # Try to get it if previous steps have created it
+            # TODO: Can call the set_up_runlog now.
             run_log = self.executor.run_log_store.get_run_log_by_id(self.executor.run_id)
             if run_log.status in [defaults.FAIL, defaults.SUCCESS]:  # TODO: Remove this in preference to defaults
                 """

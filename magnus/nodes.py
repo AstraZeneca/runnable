@@ -45,11 +45,7 @@ class BaseNode:
         self.is_composite = False
 
     def _to_dict(self) -> dict:
-        node_dict = {}
-        node_dict['name'] = self.name
-        node_dict['config'] = self.config
-
-        return node_dict
+        return self.config
 
     def command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
         """

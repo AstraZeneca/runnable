@@ -114,7 +114,10 @@ class BaseExecutor:
 
         parameters = {}
         if self.parameters_file:
-            parameters = utils.load_yaml(self.parameters_file)
+            parameters.update(utils.load_yaml(self.parameters_file))
+
+        # Update these with some from the environment variables
+        parameters.update(utils.get_user_set_parameters())
 
         if self.previous_run_log:
             run_log['original_run_id'] = self.previous_run_log.run_id
@@ -153,7 +156,7 @@ class BaseExecutor:
 
         self.set_up_run_log()
 
-    def prepare_for_node_execution(self, node: BaseNode, map_variable: dict = None):
+    def prepare_for_node_execution(self):
         """
         Perform any modifications to the services prior to execution of the node.
 
@@ -248,11 +251,8 @@ class BaseExecutor:
 
         parameters = self.run_log_store.get_parameters(run_id=self.run_id)
         # Set up environment variables for the execution
-        interaction.store_parameter(**parameters)
-
-        mode_config = self.resolve_node_config(node)
-        for env_secret_key, secret_key in mode_config.get('secret_as_env', {}).items():
-            os.environ[env_secret_key] = interaction.get_secret(secret_key)
+        # If the key already exists, do not update it to give priority to parameters set by environment variables
+        interaction.store_parameter(update=False, **parameters)
 
         data_catalogs_get = self.sync_catalog(node, step_log, stage='get')
 
