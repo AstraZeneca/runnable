@@ -5,7 +5,7 @@ import os
 import subprocess
 import sys
 
-from magnus import defaults, utils
+from magnus import defaults, put_in_catalog, utils
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -225,6 +225,7 @@ class NotebookTaskType(BaseTaskType):
 
             pm.execute_notebook(**kwds)
 
+            put_in_catalog(notebook_output_path)
             if map_variable:
                 del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
 

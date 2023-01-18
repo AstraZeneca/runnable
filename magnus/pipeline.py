@@ -9,7 +9,6 @@ logger = logging.getLogger(defaults.NAME)
 # Set this global executor to the fitted executor for access later
 global_executor = None  # pylint: disable=invalid-name
 
-# TODO: For entrypoints that are not via pipeline, refer to the run_log for the dag definition
 # TODO: Tests and mypy
 
 
