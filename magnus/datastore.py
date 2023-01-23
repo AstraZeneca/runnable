@@ -22,8 +22,8 @@ class DataCatalog(BaseModel):
     """
     name: str  #  The name of the dataset
     data_hash: str = ''  # The sha1 hash of the file
-    catalog_relative_path: str = ''  # The file path
-    catalog_handler_location: str = ''
+    catalog_relative_path: str = ''  # The file path relative the catalog location
+    catalog_handler_location: str = ''  # The location of the catalog
     stage: str = ''  # The stage at which we recorded it get, put etc
 
     # Needed for set operations to work on DataCatalog objects
@@ -283,10 +283,14 @@ class BaseRunLogStore:
     """
     service_name = ''
 
-    def __init__(self, config):
-        self.config = config or {}
+    class Config(BaseModel):
+        pass
 
-    def create_run_log(self, run_id: str, dag_hash: str = None, use_cached: bool = False,
+    def __init__(self, config):
+        config = config or {}
+        self.config = self.Config(**config)
+
+    def create_run_log(self, run_id: str, dag_hash: str = '', use_cached: bool = False,
                        tag: str = '', original_run_id: str = '', status: str = defaults.CREATED, **kwargs):
         """
         Creates a Run Log object by using the config
@@ -602,7 +606,7 @@ class BufferRunLogstore(BaseRunLogStore):
         super().__init__(config)
         self.run_log = None  # For a buffered Run Log, this is the database
 
-    def create_run_log(self, run_id: str, dag_hash: str = None, use_cached: bool = False,
+    def create_run_log(self, run_id: str, dag_hash: str = '', use_cached: bool = False,
                        tag: str = '', original_run_id: str = '', status: str = defaults.CREATED, **kwargs) -> RunLog:
         # Creates a Run log
         # Adds it to the db
@@ -648,14 +652,13 @@ class FileSystemRunLogstore(BaseRunLogStore):
         log_folder: The folder to out the logs. Defaults to .run_log_store
     """
     service_name = 'file-system'
-    CONFIG_KEY_LOG_FOLDER = 'log_folder'
+
+    class Config(BaseModel):
+        log_folder: str = defaults.LOG_LOCATION_FOLDER
 
     @property
     def log_folder_name(self) -> str:
-        if self.config:
-            return self.config.get(self.CONFIG_KEY_LOG_FOLDER, defaults.LOG_LOCATION_FOLDER)
-
-        return defaults.LOG_LOCATION_FOLDER
+        return self.config.log_folder
 
     def write_to_folder(self, run_log: RunLog):
         """
@@ -703,7 +706,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
             run_log = RunLog(**json_str)  # pylint: disable=no-member
         return run_log
 
-    def create_run_log(self, run_id: str, dag_hash: str = None, use_cached: bool = False,
+    def create_run_log(self, run_id: str, dag_hash: str = '', use_cached: bool = False,
                        tag: str = '', original_run_id: str = '', status: str = defaults.CREATED, **kwargs) -> RunLog:
         # Creates a Run log
         # Adds it to the db

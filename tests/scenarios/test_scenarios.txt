@@ -1,3 +1,9 @@
+test traversal's with as-is nodes:
+    - two node dag with terminal nodes
+    - two node dag with first node failing
+    - two node dag with first node failing and on_failure to second node
+    - two node with one being parallel
+
 Test the following scenarios:
 
 For catalog settings:

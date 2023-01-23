@@ -3,6 +3,8 @@ import os
 from functools import lru_cache
 from typing import Union
 
+from pydantic import BaseModel
+
 from magnus import defaults, exceptions, utils
 
 logger = logging.getLogger(defaults.NAME)
@@ -22,8 +24,12 @@ class BaseSecrets:
     """
     service_name = ''
 
+    class Config(BaseModel):
+        pass
+
     def __init__(self, config: dict, **kwargs):  # pylint: disable=unused-argument
-        self.config = config or {}
+        config = config or {}
+        self.config = self.Config(**config)
 
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:
         """
@@ -115,11 +121,15 @@ class DotEnvSecrets(BaseSecrets):
 
     service_name = 'dotenv'
 
+    class Config(BaseModel):
+        location: str = defaults.DOTENV_FILE_LOCATION
+
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
         self.secrets = {}
 
-    def get_secrets_location(self):
+    @property
+    def secrets_location(self):
         """
         Return the location of the .env file.
         If the user has not over-ridden it, it defaults to .env file in the project root.
@@ -127,11 +137,7 @@ class DotEnvSecrets(BaseSecrets):
         Returns:
             str: The location of the secrets file
         """
-        secrets_location = defaults.DOTENV_FILE_LOCATION
-        if self.config and 'location' in self.config:
-            secrets_location = self.config['location'] or secrets_location
-
-        return secrets_location
+        return self.config.location
 
     def _load_secrets(self):
         """
@@ -146,7 +152,7 @@ class DotEnvSecrets(BaseSecrets):
             Exception: If the file at secrets_location is not found.
             Exception: If the secrets are not formatted correctly.
         """
-        secrets_location = self.get_secrets_location()
+        secrets_location = self.secrets_location
         if not utils.does_file_exist(secrets_location):
             raise Exception(f'Did not find the secrets file in {secrets_location}')
 
@@ -181,5 +187,5 @@ class DotEnvSecrets(BaseSecrets):
         if name in self.secrets:
             return self.secrets[name]
 
-        secrets_location = self.get_secrets_location()
+        secrets_location = self.secrets_location
         raise exceptions.SecretNotFoundError(secret_name=name, secret_setting=secrets_location)

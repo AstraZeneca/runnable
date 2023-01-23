@@ -1,0 +1,48 @@
+dags:
+  success_dag:
+    dag:
+      start_at: a
+      steps:
+        a:
+          type: as-is
+          next: b
+        b:
+          type: as-is
+          next: success
+        success:
+          type: success
+        fail:
+          type: fail
+  fail_dag:
+    dag:
+      start_at: a
+      steps:
+        a:
+          type: task
+          command_type: python
+          command: tests.scenarios.stubs.throw_exception
+          next: b
+        b:
+          type: as-is
+          next: success
+        success:
+          type: success
+        fail:
+          type: fail
+  on_fail_dag:
+    dag:
+      start_at: a
+      steps:
+        a:
+          type: task
+          command_type: python
+          command: tests.scenarios.stubs.throw_exception
+          next: b
+          on_failure: b
+        b:
+          type: as-is
+          next: success
+        success:
+          type: success
+        fail:
+          type: fail

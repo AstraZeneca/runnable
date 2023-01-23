@@ -102,7 +102,7 @@ def get_integration_handler(executor: 'BaseExecutor', service: object) -> BaseIn
         if (kls.obj.service_type == service_type and  # type: ignore
                 kls.obj.mode_type == executor.service_name and  # type: ignore
                 kls.obj.service_provider == service_name):
-            logger.info(f'Identified an intergration pattern {kls.obj}')
+            logger.info(f'Identified an integration pattern {kls.obj}')
             integrations.append(kls.obj)
 
     if len(integrations) > 1:
@@ -230,7 +230,7 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
         }
 
     def configure_for_execution(self, **kwargs):
-        self.service.config[self.service.CONFIG_KEY_LOG_FOLDER] = self.executor.container_log_location
+        self.service.config.log_folder = self.executor.container_log_location
 
 
 class LocalContainerComputeDotEnvSecrets(BaseIntegration):
@@ -245,14 +245,14 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
         logger.warning('Using dot env for non local deployments is not ideal, consider options')
 
     def configure_for_traversal(self, **kwargs):
-        secrets_location = self.service.get_secrets_location()
+        secrets_location = self.service.secrets_location
         self.executor.volumes[str(Path(secrets_location).resolve())] = {
             'bind': f'{self.executor.container_secrets_location}',
             'mode': 'ro'
         }
 
     def configure_for_execution(self, **kwargs):
-        self.service.config['location'] = self.executor.container_secrets_location
+        self.service.config.location = self.executor.container_secrets_location
 
 
 class LocalContainerComputeEnvSecretsManager(BaseIntegration):
@@ -311,14 +311,14 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
     service_provider = 'file-system'  # The actual implementation of the service
 
     def configure_for_traversal(self, **kwargs):
-        catalog_location = self.service.get_catalog_location()
+        catalog_location = self.service.catalog_location
         self.executor.volumes[str(Path(catalog_location).resolve())] = {
             'bind': f'{self.executor.container_catalog_location}',
             'mode': 'rw'
         }
 
     def configure_for_execution(self, **kwargs):
-        self.service.config['catalog_location'] = self.executor.container_catalog_location
+        self.service.config.catalog_location = self.executor.container_catalog_location
 
 
 class DemoRenderBufferedRunLogStore(BaseIntegration):

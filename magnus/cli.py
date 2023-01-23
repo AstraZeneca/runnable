@@ -132,7 +132,6 @@ def execute_notebook(filename, config_file, parameters_file, log_level, data_fol
     Entry point to execute a Jupyter notebook in isolation.
 
     The notebook would be executed
-
     """
     logger.setLevel(log_level)
     catalog_config = {

@@ -4,6 +4,8 @@ import shutil
 from pathlib import Path
 from typing import List
 
+from pydantic import BaseModel
+
 from magnus import defaults, utils
 
 logger = logging.getLogger(defaults.NAME)
@@ -53,8 +55,12 @@ class BaseCatalog:
     """
     service_name = ''
 
-    def __init__(self, config, **kwargs):  # pylint: disable=unused-argument
-        self.config = config or {}
+    class Config(BaseModel):
+        compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
+
+    def __init__(self, config: dict, **kwargs):  # pylint: disable=unused-argument
+        config = config or {}
+        self.config = self.Config(**config)
 
     @property
     def compute_data_folder(self) -> str:
@@ -64,7 +70,7 @@ class BaseCatalog:
         Returns:
             [str]: The compute data folder as defined or defaults to magnus default 'data/'
         """
-        return self.config.get('compute_data_folder', defaults.COMPUTE_DATA_FOLDER)
+        return self.config.compute_data_folder
 
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         # pylint: disable=unused-argument
@@ -173,7 +179,12 @@ class FileSystemCatalog(BaseCatalog):
     # TODO think of compression algorithms to save disk space, ZipFile
     service_name = 'file-system'
 
-    def get_catalog_location(self) -> str:
+    class Config(BaseModel):
+        compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
+        catalog_location: str = defaults.CATALOG_LOCATION_FOLDER
+
+    @property
+    def catalog_location(self) -> str:
         """
         Get the catalog location from the config.
         If its not defined, use the magnus default
@@ -181,10 +192,7 @@ class FileSystemCatalog(BaseCatalog):
         Returns:
             str: The catalog location as defined by the config or magnus default '.catalog'
         """
-        if self.config:
-            return self.config.get('catalog_location', defaults.CATALOG_LOCATION_FOLDER)
-
-        return defaults.CATALOG_LOCATION_FOLDER
+        return self.config.catalog_location
 
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         """
@@ -206,7 +214,7 @@ class FileSystemCatalog(BaseCatalog):
         if compute_data_folder:
             copy_to = compute_data_folder
 
-        copy_to = Path(copy_to)
+        copy_to = Path(copy_to)  # type: ignore
 
         if not utils.does_dir_exist(copy_to):
             msg = (
@@ -215,7 +223,7 @@ class FileSystemCatalog(BaseCatalog):
             )
             raise Exception(msg)
 
-        catalog_location = self.get_catalog_location()
+        catalog_location = self.catalog_location
         run_catalog = Path(catalog_location) / run_id / copy_to
 
         logger.debug(f'Copying objects to {copy_to} from the run catalog location of {run_catalog}')
@@ -279,9 +287,9 @@ class FileSystemCatalog(BaseCatalog):
         copy_from = self.compute_data_folder
         if compute_data_folder:
             copy_from = compute_data_folder
-        copy_from = Path(copy_from)
+        copy_from = Path(copy_from)  # type: ignore
 
-        catalog_location = self.get_catalog_location()
+        catalog_location = self.catalog_location
         run_catalog = Path(catalog_location) / run_id
         utils.safe_make_dir(run_catalog)
 
@@ -297,7 +305,7 @@ class FileSystemCatalog(BaseCatalog):
         # Iterate through the contents of copy_from and if the name matches, we move them to the run_catalog
         # We should also return a list of datastore.DataCatalog items
 
-        glob_files = copy_from.glob(name)
+        glob_files = copy_from.glob(name)  # type: ignore
         logger.debug(f'Glob identified {glob_files} as matches to from the compute data folder: {copy_from}')
 
         data_catalogs = []
@@ -341,7 +349,7 @@ class FileSystemCatalog(BaseCatalog):
         logger.info(f'Using the {self.service_name} catalog and syncing catalogs'
                     'between old: {previous_run_id} to new: {run_id}')
 
-        catalog_location = Path(self.get_catalog_location())
+        catalog_location = Path(self.catalog_location)
         run_catalog = catalog_location / run_id
         utils.safe_make_dir(run_catalog)
 
