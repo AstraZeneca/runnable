@@ -5,8 +5,7 @@ from collections import OrderedDict
 from datetime import datetime
 from typing import List, Optional, Union
 
-from pkg_resources import resource_filename
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 
 import magnus
 from magnus import defaults, utils
@@ -200,6 +199,7 @@ class BaseNode:
 
         Returns:
             str: The on_failure node defined by the dag or ''
+        This is a base implementation which the BaseNode does not satisfy
         """
 
         return self.config.on_failure
@@ -210,6 +210,7 @@ class BaseNode:
 
         Returns:
             dict: catalog settings defined as per the node or None
+        This is a base implementation which the BaseNode does not satisfy
         """
         return self.config.catalog
 
@@ -266,6 +267,7 @@ class BaseNode:
 
         Returns:
             str: The node name, relative to the dag, as defined by the config
+        This is a base implementation which the BaseNode does not satisfy
         """
         if not self._is_terminal_node():
             return self.config.next_node
@@ -280,6 +282,7 @@ class BaseNode:
 
         Returns:
             dict: The mode config, if defined or an empty dict
+        This is a base implementation which the BaseNode does not satisfy
         """
         return self.config.mode_config(mode_type, {})
 
@@ -289,6 +292,7 @@ class BaseNode:
 
         Returns:
             int: The number of maximum retries as defined by the config or 1.
+        This is a base implementation which the BaseNode does not satisfy
         """
         return self.config.retry
 
@@ -996,9 +1000,8 @@ class AsISNode(BaseNode):
     """
     node_type = 'as-is'
 
-    def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
-        # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
+    class Config(BaseNode.Config, extra=Extra.allow):
+        next_node: str
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         """

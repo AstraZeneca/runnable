@@ -235,11 +235,11 @@ class NotebookTaskType(BaseTaskType):
 
         return ''.join(self.command.split('.')[:-1]) + '_out.ipynb'
 
-    def __init__(self, command: str, config: dict = None):
-        if not command.endswith('.ipynb'):
-            raise Exception('Notebook task should point to a ipynb file')
+    def __init__(self, config: dict = None):
+        super().__init__(config)
 
-        super().__init__(command, config)
+        if not self.config.command.endswith('.ipynb'):
+            raise Exception('Notebook task should point to a ipynb file')
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         try:
