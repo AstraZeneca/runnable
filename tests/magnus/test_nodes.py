@@ -6,127 +6,127 @@ from magnus import defaults  # pylint: disable=import-error
 from magnus import nodes  # pylint: disable=import-error
 
 
-def test_base_node_command_friendly_name_replaces_whitespace_with_character():
+def test_base_node__command_friendly_name_replaces_whitespace_with_character():
     node = nodes.BaseNode(name='test', internal_name='test', config='test_config', execution_type=None)
 
-    assert node.command_friendly_name() == 'test'
+    assert node._command_friendly_name() == 'test'
 
     node.internal_name = 'test '
-    assert node.command_friendly_name() == 'test' + defaults.COMMAND_FRIENDLY_CHARACTER
+    assert node._command_friendly_name() == 'test' + defaults.COMMAND_FRIENDLY_CHARACTER
 
 
-def test_base_node_get_internal_name_from_command_name_replaces_character_with_whitespace():
-    assert nodes.BaseNode.get_internal_name_from_command_name('test') == 'test'
+def test_base_node__get_internal_name_from_command_name_replaces_character_with_whitespace():
+    assert nodes.BaseNode._get_internal_name_from_command_name('test') == 'test'
 
-    assert nodes.BaseNode.get_internal_name_from_command_name('test%') == 'test '
+    assert nodes.BaseNode._get_internal_name_from_command_name('test%') == 'test '
 
 
-def test_base_node_get_step_log_name_returns_internal_name_if_no_map_variable():
+def test_base_node__get_step_log_name_returns_internal_name_if_no_map_variable():
     node = nodes.BaseNode(name='test', internal_name='test', config='test_config', execution_type=None)
 
-    assert node.get_step_log_name() == 'test'
+    assert node._get_step_log_name() == 'test'
 
 
-def test_base_node_get_step_log_name_returns_map_modified_internal_name_if_map_variable():
+def test_base_node__get_step_log_name_returns_map_modified_internal_name_if_map_variable():
     node = nodes.BaseNode(name='test', internal_name='test.' + defaults.MAP_PLACEHOLDER,
                           config='test_config', execution_type=None)
 
-    assert node.get_step_log_name(map_variable={'map_key': 'a'}) == 'test.a'
+    assert node._get_step_log_name(map_variable={'map_key': 'a'}) == 'test.a'
 
 
-def test_base_node_get_step_log_name_returns_map_modified_internal_name_if_map_variable_multiple():
+def test_base_node__get_step_log_name_returns_map_modified_internal_name_if_map_variable_multiple():
     node = nodes.BaseNode(
         name='test', internal_name='test.' + defaults.MAP_PLACEHOLDER + '.step.' + defaults.MAP_PLACEHOLDER,
         config='test_config', execution_type=None)
 
-    assert node.get_step_log_name(map_variable={'map_key': 'a', 'map_key1': 'b'}) == 'test.a.step.b'
+    assert node._get_step_log_name(map_variable={'map_key': 'a', 'map_key1': 'b'}) == 'test.a.step.b'
 
 
-def test_base_node_get_branch_log_name_returns_null_if_not_set():
+def test_base_node__get_branch_log_name_returns_null_if_not_set():
     node = nodes.BaseNode(name='test', internal_name='test', config='test_config', execution_type=None)
 
-    assert node.get_branch_log_name() is None
+    assert node._get_branch_log_name() is None
 
 
-def test_base_node_get_branch_log_name_returns_internal_name_if_set():
+def test_base_node__get_branch_log_name_returns_internal_name_if_set():
     node = nodes.BaseNode(name='test', internal_name='test', config='test_config',
                           execution_type=None, internal_branch_name='test_internal')
 
-    assert node.get_branch_log_name() is 'test_internal'
+    assert node._get_branch_log_name() is 'test_internal'
 
 
-def test_base_node_get_branch_log_name_returns_map_modified_internal_name_if_map_variable():
+def test_base_node__get_branch_log_name_returns_map_modified_internal_name_if_map_variable():
     node = nodes.BaseNode(name='test', internal_name='test_', config='test_config',
                           execution_type=None, internal_branch_name='test.' + defaults.MAP_PLACEHOLDER)
 
-    assert node.get_branch_log_name(map_variable={'map_key': 'a'}) == 'test.a'
+    assert node._get_branch_log_name(map_variable={'map_key': 'a'}) == 'test.a'
 
 
-def test_base_node_get_branch_log_name_returns_map_modified_internal_name_if_map_variable_multiple():
+def test_base_node__get_branch_log_name_returns_map_modified_internal_name_if_map_variable_multiple():
     node = nodes.BaseNode(name='test', internal_name='test_', config='test_config',
                           execution_type=None,
                           internal_branch_name='test.' + defaults.MAP_PLACEHOLDER + '.step.' + defaults.MAP_PLACEHOLDER)
 
-    assert node.get_branch_log_name(map_variable={'map_key': 'a', 'map_key1': 'b'}) == 'test.a.step.b'
+    assert node._get_branch_log_name(map_variable={'map_key': 'a', 'map_key1': 'b'}) == 'test.a.step.b'
 
 
-def test_base_node_get_on_failure_node_returns_none_if_not_defined():
+def test_base_node__get_on_failure_node_returns_none_if_not_defined():
     node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
 
-    assert node.get_on_failure_node() is None
+    assert node._get_on_failure_node() is None
 
 
-def test_base_node_get_on_failure_node_returns_node_name_if_defined():
+def test_base_node__get_on_failure_node_returns_node_name_if_defined():
     node = nodes.BaseNode(name='test', internal_name='test', config={'on_failure': 'fail'}, execution_type=None)
 
-    assert node.get_on_failure_node() == 'fail'
+    assert node._get_on_failure_node() == 'fail'
 
 
-def test_base_node_get_catalog_settings_returns_none_if_not_defined():
+def test_base_node__get_catalog_settings_returns_none_if_not_defined():
     node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
 
-    assert node.get_catalog_settings() is None
+    assert node._get_catalog_settings() is None
 
 
-def test_base_node_get_catalog_settings_returns_node_name_if_defined():
+def test_base_node__get_catalog_settings_returns_node_name_if_defined():
     node = nodes.BaseNode(name='test', internal_name='test', config={'catalog': 'some settings'}, execution_type=None)
 
-    assert node.get_catalog_settings() == 'some settings'
+    assert node._get_catalog_settings() == 'some settings'
 
 
-def test_base_node_get_branch_by_name_raises_exception():
+def test_base_node__get_branch_by_name_raises_exception():
     node = nodes.BaseNode(name='test', internal_name='test', config={'catalog': 'some settings'}, execution_type=None)
 
     with pytest.raises(Exception):
-        node.get_branch_by_name('fail')
+        node._get_branch_by_name('fail')
 
 
-def test_base_node_get_next_node_returns_config_next():
+def test_base_node__get_next_node_returns_config_next():
     node = nodes.BaseNode(name='test', internal_name='test', config={'next': 'IamNext'}, execution_type=None)
 
-    assert node.get_next_node() == 'IamNext'
+    assert node._get_next_node() == 'IamNext'
 
 
-def test_base_node_get_mode_config_returns_mode_config_if_present():
+def test_base_node__get_mode_config_returns_mode_config_if_present():
     node = nodes.BaseNode(name='test', internal_name='test',
                           config={'mode_config': {'local': 'some settings'}},
                           execution_type=None)
-    assert node.get_mode_config('local') == 'some settings'
+    assert node._get_mode_config('local') == 'some settings'
 
 
-def test_base_node_get_mode_config_returns_empty_dict_if_not_present():
+def test_base_node__get_mode_config_returns_empty_dict_if_not_present():
     node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
-    assert node.get_mode_config('local') == {}
+    assert node._get_mode_config('local') == {}
 
 
-def test_base_node_get_max_attempts_returns_max_attempts_as_in_config():
+def test_base_node__get_max_attempts_returns_max_attempts_as_in_config():
     node = nodes.BaseNode(name='test', internal_name='test', config={'retry': 2}, execution_type=None)
-    assert node.get_max_attempts() == 2
+    assert node._get_max_attempts() == 2
 
 
-def test_base_node_get_max_attempts_returns_max_attempts_as_1_if_not_in_config():
+def test_base_node__get_max_attempts_returns_max_attempts_as_1_if_not_in_config():
     node = nodes.BaseNode(name='test', internal_name='test', config={}, execution_type=None)
-    assert node.get_max_attempts() == 1
+    assert node._get_max_attempts() == 1
 
 
 def test_base_node_execute_raises_not_implemented_error():
@@ -414,22 +414,22 @@ def test_parallel_node_get_sub_graphs_creates_graphs(mocker, monkeypatch):
     assert len(node.branches.items()) == 2
 
 
-def test_parallel_node_get_branch_by_name_raises_exception_if_branch_not_found(mocker, monkeypatch):
+def test_parallel_node__get_branch_by_name_raises_exception_if_branch_not_found(mocker, monkeypatch):
     monkeypatch.setattr(nodes.ParallelNode, 'get_sub_graphs', mocker.MagicMock())
 
     node = nodes.ParallelNode(name='test', internal_name='test', config={}, execution_type='python')
 
     with pytest.raises(Exception):
-        node.get_branch_by_name('a')
+        node._get_branch_by_name('a')
 
 
-def test_parallel_node_get_branch_by_name_returns_branch_if_found(mocker, monkeypatch):
+def test_parallel_node__get_branch_by_name_returns_branch_if_found(mocker, monkeypatch):
     monkeypatch.setattr(nodes.ParallelNode, 'get_sub_graphs', mocker.MagicMock())
 
     node = nodes.ParallelNode(name='test', internal_name='test', config={}, execution_type='python')
     node.branches = {'a': 'somegraph'}
 
-    assert node.get_branch_by_name('a') == 'somegraph'
+    assert node._get_branch_by_name('a') == 'somegraph'
 
 
 def test_parallel_node_execute_raises_exception(mocker, monkeypatch):
@@ -470,14 +470,14 @@ def test_nodes_map_get_sub_graph_calls_create_graph_with_correct_naming(mocker, 
     mock_create_graph.assert_called_once_with({}, internal_branch_name='test.' + defaults.MAP_PLACEHOLDER)
 
 
-def test_nodes_map_get_branch_by_name_returns_a_sub_graph(mocker, monkeypatch):
+def test_nodes_map__get_branch_by_name_returns_a_sub_graph(mocker, monkeypatch):
     mock_create_graph = mocker.MagicMock(return_value='a')
     monkeypatch.setattr(nodes, 'create_graph', mock_create_graph)
 
     node = nodes.MapNode(name='test', internal_name='test', config={
         'iterate_on': 'a', 'iterate_as': 'y_i', 'branch': {}}, execution_type='test')
 
-    assert node.get_branch_by_name('anyname') == 'a'
+    assert node._get_branch_by_name('anyname') == 'a'
 
 
 def test_nodes_map_node_execute_raises_exception(mocker, monkeypatch):
@@ -516,21 +516,21 @@ def test_nodes_dag_node_get_sub_graph_calls_create_graph_with_correct_parameters
     mock_create_graph.assert_called_once_with('a', internal_branch_name='test.' + defaults.DAG_BRANCH_NAME)
 
 
-def test_nodes_dag_node_get_branch_by_name_raises_exception_if_branch_name_is_invalid(mocker, monkeypatch):
+def test_nodes_dag_node__get_branch_by_name_raises_exception_if_branch_name_is_invalid(mocker, monkeypatch):
     monkeypatch.setattr(nodes.DagNode, 'get_sub_graph', mocker.MagicMock(return_value='branch'))
 
     node = nodes.DagNode(name='test', internal_name='test', config={'dag_definition': 'a'}, execution_type='test')
 
     with pytest.raises(Exception):
-        node.get_branch_by_name('test')
+        node._get_branch_by_name('test')
 
 
-def test_nodes_dag_node_get_branch_by_name_returns_if_branch_name_is_valid(mocker, monkeypatch):
+def test_nodes_dag_node__get_branch_by_name_returns_if_branch_name_is_valid(mocker, monkeypatch):
     monkeypatch.setattr(nodes.DagNode, 'get_sub_graph', mocker.MagicMock(return_value='branch'))
 
     node = nodes.DagNode(name='test', internal_name='test', config={'dag_definition': 'a'}, execution_type='test')
 
-    assert node.get_branch_by_name('test.' + defaults.DAG_BRANCH_NAME) == 'branch'
+    assert node._get_branch_by_name('test.' + defaults.DAG_BRANCH_NAME) == 'branch'
 
 
 def test_nodes_dag_node_execute_raises_exception(mocker, monkeypatch):
@@ -570,38 +570,38 @@ def test_as_is_node_sets_attempt_log_success(mocker, monkeypatch):
     assert mock_attempt_log.status == defaults.SUCCESS
 
 
-def test_is_terminal_node_when_has_next():
+def test__is_terminal_node_when_has_next():
     node = nodes.BaseNode(name='test', internal_name='test_', config={'next': 'yes'},
                           execution_type=None, internal_branch_name='test_')
 
-    assert not node.is_terminal_node()
+    assert not node._is_terminal_node()
 
 
-def test_is_terminal_node_when_no_next():
+def test__is_terminal_node_when_no_next():
     node = nodes.BaseNode(name='test', internal_name='test_', config={'none': 'no'},
                           execution_type=None, internal_branch_name='test_')
 
-    assert node.is_terminal_node()
+    assert node._is_terminal_node()
 
 
-def test_get_neighbors_no_neighbors():
+def test__get_neighbors_no_neighbors():
     node = nodes.BaseNode(name='test', internal_name='test_', config={},
                           execution_type=None, internal_branch_name='test_')
-    assert node.get_neighbors() == []
+    assert node._get_neighbors() == []
 
 
-def test_get_neighbors_only_next():
+def test__get_neighbors_only_next():
     node = nodes.BaseNode(name='test', internal_name='test_', config={'next': 'a'},
                           execution_type=None, internal_branch_name='test_')
-    neighbors = node.get_neighbors()
+    neighbors = node._get_neighbors()
     assert len(neighbors) == 1
     assert neighbors[0] == 'a'
 
 
-def test_get_neighbors_both_next_and_on_failure():
+def test__get_neighbors_both_next_and_on_failure():
     node = nodes.BaseNode(name='test', internal_name='test_', config={'next': 'a', 'on_failure': 'b'},
                           execution_type=None, internal_branch_name='test_')
-    neighbors = node.get_neighbors()
+    neighbors = node._get_neighbors()
     assert len(neighbors) == 2
     assert neighbors[0] == 'a'
     assert neighbors[1] == 'b'

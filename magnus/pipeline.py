@@ -299,7 +299,7 @@ def execute_single_node(
         run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
         mode_executor.dag = graph.create_graph(run_log.run_config['pipeline'])
 
-    step_internal_name = nodes.BaseNode.get_internal_name_from_command_name(step_name)
+    step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
@@ -341,7 +341,7 @@ def execute_single_brach(
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-    branch_internal_name = nodes.BaseNode.get_internal_name_from_command_name(branch_name)
+    branch_internal_name = nodes.BaseNode._get_internal_name_from_command_name(branch_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 

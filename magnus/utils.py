@@ -445,7 +445,7 @@ def get_node_execution_command(executor, node, map_variable=None, over_write_run
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
     action = (f'magnus execute_single_node {run_id} '
-              f'{node.command_friendly_name()}'
+              f'{node._command_friendly_name()}'
               f' --log-level {log_level}'
               )
     if executor.pipeline_file:

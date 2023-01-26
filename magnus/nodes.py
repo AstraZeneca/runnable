@@ -3,9 +3,10 @@ import logging
 import multiprocessing
 from collections import OrderedDict
 from datetime import datetime
-from typing import List, Type, Union
+from typing import List, Optional, Union
 
 from pkg_resources import resource_filename
+from pydantic import BaseModel
 
 import magnus
 from magnus import defaults, utils
@@ -33,48 +34,78 @@ class BaseNode:
     """
 
     node_type = ''
+    required_fields = []
+    errors_on = []
+
+    class Config(BaseModel):
+
+        def __init__(self, *args, **kwargs):
+            next_node = kwargs.get('next', '')
+            if next_node:
+                del kwargs['next']
+                kwargs['next_node'] = next_node
+
+            super().__init__(*args, **kwargs)
 
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
         self.name = name
         self.internal_name = internal_name  #  Dot notation naming of the steps
-        self.config = config
+        self.config = self.Config(**config)
         self.internal_branch_name = internal_branch_name  # parallel, map, dag only have internal names
         self.execution_type = execution_type
         self.branches = None
         self.is_composite = False
 
-    def _to_dict(self) -> dict:
-        return self.config
+    def validate(self):
+        messages = []
+        if '.' in self.name:
+            messages.append('Node names cannot have . in them')
 
-    def command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
+        if '%' in self.name:
+            messages.append("Node names cannot have '%' in them")
+
+        for req in self.required_fields:
+            if not req in self.config.dict():
+                messages.append(f'{self.name} should have {req} field')
+                continue
+
+        for err in self.errors_on:
+            if err in self.config.dict():
+                messages.append(f'{self.name} should not have {err} field')
+        return messages
+
+    def _to_dict(self) -> dict:
+        config_dict = dict(self.config.dict())
+        config_dict['type'] = self.node_type
+        return config_dict
+
+    def _command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
         """
         Replace spaces with special character for spaces.
         Spaces in the naming of the node is convenient for the user but causes issues when used programmatically.
 
         Returns:
             str: The command friendly name of the node
-        #TODO: This method could be _
         """
         return self.internal_name.replace(' ', replace_with)
 
     @ classmethod
-    def get_internal_name_from_command_name(cls, command_name: str) -> str:
+    def _get_internal_name_from_command_name(cls, command_name: str) -> str:
         """
         Replace Magnus specific character (%) with whitespace.
-        The opposite of command_friendly_name.
+        The opposite of _command_friendly_name.
 
         Args:
             command_name (str): The command friendly node name
 
         Returns:
             str: The internal name of the step
-        #TODO: This method could be _
         """
         return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, ' ')
 
     @ classmethod
-    def resolve_map_placeholders(cls, name: str, map_variable: dict = None) -> str:
+    def _resolve_map_placeholders(cls, name: str, map_variable: dict = None) -> str:
         """
         If there is no map step used, then we just return the name as we find it.
 
@@ -107,7 +138,7 @@ class BaseNode:
             This method would be called 3 times with map_variable = {'y_i': 'a'}, map_variable = {'y_i': 'b'} and
             map_variable = {'y_i': 'c'} corresponding to the three branches.
 
-        For nested map branches, we would get the map_variables ordered heirarchically.
+        For nested map branches, we would get the map_variables ordered hierarchically.
 
         Args:
             name (str): The name to resolve
@@ -115,7 +146,6 @@ class BaseNode:
 
         Returns:
             [str]: The resolved name
-        #TODO: This method could be _
         """
         if not map_variable:
             return name
@@ -125,7 +155,7 @@ class BaseNode:
 
         return name
 
-    def get_step_log_name(self, map_variable: dict = None) -> str:
+    def _get_step_log_name(self, map_variable: dict = None) -> str:
         """
         For every step in the dag, there is a corresponding step log name.
         This method returns the step log name in dot path convention.
@@ -139,11 +169,10 @@ class BaseNode:
 
         Returns:
             str: The dot path name of the step log name
-        #TODO: This method could be _
         """
-        return self.resolve_map_placeholders(self.internal_name, map_variable=map_variable)
+        return self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
 
-    def get_branch_log_name(self, map_variable: dict = None) -> str:
+    def _get_branch_log_name(self, map_variable: dict = None) -> str:
         """
         For nodes that are internally branches, this method returns the branch log name.
         The branch log name is in dot path convention.
@@ -157,14 +186,13 @@ class BaseNode:
 
         Returns:
             str: The dot path name of the branch log
-        #TODO: This method could be _
         """
-        return self.resolve_map_placeholders(self.internal_branch_name, map_variable=map_variable)
+        return self._resolve_map_placeholders(self.internal_branch_name, map_variable=map_variable)
 
     def __str__(self):  # pragma: no cover
         return f'Node of type {self.node_type} and name {self.internal_name}'
 
-    def get_on_failure_node(self) -> Union[str, None]:
+    def _get_on_failure_node(self) -> Optional[str]:
         """
         If the node defines a on_failure node in the config, return this or None.
 
@@ -172,25 +200,20 @@ class BaseNode:
 
         Returns:
             str: The on_failure node defined by the dag or ''
-        #TODO: This method could be _
         """
-        if 'on_failure' in self.config:
-            return self.config['on_failure']
-        return None
 
-    def get_catalog_settings(self) -> Union[dict, None]:
+        return self.config.on_failure
+
+    def _get_catalog_settings(self) -> Optional[dict]:
         """
         If the node defines a catalog settings, return it or None
 
         Returns:
             dict: catalog settings defined as per the node or None
-        #TODO: This method could be _
         """
-        if 'catalog' in self.config:
-            return self.config['catalog']
-        return None
+        return self.config.catalog
 
-    def get_branch_by_name(self, branch_name: str):
+    def _get_branch_by_name(self, branch_name: str):
         """
         Retrieve a branch by name.
 
@@ -204,54 +227,51 @@ class BaseNode:
 
         Raises:
             Exception: [description]
-        #TODO: This method could be _
         """
         raise Exception(f'Node of type {self.node_type} does not have any branches')
 
-    def is_terminal_node(self):
+    def _is_terminal_node(self) -> bool:
         """
         Returns whether a node has a next node
 
         Returns:
             bool: True or False of whether there is next node.
-        #TODO: This method could be _
         """
-        if 'next' in self.config:
-            return False
-        return True
+        if self.node_type in ['success', 'fail']:
+            return True
 
-    def get_neighbors(self):
+        return False
+
+    def _get_neighbors(self) -> List:
         """
         Gets the connecting neighbor nodes, either the "next" node or "on_failure" node.
 
         Returns:
             list: List of connected neighbors for a given node. Empty if terminal node.
-        #TODO: This method could be _
         """
         neighbors = []
-        next_node = self.get_next_node()
+        next_node = self._get_next_node()
         if next_node:
             neighbors += [next_node]
 
-        fail_node = self.get_on_failure_node()
+        fail_node = self._get_on_failure_node()
         if fail_node:
             neighbors += [fail_node]
 
         return neighbors
 
-    def get_next_node(self) -> Union[str, None]:
+    def _get_next_node(self) -> Union[str, None]:
         """
         Return the next node as defined by the config.
 
         Returns:
             str: The node name, relative to the dag, as defined by the config
-        #TODO: This method could be _
         """
-        if not self.is_terminal_node():
-            return self.config['next']
+        if not self._is_terminal_node():
+            return self.config.next_node
         return None
 
-    def get_mode_config(self, mode_type) -> dict:
+    def _get_mode_config(self, mode_type) -> dict:
         """
         Return the mode config of the node, if defined, or empty dict
 
@@ -260,23 +280,17 @@ class BaseNode:
 
         Returns:
             dict: The mode config, if defined or an empty dict
-        #TODO: This method could be _
         """
-        if 'mode_config' in self.config:
-            return self.config['mode_config'].get(mode_type, {}) or {}
-        return {}
+        return self.config.mode_config(mode_type, {})
 
-    def get_max_attempts(self) -> int:
+    def _get_max_attempts(self) -> int:
         """
         The number of max attempts as defined by the config or 1.
 
         Returns:
             int: The number of maximum retries as defined by the config or 1.
-        #TODO: This method could be _
         """
-        if 'retry' in self.config:
-            return int(self.config['retry']) or 1
-        return 1
+        return self.config.retry
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         """
@@ -312,45 +326,6 @@ class BaseNode:
         raise NotImplementedError
 
 
-def validate_node(node: BaseNode) -> List[str]:
-    """
-    Given a node defintion, run it against a specification of fields that are
-    required and should not be present.
-
-    Args:
-        node (BaseNode): The node object created before validation
-
-    Raises:
-        Exception: If the node type is not part of the specs
-
-    Returns:
-        List[str]: The list of error messages, if found
-    """
-    specs = utils.load_yaml(resource_filename(__name__, defaults.NODE_SPEC_FILE))
-    if node.node_type not in specs:
-        raise Exception('Undefined node type, please update specs')
-
-    node_spec = specs[node.node_type]
-    messages = []
-    if '.' in node.name:
-        messages.append('Node names cannot have . in them')
-
-    if '%' in node.name:
-        messages.append("Node names cannot have '%' in them")
-
-    if 'required' in node_spec:
-        for req in node_spec['required']:
-            if not req in node.config:
-                messages.append(f'{node.name} should have {req} field')
-                continue
-
-    if 'error_on' in node_spec:
-        for err in node_spec['error_on']:
-            if err in node.config:
-                messages.append(f'{node.name} should not have {err} field')
-    return messages
-
-
 class TaskNode(BaseNode):
     """
     A node of type Task.
@@ -358,6 +333,23 @@ class TaskNode(BaseNode):
     This node does the actual function execution of the graph in all cases.
     """
     node_type = 'task'
+    required_fields = ['next_node', 'command']
+    errors_on = ['branches']
+
+    class Config(BaseNode.Config):
+        next_node: str
+        command: str
+        command_config: dict = {}
+        catalog: dict = {}
+        mode_config: dict = {}
+        retry: int = 1
+        on_failure: str = ''
+
+    def _to_dict(self) -> dict:
+        config_dict = dict(self.config.dict())
+        config_dict['type'] = self.node_type
+        config_dict['command_config'] = self.config.command_config
+        return config_dict
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         # Here is where the juice is
@@ -367,7 +359,10 @@ class TaskNode(BaseNode):
             attempt_log.status = defaults.SUCCESS
             if not mock:
                 # Do not run if we are mocking the execution, could be useful for caching and dry runs
-                self.execution_type.execute_command(step_config=self.config, map_variable=map_variable)
+                command_config = {'command': self.config.command}
+                command_config.update(self.config.command_config)
+                execution_type = self.execution_type(config=command_config)
+                execution_type.execute_command(map_variable=map_variable)
         except Exception as _e:  # pylint: disable=W0703
             logger.exception('Task failed')
             attempt_log.status = defaults.FAIL
@@ -396,6 +391,23 @@ class FailNode(BaseNode):
     A leaf node of the graph that represents a failure node
     """
     node_type = 'fail'
+    required_fields = []
+    errors_on = ['next_node', 'command', 'branches', 'on_failure', 'catalog']
+
+    def _get_on_failure_node(self) -> Optional[str]:
+        return ''
+
+    def _get_max_attempts(self) -> int:
+        """
+        The number of max attempts as defined by the config or 1.
+
+        Returns:
+            int: The number of maximum retries as defined by the config or 1.
+        """
+        return 1
+
+    def _get_catalog_settings(self) -> Optional[dict]:
+        return {}
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         attempt_log = executor.run_log_store.create_attempt_log()
@@ -404,7 +416,7 @@ class FailNode(BaseNode):
             attempt_log.status = defaults.SUCCESS
             #  could be a branch or run log
             run_or_branch_log = executor.run_log_store.get_branch_log(
-                self.get_branch_log_name(map_variable), executor.run_id)
+                self._get_branch_log_name(map_variable), executor.run_id)
             run_or_branch_log.status = defaults.FAIL
             executor.run_log_store.add_branch_log(run_or_branch_log, executor.run_id)
         except BaseException:  # pylint: disable=W0703
@@ -434,6 +446,23 @@ class SuccessNode(BaseNode):
     A leaf node of the graph that represents a success node
     """
     node_type = 'success'
+    required_fields = []
+    errors_on = ['next_node', 'command', 'branches', 'on_failure', 'catalog']
+
+    def _get_on_failure_node(self) -> Optional[str]:
+        return ''
+
+    def _get_max_attempts(self) -> int:
+        """
+        The number of max attempts as defined by the config or 1.
+
+        Returns:
+            int: The number of maximum retries as defined by the config or 1.
+        """
+        return 1
+
+    def _get_catalog_settings(self) -> Optional[dict]:
+        return {}
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         attempt_log = executor.run_log_store.create_attempt_log()
@@ -442,7 +471,7 @@ class SuccessNode(BaseNode):
             attempt_log.status = defaults.SUCCESS
             #  could be a branch or run log
             run_or_branch_log = executor.run_log_store.get_branch_log(
-                self.get_branch_log_name(map_variable), executor.run_id)
+                self._get_branch_log_name(map_variable), executor.run_id)
             run_or_branch_log.status = defaults.SUCCESS
             executor.run_log_store.add_branch_log(run_or_branch_log, executor.run_id)
         except BaseException:  # pylint: disable=W0703
@@ -479,9 +508,15 @@ class ParallelNode(BaseNode):
                 Sub graph definition
             . . .
 
-    We currently support parallel nodes within parallel nodes.
     """
     node_type = 'parallel'
+    required_fields = ['next_node', 'branches']
+    errors_on = ['command', 'catalog', 'retry']
+
+    class Config(BaseNode.Config):
+        next_node: str
+        branches: dict
+        on_failure: str = ''
 
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
@@ -499,7 +534,7 @@ class ParallelNode(BaseNode):
         """
 
         branches = {}
-        for branch_name, branch_config in self.config['branches'].items():
+        for branch_name, branch_config in self.config.branches.items():
             sub_graph = create_graph(branch_config, internal_branch_name=self.internal_name + '.' + branch_name)
             branches[self.internal_name + '.' + branch_name] = sub_graph
 
@@ -507,7 +542,7 @@ class ParallelNode(BaseNode):
             raise Exception('A parallel node should have branches')
         return branches
 
-    def get_branch_by_name(self, branch_name: str):
+    def _get_branch_by_name(self, branch_name: str):
         """
         Retrieve a branch by name.
         The name is expected to follow a dot path convention.
@@ -561,14 +596,14 @@ class ParallelNode(BaseNode):
         """
         # Prepare the branch logs
         for internal_branch_name, branch in self.branches.items():
-            effective_branch_name = self.resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
+            effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
 
             branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
             branch_log.status = defaults.PROCESSING
             executor.run_log_store.add_branch_log(branch_log, executor.run_id)
 
         jobs = []
-        # Given that we can have nesting and complex graphs, controlling the number of processess is hard.
+        # Given that we can have nesting and complex graphs, controlling the number of processes is hard.
         # A better way is to actually submit the job to some process scheduler which does resource management
         for internal_branch_name, branch in self.branches.items():
             if executor.is_parallel_execution():
@@ -596,7 +631,7 @@ class ParallelNode(BaseNode):
         step_success_bool = True
         waiting = False
         for internal_branch_name, branch in self.branches.items():
-            effective_branch_name = self.resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
+            effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
             branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
             if branch_log.status == defaults.FAIL:
                 step_success_bool = False
@@ -605,7 +640,7 @@ class ParallelNode(BaseNode):
                 waiting = True
 
         # Collate all the results and update the status of the step
-        effective_internal_name = self.resolve_map_placeholders(self.internal_name, map_variable=map_variable)
+        effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
         step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
         step_log.status = defaults.PROCESSING
 
@@ -633,21 +668,30 @@ class MapNode(BaseNode):
     The internal naming convention creates branches dynamically based on the iteration value
     """
     node_type = 'map'
+    required_fields = ['next_node', 'iterate_on', 'iterate_as', 'branch']
+    errors_on = ['command', 'catalog', 'retry']
+
+    class Config(BaseNode.Config):
+        next_node: str
+        branch: dict
+        iterate_on: str
+        iterate_as: str
+        on_failure: str = ''
 
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
         super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
-        self.iterate_on = self.config.get('iterate_on', None)
-        self.iterate_as = self.config.get('iterate_as', None)
         self.is_composite = True
-
-        if not self.iterate_on:
-            raise Exception('A node type of map requires a parameter iterate_on, please define it in the config')
-        if not self.iterate_as:
-            raise Exception('A node type of map requires a parameter iterate_as, please define it in the config')
-
         self.branch_placeholder_name = defaults.MAP_PLACEHOLDER
         self.branch = self.get_sub_graph()
+
+    @property
+    def iterate_as(self):
+        return self.config.iterate_as
+
+    @property
+    def iterate_on(self):
+        return self.config.iterate_on
 
     def get_sub_graph(self):
         """
@@ -660,12 +704,12 @@ class MapNode(BaseNode):
             Graph: A graph object
         """
 
-        branch_config = self.config['branch']
+        branch_config = self.config.branch
         branch = create_graph(
             branch_config, internal_branch_name=self.internal_name + '.' + self.branch_placeholder_name)
         return branch
 
-    def get_branch_by_name(self, branch_name: str):
+    def _get_branch_by_name(self, branch_name: str):
         """
         Retrieve a branch by name.
 
@@ -732,7 +776,7 @@ class MapNode(BaseNode):
 
         # Prepare the branch logs
         for iter_variable in iterate_on:
-            effective_branch_name = self.resolve_map_placeholders(
+            effective_branch_name = self._resolve_map_placeholders(
                 self.internal_name + '.' + str(iter_variable),
                 map_variable=map_variable)
             branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
@@ -771,8 +815,8 @@ class MapNode(BaseNode):
         step_success_bool = True
         waiting = False
         for iter_variable in iterate_on:
-            effective_branch_name = self.resolve_map_placeholders(self.internal_name + '.' + str(iter_variable),
-                                                                  map_variable=map_variable)
+            effective_branch_name = self._resolve_map_placeholders(self.internal_name + '.' + str(iter_variable),
+                                                                   map_variable=map_variable)
             branch_log = executor.run_log_store.get_branch_log(
                 effective_branch_name, executor.run_id)
             if branch_log.status == defaults.FAIL:
@@ -782,7 +826,7 @@ class MapNode(BaseNode):
                 waiting = True
 
         # Collate all the results and update the status of the step
-        effective_internal_name = self.resolve_map_placeholders(self.internal_name, map_variable=map_variable)
+        effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
         step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
         step_log.status = defaults.PROCESSING
 
@@ -806,16 +850,19 @@ class DagNode(BaseNode):
         The config is expected to have a variable 'dag_definition'.
     """
     node_type = 'dag'
+    required_fields = ['next_node', 'dag_definition']
+    errors_on = ['command', 'catalog', 'retry']
+
+    class Config(BaseNode.Config):
+        next_node: str
+        dag_definition: str
+        on_failure: str = ''
 
     def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
         # pylint: disable=R0914,R0913
         super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
-        self.sub_dag_file = self.config.get('dag_definition', None)
+        self.sub_dag_file = self.config.dag_definition
         self.is_composite = True
-
-        if not self.sub_dag_file:
-            raise Exception('A node type of dag requires a parameter dag_definition, please define it in the config')
-
         self.branch = self.get_sub_graph()
 
     @property
@@ -847,7 +894,7 @@ class DagNode(BaseNode):
                               internal_branch_name=self._internal_branch_name)
         return branch
 
-    def get_branch_by_name(self, branch_name: str):
+    def _get_branch_by_name(self, branch_name: str):
         """
         Retrieve a branch by name.
         The name is expected to follow a dot path convention.
@@ -906,8 +953,8 @@ class DagNode(BaseNode):
         step_success_bool = True
         waiting = False
 
-        effective_branch_name = self.resolve_map_placeholders(self._internal_branch_name, map_variable=map_variable)
-        effective_internal_name = self.resolve_map_placeholders(self.internal_name, map_variable=map_variable)
+        effective_branch_name = self._resolve_map_placeholders(self._internal_branch_name, map_variable=map_variable)
+        effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
 
         branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
         branch_log.status = defaults.PROCESSING

@@ -193,7 +193,7 @@ class BaseExecutor:
             )
             raise Exception(msg)
 
-        node_catalog_settings = node.get_catalog_settings()
+        node_catalog_settings = node._get_catalog_settings()
         if not (node_catalog_settings and stage in node_catalog_settings):
             # Nothing to get/put from the catalog
             return None
@@ -236,9 +236,9 @@ class BaseExecutor:
             map_variable (dict, optional): If the node is of a map state, map_variable is the value of the iterable.
                         Defaults to None.
         """
-        max_attempts = node.get_max_attempts()
+        max_attempts = node._get_max_attempts()
         attempts = 0
-        step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
+        step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
 
         parameters = self.run_log_store.get_parameters(run_id=self.run_id)
         interaction.store_parameter(**parameters)
@@ -310,7 +310,7 @@ class BaseExecutor:
             map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to None.
         """
-        step_log = self.run_log_store.create_step_log(node.name, node.get_step_log_name(map_variable))
+        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
 
         self.add_code_identities(node=node, step_log=step_log)
 
@@ -369,16 +369,16 @@ class BaseExecutor:
             map_variable (dict): If the node belongs to a map branch.
         """
 
-        step_log = self.run_log_store.get_step_log(current_node.get_step_log_name(map_variable), self.run_id)
+        step_log = self.run_log_store.get_step_log(current_node._get_step_log_name(map_variable), self.run_id)
         logger.info(
             f'Finished executing the node {current_node} with status {step_log.status}')
 
-        next_node_name = current_node.get_next_node()
+        next_node_name = current_node._get_next_node()
 
         if step_log.status == defaults.FAIL:
             next_node_name = dag.get_fail_node().name
-            if current_node.get_on_failure_node():
-                next_node_name = current_node.get_on_failure_node()
+            if current_node._get_on_failure_node():
+                next_node_name = current_node._get_on_failure_node()
 
         return step_log.status, next_node_name
 
@@ -423,7 +423,7 @@ class BaseExecutor:
 
             current_node = next_node_name
 
-        run_log = self.run_log_store.get_branch_log(working_on.get_branch_log_name(map_variable), self.run_id)
+        run_log = self.run_log_store.get_branch_log(working_on._get_branch_log_name(map_variable), self.run_id)
 
         branch = 'graph'
         if working_on.internal_branch_name:
@@ -451,7 +451,7 @@ class BaseExecutor:
             bool: Eligibility for re-run. True means re-run, False means skip to the next step.
         """
         if self.previous_run_log:
-            node_step_log_name = node.get_step_log_name(map_variable=map_variable)
+            node_step_log_name = node._get_step_log_name(map_variable=map_variable)
             logger.info(f'Scanning previous run logs for node logs of: {node_step_log_name}')
 
             previous_node_log = None
@@ -461,7 +461,7 @@ class BaseExecutor:
                 logger.warning(f'Did not find the node {node.name} in previous run log')
                 return True  # We should re-run the node.
 
-            step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
+            step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
             logger.info(f'The original step status: {previous_node_log.status}')
 
             if previous_node_log.status == defaults.SUCCESS:
@@ -520,7 +520,7 @@ class BaseExecutor:
             node (BaseNode): The current node being processed.
         """
         effective_node_config = copy.deepcopy(self.config)
-        ctx_node_config = node.get_mode_config(self.service_name)
+        ctx_node_config = node._get_mode_config(self.service_name)
 
         placeholders = self.config.get('placeholders', None)
 

@@ -199,7 +199,7 @@ class BaseExecutor:
             )
             raise Exception(msg)
 
-        node_catalog_settings = node.get_catalog_settings()
+        node_catalog_settings = node._get_catalog_settings()
         if not (node_catalog_settings and stage in node_catalog_settings):
             # Nothing to get/put from the catalog
             return None
@@ -245,9 +245,9 @@ class BaseExecutor:
         #TODO: This method could be _
         #TODO: The attempts should ideally by handled outside of this function
         """
-        max_attempts = node.get_max_attempts()
+        max_attempts = node._get_max_attempts()
         attempts = 0
-        step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
+        step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
 
         parameters = self.run_log_store.get_parameters(run_id=self.run_id)
         # Set up environment variables for the execution
@@ -321,7 +321,7 @@ class BaseExecutor:
             map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to None.
         """
-        step_log = self.run_log_store.create_step_log(node.name, node.get_step_log_name(map_variable))
+        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
 
         self.add_code_identities(node=node, step_log=step_log)
 
@@ -389,16 +389,16 @@ class BaseExecutor:
             map_variable (dict): If the node belongs to a map branch.
         """
 
-        step_log = self.run_log_store.get_step_log(current_node.get_step_log_name(map_variable), self.run_id)
+        step_log = self.run_log_store.get_step_log(current_node._get_step_log_name(map_variable), self.run_id)
         logger.info(
             f'Finished executing the node {current_node} with status {step_log.status}')
 
-        next_node_name = current_node.get_next_node()
+        next_node_name = current_node._get_next_node()
 
         if step_log.status == defaults.FAIL:
             next_node_name = dag.get_fail_node().name
-            if current_node.get_on_failure_node():
-                next_node_name = current_node.get_on_failure_node()
+            if current_node._get_on_failure_node():
+                next_node_name = current_node._get_on_failure_node()
 
         return step_log.status, next_node_name
 
@@ -443,7 +443,7 @@ class BaseExecutor:
 
             current_node = next_node_name
 
-        run_log = self.run_log_store.get_branch_log(working_on.get_branch_log_name(map_variable), self.run_id)
+        run_log = self.run_log_store.get_branch_log(working_on._get_branch_log_name(map_variable), self.run_id)
 
         branch = 'graph'
         if working_on.internal_branch_name:
@@ -473,7 +473,7 @@ class BaseExecutor:
         #TODO: This method could be _
         """
         if self.previous_run_log:
-            node_step_log_name = node.get_step_log_name(map_variable=map_variable)
+            node_step_log_name = node._get_step_log_name(map_variable=map_variable)
             logger.info(f'Scanning previous run logs for node logs of: {node_step_log_name}')
 
             previous_node_log = None
@@ -483,7 +483,7 @@ class BaseExecutor:
                 logger.warning(f'Did not find the node {node.name} in previous run log')
                 return True  # We should re-run the node.
 
-            step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
+            step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
             logger.info(f'The original step status: {previous_node_log.status}')
 
             if previous_node_log.status == defaults.SUCCESS:
@@ -544,7 +544,7 @@ class BaseExecutor:
         #TODO: This method could be _
         """
         effective_node_config = copy.deepcopy(self.config)
-        ctx_node_config = node.get_mode_config(self.service_name)
+        ctx_node_config = node._get_mode_config(self.service_name)
 
         placeholders = self.config.get('placeholders', {})
 
@@ -707,7 +707,7 @@ class LocalContainerExecutor(BaseExecutor):
 
         # Check for the status of the node log and anything apart from Success is FAIL
         # This typically happens if something is wrong with magnus or settings.
-        step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
+        step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
         if step_log.status != defaults.SUCCESS:
             msg = (
                 'Node execution inside the container failed. Please check the logs.\n'
@@ -833,7 +833,7 @@ class DemoRenderer(BaseExecutor):
             self.set_up_run_log()
 
         # Need to set up the step log for the node as the entry point is different
-        step_log = self.run_log_store.create_step_log(node.name, node.get_step_log_name(map_variable))
+        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
 
         self.add_code_identities(node=node, step_log=step_log)
 
@@ -860,7 +860,7 @@ class DemoRenderer(BaseExecutor):
         """
         super().execute_node(node, map_variable=map_variable, **kwargs)
 
-        step_log = self.run_log_store.get_step_log(node.get_step_log_name(map_variable), self.run_id)
+        step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
         if step_log.status == defaults.FAIL:
             raise Exception(f'Step {node.name} failed')
 
@@ -970,7 +970,7 @@ class DemoRenderer(BaseExecutor):
             if working_on.node_type in ['success', 'fail']:
                 break
 
-            current_node = working_on.get_next_node()
+            current_node = working_on._get_next_node()
 
         with open('demo-bash.sh', 'w', encoding='utf-8') as fw:
             fw.writelines(bash_script_lines)

@@ -243,7 +243,7 @@ class Graph:
         visited[node.name] = True
         recstack[node.name] = True
 
-        neighbors = node.get_neighbors()
+        neighbors = node._get_neighbors()
         for neighbor in neighbors:
             neighbor_node = self.get_node_by_name(neighbor)
             if not visited[neighbor]:
@@ -264,7 +264,7 @@ class Graph:
         """
         missing_nodes = []
         for node in self.nodes:
-            neighbors = node.get_neighbors()
+            neighbors = node._get_neighbors()
             for neighbor in neighbors:
                 try:
                     self.get_node_by_name(neighbor)
@@ -315,10 +315,6 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
     Returns:
         Graph: The created graph object
     """
-    # Conditional import to avoid circular import
-    # pylint: disable=C0415
-    from magnus.nodes import validate_node
-
     description = dag_config.get('description', None)
     max_time = dag_config.get('max_time', defaults.MAX_TIME)
     start_at = dag_config.get('start_at')  # Let the start_at be relative to the graph
@@ -334,7 +330,7 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
         logger.info(f'Adding node {step} with :{step_config}')
 
         node = create_node(step, step_config=step_config, internal_branch_name=internal_branch_name)
-        messages.extend(validate_node(node))
+        messages.extend(node.validate())
         graph.add_node(node)
 
     if messages:
@@ -347,16 +343,13 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
 
 def create_node(name: str, step_config: dict, internal_branch_name: str = None):
     task_type = step_config.get('command_type', defaults.COMMAND_TYPE)
-    command_config = step_config.get('command_config', {})
 
     logger.info(f"Trying to get a task of type {task_type}")
     try:
         task_mgr = driver.DriverManager(
             namespace="magnus.tasks.BaseTaskType",
             name=task_type,
-            invoke_on_load=True,
-            invoke_kwds={'command': step_config.get('command', None),
-                         'config': command_config}
+            invoke_on_load=False
         )
     except Exception as _e:
         msg = (
@@ -412,7 +405,7 @@ def search_node_by_internal_name(dag: Graph, internal_name: str):
     for i in range(len(dot_path)):
         if i % 2:
             # Its odd, so we are in brach name
-            current_branch = current_node.get_branch_by_name('.'.join(dot_path[:i + 1]))  # type: ignore
+            current_branch = current_node._get_branch_by_name('.'.join(dot_path[:i + 1]))  # type: ignore
             logger.debug(f'Finding step for {internal_name} in branch: {current_branch}')
         else:
             # Its even, so we are in Step, we start here!
@@ -452,7 +445,7 @@ def search_branch_by_internal_name(dag: Graph, internal_name: str):
 
         if i % 2:
             # Its odd, so we are in brach name
-            current_branch = current_node.get_branch_by_name('.'.join(dot_path[:i + 1]))  # type: ignore
+            current_branch = current_node._get_branch_by_name('.'.join(dot_path[:i + 1]))  # type: ignore
             logger.debug(f'Finding step for {internal_name} in branch: {current_branch}')
 
         else:

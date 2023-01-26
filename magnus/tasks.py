@@ -1,9 +1,12 @@
+import contextlib
 import importlib
 import json
 import logging
 import os
 import subprocess
 import sys
+
+from pydantic import BaseModel
 
 from magnus import defaults, put_in_catalog, utils
 
@@ -15,15 +18,42 @@ except ImportError:
     pm = None
 
 
+@contextlib.contextmanager
+def output_to_file(path: str):
+    """
+    Context manager to put the output of a function execution to catalog
+
+    Args:
+        path (str): Mostly the command you are executing.
+
+    """
+    log_file = open(f"{path}.log", 'w')
+
+    try:
+        with contextlib.redirect_stdout(log_file):
+            yield
+    finally:
+        log_file.close()
+        put_in_catalog(log_file.name)
+        os.remove(log_file.name)
+
+
 class BaseTaskType:  # pylint: disable=too-few-public-methods
     """
     A base task class which does the execution of command defined by the user
     """
     task_type = ''
 
-    def __init__(self, command: str, config: dict = None):
-        self.command = command
-        self.config = config or {}
+    class Config(BaseModel):
+        command: str
+
+    def __init__(self, config: dict = None):
+        config = config or {}
+        self.config = self.Config(**config)
+
+    @property
+    def command(self):
+        return self.config.command
 
     def _to_dict(self) -> dict:
         """
@@ -95,20 +125,22 @@ class PythonFunctionType(BaseTaskType):
             os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
 
         logger.info(f'Calling {self.command} with {filtered_parameters}')
-        try:
-            user_set_parameters = self.command(**filtered_parameters)
-        except Exception as _e:
-            msg = (
-                f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
-            )
-            logger.exception(msg)
-            logger.exception(_e)
-            raise
 
-        if map_variable:
-            del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+        with output_to_file(self.command) as _:
+            try:
+                user_set_parameters = self.command(**filtered_parameters)
+            except Exception as _e:
+                msg = (
+                    f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
+                )
+                logger.exception(msg)
+                logger.exception(_e)
+                raise
 
-        self._set_parameters(user_set_parameters)
+            if map_variable:
+                del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+
+            self._set_parameters(user_set_parameters)
 
 
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
@@ -130,20 +162,21 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
 
         logger.info(f'Calling {func} from {module} with {filtered_parameters}')
-        try:
-            user_set_parameters = f(**filtered_parameters)
-        except Exception as _e:
-            msg = (
-                f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
-            )
-            logger.exception(msg)
-            logger.exception(_e)
-            raise
+        with output_to_file(self.command) as log_file:
+            try:
+                user_set_parameters = f(**filtered_parameters)
+            except Exception as _e:
+                msg = (
+                    f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
+                )
+                logger.exception(msg)
+                logger.exception(_e)
+                raise
 
-        if map_variable:
-            del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+            if map_variable:
+                del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
 
-        self._set_parameters(user_set_parameters)
+            self._set_parameters(user_set_parameters)
 
 
 class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
@@ -191,6 +224,17 @@ class NotebookTaskType(BaseTaskType):
     """
     task_type = 'notebook'
 
+    class Config(BaseTaskType.Config):
+        notebook_output_path: str = ''
+        optional_ploomber_args: dict = {}
+
+    @property
+    def notebook_output_path(self):
+        if self.config.notebook_output_path:
+            return self.config.notebook_output_path
+
+        return ''.join(self.command.split('.')[:-1]) + '_out.ipynb'
+
     def __init__(self, command: str, config: dict = None):
         if not command.endswith('.ipynb'):
             raise Exception('Notebook task should point to a ipynb file')
@@ -208,10 +252,9 @@ class NotebookTaskType(BaseTaskType):
             if map_variable:
                 os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
 
-            notebook_output_path = self.config.get('notebook_output_path',
-                                                   ''.join(self.command.split('.')[:-1]) + '_out.ipynb')
+            notebook_output_path = self.notebook_output_path
 
-            ploomber_optional_args = self.config.get('optional_ploomber_args', {})
+            ploomber_optional_args = self.config.optional_ploomber_args
 
             kwds = {
                 'input_path': self.command,

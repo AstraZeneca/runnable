@@ -428,7 +428,7 @@ def test_get_node_execution_command_returns_magnus_execute():
     class MockNode:
         internal_name = 'test_node_id'
 
-        def command_friendly_name(self):
+        def _command_friendly_name(self):
             return 'test_node_id'
 
     assert utils.get_node_execution_command(MockExecutor(), MockNode()) == \
@@ -447,7 +447,7 @@ def test_get_node_execution_command_overwrites_run_id_if_asked():
     class MockNode:
         internal_name = 'test_node_id'
 
-        def command_friendly_name(self):
+        def _command_friendly_name(self):
             return 'test_node_id'
 
     assert utils.get_node_execution_command(MockExecutor(), MockNode(), over_write_run_id='override') == \
@@ -466,7 +466,7 @@ def test_get_node_execution_command_returns_magnus_execute_appends_variables_fil
     class MockNode:
         internal_name = 'test_node_id'
 
-        def command_friendly_name(self):
+        def _command_friendly_name(self):
             return 'test_node_id'
 
     assert utils.get_node_execution_command(MockExecutor(), MockNode()) == \
@@ -485,7 +485,7 @@ def test_get_node_execution_command_returns_magnus_execute_appends_parameters_fi
     class MockNode:
         internal_name = 'test_node_id'
 
-        def command_friendly_name(self):
+        def _command_friendly_name(self):
             return 'test_node_id'
 
     assert utils.get_node_execution_command(MockExecutor(), MockNode()) == \
@@ -505,7 +505,7 @@ def test_get_node_execution_command_returns_magnus_execute_appends_map_variable(
     class MockNode:
         internal_name = 'test_node_id'
 
-        def command_friendly_name(self):
+        def _command_friendly_name(self):
             return 'test_node_id'
 
     map_variable = {'test_map': 'map_value'}

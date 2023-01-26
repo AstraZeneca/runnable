@@ -28,12 +28,6 @@ def test_base_task_set_parameters_does_nothing_if_no_parameters_sent():
     base_execution_type._set_parameters()
 
 
-def test_base_task_set_parameters_raises_exception_if_parameters_are_not_dict():
-    base_execution_type = tasks.BaseTaskType(command=None)
-    with pytest.raises(Exception):
-        base_execution_type._set_parameters(parameters=[1, 2, 3])
-
-
 def test_base_task_set_parameters_sets_environ_vars_if_sent(mocker, monkeypatch):
     mock_os_environ = {}
 
@@ -128,23 +122,6 @@ def test_python_task_command_sends_mapped_variable_if_present_in_signature(mocke
     py_exec = tasks.PythonTaskType(command='test')
     py_exec.execute_command()
     dummy_func.assert_called_once_with(a=1, map_name='map_value')
-
-
-def test_python_task_command_raises_exception_if_return_value_is_not_dict(mocker, monkeypatch):
-    dummy_func = mocker.MagicMock(return_value=1)
-
-    class DummyModule:
-        def __init__(self):
-            self.func = dummy_func
-
-    monkeypatch.setattr(tasks.utils, 'get_module_and_func_names', mocker.MagicMock(return_value=('idk', 'func')))
-    monkeypatch.setattr(tasks.importlib, 'import_module', mocker.MagicMock(return_value=DummyModule()))
-
-    monkeypatch.setattr(tasks.utils, 'filter_arguments_for_func', mocker.MagicMock(return_value={'a': 1}))
-
-    py_exec = tasks.PythonTaskType(command='test')
-    with pytest.raises(Exception):
-        py_exec.execute_command(map_variable='iterme')
 
 
 def test_python_task_command_sets_env_variable_of_return_values(mocker, monkeypatch):
