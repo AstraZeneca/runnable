@@ -142,8 +142,12 @@ def put_in_catalog(filepath: str):
 
     file_path = Path(filepath)
 
-    global_executor.catalog_handler.put(file_path.name, run_id=global_executor.run_id,  # type: ignore
-                                        compute_data_folder=file_path.parent)
+    data_catalog = global_executor.catalog_handler.put(file_path.name, run_id=global_executor.run_id,  # type: ignore
+                                                       compute_data_folder=file_path.parent)
+    if global_executor.context_step_log:
+        global_executor.context_step_log.add_data_catalogs(data_catalog)
+    else:
+        logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
 
 def get_run_id() -> str:
@@ -154,15 +158,13 @@ def get_run_id() -> str:
 
 
 def get_tag() -> str:
+    """
+    Returns the tag from the environment.
+
+    Returns:
+        str: The tag if provided for the run, otherwise None
+    """
     return os.environ.get(defaults.MAGNUS_RUN_TAG, None)
-
-
-def magnus_session():
-    configuration_file = os.environ.get(defaults.MAGNUS_CONFIG_FILE, None)
-    run_id = get_run_id()
-    tag = get_tag()
-    executor = pipeline.prepare_configurations(configuration_file=configuration_file, run_id=run_id, tag=tag)
-    executor.execution_plan = defaults.EXECUTION_PLAN.notebook
 
 
 class step(object):

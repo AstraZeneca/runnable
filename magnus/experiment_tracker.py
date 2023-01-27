@@ -127,7 +127,7 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
         if not experiment:
             # Create the experiment and get it.
             experiment = mlflow.create_experiment(experiment_name)
-            experiment = mlflow.get_experiment_by_name(experiment)
+            experiment = mlflow.get_experiment(experiment)
 
         return experiment.experiment_id
 

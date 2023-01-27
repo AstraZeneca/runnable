@@ -353,6 +353,7 @@ class TaskNode(BaseNode):
         config_dict = dict(self.config.dict())
         config_dict['type'] = self.node_type
         config_dict['command_config'] = self.config.command_config
+        config_dict['command_type'] = self.execution_type.task_type
         return config_dict
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
@@ -1002,6 +1003,11 @@ class AsISNode(BaseNode):
 
     class Config(BaseNode.Config, extra=Extra.allow):
         next_node: str
+        on_failure: str = ''
+        retry: int = 1
+
+    def _get_catalog_settings(self) -> Optional[dict]:
+        return {}
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         """

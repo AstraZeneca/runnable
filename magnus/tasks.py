@@ -1,5 +1,6 @@
 import contextlib
 import importlib
+import io
 import json
 import logging
 import os
@@ -28,11 +29,15 @@ def output_to_file(path: str):
 
     """
     log_file = open(f"{path}.log", 'w')
-
+    f = io.StringIO()
     try:
-        with contextlib.redirect_stdout(log_file):
+        with contextlib.redirect_stdout(f):
             yield
     finally:
+        print(f.getvalue())  # print to console
+        log_file.write(f.getvalue())  # Print to file
+
+        f.close()
         log_file.close()
         put_in_catalog(log_file.name)
         os.remove(log_file.name)
@@ -162,7 +167,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
 
         logger.info(f'Calling {func} from {module} with {filtered_parameters}')
-        with output_to_file(self.command) as log_file:
+        with output_to_file(self.command) as _:
             try:
                 user_set_parameters = f(**filtered_parameters)
             except Exception as _e:

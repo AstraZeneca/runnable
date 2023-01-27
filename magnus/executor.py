@@ -57,23 +57,28 @@ class BaseExecutor:
         # pylint: disable=R0914,R0913
         self.config = config
         # The remaining would be attached later
+        # The definition files
         self.pipeline_file = None
         self.variables_file = None
-        self.run_id = None
-        self.dag = None
-        self.use_cached = None
+        self.parameters_file = None
+        self.configuration_file = None
+        # run descriptors
         self.tag = None
-        self.run_log_store = None
-        self.previous_run_log = None
+        self.run_id = None
+        self.single_step = None
+        self.variables = {}
+        self.use_cached = None
+        self.dag = None
         self.dag_hash = None
+        self.execution_plan = None
+        # Services
         self.catalog_handler = None
         self.secrets_handler = None
-        self.variables = {}
         self.experiment_tracker = None
-        self.configuration_file = None
-        self.parameters_file = None
-        self.single_step = None
-        self.execution_plan = None
+        self.run_log_store = None
+        self.previous_run_log = None
+
+        self.context_step_log = None
 
     @property
     def step_decorator_run_id(self):
@@ -260,6 +265,7 @@ class BaseExecutor:
         logger.info(f'Trying to execute node: {node.internal_name}, attempt : {attempts}, max_attempts: {max_attempts}')
         while attempts < max_attempts:
             try:
+                self.context_step_log = step_log
                 attempt_log = node.execute(executor=self, mock=mock,
                                            map_variable=map_variable, **kwargs)
                 attempt_log.attempt_number = attempts
@@ -277,6 +283,8 @@ class BaseExecutor:
                 # Remove any steps data
                 utils.get_tracked_data()
                 utils.get_user_set_parameters(remove=True)
+            finally:
+                self.context_step_log = None
 
             if attempts == max_attempts:
                 step_log.status = defaults.FAIL
