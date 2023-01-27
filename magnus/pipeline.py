@@ -2,12 +2,12 @@ import json
 import logging
 from typing import Optional, Union
 
-from magnus import defaults, exceptions, executor, graph, utils
+from magnus import defaults, exceptions, graph, utils
 
 logger = logging.getLogger(defaults.NAME)
 
 # Set this global executor to the fitted executor for access later
-global_executor: Optional[executor.BaseExecutor] = None  # pylint: disable=invalid-name
+global_executor = None  # pylint: disable=invalid-name # type: ignore
 
 # TODO: Tests and mypy
 
