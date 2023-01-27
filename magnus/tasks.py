@@ -259,7 +259,7 @@ class NotebookTaskType(BaseTaskType):
 
             notebook_output_path = self.notebook_output_path
 
-            ploomber_optional_args = self.config.optional_ploomber_args
+            ploomber_optional_args = self.config.optional_ploomber_args  # type: ignore
 
             kwds = {
                 'input_path': self.command,

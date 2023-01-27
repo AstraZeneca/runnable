@@ -33,8 +33,8 @@ class BaseNode:
     """
 
     node_type = ''
-    required_fields = []
-    errors_on = []
+    required_fields: List[str] = []
+    errors_on: List[str] = []
 
     class Config(BaseModel):
 
@@ -396,8 +396,8 @@ class FailNode(BaseNode):
     A leaf node of the graph that represents a failure node
     """
     node_type = 'fail'
-    required_fields = []
-    errors_on = ['next_node', 'command', 'branches', 'on_failure', 'catalog']
+    required_fields: List[str] = []
+    errors_on: List[str] = ['next_node', 'command', 'branches', 'on_failure', 'catalog']
 
     def _get_on_failure_node(self) -> Optional[str]:
         return ''
@@ -451,8 +451,8 @@ class SuccessNode(BaseNode):
     A leaf node of the graph that represents a success node
     """
     node_type = 'success'
-    required_fields = []
-    errors_on = ['next_node', 'command', 'branches', 'on_failure', 'catalog']
+    required_fields: List[str] = []
+    errors_on: List[str] = ['next_node', 'command', 'branches', 'on_failure', 'catalog']
 
     def _get_on_failure_node(self) -> Optional[str]:
         return ''

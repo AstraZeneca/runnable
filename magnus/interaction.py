@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from types import FunctionType
 from typing import Callable, Union
 
 from magnus import defaults, exceptions, graph, pipeline, utils
@@ -34,7 +35,7 @@ def track_this(step: int = 0, **kwargs):
     for key, value in kwargs.items():
         logger.info(f'Tracking {key} with value: {value}')
         os.environ[prefix + key] = json.dumps(value)
-        global_executor.experiment_tracker.set_metric(key, value, step=step)
+        global_executor.experiment_tracker.set_metric(key, value, step=step)  # type: ignore
 
 
 def store_parameter(update: bool = True, **kwargs: dict):
@@ -144,8 +145,8 @@ def put_in_catalog(filepath: str):
 
     data_catalog = global_executor.catalog_handler.put(file_path.name, run_id=global_executor.run_id,  # type: ignore
                                                        compute_data_folder=file_path.parent)
-    if global_executor.context_step_log:
-        global_executor.context_step_log.add_data_catalogs(data_catalog)
+    if global_executor.context_step_log:  # type: ignore
+        global_executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
@@ -154,7 +155,7 @@ def get_run_id() -> str:
     """
     Returns the run_id of the current run
     """
-    return os.environ.get(defaults.ENV_RUN_ID, None)
+    return os.environ.get(defaults.ENV_RUN_ID, '')
 
 
 def get_tag() -> str:
@@ -164,13 +165,13 @@ def get_tag() -> str:
     Returns:
         str: The tag if provided for the run, otherwise None
     """
-    return os.environ.get(defaults.MAGNUS_RUN_TAG, None)
+    return os.environ.get(defaults.MAGNUS_RUN_TAG, '')
 
 
 class step(object):
 
     def __init__(
-            self, name: Union[str, callable],
+            self, name: Union[str, FunctionType],
             catalog_config: dict = None, magnus_config: str = None,
             parameters_file: str = None):
         """
@@ -183,7 +184,7 @@ class step(object):
             catalog_config (dict): The configuration of the catalog per step.
             magnus_config (str): The name of the file having the magnus config, defaults to None.
         """
-        if isinstance(name, Callable):
+        if isinstance(name, FunctionType):
             name = name()
 
         self.name = name
@@ -220,7 +221,7 @@ class step(object):
                 #TODO: There is a need to create a status called step_success
                 """
                 msg = (
-                    f'The run_log for run_id: {self.run_id} already exists and is in {run_log.status} state.'
+                    f'The run_log for run_id: {run_id} already exists and is in {run_log.status} state.'
                     ' Make sure that this was not run before.'
                 )
                 raise Exception(msg)

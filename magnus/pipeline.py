@@ -1,13 +1,13 @@
 import json
 import logging
-from typing import Union
+from typing import Optional, Union
 
-from magnus import defaults, exceptions, graph, utils
+from magnus import defaults, exceptions, executor, graph, utils
 
 logger = logging.getLogger(defaults.NAME)
 
 # Set this global executor to the fitted executor for access later
-global_executor = None  # pylint: disable=invalid-name
+global_executor: Optional[executor.BaseExecutor] = None  # pylint: disable=invalid-name
 
 # TODO: Tests and mypy
 
@@ -35,7 +35,7 @@ def prepare_configurations(
         pipeline_file: str = None,
         run_id: str = None,
         tag: Union[str, None] = None,
-        use_cached: Union[str, None] = False,
+        use_cached: Union[str, None] = '',
         parameters_file: str = None):
     # pylint: disable=R0914
     """

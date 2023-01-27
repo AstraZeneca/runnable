@@ -179,8 +179,7 @@ class FileSystemCatalog(BaseCatalog):
     # TODO think of compression algorithms to save disk space, ZipFile
     service_name = 'file-system'
 
-    class Config(BaseModel):
-        compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
+    class Config(BaseCatalog.Config):
         catalog_location: str = defaults.CATALOG_LOCATION_FOLDER
 
     @property
@@ -192,7 +191,7 @@ class FileSystemCatalog(BaseCatalog):
         Returns:
             str: The catalog location as defined by the config or magnus default '.catalog'
         """
-        return self.config.catalog_location
+        return self.config.catalog_location  # type: ignore
 
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         """
