@@ -232,7 +232,7 @@ class step(object):
                 raise Exception(msg)
         except exceptions.RunLogNotFoundError:
             # Create one if they are not created
-            self.executor.set_up_run_log()
+            self.executor._set_up_run_log()
 
     def __call__(self, func):
         """

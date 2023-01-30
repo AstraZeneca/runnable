@@ -3,13 +3,13 @@ import pytest
 from magnus import defaults, exceptions, executor
 
 
-def test_base_executor_is_parallel_execution_uses_default():
+def test_base_executor__is_parallel_execution_uses_default():
     base_executor = executor.BaseExecutor(config=None)
 
-    assert base_executor.is_parallel_execution() == defaults.ENABLE_PARALLEL
+    assert base_executor._is_parallel_execution() == defaults.ENABLE_PARALLEL
 
 
-def test_base_executor_set_up_run_log_with_no_previous_run_log(mocker, monkeypatch):
+def test_base_executor__set_up_run_log_with_no_previous_run_log(mocker, monkeypatch):
     base_executor = executor.BaseExecutor(config=None)
 
     mock_run_log_store = mocker.MagicMock()
@@ -21,14 +21,14 @@ def test_base_executor_set_up_run_log_with_no_previous_run_log(mocker, monkeypat
 
     monkeypatch.setattr(executor.utils, 'get_run_config', mocker.MagicMock(return_value={'executor': 'test'}))
 
-    base_executor.set_up_run_log()
+    base_executor._set_up_run_log()
 
     assert mock_run_log.status == defaults.PROCESSING
     assert mock_run_log.use_cached == False
     assert mock_run_log.run_config == {'executor': 'test'}
 
 
-def test_base_executor_set_up_run_log_with_previous_run_log(mocker, monkeypatch):
+def test_base_executor__set_up_run_log_with_previous_run_log(mocker, monkeypatch):
     base_executor = executor.BaseExecutor(config=None)
 
     mock_run_log_store = mocker.MagicMock()
@@ -47,7 +47,7 @@ def test_base_executor_set_up_run_log_with_previous_run_log(mocker, monkeypatch)
 
     monkeypatch.setattr(executor.utils, 'get_run_config', mocker.MagicMock(return_value={'executor': 'test'}))
 
-    base_executor.set_up_run_log()
+    base_executor._set_up_run_log()
 
     assert mock_run_log.status == defaults.PROCESSING
     assert mock_run_log.use_cached == True
@@ -64,7 +64,7 @@ def test_base_executor_prepare_for_graph_execution_calls(mocker, monkeypatch):
     mock_integration.configure_for_traversal = mock_configure_for_traversal
 
     monkeypatch.setattr(executor, 'integration', mock_integration)
-    monkeypatch.setattr(executor.BaseExecutor, 'set_up_run_log', mocker.MagicMock())
+    monkeypatch.setattr(executor.BaseExecutor, '_set_up_run_log', mocker.MagicMock())
 
     base_executor = executor.BaseExecutor(config=None)
 
@@ -92,24 +92,24 @@ def test_base_execution_prepare_for_node_calls(mocker, monkeypatch):
     assert mock_validate.call_count == 3
 
 
-def test_base_executor_sync_catalog_returns_nothing_if_no_syncing_for_node(mocker, monkeypatch):
+def test_base_executor__sync_catalog_returns_nothing_if_no_syncing_for_node(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
 
     mock_node._get_catalog_settings.return_value = None
 
     base_executor = executor.BaseExecutor(config=None)
 
-    assert base_executor.sync_catalog(mock_node, None, stage='get') is None
+    assert base_executor._sync_catalog(mock_node, None, stage='get') is None
 
 
-def test_base_executor_sync_catalog_raises_exception_if_stage_not_in_get_or_put(mocker, monkeypatch):
+def test_base_executor__sync_catalog_raises_exception_if_stage_not_in_get_or_put(mocker, monkeypatch):
     base_executor = executor.BaseExecutor(config=None)
 
     with pytest.raises(Exception):
-        base_executor.sync_catalog(node=None, step_log=None, stage='puts')
+        base_executor._sync_catalog(node=None, step_log=None, stage='puts')
 
 
-def test_base_executor_sync_catalog_uses_catalog_handler_compute_folder_by_default(mocker, monkeypatch):
+def test_base_executor__sync_catalog_uses_catalog_handler_compute_folder_by_default(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_node._get_catalog_settings.return_value = {'get': ['all']}
 
@@ -125,13 +125,13 @@ def test_base_executor_sync_catalog_uses_catalog_handler_compute_folder_by_defau
     base_executor.run_id = 'run_id'
     base_executor.catalog_handler = mock_catalog
 
-    base_executor.sync_catalog(mock_node, mock_step_log, stage='get')
+    base_executor._sync_catalog(mock_node, mock_step_log, stage='get')
 
     mock_catalog_get.assert_called_once_with(
         name='all', run_id='run_id', compute_data_folder='data/', synced_catalogs=None)
 
 
-def test_base_executor_sync_catalog_uses_compute_folder_if_provided_by_node(mocker, monkeypatch):
+def test_base_executor__sync_catalog_uses_compute_folder_if_provided_by_node(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_node._get_catalog_settings.return_value = {'get': ['all'], 'compute_data_folder': 'data_from_node'}
 
@@ -147,7 +147,7 @@ def test_base_executor_sync_catalog_uses_compute_folder_if_provided_by_node(mock
     base_executor.run_id = 'run_id'
     base_executor.catalog_handler = mock_catalog
 
-    base_executor.sync_catalog(mock_node, mock_step_log, stage='get')
+    base_executor._sync_catalog(mock_node, mock_step_log, stage='get')
 
     mock_catalog_get.assert_called_once_with(
         name='all', run_id='run_id', compute_data_folder='data_from_node', synced_catalogs=None)
@@ -178,10 +178,10 @@ def test_base_executor_trigger_job_raises_exception():
 def test_base_executor_execute_from_graph_executes_node_for_success_or_fail(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_run_log_store = mocker.MagicMock()
-    mock_execute_node = mocker.MagicMock()
+    mock__execute_node = mocker.MagicMock()
 
     monkeypatch.setattr(executor.BaseExecutor, 'add_code_identities', mocker.MagicMock())
-    monkeypatch.setattr(executor.BaseExecutor, 'execute_node', mock_execute_node)
+    monkeypatch.setattr(executor.BaseExecutor, '_execute_node', mock__execute_node)
 
     mock_node.node_type = 'success'
     base_executor = executor.BaseExecutor(config=None)
@@ -189,27 +189,27 @@ def test_base_executor_execute_from_graph_executes_node_for_success_or_fail(mock
 
     base_executor.execute_from_graph(node=mock_node, map_variable=None)
 
-    assert mock_execute_node.call_count == 1
+    assert mock__execute_node.call_count == 1
 
     mock_node.reset_mock()
-    mock_execute_node.reset_mock()
+    mock__execute_node.reset_mock()
 
     mock_node.node_type = 'fail'
     base_executor.execute_from_graph(node=mock_node, map_variable=None)
 
-    assert mock_execute_node.call_count == 1
+    assert mock__execute_node.call_count == 1
 
 
 def test_base_executor_execute_from_graph_makes_step_log_processing(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_run_log_store = mocker.MagicMock()
-    mock_execute_node = mocker.MagicMock()
+    mock__execute_node = mocker.MagicMock()
     mock_step_log = mocker.MagicMock()
 
     mock_run_log_store.create_step_log.return_value = mock_step_log
 
     monkeypatch.setattr(executor.BaseExecutor, 'add_code_identities', mocker.MagicMock())
-    monkeypatch.setattr(executor.BaseExecutor, 'execute_node', mock_execute_node)
+    monkeypatch.setattr(executor.BaseExecutor, '_execute_node', mock__execute_node)
 
     mock_node.node_type = 'success'
     base_executor = executor.BaseExecutor(config=None)
@@ -228,7 +228,7 @@ def test_base_executor_execute_from_graph_makes_step_log_success_if_previous_run
     mock_run_log_store.create_step_log.return_value = mock_step_log
 
     monkeypatch.setattr(executor.BaseExecutor, 'add_code_identities', mocker.MagicMock())
-    monkeypatch.setattr(executor.BaseExecutor, 'is_eligible_for_rerun', mocker.MagicMock(return_value=False))
+    monkeypatch.setattr(executor.BaseExecutor, '_is_eligible_for_rerun', mocker.MagicMock(return_value=False))
 
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
@@ -299,27 +299,27 @@ def test_base_executor_execute_from_graph_triggers_job_for_simple_nodes(mocker, 
     assert mock_step_log.status == defaults.PROCESSING
 
 
-def test_base_executor_execute_node_calls_catalog(mocker, monkeypatch):
+def test_base_executor__execute_node_calls_catalog(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_node._get_max_attempts.return_value = 1
 
     mock_run_log_store = mocker.MagicMock()
     mock_step_catalog = mocker.MagicMock()
-    mock_sync_catalog = mocker.MagicMock()
-    mock_sync_catalog.return_value = 'data_catalogs_get'
+    mock__sync_catalog = mocker.MagicMock()
+    mock__sync_catalog.return_value = 'data_catalogs_get'
 
     monkeypatch.setattr(executor, 'interaction', mocker.MagicMock())
     monkeypatch.setattr(executor, 'utils', mocker.MagicMock())
-    monkeypatch.setattr(executor.BaseExecutor, 'sync_catalog', mock_sync_catalog)
+    monkeypatch.setattr(executor.BaseExecutor, '_sync_catalog', mock__sync_catalog)
 
     mock_run_log_store.get_step_log.return_value = mock_step_catalog
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
 
-    base_executor.execute_node(node=mock_node)
+    base_executor._execute_node(node=mock_node)
 
-    mock_sync_catalog.assert_any_call(mock_node, mock_step_catalog, stage='get')
-    mock_sync_catalog.assert_any_call(mock_node, mock_step_catalog, stage='put', synced_catalogs='data_catalogs_get')
+    mock__sync_catalog.assert_any_call(mock_node, mock_step_catalog, stage='get')
+    mock__sync_catalog.assert_any_call(mock_node, mock_step_catalog, stage='put', synced_catalogs='data_catalogs_get')
 
 
 def test_base_executor_sets_step_log_to_success_if_node_succeeds(mocker, monkeypatch):
@@ -328,18 +328,18 @@ def test_base_executor_sets_step_log_to_success_if_node_succeeds(mocker, monkeyp
 
     mock_run_log_store = mocker.MagicMock()
     mock_step_catalog = mocker.MagicMock()
-    mock_sync_catalog = mocker.MagicMock()
-    mock_sync_catalog.return_value = 'data_catalogs_get'
+    mock__sync_catalog = mocker.MagicMock()
+    mock__sync_catalog.return_value = 'data_catalogs_get'
 
     monkeypatch.setattr(executor, 'interaction', mocker.MagicMock())
     monkeypatch.setattr(executor, 'utils', mocker.MagicMock())
-    monkeypatch.setattr(executor.BaseExecutor, 'sync_catalog', mock_sync_catalog)
+    monkeypatch.setattr(executor.BaseExecutor, '_sync_catalog', mock__sync_catalog)
 
     mock_run_log_store.get_step_log.return_value = mock_step_catalog
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
 
-    base_executor.execute_node(node=mock_node)
+    base_executor._execute_node(node=mock_node)
 
     assert mock_step_catalog.status == defaults.SUCCESS
 
@@ -353,17 +353,17 @@ def test_base_executor_sets_status_to_fail_if_attempt_log_is_fail(monkeypatch, m
 
     mock_run_log_store = mocker.MagicMock()
     mock_step_catalog = mocker.MagicMock()
-    mock_sync_catalog = mocker.MagicMock()
+    mock__sync_catalog = mocker.MagicMock()
 
     monkeypatch.setattr(executor, 'interaction', mocker.MagicMock())
     monkeypatch.setattr(executor, 'utils', mocker.MagicMock())
-    monkeypatch.setattr(executor.BaseExecutor, 'sync_catalog', mock_sync_catalog)
+    monkeypatch.setattr(executor.BaseExecutor, '_sync_catalog', mock__sync_catalog)
 
     mock_run_log_store.get_step_log.return_value = mock_step_catalog
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
 
-    base_executor.execute_node(node=mock_node)
+    base_executor._execute_node(node=mock_node)
 
     assert mock_step_catalog.status == defaults.FAIL
 
@@ -376,22 +376,22 @@ def test_base_executor_sets_status_to_fail_if_node_raises_exception(monkeypatch,
 
     mock_run_log_store = mocker.MagicMock()
     mock_step_catalog = mocker.MagicMock()
-    mock_sync_catalog = mocker.MagicMock()
+    mock__sync_catalog = mocker.MagicMock()
 
     monkeypatch.setattr(executor, 'interaction', mocker.MagicMock())
     monkeypatch.setattr(executor, 'utils', mocker.MagicMock())
-    monkeypatch.setattr(executor.BaseExecutor, 'sync_catalog', mock_sync_catalog)
+    monkeypatch.setattr(executor.BaseExecutor, '_sync_catalog', mock__sync_catalog)
 
     mock_run_log_store.get_step_log.return_value = mock_step_catalog
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
 
-    base_executor.execute_node(node=mock_node)
+    base_executor._execute_node(node=mock_node)
 
     assert mock_step_catalog.status == defaults.FAIL
 
 
-def test_base_executor_get_status_and_next_node_name_gets_next_if_success(mocker, monkeypatch):
+def test_base_executor__get_status_and_next_node_name_gets_next_if_success(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_run_log_store = mocker.MagicMock()
     mock_dag = mocker.MagicMock()
@@ -404,7 +404,7 @@ def test_base_executor_get_status_and_next_node_name_gets_next_if_success(mocker
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
 
-    status, next_node = base_executor.get_status_and_next_node_name(current_node=mock_node, dag=mock_dag)
+    status, next_node = base_executor._get_status_and_next_node_name(current_node=mock_node, dag=mock_dag)
     assert status == defaults.SUCCESS
     assert next_node == 'next node'
 
@@ -425,7 +425,7 @@ def test_base_executor_get_status_and_next_node_gets_global_failure_node_by_defa
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
 
-    status, next_node = base_executor.get_status_and_next_node_name(current_node=mock_node, dag=mock_dag)
+    status, next_node = base_executor._get_status_and_next_node_name(current_node=mock_node, dag=mock_dag)
     assert status == defaults.FAIL
     assert next_node == 'global fail node'
 
@@ -443,20 +443,20 @@ def test_base_executor_get_status_and_next_node_gets_node_failure_node_if_provid
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
 
-    status, next_node = base_executor.get_status_and_next_node_name(current_node=mock_node, dag=mock_dag)
+    status, next_node = base_executor._get_status_and_next_node_name(current_node=mock_node, dag=mock_dag)
     assert status == defaults.FAIL
     assert next_node == 'node fail node'
 
 
-def test_base_executor_is_eligible_for_rerun_returns_true_if_no_previous_run_log():
+def test_base_executor__is_eligible_for_rerun_returns_true_if_no_previous_run_log():
     base_executor = executor.BaseExecutor(config=None)
 
     base_executor.previous_run_log = None
 
-    assert base_executor.is_eligible_for_rerun(node=None)
+    assert base_executor._is_eligible_for_rerun(node=None)
 
 
-def test_base_executor_is_eligible_for_rerun_returns_true_if_step_log_not_found(mocker, monkeypatch):
+def test_base_executor__is_eligible_for_rerun_returns_true_if_step_log_not_found(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_previous_run_log = mocker.MagicMock()
     mock_search_step_by_internal_name = mocker.MagicMock(side_effect=exceptions.StepLogNotFoundError(
@@ -468,11 +468,11 @@ def test_base_executor_is_eligible_for_rerun_returns_true_if_step_log_not_found(
     base_executor = executor.BaseExecutor(config=None)
     base_executor.previous_run_log = mock_previous_run_log
 
-    assert base_executor.is_eligible_for_rerun(node=mock_node)
+    assert base_executor._is_eligible_for_rerun(node=mock_node)
     mock_search_step_by_internal_name.assert_called_once_with('step_log')
 
 
-def test_base_executor_is_eligible_for_rerun_returns_false_if_previous_was_success(mocker, monkeypatch):
+def test_base_executor__is_eligible_for_rerun_returns_false_if_previous_was_success(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_step_log = mocker.MagicMock()
     mock_previous_node_log = mocker.MagicMock()
@@ -491,11 +491,11 @@ def test_base_executor_is_eligible_for_rerun_returns_false_if_previous_was_succe
     base_executor.previous_run_log = mock_previous_run_log
     base_executor.run_log_store = mock_run_log_store
 
-    assert base_executor.is_eligible_for_rerun(node=mock_node) is False
+    assert base_executor._is_eligible_for_rerun(node=mock_node) is False
     assert mock_step_log.status == defaults.SUCCESS
 
 
-def test_base_executor_is_eligible_for_rerun_returns_true_if_previous_was_not_success(mocker, monkeypatch):
+def test_base_executor__is_eligible_for_rerun_returns_true_if_previous_was_not_success(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_step_log = mocker.MagicMock()
     mock_previous_node_log = mocker.MagicMock()
@@ -514,20 +514,20 @@ def test_base_executor_is_eligible_for_rerun_returns_true_if_previous_was_not_su
     base_executor.previous_run_log = mock_previous_run_log
     base_executor.run_log_store = mock_run_log_store
 
-    assert base_executor.is_eligible_for_rerun(node=mock_node)
+    assert base_executor._is_eligible_for_rerun(node=mock_node)
     assert base_executor.previous_run_log is None
 
 
 def test_base_executor_execute_graph_breaks_if_node_status_is_triggered(mocker, monkeypatch):
     mock_dag = mocker.MagicMock()
     mock_execute_from_graph = mocker.MagicMock()
-    mock_get_status_and_next_node_name = mocker.MagicMock()
+    mock__get_status_and_next_node_name = mocker.MagicMock()
     mock_run_log_store = mocker.MagicMock()
 
-    mock_get_status_and_next_node_name.return_value = defaults.TRIGGERED, None
+    mock__get_status_and_next_node_name.return_value = defaults.TRIGGERED, None
 
     monkeypatch.setattr(executor.BaseExecutor, 'execute_from_graph', mock_execute_from_graph)
-    monkeypatch.setattr(executor.BaseExecutor, 'get_status_and_next_node_name', mock_get_status_and_next_node_name)
+    monkeypatch.setattr(executor.BaseExecutor, '_get_status_and_next_node_name', mock__get_status_and_next_node_name)
     monkeypatch.setattr(executor, 'json', mocker.MagicMock())
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
@@ -540,17 +540,17 @@ def test_base_executor_execute_graph_breaks_if_node_status_is_triggered(mocker, 
 def test_base_executor_execute_graph_breaks_if_node_status_is_terminal(mocker, monkeypatch):
     mock_dag = mocker.MagicMock()
     mock_execute_from_graph = mocker.MagicMock()
-    mock_get_status_and_next_node_name = mocker.MagicMock()
+    mock__get_status_and_next_node_name = mocker.MagicMock()
     mock_run_log_store = mocker.MagicMock()
     mock_node = mocker.MagicMock()
 
     mock_dag.get_node_by_name.return_value = mock_node
     mock_node.node_type = 'success'
 
-    mock_get_status_and_next_node_name.return_value = defaults.SUCCESS, None
+    mock__get_status_and_next_node_name.return_value = defaults.SUCCESS, None
 
     monkeypatch.setattr(executor.BaseExecutor, 'execute_from_graph', mock_execute_from_graph)
-    monkeypatch.setattr(executor.BaseExecutor, 'get_status_and_next_node_name', mock_get_status_and_next_node_name)
+    monkeypatch.setattr(executor.BaseExecutor, '_get_status_and_next_node_name', mock__get_status_and_next_node_name)
     monkeypatch.setattr(executor, 'json', mocker.MagicMock())
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
@@ -560,34 +560,34 @@ def test_base_executor_execute_graph_breaks_if_node_status_is_terminal(mocker, m
     assert mock_execute_from_graph.call_count == 1
 
 
-def test_base_executor_resolve_node_config_gives_global_config_if_node_does_not_override(mocker, monkeypatch):
+def test_base_executor__resolve_node_config_gives_global_config_if_node_does_not_override(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_node._get_mode_config.return_value = {}
 
     base_executor = executor.BaseExecutor(config={'a': 1})
 
-    assert base_executor.resolve_node_config(mock_node) == {'a': 1}
+    assert base_executor._resolve_node_config(mock_node) == {'a': 1}
 
 
-def test_base_executor_resolve_node_config_updates_global_config_if_node_overrides(mocker, monkeypatch):
+def test_base_executor__resolve_node_config_updates_global_config_if_node_overrides(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_node._get_mode_config.return_value = {'a': 2}
 
     base_executor = executor.BaseExecutor(config={'a': 1})
 
-    assert base_executor.resolve_node_config(mock_node) == {'a': 2}
+    assert base_executor._resolve_node_config(mock_node) == {'a': 2}
 
 
-def test_base_executor_resolve_node_config_updates_global_config_if_node_adds(mocker, monkeypatch):
+def test_base_executor__resolve_node_config_updates_global_config_if_node_adds(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_node._get_mode_config.return_value = {'b': 2}
 
     base_executor = executor.BaseExecutor(config={'a': 1})
 
-    assert base_executor.resolve_node_config(mock_node) == {'a': 1, 'b': 2}
+    assert base_executor._resolve_node_config(mock_node) == {'a': 1, 'b': 2}
 
 
-def test_base_executor_resolve_node_config_updates_global_config_from_placeholders(mocker, monkeypatch):
+def test_base_executor__resolve_node_config_updates_global_config_from_placeholders(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_node._get_mode_config.return_value = {'b': 2, 'replace': None}
 
@@ -600,7 +600,7 @@ def test_base_executor_resolve_node_config_updates_global_config_from_placeholde
     }
     base_executor = executor.BaseExecutor(config=config)
 
-    assert base_executor.resolve_node_config(mock_node) == {'a': 1, 'c': 3, 'b': 2}
+    assert base_executor._resolve_node_config(mock_node) == {'a': 1, 'c': 3, 'b': 2}
 
 
 def test_base_executor_resolve_node_supresess_global_config_from_placeholders_if_its_not_mapping(mocker, monkeypatch):
@@ -616,22 +616,22 @@ def test_base_executor_resolve_node_supresess_global_config_from_placeholders_if
     }
     base_executor = executor.BaseExecutor(config=config)
 
-    assert base_executor.resolve_node_config(mock_node) == {'a': 1, 'b': 2}
+    assert base_executor._resolve_node_config(mock_node) == {'a': 1, 'b': 2}
 
 
 def test_base_executor_execute_graph_raises_exception_if_loop(mocker, monkeypatch):
     mock_dag = mocker.MagicMock()
     mock_execute_from_graph = mocker.MagicMock()
-    mock_get_status_and_next_node_name = mocker.MagicMock()
+    mock__get_status_and_next_node_name = mocker.MagicMock()
     mock_run_log_store = mocker.MagicMock()
     mock_node = mocker.MagicMock()
 
     mock_dag.get_node_by_name.return_value = mock_node
 
-    mock_get_status_and_next_node_name.return_value = defaults.SUCCESS, None
+    mock__get_status_and_next_node_name.return_value = defaults.SUCCESS, None
 
     monkeypatch.setattr(executor.BaseExecutor, 'execute_from_graph', mock_execute_from_graph)
-    monkeypatch.setattr(executor.BaseExecutor, 'get_status_and_next_node_name', mock_get_status_and_next_node_name)
+    monkeypatch.setattr(executor.BaseExecutor, '_get_status_and_next_node_name', mock__get_status_and_next_node_name)
     monkeypatch.setattr(executor, 'json', mocker.MagicMock())
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_log_store = mock_run_log_store
@@ -639,47 +639,47 @@ def test_base_executor_execute_graph_raises_exception_if_loop(mocker, monkeypatc
         base_executor.execute_graph(dag=mock_dag)
 
 
-def test_local_executor_is_parallel_execution_sends_defaults_if_not_config():
+def test_local_executor__is_parallel_execution_sends_defaults_if_not_config():
     local_executor = executor.LocalExecutor(config=None)
 
-    assert defaults.ENABLE_PARALLEL == local_executor.is_parallel_execution()
+    assert defaults.ENABLE_PARALLEL == local_executor._is_parallel_execution()
 
 
-def test_local_executor_is_parallel_execution_sends_from_config_if_present():
+def test_local_executor__is_parallel_execution_sends_from_config_if_present():
     config = {'enable_parallel': 'true'}
 
     local_executor = executor.LocalExecutor(config=config)
 
-    assert local_executor.is_parallel_execution()
+    assert local_executor._is_parallel_execution()
 
 
 def test_local_executor_trigger_job_calls(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_prepare_for_node_execution = mocker.MagicMock()
-    mock_execute_node = mocker.MagicMock()
+    mock__execute_node = mocker.MagicMock()
 
     monkeypatch.setattr(executor.LocalExecutor, 'prepare_for_node_execution', mock_prepare_for_node_execution)
-    monkeypatch.setattr(executor.LocalExecutor, 'execute_node', mock_execute_node)
+    monkeypatch.setattr(executor.LocalExecutor, '_execute_node', mock__execute_node)
 
     local_executor = executor.LocalExecutor(config=None)
 
     local_executor.trigger_job(mock_node)
     assert mock_prepare_for_node_execution.call_count == 1
-    assert mock_execute_node.call_count == 1
+    assert mock__execute_node.call_count == 1
 
 
-def test_local_container_executor_is_parallel_execution_sends_defaults_if_not_config():
+def test_local_container_executor__is_parallel_execution_sends_defaults_if_not_config():
     local_container_executor = executor.LocalContainerExecutor(config=None)
 
-    assert defaults.ENABLE_PARALLEL == local_container_executor.is_parallel_execution()
+    assert defaults.ENABLE_PARALLEL == local_container_executor._is_parallel_execution()
 
 
-def test_local_container_executor_is_parallel_execution_sends_from_config_if_present():
+def test_local_container_executor__is_parallel_execution_sends_from_config_if_present():
     config = {'enable_parallel': 'true'}
 
     local_container_executor = executor.LocalContainerExecutor(config=config)
 
-    assert local_container_executor.is_parallel_execution()
+    assert local_container_executor._is_parallel_execution()
 
 
 def test_local_container_executor_docker_image_is_none_if_not_present_in_config():

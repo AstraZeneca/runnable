@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import json
 import logging
@@ -9,12 +11,17 @@ from inspect import signature
 from pathlib import Path
 from string import Template as str_template
 from types import FunctionType
-from typing import Callable, List, Mapping, Tuple, Union
+from typing import TYPE_CHECKING, Callable, List, Mapping, Tuple, Union
 
 from ruamel.yaml import YAML  # type: ignore
 from stevedore import driver
 
-from magnus import defaults, executor
+from magnus import defaults
+
+if TYPE_CHECKING:
+    from magnus.executor import BaseExecutor
+    from magnus.nodes import BaseNode
+
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -432,7 +439,8 @@ def filter_arguments_from_parameters(
     return arguments
 
 
-def get_node_execution_command(executor, node, map_variable=None, over_write_run_id=None) -> str:
+def get_node_execution_command(
+        executor: BaseExecutor, node: BaseNode, map_variable: dict = None, over_write_run_id: str = '') -> str:
     """
     A utility function to standardize execution call to a node via command line.
 
@@ -555,7 +563,7 @@ def get_duration_between_datetime_strings(start_time: str, end_time: str) -> str
     return str(end - start)
 
 
-def get_run_config(executor: executor.BaseExecutor) -> dict:
+def get_run_config(executor: BaseExecutor) -> dict:
     """
     Given an executor with assigned services, return the run_config
 
@@ -581,7 +589,7 @@ def get_run_config(executor: executor.BaseExecutor) -> dict:
 
     run_config['experiment_tracker'] = {'type': executor.experiment_tracker.service_name,
                                         'config': executor.experiment_tracker.config}
-    run_config['variables'] = executor.variables
+    run_config['variables'] = executor.variables  # type: ignore
     run_config['pipeline'] = executor.dag._to_dict()
 
     return run_config

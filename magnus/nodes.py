@@ -630,7 +630,7 @@ class ParallelNode(BaseNode):
         # Given that we can have nesting and complex graphs, controlling the number of processes is hard.
         # A better way is to actually submit the job to some process scheduler which does resource management
         for internal_branch_name, branch in self.branches.items():
-            if executor.is_parallel_execution():
+            if executor._is_parallel_execution():
                 # Trigger parallel jobs
                 action = magnus.pipeline.execute_single_brach
                 kwargs = {
@@ -814,7 +814,7 @@ class MapNode(BaseNode):
             effective_map_variable = map_variable or OrderedDict()
             effective_map_variable[self.iterate_as] = iter_variable
 
-            if executor.is_parallel_execution():
+            if executor._is_parallel_execution():
                 # Trigger parallel jobs
                 action = magnus.pipeline.execute_single_brach
                 kwargs = {
