@@ -36,7 +36,7 @@ def test_init():
 def test_init_default():
     new_graph = graph.Graph(start_at='this')
     assert new_graph.start_at == 'this'
-    assert new_graph.internal_branch_name is None
+    assert new_graph.internal_branch_name is ''
     assert len(new_graph.nodes) == 0
 
 
@@ -309,14 +309,14 @@ def create_mocked_graph(mocker):
 def test_is_dag_returns_true_when_acyclic(mocked_graph):
     test_graph = mocked_graph
     start_node_config = {'next_node': 'middle', 'on_failure': ''}
-    start_node = AsISNode(name='start', internal_name='start', config=start_node_config, execution_type=None)
+    start_node = AsISNode(name='start', internal_name='start', config=start_node_config)
 
     middle_node_config = {'next_node': 'success', 'on_failure': ''}
-    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_node_config, execution_type=None)
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_node_config)
 
-    success_node = SuccessNode(name='success', internal_name='success', config={}, execution_type=None)
+    success_node = SuccessNode(name='success', internal_name='success', config={})
 
-    fail_node = FailNode(name='fail', internal_name='fail', config={}, execution_type=None)
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -332,14 +332,14 @@ def test_is_dag_returns_true_when_on_failure_points_to_non_terminal_node_and_lat
     test_graph = mocked_graph
 
     start_node_config = {'next_node': 'middle', 'on_failure': ''}
-    start_node = AsISNode(name='start', internal_name='start', config=start_node_config, execution_type=None)
+    start_node = AsISNode(name='start', internal_name='start', config=start_node_config)
 
     middle_node_config = {'next_node': 'success', 'on_failure': 'fail'}
-    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_node_config, execution_type=None)
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_node_config)
 
-    success_node = SuccessNode(name='success', internal_name='success', config={}, execution_type=None)
+    success_node = SuccessNode(name='success', internal_name='success', config={})
 
-    fail_node = FailNode(name='fail', internal_name='fail', config={}, execution_type=None)
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -354,18 +354,18 @@ def test_is_dag_returns_false_when_cyclic_in_next_nodes(mocked_graph):
     test_graph = mocked_graph
 
     start_node_config = {'next_node': 'b', 'on_failure': 'fail'}
-    start_node = AsISNode(name='start', internal_name='start', config=start_node_config, execution_type=None)
+    start_node = AsISNode(name='start', internal_name='start', config=start_node_config)
 
     bnode_config = {'next_node': 'c', 'on_failure': 'fail'}
-    bnode = AsISNode(name='b', internal_name='b', config=bnode_config, execution_type=None)
+    bnode = AsISNode(name='b', internal_name='b', config=bnode_config)
 
     cnode_config = {'next_node': 'd', 'on_failure': 'fail'}
-    cnode = AsISNode(name='c', internal_name='c', config=cnode_config, execution_type=None)
+    cnode = AsISNode(name='c', internal_name='c', config=cnode_config)
 
     dnode_config = {'next_node': 'b', 'on_failure': 'fail'}
-    dnode = AsISNode(name='d', internal_name='d', config=dnode_config, execution_type=None)
+    dnode = AsISNode(name='d', internal_name='d', config=dnode_config)
 
-    fail_node = FailNode(name='fail', internal_name='fail', config={}, execution_type=None)
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -382,15 +382,15 @@ def test_is_dag_returns_false_when_fail_points_to_previous_node(mocked_graph):
     test_graph = mocked_graph
 
     start_config = {'next_node': 'b', 'on_failure': 'fail'}
-    start_node = AsISNode(name='start', internal_name='start', config=start_config, execution_type=None)
+    start_node = AsISNode(name='start', internal_name='start', config=start_config)
 
     b_config = {'next_node': 'c', 'on_failure': 'fail'}
-    bnode = AsISNode(name='b', internal_name='b', config=b_config, execution_type=None)
+    bnode = AsISNode(name='b', internal_name='b', config=b_config)
 
     c_config = {'next_node': 'c', 'on_failure': 'b'}
-    cnode = AsISNode(name='c', internal_name='c', config=c_config, execution_type=None)
+    cnode = AsISNode(name='c', internal_name='c', config=c_config)
 
-    fail_node = FailNode(name='fail', internal_name='fail', config={}, execution_type=None)
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
     test_graph.nodes = [
         start_node,
         bnode,
@@ -405,14 +405,14 @@ def test_missing_neighbors_empty_list_no_neigbors_missing(mocked_graph):
     test_graph = mocked_graph
 
     start_config = {'next_node': 'middle', 'on_failure': 'fail'}
-    start_node = AsISNode(name='start', internal_name='start', config=start_config, execution_type=None)
+    start_node = AsISNode(name='start', internal_name='start', config=start_config)
 
     middle_config = {'next_node': 'success', 'on_failure': 'fail'}
-    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config, execution_type=None)
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config)
 
-    success_node = SuccessNode(name='success', internal_name='success', config={}, execution_type=None)
+    success_node = SuccessNode(name='success', internal_name='success', config={})
 
-    fail_node = FailNode(name='fail', internal_name='fail', config={}, execution_type=None)
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -429,12 +429,12 @@ def test_missing_neighbors_list_of_missing_neighbor_one_missing_next(mocked_grap
     test_graph = mocked_graph
 
     start_config = {'next_node': 'middle', 'on_failure': 'fail'}
-    start_node = AsISNode(name='start', internal_name='start', config=start_config, execution_type=None)
+    start_node = AsISNode(name='start', internal_name='start', config=start_config)
 
     middle_config = {'next_node': 'success', 'on_failure': 'fail'}
-    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config, execution_type=None)
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config)
 
-    fail_node = FailNode(name='fail', internal_name='fail', config={}, execution_type=None)
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -451,14 +451,14 @@ def test_missing_list_of_missing_neighbor_one_missing_on_failure(mocked_graph):
     test_graph = mocked_graph
 
     start_config = {'next_node': 'middle', 'on_failure': 'fail'}
-    start_node = AsISNode(name='start', internal_name='start', config=start_config, execution_type=None)
+    start_node = AsISNode(name='start', internal_name='start', config=start_config)
 
     middle_config = {'next_node': 'success', 'on_failure': 'fail'}
-    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config, execution_type=None)
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config)
 
-    success_node = SuccessNode(name='success', internal_name='success', config={}, execution_type=None)
+    success_node = SuccessNode(name='success', internal_name='success', config={})
 
-    fail_node = FailNode(name='fail', internal_name='fail', config={}, execution_type=None)
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -475,14 +475,14 @@ def test_missing_list_of_missing_neighbor_two_missing(mocked_graph):
     test_graph = mocked_graph
 
     start_config = {'next_node': 'middle', 'on_failure': 'fail'}
-    start_node = AsISNode(name='start', internal_name='start', config=start_config, execution_type=None)
+    start_node = AsISNode(name='start', internal_name='start', config=start_config)
 
     middle_config = {'next_node': 'success', 'on_failure': 'fail'}
-    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config, execution_type=None)
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config)
 
-    success_node = SuccessNode(name='success', internal_name='success', config={}, execution_type=None)
+    success_node = SuccessNode(name='success', internal_name='success', config={})
 
-    fail_node = FailNode(name='fail', internal_name='fail', config={}, execution_type=None)
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,

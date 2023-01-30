@@ -2,6 +2,7 @@ import json
 import tempfile
 from pathlib import Path
 
+import pytest
 import ruamel.yaml
 
 from magnus import defaults, pipeline, utils
@@ -41,6 +42,7 @@ def get_run_log(work_dir, run_id):
     raise Exception
 
 
+@pytest.mark.no_cover
 def test_success(success_graph):
     config = get_config()
 
@@ -63,6 +65,7 @@ def test_success(success_graph):
             assert False
 
 
+@pytest.mark.no_cover
 def test_failure(fail_graph):
     config = get_config()
 
@@ -88,6 +91,7 @@ def test_failure(fail_graph):
             assert False
 
 
+@pytest.mark.no_cover
 def test_on_failure(on_fail_graph):
     config = get_config()
     with tempfile.TemporaryDirectory() as context_dir:
@@ -112,6 +116,7 @@ def test_on_failure(on_fail_graph):
             assert False
 
 
+@pytest.mark.no_cover
 def test_parallel(parallel_success_graph):
     config = get_config()
     with tempfile.TemporaryDirectory() as context_dir:
@@ -136,6 +141,7 @@ def test_parallel(parallel_success_graph):
             assert False
 
 
+@pytest.mark.no_cover
 def test_parallel_fail(parallel_fail_graph):
     config = get_config()
     with tempfile.TemporaryDirectory() as context_dir:

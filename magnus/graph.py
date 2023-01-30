@@ -19,12 +19,14 @@ class Graph:
     We have nodes and traversal is based on start_at and on_failure definition of individual nodes of the graph
     """
 
-    def __init__(self, start_at, description=None, max_time=86400, internal_branch_name=None):
+    def __init__(self, start_at, name: str = '', description: str = '', max_time: int = 86400,
+                 internal_branch_name: str = ''):
         self.start_at = start_at
+        self.name = name
         self.description = description
         self.max_time = max_time
         self.internal_branch_name = internal_branch_name
-        self.nodes = []
+        self.nodes: List[BaseNode] = []
 
     def _to_dict(self) -> dict:
         """
@@ -32,6 +34,7 @@ class Graph:
         """
         dag = {}
         dag['start_at'] = self.start_at
+        dag['name'] = self.name
         dag['description'] = self.description
         dag['max_time'] = self.max_time
         dag['steps'] = {}
@@ -297,7 +300,7 @@ class Graph:
         self.add_node(fail_node)
 
 
-def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
+def create_graph(dag_config: dict, internal_branch_name: str = '') -> Graph:
     # pylint: disable=R0914,R0913
     """
     Creates a dag object from the dag definition.
@@ -342,22 +345,6 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
 
 
 def create_node(name: str, step_config: dict, internal_branch_name: str = None):
-    task_type = step_config.get('command_type', defaults.COMMAND_TYPE)
-
-    logger.info(f"Trying to get a task of type {task_type}")
-    try:
-        task_mgr = driver.DriverManager(
-            namespace="magnus.tasks.BaseTaskType",
-            name=task_type,
-            invoke_on_load=False
-        )
-    except Exception as _e:
-        msg = (
-            f"Could not find the task type {task_type}. Please ensure you have installed the extension that"
-            " provides the task type. \nCore supports: python(default), python-lambda, shell, notebook"
-        )
-        raise Exception(msg) from _e
-
     internal_name = name
     if internal_branch_name:
         internal_name = internal_branch_name + '.' + name
@@ -368,8 +355,7 @@ def create_node(name: str, step_config: dict, internal_branch_name: str = None):
             name=step_config['type'],
             invoke_on_load=True,
             invoke_kwds={"name": name, "internal_name": internal_name,
-                         "config": step_config, "execution_type": task_mgr.driver,
-                         "internal_branch_name": internal_branch_name}
+                         "config": step_config, "internal_branch_name": internal_branch_name}
         )
         return node_mgr.driver
     except Exception as _e:

@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import List, Optional, Union
 
 from pydantic import BaseModel, Extra
+from stevedore import driver
 
 import magnus
 from magnus import defaults, utils
@@ -46,14 +47,12 @@ class BaseNode:
 
             super().__init__(*args, **kwargs)
 
-    def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
+    def __init__(self, name, internal_name, config, internal_branch_name=None):
         # pylint: disable=R0914,R0913
         self.name = name
         self.internal_name = internal_name  #  Dot notation naming of the steps
         self.config = self.Config(**config)
         self.internal_branch_name = internal_branch_name  # parallel, map, dag only have internal names
-        self.execution_type = execution_type
-        self.branches = None
         self.is_composite = False
 
     def validate(self):
@@ -343,17 +342,37 @@ class TaskNode(BaseNode):
     class Config(BaseNode.Config):
         next_node: str
         command: str
+        command_type: str = defaults.COMMAND_TYPE
         command_config: dict = {}
         catalog: dict = {}
         mode_config: dict = {}
         retry: int = 1
         on_failure: str = ''
 
+    def __init__(self, name, internal_name, config, internal_branch_name=None):
+        super().__init__(name, internal_name, config, internal_branch_name)
+
+        task_type = self.config.command_type
+        logger.info(f"Trying to get a task of type {task_type}")
+        try:
+            task_mgr = driver.DriverManager(
+                namespace="magnus.tasks.BaseTaskType",
+                name=task_type,
+                invoke_on_load=False
+            )
+        except Exception as _e:
+            msg = (
+                f"Could not find the task type {task_type}. Please ensure you have installed the extension that"
+                " provides the task type. \nCore supports: python(default), python-lambda, shell, notebook. python-function"
+            )
+            raise Exception(msg) from _e
+        self.task = task_mgr.driver
+
     def _to_dict(self) -> dict:
         config_dict = dict(self.config.dict())
         config_dict['type'] = self.node_type
         config_dict['command_config'] = self.config.command_config
-        config_dict['command_type'] = self.execution_type.task_type
+        config_dict['command_type'] = self.task.task_type
         return config_dict
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
@@ -366,8 +385,8 @@ class TaskNode(BaseNode):
                 # Do not run if we are mocking the execution, could be useful for caching and dry runs
                 command_config = {'command': self.config.command}
                 command_config.update(self.config.command_config)
-                execution_type = self.execution_type(config=command_config)
-                execution_type.execute_command(map_variable=map_variable)
+                task = self.task(config=command_config)
+                task.execute_command(map_variable=map_variable)
         except Exception as _e:  # pylint: disable=W0703
             logger.exception('Task failed')
             attempt_log.status = defaults.FAIL
@@ -523,9 +542,9 @@ class ParallelNode(BaseNode):
         branches: dict
         on_failure: str = ''
 
-    def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
+    def __init__(self, name, internal_name, config, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
+        super().__init__(name, internal_name, config, internal_branch_name=internal_branch_name)
         self.branches = self.get_sub_graphs()
         self.is_composite = True
 
@@ -683,9 +702,9 @@ class MapNode(BaseNode):
         iterate_as: str
         on_failure: str = ''
 
-    def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
+    def __init__(self, name, internal_name, config, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
+        super().__init__(name, internal_name, config, internal_branch_name=internal_branch_name)
         self.is_composite = True
         self.branch_placeholder_name = defaults.MAP_PLACEHOLDER
         self.branch = self.get_sub_graph()
@@ -863,9 +882,9 @@ class DagNode(BaseNode):
         dag_definition: str
         on_failure: str = ''
 
-    def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
+    def __init__(self, name, internal_name, config, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, execution_type, internal_branch_name=internal_branch_name)
+        super().__init__(name, internal_name, config, internal_branch_name=internal_branch_name)
         self.sub_dag_file = self.config.dag_definition
         self.is_composite = True
         self.branch = self.get_sub_graph()
@@ -1001,7 +1020,7 @@ class AsISNode(BaseNode):
     """
     node_type = 'as-is'
 
-    class Config(BaseNode.Config, extra=Extra.allow):
+    class Config(BaseNode.Config, extra=Extra.allow):  # type: ignore
         next_node: str
         on_failure: str = ''
         retry: int = 1
