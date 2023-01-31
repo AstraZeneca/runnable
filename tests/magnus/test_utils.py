@@ -432,7 +432,7 @@ def test_get_node_execution_command_returns_magnus_execute():
             return 'test_node_id'
 
     assert utils.get_node_execution_command(MockExecutor(), MockNode()) == \
-        'magnus execute_single_node test_run_id test_node_id --file test_pipeline_file'
+        'magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file'
 
 
 def test_get_node_execution_command_overwrites_run_id_if_asked():
@@ -451,14 +451,13 @@ def test_get_node_execution_command_overwrites_run_id_if_asked():
             return 'test_node_id'
 
     assert utils.get_node_execution_command(MockExecutor(), MockNode(), over_write_run_id='override') == \
-        'magnus execute_single_node override test_node_id --file test_pipeline_file'
+        'magnus execute_single_node override test_node_id --log-level WARNING --file test_pipeline_file'
 
 
 def test_get_node_execution_command_returns_magnus_execute_appends_variables_file():
     class MockExecutor:
         run_id = 'test_run_id'
         pipeline_file = 'test_pipeline_file'
-        variables_file = 'test_variables_file'
         configuration_file = None
         parameters_file = None
         tag = None
@@ -470,7 +469,7 @@ def test_get_node_execution_command_returns_magnus_execute_appends_variables_fil
             return 'test_node_id'
 
     assert utils.get_node_execution_command(MockExecutor(), MockNode()) == \
-        'magnus execute_single_node test_run_id test_node_id --file test_pipeline_file --var-file test_variables_file'
+        'magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file'
 
 
 def test_get_node_execution_command_returns_magnus_execute_appends_parameters_file():
@@ -489,7 +488,7 @@ def test_get_node_execution_command_returns_magnus_execute_appends_parameters_fi
             return 'test_node_id'
 
     assert utils.get_node_execution_command(MockExecutor(), MockNode()) == \
-        'magnus execute_single_node test_run_id test_node_id --file test_pipeline_file' \
+        'magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file' \
         ' --parameters-file test_parameters_file'
 
 
@@ -511,7 +510,7 @@ def test_get_node_execution_command_returns_magnus_execute_appends_map_variable(
     map_variable = {'test_map': 'map_value'}
     json_dump = json.dumps(map_variable)
     assert utils.get_node_execution_command(MockExecutor(), MockNode(), map_variable=map_variable) == \
-        f"magnus execute_single_node test_run_id test_node_id --file test_pipeline_file --map-variable '{json_dump}'"
+        f"magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file --map-variable '{json_dump}'"
 
 
 def test_get_service_base_class_throws_exception_for_unknown_service():

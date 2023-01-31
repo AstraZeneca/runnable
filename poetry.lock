@@ -272,8 +272,16 @@ traitlets = ">=5.3"
 test = ["pytest"]
 
 [[package]]
+name = "commit-linter"
+version = "1.0.2"
+description = "simple git hooks scripts for a better git experience that enforces you to use the known commit messages conventions"
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+
+[[package]]
 name = "coverage"
-version = "7.0.5"
+version = "7.1.0"
 description = "Code coverage measurement for Python"
 category = "dev"
 optional = false
@@ -2151,7 +2159,7 @@ notebook = ["ploomber-engine"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "4efbe5d5d8559ee595780749b03ce58707132e7b725a612d909f914c0c32d395"
+content-hash = "3e5043f6525a211c6b288f034de856cb69a9ef5c29accb9712289cac202474e1"
 
 [metadata.files]
 anyio = []
@@ -2220,6 +2228,7 @@ click-plugins = [
 cloudpickle = []
 colorama = []
 comm = []
+commit-linter = []
 coverage = []
 databricks-cli = []
 debuglater = []
