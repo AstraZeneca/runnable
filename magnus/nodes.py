@@ -38,6 +38,7 @@ class BaseNode:
     errors_on: List[str] = []
 
     class Config(BaseModel):
+        mode_config: dict = {}
 
         def __init__(self, *args, **kwargs):
             next_node = kwargs.get('next', '')
@@ -283,7 +284,7 @@ class BaseNode:
             dict: The mode config, if defined or an empty dict
         This is a base implementation which the BaseNode does not satisfy
         """
-        return self.config.mode_config(mode_type, {})
+        return self.config.mode_config.get(mode_type, {})
 
     def _get_max_attempts(self) -> int:
         """
@@ -345,7 +346,6 @@ class TaskNode(BaseNode):
         command_type: str = defaults.COMMAND_TYPE
         command_config: dict = {}
         catalog: dict = {}
-        mode_config: dict = {}
         retry: int = 1
         on_failure: str = ''
 

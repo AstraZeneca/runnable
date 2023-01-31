@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import subprocess
+import sys
 from collections import OrderedDict
 from datetime import datetime
 from inspect import signature
@@ -142,7 +143,7 @@ def get_module_and_func_names(command: str) -> Tuple[str, str]:
 
 
 def get_module_and_func_from_function(command: FunctionType) -> str:
-    module_name = command.__module__
+    module_name = sys.modules[command.__module__]
     func_name = command.__name__
     return f"{module_name}.{func_name}"
 

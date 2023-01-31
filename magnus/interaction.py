@@ -274,6 +274,8 @@ class Task:
         self.node: Optional[nodes.BaseNode] = None
 
     def _construct_node(self, next_node: str):
+        # TODO: The below has issues if the function and the pipeline are in the same module
+        # Something to do with __main__ being present
         if isinstance(self.command, FunctionType):
             self.command = utils.get_module_and_func_from_function(self.command)
 
