@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 import mlflow
+from pydantic import BaseModel
 
 from magnus import defaults
 
@@ -17,8 +18,12 @@ class BaseExperimentTracker:
 
     service_name = ''
 
-    def __init__(self, config, **kwargs):  # pylint: disable=unused-argument
-        self.config = config or {}
+    class Config(BaseModel):
+        pass
+
+    def __init__(self, config: dict = None, **kwargs):  # pylint: disable=unused-argument
+        config = config or {}
+        self.config = self.Config(**config)
 
     @property
     def client_context(self):
@@ -38,25 +43,7 @@ class BaseExperimentTracker:
         """
         raise NotImplementedError
 
-    def get_metric(self, key: str) -> Any:
-        """
-        Return the metric by the key
-
-        Args:
-            key (str): The metric you want to retrieve
-
-        Raises:
-            NotImplementedError: Base Class, hence not implemented
-
-        Returns:
-            Any: The value of the key
-        """
-        raise NotImplementedError
-
     def log_parameter(self, key: str, value: Any):
-        pass
-
-    def get_parameter(self, key: str) -> Any:
         pass
 
 
@@ -76,23 +63,8 @@ class DoNothingTracker(BaseExperimentTracker):
         """
         pass
 
-    def get_metric(self, key: str) -> Any:
-        """
-        Return the metric by the key
-
-        Args:
-            key (str): The metric you want to retrieve
-
-        Returns:
-            Any: The value of the key
-        """
-        return None
-
     def log_parameter(self, key: str, value: Any):
         pass
-
-    def get_parameter(self, key: str) -> Any:
-        return None
 
 
 class MLFlowExperimentTracker(BaseExperimentTracker):
@@ -103,15 +75,18 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
     """
     service_name = 'mlflow'
 
+    class Config(BaseExperimentTracker.Config):
+        server_url: str
+        autolog: bool = False
+
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
         self.default_experiment_name = 'Default'
         self.active_run_id = None
 
-        if 'server_url' in self.config:
-            mlflow.set_tracking_uri(config.get('server_url'))
+        mlflow.set_tracking_uri(self.config.server_url)
 
-        if 'autolog' in self.config and self.config['autolog']:
+        if self.config.autolog:
             mlflow.autolog(log_models=False)
 
     @functools.cached_property

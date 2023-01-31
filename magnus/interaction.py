@@ -173,6 +173,14 @@ def get_tag() -> str:
     return os.environ.get(defaults.MAGNUS_RUN_TAG, '')
 
 
+def get_experiment_tracker_context():
+    from magnus.pipeline import \
+        global_executor  # pylint: disable=import-outside-toplevel
+
+    experiment_tracker = global_executor.experiment_tracker
+    return experiment_tracker.client_context
+
+
 class step(object):
 
     def __init__(
