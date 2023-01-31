@@ -1,4 +1,5 @@
 import pytest
+from pydantic import BaseModel, Extra
 
 from magnus import defaults, exceptions, executor
 
@@ -13,8 +14,8 @@ def test_base_executor__set_up_run_log_with_no_previous_run_log(mocker, monkeypa
     base_executor = executor.BaseExecutor(config=None)
 
     mock_run_log_store = mocker.MagicMock()
-    mock_run_log = mocker.MagicMock()
-    mock_run_log_store.create_run_log.return_value = mock_run_log
+    mock_create_run_log = mocker.MagicMock()
+    mock_run_log_store.create_run_log = mock_create_run_log
 
     base_executor.run_log_store = mock_run_log_store
     base_executor.run_id = 'run_id'
@@ -23,17 +24,16 @@ def test_base_executor__set_up_run_log_with_no_previous_run_log(mocker, monkeypa
 
     base_executor._set_up_run_log()
 
-    assert mock_run_log.status == defaults.PROCESSING
-    assert mock_run_log.use_cached == False
-    assert mock_run_log.run_config == {'executor': 'test'}
+    mock_create_run_log.assert_called_once_with(
+        run_id='run_id', tag='', use_cached=False, status=defaults.PROCESSING, dag_hash='')
 
 
 def test_base_executor__set_up_run_log_with_previous_run_log(mocker, monkeypatch):
     base_executor = executor.BaseExecutor(config=None)
 
     mock_run_log_store = mocker.MagicMock()
-    mock_run_log = mocker.MagicMock()
-    mock_run_log_store.create_run_log.return_value = mock_run_log
+    mock_create_run_log = mocker.MagicMock()
+    mock_run_log_store.create_run_log = mock_create_run_log
 
     mock_previous_run_log = mocker.MagicMock()
     mock_previous_run_log.run_id = 'old run id'
@@ -49,10 +49,8 @@ def test_base_executor__set_up_run_log_with_previous_run_log(mocker, monkeypatch
 
     base_executor._set_up_run_log()
 
-    assert mock_run_log.status == defaults.PROCESSING
-    assert mock_run_log.use_cached == True
-    assert mock_run_log.parameters == {'b': 1}
-    assert mock_run_log.run_config == {'executor': 'test'}
+    mock_create_run_log.assert_called_once_with(
+        run_id='run_id', tag='', use_cached=True, status=defaults.PROCESSING, dag_hash='', original_run_id='old run id')
 
 
 def test_base_executor_prepare_for_graph_execution_calls(mocker, monkeypatch):
@@ -86,7 +84,7 @@ def test_base_execution_prepare_for_node_calls(mocker, monkeypatch):
 
     base_executor = executor.BaseExecutor(config=None)
 
-    base_executor.prepare_for_node_execution('test')
+    base_executor.prepare_for_node_execution()
 
     assert mock_configure_for_execution.call_count == 3
     assert mock_validate.call_count == 3
@@ -564,6 +562,11 @@ def test_base_executor__resolve_node_config_gives_global_config_if_node_does_not
     mock_node = mocker.MagicMock()
     mock_node._get_mode_config.return_value = {}
 
+    class MockConfig(BaseModel, extra=Extra.allow):
+        placeholders: dict = {}
+
+    monkeypatch.setattr(executor.BaseExecutor, 'Config',  MockConfig)
+
     base_executor = executor.BaseExecutor(config={'a': 1})
 
     assert base_executor._resolve_node_config(mock_node) == {'a': 1}
@@ -573,6 +576,11 @@ def test_base_executor__resolve_node_config_updates_global_config_if_node_overri
     mock_node = mocker.MagicMock()
     mock_node._get_mode_config.return_value = {'a': 2}
 
+    class MockConfig(BaseModel, extra=Extra.allow):
+        placeholders: dict = {}
+
+    monkeypatch.setattr(executor.BaseExecutor, 'Config',  MockConfig)
+
     base_executor = executor.BaseExecutor(config={'a': 1})
 
     assert base_executor._resolve_node_config(mock_node) == {'a': 2}
@@ -581,6 +589,11 @@ def test_base_executor__resolve_node_config_updates_global_config_if_node_overri
 def test_base_executor__resolve_node_config_updates_global_config_if_node_adds(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_node._get_mode_config.return_value = {'b': 2}
+
+    class MockConfig(BaseModel, extra=Extra.allow):
+        placeholders: dict = {}
+
+    monkeypatch.setattr(executor.BaseExecutor, 'Config',  MockConfig)
 
     base_executor = executor.BaseExecutor(config={'a': 1})
 
@@ -598,6 +611,12 @@ def test_base_executor__resolve_node_config_updates_global_config_from_placehold
         }
 
     }
+
+    class MockConfig(BaseModel, extra=Extra.allow):
+        placeholders: dict = {}
+
+    monkeypatch.setattr(executor.BaseExecutor, 'Config',  MockConfig)
+
     base_executor = executor.BaseExecutor(config=config)
 
     assert base_executor._resolve_node_config(mock_node) == {'a': 1, 'c': 3, 'b': 2}
@@ -614,6 +633,12 @@ def test_base_executor_resolve_node_supresess_global_config_from_placeholders_if
         }
 
     }
+
+    class MockConfig(BaseModel, extra=Extra.allow):
+        placeholders: dict = {}
+
+    monkeypatch.setattr(executor.BaseExecutor, 'Config',  MockConfig)
+
     base_executor = executor.BaseExecutor(config=config)
 
     assert base_executor._resolve_node_config(mock_node) == {'a': 1, 'b': 2}
@@ -669,33 +694,16 @@ def test_local_executor_trigger_job_calls(mocker, monkeypatch):
 
 
 def test_local_container_executor__is_parallel_execution_sends_defaults_if_not_config():
-    local_container_executor = executor.LocalContainerExecutor(config=None)
+    local_container_executor = executor.LocalContainerExecutor(config={'docker_image': 'test'})
 
     assert defaults.ENABLE_PARALLEL == local_container_executor._is_parallel_execution()
 
 
 def test_local_container_executor__is_parallel_execution_sends_from_config_if_present():
-    config = {'enable_parallel': 'true'}
 
-    local_container_executor = executor.LocalContainerExecutor(config=config)
+    local_container_executor = executor.LocalContainerExecutor(config={'enable_parallel': True, 'docker_image': 'test'})
 
     assert local_container_executor._is_parallel_execution()
-
-
-def test_local_container_executor_docker_image_is_none_if_not_present_in_config():
-    config = {'enable_parallel': 'true'}
-
-    local_container_executor = executor.LocalContainerExecutor(config=config)
-
-    assert local_container_executor.docker_image is None
-
-
-def test_local_container_executor_docker_image_is_none_if_no_config():
-    config = None
-
-    local_container_executor = executor.LocalContainerExecutor(config=config)
-
-    assert local_container_executor.docker_image is None
 
 
 def test_local_container_executor_docker_image_is_retrieved_from_config():
@@ -704,19 +712,6 @@ def test_local_container_executor_docker_image_is_retrieved_from_config():
     local_container_executor = executor.LocalContainerExecutor(config=config)
 
     assert local_container_executor.docker_image is 'docker'
-
-
-def test_local_container_executor_add_code_ids_calls_super(mocker, monkeypatch):
-    mock_node = mocker.MagicMock()
-    mock_node._get_mode_config.return_value = {}
-
-    mock_super_add_code_ids = mocker.MagicMock()
-    monkeypatch.setattr(executor.BaseExecutor, 'add_code_identities', mock_super_add_code_ids)
-
-    local_container_executor = executor.LocalContainerExecutor(config={})
-    local_container_executor.add_code_identities(node=mock_node, step_log={})
-
-    mock_super_add_code_ids.assert_called_once_with(mock_node, {})
 
 
 def test_local_container_executor_add_code_ids_uses_global_docker_image(mocker, monkeypatch):
@@ -770,7 +765,7 @@ def test_local_container_executor_calls_spin_container_during_trigger_job(mocker
 
     monkeypatch.setattr(executor.LocalContainerExecutor, '_spin_container', mock_spin_container)
 
-    local_container_executor = executor.LocalContainerExecutor(config=None)
+    local_container_executor = executor.LocalContainerExecutor(config={'docker_image': 'test'})
     local_container_executor.run_log_store = mock_run_log_store
 
     local_container_executor.trigger_job(node=mock_node)
@@ -789,7 +784,7 @@ def test_local_container_executor_marks_step_fail_if_status_is_not_success(mocke
 
     monkeypatch.setattr(executor.LocalContainerExecutor, '_spin_container', mock_spin_container)
 
-    local_container_executor = executor.LocalContainerExecutor(config=None)
+    local_container_executor = executor.LocalContainerExecutor(config={'docker_image': 'test'})
     local_container_executor.run_log_store = mock_run_log_store
 
     local_container_executor.trigger_job(node=mock_node)

@@ -146,7 +146,6 @@ class BaseExecutor:
             parameters.update(self.previous_run_log.parameters)
 
         run_log = self.run_log_store.create_run_log(**run_log)
-
         # Any interaction with run log store attributes should happen via API if available.
         self.run_log_store.set_parameters(run_id=self.run_id, parameters=parameters)
 
