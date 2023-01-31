@@ -5,9 +5,17 @@ from pathlib import Path
 import pytest
 import ruamel.yaml
 
-from magnus import defaults, pipeline, utils
+from magnus import Pipeline, Task, defaults, pipeline, utils
 
 yaml = ruamel.yaml.YAML()
+
+
+def success_function():
+    pass
+
+
+def error_function():
+    raise Exception
 
 
 def get_config():
@@ -26,8 +34,9 @@ def get_config():
 
 
 def write_dag_and_config(work_dir: str, dag: dict, config: dict):
-    with open(work_dir / 'dag.yaml', 'wb') as f:
-        yaml.dump(dag, f)
+    if dag:
+        with open(work_dir / 'dag.yaml', 'wb') as f:
+            yaml.dump(dag, f)
 
     config['run_log_store']['config']['log_folder'] = str(work_dir)
     with open(work_dir / 'config.yaml', 'wb') as f:
@@ -40,6 +49,28 @@ def get_run_log(work_dir, run_id):
     if utils.does_file_exist(run_log_path):
         return json.load(open(run_log_path))
     raise Exception
+
+
+@pytest.mark.no_cover
+def test_success_sdk():
+    config = get_config()
+    first = Task(name='first', command='tests.scenarios.test_traversals.success_function')
+    second = Task(name='second', command='tests.scenarios.test_traversals.success_function')
+    pipeline = Pipeline(name='testing')
+    pipeline.construct([first, second])
+    with tempfile.TemporaryDirectory() as context_dir:
+        context_dir_path = Path(context_dir)
+        write_dag_and_config(context_dir_path, dag=None, config=config)
+
+        run_id = 'testing_success'
+        pipeline.execute(configuration_file=str(context_dir_path / 'config.yaml'), run_id=run_id)
+
+        try:
+            run_log = get_run_log(context_dir_path, run_id)
+            assert run_log['status'] == defaults.SUCCESS
+            assert list(run_log['steps'].keys()) == ['first', 'second', 'success']
+        except:
+            assert False
 
 
 @pytest.mark.no_cover
@@ -66,6 +97,31 @@ def test_success(success_graph):
 
 
 @pytest.mark.no_cover
+def test_fail_sdk():
+    config = get_config()
+    first = Task(name='first', command='tests.scenarios.test_traversals.error_function')
+    second = Task(name='second', command='tests.scenarios.test_traversals.success_function')
+    pipeline = Pipeline(name='testing')
+    pipeline.construct([first, second])
+    with tempfile.TemporaryDirectory() as context_dir:
+        context_dir_path = Path(context_dir)
+        write_dag_and_config(context_dir_path, dag=None, config=config)
+
+        run_id = 'testing_failure'
+        try:
+            pipeline.execute(configuration_file=str(context_dir_path / 'config.yaml'), run_id=run_id)
+        except:
+            pass
+
+        try:
+            run_log = get_run_log(context_dir_path, run_id)
+            assert run_log['status'] == defaults.FAIL
+            assert list(run_log['steps'].keys()) == ['first', 'fail']
+        except:
+            assert False
+
+
+@pytest.mark.no_cover
 def test_failure(fail_graph):
     config = get_config()
 
@@ -87,6 +143,32 @@ def test_failure(fail_graph):
             run_log = get_run_log(context_dir_path, run_id)
             assert run_log['status'] == defaults.FAIL
             assert list(run_log['steps'].keys()) == ['first', 'fail']
+        except:
+            assert False
+
+
+@pytest.mark.no_cover
+def test_on_fail_sdk():
+    config = get_config()
+    first = Task(name='first', command='tests.scenarios.test_traversals.error_function', on_failure='third')
+    second = Task(name='second', command='tests.scenarios.test_traversals.success_function')
+    third = Task(name='third', command='tests.scenarios.test_traversals.success_function')
+    pipeline = Pipeline(name='testing')
+    pipeline.construct([first, second, third])
+    with tempfile.TemporaryDirectory() as context_dir:
+        context_dir_path = Path(context_dir)
+        write_dag_and_config(context_dir_path, dag=None, config=config)
+
+        run_id = 'testing_on_failure'
+        try:
+            pipeline.execute(configuration_file=str(context_dir_path / 'config.yaml'), run_id=run_id)
+        except:
+            pass
+
+        try:
+            run_log = get_run_log(context_dir_path, run_id)
+            assert run_log['status'] == defaults.SUCCESS
+            assert list(run_log['steps'].keys()) == ['first', 'third', 'success']
         except:
             assert False
 
