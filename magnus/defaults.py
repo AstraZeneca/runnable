@@ -11,6 +11,7 @@ class EXECUTION_PLAN(Enum):
     pipeline = 1
     decorator = 2
     notebook = 3
+    function = 4
 
 
 # Config file environment variable

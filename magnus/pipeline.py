@@ -398,3 +398,50 @@ def execute_notebook(
     mode_executor.execute_graph(dag=mode_executor.dag)
 
     mode_executor.send_return_code()
+
+
+def execute_function(
+        command: str,
+        catalog_config: dict,
+        configuration_file: str,
+        tag: str = None,
+        run_id: str = None,
+        parameters_file: str = None):
+    # pylint: disable=R0914,R0913
+    """
+    The entry point to magnus execution of a function. This method would prepare the configurations and
+    delegates traversal to the executor
+    """
+    run_id = utils.generate_run_id(run_id=run_id)
+
+    mode_executor = prepare_configurations(
+        configuration_file=configuration_file,
+        run_id=run_id,
+        tag=tag,
+        parameters_file=parameters_file)
+
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.function
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+
+    # Prepare the graph with a single node
+    dag = graph.Graph(start_at='executing function')
+    step_config = {
+        'command': command,
+        'command_type': 'python',
+        'type': 'task',
+        'next': 'success',
+        'catalog': catalog_config,
+    }
+    node = graph.create_node(name=f'executing function', step_config=step_config)
+
+    dag.add_node(node)
+    dag.add_terminal_nodes()
+
+    mode_executor.dag = dag
+    # Prepare for graph execution
+    mode_executor.prepare_for_graph_execution()
+
+    logger.info('Executing the graph')
+    mode_executor.execute_graph(dag=mode_executor.dag)
+
+    mode_executor.send_return_code()

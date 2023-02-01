@@ -130,8 +130,13 @@ def get_from_catalog(name: str, destination_folder: str = None):
     if not destination_folder:
         destination_folder = global_executor.catalog_handler.compute_data_folder  # type: ignore
 
-    global_executor.catalog_handler.get(name, run_id=global_executor.run_id,  # type: ignore
-                                        compute_data_folder=destination_folder)
+    data_catalog = global_executor.catalog_handler.get(name, run_id=global_executor.run_id,  # type: ignore
+                                                       compute_data_folder=destination_folder)
+
+    if global_executor.context_step_log:  # type: ignore
+        global_executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
+    else:
+        logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
 
 def put_in_catalog(filepath: str):
