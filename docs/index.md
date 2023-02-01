@@ -8,48 +8,48 @@ sidebarDepth: 0
 
 ---
 
-Magnus provides four capabilities for data teams:
+We understand that data science is a highly iterative process conducted at the intersection of statistics, machine
+learning, computer science. For a data scientist to be effective, there is a growing need to understand and thrive in
+cloud infrastructure which can be a very steep learning curve and dangerous, if not done right.
 
-- **Compute execution plan**: A DAG representation of work that you want to get done. Individual nodes of the DAG
-could be simple python or shell tasks or complex deeply nested parallel branches or embedded DAGs themselves.
+The typical needs of data scientists are:
 
-- **Run log store**: A place to store run logs for reporting or re-running older runs. Along with capturing the
-status of execution,  the run logs also capture code identifiers (commits, docker image digests etc), data hashes and
-configuration settings for reproducibility and audit.
+- Run job(s) (a notebook, python or R function) in a scalable environment.
+- Ability to define the compute requirements, i.e CPU, GPU, memory, of the environment
+- Ability to access data from data sources and modify it as needed.
+- Ability to have access to secrets to make secure connections to data sources.
+- Ability to track and record their experiments for later reference.
 
-- **Data Catalogs**: A way to pass data between nodes of the graph during execution and also serves the purpose of
-versioning the data used by a particular run.
+What is hidden from these needs are:
 
-- **Secrets**: A framework to provide secrets/credentials at run time to the nodes of the graph.
+- portability of the function/notebook in the scalable environment.
+- Robust reproducibility of any experiment.
+- Frictionless movement to a production environment.
+- Frictionless movement from production environment to development environment to debug and fix.
 
-### Design decisions:
-
-- **Easy to extend**: All the four capabilities are just definitions and can be implemented in many flavors.
-
-    - **Compute execution plan**: You can choose to run the DAG on your local computer, in containers of local computer
-    or off load the work to cloud providers or translate the DAG to AWS step functions or Argo workflows.
-
-    - **Run log Store**: The actual implementation of storing the run logs could be in-memory, file system, S3,
-    database etc.
-
-    - **Data Catalogs**: The data files generated as part of a run could be stored on file-systems, S3 or could be
-    extended to fit your needs.
-
-    - **Secrets**: The secrets needed for your code to work could be in dotenv, AWS or extended to fit your needs.
-
-- **Pipeline as contract**: Once a DAG is defined and proven to work in local or some environment, there is absolutely
-no code change needed to deploy it to other environments. This enables the data teams to prove the correctness of
-the dag in dev environments while infrastructure teams to find the suitable way to deploy it.
-
-- **Reproducibility**: Run log store and data catalogs hold the version, code commits, data files used for a run
-making it easy to re-run an older run or debug a failed run. Debug environment need not be the same as
-original environment.
-
-- **Easy switch**: Your infrastructure landscape changes over time. With magnus, you can switch infrastructure
-by just changing a config and not code.
+---
 
 
-Magnus does not aim to replace existing and well constructed orchestrators like AWS Step functions or
-[argo](https://argoproj.github.io/workflows/) but complements them in a unified, simple and intuitive way.
+Magnus is written to provide to the data scientist requirements while ensuring the hidden best practices are maintained.
+
+It allows a data scientist or a ML engineer to **decouple** the experiment from the environment by abstractions.
+
+With Magnus, you can:
+
+- Run a Jupyter notebook either on local machines or a cloud infrastructure without hassle.
+- Run a python function either on local machines or a cloud infrastructure without hassle.
+- Run pipelines either on local machines or a cloud infrastructure.
+- Port a production pipeline onto local machines to debug and fix.
+
+Where it differs from other tools in this area:
+
+- There is no need to change the infrastructure patterns. Magnus is a transpiler to different cloud environments.
+- The learning curve to use magnus is kept minimal and can be done either via Yaml or Python SDK.
+- Extendable to fit to your needs.
+- Lean footprint in the code base to revert to old state if magnus does not fit your needs.
+
+---
+
+:sparkles::sparkles:Happy Experimenting!!:sparkles::sparkles:
 
 Please find the [github project here](https://github.com/AstraZeneca/magnus-core).

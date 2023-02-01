@@ -116,7 +116,11 @@ class BaseExecutor:
         If exists_ok, we allow the run log to be already present in the run log store
         """
         try:
-            _ = self.run_log_store.get_run_log_by_id(run_id=self.run_id, full=False)
+            attempt_run_log = self.run_log_store.get_run_log_by_id(run_id=self.run_id, full=False)
+            if attempt_run_log.status in [defaults.FAIL, defaults.SUCCESS]:
+                raise Exception(f'The run log by id: {self.run_id} already exists and is {attempt_run_log.status}')
+
+            raise exceptions.RunLogExistsError(self.run_id)
         except exceptions.RunLogNotFoundError:
             pass
         except exceptions.RunLogExistsError:
@@ -559,7 +563,6 @@ class BaseExecutor:
         Args:
             node (BaseNode): The current node being processed.
 
-        #TODO: This method could be _
         """
         effective_node_config = copy.deepcopy(self.config.dict())
         ctx_node_config = node._get_mode_config(self.service_name)

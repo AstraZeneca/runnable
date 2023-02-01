@@ -1,13 +1,5 @@
 To extend and implement a custom catalog, you need to over-ride the appropriate methods of the ```Base``` class.
 
-Some of the methods of the ```BaseCatalog``` have default implementations and need not be over-written.
-
-Please refer to [*Guide to extensions* ](../../../extensions/extensions/) for a detailed explanation and the need for
-implementing a *Integration* pattern along with the extension.
-
-Extensions that are being actively worked on and listed to be released as part of ```magnus-extensions```
-
-- s3 : Using s3 to store a catalog objects
 
 ```python
 # You can find this in the source code at: magnus/catalog.py along with a few example

@@ -24,11 +24,13 @@ Individual steps of the dag could over-ride this global default.
 Example
 
 ```yaml
+# In config.yaml
 catalog:
   type: file-system
   config:
     compute_data_folder : data/
 
+# in pipeline.yaml
 dag:
   start_at: Cool function
   steps:
@@ -46,6 +48,21 @@ dag:
       type: success
     Fail:
       type: fail
+```
+
+or via the Python SDK:
+
+```python
+from magnus import Task, Pipeline
+
+def pipeline():
+    catalog = {
+      'compute_data_folder': 'data/processed_data/',
+      'get': ['*'],
+      'put': ['*']
+    }
+    first = Task(name='Cool function', command='my_module.my_cool_function', catalog=catalog)
+
 ```
 
 In this example, while the global default of the ```compute_data_folder``` is ```data/```, the step ```Cool function```

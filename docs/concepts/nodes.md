@@ -51,6 +51,18 @@ step name:
     get:
     put:
 ```
+
+Or via the Python SDK:
+
+```python
+from magnus import Task
+
+first = Task(name: str, command: str, command_type: str = 'python',
+            command_config: Optional[dict]=None, catalog: Optional[dict]=None,
+            mode_config: Optional[dict]=None, retry: int = 1, on_failure: str = '')
+```
+The name given to the task has the same behavior as the ```step name``` given in the yaml definition.
+
 ### command (required)
 
 The name of the actual function/shell executable you want to call as part of the pipeline.
@@ -74,6 +86,8 @@ The number of attempts to make before failing the node. Default to 1.
 ### next (required)
 The name of the node in the graph to go if the node succeeds.
 
+```next``` is optional via SDK as it is assigned during pipeline construction stage.
+
 ### on_failure (optional)
 The name of the node in the graph to go if the node fails.
 This is optional as we would move to the fail node of the graph if one is not provided.
@@ -88,11 +102,13 @@ pipeline.
 Example usage of mode_config:
 
 ```yaml
+# In config.yaml
 mode:
   type: local-container
   config:
     docker_image: python:3.7
 
+# In pipeline.yaml
 dag:
   start_at: Cool function
   steps:
@@ -111,6 +127,25 @@ dag:
       type: success
     Fail:
       type: fail
+```
+
+Or the same pipeline via the Python SDK:
+
+```python
+# In pipeline.py
+from magnus import Task, Pipeline
+
+def pipeline():
+  first = Task(name='Cool function', command='my_module.my_cool_function')
+  second = Task(name='Clean Up', command='clean_up.sh', command_type='shell', mode_config={'docker_image': 'ubunutu:latest'})
+
+  pipeline = pipeline(name='my pipeline')
+  pipeline.construct([first, second])
+  pipeline.execute(configuration_file='config.yaml')
+
+if __name__ == '__main__':
+    pipeline()
+
 ```
 
 In the above example, while all the steps except for ```Clean Up``` happen in python3.7 docker image, the ```Clean Up```
@@ -141,6 +176,22 @@ catalog:
   put:
     - 'cleaned*'
 ```
+
+or the same in Python SDK:
+
+```python
+from magnus import Task
+
+catalog = {
+  'compute_data_folder' : 'data/',
+  'get': ['*'],
+  'put': ['cleaned*']
+}
+
+first = Task(name='Cool function', command='my_module.my_cool_function', catalog=catalog)
+
+```
+
 In this, we sync-in all the files from the catalog to the compute data folder, data prior to the execution and
 sync-out all files started with *cleaned* to the catalog after the execution.
 
@@ -155,21 +206,6 @@ was successful, we skip it.
 4. Make the actual function call, if we need to, and determine the result.
 5. Check the catalog-put list for any files that have to be synced back to catalog from the compute data folder.
 
-### Example of a pipeline with one task node, success node and failure node.
-```yaml
-
-dag:
-  start_at: Cool function
-  steps:
-    Cool function:
-      type: task
-      command: my_module.my_cool_function
-      next: Success
-    Success:
-      type: success
-    Fail:
-      type: fail
-```
 
 
 ## Success
@@ -216,6 +252,15 @@ step name:
     branch_b:
       ...
 ```
+
+---
+!!! Note
+
+    This is not yet available via Python SDK.
+
+---
+
+
 ### next (required)
 The name of the node in the graph to go if the node succeeds
 
@@ -288,6 +333,14 @@ step name:
   next:
   on_failure: # optional
 ```
+
+---
+!!! Note
+
+    This is not yet available in Python SDK.
+
+---
+
 
 ### dag_definition
 
@@ -366,6 +419,14 @@ step name:
   on_failure: # Optional
   branch:
 ```
+
+---
+!!! Note
+
+    This is not yet available in Python SDK.
+
+---
+
 
 ### iterate_on (required)
 The name of the parameter to iterate on. The parameter should be of type List in python and should be available in the
@@ -465,8 +526,18 @@ step name:
   type: as-is
   command:
   next:
-  render_string:
+
 ```
+
+You can have arbitrary attributes assigned to the as-is node.
+
+---
+!!! Note
+
+    This is not yet available in Python SDK.
+
+---
+
 
 ### command (optional)
 
@@ -476,10 +547,6 @@ The command is purely optional in as-is node and even if one is provided it is n
 
 The name of the node in the graph to go if the node succeeds
 
-
-### render_string (optional)
-
-The placeholder template you want to render during translation.
 
 ### Example as mock node
 
@@ -586,6 +653,11 @@ arg1 : test
 arg2: dev
 ```
 
+Or via environmental variables: Any environmental variable with prefix ```MAGNUS_PRM_``` is considered as a magnus
+parameter. Eg: ```MAGNUS_PRM_arg1=test``` or ```MAGNUS_PRM_arg2=dev```.
+
+Parameters via environmental variables over-ride the parameters defined via parameters file.
+
 In this case, arg1 and arg2 are available as parameters to downstream steps.
 
 ### Storing parameters
@@ -684,6 +756,8 @@ If the ```node.is_composite``` is ```False```, implement the ```execute``` metho
 
 ```python
 # Source code present at magnus/nodes.py
+from pydantic import BaseModel
+
 class BaseNode:
     """
     Base class with common functionality provided for a Node of a graph.
@@ -703,19 +777,29 @@ class BaseNode:
     """
 
     node_type = ''
+    required_fields: List[str] = []
+    errors_on: List[str] = []
 
-    def __init__(self, name, internal_name, config, execution_type, internal_branch_name=None):
-        # pylint: disable=R0914,R0913
+    class Config(BaseModel):
+        mode_config: dict = {}
+
+        def __init__(self, *args, **kwargs):
+            next_node = kwargs.get('next', '')
+            if next_node:
+                del kwargs['next']
+                kwargs['next_node'] = next_node
+
+            super().__init__(*args, **kwargs)
+
+
+    def __init__(self, name, internal_name, config, internal_branch_name=None):
+
         self.name = name
         self.internal_name = internal_name  #  Dot notation naming of the steps
-        self.config = config
+        self.config = self.Config(**config)
         self.internal_branch_name = internal_branch_name  # parallel, map, dag only have internal names
-        self.execution_type = execution_type
-        self.branches = None
-        self.is_composite = False # Change this to True if the node is composite
+        self.is_composite = False
 
-    ...
-    # Truncated base methods as they should not be changed
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         """
@@ -750,6 +834,15 @@ class BaseNode:
         """
         raise NotImplementedError
 ```
+
+---
+!!! Note
+
+    The BaseNode has many other methods which are *private* and typically do not need modifications.
+    The Config datamodel of the custom class should have all the attributes that are required.
+
+---
+
 
 
 The custom extensions should be registered as part of the namespace: ```magnus.nodes.BaseNode``` for it to be

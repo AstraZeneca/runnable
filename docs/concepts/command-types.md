@@ -15,12 +15,23 @@ dag:
       command: my_module.my_function
     ...
 ```
+
+Or via the python SDK:
+
+```python
+from magnus import Task
+
+first = Task(name='step1', command='my_module.my_function')
+```
+
 The function arguments are dynamically introspected from the parameter space.
 
-The return value of the function should always be a dictionary and are added as key-value pairs into the parameter
-space.
+The return value of the function should always be a dictionary for parameters and are added as key-value pairs
+into the parameter space. Non dictionary arguments are ignored with a warning.
 
 More [examples](../../examples)
+
+Any console output from the function is automatically uploaded to the catalog for future reference.
 
 
 ## Shell
@@ -40,6 +51,15 @@ dag:
     ...
 ```
 
+Or via the python SDK:
+
+```python
+from magnus import Task
+
+first = Task(name='step1', command='ls', command_type='shell')
+```
+
+
 Please note that, magnus will be able to send in the existing parameters using environmental variables prefixed with
 ```MAGNUS_PRM_``` but would not be able to collect any return parameters. Similarly, the functionality of
 secrets should be handled by the ```script``` and would not be done by magnus.
@@ -55,6 +75,15 @@ Using ```command_type: python-lambda```, you can provide a lambda expression as 
 ```
 lambda x : int(x) + 1
 ```
+
+Or via the python SDK:
+
+```python
+from magnus import Task
+
+first = Task(name='step1', command='lambda x : int(x) + 1', command_type='python-lambda')
+```
+
 
 is a valid lambda expression. Note that, you cannot have ```_```or ```__``` as part of your string. This is just a
 security feature to
@@ -78,7 +107,7 @@ to the notebook you want to execute.
 
 ---
 
-Internally, we use [papermill](https://papermill.readthedocs.io/en/latest/index.html) for inspection and execution
+Internally, we use [ploomber](https://ploomber.io/) for inspection and execution
 of the notebook. Any ```parameters``` defined in the notebook would be introspected and dynamically provided at runtime
 from the parameter space.
 
@@ -96,17 +125,19 @@ dag:
     ...
 ```
 
-You can also control the kernel used for execution by using, ```notebook_kernel```  as part of ```command_config```.
-The default kernel used is the current kernel of the execution environment.
+Or via the python SDK:
 
-You can also provide additional arguments to papermill by providing a mapping ```optional_papermill_args``` as part of
-```command_config```.
+```python
+from magnus import Task
 
+first = Task(name='step1', command='notebooks/input.ipynb', command_type='notebook',
+        command_config={'notebook_output_path': 'notebooks/output.ipynb'})
+```
 
-Please note that, magnus will not be able to collect any return parameters. Similarly, the functionality of
-secrets should be handled by the ```notebook``` and would not be done by magnus.
+Since the kernel used is the same as the execution environment via ploomber, anything that you can do via the python
+function should be available via the notebook.
 
-The cataloging functionality works as designed.
+The output notebook is automatically uploaded to the catalog for future reference.
 
 ## Extensions
 
@@ -114,17 +145,34 @@ You can extend and implement your ```command_types``` by extending the base clas
 
 ```python
 #Example implementations can be found in magnus/tasks.py
-class BaseTaskType:  # pylint: disable=too-few-public-methods
+class BaseTaskType:
     """
     A base task class which does the execution of command defined by the user
     """
     task_type = ''
 
-    def __init__(self, command: str, config: dict = None):
-        self.command = command
-        self.config = config or {}
+    class Config(BaseModel):
+        command: str
 
-    def get_parameters(self, map_variable: dict = None, **kwargs) -> dict:
+    def __init__(self, config: dict = None):
+        config = config or {}
+        self.config = self.Config(**config)
+
+    @property
+    def command(self):
+        return self.config.command
+
+    def _to_dict(self) -> dict:
+        """
+        Return a dictionary representation of the task
+        """
+        task = {}
+        task['command'] = self.command
+        task['config'] = self.config
+
+        return task
+
+    def _get_parameters(self, map_variable: dict = None, **kwargs) -> dict:
         """
         Return the parameters in scope for the execution
 
@@ -150,7 +198,7 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
         """
         raise NotImplementedError()
 
-    def set_parameters(self, parameters: dict = None, **kwargs):
+    def _set_parameters(self, parameters: dict = None, **kwargs):
         """
         Set the parameters back to the environment variables.
 
@@ -165,11 +213,13 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
             msg = (
                 f'call to function {self.command} returns of type: {type(parameters)}. '
                 'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
-            raise Exception(msg)
+            logger.warn(msg)
+            return
 
         for key, value in parameters.items():
             logger.info(f'Setting User defined parameter {key} with value: {value}')
             os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
+
 ```
 
 The custom extensions should be registered as part of the namespace: ```magnus.tasks.BaseTaskType``` for it to be
