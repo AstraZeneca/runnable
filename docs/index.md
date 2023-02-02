@@ -3,8 +3,7 @@ title: Welcome
 sidebarDepth: 0
 ---
 
-# **Welcome to Magnus**
-*Lets do great things together!!*
+![logo](../assets/logo1.png){ width="400" height="300" style="display: block; margin: 0 auto" }
 
 ---
 

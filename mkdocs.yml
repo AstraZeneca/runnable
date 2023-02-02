@@ -3,6 +3,8 @@ site_description: "Pipelines made easy"
 
 docs_dir: "docs"
 theme:
+  logo: assets/logo.png
+  favicon: assets/favicon.png
   name: material
   font: false
   shortcuts:
@@ -31,6 +33,8 @@ theme:
 
 # Extensions
 markdown_extensions:
+  - pymdownx.snippets:
+      base_path: "docs"
   - admonition
   - codehilite
   - footnotes
@@ -40,6 +44,8 @@ markdown_extensions:
       permalink: true
       separator: "_"
       toc_depth: 2
+  - attr_list
+  - md_in_html
 
 plugins:
   - search
@@ -62,18 +68,15 @@ nav:
           - "Overview": "concepts/catalog.md"
           - "Do Nothing Catalog": "concepts/catalog-implementations/do-nothing.md"
           - "File System": "concepts/catalog-implementations/file-system.md"
-          - "Extensions": "concepts/catalog-implementations/extensions.md"
       - "Secrets":
           - "Overview": "concepts/secrets.md"
           - "Dot Env": "concepts/secrets-implementations/dot-env.md"
           - "Do Nothing": "concepts/secrets-implementations/do-nothing.md"
           - "Env Secrets Manager": "concepts/secrets-implementations/env-secrets-manager.md"
-          - "Extensions": "concepts/secrets-implementations/extensions.md"
       - "Run Log":
           - "Overview": "concepts/run-log.md"
           - "Buffered": "concepts/run-log-implementations/bufferred.md"
           - "File System": "concepts/run-log-implementations/file-system.md"
-          - "Extensions": "concepts/run-log-implementations/extensions.md"
       - "Integration":
           - "Overview": "concepts/integration.md"
       - "Compute Mode":
@@ -81,7 +84,6 @@ nav:
           - "Local": "concepts/modes-implementations/local.md"
           - "Local Container": "concepts/modes-implementations/local-container.md"
           - "Demo Renderer": "concepts/modes-implementations/demo-renderer.md"
-          - "Extensions": "concepts/modes-implementations/extensions.md"
   - "Command Line":
       - "Options": "command-line.md"
   - "Examples":
