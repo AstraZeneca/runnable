@@ -10,8 +10,6 @@ catalog:
     compute_data_folder :
     catalog_location:
 
-dag:
-  ...
 ```
 
 ## compute_data_folder

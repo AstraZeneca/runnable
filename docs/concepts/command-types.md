@@ -101,11 +101,11 @@ to the notebook you want to execute.
 ---
 !!! Note
 
-   For ```command_type: notebook``` to work, you need to install optional packages by:
+    For ```command_type: notebook``` to work, you need to install optional packages by:
 
-   pip install magnus[notebook]
-
+    pip install magnus[notebook]
 ---
+
 
 Internally, we use [ploomber](https://ploomber.io/) for inspection and execution
 of the notebook. Any ```parameters``` defined in the notebook would be introspected and dynamically provided at runtime

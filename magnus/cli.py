@@ -193,7 +193,7 @@ def build_docker(image_name, docker_file, style, tag, commit_tag, dry_run, git_t
 
     1). By default, only git tracked files are added to the docker image.
 
-    2). The auto-generated dockerfile uses, python 3.7 as the default image and adds the current folder.
+    2). The auto-generated dockerfile uses, python 3.8 as the default image and adds the current folder.
     """
     docker_utils.build_docker(image_name=image_name, docker_file=docker_file, style=style,
                               tag=tag, commit_tag=commit_tag, dry_run=dry_run, git_tracked=git_tracked)

@@ -77,6 +77,8 @@ nav:
           - "Overview": "concepts/run-log.md"
           - "Buffered": "concepts/run-log-implementations/bufferred.md"
           - "File System": "concepts/run-log-implementations/file-system.md"
+      - "Experiment Tracking":
+          - "Overview": "concepts/experiment-tracker.md"
       - "Integration":
           - "Overview": "concepts/integration.md"
       - "Compute Mode":

@@ -7,8 +7,6 @@ The complete configuration:
 catalog:
   type: do-nothing
 
-dag:
-  ...
 ```
 
 The individual steps could have ```get``` and ```put``` phases but since the catalog handler does nothing, these files

@@ -44,6 +44,16 @@ class BaseExperimentTracker:
         raise NotImplementedError
 
     def log_parameter(self, key: str, value: Any):
+        """
+        Logs a parameter in the experiment tracking.
+
+        Args:
+            key (str): The key against you want to store the value
+            value (any): The value of the metric
+
+        Raises:
+            NotImplementedError: Base class, hence not implemented
+        """
         pass
 
 

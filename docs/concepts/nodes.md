@@ -531,13 +531,7 @@ step name:
 
 You can have arbitrary attributes assigned to the as-is node.
 
----
-!!! Note
-
-    This is not yet available in Python SDK.
-
----
-
+#TODO: Testing of the traversals is still pending.
 
 ### command (optional)
 
@@ -656,7 +650,13 @@ arg2: dev
 Or via environmental variables: Any environmental variable with prefix ```MAGNUS_PRM_``` is considered as a magnus
 parameter. Eg: ```MAGNUS_PRM_arg1=test``` or ```MAGNUS_PRM_arg2=dev```.
 
-Parameters via environmental variables over-ride the parameters defined via parameters file.
+---
+!!! Note
+
+    Parameters via environmental variables over-ride the parameters defined via parameters file.
+---
+
+
 
 In this case, arg1 and arg2 are available as parameters to downstream steps.
 

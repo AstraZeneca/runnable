@@ -310,6 +310,31 @@ class Task:
         pass
 
 
+class AsIs:
+    def __init__(self, name: str, mode_config: Optional[dict] = None, retry: int = 1, on_failure: str = '', **kwargs):
+        self.name = name
+        self.mode_config = mode_config or {}
+        self.retry = retry
+        self.on_failure = on_failure
+        self.additional_kwargs = kwargs or {}
+        self.node: Optional[nodes.BaseNode] = None
+
+    def _construct_node(self, next_node: str):
+        node_config = {
+            'type': 'as-is',
+            'next_node': next_node,
+            'mode_config': self.mode_config,
+            'retry': self.retry,
+            'on_failure': self.on_failure
+        }
+        node_config.update(self.additional_kwargs)
+        # The node will temporarily have invalid branch names
+        self.node = graph.create_node(name=self.name, step_config=node_config, internal_branch_name='')
+
+    def _fix_internal_name(self):
+        pass
+
+
 class Pipeline:
     # A way for the user to define a pipeline
     # TODO: Allow for nodes other than Task

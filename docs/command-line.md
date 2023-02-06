@@ -11,10 +11,9 @@ magnus execute
 ---
 !!! Note
 
-   For the above command to work, make sure you are in the environment where magnus was installed.
+    For the above command to work, make sure you are in the environment where magnus was installed.
 
-   If you are using poetry, you can also invoke magnus by ```poetry run magnus execute```
-
+    If you are using poetry, you can also invoke magnus by ```poetry run magnus execute```
 ---
 
 The complete options available are:
@@ -141,6 +140,34 @@ Options:
                                   if not provided
   --help                          Show this message and exit.
 
+```
+
+## Executing a python function
+
+This method could be used to run a python function in any environment.
+
+The complete options are:
+
+```
+Usage: magnus execute_function [OPTIONS] COMMAND
+
+  Entry point to execute a python function in isolation.
+
+  The function would be executed in the environment defined by the config file
+  or default if none.
+
+Options:
+  -c, --config-file TEXT          config file, in yaml, to be used for the run
+  -p, --parameters-file TEXT      Parameters, in yaml,  accessible by the
+                                  application
+  --log-level [INFO|DEBUG|WARNING|ERROR|FATAL]
+                                  The log level  [default: WARNING]
+  -d, --data-folder TEXT          The catalog data folder
+  -put, --put-in-catalog TEXT     The data to put from the catalog
+  --tag TEXT                      A tag attached to the run
+  --run-id TEXT                   An optional run_id, one would be generated
+                                  if not provided
+  --help                          Show this message and exit.
 ```
 
 ## Executing a single step

@@ -22,7 +22,7 @@ poetry add magnus
 
 ### Docker
 
-To run the pipelines in a container, you need to install magnus with docker functionality.
+To run the pipelines/functions/notebooks in a container, you need to install magnus with docker functionality.
 
 ```shell
 pip install magnus[docker]

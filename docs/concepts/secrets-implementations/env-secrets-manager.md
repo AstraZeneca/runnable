@@ -21,6 +21,4 @@ The complete configuration
 secrets:
   type: env-secrets-manager
 
-dag:
-  ...
 ```
