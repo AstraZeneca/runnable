@@ -154,7 +154,7 @@ def execute_notebook(filename, config_file, parameters_file, log_level, data_fol
 @click.option('--put-in-catalog', '-put', default=None, multiple=True, help="The data to put from the catalog")
 @click.option('--tag', help='A tag attached to the run')
 @click.option('--run-id', help='An optional run_id, one would be generated if not provided')
-def execute_notebook(command, config_file, parameters_file, log_level, data_folder,
+def execute_function(command, config_file, parameters_file, log_level, data_folder,
                      put_in_catalog, tag, run_id):
     """
     Entry point to execute a python function in isolation.

@@ -362,7 +362,7 @@ class Pipeline:
         messages: List[str] = []
         for step in steps:
             step._construct_node()
-            messages.extend(step.node.validate())
+            messages.extend(step.node.validate())  # type: ignore
 
         if not steps:
             raise Exception('A dag needs at least one step')
@@ -370,7 +370,7 @@ class Pipeline:
         if messages:
             raise Exception(', '.join(messages))
 
-        graph_config['start_at'] = self.start_at.node.name
+        graph_config['start_at'] = self.start_at.node.name  # type: ignore
 
         dag = graph.Graph(**graph_config)  # type: ignore
         dag.nodes = [step.node for step in steps]  # type: ignore

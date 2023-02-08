@@ -16,6 +16,8 @@ def test_base_executor__set_up_run_log_with_no_previous_run_log(mocker, monkeypa
     mock_run_log_store = mocker.MagicMock()
     mock_create_run_log = mocker.MagicMock()
     mock_run_log_store.create_run_log = mock_create_run_log
+    mock_run_log_store.get_run_log_by_id = mocker.MagicMock(
+        side_effect=exceptions.RunLogNotFoundError(run_id='nothing'))
 
     base_executor.run_log_store = mock_run_log_store
     base_executor.run_id = 'run_id'
@@ -34,6 +36,9 @@ def test_base_executor__set_up_run_log_with_previous_run_log(mocker, monkeypatch
     mock_run_log_store = mocker.MagicMock()
     mock_create_run_log = mocker.MagicMock()
     mock_run_log_store.create_run_log = mock_create_run_log
+    mock_run_log_store.create_run_log = mock_create_run_log
+    mock_run_log_store.get_run_log_by_id = mocker.MagicMock(
+        side_effect=exceptions.RunLogNotFoundError(run_id='nothing'))
 
     mock_previous_run_log = mocker.MagicMock()
     mock_previous_run_log.run_id = 'old run id'
