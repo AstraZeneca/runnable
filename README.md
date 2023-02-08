@@ -113,7 +113,8 @@ The same could also be defined via a Python SDK.
 from magnus import Pipeline, Task
 
 def pipeline():
-    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda')
+    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
+                next_node='step shell')
     second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
                   command_type='shell', catalog={'put': '*'})
 
