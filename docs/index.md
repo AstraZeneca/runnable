@@ -3,7 +3,7 @@ title: Welcome
 sidebarDepth: 0
 ---
 
-![logo](../assets/logo1.png){ width="400" height="300" style="display: block; margin: 0 auto" }
+![logo](/assets/logo1.png){ width="400" height="300" style="display: block; margin: 0 auto" }
 
 ---
 
@@ -32,7 +32,7 @@ the execution happens. This is usually via git, virtual environment manager and 
 ## What does it do?
 
 
-![works](../assets/work.png){ style="display: block; margin: 0 auto" }
+![works](/assets/work.png){ style="display: block; margin: 0 auto" }
 
 ### Shift Left
 
