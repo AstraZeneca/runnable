@@ -59,7 +59,7 @@ from magnus import Task
 
 first = Task(name: str, command: str, command_type: str = 'python',
             command_config: Optional[dict]=None, catalog: Optional[dict]=None,
-            mode_config: Optional[dict]=None, retry: int = 1, on_failure: str = '')
+            mode_config: Optional[dict]=None, retry: int = 1, on_failure: str = '', next_node:str=None)
 ```
 The name given to the task has the same behavior as the ```step name``` given in the yaml definition.
 
@@ -137,7 +137,8 @@ from magnus import Task, Pipeline
 
 def pipeline():
   first = Task(name='Cool function', command='my_module.my_cool_function')
-  second = Task(name='Clean Up', command='clean_up.sh', command_type='shell', mode_config={'docker_image': 'ubunutu:latest'})
+  second = Task(name='Clean Up', command='clean_up.sh', command_type='shell',
+            mode_config={'docker_image': 'ubunutu:latest'})
 
   pipeline = pipeline(name='my pipeline')
   pipeline.construct([first, second])
@@ -206,6 +207,11 @@ was successful, we skip it.
 4. Make the actual function call, if we need to, and determine the result.
 5. Check the catalog-put list for any files that have to be synced back to catalog from the compute data folder.
 
+
+### next_node:
+
+In python SDK, you need to provide the next node of the execution using ```next_node``` unless the node ends in
+```success``` state. If you want to end the graph execution to fail state, you can use ```next_node='fail'```.
 
 
 ## Success
@@ -531,7 +537,6 @@ step name:
 
 You can have arbitrary attributes assigned to the as-is node.
 
-#TODO: Testing of the traversals is still pending.
 
 ### command (optional)
 
@@ -631,7 +636,6 @@ In magnus, we classify 2 kinds of data sets that can be passed around to down st
 
 ### Parameters from command line
 
-!!! warning "Changed in v0.2"
 
 Initial parameters to the application can be sent in via a parameters file.
 

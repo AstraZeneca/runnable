@@ -507,7 +507,7 @@ def get_service_namespace(service_type: str) -> str:
     if service_type == 'secrets':
         return 'magnus.secrets.BaseSecrets'
 
-    if service_type == 'experiment_tracker':
+    if service_type == 'experiment_tracking':
         return 'magnus.experiment_tracker.BaseExperimentTracker'
 
     raise Exception('Service type is not recognized')

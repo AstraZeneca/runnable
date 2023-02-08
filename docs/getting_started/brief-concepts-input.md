@@ -34,11 +34,12 @@ Or via the Python SDK:
 from magnus import Pipeline, Task
 
 def pipeline():
-    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda')
+    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
+                next_node='step shell')
     second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
                   command_type='shell', catalog={'put': '*'})
 
-    pipeline = Pipeline(name='getting_started')
+    pipeline = Pipeline(start_at=first, name='getting_started')
     pipeline.construct([first, second])
     pipeline.execute(parameters_file='parameters.yaml')
 
@@ -69,9 +70,8 @@ of the node, if one is not provided we default to the fail node of the dag.
 
 ### Python SDK:
 
-In the python SDK, once your tasks are defined, the ```pipeline.construct``` method would construct the dag in the order
-of the tasks that are provided. There is no need for an explicit ```success``` or ```fail``` node as they are added
-by the method.
+There is an equivalence of structure even in python SDK. There is no need for an explicit ```success``` or ```fail```
+node as they are added implicitly.
 
 
 You can also provide the maximum run time for a step or the entire dag in the definition. More information of all
@@ -108,8 +108,6 @@ You can define more [complex node types (parallel, embedded dag, map) too](../..
 ## Parameters
 
 
-
-!!! warning "Changed in v0.2"
 
 
 Initial parameters to the pipeline could be sent by sending in a parameters file during execution.

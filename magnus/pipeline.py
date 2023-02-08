@@ -83,10 +83,10 @@ def prepare_configurations(
     secrets_handler = utils.get_provider_by_name_and_type('secrets', secrets_config)
 
     # experiment tracker settings, configuration over-rides everything
-    tracker_config = configuration.get('experiment_tracker', {})
+    tracker_config = configuration.get('experiment_tracking', {})
     if not tracker_config:
-        tracker_config = magnus_defaults.get('experiment_tracker', defaults.DEFAULT_EXPERIMENT_TRACKER)
-    tracker_handler = utils.get_provider_by_name_and_type('experiment_tracker', tracker_config)
+        tracker_config = magnus_defaults.get('experiment_tracking', defaults.DEFAULT_EXPERIMENT_TRACKER)
+    tracker_handler = utils.get_provider_by_name_and_type('experiment_tracking', tracker_config)
 
     # Mode configurations, configuration over rides everything
     mode_config = configuration.get('mode', {})

@@ -12,7 +12,7 @@ any of the experiment tracking tools like MLflow or Weights and Biases.
 Configuration of a Experiment tracking tools is as follows:
 
 ```yaml
-experiment_tracker:
+experiment_tracking:
   type:
   config:
 ```

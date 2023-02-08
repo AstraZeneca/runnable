@@ -14,9 +14,8 @@ Copy the contents of this yaml into getting-started.yaml or alternatively in a p
 ---
 !!! Note
 
-   The below execution would create a folder called 'data' in the current working directory.
-   The command as given should work in linux/macOS but for windows, please change accordingly.
-
+    The below execution would create a folder called 'data' in the current working directory.
+    The command as given should work in linux/macOS but for windows, please change accordingly.
 ---
 
 ``` yaml
@@ -51,11 +50,12 @@ The same could also be defined via a Python SDK.
 from magnus import Pipeline, Task
 
 def pipeline():
-    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda')
+    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
+                next_node='step shell')
     second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
                   command_type='shell', catalog={'put': '*'})
 
-    pipeline = Pipeline(name='getting_started')
+    pipeline = Pipeline(start_at=first, name='getting_started')
     pipeline.construct([first, second])
     pipeline.execute(parameters_file='parameters.yaml')
 

@@ -275,7 +275,8 @@ class step(object):
 class Task:
     def __init__(self, name: str, command: Union[str, FunctionType], command_type: str = defaults.COMMAND_TYPE,
                  command_config: Optional[dict] = None, catalog: Optional[dict] = None,
-                 mode_config: Optional[dict] = None, retry: int = 1, on_failure: str = ''):
+                 mode_config: Optional[dict] = None, retry: int = 1, on_failure: str = '',
+                 next_node: str = ''):
         self.name = name
         self.command = command
         self.command_type = command_type
@@ -284,9 +285,10 @@ class Task:
         self.mode_config = mode_config or {}
         self.retry = retry
         self.on_failure = on_failure
+        self.next_node = next_node or "success"
         self.node: Optional[nodes.BaseNode] = None
 
-    def _construct_node(self, next_node: str):
+    def _construct_node(self):
         # TODO: The below has issues if the function and the pipeline are in the same module
         # Something to do with __main__ being present
         if isinstance(self.command, FunctionType):
@@ -294,7 +296,7 @@ class Task:
 
         node_config = {
             'type': 'task',
-            'next_node': next_node,
+            'next_node': self.next_node,
             'command': self.command,
             'command_type': self.command_type,
             'command_config': self.command_config,
@@ -311,18 +313,20 @@ class Task:
 
 
 class AsIs:
-    def __init__(self, name: str, mode_config: Optional[dict] = None, retry: int = 1, on_failure: str = '', **kwargs):
+    def __init__(self, name: str, mode_config: Optional[dict] = None, retry: int = 1, on_failure: str = '',
+                 next_node: str = '', **kwargs):
         self.name = name
         self.mode_config = mode_config or {}
         self.retry = retry
         self.on_failure = on_failure
+        self.next_node = next_node or "success"
         self.additional_kwargs = kwargs or {}
         self.node: Optional[nodes.BaseNode] = None
 
-    def _construct_node(self, next_node: str):
+    def _construct_node(self):
         node_config = {
             'type': 'as-is',
-            'next_node': next_node,
+            'next_node': self.next_node,
             'mode_config': self.mode_config,
             'retry': self.retry,
             'on_failure': self.on_failure
@@ -337,9 +341,11 @@ class AsIs:
 
 class Pipeline:
     # A way for the user to define a pipeline
-    # TODO: Allow for nodes other than Task
-    def __init__(self, name: str = '', description: str = '', max_time: int = defaults.MAX_TIME,
-                 internal_branch_name: str = ''):
+    # TODO: Allow for nodes other than Task, AsIs
+    def __init__(
+            self, start_at: Union[Task, AsIs],
+            name: str = '', description: str = '', max_time: int = defaults.MAX_TIME, internal_branch_name: str = ''):
+        self.start_at = start_at
         self.name = name
         self.description = description
         self.max_time = max_time
@@ -353,30 +359,22 @@ class Pipeline:
             'max_time': self.max_time,
             'internal_branch_name': self.internal_branch_name
         }
-        start_node = None
-        prev_node = None
         messages: List[str] = []
         for step in steps:
-            if not start_node:
-                start_node = step
+            step._construct_node()
+            messages.extend(step.node.validate())
 
-            if not prev_node:
-                prev_node = step
-                continue
-            prev_node._construct_node(next_node=step.name)
-            messages.extend(prev_node.node.validate())
-            prev_node = step
-
-        if not start_node:
+        if not steps:
             raise Exception('A dag needs at least one step')
 
         if messages:
             raise Exception(', '.join(messages))
 
-        step._construct_node(next_node='success')
-        graph_config['start_at'] = start_node.name
+        graph_config['start_at'] = self.start_at.node.name
+
         dag = graph.Graph(**graph_config)  # type: ignore
         dag.nodes = [step.node for step in steps]  # type: ignore
+
         dag.add_terminal_nodes()
 
         dag.validate()

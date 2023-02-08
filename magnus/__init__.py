@@ -3,7 +3,8 @@ import logging
 
 from yachalk import chalk
 
-from magnus.interaction import (Pipeline, Task, get_experiment_tracker_context,
+from magnus.interaction import (AsIs, Pipeline, Task,
+                                get_experiment_tracker_context,
                                 get_from_catalog, get_parameter, get_run_id,
                                 get_secret, put_in_catalog, step,
                                 store_parameter, track_this)

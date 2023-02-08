@@ -1,14 +1,26 @@
 # Examples
 
-## A single node pipeline
+## Executing a notebook
 
-Every pipeline in magnus should have a ```success``` node and ```fail``` node.
-The starting node of the pipeline is denoted by ```start_at``` and every node needs to define the next
-node to traverse during successful execution of the current node using ```next```.
+You can execute a Jupyter notebook by:
 
-Nodes can optionally mention the node to traverse during failure using ```on_failure```.
+```shell
+magnus execute_notebook my_notebook.ipynb
+```
 
-Example:
+The notebook file should have an extension of ```ipynb```.
+
+This execution would run on the local machine and the output notebook would be put in the ```.catalog``` folder called
+```my_notebook_output.ipynb```.
+
+To change the compute environment, please provide the relevant configuration file.
+
+
+---
+
+## Executing a python function
+
+You can execute a python function defined in my_module:
 
 ```python
 # In my_module.py
@@ -18,6 +30,40 @@ def my_function():
 
 ```
 
+by invoking magnus as follows:
+
+```shell
+magnus execute_function my_module.my_function
+```
+
+This execution would run on the local machine and the captured output of the function would be added to the catalog
+folder, ```.catalog``` in this case, as my_module.my_function.log
+
+To change the compute environment, please provide the relevant configuration file.
+
+---
+
+## A single node pipeline
+
+
+Assuming you have one simple function call as part of a pipeline defined below:
+
+```python
+# In my_module.py
+
+def my_function():
+    print('In the function, my_function of my_module')
+```
+
+You can define the single node pipeline either by:
+
+### YAML definition
+
+Every pipeline defined via YAML in magnus should have a ```success``` node and ```fail``` node.
+The starting node of the pipeline is denoted by ```start_at``` and every node needs to define the next
+node to traverse during successful execution of the current node using ```next```.
+
+Nodes can optionally mention the node to traverse during failure using ```on_failure```.
 
 The pipeline which contains one node to call the above function.
 
@@ -37,6 +83,26 @@ dag:
       type: fail
 ```
 
+### Python SDK
+
+```python
+#in pipeline.py
+
+from magnus import Task, Pipeline
+
+def pipeline():
+    first = Task(name='step 1', command='my_module.my_function')
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
+You can execute it via ```python pipeline.py```.
+
 ---
 
 ## Mocking a node in pipeline
@@ -54,13 +120,32 @@ dag:
     step 1:
       type: as-is # The function would not execute as this is as-is node
       next: success
-      command: my_module.my_function
+      command: my_module.my_function # arbitrary config can be passed
       command_type: python
     success:
       type: success
     failure:
       type: fail
 ```
+
+or via python SDK:
+
+```python
+#in pipeline.py
+
+from magnus import Task, Pipeline, AsIs
+
+def pipeline():
+    first = AsIs(name='step 1', command='my_module.my_function') # The function would not execute
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
 
 ---
 
@@ -99,6 +184,29 @@ dag:
       type: fail
 ```
 
+or via python SDK:
+
+```python
+#in pipeline.py
+
+from magnus import Task, Pipeline
+
+def pipeline():
+    catalog_config = {
+      'get' : ['*'],
+      'put' : ['*'],
+    }
+    first = Task(name='step 1', command='python -m my_module.my_function', command_type='shell', catalog=catalog_config)
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
+
 ---
 ## Using python lambda expressions in pipeline
 
@@ -123,16 +231,33 @@ dag:
       type: fail
 ```
 
+or via python SDK:
+
+```python
+#in pipeline.py
+
+from magnus import Task, Pipeline
+
+def pipeline():
+    first = Task(name='step 1', command='lambda x: {'x': int(x) + 1}', command_type='python-lambda')
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
+
 ---
 
 ## Using notebook in pipeline
 
-You can use notebooks as a ```command_type``` of a step in the pipeline.  The only caveat in doing so is magnus
-would not be able to support returning ```parameters```, ```secrets``` or any of the built-in functions. The cataloging
-functionality of magnus still would work via the configuration file.
+You can use notebooks as a ```command_type``` of a step in the pipeline. Any of the functionality from python functions
+is available via notebook too.
 
-We use [papermill](https://papermill.readthedocs.io/en/latest/) to inspect the parameters and send them dynamically
-from the parameter space.
+We use [ploomber](https://ploomber.io/) to inspect the parameters and send them dynamically from the parameter space.
 
 The command refers to the notebook that you want to use as a task and it should point to the notebook.
 The output notebook naming could be provided by using the ```command_config``` section or would be defaulted to the
@@ -156,6 +281,28 @@ dag:
       type: fail
 ```
 
+or via python SDK:
+
+```python
+#in pipeline.py
+
+from magnus import Task, Pipeline
+
+def pipeline():
+    command_config = {
+      'notebook_output_path': 'notebooks/output.ipynb
+    }
+    first = Task(name='step 1', command='pre_processing.iypnb', command_type='notebook', command_config=command_config)
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
+The file name should end with ```.ipynb```.
 
 ---
 
@@ -200,6 +347,28 @@ dag:
     failure:
       type: fail
 ```
+
+
+or via python SDK:
+
+```python
+#in pipeline.py
+
+from magnus import Task, Pipeline
+
+def pipeline():
+    first = Task(name='step 1', command='my_module.first_function', next_node='step 2')
+    second = Task(name='step 2', command='my_module.second_function')
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first, second])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
+
 
 ---
 
@@ -262,6 +431,26 @@ dag:
       type: fail
 ```
 
+or via python SDK:
+
+```python
+#in pipeline.py
+
+from magnus import Task, Pipeline
+
+def pipeline():
+    first = Task(name='step 1', command='my_module.first_function', next_node='step 2', on_failure='graceful exit')
+    second = Task(name='step 2', command='my_module.second_function')
+    third = Task(name='graceful exit', command='my_module.handle_error', next_node='fail')
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first, second, third])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
 ---
 ## Passing parameters between nodes
 
@@ -294,6 +483,26 @@ dag:
     failure:
       type: fail
 ```
+
+or via python SDK:
+
+```python
+#in pipeline.py
+
+from magnus import Task, Pipeline
+
+def pipeline():
+    first = Task(name='step 1', command='my_module.first_function', next_node='step 2')
+    second = Task(name='step 2', command='my_module.second_function')
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first, second])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
 
 ### Pythonically
 
@@ -394,7 +603,22 @@ dag:
       type: fail
 ```
 
-!!! warning "Changed in v0.2"
+or via Python SDK:
+
+```python
+#in pipeline.py
+
+from magnus import Task, Pipeline
+
+def pipeline():
+    first = Task(name='step 1', command='lambda x: {'x': int(x) + 1}', command_type='python-lambda')
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+```
 
 You can pass the parameter during the execution of the run like below.
 
@@ -473,6 +697,38 @@ dag:
     fail:
       type: fail
 ```
+
+or via Python SDK:
+
+```python
+
+#in pipeline.py
+
+from magnus import Task, Pipeline
+
+def pipeline():
+    catalog_get_all = {
+      'get' : ['*']
+    }
+
+    catalog_put_all = {
+      'put': ['*']
+    }
+
+    first = Task(name='step shell make data', command='mkdir data ; env >> data/data.txt', command_type='shell',
+            catalog=catalog_put_all)
+    second = Task(name='step shell ls data', command='ls data/', command_type='shell',
+            catalog=catalog_get_all)
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first, second])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+
+
+```
+
 
 In the above dag definition, ```step shell make data``` makes a data folder and dumps the environmental variables into
 ```data.txt``` file and instructs the catalog to ```put``` all (i.e '*') files into the catalog for downstream nodes.
@@ -612,11 +868,13 @@ def first_function():
 The pipeline to run the above function as a step of the pipeline.
 
 ```yaml
+# in config.yaml
 secrets:
   type:  dotenv
   config:
     location: # defaults to .env
 
+# in pipeline.yaml
 dag:
   description: Demo of secrets
   start_at: step 1
@@ -630,6 +888,23 @@ dag:
       type: success
     failure:
       type: fail
+```
+
+or via Python SDK:
+
+```python
+#in pipeline.py
+
+from magnus import Task, Pipeline
+
+def pipeline():
+    first = Task(name='step 1', command='my_module.my_function')
+    pipeline = Pipeline(start_at=first, name='my first pipeline')
+    pipeline.construct([first])
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
 ```
 
 ---
@@ -956,12 +1231,11 @@ controlled by the executor. In ```local``` mode, you can enable parallel branch 
 mode:
   type: local
   config:
-    enable_parallel: "true"
+    enable_parallel: True
 ```
 
-Points to note:
+Point to note:
 
-- The ```enable_parallel``` flag in the config is a string "true"
 - Run log stores which use a single file as their log source (eg. file-system) cannot reliably run parallel executions
   as race conditions to modify the same file can happen leaving the run log in inconsistent state. The logs of the
   execution would also warn the same. Partitioned run log stores (eg. db) can be reliable run log stores.
@@ -1402,12 +1676,11 @@ controlled by the executor. In ```local``` mode, you can enable parallel branch 
 mode:
   type: local
   config:
-    enable_parallel: "true"
+    enable_parallel: True
 ```
 
-Points to note:
+Point to note:
 
-- The ```enable_parallel``` flag in the config is a string "true"
 - Run log stores which use a single file as their log source (eg. file-system) cannot reliably run parallel executions
   as race conditions to modify the same file can happen leaving the run log in inconsistent state. The logs of the
   execution would also warn the same. Partitioned run log stores (eg. db) can be reliable run log stores.
@@ -1555,6 +1828,9 @@ catalog:
 secrets:
   type: do-nothing
 
+experiment_tracking:
+  type: do-nothing
+
 ```
 
 But you can over-ride these defaults by providing a ```magnus-config.yaml``` in the source directory. For example,
@@ -1565,7 +1841,7 @@ definition file, these would taken as default service providers.
 mode:
   type: local
   config:
-    enable_parallel: "true" # false is the default
+    enable_parallel: True
 
 run_log_store:
   type: file-system
@@ -1580,32 +1856,6 @@ secrets:
   type: dotenv
   config:
     location: .env # default
-```
-
-You can over-ride the defaults either set by magnus or ```magnus-config.yaml``` by providing the config in the dag
-definition file.
-
-For example, in the dag definition below only the ```secrets``` providers config is over-ridden by the config present
-in the dag definition file. Compute mode, catalog and run log store configurations remain the same to defaults.
-
-```yaml
-secrets:
-  type:  do-nothing
-
-
-dag:
-  description: Demo of secrets
-  start_at: step 1
-  steps:
-    step 1:
-      type: task
-      next: success
-      command: my_module.first_function
-      command_type: python
-    success:
-      type: success
-    failure:
-      type: fail
 ```
 
 Finally, you can also over-ride the configurations set in the dag definition file by providing a custom configuration
@@ -1630,62 +1880,3 @@ The command to execute while providing the configuration file.
 The design thought is enable switching between different configurations by different actors involved in the data science
 workflow. The engineering team could provide ```magnus-config.yaml``` that should be default to the team or project
 for dev/experimental phase of the work but can over-ride the configuration during production deployment.
-
-
-## Custom local extensions
-
-Magnus was built with extensions in mind. For example, there could be catalog extension using s3 or object storage that
-are generic enough to be open sourced back to the community. But there is always a chance where the extension is only
-specific to your team or project. You can implement custom extensions to either compute mode, run log store, catalog or
-secrets as part of your source folder and let magnus know to use them.
-
-For example, consider the use case of a custom secrets handler that only serves your team needs, called CustomSecrets
-which extends ```BaseSecrets``` provided by magnus like below. The secrets manager does nothing special and always
-returns 'always the same' as the secret value.
-
-```python
-# Present in the src.custom_secrets folder of your project
-from magnus.secrets import BaseSecrets
-
-class CustomSecrets(BaseSecrets):
-    """
-    Does the same thing
-    """
-
-    service_name = 'custom-secrets'
-
-    def __init__(self, config, **kwargs):
-        super().__init__(config, **kwargs)
-        self.secrets = {}
-
-    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
-        """
-        If a name is provided, return None else return empty dict.
-
-        Args:
-            name (str): The name of the secret to retrieve
-
-        Raises:
-            Exception: If the secret by the name is not found.
-
-        Returns:
-            [type]: [description]
-        """
-        if name:
-            return 'always the same'
-        return {'secret_key': 'always the same'}
-```
-
-You can instruct magnus to detect and use the ```CustomSecrets``` by providing it in the ```magnus-config.yaml``` like
-below.
-
-```yaml
-# in magnus-config.yaml
-extensions:
-  - src.custom_secrets
-```
-
-Magnus would import the contents of the module defined in extensions and would delegate the responsibility of secrets
-to ```CustomSecrets```.
-
-We would love it if you share your custom extension code or the design aspect as it builds the community.

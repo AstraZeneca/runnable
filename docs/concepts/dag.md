@@ -75,7 +75,7 @@ from magnus import Task, Pipeline
 
 def pipeline():
     first = Task(name='Hello', command='my_module.say_hello')
-    pipeline = Pipeline('dag-concepts')
+    pipeline = Pipeline(start_at=first, name='dag-concepts')
     pipeline.construct([first])
 
     pipeline.execute()

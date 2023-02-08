@@ -64,7 +64,6 @@ Defaults to None, if nothing is provided.
 Read more about different ways you can configure magnus runs here.
 
 
-!!! warning "Changed in v0.2"
 
 ### Parameters file
 

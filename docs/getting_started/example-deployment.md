@@ -32,20 +32,23 @@ dag:
 Or in Python SDK:
 
 ```python
+
 #in pipeline.py
 from magnus import Pipeline, Task
 
 def pipeline():
-    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda')
+    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
+                next_node='step shell')
     second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
                   command_type='shell', catalog={'put': '*'})
 
-    pipeline = Pipeline(name='getting_started')
+    pipeline = Pipeline(start_at=first, name='getting_started')
     pipeline.construct([first, second])
     pipeline.execute(parameters_file='parameters.yaml')
 
 if __name__ == '__main__':
     pipeline()
+
 ```
 
 The pipeline is simple and demonstrates the core concepts of data catalog, dag traversal, passing data between
@@ -85,7 +88,6 @@ There are other ways to change the configurations which are detailed [here](../.
 
 ## Transpilation
 
-!!! warning "Changed in v0.2"
 
 We can execute the pipeline, just like we did it previously, by the following command.
 
@@ -98,11 +100,12 @@ or in python SDK:
 from magnus import Pipeline, Task
 
 def pipeline():
-    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda')
+    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
+                next_node='step shell')
     second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
                   command_type='shell', catalog={'put': '*'})
 
-    pipeline = Pipeline(name='getting_started')
+    pipeline = Pipeline(start_at=first, name='getting_started')
     pipeline.construct([first, second])
     pipeline.execute(parameters_file='parameters.yaml', configuration_file='config.yaml')
 

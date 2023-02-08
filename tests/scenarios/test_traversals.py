@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import ruamel.yaml
 
-from magnus import Pipeline, Task, defaults, pipeline, utils
+from magnus import AsIs, Pipeline, Task, defaults, pipeline, utils
 
 yaml = ruamel.yaml.YAML()
 
@@ -54,9 +54,31 @@ def get_run_log(work_dir, run_id):
 @pytest.mark.no_cover
 def test_success_sdk():
     config = get_config()
-    first = Task(name='first', command='tests.scenarios.test_traversals.success_function')
+    first = Task(name='first', command='tests.scenarios.test_traversals.success_function', next_node='second')
     second = Task(name='second', command='tests.scenarios.test_traversals.success_function')
-    pipeline = Pipeline(name='testing')
+    pipeline = Pipeline(start_at=first, name='testing')
+    pipeline.construct([first, second])
+    with tempfile.TemporaryDirectory() as context_dir:
+        context_dir_path = Path(context_dir)
+        write_dag_and_config(context_dir_path, dag=None, config=config)
+
+        run_id = 'testing_success'
+        pipeline.execute(configuration_file=str(context_dir_path / 'config.yaml'), run_id=run_id)
+
+        try:
+            run_log = get_run_log(context_dir_path, run_id)
+            assert run_log['status'] == defaults.SUCCESS
+            assert list(run_log['steps'].keys()) == ['first', 'second', 'success']
+        except:
+            assert False
+
+
+@pytest.mark.no_cover
+def test_success_sdk_asis():
+    config = get_config()
+    first = AsIs(name='first', command='tests.scenarios.test_traversals.success_function', next_node='second')
+    second = AsIs(name='second', command='tests.scenarios.test_traversals.success_function')
+    pipeline = Pipeline(start_at=first, name='testing')
     pipeline.construct([first, second])
     with tempfile.TemporaryDirectory() as context_dir:
         context_dir_path = Path(context_dir)
@@ -99,9 +121,9 @@ def test_success(success_graph):
 @pytest.mark.no_cover
 def test_fail_sdk():
     config = get_config()
-    first = Task(name='first', command='tests.scenarios.test_traversals.error_function')
+    first = Task(name='first', command='tests.scenarios.test_traversals.error_function', next_node='second')
     second = Task(name='second', command='tests.scenarios.test_traversals.success_function')
-    pipeline = Pipeline(name='testing')
+    pipeline = Pipeline(start_at=first, name='testing')
     pipeline.construct([first, second])
     with tempfile.TemporaryDirectory() as context_dir:
         context_dir_path = Path(context_dir)
@@ -150,10 +172,11 @@ def test_failure(fail_graph):
 @pytest.mark.no_cover
 def test_on_fail_sdk():
     config = get_config()
-    first = Task(name='first', command='tests.scenarios.test_traversals.error_function', on_failure='third')
-    second = Task(name='second', command='tests.scenarios.test_traversals.success_function')
+    first = Task(name='first', command='tests.scenarios.test_traversals.error_function',
+                 on_failure='third', next_node='second')
+    second = Task(name='second', command='tests.scenarios.test_traversals.success_function', next_node='third')
     third = Task(name='third', command='tests.scenarios.test_traversals.success_function')
-    pipeline = Pipeline(name='testing')
+    pipeline = Pipeline(start_at=first, name='testing')
     pipeline.construct([first, second, third])
     with tempfile.TemporaryDirectory() as context_dir:
         context_dir_path = Path(context_dir)
@@ -169,6 +192,33 @@ def test_on_fail_sdk():
             run_log = get_run_log(context_dir_path, run_id)
             assert run_log['status'] == defaults.SUCCESS
             assert list(run_log['steps'].keys()) == ['first', 'third', 'success']
+        except:
+            assert False
+
+
+@pytest.mark.no_cover
+def test_on_fail_sdk_unchained():
+    config = get_config()
+    first = Task(name='first', command='tests.scenarios.test_traversals.error_function', on_failure='third',
+                 next_node='second')
+    second = Task(name='second', command='tests.scenarios.test_traversals.success_function')
+    third = Task(name='third', command='tests.scenarios.test_traversals.success_function', next_node='fail')
+    pipeline = Pipeline(start_at=first, name='testing')
+    pipeline.construct([first, second, third])
+    with tempfile.TemporaryDirectory() as context_dir:
+        context_dir_path = Path(context_dir)
+        write_dag_and_config(context_dir_path, dag=None, config=config)
+
+        run_id = 'testing_on_failure'
+        try:
+            pipeline.execute(configuration_file=str(context_dir_path / 'config.yaml'), run_id=run_id)
+        except:
+            pass
+
+        try:
+            run_log = get_run_log(context_dir_path, run_id)
+            assert run_log['status'] == defaults.FAIL
+            assert list(run_log['steps'].keys()) == ['first', 'third', 'fail']
         except:
             assert False
 
