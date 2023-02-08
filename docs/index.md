@@ -3,6 +3,7 @@ title: Welcome
 sidebarDepth: 0
 ---
 
+
 ![logo](assets/logo1.png){ width="400" height="300" style="display: block; margin: 0 auto" }
 
 ---
@@ -41,6 +42,7 @@ Magnus provides patterns typically used in production environments even in the d
 - Reduces the need for code refactoring during production phase of the project.
 - Enables best practices and understanding of infrastructure patterns.
 - Run the same code on your local machines or in production environments.
+
 
 :sparkles::sparkles:Happy Experimenting!!:sparkles::sparkles:
 
