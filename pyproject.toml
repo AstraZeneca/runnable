@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.4.2"
+version = "0.4.3"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
@@ -110,7 +110,7 @@ version_source = "tag"
 branch = "main"
 major_on_zero = false
 upload_to_pypi = true
-upload_to_release = false
+upload_to_release = true
 build_command = "poetry publish --build --dry-run"
 
 [build-system]
