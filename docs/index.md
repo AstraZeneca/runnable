@@ -4,7 +4,7 @@ sidebarDepth: 0
 ---
 
 
-![logo](/assets/logo1.png){ width="400" height="300" style="display: block; margin: 0 auto" }
+![logo](assets/logo1.png){ width="400" height="300" style="display: block; margin: 0 auto" }
 
 ---
 
@@ -33,7 +33,7 @@ the execution happens. This is usually via git, virtual environment manager and 
 ## What does it do?
 
 
-![works](/assets/work.png){ style="display: block; margin: 0 auto" }
+![works](assets/work.png){ style="display: block; margin: 0 auto" }
 
 ### Shift Left
 
@@ -42,6 +42,7 @@ Magnus provides patterns typically used in production environments even in the d
 - Reduces the need for code refactoring during production phase of the project.
 - Enables best practices and understanding of infrastructure patterns.
 - Run the same code on your local machines or in production environments.
+
 
 :sparkles::sparkles:Happy Experimenting!!:sparkles::sparkles:
 
