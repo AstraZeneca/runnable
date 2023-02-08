@@ -20,8 +20,6 @@ secrets:
   config:
     location:
 
-dag:
-  ...
 ```
 
 ## location

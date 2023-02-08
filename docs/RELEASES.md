@@ -1,5 +1,12 @@
 # Release history
 
+## v0.4.0 (2023-02-09)
+
+- Added Experiment tracking interface
+- Added Python SDK support
+- Added configuration validation via Pydantic
+
+
 ## v0.3.11 (2022-07-12)
 
 - Added a env-secrets-manager which gets its secrets from environment, Issue 58

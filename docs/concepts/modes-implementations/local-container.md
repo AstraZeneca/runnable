@@ -11,9 +11,11 @@ In this mode, max run time is completely ignored.
 Apart from Buffered Run Log store, all other run log stores are compatible.
 All secrets and catalog providers are compatible with this mode.
 
+---
 !!! Note
-    Magnus does not build the docker image for you but uses a docker image provided.
 
+    Magnus does not build the docker image for you but uses a docker image provided.
+---
 ## Configuration
 
 The full configuration of this mode is:
@@ -29,31 +31,30 @@ mode:
 
 ### Enabling parallel
 
-By default, none of the branches in parallel or a map node are executed parallelly.
-You can enable it by setting enable_parallel to 'true' (case-insensitive).
+By default, none of the branches in parallel or a map node are executed in parallel.
+You can enable it by setting enable_parallel to True.
 
-
-!!! Note
-    Please note that 'enable_parallel' needs a string 'true' and not a boolean true.
 
 
 ### Docker image
 
 The ```docker_image``` to run the individual nodes of the graph.
 
+---
 !!! Requirements
+
     The docker image should have magnus installed in it and available as CMD.
     <br>
     The docker image should also its working directory as your project root.
     <br>
-    Please use python3.7 or higher.
-
+    Please use python3.8 or higher.
+---
 
 An example docker image to start with:
 
 ```dockerfile
 # Python 3.7 Image without Dependencies
-FROM python:3.7
+FROM python:3.8
 
 LABEL maintainer=<Your Name here>
 

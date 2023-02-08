@@ -18,14 +18,14 @@ Though the example pipeline we just ran did nothing useful, it helps in understa
 
 ``` json
 {
-    "run_id": "20220118114608",
-    "dag_hash": "ce0676d63e99c34848484f2df1744bab8d45e33a",
+    "run_id": "20230131195647",
+    "dag_hash": "",
     "use_cached": false,
-    "tag": null,
+    "tag": "",
     "original_run_id": "",
     "status": "SUCCESS",
-    "steps":{
-      ...
+    "steps": {
+        ...
     },
     "parameters": {
         "x": 4
@@ -33,7 +33,10 @@ Though the example pipeline we just ran did nothing useful, it helps in understa
     "run_config": {
         "executor": {
             "type": "local",
-            "config": {}
+            "config": {
+                "enable_parallel": false,
+                "placeholders": {}
+            }
         },
         "run_log_store": {
             "type": "buffered",
@@ -41,14 +44,61 @@ Though the example pipeline we just ran did nothing useful, it helps in understa
         },
         "catalog": {
             "type": "file-system",
-            "config": {}
+            "config": {
+                "compute_data_folder": "data",
+                "catalog_location": ".catalog"
+            }
         },
         "secrets": {
             "type": "do-nothing",
             "config": {}
+        },
+        "experiment_tracker": {
+            "type": "do-nothing",
+            "config": {}
+        },
+        "variables": {},
+        "pipeline": {
+            "start_at": "step parameters",
+            "name": "getting_started",
+            "description": "",
+            "max_time": 86400,
+            "steps": {
+                "step parameters": {
+                    "mode_config": {},
+                    "next_node": "step shell",
+                    "command": "lambda x: {'x': int(x) + 1}",
+                    "command_type": "python-lambda",
+                    "command_config": {},
+                    "catalog": {},
+                    "retry": 1,
+                    "on_failure": "",
+                    "type": "task"
+                },
+                "step shell": {
+                    "mode_config": {},
+                    "next_node": "success",
+                    "command": "mkdir data ; env >> data/data.txt",
+                    "command_type": "shell",
+                    "command_config": {},
+                    "catalog": {
+                        "put": "*"
+                    },
+                    "retry": 1,
+                    "on_failure": "",
+                    "type": "task"
+                },
+                "success": {
+                    "mode_config": {},
+                    "type": "success"
+                },
+                "fail": {
+                    "mode_config": {},
+                    "type": "fail"
+                }
+            }
         }
     }
-}
 }
 ```
 
@@ -70,7 +120,7 @@ and modified files as part of the logs. If the run is containerized, magnus also
 docker image digest as part of the log.
 * data: Any data generated as part of the nodes can be cataloged along with the
 [SHA identity](../../concepts/run-log/#data_catalog) of the file.
-* config: The run config used to make the run is also stored as part of the run logs.
+* config: The run config used to make the run is also stored as part of the run logs along with the pipeline definition.
 
 
 The [run log structure](../../concepts/run-log) of the output is exactly the same independent of where the
@@ -96,19 +146,19 @@ Here is the step log for ```step shell``` of the example run
             "mock": false,
             "code_identities": [
                 {
-                    "code_identifier": "c5d2f4aa8dd354740d1b2f94b6ee5c904da5e63c",
+                    "code_identifier": "e15d1374aac217f649972d11fe772e61b5a2478d",
                     "code_identifier_type": "git",
-                    "code_identifier_dependable": false,
-                    "code_identifier_url": "<INTENTIONALLY REMOVED>",
-                    "code_identifier_message": "<INTENTIONALLY REMOVED>"
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "INTENTIONALLY REMOVED",
+                    "code_identifier_message": ""
                 }
             ],
             "attempts": [
                 {
                     "attempt_number": 0,
-                    "start_time": "2022-01-18 11:46:08.576522",
-                    "end_time": "2022-01-18 11:46:08.588158",
-                    "duration": "0:00:00.011636",
+                    "start_time": "2023-01-31 19:56:55.128697",
+                    "end_time": "2023-01-31 19:56:55.150878",
+                    "duration": "0:00:00.022181",
                     "status": "SUCCESS",
                     "message": ""
                 }
@@ -117,9 +167,9 @@ Here is the step log for ```step shell``` of the example run
             "branches": {},
             "data_catalog": [
                 {
-                    "name": "data.txt",
-                    "data_hash": "8f25ba24e56f182c5125b9ede73cab6c16bf193e3ad36b75ba5145ff1b5db583",
-                    "catalog_relative_path": "20220118114608/data.txt",
+                    "name": "data/data.txt",
+                    "data_hash": "7e91b0a9ff8841a3b5bf2c711f58bcc0cbb6a7f85b9bc92aa65e78cdda59a96e",
+                    "catalog_relative_path": "20230131195647/data/data.txt",
                     "catalog_handler_location": ".catalog",
                     "stage": "put"
                 }

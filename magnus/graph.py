@@ -19,12 +19,29 @@ class Graph:
     We have nodes and traversal is based on start_at and on_failure definition of individual nodes of the graph
     """
 
-    def __init__(self, start_at, description=None, max_time=86400, internal_branch_name=None):
+    def __init__(self, start_at, name: str = '', description: str = '', max_time: int = 86400,
+                 internal_branch_name: str = ''):
         self.start_at = start_at
+        self.name = name
         self.description = description
         self.max_time = max_time
         self.internal_branch_name = internal_branch_name
-        self.nodes = []
+        self.nodes: List[BaseNode] = []
+
+    def _to_dict(self) -> dict:
+        """
+        Return a dict representation of the graph
+        """
+        dag = {}
+        dag['start_at'] = self.start_at
+        dag['name'] = self.name
+        dag['description'] = self.description
+        dag['max_time'] = self.max_time
+        dag['steps'] = {}
+        for node in self.nodes:
+            dag['steps'][node.name] = node._to_dict()
+
+        return dag
 
     def get_node_by_name(self, name: str) -> 'BaseNode':
         """
@@ -229,7 +246,7 @@ class Graph:
         visited[node.name] = True
         recstack[node.name] = True
 
-        neighbors = node.get_neighbors()
+        neighbors = node._get_neighbors()
         for neighbor in neighbors:
             neighbor_node = self.get_node_by_name(neighbor)
             if not visited[neighbor]:
@@ -250,7 +267,7 @@ class Graph:
         """
         missing_nodes = []
         for node in self.nodes:
-            neighbors = node.get_neighbors()
+            neighbors = node._get_neighbors()
             for neighbor in neighbors:
                 try:
                     self.get_node_by_name(neighbor)
@@ -260,8 +277,30 @@ class Graph:
                         missing_nodes.append(neighbor)
         return missing_nodes
 
+    def add_terminal_nodes(self, success_node_name: str = 'success', failure_node_name: str = 'fail',
+                           internal_branch_name: str = None):
+        """
+        Add the success and fail nodes to the graph
 
-def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
+        Args:
+            success_node_name (str, optional): The name of the success node. Defaults to 'success'.
+            failure_node_name (str, optional): The name of the failure node. Defaults to 'fail'.
+        """
+        success_step_config = {
+            'type': 'success'
+        }
+        success_node = create_node(success_node_name, step_config=success_step_config,
+                                   internal_branch_name=internal_branch_name)
+        fail_step_config = {
+            'type': 'fail'
+        }
+        fail_node = create_node(failure_node_name, step_config=fail_step_config,
+                                internal_branch_name=internal_branch_name)
+        self.add_node(success_node)
+        self.add_node(fail_node)
+
+
+def create_graph(dag_config: dict, internal_branch_name: str = '') -> Graph:
     # pylint: disable=R0914,R0913
     """
     Creates a dag object from the dag definition.
@@ -270,7 +309,7 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
     Use internal_branch_name to fit the right dot path convention.
 
     Args:
-        dag_config (dict): The dag defintion
+        dag_config (dict): The dag definition
         internal_branch_name ([type], optional): In case of sub-graph, the name of the node. Defaults to None.
 
     Raises:
@@ -279,10 +318,6 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
     Returns:
         Graph: The created graph object
     """
-    # Conditional import to avoid circular import
-    # pylint: disable=C0415
-    from magnus.nodes import validate_node
-
     description = dag_config.get('description', None)
     max_time = dag_config.get('max_time', defaults.MAX_TIME)
     start_at = dag_config.get('start_at')  # Let the start_at be relative to the graph
@@ -297,47 +332,9 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
         step_config = dag_config['steps'][step]
         logger.info(f'Adding node {step} with :{step_config}')
 
-        task_type = step_config.get('command_type', defaults.COMMAND_TYPE)
-        command_config = step_config.get('command_config', {})
-
-        logger.info(f"Trying to get a task of type {task_type}")
-        try:
-            task_mgr = driver.DriverManager(
-                namespace="magnus.tasks.BaseTaskType",
-                name=task_type,
-                invoke_on_load=True,
-                invoke_kwds={'command': step_config.get('command', None),
-                             'config': command_config}
-            )
-        except Exception as _e:
-            msg = (
-                f"Could not find the task type {task_type}. Please ensure you have installed the extension that"
-                " provides the task type. \nCore supports: python(default), python-lambda, shell, notebook"
-            )
-            raise Exception(msg) from _e
-
-        internal_name = step
-        if internal_branch_name:
-            internal_name = internal_branch_name + '.' + step
-
-        try:
-            node_mgr = driver.DriverManager(
-                namespace="magnus.nodes.BaseNode",
-                name=step_config['type'],
-                invoke_on_load=True,
-                invoke_kwds={"name": step, "internal_name": internal_name,
-                             "config": step_config, "execution_type": task_mgr.driver,
-                             "internal_branch_name": internal_branch_name}
-            )
-        except Exception as _e:
-            msg = (
-                f"Could not find the node type {step_config['type']}. Please ensure you have installed "
-                "the extension that provides the node type."
-                "\nCore supports: task, success, fail, parallel, dag, map, as-is")
-            raise Exception(msg) from _e
-
-        messages.extend(validate_node(node_mgr.driver))
-        graph.add_node(node_mgr.driver)
+        node = create_node(step, step_config=step_config, internal_branch_name=internal_branch_name)
+        messages.extend(node.validate())
+        graph.add_node(node)
 
     if messages:
         raise Exception(', '.join(messages))
@@ -345,6 +342,28 @@ def create_graph(dag_config: dict, internal_branch_name: str = None) -> Graph:
     graph.validate()
 
     return graph
+
+
+def create_node(name: str, step_config: dict, internal_branch_name: str = None):
+    internal_name = name
+    if internal_branch_name:
+        internal_name = internal_branch_name + '.' + name
+
+    try:
+        node_mgr = driver.DriverManager(
+            namespace="magnus.nodes.BaseNode",
+            name=step_config['type'],
+            invoke_on_load=True,
+            invoke_kwds={"name": name, "internal_name": internal_name,
+                         "config": step_config, "internal_branch_name": internal_branch_name}
+        )
+        return node_mgr.driver
+    except Exception as _e:
+        msg = (
+            f"Could not find the node type {step_config['type']}. Please ensure you have installed "
+            "the extension that provides the node type."
+            "\nCore supports: task, success, fail, parallel, dag, map, as-is")
+        raise Exception(msg) from _e
 
 
 def search_node_by_internal_name(dag: Graph, internal_name: str):
@@ -372,7 +391,7 @@ def search_node_by_internal_name(dag: Graph, internal_name: str):
     for i in range(len(dot_path)):
         if i % 2:
             # Its odd, so we are in brach name
-            current_branch = current_node.get_branch_by_name('.'.join(dot_path[:i + 1]))  # type: ignore
+            current_branch = current_node._get_branch_by_name('.'.join(dot_path[:i + 1]))  # type: ignore
             logger.debug(f'Finding step for {internal_name} in branch: {current_branch}')
         else:
             # Its even, so we are in Step, we start here!
@@ -412,7 +431,7 @@ def search_branch_by_internal_name(dag: Graph, internal_name: str):
 
         if i % 2:
             # Its odd, so we are in brach name
-            current_branch = current_node.get_branch_by_name('.'.join(dot_path[:i + 1]))  # type: ignore
+            current_branch = current_node._get_branch_by_name('.'.join(dot_path[:i + 1]))  # type: ignore
             logger.debug(f'Finding step for {internal_name} in branch: {current_branch}')
 
         else:

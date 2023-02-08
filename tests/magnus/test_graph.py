@@ -3,7 +3,7 @@ import pytest
 from magnus import defaults  # pylint: disable=import-error
 from magnus import exceptions  # pylint: disable=import-error
 from magnus import graph  # pylint: disable=import-error
-from magnus.nodes import BaseNode
+from magnus.nodes import AsISNode, BaseNode, FailNode, SuccessNode
 
 
 def get_new_graph(start_at='this', internal_branch_name='i_name'):
@@ -36,7 +36,7 @@ def test_init():
 def test_init_default():
     new_graph = graph.Graph(start_at='this')
     assert new_graph.start_at == 'this'
-    assert new_graph.internal_branch_name is None
+    assert new_graph.internal_branch_name is ''
     assert len(new_graph.nodes) == 0
 
 
@@ -247,8 +247,6 @@ def test_create_graph_inits_graph_populates_nodes(mocker, monkeypatch):
     monkeypatch.setattr(graph.Graph, 'validate', mocker.MagicMock())
     monkeypatch.setattr(graph.Graph, 'add_node', mocker.MagicMock())
 
-    monkeypatch.setattr('magnus.nodes.validate_node', mocker.MagicMock())
-
     mock_driver_manager = mocker.MagicMock()
 
     monkeypatch.setattr(graph.driver, 'DriverManager', mock_driver_manager)
@@ -272,8 +270,6 @@ def test_create_graph_inits_graph_populates_nodes_with_internal_branch(mocker, m
     monkeypatch.setattr(graph.Graph, '__init__', graph_init)
     monkeypatch.setattr(graph.Graph, 'validate', mocker.MagicMock())
     monkeypatch.setattr(graph.Graph, 'add_node', mocker.MagicMock())
-
-    monkeypatch.setattr('magnus.nodes.validate_node', mocker.MagicMock())
 
     mock_driver_manager = mocker.MagicMock()
 
@@ -299,8 +295,6 @@ def test_create_graph_raises_exception_if_node_fails(mocker, monkeypatch):
     monkeypatch.setattr(graph.Graph, 'validate', mocker.MagicMock())
     monkeypatch.setattr(graph.Graph, 'add_node', mocker.MagicMock())
 
-    monkeypatch.setattr('magnus.nodes.validate_node', mocker.MagicMock(return_value=['wrong']))
-
     with pytest.raises(Exception):
         graph.create_graph(dag_config, internal_branch_name=None)
 
@@ -312,27 +306,17 @@ def create_mocked_graph(mocker):
     return graph.Graph()
 
 
-@pytest.fixture(name='mocked_basenode')
-def create_mocked_basenode(mocker):
-    mocked_basenode_init = mocker.MagicMock(return_value=None)
-    mocker.patch.object(BaseNode, "__init__", mocked_basenode_init)
-    return BaseNode
-
-
-def test_is_dag_returns_true_when_acyclic(mocked_graph, mocked_basenode):
+def test_is_dag_returns_true_when_acyclic(mocked_graph):
     test_graph = mocked_graph
-    start_node = mocked_basenode()
-    start_node.name = 'start'
-    start_node.config = {'next': 'middle', 'on_failure': 'fail_node'}
-    middle_node = mocked_basenode()
-    middle_node.name = 'middle'
-    middle_node.config = {'next': 'success', 'on_failure': 'fail_node'}
-    success_node = mocked_basenode()
-    success_node.name = 'success'
-    success_node.config = {}
-    fail_node = mocked_basenode()
-    fail_node.name = 'fail_node'
-    fail_node.config = {}
+    start_node_config = {'next_node': 'middle', 'on_failure': ''}
+    start_node = AsISNode(name='start', internal_name='start', config=start_node_config)
+
+    middle_node_config = {'next_node': 'success', 'on_failure': ''}
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_node_config)
+
+    success_node = SuccessNode(name='success', internal_name='success', config={})
+
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -344,24 +328,18 @@ def test_is_dag_returns_true_when_acyclic(mocked_graph, mocked_basenode):
     assert test_graph.is_dag()
 
 
-def test_is_dag_returns_true_when_on_failure_points_to_non_terminal_node_and_later_node(mocked_graph, mocked_basenode):
+def test_is_dag_returns_true_when_on_failure_points_to_non_terminal_node_and_later_node(mocked_graph):
     test_graph = mocked_graph
 
-    start_node = mocked_basenode()
-    start_node.name = 'start'
-    start_node.config = {'next': 'middle', 'on_failure': 'middle'}
+    start_node_config = {'next_node': 'middle', 'on_failure': ''}
+    start_node = AsISNode(name='start', internal_name='start', config=start_node_config)
 
-    middle_node = mocked_basenode()
-    middle_node.name = 'middle'
-    middle_node.config = {'next': 'success', 'on_failure': 'fail_node'}
+    middle_node_config = {'next_node': 'success', 'on_failure': 'fail'}
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_node_config)
 
-    success_node = mocked_basenode()
-    success_node.name = 'success'
-    success_node.config = {}
+    success_node = SuccessNode(name='success', internal_name='success', config={})
 
-    fail_node = mocked_basenode()
-    fail_node.name = 'fail_node'
-    fail_node.config = {}
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -372,28 +350,22 @@ def test_is_dag_returns_true_when_on_failure_points_to_non_terminal_node_and_lat
     assert test_graph.is_dag()
 
 
-def test_is_dag_returns_false_when_cyclic_in_next_nodes(mocked_graph, mocked_basenode):
+def test_is_dag_returns_false_when_cyclic_in_next_nodes(mocked_graph):
     test_graph = mocked_graph
 
-    start_node = mocked_basenode()
-    start_node.name = 'start'
-    start_node.config = {'next': 'b', 'on_failure': 'fail_node'}
+    start_node_config = {'next_node': 'b', 'on_failure': 'fail'}
+    start_node = AsISNode(name='start', internal_name='start', config=start_node_config)
 
-    bnode = mocked_basenode()
-    bnode.name = 'b'
-    bnode.config = {'next': 'c', 'on_failure': 'fail_node'}
+    bnode_config = {'next_node': 'c', 'on_failure': 'fail'}
+    bnode = AsISNode(name='b', internal_name='b', config=bnode_config)
 
-    cnode = mocked_basenode()
-    cnode.name = 'c'
-    cnode.config = {'next': 'd', 'on_failure': 'fail_node'}
+    cnode_config = {'next_node': 'd', 'on_failure': 'fail'}
+    cnode = AsISNode(name='c', internal_name='c', config=cnode_config)
 
-    dnode = mocked_basenode()
-    dnode.name = 'd'
-    dnode.config = {'next': 'b', 'on_failure': 'fail_node'}
+    dnode_config = {'next_node': 'b', 'on_failure': 'fail'}
+    dnode = AsISNode(name='d', internal_name='d', config=dnode_config)
 
-    fail_node = mocked_basenode()
-    fail_node.name = 'fail_node'
-    fail_node.config = {}
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -406,93 +378,41 @@ def test_is_dag_returns_false_when_cyclic_in_next_nodes(mocked_graph, mocked_bas
     assert not test_graph.is_dag()
 
 
-def test_is_dag_returns_false_when_fail_points_to_previous_node(mocked_graph, mocked_basenode):
+def test_is_dag_returns_false_when_fail_points_to_previous_node(mocked_graph):
     test_graph = mocked_graph
 
-    start_node = mocked_basenode()
-    start_node.name = 'start'
-    start_node.config = {'next': 'b', 'on_failure': 'fail_node'}
+    start_config = {'next_node': 'b', 'on_failure': 'fail'}
+    start_node = AsISNode(name='start', internal_name='start', config=start_config)
 
-    bnode = mocked_basenode()
-    bnode.name = 'b'
-    bnode.config = {'next': 'c', 'on_failure': 'fail_node'}
+    b_config = {'next_node': 'c', 'on_failure': 'fail'}
+    bnode = AsISNode(name='b', internal_name='b', config=b_config)
 
-    cnode = mocked_basenode()
-    cnode.name = 'c'
-    cnode.config = {'next': 'finish', 'on_failure': 'b'}
+    c_config = {'next_node': 'c', 'on_failure': 'b'}
+    cnode = AsISNode(name='c', internal_name='c', config=c_config)
 
-    finish_node = mocked_basenode()
-    finish_node.name = 'finish'
-    finish_node.config = {}
-
-    fail_node = mocked_basenode()
-    fail_node.name = 'fail_node'
-    fail_node.config = {}
-
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
     test_graph.nodes = [
         start_node,
         bnode,
         cnode,
-        finish_node,
         fail_node
     ]
 
     assert not test_graph.is_dag()
 
 
-def test_is_dag_returns_false_when_downstream_fail_node_revisits_earlier_node(mocked_graph, mocked_basenode):
+def test_missing_neighbors_empty_list_no_neigbors_missing(mocked_graph):
     test_graph = mocked_graph
 
-    start_node = mocked_basenode()
-    start_node.name = 'start'
-    start_node.config = {'next': 'b', 'on_fail': 'fail_node'}
+    start_config = {'next_node': 'middle', 'on_failure': 'fail'}
+    start_node = AsISNode(name='start', internal_name='start', config=start_config)
 
-    bnode = mocked_basenode()
-    bnode.name = 'b'
-    bnode.config = {'next': 'c', 'on_failure': 'fail_node'}
+    middle_config = {'next_node': 'success', 'on_failure': 'fail'}
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config)
 
-    cnode = mocked_basenode()
-    cnode.name = 'c'
-    cnode.config = {'next': 'finish', 'on_failure': 'd'}
+    success_node = SuccessNode(name='success', internal_name='success', config={})
 
-    dnode = mocked_basenode()
-    dnode.name = 'd'
-    dnode.config = {'next': 'b', 'on_failure': 'fail_node'}
-
-    finish_node = mocked_basenode()
-    finish_node.name = 'finish'
-    finish_node.config = {}
-
-    fail_node = mocked_basenode()
-    fail_node.name = 'fail_mode'
-    fail_node.config = {}
-
-    test_graph.nodes = [
-        start_node,
-        bnode,
-        cnode,
-        dnode,
-        finish_node,
-        fail_node
-    ]
-
-    assert not test_graph.is_dag()
-
-
-def test_missing_neighbors_empty_list_no_neigbors_missing(mocked_graph, mocked_basenode):
-    test_graph = mocked_graph
-    start_node = mocked_basenode()
-    start_node.name = 'start'
-    start_node.config = {'next': 'middle', 'on_failure': 'fail_node'}
-    middle_node = mocked_basenode()
-    middle_node.name = 'middle'
-    middle_node.config = {'next': 'success', 'on_failure': 'fail_node'}
-    success_node = mocked_basenode()
-    success_node.name = 'success'
-    success_node.config = {}
-    fail_node = mocked_basenode()
-    fail_node.name = 'fail_node'
-    fail_node.config = {}
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -505,17 +425,16 @@ def test_missing_neighbors_empty_list_no_neigbors_missing(mocked_graph, mocked_b
     assert len(missing_nodes) == 0
 
 
-def test_missing_neighbors_list_of_missing_neighbor_one_missing_next(mocked_graph, mocked_basenode):
+def test_missing_neighbors_list_of_missing_neighbor_one_missing_next(mocked_graph):
     test_graph = mocked_graph
-    start_node = mocked_basenode()
-    start_node.name = 'start'
-    start_node.config = {'next': 'middle', 'on_failure': 'fail_node'}
-    middle_node = mocked_basenode()
-    middle_node.name = 'middle'
-    middle_node.config = {'next': 'success', 'on_failure': 'fail_node'}
-    fail_node = mocked_basenode()
-    fail_node.name = 'fail_node'
-    fail_node.config = {}
+
+    start_config = {'next_node': 'middle', 'on_failure': 'fail'}
+    start_node = AsISNode(name='start', internal_name='start', config=start_config)
+
+    middle_config = {'next_node': 'success', 'on_failure': 'fail'}
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config)
+
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -528,17 +447,18 @@ def test_missing_neighbors_list_of_missing_neighbor_one_missing_next(mocked_grap
     assert missing_nodes[0] == 'success'
 
 
-def test_missing_list_of_missing_neighbor_one_missing_on_failure(mocked_graph, mocked_basenode):
+def test_missing_list_of_missing_neighbor_one_missing_on_failure(mocked_graph):
     test_graph = mocked_graph
-    start_node = mocked_basenode()
-    start_node.name = 'start'
-    start_node.config = {'next': 'middle', 'on_failure': 'fail_node'}
-    middle_node = mocked_basenode()
-    middle_node.name = 'middle'
-    middle_node.config = {'next': 'success', 'on_failure': 'fail_node'}
-    success_node = mocked_basenode()
-    success_node.name = 'success'
-    success_node.config = {}
+
+    start_config = {'next_node': 'middle', 'on_failure': 'fail'}
+    start_node = AsISNode(name='start', internal_name='start', config=start_config)
+
+    middle_config = {'next_node': 'success', 'on_failure': 'fail'}
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config)
+
+    success_node = SuccessNode(name='success', internal_name='success', config={})
+
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -548,17 +468,21 @@ def test_missing_list_of_missing_neighbor_one_missing_on_failure(mocked_graph, m
 
     missing_nodes = test_graph.missing_neighbors()
     assert len(missing_nodes) == 1
-    assert missing_nodes[0] == 'fail_node'
+    assert missing_nodes[0] == 'fail'
 
 
-def test_missing_list_of_missing_neighbor_two_missing(mocked_graph, mocked_basenode):
+def test_missing_list_of_missing_neighbor_two_missing(mocked_graph):
     test_graph = mocked_graph
-    start_node = mocked_basenode()
-    start_node.name = 'start'
-    start_node.config = {'next': 'middle', 'on_failure': 'fail_node'}
-    success_node = mocked_basenode()
-    success_node.name = 'success'
-    success_node.config = {}
+
+    start_config = {'next_node': 'middle', 'on_failure': 'fail'}
+    start_node = AsISNode(name='start', internal_name='start', config=start_config)
+
+    middle_config = {'next_node': 'success', 'on_failure': 'fail'}
+    middle_node = AsISNode(name='middle', internal_name='middle', config=middle_config)
+
+    success_node = SuccessNode(name='success', internal_name='success', config={})
+
+    fail_node = FailNode(name='fail', internal_name='fail', config={})
 
     test_graph.nodes = [
         start_node,
@@ -568,4 +492,4 @@ def test_missing_list_of_missing_neighbor_two_missing(mocked_graph, mocked_basen
     missing_nodes = test_graph.missing_neighbors()
     assert len(missing_nodes) == 2
     assert 'middle' in missing_nodes
-    assert 'fail_node' in missing_nodes
+    assert 'fail' in missing_nodes

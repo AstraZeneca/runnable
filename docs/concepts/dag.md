@@ -17,6 +17,7 @@ The configuration of a dag:
 ```yaml
 dag:
   start_at:
+  name: # optional
   description: #optional
   max_time: # Optional
   steps:
@@ -66,6 +67,23 @@ dag:
       type: fail
 ```
 
+or via the Python SDK:
+
+```python
+# in pipeline.py
+from magnus import Task, Pipeline
+
+def pipeline():
+    first = Task(name='Hello', command='my_module.say_hello')
+    pipeline = Pipeline(start_at=first, name='dag-concepts')
+    pipeline.construct([first])
+
+    pipeline.execute()
+
+if __name__ == '__main__':
+    pipeline()
+```
+
 And the following code in my_module.py
 ```python
 # in my_module.py
@@ -76,14 +94,21 @@ def say_hello(name=world):
 
 We can execute the dag by:
 ```shell
-magnus execute --file dag-concepts.yaml --name universe
+export MAGNUS_PRM_name=universe
+magnus execute --file dag-concepts.yaml
+```
+
+or via the Python SDK:
+```
+python pipeline.py
 ```
 
 You should be able to see ```Hello universe``` in the logs.
 
 ## Parameterized Definition
 
-Magnus allows dag definitions to be parameterized by using placeholders. We use [python String templates](https://docs.python.org/3.7/library/string.html#template-strings) to enable parameter substitution. As we use, [safe_substitution](https://docs.python.org/3.7/library/string.html#string.Template.safe_substitute) it means that we silently ignore any parameter that is not found. You should make sure that the parameters are properly defined.
+Magnus allows dag definitions to be parameterized by using placeholders. We use [python String templates](https://docs.python.org/3.7/library/string.html#template-strings) to enable parameter substitution. As we use, [safe_substitution](https://docs.python.org/3.7/library/string.html#string.Template.safe_substitute) it means that we silently ignore any parameter that is not found.
+You should make sure that the parameters are properly defined.
 
 ### Example of variables
 Assuming this is in dag-variable.yaml
@@ -101,20 +126,25 @@ dag:
       type: fail
 ```
 
-and we have defined our variables in ```variables.yaml``` as
-```yaml
-# in variables.yaml
-module_name: my_module.say_hello
+Magnus variables can be defined by environmental variables, any string with a prefix ```MAGNUS_VAR_``` is considered a
+variable.
+
+```shell
+export MAGNUS_VAR_module_name=my_module.say_hello
 ```
 and with the same python code [as before](#example), we can achieve the same result by:
 ```shell
-magnus execute --file dag-variable.yaml --name universe --var-file variables.yaml
+magnus execute --file dag-variable.yaml --name universe
 ```
 
 Magnus would resolve the placeholders at the load of the dag definition.
 
+The variables are also applied on the configuration file.
+
 ### Design thought behind variables
 
-Parameters are a great way to have a generalized definition of the dag and the config parameters. Internally, we
-use variables to switch between different configs for testing different implementations of executor, run log, catalog
-and secrets without changing the pipeline definition file.
+Variables are a great way to have a generalized definition of the dag and the config parameters, especially if that
+value is not known before hand.
+
+For example: consider a containerized execution of the pipeline. The container tag to run might be only known after
+building the container and this can be supplied dynamically at run time.

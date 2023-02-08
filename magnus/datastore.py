@@ -22,8 +22,8 @@ class DataCatalog(BaseModel):
     """
     name: str  #  The name of the dataset
     data_hash: str = ''  # The sha1 hash of the file
-    catalog_relative_path: str = ''  # The file path
-    catalog_handler_location: str = ''
+    catalog_relative_path: str = ''  # The file path relative the catalog location
+    catalog_handler_location: str = ''  # The location of the catalog
     stage: str = ''  # The stage at which we recorded it get, put etc
 
     # Needed for set operations to work on DataCatalog objects
@@ -159,7 +159,7 @@ class RunLog(BaseModel):
     use_cached: bool = False
     tag: Optional[str] = ''
     original_run_id: Optional[str] = ''
-    status: str = 'FAIL'
+    status: str = defaults.FAIL
     steps: OrderedDict[str, StepLog] = {}  # type: ignore # Has the steps keyed by internal_name
     parameters: dict = {}
     run_config: dict = {}
@@ -283,10 +283,15 @@ class BaseRunLogStore:
     """
     service_name = ''
 
-    def __init__(self, config):
-        self.config = config or {}
+    class Config(BaseModel):
+        pass
 
-    def create_run_log(self, run_id: str, **kwargs):
+    def __init__(self, config):
+        config = config or {}
+        self.config = self.Config(**config)
+
+    def create_run_log(self, run_id: str, dag_hash: str = '', use_cached: bool = False,
+                       tag: str = '', original_run_id: str = '', status: str = defaults.CREATED, **kwargs):
         """
         Creates a Run Log object by using the config
 
@@ -601,19 +606,24 @@ class BufferRunLogstore(BaseRunLogStore):
         super().__init__(config)
         self.run_log = None  # For a buffered Run Log, this is the database
 
-    def create_run_log(self, run_id: str, **kwargs) -> RunLog:
+    def create_run_log(self, run_id: str, dag_hash: str = '', use_cached: bool = False,
+                       tag: str = '', original_run_id: str = '', status: str = defaults.CREATED, **kwargs) -> RunLog:
         # Creates a Run log
         # Adds it to the db
         # Return the log
         logger.info(f'{self.service_name} Creating a Run Log and adding it to DB')
-        self.run_log = RunLog(run_id=run_id, status=defaults.CREATED)
+        self.run_log = RunLog(run_id=run_id, dag_hash=dag_hash, use_cached=use_cached,
+                              tag=tag, original_run_id=original_run_id, status=status)
         return self.run_log
 
     def get_run_log_by_id(self, run_id: str, full: bool = True, **kwargs):
         # Returns the run_log defined by id
         # Raises Exception if not found
         logger.info(f'{self.service_name} Getting the run log from DB for {run_id}')
-        return self.run_log
+        if self.run_log:
+            return self.run_log
+
+        raise exceptions.RunLogNotFoundError(run_id)
 
     def put_run_log(self, run_log: RunLog, **kwargs):
         # Puts the run_log into the database
@@ -642,14 +652,13 @@ class FileSystemRunLogstore(BaseRunLogStore):
         log_folder: The folder to out the logs. Defaults to .run_log_store
     """
     service_name = 'file-system'
-    CONFIG_KEY_LOG_FOLDER = 'log_folder'
+
+    class Config(BaseModel):
+        log_folder: str = defaults.LOG_LOCATION_FOLDER
 
     @property
     def log_folder_name(self) -> str:
-        if self.config:
-            return self.config.get(self.CONFIG_KEY_LOG_FOLDER, defaults.LOG_LOCATION_FOLDER)
-
-        return defaults.LOG_LOCATION_FOLDER
+        return self.config.log_folder
 
     def write_to_folder(self, run_log: RunLog):
         """
@@ -697,11 +706,19 @@ class FileSystemRunLogstore(BaseRunLogStore):
             run_log = RunLog(**json_str)  # pylint: disable=no-member
         return run_log
 
-    def create_run_log(self, run_id: str, **kwargs) -> RunLog:
+    def create_run_log(self, run_id: str, dag_hash: str = '', use_cached: bool = False,
+                       tag: str = '', original_run_id: str = '', status: str = defaults.CREATED, **kwargs) -> RunLog:
         # Creates a Run log
         # Adds it to the db
+        try:
+            self.get_run_log_by_id(run_id=run_id, full=False)
+            raise exceptions.RunLogExistsError(run_id=run_id)
+        except exceptions.RunLogNotFoundError:
+            pass
+
         logger.info(f'{self.service_name} Creating a Run Log for : {run_id}')
-        run_log = RunLog(run_id=run_id, status=defaults.CREATED)
+        run_log = RunLog(run_id=run_id, dag_hash=dag_hash, use_cached=use_cached,
+                         tag=tag, original_run_id=original_run_id, status=status)
         self.write_to_folder(run_log)
         return run_log
 

@@ -11,6 +11,4 @@ The complete configuration
 secrets:
   type: do-nothing
 
-dag:
-  ...
 ```

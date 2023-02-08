@@ -1,11 +1,27 @@
+from enum import Enum
+
 NAME = 'magnus'
 
 # CLI settings
 LOG_LEVEL = 'WARNING'
 
+
+class EXECUTION_PLAN(Enum):
+    # execution_plans
+    pipeline = 1
+    decorator = 2
+    notebook = 3
+    function = 4
+
+
+# Config file environment variable
+MAGNUS_CONFIG_FILE = 'MAGNUS_CONFIG_FILE'
+MAGNUS_RUN_TAG = 'MAGNUS_RUN_TAG'
+
 # Interaction settings
 TRACK_PREFIX = 'MAGNUS_TRACK_'
 PARAMETER_PREFIX = 'MAGNUS_PRM_'
+VARIABLE_PREFIX = 'MAGNUS_VAR_'
 ENV_RUN_ID = 'MAGNUS_RUN_ID'
 
 # STATUS progression
@@ -33,6 +49,9 @@ DEFAULT_CATALOG = {
     'type': 'file-system'
 }
 DEFAULT_SECRETS = {
+    'type': 'do-nothing'
+}
+DEFAULT_EXPERIMENT_TRACKER = {
     'type': 'do-nothing'
 }
 
@@ -71,7 +90,7 @@ AWS_REGION = 'eu-west-1'
 # Docker settings
 DOCKERFILE_NAME = 'Dockerfile'
 DOCKERFILE_CONTENT = r"""# Python 3.6 Image without Dependecies
-FROM python:3.7
+FROM python:3.8
 
 LABEL maintainer="vijay.vammi@astrazeneca.com"
 

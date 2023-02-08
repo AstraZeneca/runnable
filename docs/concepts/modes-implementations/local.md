@@ -21,9 +21,5 @@ mode:
 
 ### Enabling parallel
 
-By default, none of the branches in parallel or a map node are executed parallelly.
-You can enable it by setting enable_parallel to 'true' (case-insensitive).
-
-
-!!! Note
-    Please note that 'enable_parallel' needs a string 'true' and not a boolean true.
+By default, none of the branches in parallel or a map node are executed in parallel.
+You can enable it by setting enable_parallel to True.

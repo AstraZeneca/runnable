@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.3.11"
+version = "0.4.0"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
@@ -11,7 +11,7 @@ documentation = "https://astrazeneca.github.io/magnus-core/"
 
 
 [tool.poetry.dependencies]
-python = "^3.7.1"
+python = "^3.8"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 yachalk = "*"
@@ -19,12 +19,12 @@ pydantic = "^1.9.0"
 stevedore = "^3.5.0"
 "click" = "*"
 docker ={ version = "*", optional = true }
-papermill ={ version = "*", optional = true }
 click-plugins = "^1.1.1"
+ploomber-engine ={ version= "^0.0.19", optional = true }
 
 [tool.poetry.extras]
 docker = ['docker']
-notebook = ['papermill']
+notebook = ['ploomber-engine']
 
 
 [tool.poetry.dev-dependencies]
@@ -38,6 +38,7 @@ mkdocs-material = "*"
 mypy = "^0.931"
 tox = "^3.24.5"
 pre-commit = "*"
+commit-linter = "^1.0.2"
 
 [tool.poetry.scripts]
 magnus= 'magnus.cli:cli'
@@ -64,6 +65,11 @@ magnus= 'magnus.cli:cli'
 "buffered" = "magnus.datastore:BufferRunLogstore"
 "file-system" = "magnus.datastore:FileSystemRunLogstore"
 
+# Plugins for Experiment tracker
+[tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]
+"do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
+"mlflow" = "magnus.experiment_tracker:MLFlowExperimentTracker"
+
 # Plugins for Integration
 [tool.poetry.plugins."magnus.integration.BaseIntegration"]
 # {executor.name}-{service}-{service.name}
@@ -72,6 +78,7 @@ magnus= 'magnus.cli:cli'
 "local-container-run_log_store-buffered" = "magnus.integration:LocalContainerComputeBufferedRunLogStore"
 "local-container-run_log_store-file-system" = "magnus.integration:LocalContainerComputeFileSystemRunLogstore"
 "local-container-secrets-dotenv" = "magnus.integration:LocalContainerComputeDotEnvSecrets"
+"local-container-secrets-environment" = "magnus.integration:LocalContainerComputeEnvSecretsManager"
 "local-container-catalog-do-nothing" = "magnus.integration:LocalContainerDoNothingCatalog"
 "local-catalog-do-nothing" = "magnus.integration:LocalDoNothingCatalog"
 "local-container-catalog-file-system" = "magnus.integration:LocalContainerComputeFileSystemCatalog"
@@ -83,6 +90,7 @@ magnus= 'magnus.cli:cli'
 "python-lambda" = "magnus.tasks:PythonLambdaTaskType"
 "shell" = "magnus.tasks:ShellTaskType"
 "notebook" = "magnus.tasks:NotebookTaskType"
+"python-function" = "magnus.tasks:PythonFunctionType"
 
 # Plugins for Nodes
 [tool.poetry.plugins."magnus.nodes.BaseNode"]
