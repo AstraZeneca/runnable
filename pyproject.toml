@@ -21,6 +21,7 @@ stevedore = "^3.5.0"
 docker ={ version = "*", optional = true }
 click-plugins = "^1.1.1"
 ploomber-engine ={ version= "^0.0.19", optional = true }
+python-semantic-release = "^7.33.1"
 
 [tool.poetry.extras]
 docker = ['docker']
@@ -68,7 +69,7 @@ magnus= 'magnus.cli:cli'
 # Plugins for Experiment tracker
 [tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]
 "do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
-"mlflow" = "magnus.experiment_tracker:MLFlowExperimentTracker"
+#"mlflow" = "magnus.experiment_tracker:MLFlowExperimentTracker"
 
 # Plugins for Integration
 [tool.poetry.plugins."magnus.integration.BaseIntegration"]
@@ -102,6 +103,14 @@ magnus= 'magnus.cli:cli'
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
 
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:tool.poetry.version"]
+branch = "main"
+major_on_zero = false
+upload_to_pypi = false
+upload_to_release = false
+build_command = "poetry build"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
