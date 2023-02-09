@@ -249,7 +249,7 @@ class NotebookTaskType(BaseTaskType):
     def execute_command(self, map_variable: dict = None, **kwargs):
         try:
             if not pm:
-                raise ImportError('Ploomber enginer is required for notebook type node')
+                raise ImportError('Ploomber engine is required for notebook type node')
 
             parameters = self._get_parameters()
             filtered_parameters = parameters
