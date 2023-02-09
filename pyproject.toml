@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.4.3"
+version = "0.0.0"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
@@ -8,7 +8,6 @@ readme = "README.md"
 homepage = "https://github.com/AstraZeneca/magnus-core"
 repository = "https://github.com/AstraZeneca/magnus-core"
 documentation = "https://astrazeneca.github.io/magnus-core/"
-
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -21,7 +20,6 @@ stevedore = "^3.5.0"
 docker ={ version = "*", optional = true }
 click-plugins = "^1.1.1"
 ploomber-engine ={ version= "^0.0.19", optional = true }
-python-semantic-release = "^7.33.1"
 
 [tool.poetry.extras]
 docker = ['docker']
@@ -103,16 +101,13 @@ magnus= 'magnus.cli:cli'
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
 
-
-[tool.semantic_release]
-version_toml = ["pyproject.toml:tool.poetry.version"]
-version_source = "tag"
-branch = "main"
-major_on_zero = false
-upload_to_pypi = true
-upload_to_release = true
-build_command = "poetry publish --build --dry-run"
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
+#format = "{base}.{commit}"
+format-jinja = "{% if distance == 0 %}{{ base }}{% else %}{{ base }}+{{ distance }}.{{ commit }}{% endif %}"
