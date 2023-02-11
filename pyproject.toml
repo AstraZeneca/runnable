@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.4.0"
+version = "0.4.1"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
@@ -8,7 +8,6 @@ readme = "README.md"
 homepage = "https://github.com/AstraZeneca/magnus-core"
 repository = "https://github.com/AstraZeneca/magnus-core"
 documentation = "https://astrazeneca.github.io/magnus-core/"
-
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -40,6 +39,7 @@ tox = "^3.24.5"
 pre-commit = "*"
 commit-linter = "^1.0.2"
 
+
 [tool.poetry.scripts]
 magnus= 'magnus.cli:cli'
 
@@ -68,7 +68,7 @@ magnus= 'magnus.cli:cli'
 # Plugins for Experiment tracker
 [tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]
 "do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
-"mlflow" = "magnus.experiment_tracker:MLFlowExperimentTracker"
+#"mlflow" = "magnus.experiment_tracker:MLFlowExperimentTracker"
 
 # Plugins for Integration
 [tool.poetry.plugins."magnus.integration.BaseIntegration"]
@@ -103,6 +103,28 @@ magnus= 'magnus.cli:cli'
 "as-is" = "magnus.nodes:AsISNode"
 
 
+[tool.poetry.group.dev.dependencies]
+python-semantic-release = "^7.33.1"
+
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+pattern = "default-unprefixed"
+vcs = "git"
+tag-branch = "main"
+style = "semver"
+latest-tag = true
+format-jinja = "{% if distance == 0 %}{{ base }}{% else %}{{ base }}+{{ commit }}{% endif %}"
+
+[tool.semantic_release]
+version_toml = "pyproject.toml:tool.poetry.version"
+branch = "main"
+version_source = "tag"
+major_on_zero = true
+commit_version_number = false
+upload_to_pypi = false
+upload_to_repository = false
+upload_to_release = true
