@@ -39,6 +39,7 @@ tox = "^3.24.5"
 pre-commit = "*"
 commit-linter = "^1.0.2"
 
+
 [tool.poetry.scripts]
 magnus= 'magnus.cli:cli'
 
@@ -101,13 +102,29 @@ magnus= 'magnus.cli:cli'
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
 
+
+[tool.poetry.group.dev.dependencies]
+python-semantic-release = "^7.33.1"
+
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry-dynamic-versioning]
 enable = true
+pattern = "default-unprefixed"
 vcs = "git"
 tag-branch = "main"
 style = "semver"
+latest-tag = true
 format-jinja = "{% if distance == 0 %}{{ base }}{% else %}{{ base }}+{{ commit }}{% endif %}"
+
+[tool.semantic_release]
+version_toml = "pyproject.toml:tool.poetry.version"
+major_on_zero = true
+commit_version_number = false
+upload_to_pypi = false
+upload_to_repository = false
+upload_to_release = true
+version_pattern = (\d+\.\d+\.\d+)
+version_source = tag
