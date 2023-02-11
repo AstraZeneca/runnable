@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.0.0"
+version = "0.4.1"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
@@ -121,10 +121,10 @@ format-jinja = "{% if distance == 0 %}{{ base }}{% else %}{{ base }}+{{ commit }
 
 [tool.semantic_release]
 version_toml = "pyproject.toml:tool.poetry.version"
+branch = "main"
+version_source = "tag"
 major_on_zero = true
 commit_version_number = false
 upload_to_pypi = false
 upload_to_repository = false
 upload_to_release = true
-version_pattern = (\d+\.\d+\.\d+)
-version_source = tag
