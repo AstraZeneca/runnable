@@ -17,7 +17,7 @@ jobs:
       - name: Figure version
         run: |
           python -m poetry install
-          VERSION=$(semantic-release print-version)
+          VERSION=$(poetry run semantic-release print-version)
           echo $VERSION
       - name: Tag git
         run: |
