@@ -18,7 +18,7 @@ jobs:
       - run: python -m pip install python-semantic-release
       - name: Figure version
         run: |
-          VERSION=$(semantic-release print-version)
+          VERSION=$(semantic-release print-version --verbosity=DEBUG)
           echo $VERSION
       - name: Tag git
         run: |
