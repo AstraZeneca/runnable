@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magnus"
-version = "0.4.0"
+version = "0.4.1"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
@@ -107,17 +107,8 @@ magnus= 'magnus.cli:cli'
 python-semantic-release = "^7.33.1"
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
-build-backend = "poetry_dynamic_versioning.backend"
-
-[tool.poetry-dynamic-versioning]
-enable = true
-pattern = "default-unprefixed"
-vcs = "git"
-tag-branch = "main"
-style = "semver"
-latest-tag = true
-format-jinja = "{% if distance == 0 %}{{ base }}{% else %}{{ base }}+{{ commit }}{% endif %}"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.semantic_release]
 version_toml = "pyproject.toml:tool.poetry.version"
