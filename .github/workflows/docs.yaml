@@ -4,6 +4,8 @@ on:
     branches:
       - main
 jobs:
+  check-label:
+    if: ${{ github.event.label.name == 'benchmark' }}
   deploy:
     runs-on: ubuntu-latest
     steps:
