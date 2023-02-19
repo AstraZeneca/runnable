@@ -93,7 +93,7 @@ class BaseExecutor:
         self.run_log_store: BaseRunLogStore = None  # type: ignore
         self.previous_run_log = None
 
-        self.context_step_log: StepLog = None  # type: ignore
+        self.context_step_log: Optional[StepLog] = None
 
     @property
     def step_decorator_run_id(self):
@@ -272,12 +272,15 @@ class BaseExecutor:
         # If the key already exists, do not update it to give priority to parameters set by environment variables
         interaction.store_parameter(update=False, **parameters)
 
-        data_catalogs_get = self._sync_catalog(node, step_log, stage='get')
+        data_catalogs_get = []
 
         mock = step_log.mock
         logger.info(f'Trying to execute node: {node.internal_name}, attempt : {attempts}, max_attempts: {max_attempts}')
         while attempts < max_attempts:
             try:
+                if not data_catalogs_get:
+                    data_catalogs_get = self._sync_catalog(node, step_log, stage='get')
+
                 self.context_step_log = step_log
                 attempt_log = node.execute(executor=self, mock=mock,
                                            map_variable=map_variable, **kwargs)
@@ -289,6 +292,7 @@ class BaseExecutor:
                 step_log.status = defaults.SUCCESS
                 step_log.user_defined_metrics = utils.get_tracked_data()
                 self.run_log_store.set_parameters(self.run_id, utils.get_user_set_parameters(remove=True))
+                self._sync_catalog(node, step_log, stage='put', synced_catalogs=data_catalogs_get)
                 break
             except Exception as _e:  # pylint: disable=W0703
                 attempts += 1
@@ -303,7 +307,6 @@ class BaseExecutor:
                 step_log.status = defaults.FAIL
                 logger.error(f'Node {node} failed, max retries of {max_attempts} reached')
 
-        self._sync_catalog(node, step_log, stage='put', synced_catalogs=data_catalogs_get)
         self.run_log_store.add_step_log(step_log, self.run_id)
 
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
@@ -386,6 +389,7 @@ class BaseExecutor:
         self.trigger_job(node=node, map_variable=map_variable, **kwargs)
 
     def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
+        # TODO: Is this required now?
         """
         Executor specific way of triggering jobs.
 

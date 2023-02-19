@@ -176,7 +176,6 @@ class FileSystemCatalog(BaseCatalog):
         compute_data_folder: The folder to source the data from.
 
     """
-    # TODO think of compression algorithms to save disk space, ZipFile
     service_name = 'file-system'
 
     class Config(BaseCatalog.Config):
@@ -214,13 +213,6 @@ class FileSystemCatalog(BaseCatalog):
             copy_to = compute_data_folder
 
         copy_to = Path(copy_to)  # type: ignore
-
-        if not utils.does_dir_exist(copy_to):
-            msg = (
-                f'Expected compute data folder to be present at: {copy_to} but not found. \n'
-                'Note: Magnus does not create the compute data folder for you. Please ensure that the folder exists.\n'
-            )
-            raise Exception(msg)
 
         catalog_location = self.catalog_location
         run_catalog = Path(catalog_location) / run_id / copy_to
