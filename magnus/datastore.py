@@ -16,7 +16,7 @@ logger = logging.getLogger(defaults.NAME)
 # Breaking this rule might make magnus backwardly incompatible
 
 
-class DataCatalog(BaseModel, extra=Extra.allow):
+class DataCatalog(BaseModel, extra=Extra.allow):  # type: ignore
     """
     The captured attributes of a catalog item.
     """
@@ -49,7 +49,7 @@ class StepAttempt(BaseModel):
     message: str = ''
 
 
-class CodeIdentity(BaseModel, extra=Extra.allow):
+class CodeIdentity(BaseModel, extra=Extra.allow):  # extra = Extra.allow
     """
     The captured attributes of a code identity of a step.
     """
