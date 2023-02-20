@@ -171,13 +171,6 @@ def test_base_executor_add_code_identities_adds_git_identity(mocker, monkeypatch
     assert mock_step_log.code_identities == ['code id']
 
 
-def test_base_executor_trigger_job_raises_exception():
-    base_executor = executor.BaseExecutor(config=None)
-
-    with pytest.raises(NotImplementedError):
-        base_executor.trigger_job(node=None)
-
-
 def test_base_executor_execute_from_graph_executes_node_for_success_or_fail(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_run_log_store = mocker.MagicMock()

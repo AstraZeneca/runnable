@@ -26,7 +26,7 @@ docker = ['docker']
 notebook = ['ploomber-engine']
 
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 autopep8 = "*"
 pylint = "*"
 pytest = "*"
@@ -38,7 +38,7 @@ mypy = "^0.931"
 tox = "^3.24.5"
 pre-commit = "*"
 commit-linter = "^1.0.2"
-
+python-semantic-release = "^7.33.1"
 
 [tool.poetry.scripts]
 magnus= 'magnus.cli:cli'
@@ -101,10 +101,6 @@ magnus= 'magnus.cli:cli'
 "map" = "magnus.nodes:MapNode"
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
-
-
-[tool.poetry.group.dev.dependencies]
-python-semantic-release = "^7.33.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

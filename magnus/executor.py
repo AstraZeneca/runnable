@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import re
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -15,7 +15,7 @@ from magnus.nodes import BaseNode
 
 if TYPE_CHECKING:
     from magnus.catalog import BaseCatalog
-    from magnus.datastore import BaseRunLogStore, StepLog
+    from magnus.datastore import BaseRunLogStore, DataCatalog, StepLog
     from magnus.experiment_tracker import BaseExperimentTracker
     from magnus.secrets import BaseSecrets
 
@@ -272,7 +272,7 @@ class BaseExecutor:
         # If the key already exists, do not update it to give priority to parameters set by environment variables
         interaction.store_parameter(update=False, **parameters)
 
-        data_catalogs_get = []
+        data_catalogs_get: List[DataCatalog] = []
 
         mock = step_log.mock
         logger.info(f'Trying to execute node: {node.internal_name}, attempt : {attempts}, max_attempts: {max_attempts}')
@@ -389,18 +389,17 @@ class BaseExecutor:
         self.trigger_job(node=node, map_variable=map_variable, **kwargs)
 
     def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
-        # TODO: Is this required now?
         """
-        Executor specific way of triggering jobs.
+        Executor specific way of triggering jobs when magnus does both traversal and execution
 
         Args:
             node (BaseNode): The node to execute
             map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to ''.
 
-        Raises: NotImplementedError Base class hence not implemented
+        NOTE: We do not raise an exception as this method is not required by many extensions
         """
-        raise NotImplementedError
+        pass
 
     def _get_status_and_next_node_name(self, current_node: BaseNode, dag: Graph, map_variable: dict = None):
         """
@@ -813,21 +812,6 @@ class DemoRenderer(BaseExecutor):
         step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
         if step_log.status == defaults.FAIL:
             raise Exception(f'Step {node.name} failed')
-
-    def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
-        """
-        Executor specific way of triggering jobs.
-
-        This method has to be changed to do what exactly you want as part of your computational engine
-
-        If your compute is not local, use utils.get_node_execution_command(self, node, map_variable=map_variable)
-        to get the command to run a single node.
-
-        If the compute is local to the environment, calls prepare_for_node_execution and call _execute_node
-        NOTE: This method should always be implemented.
-        """
-        self.prepare_for_node_execution()
-        self.execute_node(node=node, map_variable=map_variable, **kwargs)
 
     def send_return_code(self, stage='traversal'):
         """
