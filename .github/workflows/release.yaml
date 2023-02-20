@@ -19,13 +19,15 @@ jobs:
       - name: Figure version
         id: last_tag
         run: |
-          VERSION=$(semantic-release print-version --verbosity=DEBUG)
+          VERSION=$(semantic-release print-version --patch)
           echo $VERSION
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       - name: Tag git
         env:
           LAST_TAG: ${{ steps.last_tag.outputs.version }}
         run: |
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
           git tag -a $LAST_TAG -m "Release from GH action"
           git push origin $LAST_TAG
       # - name: Publish to PyPI
