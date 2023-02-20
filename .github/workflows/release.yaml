@@ -21,10 +21,10 @@ jobs:
         run: |
           VERSION=$(semantic-release print-version --verbosity=DEBUG)
           echo $VERSION
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
       - name: Tag git
         env:
-          LAST_TAG: ${{ steps.last_tag.outputs.result }}
+          LAST_TAG: ${{ steps.last_tag.outputs.version }}
         run: |
           git tag -a $LAST_TAG -m "Release from GH action"
           git push origin $LAST_TAG
