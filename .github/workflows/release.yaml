@@ -2,6 +2,8 @@ on:
   push:
     paths-ignore:
       - "docs/**"
+    branches:
+      - "main"
 
 jobs:
   Release:
@@ -17,7 +19,7 @@ jobs:
       - name: Figure version
         id: last_tag
         run: |
-          VERSION=$(semantic-release print-version --patch)
+          VERSION=$(semantic-release print-version)
           echo $VERSION
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       - name: Tag git

@@ -49,7 +49,7 @@ class StepAttempt(BaseModel):
     message: str = ''
 
 
-class CodeIdentity(BaseModel, extra=Extra.allow):  # extra = Extra.allow
+class CodeIdentity(BaseModel, extra=Extra.allow):  # type: ignore
     """
     The captured attributes of a code identity of a step.
     """
