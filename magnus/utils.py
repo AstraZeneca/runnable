@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Callable, List, Mapping, Tuple, Union
 from ruamel.yaml import YAML  # type: ignore
 from stevedore import driver
 
-from magnus import defaults
+from magnus import defaults, names
 
 if TYPE_CHECKING:
     from magnus.executor import BaseExecutor
@@ -87,7 +87,8 @@ def generate_run_id(run_id: str = None) -> str:
     """
     # If we are not provided with a run_id, generate one
     if not run_id:
-        run_id = datetime.now().strftime('%Y%m%d%H%M%S')
+        now = datetime.now()
+        run_id = f"{names.get_random_name()}-{now.hour:02}{now.minute:02}"
 
     return run_id
 
