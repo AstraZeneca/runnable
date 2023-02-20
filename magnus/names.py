@@ -523,7 +523,7 @@ right = [
 ]
 
 
-def get_random_name(sep='_'):
+def get_random_name(sep='-'):
     r = random.SystemRandom()
     name = '%s%s%s' % (r.choice(left), sep, r.choice(right))
     return name

@@ -6,7 +6,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 
 from magnus import defaults, exceptions, utils
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(defaults.NAME)
 # Breaking this rule might make magnus backwardly incompatible
 
 
-class DataCatalog(BaseModel):
+class DataCatalog(BaseModel, extra=Extra.allow):
     """
     The captured attributes of a catalog item.
     """
@@ -49,7 +49,7 @@ class StepAttempt(BaseModel):
     message: str = ''
 
 
-class CodeIdentity(BaseModel):
+class CodeIdentity(BaseModel, extra=Extra.allow):
     """
     The captured attributes of a code identity of a step.
     """

@@ -6,8 +6,6 @@ on:
       - "main"
 
 jobs:
-  check-label:
-    if: ${{ github.event.label.name == 'benchmark' }}
   PRCheck:
     runs-on: ubuntu-latest
     steps:

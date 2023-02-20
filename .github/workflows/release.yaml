@@ -17,16 +17,17 @@ jobs:
           python-version: 3.8
       - run: python -m pip install python-semantic-release
       - name: Figure version
+        id: last_tag
         run: |
           VERSION=$(semantic-release print-version --verbosity=DEBUG)
           echo $VERSION
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       - name: Tag git
         env:
           LAST_TAG: ${{ steps.last_tag.outputs.result }}
         run: |
-          git tag -a $VERSION -m "Release from GH action"
-          git push origin $VERSION
+          git tag -a $LAST_TAG -m "Release from GH action"
+          git push origin $LAST_TAG
       # - name: Publish to PyPI
       #   env:
       #     PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
