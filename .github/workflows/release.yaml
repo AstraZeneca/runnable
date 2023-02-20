@@ -31,6 +31,7 @@ jobs:
       - name: Figure version
         id: last_tag
         run: |
+
           VERSION=$(semantic-release print-version --patch)
           echo $VERSION
           echo "version=$VERSION" >> $GITHUB_OUTPUT
