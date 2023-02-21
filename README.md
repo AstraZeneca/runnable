@@ -46,6 +46,11 @@ Magnus provides patterns typically used in production environments even in the d
 
 [More details about the project and how to use it available here](https://astrazeneca.github.io/magnus-core/).
 
+## Extensions
+
+All the services of magnus are extendable by design, please refer to
+[magnus extensions](https://github.com/AstraZeneca/magnus-extensions)
+
 ## Installation
 
 

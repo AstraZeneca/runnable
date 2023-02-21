@@ -44,9 +44,12 @@ Magnus provides patterns typically used in production environments even in the d
 - Run the same code on your local machines or in production environments.
 
 
-:sparkles::sparkles:Happy Experimenting!!:sparkles::sparkles:
-
 Please find the [github project here](https://github.com/AstraZeneca/magnus-core).
+Supported extensions are available at: [magnus extensions](https://github.com/AstraZeneca/magnus-extensions)
+
+
+Happy Experimenting!!
+
 
 [^1]: We believe that for successful data science projects need good engineering practices and we enable data science
 teams to follow them with ease.
