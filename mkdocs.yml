@@ -1,12 +1,16 @@
 site_name: Magnus
 site_description: "Pipelines made easy"
+strict: true
+repo_url: https://github.com/AstraZeneca/magnus-core
 
 docs_dir: "docs"
 theme:
   logo: assets/logo.png
   favicon: assets/favicon.png
   name: material
-  font: false
+  font:
+    code: Roboto Mono
+    text: Roboto
   shortcuts:
     help: 191 # ?
     next: 78 # n
@@ -14,14 +18,14 @@ theme:
     search: 83 # s
   palette:
     - scheme: default
-      primary: teal
-      accent: amber
+      primary: amber
+      accent: red
       toggle:
         icon: material/lightbulb-outline
         name: Switch to dark mode
     - scheme: slate
-      primary: teal
-      accent: amber
+      primary: amber
+      accent: red
       toggle:
         icon: material/lightbulb
         name: Switch to light mode
@@ -30,6 +34,8 @@ theme:
     - navigation.top
     - toc.integrate
     - search.suggest
+    - navigation.tabs
+    - navigation.tabs.sticky
 
 # Extensions
 markdown_extensions:
@@ -60,16 +66,16 @@ nav:
       - "Example Deployment": "getting_started/example-deployment.md"
       - "Wrap up": "getting_started/wrap-up.md"
       - "Why magnus": "getting_started/why-magnus.md"
-  - "Tutorial":
-      - "Overview": "tutorial/overview.md"
-      - "Single notebook": "tutorial/single-notebook.md"
-      - "Modular notebooks": "tutorial/modular-notebooks.md"
-      - "Switching configs": "tutorial/switching-configs.md"
-      - "Using parallels": "tutorial/using-parallel.md"
-      - "Dynamic looping": "tutorial/dynamic-looping.md"
-      - "Modular pipelines": "tutorial/modular-dags.md"
-      - "Script based": "tutorial/script-based.md"
-      - "What next?": "tutorial/wrap-up.md"
+  # - "Tutorial":
+  #     - "Overview": "tutorial/overview.md"
+  #     - "Single notebook": "tutorial/single-notebook.md"
+  #     - "Modular notebooks": "tutorial/modular-notebooks.md"
+  #     - "Switching configs": "tutorial/switching-configs.md"
+  #     - "Using parallels": "tutorial/using-parallel.md"
+  #     - "Dynamic looping": "tutorial/dynamic-looping.md"
+  #     - "Modular pipelines": "tutorial/modular-dags.md"
+  #     - "Script based": "tutorial/script-based.md"
+  #     - "What next?": "tutorial/wrap-up.md"
   - "Concepts":
       - "Node": "concepts/nodes.md"
       - "Command types": "concepts/command-types.md"
