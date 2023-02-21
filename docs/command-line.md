@@ -11,10 +11,9 @@ magnus execute
 ---
 !!! Note
 
-   For the above command to work, make sure you are in the environment where magnus was installed.
+    For the above command to work, make sure you are in the environment where magnus was installed.
 
-   If you are using poetry, you can also invoke magnus by ```poetry run magnus execute```
-
+    If you are using poetry, you can also invoke magnus by ```poetry run magnus execute```
 ---
 
 The complete options available are:
@@ -33,7 +32,6 @@ Usage: magnus execute [OPTIONS]
 Options:
   -f, --file TEXT                 The pipeline definition file  [default:
                                   pipeline.yaml]
-  -v, --var-file TEXT             Variables used in pipeline definition
   -c, --config-file TEXT          config file, in yaml, to be used for the run
   -p, --parameters-file TEXT      Parameters, in yaml,  accessible by the
                                   application
@@ -54,15 +52,6 @@ Provided by ```-f```, ```--file``` option on magnus cli.
 
 Defaults to ```pipeline.yaml``` if nothing is provided.
 
-### Variables file
-
-The yaml file containing the variables or placeholder values in the dag definition file.
-
-Provided by ```-v```, ```--var-file``` option on magnus cli.
-
-Defaults to None, if nothing is provided.
-[Read more about parameterized definitions](../../concepts/dag/#parameterized_definition).
-
 
 ### Configurations file
 
@@ -75,7 +64,6 @@ Defaults to None, if nothing is provided.
 Read more about different ways you can configure magnus runs here.
 
 
-!!! warning "Changed in v0.2"
 
 ### Parameters file
 
@@ -124,6 +112,62 @@ Example:
 magnus execute --file example.yaml --run-id 20210506051758 --use-cached old_run_id
 ```
 
+## Executing a Jupyter notebook
+
+This method could be used to run a Jupyter notebook in any environment.
+
+The complete options are:
+
+```
+
+Usage: magnus execute_notebook [OPTIONS] FILENAME
+
+  Entry point to execute a Jupyter notebook in isolation.
+
+  The notebook would be executed in the environment defined by the config file or default if none.
+
+Options:
+  -c, --config-file TEXT          config file, in yaml, to be used for the run
+  -p, --parameters-file TEXT      Parameters, in yaml,  accessible by the
+                                  application
+  --log-level [INFO|DEBUG|WARNING|ERROR|FATAL]
+                                  The log level  [default: WARNING]
+  -d, --data-folder TEXT          The catalog data folder
+  -put, --put-in-catalog TEXT     The data to put from the catalog
+  --tag TEXT                      A tag attached to the run
+  --run-id TEXT                   An optional run_id, one would be generated
+                                  if not provided
+  --help                          Show this message and exit.
+
+```
+
+## Executing a python function
+
+This method could be used to run a python function in any environment.
+
+The complete options are:
+
+```
+Usage: magnus execute_function [OPTIONS] COMMAND
+
+  Entry point to execute a python function in isolation.
+
+  The function would be executed in the environment defined by the config file
+  or default if none.
+
+Options:
+  -c, --config-file TEXT          config file, in yaml, to be used for the run
+  -p, --parameters-file TEXT      Parameters, in yaml,  accessible by the
+                                  application
+  --log-level [INFO|DEBUG|WARNING|ERROR|FATAL]
+                                  The log level  [default: WARNING]
+  -d, --data-folder TEXT          The catalog data folder
+  -put, --put-in-catalog TEXT     The data to put from the catalog
+  --tag TEXT                      A tag attached to the run
+  --run-id TEXT                   An optional run_id, one would be generated
+                                  if not provided
+  --help                          Show this message and exit.
+```
 
 ## Executing a single step
 
@@ -149,7 +193,6 @@ Usage: magnus execute_step [OPTIONS] STEP_NAME
 Options:
   -f, --file TEXT                 The pipeline definition file  [default:
                                   pipeline.yaml]
-  -v, --var-file TEXT             Variables used in pipeline definition
   -c, --config-file TEXT          config file, in yaml, to be used for the run
   -p, --parameters-file TEXT      Parameters, in yaml,  accessible by the
                                   application
@@ -159,7 +202,8 @@ Options:
   --run-id TEXT                   An optional run_id, one would be generated
                                   if not provided
   --use-cached TEXT               Provide the previous run_id to re-run.
-  --help                          Show this message and exit.
+  --help                          Show this message and exit.```
+
 ```
 
 The options have the same meaning as executing a pipeline.

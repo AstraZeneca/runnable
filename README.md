@@ -1,60 +1,46 @@
 # Hello from magnus
 
-Magnus is a data science pipeline definition and execution tool. It provides a way to:
 
-- Define a pipeline steps and the flow.
-- Run the pipeline in any environment, local is default.
-- Store the run metadata and data catalogs and re-run in case of failures.
+![logo](docs/assets/logo1.png)
+---
 
-Once the pipeline is proven to be correct and functional in any environment, there is zero code change
-required to deploy it elsewhere. The behavior of the runs are identical in all environments. Magnus
-is not a queuing or scheduling engine, but delegates that responsibility to chosen deployment patterns.
+**Magnus** is a *thin* layer of abstraction over the underlying infrastructure to enable data scientist and
+machine learning engineers. It provides:
 
-### Short Summary
+- A way to execute Jupyter notebooks/python functions in local or remote platforms.
+- A framework to define complex pipelines via YAML or Python SDK.
+- Robust and *automatic* logging to ensure maximum reproducibility of experiments.
+- A framework to interact with secret managers ranging from environment variables to other vendors.
+- Interactions with various experiment tracking tools.
 
-Magnus provides four capabilities for data teams:
+## What does **thin** mean?
 
-- **Compute execution plan**: A DAG representation of work that you want to get done. Individual nodes of the DAG
-could be simple python or shell tasks or complex deeply nested parallel branches or embedded DAGs themselves.
+- We really have no say in what happens within your notebooks or python functions.
+- We do not dictate how the infrastructure should be configured as long as it satisfies some *basic* criteria.
+    - The underlying infrastructure should support container execution and an orchestration framework.
+    - Some way to handle secrets either via environment variables or secrets manager.
+    - A blob storage or some way to store your intermediate artifacts.
+    - A database or blob storage to store logs.
+- We have no opinion of how your structure your project.
+- We do not creep into your CI/CD practices but it is your responsibility to provide the same environment where ever
+the execution happens. This is usually via git, virtual environment manager and docker.
+- We transpile to the orchestration framework that is used by your teams to do the heavy lifting.
 
-- **Run log store**: A place to store run logs for reporting or re-running older runs. Along with capturing the
-status of execution,  the run logs also capture code identifiers (commits, docker image digests etc), data hashes and
-configuration settings for reproducibility and audit.
-
-- **Data Catalogs**: A way to pass data between nodes of the graph during execution and also serves the purpose of
-versioning the data used by a particular run.
-
-- **Secrets**: A framework to provide secrets/credentials at run time to the nodes of the graph.
-
-### Design decisions:
-
-- **Easy to extend**: All the four capabilities are just definitions and can be implemented in many flavors.
-
-    - **Compute execution plan**: You can choose to run the DAG on your local computer, in containers of local computer
-    or off load the work to cloud providers or translate the DAG to AWS step functions or Argo workflows.
-
-    - **Run log Store**: The actual implementation of storing the run logs could be in-memory, file system, S3,
-    database etc.
-
-    - **Data Catalogs**: The data files generated as part of a run could be stored on file-systems, S3 or could be
-    extended to fit your needs.
-
-    - **Secrets**: The secrets needed for your code to work could be in dotenv, AWS or extended to fit your needs.
-
-- **Pipeline as contract**: Once a DAG is defined and proven to work in local or some environment, there is absolutely
-no code change needed to deploy it to other environments. This enables the data teams to prove the correctness of
-the dag in dev environments while infrastructure teams to find the suitable way to deploy it.
-
-- **Reproducibility**: Run log store and data catalogs hold the version, code commits, data files used for a run
-making it easy to re-run an older run or debug a failed run. Debug environment need not be the same as
-original environment.
-
-- **Easy switch**: Your infrastructure landscape changes over time. With magnus, you can switch infrastructure
-by just changing a config and not code.
+## What does it do?
 
 
-Magnus does not aim to replace existing and well constructed orchestrators like AWS Step functions or
-[argo](https://argoproj.github.io/workflows/) but complements them in a unified, simple and intuitive way.
+![works](docs/assets/work.png)
+
+### Shift Left
+
+Magnus provides patterns typically used in production environments even in the development phase.
+
+- Reduces the need for code refactoring during production phase of the project.
+- Enables best practices and understanding of infrastructure patterns.
+- Run the same code on your local machines or in production environments.
+
+:sparkles::sparkles:Happy Experimenting!!:sparkles::sparkles:
+
 
 ## Documentation
 
@@ -62,7 +48,9 @@ Magnus does not aim to replace existing and well constructed orchestrators like 
 
 ## Installation
 
-### pip
+
+The minimum python version that magnus supports is 3.8
+## pip
 
 magnus is a python package and should be installed as any other.
 
@@ -70,11 +58,20 @@ magnus is a python package and should be installed as any other.
 pip install magnus
 ```
 
-# Example Run
+We recommend that you install magnus in a virtual environment specific to the project and also poetry for your
+application development.
+
+The command to install in a poetry managed virtual environment
+
+```
+poetry add magnus
+```
+
+## Example Run
 
 To give you a flavour of how magnus works, lets create a simple pipeline.
 
-Copy the contents of this yaml into getting-started.yaml.
+Copy the contents of this yaml into getting-started.yaml or alternatively in a python file if you are using the SDK.
 
 ---
 !!! Note
@@ -108,25 +105,54 @@ dag:
       type: fail
 ```
 
+The same could also be defined via a Python SDK.
+
+```python
+
+#in pipeline.py
+from magnus import Pipeline, Task
+
+def pipeline():
+    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
+                next_node='step shell')
+    second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
+                  command_type='shell', catalog={'put': '*'})
+
+    pipeline = Pipeline(name='getting_started')
+    pipeline.construct([first, second])
+    pipeline.execute(parameters_file='parameters.yaml')
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
 Since the pipeline expects a parameter ```x```, lets provide that using ```parameters.yaml```
 
 ```yaml
 x: 3
 ```
 
+
 And let's run the pipeline using:
 ``` shell
  magnus execute --file getting-started.yaml --parameters-file parameters.yaml
+```
+
+If you are using the python SDK:
+
+```
+poetry run python pipeline.py
 ```
 
 You should see a list of warnings but your terminal output should look something similar to this:
 
 ``` json
 {
-    "run_id": "20220118114608",
-    "dag_hash": "ce0676d63e99c34848484f2df1744bab8d45e33a",
+    "run_id": "20230131195647",
+    "dag_hash": "",
     "use_cached": false,
-    "tag": null,
+    "tag": "",
     "original_run_id": "",
     "status": "SUCCESS",
     "steps": {
@@ -139,19 +165,19 @@ You should see a list of warnings but your terminal output should look something
             "mock": false,
             "code_identities": [
                 {
-                    "code_identifier": "c5d2f4aa8dd354740d1b2f94b6ee5c904da5e63c",
+                    "code_identifier": "e15d1374aac217f649972d11fe772e61b5a2478d",
                     "code_identifier_type": "git",
-                    "code_identifier_dependable": false,
-                    "code_identifier_url": "<INTENTIONALLY REMOVED>",
-                    "code_identifier_message": "<INTENTIONALLY REMOVED>"
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "INTENTIONALLY REMOVED",
+                    "code_identifier_message": ""
                 }
             ],
             "attempts": [
                 {
                     "attempt_number": 0,
-                    "start_time": "2022-01-18 11:46:08.530138",
-                    "end_time": "2022-01-18 11:46:08.530561",
-                    "duration": "0:00:00.000423",
+                    "start_time": "2023-01-31 19:56:55.007931",
+                    "end_time": "2023-01-31 19:56:55.009273",
+                    "duration": "0:00:00.001342",
                     "status": "SUCCESS",
                     "message": ""
                 }
@@ -169,19 +195,19 @@ You should see a list of warnings but your terminal output should look something
             "mock": false,
             "code_identities": [
                 {
-                    "code_identifier": "c5d2f4aa8dd354740d1b2f94b6ee5c904da5e63c",
+                    "code_identifier": "e15d1374aac217f649972d11fe772e61b5a2478d",
                     "code_identifier_type": "git",
-                    "code_identifier_dependable": false,
-                    "code_identifier_url": "<INTENTIONALLY REMOVED>",
-                    "code_identifier_message": "<INTENTIONALLY REMOVED>"
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "INTENTIONALLY REMOVED",
+                    "code_identifier_message": ""
                 }
             ],
             "attempts": [
                 {
                     "attempt_number": 0,
-                    "start_time": "2022-01-18 11:46:08.576522",
-                    "end_time": "2022-01-18 11:46:08.588158",
-                    "duration": "0:00:00.011636",
+                    "start_time": "2023-01-31 19:56:55.128697",
+                    "end_time": "2023-01-31 19:56:55.150878",
+                    "duration": "0:00:00.022181",
                     "status": "SUCCESS",
                     "message": ""
                 }
@@ -190,9 +216,9 @@ You should see a list of warnings but your terminal output should look something
             "branches": {},
             "data_catalog": [
                 {
-                    "name": "data.txt",
-                    "data_hash": "8f25ba24e56f182c5125b9ede73cab6c16bf193e3ad36b75ba5145ff1b5db583",
-                    "catalog_relative_path": "20220118114608/data.txt",
+                    "name": "data/data.txt",
+                    "data_hash": "7e91b0a9ff8841a3b5bf2c711f58bcc0cbb6a7f85b9bc92aa65e78cdda59a96e",
+                    "catalog_relative_path": "20230131195647/data/data.txt",
                     "catalog_handler_location": ".catalog",
                     "stage": "put"
                 }
@@ -207,19 +233,19 @@ You should see a list of warnings but your terminal output should look something
             "mock": false,
             "code_identities": [
                 {
-                    "code_identifier": "c5d2f4aa8dd354740d1b2f94b6ee5c904da5e63c",
+                    "code_identifier": "e15d1374aac217f649972d11fe772e61b5a2478d",
                     "code_identifier_type": "git",
-                    "code_identifier_dependable": false,
-                    "code_identifier_url": "<INTENTIONALLY REMOVED>",
-                    "code_identifier_message": "<INTENTIONALLY REMOVED>"
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "INTENTIONALLY REMOVED",
+                    "code_identifier_message": ""
                 }
             ],
             "attempts": [
                 {
                     "attempt_number": 0,
-                    "start_time": "2022-01-18 11:46:08.639563",
-                    "end_time": "2022-01-18 11:46:08.639680",
-                    "duration": "0:00:00.000117",
+                    "start_time": "2023-01-31 19:56:55.239877",
+                    "end_time": "2023-01-31 19:56:55.240116",
+                    "duration": "0:00:00.000239",
                     "status": "SUCCESS",
                     "message": ""
                 }
@@ -235,7 +261,10 @@ You should see a list of warnings but your terminal output should look something
     "run_config": {
         "executor": {
             "type": "local",
-            "config": {}
+            "config": {
+                "enable_parallel": false,
+                "placeholders": {}
+            }
         },
         "run_log_store": {
             "type": "buffered",
@@ -243,11 +272,59 @@ You should see a list of warnings but your terminal output should look something
         },
         "catalog": {
             "type": "file-system",
-            "config": {}
+            "config": {
+                "compute_data_folder": "data",
+                "catalog_location": ".catalog"
+            }
         },
         "secrets": {
             "type": "do-nothing",
             "config": {}
+        },
+        "experiment_tracker": {
+            "type": "do-nothing",
+            "config": {}
+        },
+        "variables": {},
+        "pipeline": {
+            "start_at": "step parameters",
+            "name": "getting_started",
+            "description": "",
+            "max_time": 86400,
+            "steps": {
+                "step parameters": {
+                    "mode_config": {},
+                    "next_node": "step shell",
+                    "command": "lambda x: {'x': int(x) + 1}",
+                    "command_type": "python-lambda",
+                    "command_config": {},
+                    "catalog": {},
+                    "retry": 1,
+                    "on_failure": "",
+                    "type": "task"
+                },
+                "step shell": {
+                    "mode_config": {},
+                    "next_node": "success",
+                    "command": "mkdir data ; env >> data/data.txt",
+                    "command_type": "shell",
+                    "command_config": {},
+                    "catalog": {
+                        "put": "*"
+                    },
+                    "retry": 1,
+                    "on_failure": "",
+                    "type": "task"
+                },
+                "success": {
+                    "mode_config": {},
+                    "type": "success"
+                },
+                "fail": {
+                    "mode_config": {},
+                    "type": "fail"
+                }
+            }
         }
     }
 }

@@ -1,13 +1,14 @@
 # Integration
 
-Magnus at the core provides 4 services
+Magnus at the core provides 5 services
 
 - A computational execution plan or an Executor.
 - A run log store to store metadata and run logs.
 - A cataloging functionality to pass data between steps and audibility trace.
 - A framework to handle secrets.
+- A framework to interact with experiment tracking tools.
 
-The executor plays the role of talking to other 3 service providers to process the graph, keep track of the status
+The executor plays the role of talking to other 4 service providers to process the graph, keep track of the status
 of the run, pass data between steps and provide secrets.
 
 Depending upon the stage of execution, the executor might do one of the two actions

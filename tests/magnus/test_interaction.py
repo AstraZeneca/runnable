@@ -2,18 +2,23 @@ import os
 
 import pytest
 
+import magnus
 from magnus import defaults  # pylint: disable=import-error
 from magnus import exceptions  # pylint: disable=import-error
 from magnus import interaction  # pylint: disable=import-error
 
 
-def test_track_this_adds_values_to_environ():
+def test_track_this_adds_values_to_environ(monkeypatch, mocker):
+    mock_executor = mocker.MagicMock()
+    monkeypatch.setattr(magnus.pipeline, 'global_executor', mock_executor)
     interaction.track_this(a='b')
     assert defaults.TRACK_PREFIX + 'a' in os.environ
     del os.environ[defaults.TRACK_PREFIX + 'a']
 
 
-def test_track_this_adds_multiple_values_to_environ():
+def test_track_this_adds_multiple_values_to_environ(mocker, monkeypatch):
+    mock_executor = mocker.MagicMock()
+    monkeypatch.setattr(magnus.pipeline, 'global_executor', mock_executor)
     interaction.track_this(a='b', b='a')
     assert defaults.TRACK_PREFIX + 'a' in os.environ
     assert defaults.TRACK_PREFIX + 'b' in os.environ
@@ -72,7 +77,7 @@ def test_get_secret_raises_exception_if_secrets_handler_raises(mocker, monkeypat
     import magnus.pipeline  # pylint: disable=import-error
     magnus.pipeline.global_executor = mock_global_exec
 
-    #monkeypatch.setattr(magnus.pipeline, 'global_executor', mock_global_exec)
+    # monkeypatch.setattr(magnus.pipeline, 'global_executor', mock_global_exec)
 
     mock_secrets_handler = mocker.MagicMock()
     mock_global_exec.secrets_handler = mock_secrets_handler

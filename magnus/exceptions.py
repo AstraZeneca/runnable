@@ -1,3 +1,15 @@
+class RunLogExistsError(Exception):  # pragma: no cover
+    """
+    Exception class
+    Args:
+        Exception ([type]): [description]
+    """
+
+    def __init__(self, run_id):
+        super().__init__()
+        self.message = f'Run id for {run_id} is already found in the datastore'
+
+
 class RunLogNotFoundError(Exception):  # pragma: no cover
     """
     Exception class
@@ -80,15 +92,3 @@ class SecretNotFoundError(Exception):  # pragma: no cover
     def __init__(self, secret_name, secret_setting):
         super().__init__()
         self.message = f'No secret found by name:{secret_name} in {secret_setting}'
-
-
-class RunLogTypeNotInstalled(Exception):  # pragma: no cover
-    """
-    Exception class
-    Args:
-        Exception ([type]): [description]
-    """
-
-    def __init__(self, message):
-        super().__init__()
-        self.message = message

@@ -58,6 +58,22 @@ dag:
 
     ...
 ```
+
+or via the Python SDK:
+
+```python
+from magnus import Task
+
+catalog = {
+  'compute_data_folder': '' # point to the directory from where the data should be extracted
+  'get': [], # All the files to get from the catalog
+  'put': [] # All the files to put in the catalog
+}
+
+first = Task(name='Cool function', command='my_module.my_cool_function', catalog=catalog)
+
+```
+
 ### compute_data_folder
 
 The ```compute_data_folder``` for a single step could be different from the global ```compute_data_folder```
@@ -134,3 +150,101 @@ Please follow the example provided [here](../dag/#parameterized_definition) for 
 
 You can easily extend magnus to bring in your custom provider, if a default
 implementation does not exist or you are not happy with the implementation.
+
+The ```BaseCatalog``` implementation is as follows:
+
+```python
+# You can find the source code in magnus/catalog.py
+
+from pydantic import BaseModel
+
+class BaseCatalog:
+    """
+    Base Catalog class definition.
+
+    All implementations of the catalog handler should inherit and extend this class.
+    """
+    service_name = ''
+
+    class Config(BaseModel):
+        compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
+
+    def __init__(self, config: dict, **kwargs):
+        config = config or {}
+        self.config = self.Config(**config)
+
+    @property
+    def compute_data_folder(self) -> str:
+        """
+        Returns the compute data folder defined as per the config of the catalog.
+
+        Returns:
+            [str]: The compute data folder as defined or defaults to magnus default 'data/'
+        """
+        return self.config.compute_data_folder
+
+    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
+        """
+        Get the catalog item by 'name' for the 'run id' and store it in compute data folder.
+
+        The catalog location should have been created before you can get from it.
+
+        Args:
+            name (str): The name of the catalog item
+            run_id (str): The run_id of the run.
+            compute_data_folder (str, optional): The compute data folder. Defaults to magnus default (data/)
+
+        Raises:
+            NotImplementedError: Base class, hence not implemented
+
+        Returns:
+            List(object) : A list of catalog objects
+        """
+        raise NotImplementedError
+
+    def put(self, name: str, run_id: str, compute_data_folder=None, synced_catalogs=None, **kwargs) -> List[object]:
+
+        """
+        Put the file by 'name' from the 'compute_data_folder' in the catalog for the run_id.
+
+        If previous syncing has happened and the file has not been changed, we do not sync again.
+
+        Args:
+            name (str): The name of the catalog item.
+            run_id (str): The run_id of the run.
+            compute_data_folder (str, optional): The compute data folder. Defaults to magnus default (data/)
+            synced_catalogs (dict, optional): Any previously synced catalogs. Defaults to None.
+
+        Raises:
+            NotImplementedError: Base class, hence not implemented
+
+        Returns:
+            List(object) : A list of catalog objects
+        """
+        raise NotImplementedError
+
+    def sync_between_runs(self, previous_run_id: str, run_id: str):
+        """
+        Given run_id of a previous run, sync them to the catalog of the run given by run_id.
+
+        This function is used for re-running older runs.
+
+        Args:
+            previous_run_id (str): The run id of the previous run
+            run_id (str): The run_id to which the data catalogs should be synced to.
+
+        Raises:
+            NotImplementedError: Base class, hence not implemented
+        """
+        raise NotImplementedError
+```
+
+
+The custom extensions should be registered as part of the namespace: ```magnus.catalog.BaseCatalog``` for it to be
+loaded.
+
+```toml
+# For example, as part of your pyproject.toml
+[tool.poetry.plugins."magnus.catalog.BaseCatalog"]
+"gfs" = "YOUR_PACKAGE:GFStorage"
+```

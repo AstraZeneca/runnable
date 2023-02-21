@@ -1,17 +1,16 @@
 [tool.poetry]
 name = "magnus"
-version = "0.3.5"
+version = "0"
 description = "A Compute agnostic pipelining software"
-authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
+authors = ["Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/AstraZeneca/magnus-core"
 repository = "https://github.com/AstraZeneca/magnus-core"
 documentation = "https://astrazeneca.github.io/magnus-core/"
 
-
 [tool.poetry.dependencies]
-python = "^3.6.1"
+python = "^3.8"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 yachalk = "*"
@@ -19,15 +18,15 @@ pydantic = "^1.9.0"
 stevedore = "^3.5.0"
 "click" = "*"
 docker ={ version = "*", optional = true }
-papermill ={ version = "*", optional = true }
 click-plugins = "^1.1.1"
+ploomber-engine ={ version= "^0.0.19", optional = true }
 
 [tool.poetry.extras]
 docker = ['docker']
-notebook = ['papermill']
+notebook = ['ploomber-engine']
 
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 autopep8 = "*"
 pylint = "*"
 pytest = "*"
@@ -38,6 +37,8 @@ mkdocs-material = "*"
 mypy = "^0.931"
 tox = "^3.24.5"
 pre-commit = "*"
+commit-linter = "^1.0.2"
+python-semantic-release = "^7.33.1"
 
 [tool.poetry.scripts]
 magnus= 'magnus.cli:cli'
@@ -57,11 +58,17 @@ magnus= 'magnus.cli:cli'
 [tool.poetry.plugins."magnus.secrets.BaseSecrets"]
 "do-nothing" = "magnus.secrets:DoNothingSecretManager"
 "dotenv" = "magnus.secrets:DotEnvSecrets"
+"env-secrets-manager" = "magnus.secrets:EnvSecretsManager"
 
 # Plugins for Run Log store
 [tool.poetry.plugins."magnus.datastore.BaseRunLogStore"]
 "buffered" = "magnus.datastore:BufferRunLogstore"
 "file-system" = "magnus.datastore:FileSystemRunLogstore"
+
+# Plugins for Experiment tracker
+[tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]
+"do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
+#"mlflow" = "magnus.experiment_tracker:MLFlowExperimentTracker"
 
 # Plugins for Integration
 [tool.poetry.plugins."magnus.integration.BaseIntegration"]
@@ -71,6 +78,7 @@ magnus= 'magnus.cli:cli'
 "local-container-run_log_store-buffered" = "magnus.integration:LocalContainerComputeBufferedRunLogStore"
 "local-container-run_log_store-file-system" = "magnus.integration:LocalContainerComputeFileSystemRunLogstore"
 "local-container-secrets-dotenv" = "magnus.integration:LocalContainerComputeDotEnvSecrets"
+"local-container-secrets-environment" = "magnus.integration:LocalContainerComputeEnvSecretsManager"
 "local-container-catalog-do-nothing" = "magnus.integration:LocalContainerDoNothingCatalog"
 "local-catalog-do-nothing" = "magnus.integration:LocalDoNothingCatalog"
 "local-container-catalog-file-system" = "magnus.integration:LocalContainerComputeFileSystemCatalog"
@@ -82,6 +90,7 @@ magnus= 'magnus.cli:cli'
 "python-lambda" = "magnus.tasks:PythonLambdaTaskType"
 "shell" = "magnus.tasks:ShellTaskType"
 "notebook" = "magnus.tasks:NotebookTaskType"
+"python-function" = "magnus.tasks:PythonFunctionType"
 
 # Plugins for Nodes
 [tool.poetry.plugins."magnus.nodes.BaseNode"]
@@ -93,8 +102,16 @@ magnus= 'magnus.cli:cli'
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
 
-# TODO: Can we use this to configure magnus?
-
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.semantic_release]
+branch = "main"
+tag_commit = false
+version_source = "tag_only"
+major_on_zero = true
+commit_version_number = false
+upload_to_pypi = false
+upload_to_repository = false
+upload_to_release = false

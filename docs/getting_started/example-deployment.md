@@ -29,43 +29,47 @@ dag:
       type: fail
 ```
 
+Or in Python SDK:
+
+```python
+
+#in pipeline.py
+from magnus import Pipeline, Task
+
+def pipeline():
+    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
+                next_node='step shell')
+    second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
+                  command_type='shell', catalog={'put': '*'})
+
+    pipeline = Pipeline(start_at=first, name='getting_started')
+    pipeline.construct([first, second])
+    pipeline.execute(parameters_file='parameters.yaml')
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
 The pipeline is simple and demonstrates the core concepts of data catalog, dag traversal, passing data between
 nodes and task types.
 
 To demonstrate the strength of magnus, let us try to "deploy" the pipeline via a Bash shell script. This demonstration,
-though trivial, is very similar in process to translating a dag into something that argo or AWS step functions
+though trivial, is very similar in process to *transpile* a dag into something that argo or AWS step functions
 understands.
 
-Let us edit the ```getting-started.yaml``` file by adding these lines at the top:
+Let us create a configuration file which changes the behavior of magnus to transpile.
 
 ```yaml
+# config.yaml
 mode:
   type: demo-renderer
 
 run_log_store:
   type: file-system
 
-dag:
-  description: Getting started
-  start_at: step parameters
-  steps:
-    step parameters:
-      type: task
-      command_type: python-lambda
-      command: "lambda x: {'x': int(x) + 1}"
-      next: step shell
-    step shell:
-      type: task
-      command_type: shell
-      command: mkdir data ; env >> data/data.txt
-      next: success
-      catalog:
-        put:
-          - "*"
-    success:
-      type: success
-    fail:
-      type: fail
+catalog:
+  type: file-system
 
 ```
 
@@ -73,7 +77,7 @@ dag:
 
 - We have not changed the dag definition at all.
 
-- We added a config variable at the top which modifies the execution type to "demo-renderer".
+- We added a config file which instructs the execution type to "demo-renderer".
 [Demo renderer](../../concepts/modes-implementations/demo-renderer) translates the dag definition into a bash script.
 
 - The buffered run log store that we have so far used in the example is not suitable anymore.
@@ -82,13 +86,32 @@ on physical folder and therefore more suitable.
 
 There are other ways to change the configurations which are detailed [here](../../concepts/configurations).
 
-## Translation
+## Transpilation
 
-!!! warning "Changed in v0.2"
 
 We can execute the pipeline, just like we did it previously, by the following command.
 
-```magnus execute --file getting-started.yaml --parameters-file parameters.yaml```
+```magnus execute --file getting-started.yaml --parameters-file parameters.yaml -config-file config.yaml```
+
+or in python SDK:
+
+```python
+#in pipeline.py
+from magnus import Pipeline, Task
+
+def pipeline():
+    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
+                next_node='step shell')
+    second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
+                  command_type='shell', catalog={'put': '*'})
+
+    pipeline = Pipeline(start_at=first, name='getting_started')
+    pipeline.construct([first, second])
+    pipeline.execute(parameters_file='parameters.yaml', configuration_file='config.yaml')
+
+if __name__ == '__main__':
+    pipeline()
+```
 
 This run is different from the previous execution
 
@@ -102,23 +125,23 @@ translation of the dag into a bash script.
 Let us have a closer look at the contents of the ```demo-bash.sh```.
 
 ```shell
-magnus execute_single_node $1 step%parameters --file getting-started.yaml
+magnus execute_single_node $1 step%parameters --log-level WARNING --file pipeline.yaml --config-file config.yaml --parameters-file parameters.yaml
 exit_code=$?
 echo $exit_code
 if [ $exit_code -ne 0 ];
 then
-	 $(magnus execute_single_node $1 fail --file getting-started.yaml)
+	 $(magnus execute_single_node $1 fail --log-level WARNING --file pipeline.yaml --config-file config.yaml --parameters-file parameters.yaml)
 	exit 1
 fi
-magnus execute_single_node $1 step%shell --file getting-started.yaml
+magnus execute_single_node $1 step%shell --log-level WARNING --file pipeline.yaml --config-file config.yaml --parameters-file parameters.yaml
 exit_code=$?
 echo $exit_code
 if [ $exit_code -ne 0 ];
 then
-	 $(magnus execute_single_node $1 fail --file getting-started.yaml)
+	 $(magnus execute_single_node $1 fail --log-level WARNING --file pipeline.yaml --config-file config.yaml --parameters-file parameters.yaml)
 	exit 1
 fi
-magnus execute_single_node $1 success --file getting-started.yaml
+magnus execute_single_node $1 success --log-level WARNING --file pipeline.yaml --config-file config.yaml --parameters-file parameters.yaml```
 ```
 
 The shell script does the following
@@ -154,10 +177,10 @@ run log in it by the name ```my_first_bash.json```.
 
 ```json
 {
-    "run_id": "my_first_bash",
+    "run_id": "demo-bash6",
     "dag_hash": "ce0676d63e99c34848484f2df1744bab8d45e33a",
     "use_cached": false,
-    "tag": null,
+    "tag": "",
     "original_run_id": "",
     "status": "SUCCESS",
     "steps": {
@@ -170,19 +193,19 @@ run log in it by the name ```my_first_bash.json```.
             "mock": false,
             "code_identities": [
                 {
-                    "code_identifier": "493ae8c868fea18e50e6b6410f2c2290ab8d6734",
+                    "code_identifier": "6ae3f4700fd07d529385148c34ed5c0b9a1c0727",
                     "code_identifier_type": "git",
-                    "code_identifier_dependable": false,
-                    "code_identifier_url": "<INTENTIONALLY REMOVED>",
-                    "code_identifier_message": "<INTENTIONALLY REMOVED>"
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "INTENTIONALLY REMOVED",
+                    "code_identifier_message": ""
                 }
             ],
             "attempts": [
                 {
                     "attempt_number": 0,
-                    "start_time": "2022-01-19 08:23:46.720498",
-                    "end_time": "2022-01-19 08:23:46.720987",
-                    "duration": "0:00:00.000489",
+                    "start_time": "2023-02-01 12:12:26.533528",
+                    "end_time": "2023-02-01 12:12:26.534091",
+                    "duration": "0:00:00.000563",
                     "status": "SUCCESS",
                     "message": ""
                 }
@@ -200,19 +223,19 @@ run log in it by the name ```my_first_bash.json```.
             "mock": false,
             "code_identities": [
                 {
-                    "code_identifier": "493ae8c868fea18e50e6b6410f2c2290ab8d6734",
+                    "code_identifier": "6ae3f4700fd07d529385148c34ed5c0b9a1c0727",
                     "code_identifier_type": "git",
-                    "code_identifier_dependable": false,
-                    "code_identifier_url": "<INTENTIONALLY REMOVED>",
-                    "code_identifier_message": "<INTENTIONALLY REMOVED>"
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "INTENTIONALLY REMOVED",
+                    "code_identifier_message": ""
                 }
             ],
             "attempts": [
                 {
                     "attempt_number": 0,
-                    "start_time": "2022-01-19 08:23:47.351849",
-                    "end_time": "2022-01-19 08:23:47.377000",
-                    "duration": "0:00:00.025151",
+                    "start_time": "2023-02-01 12:12:29.287087",
+                    "end_time": "2023-02-01 12:12:29.302014",
+                    "duration": "0:00:00.014927",
                     "status": "SUCCESS",
                     "message": ""
                 }
@@ -221,9 +244,9 @@ run log in it by the name ```my_first_bash.json```.
             "branches": {},
             "data_catalog": [
                 {
-                    "name": "data.txt",
-                    "data_hash": "011ba0c5de6693e544d838f7cd43f41ebe47b7a16053d17f3173f171c90579d6",
-                    "catalog_relative_path": "my_first_bash/data.txt",
+                    "name": "data/data.txt",
+                    "data_hash": "474c6f64a8bbbb97a7f01fb1207db9b27db04212ab437d4f495e2ac3f4be7388",
+                    "catalog_relative_path": "demo-bash6/data/data.txt",
                     "catalog_handler_location": ".catalog",
                     "stage": "put"
                 }
@@ -238,19 +261,19 @@ run log in it by the name ```my_first_bash.json```.
             "mock": false,
             "code_identities": [
                 {
-                    "code_identifier": "493ae8c868fea18e50e6b6410f2c2290ab8d6734",
+                    "code_identifier": "6ae3f4700fd07d529385148c34ed5c0b9a1c0727",
                     "code_identifier_type": "git",
-                    "code_identifier_dependable": false,
-                    "code_identifier_url": "<INTENTIONALLY REMOVED>",
-                    "code_identifier_message": "<INTENTIONALLY REMOVED>"
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "INTENTIONALLY REMOVED",
+                    "code_identifier_message": ""
                 }
             ],
             "attempts": [
                 {
                     "attempt_number": 0,
-                    "start_time": "2022-01-19 08:23:48.015055",
-                    "end_time": "2022-01-19 08:23:48.016062",
-                    "duration": "0:00:00.001007",
+                    "start_time": "2023-02-01 12:12:32.083047",
+                    "end_time": "2023-02-01 12:12:32.084351",
+                    "duration": "0:00:00.001304",
                     "status": "SUCCESS",
                     "message": ""
                 }
@@ -266,19 +289,77 @@ run log in it by the name ```my_first_bash.json```.
     "run_config": {
         "executor": {
             "type": "demo-renderer",
-            "config": {}
+            "config": {
+                "enable_parallel": false,
+                "placeholders": {}
+            }
         },
         "run_log_store": {
             "type": "file-system",
-            "config": {}
+            "config": {
+                "log_folder": ".run_log_store"
+            }
         },
         "catalog": {
             "type": "file-system",
-            "config": {}
+            "config": {
+                "compute_data_folder": "data",
+                "catalog_location": ".catalog"
+            }
         },
         "secrets": {
-            "type": "do-nothing",
+            "type": "env-secrets-manager",
             "config": {}
+        },
+        "experiment_tracker": {
+            "type": "mlflow",
+            "config": {
+                "server_url": "http://127.0.0.1:5000/",
+                "autolog": true
+            }
+        },
+        "variables": {},
+        "pipeline": {
+            "start_at": "step parameters",
+            "name": "",
+            "description": "Getting started",
+            "max_time": 86400,
+            "steps": {
+                "step parameters": {
+                    "mode_config": {},
+                    "next_node": "step shell",
+                    "command": "lambda x: {'x': int(x) + 1}",
+                    "command_type": "python-lambda",
+                    "command_config": {},
+                    "catalog": {},
+                    "retry": 1,
+                    "on_failure": "",
+                    "type": "task"
+                },
+                "step shell": {
+                    "mode_config": {},
+                    "next_node": "success",
+                    "command": "mkdir data ; env >> data/data.txt",
+                    "command_type": "shell",
+                    "command_config": {},
+                    "catalog": {
+                        "put": [
+                            "*"
+                        ]
+                    },
+                    "retry": 1,
+                    "on_failure": "",
+                    "type": "task"
+                },
+                "success": {
+                    "mode_config": {},
+                    "type": "success"
+                },
+                "fail": {
+                    "mode_config": {},
+                    "type": "fail"
+                }
+            }
         }
     }
 }

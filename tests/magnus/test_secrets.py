@@ -43,7 +43,7 @@ def test_dot_env_secrets_defaults_to_default_location_if_none_provided(mocker, m
     monkeypatch.setattr(secrets, 'BaseSecrets', mock_base_secret)
 
     dot_env_secret = secrets.DotEnvSecrets(config=None)
-    assert dot_env_secret.get_secrets_location() == defaults.DOTENV_FILE_LOCATION
+    assert dot_env_secret.secrets_location == defaults.DOTENV_FILE_LOCATION
 
 
 def test_dot_env_secrets_usees_location_if_provided(mocker, monkeypatch):
@@ -52,7 +52,8 @@ def test_dot_env_secrets_usees_location_if_provided(mocker, monkeypatch):
     monkeypatch.setattr(secrets, 'BaseSecrets', mock_base_secret)
 
     dot_env_secret = secrets.DotEnvSecrets(config={'location': 'here'})
-    assert dot_env_secret.get_secrets_location() == 'here'
+    assert dot_env_secret.secrets_location == 'here'
+    assert dot_env_secret.config.location == 'here'
 
 
 def test_dot_env_secrets_get_returns_all_secrets_if_no_name_provided(mocker, monkeypatch):

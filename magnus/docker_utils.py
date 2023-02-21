@@ -53,7 +53,7 @@ def build_docker(image_name: str, docker_file: Union[str, None],
             )
             raise Exception(msg)
 
-        tag = utils.get_current_code_commit()[:defaults.LEN_SHA_FOR_TAG]
+        tag = utils.get_current_code_commit()[:defaults.LEN_SHA_FOR_TAG]  # type: ignore
 
     if not docker_file:
         generate_docker_file(style, git_tracked=git_tracked)

@@ -141,14 +141,6 @@ def test_run_log_get_data_catalogs_by_stage_gets_catalogs_from_steps(mocker, mon
     assert data_catalogs == ['data catalog']
 
 
-def test_base_run_log_store_assigns_config():
-    config = {'key': 'value'}
-
-    run_log_store = datastore.BaseRunLogStore(config=config)
-
-    assert run_log_store.config == config
-
-
 def test_base_run_log_store_assigns_empty_config_if_none():
     config = None
 
@@ -545,11 +537,23 @@ def test_file_system_run_log_store_create_run_log_writes_to_folder(mocker, monke
     monkeypatch.setattr(datastore.FileSystemRunLogstore, 'write_to_folder', mock_write_to_folder)
 
     run_log_store = datastore.FileSystemRunLogstore(config=None)
-    run_log = run_log_store.create_run_log(run_id='test')
+    run_log = run_log_store.create_run_log(run_id='test random')
 
     mock_write_to_folder.assert_called_once_with(run_log)
 
-    assert run_log.run_id == 'test'
+    assert run_log.run_id == 'test random'
+
+
+def test_file_system_run_log_store_create_run_log_raises_exception_if_present(mocker, monkeypatch):
+    mock_write_to_folder = mocker.MagicMock()
+    mock_get_run_log_by_id = mocker.MagicMock(return_value='existing')
+
+    monkeypatch.setattr(datastore.FileSystemRunLogstore, 'write_to_folder', mock_write_to_folder)
+    monkeypatch.setattr(datastore.FileSystemRunLogstore, 'get_run_log_by_id', mock_get_run_log_by_id)
+
+    run_log_store = datastore.FileSystemRunLogstore(config=None)
+    with pytest.raises(exceptions.RunLogExistsError):
+        run_log = run_log_store.create_run_log(run_id='test random')
 
 
 def test_file_system_run_log_store_get_run_log_by_id_raises_exception_if_get_from_folder_fails(mocker, monkeypatch):

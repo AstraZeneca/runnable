@@ -26,6 +26,29 @@ dag:
       type: fail
 ```
 
+Or via the Python SDK:
+
+```python
+
+#in pipeline.py
+from magnus import Pipeline, Task
+
+def pipeline():
+    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
+                next_node='step shell')
+    second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
+                  command_type='shell', catalog={'put': '*'})
+
+    pipeline = Pipeline(start_at=first, name='getting_started')
+    pipeline.construct([first, second])
+    pipeline.execute(parameters_file='parameters.yaml')
+
+if __name__ == '__main__':
+    pipeline()
+
+```
+
+
 ## dag
 
 A [directed acyclic graph (dag)](../../concepts/dag) is the definition of the work you want to perform.
@@ -33,7 +56,8 @@ It defines a series of [nodes](../../concepts/nodes) and the rules of traversal 
 
 ## Traversal of the dag
 
-In magnus, the order of steps in the dag definition is not important. The traversal is as follows:
+### yaml definition:
+In magnus yaml, the order of steps in the dag definition is not important. The traversal is as follows:
 
 1. We start at start_at of the dag, which is "step parameters".
 2. If "step parameters" successfully completed we move to *next* of "step parameters", which is "step shell".
@@ -43,6 +67,12 @@ In magnus, the order of steps in the dag definition is not important. The traver
 All dag definitions should have a *success* node and *fail* node. A step/node in the dag defines the next node to
 visit in the *next* section of the definition. A step/node can also define the next node to visit *on failure*
 of the node, if one is not provided we default to the fail node of the dag.
+
+### Python SDK:
+
+There is an equivalence of structure even in python SDK. There is no need for an explicit ```success``` or ```fail```
+node as they are added implicitly.
+
 
 You can also provide the maximum run time for a step or the entire dag in the definition. More information of all
 the features is [available here](../../concepts/dag).
@@ -78,8 +108,6 @@ You can define more [complex node types (parallel, embedded dag, map) too](../..
 ## Parameters
 
 
-
-!!! warning "Changed in v0.2"
 
 
 Initial parameters to the pipeline could be sent by sending in a parameters file during execution.
@@ -120,6 +148,14 @@ step shell:
   catalog:
     put:
       - "*"
+```
+
+or in Python SDK:
+```python
+
+second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
+                command_type='shell', catalog={'put': '*'})
+
 ```
 
 we are instructing magnus to create a ```data``` folder and echo the environmental variables into ```data.txt``` in

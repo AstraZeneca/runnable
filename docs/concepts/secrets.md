@@ -1,8 +1,12 @@
 # Overview
 
-Secrets are essential in making your data science projects secure and collaborative. They could be database credentials, API keys or any information that need to present at the run-time but invisible at all other times.Magnus provides a clean interface to access/store secrets and independent of the actual secret provider, the interface remains the same.
+Secrets are essential in making your data science projects secure and collaborative. They could be database credentials,
+API keys or any information that need to present at the run-time but invisible at all other times.
+Magnus provides a clean interface to access/store secrets and independent of the actual secret provider,
+the interface remains the same.
 
-As with all modules of magnus, there are many secrets providers and if none fit your needs, it is easier to write one of your to fit your needs. In magnus, all secrets are key value pairs.
+As with all modules of magnus, there are many secrets providers and if none fit your needs, it is easier to write
+one of your to fit your needs. In magnus, all secrets are key value pairs.
 
 ## Configuration
 
@@ -30,6 +34,20 @@ Any configuration parameters the secret provider accepts.
 Other service providers, like run log store or catalog, can access the secrets by using the
 ```global_executor.secrets_handler``` of ```pipeline``` module during the run time. This could be useful for
 constructing connection strings to database or AWS connections.
+
+For example:
+
+```python
+
+class CustomObject:
+
+    @property
+    def connection_object(self):
+        from magnus.pipeline import global_executor
+        secrets = global_exector.secrets_handler.get_secrets()
+        # Do something with the secrets
+
+```
 
 ## Interaction within code
 
@@ -64,7 +82,8 @@ def my_cool_function():
 
 ```
 
-secret would have a value of ```42``` while all_secrets would be a dictionary ```{'secret_answer': 42, 'secret_question': 'everything'}```
+secret would have a value of ```42``` while all_secrets would be a dictionary
+```{'secret_answer': 42, 'secret_question': 'everything'}```
 
 
 ## Parameterized definition
@@ -79,3 +98,52 @@ Please follow the example provided [here](../dag/#parameterized_definition) for 
 
 You can easily extend magnus to bring in your custom provider, if a default
 implementation does not exist or you are not happy with the implementation.
+
+To implement your custom secret class, please extend BaseSecret class of magnus whose definition is given below.
+
+```python
+from pydantic import BaseModel
+
+class BaseSecrets:
+    """
+    A base class for Secrets Handler.
+    All implementations should extend this class.
+
+    Note: As a general guideline, do not extract anything from the config to set class level attributes.
+          Integration patterns modify the config after init to change behaviors.
+          Access config properties using getters/property of the class.
+
+    Raises:
+        NotImplementedError: Base class and not implemented
+    """
+    service_name = ''
+
+    class Config(BaseModel):
+        pass
+
+    def __init__(self, config: dict, **kwargs):
+        config = config or {}
+        self.config = self.Config(**config)
+
+    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
+        """
+        Return the secret by name.
+        If no name is give, return all the secrets.
+
+        Args:
+            name (str): The name of the secret to return.
+
+        Raises:
+            NotImplementedError: Base class and hence not implemented.
+        """
+        raise NotImplementedError
+```
+
+The custom extensions should be registered as part of the namespace: ```magnus.secrets.BaseSecrets``` for it to be
+loaded.
+
+```toml
+# For example, as part of your pyproject.toml
+[tool.poetry.plugins."magnus.secrets.BaseSecrets"]
+"k8s-secrets" = "YOUR_PACKAGE:K8sSecret"
+```

@@ -1,19 +1,28 @@
+from __future__ import annotations
+
 import hashlib
 import json
 import logging
 import os
 import subprocess
+import sys
 from collections import OrderedDict
 from datetime import datetime
 from inspect import signature
 from pathlib import Path
 from string import Template as str_template
-from typing import Callable, List, Mapping, Tuple, Union
+from types import FunctionType
+from typing import TYPE_CHECKING, Callable, List, Mapping, Tuple, Union
 
 from ruamel.yaml import YAML  # type: ignore
 from stevedore import driver
 
-from magnus import defaults, executor
+from magnus import defaults, names
+
+if TYPE_CHECKING:
+    from magnus.executor import BaseExecutor
+    from magnus.nodes import BaseNode
+
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -78,7 +87,8 @@ def generate_run_id(run_id: str = None) -> str:
     """
     # If we are not provided with a run_id, generate one
     if not run_id:
-        run_id = datetime.now().strftime('%Y%m%d%H%M%S')
+        now = datetime.now()
+        run_id = f"{names.get_random_name()}-{now.hour:02}{now.minute:02}"
 
     return run_id
 
@@ -131,6 +141,12 @@ def get_module_and_func_names(command: str) -> Tuple[str, str]:
     func = mods[-1]
     module = '.'.join(mods[:-1])
     return module, func
+
+
+def get_module_and_func_from_function(command: FunctionType) -> str:
+    module_name = sys.modules[command.__module__]
+    func_name = command.__name__
+    return f"{module_name}.{func_name}"
 
 
 def get_dag_hash(dag: dict) -> str:
@@ -425,7 +441,8 @@ def filter_arguments_from_parameters(
     return arguments
 
 
-def get_node_execution_command(executor, node, map_variable=None, over_write_run_id=None) -> str:
+def get_node_execution_command(
+        executor: BaseExecutor, node: BaseNode, map_variable: dict = None, over_write_run_id: str = '') -> str:
     """
     A utility function to standardize execution call to a node via command line.
 
@@ -442,12 +459,14 @@ def get_node_execution_command(executor, node, map_variable=None, over_write_run
     if over_write_run_id:
         run_id = over_write_run_id
 
-    action = (f'magnus execute_single_node {run_id} '
-              f'{node.command_friendly_name()} --file {executor.pipeline_file}'
-              )
+    log_level = logging.getLevelName(logger.getEffectiveLevel())
 
-    if executor.variables_file:
-        action = action + f' --var-file {executor.variables_file}'
+    action = (f'magnus execute_single_node {run_id} '
+              f'{node._command_friendly_name()}'
+              f' --log-level {log_level}'
+              )
+    if executor.pipeline_file:
+        action = action + f" --file {executor.pipeline_file}"
 
     if map_variable:
         action = action + f" --map-variable '{json.dumps(map_variable)}'"
@@ -488,6 +507,9 @@ def get_service_namespace(service_type: str) -> str:
 
     if service_type == 'secrets':
         return 'magnus.secrets.BaseSecrets'
+
+    if service_type == 'experiment_tracking':
+        return 'magnus.experiment_tracker.BaseExperimentTracker'
 
     raise Exception('Service type is not recognized')
 
@@ -543,7 +565,7 @@ def get_duration_between_datetime_strings(start_time: str, end_time: str) -> str
     return str(end - start)
 
 
-def get_run_config(executor: executor.BaseExecutor) -> dict:
+def get_run_config(executor: BaseExecutor) -> dict:
     """
     Given an executor with assigned services, return the run_config
 
@@ -567,6 +589,11 @@ def get_run_config(executor: executor.BaseExecutor) -> dict:
     run_config['secrets'] = {'type': executor.secrets_handler.service_name,
                              'config': executor.secrets_handler.config}
 
+    run_config['experiment_tracker'] = {'type': executor.experiment_tracker.service_name,
+                                        'config': executor.experiment_tracker.config}
+    run_config['variables'] = executor.variables  # type: ignore
+    run_config['pipeline'] = executor.dag._to_dict()
+
     return run_config
 
 
@@ -585,3 +612,25 @@ def json_to_ordered_dict(json_str: str) -> OrderedDict:
         return json.loads(json_str, object_pairs_hook=OrderedDict)
 
     return OrderedDict()
+
+
+def set_magnus_environment_variables(run_id: str = None, configuration_file: str = None, tag: str = None):
+    if run_id:
+        os.environ[defaults.ENV_RUN_ID] = run_id
+
+    if configuration_file:
+        os.environ[defaults.MAGNUS_CONFIG_FILE] = configuration_file
+
+    if tag:
+        os.environ[defaults.MAGNUS_RUN_TAG] = tag
+
+
+def gather_variables():
+    variables = {}
+
+    for env_var, value in os.environ.items():
+        if env_var.startswith(defaults.VARIABLE_PREFIX):
+            key = remove_prefix(env_var, defaults.VARIABLE_PREFIX)
+            variables[key] = value
+
+    return variables

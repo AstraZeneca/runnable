@@ -1,18 +1,46 @@
+import contextlib
 import importlib
+import io
 import json
 import logging
 import os
 import subprocess
 import sys
 
-from magnus import defaults, utils
+from pydantic import BaseModel
+
+from magnus import defaults, put_in_catalog, utils
 
 logger = logging.getLogger(defaults.NAME)
 
 try:
-    import papermill as pm
+    import ploomber_engine as pm
 except ImportError:
     pm = None
+
+
+@contextlib.contextmanager
+def output_to_file(path: str):
+    """
+    Context manager to put the output of a function execution to catalog
+
+    Args:
+        path (str): Mostly the command you are executing.
+
+    """
+    log_file = open(f"{path}.log", 'w')
+    f = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(f):
+            yield
+    finally:
+        print(f.getvalue())  # print to console
+        log_file.write(f.getvalue())  # Print to file
+
+        f.close()
+        log_file.close()
+        put_in_catalog(log_file.name)
+        os.remove(log_file.name)
 
 
 class BaseTaskType:  # pylint: disable=too-few-public-methods
@@ -21,11 +49,28 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
     """
     task_type = ''
 
-    def __init__(self, command: str, config: dict = None):
-        self.command = command
-        self.config = config or {}
+    class Config(BaseModel):
+        command: str
 
-    def get_parameters(self, map_variable: dict = None, **kwargs) -> dict:
+    def __init__(self, config: dict = None):
+        config = config or {}
+        self.config = self.Config(**config)
+
+    @property
+    def command(self):
+        return self.config.command
+
+    def _to_dict(self) -> dict:
+        """
+        Return a dictionary representation of the task
+        """
+        task = {}
+        task['command'] = self.command
+        task['config'] = self.config
+
+        return task
+
+    def _get_parameters(self, map_variable: dict = None, **kwargs) -> dict:
         """
         Return the parameters in scope for the execution
 
@@ -51,7 +96,7 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
         """
         raise NotImplementedError()
 
-    def set_parameters(self, parameters: dict = None, **kwargs):
+    def _set_parameters(self, parameters: dict = None, **kwargs):
         """
         Set the parameters back to the environment variables.
 
@@ -66,11 +111,41 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
             msg = (
                 f'call to function {self.command} returns of type: {type(parameters)}. '
                 'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
-            raise Exception(msg)
+            logger.warn(msg)
+            return
 
         for key, value in parameters.items():
             logger.info(f'Setting User defined parameter {key} with value: {value}')
             os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
+
+
+class PythonFunctionType(BaseTaskType):
+    task_type = 'python-function'
+
+    def execute_command(self, map_variable: dict = None, **kwargs):
+        parameters = self._get_parameters()
+        filtered_parameters = utils.filter_arguments_for_func(self.command, parameters, map_variable)
+
+        if map_variable:
+            os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+
+        logger.info(f'Calling {self.command} with {filtered_parameters}')
+
+        with output_to_file(self.command) as _:
+            try:
+                user_set_parameters = self.command(**filtered_parameters)
+            except Exception as _e:
+                msg = (
+                    f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
+                )
+                logger.exception(msg)
+                logger.exception(_e)
+                raise
+
+            if map_variable:
+                del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+
+            self._set_parameters(user_set_parameters)
 
 
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
@@ -85,21 +160,28 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         imported_module = importlib.import_module(module)
         f = getattr(imported_module, func)
 
-        parameters = self.get_parameters()
+        parameters = self._get_parameters()
         filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
 
-        logger.info(f'Calling {func} from {module} with {filtered_parameters}')
-        try:
-            user_set_parameters = f(**filtered_parameters)
-        except Exception as _e:
-            msg = (
-                f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
-            )
-            logger.exception(msg)
-            logger.exception(_e)
-            raise
+        if map_variable:
+            os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
 
-        self.set_parameters(user_set_parameters)
+        logger.info(f'Calling {func} from {module} with {filtered_parameters}')
+        with output_to_file(self.command) as _:
+            try:
+                user_set_parameters = f(**filtered_parameters)
+            except Exception as _e:
+                msg = (
+                    f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
+                )
+                logger.exception(msg)
+                logger.exception(_e)
+                raise
+
+            if map_variable:
+                del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+
+            self._set_parameters(user_set_parameters)
 
 
 class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
@@ -118,8 +200,11 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 
         f = eval(self.command)
 
-        parameters = self.get_parameters()
+        parameters = self._get_parameters()
         filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
+
+        if map_variable:
+            os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
 
         logger.info(f'Calling lambda function: {self.command} with {filtered_parameters}')
         try:
@@ -132,7 +217,10 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
             logger.exception(_e)
             raise
 
-        self.set_parameters(user_set_parameters)
+        if map_variable:
+            del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+
+        self._set_parameters(user_set_parameters)
 
 
 class NotebookTaskType(BaseTaskType):
@@ -141,43 +229,57 @@ class NotebookTaskType(BaseTaskType):
     """
     task_type = 'notebook'
 
-    def __init__(self, command: str, config: dict = None):
-        if not command.endswith('.ipynb'):
-            raise Exception('Notebook task should point to a ipynb file')
+    class Config(BaseTaskType.Config):
+        notebook_output_path: str = ''
+        optional_ploomber_args: dict = {}
 
-        super().__init__(command, config)
+    @property
+    def notebook_output_path(self):
+        if self.config.notebook_output_path:
+            return self.config.notebook_output_path
+
+        return ''.join(self.command.split('.')[:-1]) + '_out.ipynb'
+
+    def __init__(self, config: dict = None):
+        super().__init__(config)
+
+        if not self.config.command.endswith('.ipynb'):
+            raise Exception('Notebook task should point to a ipynb file')
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         try:
             if not pm:
-                raise ImportError('Papermill is required for notebook type node')
+                raise ImportError('Ploomber engine is required for notebook type node')
 
-            parameters = self.get_parameters()
+            parameters = self._get_parameters()
+            filtered_parameters = parameters
 
-            notebook_parameters = pm.inspect_notebook(self.command)
-            filtered_parameters = utils.filter_arguments_from_parameters(parameters=parameters,
-                                                                         signature_parameters=notebook_parameters,
-                                                                         map_variable=map_variable)
-            notebook_output_path = self.config.get('notebook_output_path',
-                                                   ''.join(self.command.split('.')[:-1]) + '_out.ipynb')
-            kernel = self.config.get('notebook_kernel', None)
-            papermill_optional_args = self.config.get('optional_papermill_args', {})
+            if map_variable:
+                os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+
+            notebook_output_path = self.notebook_output_path
+
+            ploomber_optional_args = self.config.optional_ploomber_args  # type: ignore
 
             kwds = {
                 'input_path': self.command,
                 'output_path': notebook_output_path,
                 'parameters': filtered_parameters,
+                'log_output': True,
+                'progress_bar': False
             }
 
-            kwds.update(papermill_optional_args)
-
-            if kernel:
-                kwds['kernel_name'] = kernel
+            kwds.update(ploomber_optional_args)
 
             pm.execute_notebook(**kwds)
+
+            put_in_catalog(notebook_output_path)
+            if map_variable:
+                del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+
         except ImportError as e:
             msg = (
-                f'Task type of notebook requires papermill to be installed. Please install via optional: notebook'
+                f'Task type of notebook requires ploomber engine to be installed. Please install via optional: notebook'
             )
             raise Exception(msg) from e
 
@@ -194,9 +296,12 @@ class ShellTaskType(BaseTaskType):
         # It might be that we have to write a bash/windows script that does things for us
         # Need to over-ride set parameters too
         subprocess_env = os.environ.copy()
+
         if map_variable:
             subprocess_env[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+
         result = subprocess.run(self.command, check=True, env=subprocess_env, shell=True,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
         print(result.stdout)
         print(result.stderr)
