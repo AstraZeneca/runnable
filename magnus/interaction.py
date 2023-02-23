@@ -58,7 +58,7 @@ def store_parameter(update: bool = True, **kwargs: dict):
         environ_key = defaults.PARAMETER_PREFIX + key
 
         if environ_key in os.environ and not update:
-            return
+            continue
 
         os.environ[environ_key] = json.dumps(value)
 

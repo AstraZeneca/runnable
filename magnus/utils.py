@@ -378,6 +378,28 @@ def get_user_set_parameters(remove: bool = False) -> dict:
     return parameters
 
 
+def diff_dict(d1: dict, d2: dict) -> dict:
+    """
+    Given two dicts d1 and d2, return a new dict that has upsert items from d1
+
+    Args:
+        d1 (reference): The reference dict.
+        d2 (compare): Any new or modified items compared to d1 would be returned back
+
+    Returns:
+        dict: Any new or modified items in d2 in comparison to d1 would be sent back
+    """
+    diff = {}
+
+    for k2, v2 in d2.items():
+        if k2 in d1 and d1[k2] != v2:
+            diff[k2] = v2
+            continue
+        diff[k2] = v2
+
+    return diff
+
+
 def hash_bytestr_iter(bytesiter, hasher, ashexstr=True):  # pylint: disable=C0116
     for block in bytesiter:  # pragma: no cover
         hasher.update(block)

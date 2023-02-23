@@ -314,6 +314,7 @@ The structure of attempt log along with inline definitions
         "end_time": "", # The end time of the attempt
         "duration": null, # The duration of the time taken for the command to execute
         "status": "",
+        "parameters": "", # The parameters at that point of execution.
         "message": "" # If any exception was raised, this field captures the message of the exception
     }
 ]

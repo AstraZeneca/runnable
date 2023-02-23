@@ -9,8 +9,6 @@ logger = logging.getLogger(defaults.NAME)
 # Set this global executor to the fitted executor for access later
 global_executor = None  # pylint: disable=invalid-name # type: ignore
 
-# TODO: Tests and mypy
-
 
 def get_default_configs() -> dict:
     """
@@ -317,7 +315,7 @@ def execute_single_brach(
         branch_name: str,
         map_variable: str,
         run_id: str,
-        tag: str = None):
+        tag: str):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a branch of the graph. Interactive modes in parallel runs use this to execute
