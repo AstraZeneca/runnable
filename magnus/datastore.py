@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from collections import OrderedDict
 from enum import Enum
@@ -950,6 +949,10 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             prefix = self.LogTypes.BRANCH_LOG.value
 
         matches = self.get_matches(run_id=run_id, name=prefix, multiple_allowed=True)
+
+        if log_type == self.LogTypes.BRANCH_LOG and not matches:
+            # No branch logs are found
+            return {}
         # Forcing get_matches to always return a list is a better design
         epoch_created = [str(match).split('-')[-1] for match in matches]  # type: ignore
 
@@ -1109,8 +1112,13 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         Raises:
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
         """
-        parameters_list = self.retrieve(run_id=run_id, log_type=self.LogTypes.PARAMETER, multiple_allowed=True)
-        parameters = {key: value for param in parameters_list for key, value in param.items()}
+        parameters = {}
+        try:
+            parameters_list = self.retrieve(run_id=run_id, log_type=self.LogTypes.PARAMETER, multiple_allowed=True)
+            parameters = {key: value for param in parameters_list for key, value in param.items()}
+        except FileNotFoundError:
+            # No parameters are set
+            pass
 
         return parameters
 
