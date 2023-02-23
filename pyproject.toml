@@ -64,6 +64,7 @@ magnus= 'magnus.cli:cli'
 [tool.poetry.plugins."magnus.datastore.BaseRunLogStore"]
 "buffered" = "magnus.datastore:BufferRunLogstore"
 "file-system" = "magnus.datastore:FileSystemRunLogstore"
+"chunked-fs" = "magnus.datastore:ChunkedFileSystemRunLogStore"
 
 # Plugins for Experiment tracker
 [tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]

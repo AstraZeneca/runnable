@@ -10,6 +10,7 @@ from stevedore import driver
 
 import magnus
 from magnus import defaults, utils
+from magnus.datastore import StepAttempt
 from magnus.graph import create_graph
 
 logger = logging.getLogger(defaults.NAME)
@@ -296,7 +297,7 @@ class BaseNode:
         """
         return self.config.retry
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
+    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
         """
         The actual function that does the execution of the command in the config.
 
@@ -363,7 +364,8 @@ class TaskNode(BaseNode):
         except Exception as _e:
             msg = (
                 f"Could not find the task type {task_type}. Please ensure you have installed the extension that"
-                " provides the task type. \nCore supports: python(default), python-lambda, shell, notebook. python-function"
+                " provides the task type. "
+                "\nCore supports: python(default), python-lambda, shell, notebook. python-function"
             )
             raise Exception(msg) from _e
         self.task = task_mgr.driver
@@ -375,7 +377,7 @@ class TaskNode(BaseNode):
         config_dict['command_type'] = self.task.task_type
         return config_dict
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
+    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
         # Here is where the juice is
         attempt_log = executor.run_log_store.create_attempt_log()
         try:
@@ -433,7 +435,7 @@ class FailNode(BaseNode):
     def _get_catalog_settings(self) -> Optional[dict]:
         return {}
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
+    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
         attempt_log = executor.run_log_store.create_attempt_log()
         try:
             attempt_log.start_time = str(datetime.now())
@@ -488,7 +490,7 @@ class SuccessNode(BaseNode):
     def _get_catalog_settings(self) -> Optional[dict]:
         return {}
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
+    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
         attempt_log = executor.run_log_store.create_attempt_log()
         try:
             attempt_log.start_time = str(datetime.now())
@@ -1028,7 +1030,7 @@ class AsISNode(BaseNode):
     def _get_catalog_settings(self) -> Optional[dict]:
         return {}
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
+    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
         """
         Do Nothing node.
         We just send an success attempt log back to the caller
