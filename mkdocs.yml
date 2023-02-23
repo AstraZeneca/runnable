@@ -93,6 +93,7 @@ nav:
           - "Overview": "concepts/run-log.md"
           - "Buffered": "concepts/run-log-implementations/bufferred.md"
           - "File System": "concepts/run-log-implementations/file-system.md"
+          - "Chunked File System": "concepts/run-log-implementations/chunked-fs.md"
       - "Experiment Tracking":
           - "Overview": "concepts/experiment-tracking.md"
       - "Integration":
