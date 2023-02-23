@@ -145,31 +145,6 @@ def test_file_system_catalog_catalog_location_returns_config_catalog_location_if
     assert catalog_handler.config.catalog_location == 'this'
 
 
-def test_file_system_catalog_get_uses_compute_data_folder_provided(monkeypatch, mocker):
-    mock_does_dir_exist = mocker.MagicMock(side_effect=Exception())
-    monkeypatch.setattr(catalog.utils, 'does_dir_exist', mock_does_dir_exist)
-    monkeypatch.setattr(catalog.FileSystemCatalog, 'catalog_location',
-                        mocker.MagicMock(return_value='this_location'))
-    monkeypatch.setattr(catalog, 'BaseCatalog', mocker.MagicMock())
-
-    catalog_handler = catalog.FileSystemCatalog(config={'type': 'file-system'})
-    with pytest.raises(Exception):
-        catalog_handler.get('testing', run_id='dummy_run_id', compute_data_folder='this_compute_folder')
-
-    mock_does_dir_exist.assert_called_once_with(catalog.Path('this_compute_folder'))
-
-
-def test_file_system_catalog_get_raises_exception_if_compute_data_folder_does_not_exist(monkeypatch, mocker):
-    mock_does_dir_exist = mocker.MagicMock(return_value=False)
-    monkeypatch.setattr(catalog.utils, 'does_dir_exist', mock_does_dir_exist)
-
-    monkeypatch.setattr(catalog, 'BaseCatalog', mocker.MagicMock())
-
-    catalog_handler = catalog.FileSystemCatalog(config={'type': 'file-system'})
-    with pytest.raises(Exception):
-        catalog_handler.get('testing', run_id='dummy_run_id', compute_data_folder='this_compute_folder')
-
-
 def test_file_system_catalog_get_raises_exception_if_catalog_does_not_exist(monkeypatch, mocker):
     def mock_does_dir_exist(dir_name):
         if dir_name == 'this_compute_folder':

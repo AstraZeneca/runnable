@@ -4,12 +4,15 @@ The idea behind magnus, in simple terms, is to decouple ```what``` should be don
 So while  dag only defines the ```what``` part of the equation while different compute modes (along with services)
 define how to make it happen.
 
-All the services (compute modes, run log store, secrets, catalog) are written to align to the principle. All the
-interactions with the services only happen via defined API's that all implementations of the service should implement.
+All the services (compute modes, run log store, secrets, catalog, experiment tracking) are written to
+align to the principle. All the interactions with the services only happen via defined API's that all
+implementations of the service should implement.
 The ```Base``` class of all the services are given the most general implementations to make extensions as easy as
 possible.
 
-## The quadrant of possibilities
+Please find supported extensions in [magnus extensions](https://github.com/AstraZeneca/magnus-extensions)
+
+## Technical insights
 
 Any dag execution has two distinct phases
 
@@ -69,7 +72,6 @@ Interestingly, in magnus there are two ways to handle this scenario:
     and sets up the AWS batch job accordingly.
     - The graph traversal ends when one of ```success``` nodes or ```fail``` nodes have reached.
 
-The compute extension, ```local-aws-batch``` is planned to be released along with other *magnus-extensions*.
 
 In our opinion, *decentralized executors* are ideal for experimentation phase as there could as many dag definitions as
 needed by the team without blocking one another or causing merge conflicts. Since the compute can also be off-loaded to

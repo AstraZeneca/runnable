@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import re
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -15,7 +15,7 @@ from magnus.nodes import BaseNode
 
 if TYPE_CHECKING:
     from magnus.catalog import BaseCatalog
-    from magnus.datastore import BaseRunLogStore, StepLog
+    from magnus.datastore import BaseRunLogStore, DataCatalog, StepLog
     from magnus.experiment_tracker import BaseExperimentTracker
     from magnus.secrets import BaseSecrets
 
@@ -93,10 +93,20 @@ class BaseExecutor:
         self.run_log_store: BaseRunLogStore = None  # type: ignore
         self.previous_run_log = None
 
-        self.context_step_log: StepLog = None  # type: ignore
+        self.context_step_log: Optional[StepLog] = None
 
     @property
     def step_decorator_run_id(self):
+        """
+        TODO: Experimental feature, design is not mature yet.
+
+        This function is used by the decorator function.
+        The design idea is we can over-ride this method in different implementations to retrieve the run_id.
+        But is it really intrusive to ask to set the environmental variable MAGNUS_RUN_ID?
+
+        Returns:
+            _type_: _description_
+        """
         return os.environ.get('MAGNUS_RUN_ID', None)
 
     def _is_parallel_execution(self) -> bool:
@@ -242,6 +252,10 @@ class BaseExecutor:
 
         return data_catalogs
 
+    @property
+    def step_attempt_number(self) -> int:
+        return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
+
     def _execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
         This is the entry point when we do the actual execution of the function.
@@ -260,11 +274,7 @@ class BaseExecutor:
             node (Node): The node to execute
             map_variable (dict, optional): If the node is of a map state, map_variable is the value of the iterable.
                         Defaults to None.
-
-        #TODO: The attempts should ideally by handled outside of this function
         """
-        max_attempts = node._get_max_attempts()
-        attempts = 0
         step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
 
         parameters = self.run_log_store.get_parameters(run_id=self.run_id)
@@ -272,39 +282,45 @@ class BaseExecutor:
         # If the key already exists, do not update it to give priority to parameters set by environment variables
         interaction.store_parameter(update=False, **parameters)
 
-        data_catalogs_get = self._sync_catalog(node, step_log, stage='get')
+        parameters_in = utils.get_user_set_parameters(remove=False)
 
-        mock = step_log.mock
-        logger.info(f'Trying to execute node: {node.internal_name}, attempt : {attempts}, max_attempts: {max_attempts}')
-        while attempts < max_attempts:
-            try:
-                self.context_step_log = step_log
-                attempt_log = node.execute(executor=self, mock=mock,
-                                           map_variable=map_variable, **kwargs)
-                attempt_log.attempt_number = attempts
-                step_log.attempts.append(attempt_log)
-                if attempt_log.status == defaults.FAIL:
-                    raise Exception()
+        attempt = self.step_attempt_number
+        max_attempts = max_attempts = node._get_max_attempts()
+        logger.info(f'Trying to execute node: {node.internal_name}, attempt : {attempt}, max_attempts: {max_attempts}')
 
-                step_log.status = defaults.SUCCESS
-                step_log.user_defined_metrics = utils.get_tracked_data()
-                self.run_log_store.set_parameters(self.run_id, utils.get_user_set_parameters(remove=True))
-                break
-            except Exception as _e:  # pylint: disable=W0703
-                attempts += 1
-                logger.exception(f'Node: {node} failed with exception {_e}')
-                # Remove any steps data
-                utils.get_tracked_data()
-                utils.get_user_set_parameters(remove=True)
-            finally:
-                self.context_step_log = None  # type: ignore
+        data_catalogs_get: List[DataCatalog] = self._sync_catalog(node, step_log, stage='get')
+        attempt_log = self.run_log_store.create_attempt_log()
+        try:
+            self.context_step_log = step_log
+            attempt_log = node.execute(executor=self, mock=step_log.mock, map_variable=map_variable, **kwargs)
+        except Exception as e:
+            # Any exception here is a magnus exception as node suppresses exceptions.
+            msg = (
+                f"This is clearly magnus fault, please report a bug and the logs"
+            )
+            raise Exception(msg) from e
+        finally:
+            attempt_log.attempt_number = attempt
+            attempt_log.parameters = parameters_in
+            step_log.attempts.append(attempt_log)
 
-            if attempts == max_attempts:
+            tracked_data = utils.get_tracked_data()
+            parameters_out = utils.get_user_set_parameters(remove=True)
+
+            if attempt_log.status == defaults.FAIL:
+                logger.exception(f'Node: {node} failed')
                 step_log.status = defaults.FAIL
-                logger.error(f'Node {node} failed, max retries of {max_attempts} reached')
+            else:
+                step_log.status = defaults.SUCCESS
+                self._sync_catalog(node, step_log, stage='put', synced_catalogs=data_catalogs_get)
+                step_log.user_defined_metrics = tracked_data
+                diff_parameters = utils.diff_dict(parameters_in, parameters_out)
+                self.run_log_store.set_parameters(self.run_id, diff_parameters)
 
-        self._sync_catalog(node, step_log, stage='put', synced_catalogs=data_catalogs_get)
-        self.run_log_store.add_step_log(step_log, self.run_id)
+            # Remove the step log context
+            self.context_step_log = None
+
+            self.run_log_store.add_step_log(step_log, self.run_id)
 
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
         raise NotImplementedError
@@ -387,16 +403,16 @@ class BaseExecutor:
 
     def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
-        Executor specific way of triggering jobs.
+        Executor specific way of triggering jobs when magnus does both traversal and execution
 
         Args:
             node (BaseNode): The node to execute
             map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to ''.
 
-        Raises: NotImplementedError Base class hence not implemented
+        NOTE: We do not raise an exception as this method is not required by many extensions
         """
-        raise NotImplementedError
+        pass
 
     def _get_status_and_next_node_name(self, current_node: BaseNode, dag: Graph, map_variable: dict = None):
         """
@@ -474,6 +490,10 @@ class BaseExecutor:
             branch = working_on.internal_branch_name
 
         logger.info(f'Finished execution of the {branch} with status {run_log.status}')
+
+        # get the final run log
+        if branch == 'graph':
+            run_log = self.run_log_store.get_run_log_by_id(run_id=self.run_id, full=True)
         print(json.dumps(run_log.dict(), indent=4))
 
     def _is_eligible_for_rerun(self, node: BaseNode, map_variable: dict = None):
@@ -809,21 +829,6 @@ class DemoRenderer(BaseExecutor):
         step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
         if step_log.status == defaults.FAIL:
             raise Exception(f'Step {node.name} failed')
-
-    def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
-        """
-        Executor specific way of triggering jobs.
-
-        This method has to be changed to do what exactly you want as part of your computational engine
-
-        If your compute is not local, use utils.get_node_execution_command(self, node, map_variable=map_variable)
-        to get the command to run a single node.
-
-        If the compute is local to the environment, calls prepare_for_node_execution and call _execute_node
-        NOTE: This method should always be implemented.
-        """
-        self.prepare_for_node_execution()
-        self.execute_node(node=node, map_variable=map_variable, **kwargs)
 
     def send_return_code(self, stage='traversal'):
         """

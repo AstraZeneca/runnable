@@ -1,5 +1,10 @@
 # Release history
 
+## v0.4.1
+
+- Bug fix with MLflow creeping in.
+- Improved documentation.
+- Improved CI process.
 ## v0.4.0 (2023-02-09)
 
 - Added Experiment tracking interface

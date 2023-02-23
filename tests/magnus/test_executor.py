@@ -171,13 +171,6 @@ def test_base_executor_add_code_identities_adds_git_identity(mocker, monkeypatch
     assert mock_step_log.code_identities == ['code id']
 
 
-def test_base_executor_trigger_job_raises_exception():
-    base_executor = executor.BaseExecutor(config=None)
-
-    with pytest.raises(NotImplementedError):
-        base_executor.trigger_job(node=None)
-
-
 def test_base_executor_execute_from_graph_executes_node_for_success_or_fail(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_run_log_store = mocker.MagicMock()
@@ -353,29 +346,6 @@ def test_base_executor_sets_status_to_fail_if_attempt_log_is_fail(monkeypatch, m
     mock_attempt_log = mocker.MagicMock()
     mock_node.execute.return_value = mock_attempt_log
     mock_attempt_log.status = defaults.FAIL
-
-    mock_run_log_store = mocker.MagicMock()
-    mock_step_catalog = mocker.MagicMock()
-    mock__sync_catalog = mocker.MagicMock()
-
-    monkeypatch.setattr(executor, 'interaction', mocker.MagicMock())
-    monkeypatch.setattr(executor, 'utils', mocker.MagicMock())
-    monkeypatch.setattr(executor.BaseExecutor, '_sync_catalog', mock__sync_catalog)
-
-    mock_run_log_store.get_step_log.return_value = mock_step_catalog
-    base_executor = executor.BaseExecutor(config=None)
-    base_executor.run_log_store = mock_run_log_store
-
-    base_executor._execute_node(node=mock_node)
-
-    assert mock_step_catalog.status == defaults.FAIL
-
-
-def test_base_executor_sets_status_to_fail_if_node_raises_exception(monkeypatch, mocker):
-    mock_node = mocker.MagicMock()
-    mock_node._get_max_attempts.return_value = 1
-    mock_attempt_log = mocker.MagicMock()
-    mock_node.execute.side_effect = Exception()
 
     mock_run_log_store = mocker.MagicMock()
     mock_step_catalog = mocker.MagicMock()

@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Callable, List, Mapping, Tuple, Union
 from ruamel.yaml import YAML  # type: ignore
 from stevedore import driver
 
-from magnus import defaults
+from magnus import defaults, names
 
 if TYPE_CHECKING:
     from magnus.executor import BaseExecutor
@@ -87,7 +87,8 @@ def generate_run_id(run_id: str = None) -> str:
     """
     # If we are not provided with a run_id, generate one
     if not run_id:
-        run_id = datetime.now().strftime('%Y%m%d%H%M%S')
+        now = datetime.now()
+        run_id = f"{names.get_random_name()}-{now.hour:02}{now.minute:02}"
 
     return run_id
 
@@ -375,6 +376,28 @@ def get_user_set_parameters(remove: bool = False) -> dict:
             if remove:
                 del os.environ[env_var]
     return parameters
+
+
+def diff_dict(d1: dict, d2: dict) -> dict:
+    """
+    Given two dicts d1 and d2, return a new dict that has upsert items from d1
+
+    Args:
+        d1 (reference): The reference dict.
+        d2 (compare): Any new or modified items compared to d1 would be returned back
+
+    Returns:
+        dict: Any new or modified items in d2 in comparison to d1 would be sent back
+    """
+    diff = {}
+
+    for k2, v2 in d2.items():
+        if k2 in d1 and d1[k2] != v2:
+            diff[k2] = v2
+            continue
+        diff[k2] = v2
+
+    return diff
 
 
 def hash_bytestr_iter(bytesiter, hasher, ashexstr=True):  # pylint: disable=C0116

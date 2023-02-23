@@ -2914,4 +2914,4 @@ notebook = ["ploomber-engine"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "99df476fc840958e0050a487920e3cfbefb94b2a129ba76f8ae6b9f95b39726f"
+content-hash = "6934fe6cee3428f44d9e323ee439716389b992ffe78d4cdb22000624a2827982"

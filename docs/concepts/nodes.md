@@ -83,6 +83,9 @@ Defaults to python if nothing is provided. For more information, please refer [c
 ### retry (optional)
 The number of attempts to make before failing the node. Default to 1.
 
+For local executions, this is always be 1 independent of the actual ```retry``` value.
+For cloud based implementations, the retry value is passed to the implementation.
+
 ### next (required)
 The name of the node in the graph to go if the node succeeds.
 

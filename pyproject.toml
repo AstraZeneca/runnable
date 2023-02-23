@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "magnus"
-version = "0.4.0"
+version = "0"
 description = "A Compute agnostic pipelining software"
-authors = ["Vijay Vammi <vijay.vammi@astrazeneca.com>", "Vijay Vammi <mesanthu@gmail.com>"]
+authors = ["Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/AstraZeneca/magnus-core"
@@ -26,7 +26,7 @@ docker = ['docker']
 notebook = ['ploomber-engine']
 
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 autopep8 = "*"
 pylint = "*"
 pytest = "*"
@@ -38,7 +38,7 @@ mypy = "^0.931"
 tox = "^3.24.5"
 pre-commit = "*"
 commit-linter = "^1.0.2"
-
+python-semantic-release = "^7.33.1"
 
 [tool.poetry.scripts]
 magnus= 'magnus.cli:cli'
@@ -64,6 +64,7 @@ magnus= 'magnus.cli:cli'
 [tool.poetry.plugins."magnus.datastore.BaseRunLogStore"]
 "buffered" = "magnus.datastore:BufferRunLogstore"
 "file-system" = "magnus.datastore:FileSystemRunLogstore"
+"chunked-fs" = "magnus.datastore:ChunkedFileSystemRunLogStore"
 
 # Plugins for Experiment tracker
 [tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]
@@ -102,29 +103,16 @@ magnus= 'magnus.cli:cli'
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
 
-
-[tool.poetry.group.dev.dependencies]
-python-semantic-release = "^7.33.1"
-
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
-build-backend = "poetry_dynamic_versioning.backend"
-
-[tool.poetry-dynamic-versioning]
-enable = true
-pattern = "default-unprefixed"
-vcs = "git"
-tag-branch = "main"
-style = "semver"
-latest-tag = true
-format-jinja = "{% if distance == 0 %}{{ base }}{% else %}{{ base }}+{{ commit }}{% endif %}"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.semantic_release]
-version_toml = "pyproject.toml:tool.poetry.version"
 branch = "main"
-version_source = "tag"
+tag_commit = false
+version_source = "tag_only"
 major_on_zero = true
 commit_version_number = false
 upload_to_pypi = false
 upload_to_repository = false
-upload_to_release = true
+upload_to_release = false
