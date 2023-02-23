@@ -638,10 +638,10 @@ class ParallelNode(BaseNode):
                 kwargs = {
                     'configuration_file': executor.configuration_file,
                     'pipeline_file': executor.pipeline_file,
-                    'variables_file': executor.variables_file,
                     'branch_name': internal_branch_name.replace(' ', defaults.COMMAND_FRIENDLY_CHARACTER),
                     'run_id': executor.run_id,
-                    'map_variable': json.dumps(map_variable)
+                    'map_variable': json.dumps(map_variable),
+                    'tag': executor.tag
                 }
                 process = multiprocessing.Process(target=action, kwargs=kwargs)
                 jobs.append(process)
@@ -822,10 +822,10 @@ class MapNode(BaseNode):
                 kwargs = {
                     'configuration_file': executor.configuration_file,
                     'pipeline_file': executor.pipeline_file,
-                    'variables_file': executor.variables_file,
                     'branch_name': self.branch.internal_branch_name.replace(' ', defaults.COMMAND_FRIENDLY_CHARACTER),
                     'run_id': executor.run_id,
-                    'map_variable': json.dumps(effective_map_variable)
+                    'map_variable': json.dumps(effective_map_variable),
+                    'tag': executor.tag
                 }
                 process = multiprocessing.Process(target=action, kwargs=kwargs)
                 jobs.append(process)

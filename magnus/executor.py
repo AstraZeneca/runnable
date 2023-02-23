@@ -289,29 +289,38 @@ class BaseExecutor:
         logger.info(f'Trying to execute node: {node.internal_name}, attempt : {attempt}, max_attempts: {max_attempts}')
 
         data_catalogs_get: List[DataCatalog] = self._sync_catalog(node, step_log, stage='get')
-        self.context_step_log = step_log
-        attempt_log = node.execute(executor=self, mock=step_log.mock, map_variable=map_variable, **kwargs)
-        attempt_log.attempt_number = attempt
-        attempt_log.parameters = parameters_in
-        step_log.attempts.append(attempt_log)
+        attempt_log = self.run_log_store.create_attempt_log()
+        try:
+            self.context_step_log = step_log
+            attempt_log = node.execute(executor=self, mock=step_log.mock, map_variable=map_variable, **kwargs)
+        except Exception as e:
+            # Any exception here is a magnus exception as node suppresses exceptions.
+            msg = (
+                f"This is clearly magnus fault, please report a bug and the logs"
+            )
+            raise Exception(msg) from e
+        finally:
+            attempt_log.attempt_number = attempt
+            attempt_log.parameters = parameters_in
+            step_log.attempts.append(attempt_log)
 
-        tracked_data = utils.get_tracked_data()
-        parameters_out = utils.get_user_set_parameters(remove=True)
+            tracked_data = utils.get_tracked_data()
+            parameters_out = utils.get_user_set_parameters(remove=True)
 
-        if attempt_log.status == defaults.FAIL:
-            logger.exception(f'Node: {node} failed')
-            step_log.status = defaults.FAIL
-        else:
-            step_log.status = defaults.SUCCESS
-            self._sync_catalog(node, step_log, stage='put', synced_catalogs=data_catalogs_get)
-            step_log.user_defined_metrics = tracked_data
-            diff_parameters = utils.diff_dict(parameters_in, parameters_out)
-            self.run_log_store.set_parameters(self.run_id, diff_parameters)
+            if attempt_log.status == defaults.FAIL:
+                logger.exception(f'Node: {node} failed')
+                step_log.status = defaults.FAIL
+            else:
+                step_log.status = defaults.SUCCESS
+                self._sync_catalog(node, step_log, stage='put', synced_catalogs=data_catalogs_get)
+                step_log.user_defined_metrics = tracked_data
+                diff_parameters = utils.diff_dict(parameters_in, parameters_out)
+                self.run_log_store.set_parameters(self.run_id, diff_parameters)
 
-        # Remove the step log context
-        self.context_step_log = None
+            # Remove the step log context
+            self.context_step_log = None
 
-        self.run_log_store.add_step_log(step_log, self.run_id)
+            self.run_log_store.add_step_log(step_log, self.run_id)
 
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
         raise NotImplementedError
