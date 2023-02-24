@@ -57,7 +57,7 @@ def prepare_configurations(
 
     configuration = {}
     if configuration_file:
-        configuration = utils.load_yaml(configuration_file)
+        configuration = utils.load_yaml(configuration_file) or {}
 
     # apply variables
     configuration = utils.apply_variables(configuration, variables)
