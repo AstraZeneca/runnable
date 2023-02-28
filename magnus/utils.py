@@ -487,10 +487,7 @@ def get_node_execution_command(
               f' --log-level {log_level}'
               )
 
-    if executor.execution_plan == defaults.EXECUTION_PLAN.UNCHAINED.value:
-        action = action + f" {node.command}"  # Node would always be a task type when it reaches here
-    else:
-        action = action + f" {node._command_friendly_name()}"
+    action = action + f" {node._command_friendly_name()}"
 
     if executor.pipeline_file:
         action = action + f" --file {executor.pipeline_file}"
@@ -507,7 +504,41 @@ def get_node_execution_command(
     if executor.tag:
         action = action + f' --tag {executor.tag}'
 
-    action = action + f" --plan {executor.execution_plan}"
+    return action
+
+
+def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write_run_id: str = '') -> str:
+    run_id = executor.run_id
+
+    if over_write_run_id:
+        run_id = over_write_run_id
+
+    log_level = logging.getLevelName(logger.getEffectiveLevel())
+
+    action = (f'magnus execute_nb_or_func {run_id} '
+              f' --log-level {log_level}'
+              )
+
+    action = action + f" {node.config.command}"
+
+    if executor.configuration_file:
+        action = action + f' --config-file {executor.configuration_file}'
+
+    if executor.parameters_file:
+        action = action + f' --parameters-file {executor.parameters_file}'
+
+    if executor.tag:
+        action = action + f' --tag {executor.tag}'
+
+    catalog_config = node._get_catalog_settings() or {}
+
+    data_folder = catalog_config.get("compute_data_folder", None)
+    if data_folder:
+        action = action + f" --data-folder {data_folder}"
+
+    put_in_catalog = catalog_config.get("put", []) or []  # The put itself can be None
+    for every_put in put_in_catalog:
+        action = action + f" --put-in-catalog {every_put}"
 
     return action
 

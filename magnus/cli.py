@@ -150,6 +150,9 @@ def execute_notebook(filename, config_file, parameters_file, log_level, data_fol
         'compute_data_folder': data_folder,
         'put': list(put_in_catalog) if put_in_catalog else None
     }
+    if not filename.endswith(".ipynb"):
+        raise Exception("A notebook should always have ipynb as the extension")
+
     pipeline.execute_notebook(notebook_file=filename, catalog_config=catalog_config, configuration_file=config_file,
                               parameters_file=parameters_file, tag=tag, run_id=run_id)
 
@@ -184,6 +187,7 @@ def execute_function(command, config_file, parameters_file, log_level, data_fold
 
 
 @cli.command("execute_nb_or_func", short_help="Entry point to execute a notebook or function")
+@click.argument('run_id')
 @click.argument('nb_or_func')
 @click.option('-c', '--config-file', default=None,
               help="config file, in yaml, to be used for the run", show_default=True)
@@ -194,15 +198,20 @@ def execute_function(command, config_file, parameters_file, log_level, data_fold
 @click.option('--data-folder', '-d', default='data/', help="The catalog data folder")
 @click.option('--put-in-catalog', '-put', default=None, multiple=True, help="The data to put from the catalog")
 @click.option('--tag', help='A tag attached to the run')
-@click.option('--run-id', help='An optional run_id, one would be generated if not provided')
-def execute_nb_or_function(nb_or_func, config_file, parameters_file, log_level,
-                           data_folder, put_in_catalog, tag, run_id):
+def execute_nb_or_function(run_id, nb_or_func, config_file, parameters_file, log_level,
+                           data_folder, put_in_catalog, tag):
     """
     Internal entry point to execute a notebook or function.
     Executors other than local should use this entry point to execute the notebook or function in the requested
     environment.
     """
-    pass
+    logger.setLevel(log_level)
+    catalog_config = {
+        'compute_data_folder': data_folder,
+        'put': list(put_in_catalog) if put_in_catalog else None
+    }
+    pipeline.execute_nb_or_func(command=nb_or_func, catalog_config=catalog_config, configuration_file=config_file,
+                                parameters_file=parameters_file, tag=tag, run_id=run_id)
 
 
 @cli.command('build_docker', short_help="Utility tool to build docker images")

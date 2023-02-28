@@ -29,6 +29,11 @@ class BaseExecutor:
 
     This is a loaded base class which has a lot of methods already implemented for "typical" executions.
     Look at the function docs to understand how to use them appropriately.
+
+    For any implementation:
+    1). When should the run log being set up?
+    2). What should the step log being set up?
+
     """
     service_name = ''
 
@@ -147,6 +152,7 @@ class BaseExecutor:
         The most common implementation is to prepare a run log for the run if the run uses local interactive compute.
 
         But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we check if the services are OK.
+        We do not set up a run log as its not relevant.
         """
 
         integration.validate(self, self.run_log_store)
@@ -157,6 +163,9 @@ class BaseExecutor:
 
         integration.validate(self, self.secrets_handler)
         integration.configure_for_traversal(self, self.secrets_handler)
+
+        integration.validate(self, self.experiment_tracker)
+        integration.configure_for_execution(self, self.experiment_tracker)
 
         self._set_up_run_log()
 
@@ -646,6 +655,23 @@ class LocalExecutor(BaseExecutor):
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
         self._execute_node(node=node, map_variable=map_variable, **kwargs)
 
+    def execute_job(self, node: BaseNode):
+        """
+        Set up the step log and call the execute node
+
+        Args:
+            node (BaseNode): _description_
+        """
+        map_variable = {}
+        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
+
+        self.add_code_identities(node=node, step_log=step_log)
+
+        step_log.step_type = node.node_type
+        step_log.status = defaults.PROCESSING
+        self.run_log_store.add_step_log(step_log, self.run_id)
+        self.execute_node(node=node)
+
 
 class LocalContainerExecutor(BaseExecutor):
     """
@@ -721,6 +747,35 @@ class LocalContainerExecutor(BaseExecutor):
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
         return self._execute_node(node, map_variable, **kwargs)
 
+    def execute_job(self, node: BaseNode):
+        """
+        Set up the step log and call the execute node
+
+        Args:
+            node (BaseNode): _description_
+        """
+        map_variable = {}
+        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
+
+        self.add_code_identities(node=node, step_log=step_log)
+
+        step_log.step_type = node.node_type
+        step_log.status = defaults.PROCESSING
+        self.run_log_store.add_step_log(step_log, self.run_id)
+
+        command = utils.get_job_execution_command(self, node)
+        self._spin_container(node=node, command=command)
+
+        # Check the step log status and warn if necessary. Docker errors are generally suppressed.
+        step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
+        if step_log.status != defaults.SUCCESS:
+            msg = (
+                'Node execution inside the container failed. Please check the logs.\n'
+                'Note: If you do not see any docker issue from your side and the code works properly on local mode '
+                'please raise a bug report.'
+            )
+            logger.warning(msg)
+
     def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
         If the config has "run_in_local: True", we compute it on local system instead of container.
@@ -741,7 +796,8 @@ class LocalContainerExecutor(BaseExecutor):
             self.execute_node(node=node, map_variable=map_variable, **kwargs)
             return
 
-        self._spin_container(node, map_variable=map_variable, **kwargs)
+        command = utils.get_node_execution_command(self, node, map_variable=map_variable)
+        self._spin_container(node=node, command=command, map_variable=map_variable, **kwargs)
 
         # Check for the status of the node log and anything apart from Success is FAIL
         # This typically happens if something is wrong with magnus or settings.
@@ -756,7 +812,7 @@ class LocalContainerExecutor(BaseExecutor):
             step_log.status = defaults.FAIL
             self.run_log_store.add_step_log(step_log, self.run_id)
 
-    def _spin_container(self, node, map_variable: dict = None, **kwargs):  # pylint: disable=unused-argument
+    def _spin_container(self, node: BaseNode, command: str, map_variable: dict = None, **kwargs):  # pylint: disable=unused-argument
         """
         During the flow run, we have to spin up a container with the docker image mentioned
         and the right log locations
@@ -771,8 +827,7 @@ class LocalContainerExecutor(BaseExecutor):
             raise Exception('Could not get the docker socket file, do you have docker installed?') from ex
 
         try:
-            action = utils.get_node_execution_command(self, node, map_variable=map_variable)
-            logger.info(f'Running the command {action}')
+            logger.info(f'Running the command {command}')
             #  Overrides global config with local
             mode_config = self._resolve_node_config(node)
             docker_image = mode_config.get('docker_image', None)
@@ -784,7 +839,7 @@ class LocalContainerExecutor(BaseExecutor):
 
             # TODO: Should consider using getpass.getuser() when running the docker container? Volume permissions
             container = client.containers.create(image=docker_image,
-                                                 command=action,
+                                                 command=command,
                                                  auto_remove=True,
                                                  volumes=self.volumes,
                                                  network_mode='host',

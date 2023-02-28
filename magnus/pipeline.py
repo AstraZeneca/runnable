@@ -263,8 +263,7 @@ def execute_single_node(
         map_variable: str,
         run_id: str,
         tag: str = None,
-        parameters_file: str = None,
-        execution_plan: str = defaults.EXECUTION_PLAN.CHAINED.value):
+        parameters_file: str = None):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a single node of magnus. Orchestration modes should extensively use this
@@ -288,7 +287,7 @@ def execute_single_node(
                                            tag=tag,
                                            use_cached='',
                                            parameters_file=parameters_file)
-    mode_executor.execution_plan = execution_plan
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     mode_executor.prepare_for_node_execution()
@@ -375,8 +374,6 @@ def execute_notebook(
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-    # Prepare the graph with a single node
-    dag = graph.Graph(start_at='executing notebook')
     step_config = {
         'command': notebook_file,
         'command_type': 'notebook',
@@ -384,17 +381,13 @@ def execute_notebook(
         'next': 'success',
         'catalog': catalog_config,
     }
-    node = graph.create_node(name=f'executing notebook', step_config=step_config)
+    node = graph.create_node(name=f'executing job', step_config=step_config)
 
-    dag.add_node(node)
-    dag.add_terminal_nodes()
-
-    mode_executor.dag = dag
     # Prepare for graph execution
     mode_executor.prepare_for_graph_execution()
 
-    logger.info('Executing the graph')
-    mode_executor.execute_graph(dag=mode_executor.dag)
+    logger.info('Executing the job')
+    mode_executor.execute_job(node=node)
 
     mode_executor.send_return_code()
 
@@ -423,7 +416,6 @@ def execute_function(
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     # Prepare the graph with a single node
-    dag = graph.Graph(start_at='executing function')
     step_config = {
         'command': command,
         'command_type': 'python',
@@ -431,16 +423,45 @@ def execute_function(
         'next': 'success',
         'catalog': catalog_config,
     }
-    node = graph.create_node(name=f'executing function', step_config=step_config)
+    node = graph.create_node(name=f'executing job', step_config=step_config)
 
-    dag.add_node(node)
-    dag.add_terminal_nodes()
-
-    mode_executor.dag = dag
     # Prepare for graph execution
     mode_executor.prepare_for_graph_execution()
 
-    logger.info('Executing the graph')
-    mode_executor.execute_graph(dag=mode_executor.dag)
+    logger.info('Executing the job')
+    mode_executor.execute_job(node=node)
+
+    mode_executor.send_return_code()
+
+
+def execute_nb_or_func(run_id, command: str, catalog_config: dict,  configuration_file: str,
+                       parameters_file: str = "", tag: str = ""):
+    mode_executor = prepare_configurations(
+        configuration_file=configuration_file,
+        run_id=run_id,
+        tag=tag,
+        parameters_file=parameters_file)
+
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+
+    command_type = "python"
+    if command.endswith(".ipynb"):
+        command_type = "notebook"
+
+    step_config = {
+        'command': command,
+        'command_type': command_type,
+        'type': 'task',
+        'next': 'success',
+        'catalog': catalog_config,
+    }
+    node = graph.create_node(name=f'executing job', step_config=step_config)
+
+    # Prepare for graph execution
+    mode_executor.prepare_for_node_execution()
+
+    logger.info('Executing the job')
+    mode_executor.execute_node(node=node)
 
     mode_executor.send_return_code()
