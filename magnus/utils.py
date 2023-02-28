@@ -484,9 +484,14 @@ def get_node_execution_command(
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
     action = (f'magnus execute_single_node {run_id} '
-              f'{node._command_friendly_name()}'
               f' --log-level {log_level}'
               )
+
+    if executor.execution_plan == defaults.EXECUTION_PLAN.UNCHAINED.value:
+        action = action + f" {node.command}"  # Node would always be a task type when it reaches here
+    else:
+        action = action + f" {node._command_friendly_name()}"
+
     if executor.pipeline_file:
         action = action + f" --file {executor.pipeline_file}"
 
@@ -501,6 +506,8 @@ def get_node_execution_command(
 
     if executor.tag:
         action = action + f' --tag {executor.tag}'
+
+    action = action + f" --plan {executor.execution_plan}"
 
     return action
 
@@ -615,8 +622,8 @@ def get_run_config(executor: BaseExecutor) -> dict:
                                         'config': executor.experiment_tracker.config}
     run_config['variables'] = executor.variables  # type: ignore
 
-    if executor.dag:
-        # Notebook and functions do not have dag's defined
+    if executor.execution_plan == defaults.EXECUTION_PLAN.CHAINED.value:
+        # Unchained executions do not have pipeline definitions
         run_config['pipeline'] = executor.dag._to_dict()
 
     return run_config

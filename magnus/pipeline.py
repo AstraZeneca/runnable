@@ -157,7 +157,7 @@ def execute(
                                            tag=tag,
                                            use_cached=use_cached,
                                            parameters_file=parameters_file)
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
 
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
@@ -219,7 +219,7 @@ def execute_single_step(
                                            tag=tag,
                                            use_cached='',
                                            parameters_file=parameters_file)
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
     try:
         _ = mode_executor.dag.get_node_by_name(step_name)
@@ -263,7 +263,8 @@ def execute_single_node(
         map_variable: str,
         run_id: str,
         tag: str = None,
-        parameters_file: str = None):
+        parameters_file: str = None,
+        execution_plan: str = defaults.EXECUTION_PLAN.CHAINED.value):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a single node of magnus. Orchestration modes should extensively use this
@@ -287,7 +288,7 @@ def execute_single_node(
                                            tag=tag,
                                            use_cached='',
                                            parameters_file=parameters_file)
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
+    mode_executor.execution_plan = execution_plan
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     mode_executor.prepare_for_node_execution()
@@ -336,7 +337,7 @@ def execute_single_brach(
                                            run_id=run_id,
                                            tag=tag,
                                            use_cached='')
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.pipeline
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     branch_internal_name = nodes.BaseNode._get_internal_name_from_command_name(branch_name)
@@ -371,7 +372,7 @@ def execute_notebook(
         tag=tag,
         parameters_file=parameters_file)
 
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.notebook
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     # Prepare the graph with a single node
@@ -418,7 +419,7 @@ def execute_function(
         tag=tag,
         parameters_file=parameters_file)
 
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.function
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     # Prepare the graph with a single node
