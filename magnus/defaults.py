@@ -90,10 +90,10 @@ AWS_REGION = 'eu-west-1'
 
 # Docker settings
 DOCKERFILE_NAME = 'Dockerfile'
-DOCKERFILE_CONTENT = r"""# Python 3.6 Image without Dependecies
+DOCKERFILE_CONTENT = r"""# Python 3.8 Image without Dependecies
 FROM python:3.8
 
-LABEL maintainer="vijay.vammi@astrazeneca.com"
+LABEL maintainer="mesanthu@gmail.com"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
