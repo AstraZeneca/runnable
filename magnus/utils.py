@@ -484,9 +484,12 @@ def get_node_execution_command(
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
     action = (f'magnus execute_single_node {run_id} '
-              f'{node._command_friendly_name()}'
+              f"{node._command_friendly_name()}"
               f' --log-level {log_level}'
               )
+
+    # action = action + f" {node._command_friendly_name()}"
+
     if executor.pipeline_file:
         action = action + f" --file {executor.pipeline_file}"
 
@@ -501,6 +504,42 @@ def get_node_execution_command(
 
     if executor.tag:
         action = action + f' --tag {executor.tag}'
+
+    return action
+
+
+def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write_run_id: str = '') -> str:
+    run_id = executor.run_id
+
+    if over_write_run_id:
+        run_id = over_write_run_id
+
+    log_level = logging.getLevelName(logger.getEffectiveLevel())
+
+    action = (f'magnus execute_nb_or_func {run_id} '
+              f' --log-level {log_level}'
+              )
+
+    action = action + f" {node.config.command}"
+
+    if executor.configuration_file:
+        action = action + f' --config-file {executor.configuration_file}'
+
+    if executor.parameters_file:
+        action = action + f' --parameters-file {executor.parameters_file}'
+
+    if executor.tag:
+        action = action + f' --tag {executor.tag}'
+
+    catalog_config = node._get_catalog_settings() or {}
+
+    data_folder = catalog_config.get("compute_data_folder", None)
+    if data_folder:
+        action = action + f" --data-folder {data_folder}"
+
+    put_in_catalog = catalog_config.get("put", []) or []  # The put itself can be None
+    for every_put in put_in_catalog:
+        action = action + f" --put-in-catalog {every_put}"
 
     return action
 
@@ -532,6 +571,9 @@ def get_service_namespace(service_type: str) -> str:
 
     if service_type == 'experiment_tracking':
         return 'magnus.experiment_tracker.BaseExperimentTracker'
+
+    if service_type == 'pickler':
+        return 'magnus.pickler.BasePickler'
 
     raise Exception('Service type is not recognized')
 
@@ -615,9 +657,7 @@ def get_run_config(executor: BaseExecutor) -> dict:
                                         'config': executor.experiment_tracker.config}
     run_config['variables'] = executor.variables  # type: ignore
 
-    if executor.dag:
-        # Notebook and functions do not have dag's defined
-        run_config['pipeline'] = executor.dag._to_dict()
+    run_config['pipeline'] = executor.dag._to_dict()
 
     return run_config
 

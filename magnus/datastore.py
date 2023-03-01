@@ -488,7 +488,7 @@ class BaseRunLogStore:
 
     def create_branch_log(self, internal_branch_name: str, **kwargs) -> BranchLog:  # pylint: disable=unused-argument
         """
-        Creates a uncomitted branch log object by the internal name given
+        Creates a uncommitted branch log object by the internal name given
 
         Args:
             internal_branch_name (str): Creates a branch log by name internal_branch_name

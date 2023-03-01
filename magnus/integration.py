@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from magnus import defaults
 from magnus.catalog import BaseCatalog
 from magnus.datastore import BaseRunLogStore
+from magnus.experiment_tracker import BaseExperimentTracker
 from magnus.secrets import BaseSecrets
 
 if TYPE_CHECKING:
@@ -69,6 +70,8 @@ def get_service_type(service_provider: object) -> str:
         return 'catalog'
     if isinstance(service_provider, BaseRunLogStore):
         return 'run_log_store'
+    if isinstance(service_provider, BaseExperimentTracker):
+        return 'experiment_tracker'
 
     raise Exception('Service Provider is not a inherited from any of the Base Service providers')
 

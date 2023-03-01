@@ -35,7 +35,7 @@ def cli():
 @click.option('--use-cached', help='Provide the previous run_id to re-run.', show_default=True)
 def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cached):  # pragma: no cover
     """
-    Entry point to executing a pipeline. This command is most commonly used
+    External entry point to executing a pipeline. This command is most commonly used
     either to execute a pipeline or to translate the pipeline definition to another language.
 
     You can re-run an older run by providing the run_id of the older run in --use-cached.
@@ -61,7 +61,7 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cach
 @click.option('--use-cached', help='Provide the previous run_id to re-run.', show_default=True)
 def execute_step(step_name, file, config_file, parameters_file, log_level, tag, run_id, use_cached):  # pragma: no cover
     """
-    Entry point to executing a single step of the pipeline.
+    External entry point to executing a single step of the pipeline.
 
     This command is helpful to run only one step of the pipeline in isolation.
     Only the steps of the parent dag could be invoked using this method.
@@ -90,8 +90,15 @@ def execute_step(step_name, file, config_file, parameters_file, log_level, tag, 
               type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
 @click.option('--tag', default='', help='A tag attached to the run')
 def execute_single_node(run_id, step_name, map_variable, file, config_file, parameters_file, log_level, tag):
+    """
+    Internal entrypoint for magnus to execute a single node.
+
+    Other than local executor, every other executor uses this entry point to execute a step in the context of magnus.
+    Only chained executions should use this method. Unchained executions should use execute_
+    """
     logger.setLevel(log_level)
 
+    # Execute the node as part of the graph execution.
     pipeline.execute_single_node(configuration_file=config_file, pipeline_file=file,
                                  step_name=step_name, map_variable=map_variable,
                                  run_id=run_id, tag=tag, parameters_file=parameters_file)
@@ -107,6 +114,10 @@ def execute_single_node(run_id, step_name, map_variable, file, config_file, para
 @click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
               type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
 def execute_single_branch(run_id, branch_name, map_variable, file, config_file, log_level):
+    """
+    Internal entrypoint for magnus to execute a single branch.
+    Currently it is only being used by local during parallel executions.
+    """
     logger.setLevel(log_level)
 
     pipeline.execute_single_brach(configuration_file=config_file,
@@ -129,15 +140,19 @@ def execute_single_branch(run_id, branch_name, map_variable, file, config_file, 
 def execute_notebook(filename, config_file, parameters_file, log_level, data_folder,
                      put_in_catalog, tag, run_id):
     """
-    Entry point to execute a Jupyter notebook in isolation.
+    External entry point to execute a Jupyter notebook in isolation.
 
     The notebook would be executed in the environment defined by the config file or default if none.
+    The execution plan is unchained.
     """
     logger.setLevel(log_level)
     catalog_config = {
         'compute_data_folder': data_folder,
         'put': list(put_in_catalog) if put_in_catalog else None
     }
+    if not filename.endswith(".ipynb"):
+        raise Exception("A notebook should always have ipynb as the extension")
+
     pipeline.execute_notebook(notebook_file=filename, catalog_config=catalog_config, configuration_file=config_file,
                               parameters_file=parameters_file, tag=tag, run_id=run_id)
 
@@ -157,9 +172,10 @@ def execute_notebook(filename, config_file, parameters_file, log_level, data_fol
 def execute_function(command, config_file, parameters_file, log_level, data_folder,
                      put_in_catalog, tag, run_id):
     """
-    Entry point to execute a python function in isolation.
+    External entry point to execute a python function in isolation.
 
     The function would be executed in the environment defined by the config file or default if none.
+    The execution plan is unchained.
     """
     logger.setLevel(log_level)
     catalog_config = {
@@ -168,6 +184,34 @@ def execute_function(command, config_file, parameters_file, log_level, data_fold
     }
     pipeline.execute_function(command=command, catalog_config=catalog_config, configuration_file=config_file,
                               parameters_file=parameters_file, tag=tag, run_id=run_id)
+
+
+@cli.command("execute_nb_or_func", short_help="Entry point to execute a notebook or function")
+@click.argument('run_id')
+@click.argument('nb_or_func')
+@click.option('-c', '--config-file', default=None,
+              help="config file, in yaml, to be used for the run", show_default=True)
+@click.option('-p', '--parameters-file', default=None,
+              help="Parameters, in yaml,  accessible by the application", show_default=True)
+@click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
+              type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
+@click.option('--data-folder', '-d', default='data/', help="The catalog data folder")
+@click.option('--put-in-catalog', '-put', default=None, multiple=True, help="The data to put from the catalog")
+@click.option('--tag', help='A tag attached to the run')
+def execute_nb_or_function(run_id, nb_or_func, config_file, parameters_file, log_level,
+                           data_folder, put_in_catalog, tag):
+    """
+    Internal entry point to execute a notebook or function.
+    Executors other than local should use this entry point to execute the notebook or function in the requested
+    environment.
+    """
+    logger.setLevel(log_level)
+    catalog_config = {
+        'compute_data_folder': data_folder,
+        'put': list(put_in_catalog) if put_in_catalog else None
+    }
+    pipeline.execute_nb_or_func(command=nb_or_func, catalog_config=catalog_config, configuration_file=config_file,
+                                parameters_file=parameters_file, tag=tag, run_id=run_id)
 
 
 @cli.command('build_docker', short_help="Utility tool to build docker images")

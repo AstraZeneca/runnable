@@ -27,39 +27,13 @@ class BaseExecutor:
     The skeleton of an executor class.
     Any implementation of an executor should inherit this class and over-ride accordingly.
 
-    The logic of any dag execution is a play between three methods of this class.
+    This is a loaded base class which has a lot of methods already implemented for "typical" executions.
+    Look at the function docs to understand how to use them appropriately.
 
-    execute_graph:
-        This method is responsible for traversing A graph.
-        The core logic is start at the start_at the graph and traverse according to the state of the execution.
-        execute_graph hands over the actual execution of the node to self.execute_from_graph
+    For any implementation:
+    1). When should the run log being set up?
+    2). What should the step log being set up?
 
-        Helper method: prepare_for_graph_execution would be called prior to calling execute_graph.
-            Use it to modify settings if needed.
-
-    execute_from_graph:
-        This method is responsible for executing a node.
-        But given that a node itself could be a dag in cases of parallel, map and dag, this method handles the cases.
-        If the node is of type task, success, fail: we can pretty much execute it and we call self.trigger_job.
-        If the node is of type composite: We call the node's execute_as_graph function which internally
-        triggers execute_graph in-turn iteratively traverses the graph.
-
-
-    _execute_node:
-        This method is where the actual execution of the work happens.
-        This method is already in the compute environment of the mode.
-        Use prepare_node_for_execution to adjust settings.
-        The base class is given an implementation and in most cases should not be touched.
-
-        Helper method: prepare_for_node_execution would be called prior to calling _execute_node.
-            Use it to modify settings if needed
-
-    The above logic holds good when we are in interactive compute mode i.e. local, local-container, local-aws-batch
-
-    But in 3rd party orchestration mode, we might have to render the job specifications and the roles might be different
-
-    Please see the implementations of local, local-container, local-aws-batch to perform interactive compute.
-    And demo-renderer to see an example of what a 3rd party executor looks like.
     """
     service_name = ''
 
@@ -85,7 +59,7 @@ class BaseExecutor:
         self.use_cached: bool = False
         self.dag: Graph = None  # type: ignore
         self.dag_hash: str = ''
-        self.execution_plan: str = ''
+        self.execution_plan: str = ''  # Chained or unchained
         # Services
         self.catalog_handler: BaseCatalog = None  # type: ignore
         self.secrets_handler: BaseSecrets = None  # type: ignore
@@ -114,6 +88,9 @@ class BaseExecutor:
         Controls the parallelization of branches in map and parallel state.
         Defaults to False and left for the compute modes to decide.
 
+        Interactive executors like local and local-container need decisions.
+        For most transpilers it is inconsequential as its always True and supported by platforms.
+
         Returns:
             bool: True if the mode allows parallel execution of branches.
         """
@@ -123,7 +100,7 @@ class BaseExecutor:
         """
         Create a run log and put that in the run log store
 
-        If exists_ok, we allow the run log to be already present in the run log store
+        If exists_ok, we allow the run log to be already present in the run log store.
         """
         try:
             attempt_run_log = self.run_log_store.get_run_log_by_id(run_id=self.run_id, full=False)
@@ -169,12 +146,13 @@ class BaseExecutor:
 
     def prepare_for_graph_execution(self):
         """
-        This method would be called prior to calling execute_graph.
+        This method should be called prior to calling execute_graph.
         Perform any steps required before doing the graph execution.
 
         The most common implementation is to prepare a run log for the run if the run uses local interactive compute.
 
-        But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we need not do anything.
+        But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we check if the services are OK.
+        We do not set up a run log as its not relevant.
         """
 
         integration.validate(self, self.run_log_store)
@@ -185,6 +163,9 @@ class BaseExecutor:
 
         integration.validate(self, self.secrets_handler)
         integration.configure_for_traversal(self, self.secrets_handler)
+
+        integration.validate(self, self.experiment_tracker)
+        integration.configure_for_traversal(self, self.experiment_tracker)
 
         self._set_up_run_log()
 
@@ -205,6 +186,9 @@ class BaseExecutor:
 
         integration.validate(self, self.secrets_handler)
         integration.configure_for_execution(self, self.secrets_handler)
+
+        integration.validate(self, self.experiment_tracker)
+        integration.configure_for_execution(self, self.experiment_tracker)
 
     def _sync_catalog(self, node: BaseNode, step_log: StepLog, stage: str, synced_catalogs=None):
         """
@@ -261,7 +245,7 @@ class BaseExecutor:
         This is the entry point when we do the actual execution of the function.
         DO NOT Over-ride this function.
 
-        While in interactive mode, we just compute, in 3rd party interactive mode, we call this function from the CLI
+        While in interactive mode, we just compute, in 3rd party interactive mode, we need to reach this function.
 
         In most cases,
             * We get the corresponding step_log of the node and the parameters.
@@ -323,6 +307,17 @@ class BaseExecutor:
             self.run_log_store.add_step_log(step_log, self.run_id)
 
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
+        """
+        The exposed method to executing a node.
+        All implementations should implement this method.
+
+        Args:
+            node (BaseNode): The node to execute
+            map_variable (dict, optional): If the node is part of a map, send in the map dictionary. Defaults to None.
+
+        Raises:
+            NotImplementedError: _description_
+        """
         raise NotImplementedError
 
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
@@ -354,7 +349,8 @@ class BaseExecutor:
             * dag: Delegate the responsibility of execution to the node.execute_as_graph()
             * map: Delegate the responsibility of execution to the node.execute_as_graph()
 
-        Check the implementations of local, local-container, local-aws-batch for different examples of implementation
+        Transpilers will NEVER use this method and will NEVER call ths method.
+        This method should only be used by interactive executors.
 
         Args:
             node (Node): The node to execute
@@ -405,6 +401,9 @@ class BaseExecutor:
         """
         Executor specific way of triggering jobs when magnus does both traversal and execution
 
+        Transpilers will NEVER use this method and will NEVER call them.
+        Only interactive executors who need execute_from_graph will ever implement it.
+
         Args:
             node (BaseNode): The node to execute
             map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
@@ -445,6 +444,10 @@ class BaseExecutor:
     def execute_graph(self, dag: Graph, map_variable: dict = None, **kwargs):
         """
         The parallelization is controlled by the nodes and not by this function.
+
+        Transpilers should over ride this method to do the translation of dag to the platform specific way.
+        Interactive methods should use this to traverse and execute the dag.
+            - Use execute_from_graph to handle sub-graphs
 
         Logically the method should:
             * Start at the dag.start_at of the dag.
@@ -606,6 +609,21 @@ class BaseExecutor:
 
         return effective_node_config
 
+    def execute_job(self, node: BaseNode):
+        """
+        Executor specific way of executing a job (python function or a notebook).
+
+        Interactive executors should execute the job.
+        Transpilers should write the instructions.
+
+        Args:
+            node (BaseNode): The job node to execute
+
+        Raises:
+            NotImplementedError: Executors should choose to extend this functionality or not.
+        """
+        raise NotImplementedError
+
 
 class LocalExecutor(BaseExecutor):
     """
@@ -634,8 +652,24 @@ class LocalExecutor(BaseExecutor):
         self.prepare_for_node_execution()
         self.execute_node(node=node, map_variable=map_variable, **kwargs)
 
-    def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: dict[str, str] = None, **kwargs):
         self._execute_node(node=node, map_variable=map_variable, **kwargs)
+
+    def execute_job(self, node: BaseNode):
+        """
+        Set up the step log and call the execute node
+
+        Args:
+            node (BaseNode): _description_
+        """
+        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable=None))
+
+        self.add_code_identities(node=node, step_log=step_log)
+
+        step_log.step_type = node.node_type
+        step_log.status = defaults.PROCESSING
+        self.run_log_store.add_step_log(step_log, self.run_id)
+        self.execute_node(node=node)
 
 
 class LocalContainerExecutor(BaseExecutor):
@@ -712,6 +746,34 @@ class LocalContainerExecutor(BaseExecutor):
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
         return self._execute_node(node, map_variable, **kwargs)
 
+    def execute_job(self, node: BaseNode):
+        """
+        Set up the step log and call the execute node
+
+        Args:
+            node (BaseNode): _description_
+        """
+        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable=None))
+
+        self.add_code_identities(node=node, step_log=step_log)
+
+        step_log.step_type = node.node_type
+        step_log.status = defaults.PROCESSING
+        self.run_log_store.add_step_log(step_log, self.run_id)
+
+        command = utils.get_job_execution_command(self, node)
+        self._spin_container(node=node, command=command)
+
+        # Check the step log status and warn if necessary. Docker errors are generally suppressed.
+        step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable=None), self.run_id)
+        if step_log.status != defaults.SUCCESS:
+            msg = (
+                'Node execution inside the container failed. Please check the logs.\n'
+                'Note: If you do not see any docker issue from your side and the code works properly on local mode '
+                'please raise a bug report.'
+            )
+            logger.warning(msg)
+
     def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
         If the config has "run_in_local: True", we compute it on local system instead of container.
@@ -732,7 +794,8 @@ class LocalContainerExecutor(BaseExecutor):
             self.execute_node(node=node, map_variable=map_variable, **kwargs)
             return
 
-        self._spin_container(node, map_variable=map_variable, **kwargs)
+        command = utils.get_node_execution_command(self, node, map_variable=map_variable)
+        self._spin_container(node=node, command=command, map_variable=map_variable, **kwargs)
 
         # Check for the status of the node log and anything apart from Success is FAIL
         # This typically happens if something is wrong with magnus or settings.
@@ -747,7 +810,7 @@ class LocalContainerExecutor(BaseExecutor):
             step_log.status = defaults.FAIL
             self.run_log_store.add_step_log(step_log, self.run_id)
 
-    def _spin_container(self, node, map_variable: dict = None, **kwargs):  # pylint: disable=unused-argument
+    def _spin_container(self, node: BaseNode, command: str, map_variable: dict = None, **kwargs):  # pylint: disable=unused-argument
         """
         During the flow run, we have to spin up a container with the docker image mentioned
         and the right log locations
@@ -762,8 +825,7 @@ class LocalContainerExecutor(BaseExecutor):
             raise Exception('Could not get the docker socket file, do you have docker installed?') from ex
 
         try:
-            action = utils.get_node_execution_command(self, node, map_variable=map_variable)
-            logger.info(f'Running the command {action}')
+            logger.info(f'Running the command {command}')
             #  Overrides global config with local
             mode_config = self._resolve_node_config(node)
             docker_image = mode_config.get('docker_image', None)
@@ -775,7 +837,7 @@ class LocalContainerExecutor(BaseExecutor):
 
             # TODO: Should consider using getpass.getuser() when running the docker container? Volume permissions
             container = client.containers.create(image=docker_image,
-                                                 command=action,
+                                                 command=command,
                                                  auto_remove=True,
                                                  volumes=self.volumes,
                                                  network_mode='host',

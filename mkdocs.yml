@@ -105,6 +105,8 @@ nav:
           - "Demo Renderer": "concepts/modes-implementations/demo-renderer.md"
   - "Command Line":
       - "Options": "command-line.md"
+  - "How do I?":
+      - "How Do I": "how-do-i.md"
   - "Examples":
       - "Overview": "examples.md"
   - "Extensions":

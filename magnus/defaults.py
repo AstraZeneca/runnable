@@ -8,10 +8,8 @@ LOG_LEVEL = 'WARNING'
 
 class EXECUTION_PLAN(Enum):
     # execution_plans
-    pipeline = 1
-    decorator = 2
-    notebook = 3
-    function = 4
+    CHAINED = 'chained'  #  121 relationship between run log and the dag.
+    UNCHAINED = 'unchained'  # Only captures execution of steps, no relation.
 
 
 # Config file environment variable
