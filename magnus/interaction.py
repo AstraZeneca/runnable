@@ -4,9 +4,9 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Union
+from typing import Any, Union
 
-from magnus import defaults, exceptions, utils
+from magnus import defaults, exceptions, pickler, utils
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -128,6 +128,9 @@ def get_from_catalog(name: str, destination_folder: str = None):
     data_catalog = global_executor.catalog_handler.get(name, run_id=global_executor.run_id,  # type: ignore
                                                        compute_data_folder=destination_folder)
 
+    if not data_catalog:
+        logger.warn(f"No catalog was obtained by the {name}")
+
     if global_executor.context_step_log:  # type: ignore
         global_executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
@@ -150,10 +153,59 @@ def put_in_catalog(filepath: str):
 
     data_catalog = global_executor.catalog_handler.put(file_path.name, run_id=global_executor.run_id,  # type: ignore
                                                        compute_data_folder=file_path.parent)
+
+    if not data_catalog:
+        logger.warn(f"No catalog was done by the {filepath}")
+
     if global_executor.context_step_log:  # type: ignore
         global_executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
+
+
+def put_object(data: Any, name: str):
+    """
+    A convenient interaction function to serialize and store the object in catalog.
+
+    Args:
+        data (Any): The data object to add to catalog
+        name (str): The name to give to the object
+    """
+    native_pickler = pickler.NativePickler()
+
+    native_pickler.dump(data=data, path=name)
+    put_in_catalog(f"{name}{native_pickler.extension}")
+
+    # Remove the file
+    os.remove(f"{name}{native_pickler.extension}")
+
+
+def get_object(name: str) -> Any:
+    """
+    A convenient interaction function to deserialize and retrieve the object from the catalog.
+
+    Args:
+        name (str): The name of the object to retrieve
+
+    Returns:
+        Any : The object
+    """
+    native_pickler = pickler.NativePickler()
+
+    get_from_catalog(name=f"{name}{native_pickler.extension}", destination_folder='.')
+
+    try:
+        data = native_pickler.load(name)
+
+        # Remove the file
+        os.remove(f"{name}{native_pickler.extension}")
+        return data
+    except FileNotFoundError as e:
+        msg = (
+            f"No object by the name {name} has been put in the catalog before."
+        )
+        logger.exception(msg)
+        raise e
 
 
 def get_run_id() -> str:

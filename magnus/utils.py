@@ -572,6 +572,9 @@ def get_service_namespace(service_type: str) -> str:
     if service_type == 'experiment_tracking':
         return 'magnus.experiment_tracker.BaseExperimentTracker'
 
+    if service_type == 'pickler':
+        return 'magnus.pickler.BasePickler'
+
     raise Exception('Service type is not recognized')
 
 

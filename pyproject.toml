@@ -69,7 +69,11 @@ magnus= 'magnus.cli:cli'
 # Plugins for Experiment tracker
 [tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]
 "do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
-#"mlflow" = "magnus.experiment_tracker:MLFlowExperimentTracker"
+
+# Plugins for Pickler
+[tool.poetry.plugins."magnus.pickler.BasePickler"]
+"pickle" = "magnus.pickler:NativePickler"
+
 
 # Plugins for Integration
 [tool.poetry.plugins."magnus.integration.BaseIntegration"]
