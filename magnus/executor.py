@@ -165,7 +165,7 @@ class BaseExecutor:
         integration.configure_for_traversal(self, self.secrets_handler)
 
         integration.validate(self, self.experiment_tracker)
-        integration.configure_for_execution(self, self.experiment_tracker)
+        integration.configure_for_traversal(self, self.experiment_tracker)
 
         self._set_up_run_log()
 
@@ -652,7 +652,7 @@ class LocalExecutor(BaseExecutor):
         self.prepare_for_node_execution()
         self.execute_node(node=node, map_variable=map_variable, **kwargs)
 
-    def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: dict[str, str] = None, **kwargs):
         self._execute_node(node=node, map_variable=map_variable, **kwargs)
 
     def execute_job(self, node: BaseNode):
@@ -662,8 +662,7 @@ class LocalExecutor(BaseExecutor):
         Args:
             node (BaseNode): _description_
         """
-        map_variable = {}
-        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
+        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable=None))
 
         self.add_code_identities(node=node, step_log=step_log)
 
@@ -754,8 +753,7 @@ class LocalContainerExecutor(BaseExecutor):
         Args:
             node (BaseNode): _description_
         """
-        map_variable = {}
-        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
+        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable=None))
 
         self.add_code_identities(node=node, step_log=step_log)
 
@@ -767,7 +765,7 @@ class LocalContainerExecutor(BaseExecutor):
         self._spin_container(node=node, command=command)
 
         # Check the step log status and warn if necessary. Docker errors are generally suppressed.
-        step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
+        step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable=None), self.run_id)
         if step_log.status != defaults.SUCCESS:
             msg = (
                 'Node execution inside the container failed. Please check the logs.\n'

@@ -73,8 +73,8 @@ def test_base_executor_prepare_for_graph_execution_calls(mocker, monkeypatch):
 
     base_executor.prepare_for_graph_execution()
 
-    assert mock_configure_for_traversal.call_count == 3
-    assert mock_validate.call_count == 3
+    assert mock_configure_for_traversal.call_count == 4
+    assert mock_validate.call_count == 4
 
 
 def test_base_execution_prepare_for_node_calls(mocker, monkeypatch):
@@ -91,8 +91,8 @@ def test_base_execution_prepare_for_node_calls(mocker, monkeypatch):
 
     base_executor.prepare_for_node_execution()
 
-    assert mock_configure_for_execution.call_count == 3
-    assert mock_validate.call_count == 3
+    assert mock_configure_for_execution.call_count == 4
+    assert mock_validate.call_count == 4
 
 
 def test_base_executor__sync_catalog_returns_nothing_if_no_syncing_for_node(mocker, monkeypatch):
