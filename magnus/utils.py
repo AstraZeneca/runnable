@@ -657,7 +657,9 @@ def get_run_config(executor: BaseExecutor) -> dict:
                                         'config': executor.experiment_tracker.config}
     run_config['variables'] = executor.variables  # type: ignore
 
-    run_config['pipeline'] = executor.dag._to_dict()
+    if executor.dag:
+        # Some executions do not define a dag
+        run_config['pipeline'] = executor.dag._to_dict()
 
     return run_config
 
