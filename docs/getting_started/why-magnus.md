@@ -64,6 +64,3 @@ The technological decisions made today for your project may not be correct one i
 reasons. You might want to change your cloud provider or orchestrating tools or secrets manager and it should be easy
 to do so. With magnus, you can easily switch without touching your project code/practices. Since the configuration
 could also be parameterized, switching might be as simple as changing one file. For more details check here.
-
-And one of the design principles in magnus was to limit needing to ```import magnus``` to achieve functionality.
-This also means that you can move away from magnus if its no longer supporting you. :-)

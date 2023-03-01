@@ -484,7 +484,7 @@ def get_node_execution_command(
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
     action = (f'magnus execute_single_node {run_id} '
-              f" {node._command_friendly_name()}"
+              f"{node._command_friendly_name()}"
               f' --log-level {log_level}'
               )
 

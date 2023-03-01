@@ -131,10 +131,11 @@ variable.
 
 ```shell
 export MAGNUS_VAR_module_name=my_module.say_hello
+export MAGNUS_PRM_name="universe"
 ```
 and with the same python code [as before](#example), we can achieve the same result by:
 ```shell
-magnus execute --file dag-variable.yaml --name universe
+magnus execute --file dag-variable.yaml
 ```
 
 Magnus would resolve the placeholders at the load of the dag definition.
