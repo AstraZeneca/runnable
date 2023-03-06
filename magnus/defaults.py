@@ -10,6 +10,7 @@ class EXECUTION_PLAN(Enum):
     # execution_plans
     CHAINED = 'chained'  #  121 relationship between run log and the dag.
     UNCHAINED = 'unchained'  # Only captures execution of steps, no relation.
+    INTERACTIVE = 'interactive'  # used for interactive sessions
 
 
 # Config file environment variable

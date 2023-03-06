@@ -2,11 +2,13 @@ import logging
 
 from yachalk import chalk
 
-from magnus.interaction import (get_experiment_tracker_context,
+from magnus.interaction import (end_interactive_session,
+                                get_experiment_tracker_context,
                                 get_from_catalog, get_object, get_parameter,
                                 get_run_id, get_secret, put_in_catalog,
-                                put_object, store_parameter, track_this)
-from magnus.sdk import AsIs, Pipeline, Task, step
+                                put_object, start_interactive_session,
+                                store_parameter, track_this)
+from magnus.sdk import AsIs, Pipeline, Task
 
 chalk_colors = {
     'debug': chalk.grey,

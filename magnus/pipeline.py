@@ -1,13 +1,10 @@
 import json
 import logging
-from typing import Optional, Union
+from typing import Union
 
-from magnus import defaults, exceptions, graph, utils
+from magnus import context, defaults, exceptions, graph, utils
 
 logger = logging.getLogger(defaults.NAME)
-
-# Set this global executor to the fitted executor for access later
-global_executor = None  # pylint: disable=invalid-name # type: ignore
 
 
 def get_default_configs() -> dict:
@@ -34,7 +31,8 @@ def prepare_configurations(
         run_id: str = None,
         tag: Union[str, None] = None,
         use_cached: Union[str, None] = '',
-        parameters_file: str = None):
+        parameters_file: str = None,
+        force_local_executor: bool = False):
     # pylint: disable=R0914
     """
     Replace the placeholders in the dag/config against the variables file.
@@ -88,6 +86,9 @@ def prepare_configurations(
 
     # Mode configurations, configuration over rides everything
     mode_config = configuration.get('mode', {})
+    if force_local_executor:
+        mode_config = {'type': 'local'}
+
     if not mode_config:
         mode_config = magnus_defaults.get('executor', defaults.DEFAULT_EXECUTOR)
     mode_executor = utils.get_provider_by_name_and_type('executor', mode_config)
@@ -115,8 +116,7 @@ def prepare_configurations(
     mode_executor.use_cached = use_cached
 
     # Set a global executor for inter-module access later
-    global global_executor  # pylint: disable=W0603,invalid-name,
-    global_executor = mode_executor
+    context.executor = mode_executor
 
     mode_executor.run_log_store = run_log_store
     mode_executor.catalog_handler = catalog_handler

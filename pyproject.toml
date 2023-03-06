@@ -39,6 +39,7 @@ tox = "^3.24.5"
 pre-commit = "*"
 commit-linter = "^1.0.2"
 python-semantic-release = "^7.33.1"
+ipykernel = "^6.21.2"
 
 [tool.poetry.scripts]
 magnus= 'magnus.cli:cli'

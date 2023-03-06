@@ -32,7 +32,7 @@ Any configuration parameters the secret provider accepts.
 ## Interaction with other services
 
 Other service providers, like run log store or catalog, can access the secrets by using the
-```global_executor.secrets_handler``` of ```pipeline``` module during the run time. This could be useful for
+```executor.secrets_handler``` of ```context``` module during the run time. This could be useful for
 constructing connection strings to database or AWS connections.
 
 For example:
@@ -43,8 +43,8 @@ class CustomObject:
 
     @property
     def connection_object(self):
-        from magnus.pipeline import global_executor
-        secrets = global_exector.secrets_handler.get_secrets()
+        from magnus.context import executor
+        secrets = executor.secrets_handler.get_secrets()
         # Do something with the secrets
 
 ```
