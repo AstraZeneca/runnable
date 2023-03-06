@@ -10,7 +10,7 @@ from magnus import interaction  # pylint: disable=import-error
 
 def test_track_this_adds_values_to_environ(monkeypatch, mocker):
     mock_executor = mocker.MagicMock()
-    monkeypatch.setattr(magnus.pipeline, 'global_executor', mock_executor)
+    monkeypatch.setattr(magnus.context, 'executor', mock_executor)
     interaction.track_this(a='b')
     assert defaults.TRACK_PREFIX + 'a' in os.environ
     del os.environ[defaults.TRACK_PREFIX + 'a']
@@ -18,7 +18,7 @@ def test_track_this_adds_values_to_environ(monkeypatch, mocker):
 
 def test_track_this_adds_multiple_values_to_environ(mocker, monkeypatch):
     mock_executor = mocker.MagicMock()
-    monkeypatch.setattr(magnus.pipeline, 'global_executor', mock_executor)
+    monkeypatch.setattr(magnus.context, 'executor', mock_executor)
     interaction.track_this(a='b', b='a')
     assert defaults.TRACK_PREFIX + 'a' in os.environ
     assert defaults.TRACK_PREFIX + 'b' in os.environ
@@ -61,8 +61,8 @@ def test_get_parameter_returns_parameters_raises_exception_if_key_not_found(mock
 
 def test_get_secret_delegates_to_secrets_handler_get(mocker, monkeypatch):
     mock_global_exec = mocker.MagicMock()
-    import magnus.pipeline  # pylint: disable=import-error
-    magnus.pipeline.global_executor = mock_global_exec
+    from magnus import context
+    context.executor = mock_global_exec
 
     mock_secrets_handler = mocker.MagicMock()
     mock_global_exec.secrets_handler = mock_secrets_handler
@@ -74,10 +74,8 @@ def test_get_secret_delegates_to_secrets_handler_get(mocker, monkeypatch):
 
 def test_get_secret_raises_exception_if_secrets_handler_raises(mocker, monkeypatch):
     mock_global_exec = mocker.MagicMock()
-    import magnus.pipeline  # pylint: disable=import-error
-    magnus.pipeline.global_executor = mock_global_exec
-
-    # monkeypatch.setattr(magnus.pipeline, 'global_executor', mock_global_exec)
+    from magnus import context
+    context.executor = mock_global_exec
 
     mock_secrets_handler = mocker.MagicMock()
     mock_global_exec.secrets_handler = mock_secrets_handler
@@ -88,9 +86,9 @@ def test_get_secret_raises_exception_if_secrets_handler_raises(mocker, monkeypat
 
 
 def test_get_from_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
-    import magnus.pipeline  # pylint: disable=import-error
+    from magnus import context
     mock_global_exec = mocker.MagicMock()
-    magnus.pipeline.global_executor = mock_global_exec
+    context.executor = mock_global_exec
 
     mock_catalog_handler_get = mocker.MagicMock()
     mock_global_exec.catalog_handler.get = mock_catalog_handler_get
@@ -104,9 +102,9 @@ def test_get_from_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
 
 
 def test_get_from_catalog_uses_destination_folder(mocker, monkeypatch):
-    import magnus.pipeline  # pylint: disable=import-error
+    from magnus import context
     mock_global_exec = mocker.MagicMock()
-    magnus.pipeline.global_executor = mock_global_exec
+    context.executor = mock_global_exec
 
     mock_catalog_handler_get = mocker.MagicMock()
     mock_global_exec.catalog_handler.get = mock_catalog_handler_get
@@ -120,9 +118,9 @@ def test_get_from_catalog_uses_destination_folder(mocker, monkeypatch):
 
 
 def test_put_in_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
-    import magnus.pipeline  # pylint: disable=import-error
+    from magnus import context
     mock_global_exec = mocker.MagicMock()
-    magnus.pipeline.global_executor = mock_global_exec
+    context.executor = mock_global_exec
 
     mock_catalog_handler_put = mocker.MagicMock()
     mock_global_exec.catalog_handler.put = mock_catalog_handler_put

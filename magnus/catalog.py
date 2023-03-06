@@ -20,9 +20,8 @@ def get_run_log_store():
     Returns:
         object: The run log store
     """
-    from magnus.pipeline import \
-        global_executor  # pylint: disable=import-outside-toplevel
-    return global_executor.run_log_store
+    from magnus import context
+    return context.executor.run_log_store
 
 
 def is_catalog_out_of_sync(catalog, synced_catalogs=None) -> bool:

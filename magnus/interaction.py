@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Any, Union
 
-from magnus import defaults, exceptions, pickler, utils
+from magnus import defaults, exceptions, pickler, pipeline, utils
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -24,8 +24,14 @@ def track_this(step: int = 0, **kwargs):
     Args:
         kwargs (dict): The dictionary of key value pairs to track.
     """
-    from magnus.pipeline import \
-        global_executor  # pylint: disable=import-outside-toplevel
+    from magnus import context  # pylint: disable=import-outside-toplevel
+
+    if not context.executor:
+        msg = (
+            f"There are no active executor and services. This should not have happened and is a bug."
+            " Please raise a bug report."
+        )
+        raise Exception(msg)
 
     prefix = defaults.TRACK_PREFIX
 
@@ -35,7 +41,7 @@ def track_this(step: int = 0, **kwargs):
     for key, value in kwargs.items():
         logger.info(f'Tracking {key} with value: {value}')
         os.environ[prefix + key] = json.dumps(value)
-        global_executor.experiment_tracker.set_metric(key, value, step=step)  # type: ignore
+        context.executor.experiment_tracker.set_metric(key, value, step=step)  # type: ignore
 
 
 def store_parameter(update: bool = True, **kwargs: dict):
@@ -98,12 +104,18 @@ def get_secret(secret_name: str = None) -> str:
     Raises:
         exceptions.SecretNotFoundError: Secret not found in the secrets manager.
     """
-    from magnus.pipeline import \
-        global_executor  # pylint: disable=import-outside-toplevel
-    secrets_handler = global_executor.secrets_handler  # type: ignore
+    from magnus import context  # pylint: disable=import-outside-toplevel
 
+    if not context.executor:
+        msg = (
+            f"There are no active executor and services. This should not have happened and is a bug."
+            " Please raise a bug report."
+        )
+        raise Exception(msg)
+
+    secrets_handler = context.executor.secrets_handler  # type: ignore
     try:
-        return secrets_handler.get(name=secret_name)
+        return secrets_handler.get(name=secret_name)  # type: ignore
     except exceptions.SecretNotFoundError:
         logger.exception(f'No secret by the name {secret_name} found in the store')
         raise
@@ -119,20 +131,26 @@ def get_from_catalog(name: str, destination_folder: str = None):
         destination_folder (None): The place to put the file. defaults to compute data folder
 
     """
-    from magnus.pipeline import \
-        global_executor  # pylint: disable=import-outside-toplevel
+    from magnus import context  # pylint: disable=import-outside-toplevel
+
+    if not context.executor:
+        msg = (
+            f"There are no active executor and services. This should not have happened and is a bug."
+            " Please raise a bug report."
+        )
+        raise Exception(msg)
 
     if not destination_folder:
-        destination_folder = global_executor.catalog_handler.compute_data_folder  # type: ignore
+        destination_folder = context.executor.catalog_handler.compute_data_folder  # type: ignore
 
-    data_catalog = global_executor.catalog_handler.get(name, run_id=global_executor.run_id,  # type: ignore
-                                                       compute_data_folder=destination_folder)
+    data_catalog = context.executor.catalog_handler.get(name, run_id=context.executor.run_id,  # type: ignore
+                                                        compute_data_folder=destination_folder)
 
     if not data_catalog:
         logger.warn(f"No catalog was obtained by the {name}")
 
-    if global_executor.context_step_log:  # type: ignore
-        global_executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
+    if context.executor.context_step_log:  # type: ignore
+        context.executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
@@ -146,19 +164,24 @@ def put_in_catalog(filepath: str):
     Args:
         filepath (str): The path of the file to put in the catalog
     """
-    from magnus.pipeline import \
-        global_executor  # pylint: disable=import-outside-toplevel
+    from magnus import context  # pylint: disable=import-outside-toplevel
+
+    if not context.executor:
+        msg = (
+            f"There are no active executor and services. This should not have happened and is a bug."
+            " Please raise a bug report."
+        )
+        raise Exception(msg)
 
     file_path = Path(filepath)
 
-    data_catalog = global_executor.catalog_handler.put(file_path.name, run_id=global_executor.run_id,  # type: ignore
-                                                       compute_data_folder=file_path.parent)
-
+    data_catalog = context.executor.catalog_handler.put(file_path.name, run_id=context.executor.run_id,  # type: ignore
+                                                        compute_data_folder=file_path.parent)
     if not data_catalog:
         logger.warn(f"No catalog was done by the {filepath}")
 
-    if global_executor.context_step_log:  # type: ignore
-        global_executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
+    if context.executor.context_step_log:  # type: ignore
+        context.executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
@@ -226,8 +249,96 @@ def get_tag() -> str:
 
 
 def get_experiment_tracker_context():
-    from magnus.pipeline import \
-        global_executor  # pylint: disable=import-outside-toplevel
+    """
+    Return a context session of the experiment tracker.
 
-    experiment_tracker = global_executor.experiment_tracker
+    You can start to use the context with the python with statement.
+
+    eg:
+    with get_experiment_tracker_context() as ctx:
+        pass
+
+    Returns:
+        _type_: _description_
+    """
+    from magnus import context  # pylint: disable=import-outside-toplevel
+
+    if not context.executor:
+        msg = (
+            f"There are no active executor and services. This should not have happened and is a bug."
+            " Please raise a bug report."
+        )
+        raise Exception(msg)
+
+    experiment_tracker = context.executor.experiment_tracker
     return experiment_tracker.client_context
+
+
+def start_interactive_session(run_id: str = "", config_file: str = "", tag: str = "", parameters_file: str = ""):
+    """
+    During interactive python coding, either via notebooks or ipython, you can start a magnus session by calling
+    this function. The executor would always be local executor as its interactive.
+
+    If this was called during a pipeline/function/notebook execution, it will be ignored.
+
+    Args:
+        run_id (str, optional): The run id to use. Defaults to "" and would be created if not provided.
+        config_file (str, optional): The configuration file to use. Defaults to "" and magnus defaults.
+        tag (str, optional): The tag to attach to the run. Defaults to "".
+        parameters_file (str, optional): The parameters file to use. Defaults to "".
+    """
+    from magnus import context  # pylint: disable=import-outside-toplevel
+    from magnus import graph
+
+    if context.executor:
+        logger.warn("This is not an interactive session or a session has already been activated.")
+        return
+
+    run_id = utils.generate_run_id(run_id=run_id)
+    executor = pipeline.prepare_configurations(configuration_file=config_file,
+                                               run_id=run_id, tag=tag, parameters_file=parameters_file,
+                                               force_local_executor=True)
+
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=config_file, tag=tag)
+
+    executor.execution_plan = defaults.EXECUTION_PLAN.INTERACTIVE.value
+    executor.prepare_for_graph_execution()
+    step_config = {
+        'command': "interactive",
+        'command_type': "python",
+        'type': 'task',
+        'next': 'success'
+    }
+
+    node = graph.create_node(name="interactive", step_config=step_config)
+    step_log = executor.run_log_store.create_step_log("interactive", node._get_step_log_name())
+    executor.add_code_identities(node=node, step_log=step_log)
+
+    step_log.step_type = node.node_type
+    step_log.status = defaults.PROCESSING
+    executor.context_step_log = step_log
+
+
+def end_interactive_session():
+    from magnus import context  # pylint: disable=import-outside-toplevel
+
+    if not context.executor:
+        logger.warn("There is no active session in play, doing nothing!")
+        return
+
+    if context.executor.execution_plan != defaults.EXECUTION_PLAN.INTERACTIVE.value:
+        logger.warn("There is not an interactive session, doing nothing!")
+        return
+
+    tracked_data = utils.get_tracked_data()
+    parameters = utils.get_user_set_parameters(remove=True)
+
+    step_log = context.executor.context_step_log
+    step_log.user_defined_metrics = tracked_data
+    context.executor.run_log_store.add_step_log(step_log, context.executor.run_id)
+
+    context.executor.run_log_store.set_parameters(context.executor.run_id, parameters)
+
+    context.executor.context_step_log = None
+    context.executor.execution_plan = ""
+    context.executor = None

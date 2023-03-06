@@ -13,90 +13,90 @@ from magnus.interaction import get_tag
 logger = logging.getLogger(defaults.NAME)
 
 
-class step(object):
+# class step(object):
 
-    def __init__(
-            self, name: Union[str, FunctionType],
-            catalog_config: dict = None, magnus_config: str = None,
-            parameters_file: str = None):
-        """
-        This decorator could be used to make the function within the scope of magnus.
+#     def __init__(
+#             self, name: Union[str, FunctionType],
+#             catalog_config: dict = None, magnus_config: str = None,
+#             parameters_file: str = None):
+#         """
+#         This decorator could be used to make the function within the scope of magnus.
 
-        Since we are not orchestrating, it is expected that resource management happens outside this scope.
+#         Since we are not orchestrating, it is expected that resource management happens outside this scope.
 
-        Args:
-            name (str, callable): The name of the step. The step log would have the same name
-            catalog_config (dict): The configuration of the catalog per step.
-            magnus_config (str): The name of the file having the magnus config, defaults to None.
-        """
-        if isinstance(name, FunctionType):
-            name = name()
+#         Args:
+#             name (str, callable): The name of the step. The step log would have the same name
+#             catalog_config (dict): The configuration of the catalog per step.
+#             magnus_config (str): The name of the file having the magnus config, defaults to None.
+#         """
+#         if isinstance(name, FunctionType):
+#             name = name()
 
-        self.name = name
-        self.catalog_config = catalog_config
-        self.active = True  # Check if we are executing the function via pipeline
+#         self.name = name
+#         self.catalog_config = catalog_config
+#         self.active = True  # Check if we are executing the function via pipeline
 
-        if pipeline.global_executor \
-                and pipeline.global_executor.execution_plan == defaults.EXECUTION_PLAN.CHAINED.value:
-            self.active = False
-            return
+#         if pipeline.global_executor \
+#                 and pipeline.global_executor.execution_plan == defaults.EXECUTION_PLAN.CHAINED.value:
+#             self.active = False
+#             return
 
-        self.executor = pipeline.prepare_configurations(
-            configuration_file=magnus_config, parameters_file=parameters_file)
+#         self.executor = pipeline.prepare_configurations(
+#             configuration_file=magnus_config, parameters_file=parameters_file)
 
-        self.executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-        run_id = self.executor.step_decorator_run_id
-        if not run_id:
-            msg = (
-                f'Step decorator expects run id from environment.'
-            )
-            raise Exception(msg)
+#         self.executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
+#         run_id = self.executor.step_decorator_run_id
+#         if not run_id:
+#             msg = (
+#                 f'Step decorator expects run id from environment.'
+#             )
+#             raise Exception(msg)
 
-        self.executor.run_id = run_id
-        utils.set_magnus_environment_variables(run_id=run_id, configuration_file=magnus_config, tag=get_tag())
+#         self.executor.run_id = run_id
+#         utils.set_magnus_environment_variables(run_id=run_id, configuration_file=magnus_config, tag=get_tag())
 
-        try:
-            # Try to get it if previous steps have created it
-            # TODO: Can call the set_up_runlog now.
-            run_log = self.executor.run_log_store.get_run_log_by_id(self.executor.run_id)
-            if run_log.status in [defaults.FAIL, defaults.SUCCESS]:  # TODO: Remove this in preference to defaults
-                """
-                This check is mostly useless as we do not know when the graph ends as they are created dynamically.
-                This only prevents from using a run_id which has reached a final state.
-                #TODO: There is a need to create a status called step_success
-                """
-                msg = (
-                    f'The run_log for run_id: {run_id} already exists and is in {run_log.status} state.'
-                    ' Make sure that this was not run before.'
-                )
-                raise Exception(msg)
-        except exceptions.RunLogNotFoundError:
-            # Create one if they are not created
-            self.executor._set_up_run_log()
+#         try:
+#             # Try to get it if previous steps have created it
+#             # TODO: Can call the set_up_runlog now.
+#             run_log = self.executor.run_log_store.get_run_log_by_id(self.executor.run_id)
+#             if run_log.status in [defaults.FAIL, defaults.SUCCESS]:  # TODO: Remove this in preference to defaults
+#                 """
+#                 This check is mostly useless as we do not know when the graph ends as they are created dynamically.
+#                 This only prevents from using a run_id which has reached a final state.
+#                 #TODO: There is a need to create a status called step_success
+#                 """
+#                 msg = (
+#                     f'The run_log for run_id: {run_id} already exists and is in {run_log.status} state.'
+#                     ' Make sure that this was not run before.'
+#                 )
+#                 raise Exception(msg)
+#         except exceptions.RunLogNotFoundError:
+#             # Create one if they are not created
+#             self.executor._set_up_run_log()
 
-    def __call__(self, func):
-        """
-        The function is converted into a node and called via the magnus framework.
-        """
-        @functools.wraps(func)
-        def wrapped_f(*args, **kwargs):
-            if not self.active:
-                # If we are not running via decorator, execute the function
-                return func(*args, **kwargs)
+#     def __call__(self, func):
+#         """
+#         The function is converted into a node and called via the magnus framework.
+#         """
+#         @functools.wraps(func)
+#         def wrapped_f(*args, **kwargs):
+#             if not self.active:
+#                 # If we are not running via decorator, execute the function
+#                 return func(*args, **kwargs)
 
-            step_config = {
-                'command': func,
-                'command_type': 'python-function',
-                'type': 'task',
-                'next': 'not defined',
-                'catalog': self.catalog_config
-            }
-            node = graph.create_node(name=self.name, step_config=step_config)
-            self.executor.execute_from_graph(node=node)
-            run_log = self.executor.run_log_store.get_run_log_by_id(run_id=self.executor.run_id, full=False)
-            # TODO: If the previous step succeeded, make the status of the run log step_success
-            print(json.dumps(run_log.dict(), indent=4))
-        return wrapped_f
+#             step_config = {
+#                 'command': func,
+#                 'command_type': 'python-function',
+#                 'type': 'task',
+#                 'next': 'not defined',
+#                 'catalog': self.catalog_config
+#             }
+#             node = graph.create_node(name=self.name, step_config=step_config)
+#             self.executor.execute_from_graph(node=node)
+#             run_log = self.executor.run_log_store.get_run_log_by_id(run_id=self.executor.run_id, full=False)
+#             # TODO: If the previous step succeeded, make the status of the run log step_success
+#             print(json.dumps(run_log.dict(), indent=4))
+#         return wrapped_f
 
 
 class Task:

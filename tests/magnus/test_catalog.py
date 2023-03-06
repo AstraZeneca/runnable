@@ -4,15 +4,15 @@ import tempfile
 import pytest
 
 from magnus import catalog  # pylint: disable=import-error
+from magnus import context  # pylint: disable=import-error
 from magnus import defaults  # pylint: disable=import-error
-from magnus import pipeline  # pylint: disable=import-error
 
 
-def test_get_run_log_store_returns_global_executor_run_log_store(mocker, monkeypatch):
-    mock_global_executor = mocker.MagicMock()
-    mock_global_executor.run_log_store = 'RunLogStore'
+def test_get_run_log_store_returns_context_executor_run_log_store(mocker, monkeypatch):
+    mock_context_executor = mocker.MagicMock()
+    mock_context_executor.run_log_store = 'RunLogStore'
 
-    monkeypatch.setattr(pipeline, 'global_executor', mock_global_executor)
+    monkeypatch.setattr(context, 'executor', mock_context_executor)
     run_log_store = catalog.get_run_log_store()
 
     assert run_log_store == 'RunLogStore'
