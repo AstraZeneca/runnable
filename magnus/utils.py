@@ -594,7 +594,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: dict):
     Returns:
         object: A service object
     """
-    namespace = get_service_namespace(service_type=service_type)
+    namespace = service_type  # get_service_namespace(service_type=service_type)
 
     service_name = service_details['type']
     service_config = {}
@@ -656,7 +656,6 @@ def get_run_config(executor: BaseExecutor) -> dict:
     run_config['experiment_tracker'] = {'type': executor.experiment_tracker.service_name,
                                         'config': executor.experiment_tracker.config}
     run_config['variables'] = executor.variables  # type: ignore
-
 
     if executor.dag:
         # Some executions do not define a dag

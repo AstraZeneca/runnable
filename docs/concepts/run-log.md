@@ -762,11 +762,11 @@ The BaseRunLogStore depends upon a lot of other DataModels (pydantic datamodels)
 These can all be found in ```magnus/datastore.py```. You can alternatively ignore all of them and create your own custom
 implementation if desired but be aware of internal code dependencies on the structure of the datamodels.
 
-The custom extensions should be registered as part of the namespace: ```magnus.datastore.BaseRunLogStore``` for it to be
+The custom extensions should be registered as part of the namespace: ```run_log_store``` for it to be
 loaded.
 
 ```toml
 # For example, as part of your pyproject.toml
-[tool.poetry.plugins."magnus.datastore.BaseRunLogStore"]
+[tool.poetry.plugins."run_log_store"]
 "mlmd" = "YOUR_PACKAGE:MLMDFormat"
 ```

@@ -12,7 +12,7 @@ any of the experiment tracking tools like MLflow or Weights and Biases.
 Configuration of a Experiment tracking tools is as follows:
 
 ```yaml
-experiment_tracking:
+experiment_tracker:
   type:
   config:
 ```
@@ -157,10 +157,10 @@ class BaseExperimentTracker:
 ```
 
 The custom extensions should be registered as part of the namespace:
-```magnus.experiment_tracker.BaseExperimentTracker```  for it to be loaded.
+```experiment_tracker```  for it to be loaded.
 
 ```toml
 # For example, as part of your pyproject.toml
-[tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]
+[tool.poetry.plugins."experiment_tracker"]
 "mlflow" = "YOUR_PACKAGE:mlflow"
 ```

@@ -357,7 +357,7 @@ class TaskNode(BaseNode):
         logger.info(f"Trying to get a task of type {task_type}")
         try:
             task_mgr = driver.DriverManager(
-                namespace="magnus.tasks.BaseTaskType",
+                namespace="tasks",
                 name=task_type,
                 invoke_on_load=False
             )

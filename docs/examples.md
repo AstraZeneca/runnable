@@ -916,10 +916,11 @@ remain the same even in the case of actual tasks.
 Example of a parallel node:
 
 ```yaml
-# in the yaml example-parallel.yaml
+# In config.yaml
 run_log_store:
-  type: file-system
+  type: file-system # Use chunked-fs when using parallel
 
+# In pipeline.yaml
 dag:
   description: DAG for testing with as-is and parallel
   start_at: step1
@@ -1228,7 +1229,7 @@ Though the dag definition defines a ```parallel``` node, the execution of the da
 controlled by the executor. In ```local``` mode, you can enable parallel branch execution by modifying the config.
 
 ```yaml
-mode:
+executor:
   type: local
   config:
     enable_parallel: True
@@ -1673,7 +1674,7 @@ the execution of the dag and the parallelism is actually
 controlled by the executor. In ```local``` mode, you can enable parallel branch execution by modifying the config.
 
 ```yaml
-mode:
+executor:
   type: local
   config:
     enable_parallel: True
@@ -1704,12 +1705,14 @@ Node type ```as-is``` defined in magnus can be a very powerful tool in some depl
 For example in the below dag definition, the step ```step echo``` does nothing as part of ```local``` execution.
 
 ```yaml
-mode:
+# In config.yaml
+executor:
   type: demo-renderer
 
 run_log_store:
   type: file-system
 
+# In pipeline.yaml
 dag:
   description: Getting started
   start_at: step parameters
@@ -1811,7 +1814,7 @@ Magnus supports many ways of providing configurations but there is a order of pr
 Magnus defaults to the following if no config is provided.
 
 ```yaml
-mode:
+executor:
   type: local
   config:
     enable_parallel: "false"
@@ -1838,7 +1841,7 @@ if the ```magnus-config.yaml``` file has the following contents, even if you do 
 definition file, these would taken as default service providers.
 
 ```yaml
-mode:
+executor:
   type: local
   config:
     enable_parallel: True

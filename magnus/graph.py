@@ -351,7 +351,7 @@ def create_node(name: str, step_config: dict, internal_branch_name: str = None):
 
     try:
         node_mgr = driver.DriverManager(
-            namespace="magnus.nodes.BaseNode",
+            namespace="nodes",
             name=step_config['type'],
             invoke_on_load=True,
             invoke_kwds={"name": name, "internal_name": internal_name,

@@ -97,7 +97,7 @@ def get_integration_handler(executor: 'BaseExecutor', service: object) -> BaseIn
     integrations = []
 
     mgr = extension.ExtensionManager(
-        namespace="magnus.integration.BaseIntegration",
+        namespace="integration",
         invoke_on_load=True,
         invoke_kwds={'executor': executor, 'integration_service': service}
     )

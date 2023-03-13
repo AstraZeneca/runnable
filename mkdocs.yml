@@ -98,11 +98,11 @@ nav:
           - "Overview": "concepts/experiment-tracking.md"
       - "Integration":
           - "Overview": "concepts/integration.md"
-      - "Compute Mode":
-          - "Overview": "concepts/modes.md"
-          - "Local": "concepts/modes-implementations/local.md"
-          - "Local Container": "concepts/modes-implementations/local-container.md"
-          - "Demo Renderer": "concepts/modes-implementations/demo-renderer.md"
+      - "Executors":
+          - "Overview": "concepts/executor.md"
+          - "Local": "concepts/executor-implementations/local.md"
+          - "Local Container": "concepts/executor-implementations/local-container.md"
+          - "Demo Renderer": "concepts/executor-implementations/demo-renderer.md"
   - "Command Line":
       - "Options": "command-line.md"
   - "How do I?":
