@@ -27,7 +27,7 @@ def error_function():
 
 def get_config():
     config = {
-        'mode': {
+        'executor': {
             'type': 'local',
         },
         'run_log_store': {
@@ -42,7 +42,7 @@ def get_config():
 
 def get_chunked_config():
     config = {
-        'mode': {
+        'executor': {
             'type': 'local',
         },
         'run_log_store': {

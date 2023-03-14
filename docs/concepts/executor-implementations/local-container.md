@@ -1,15 +1,15 @@
 # Local Container
 
-Local container is an interactive mode. In this mode, the traversal of the dag is done on the
+Local container is an interactive executor. In this, the traversal of the dag is done on the
 local computer but the
-actual execution happens on a container (running on local machine). This mode should enable you to test
-the pipeline and execution of your code in containers. This mode could also be useful in
+actual execution happens on a container (running on local machine). This executor should enable you to test
+the pipeline and execution of your code in containers. This executor could also be useful in
 debugging a container based cloud run.
 
-In this mode, max run time is completely ignored.
+In this executor, max run time is completely ignored.
 
 Apart from Buffered Run Log store, all other run log stores are compatible.
-All secrets and catalog providers are compatible with this mode.
+All secrets and catalog providers are compatible with this executor.
 
 ---
 !!! Note
@@ -18,10 +18,10 @@ All secrets and catalog providers are compatible with this mode.
 ---
 ## Configuration
 
-The full configuration of this mode is:
+The full configuration of this executor is:
 
 ```yaml
-mode:
+executor:
   type: local-container
   config:
     enable_parallel:
@@ -77,8 +77,8 @@ RUN poetry install
 
 ### Node over-rides
 
-The docker image/environment provided at ```mode``` can be over-ridden by individual nodes of the graph by providing a
-```mode_config``` as part of the definition. Since ```mode_config``` is universally used by all modes, the
+The docker image/environment provided at ```executor``` can be over-ridden by individual nodes of the graph by providing
+ a ```executor_config``` as part of the definition. Since ```executor_config``` is universally used by all modes, the
 over-rides should be provided within the context of the executor type.
 
 For example:
@@ -87,7 +87,7 @@ For example:
 run_log:
   type: file-system
 
-mode:
+executor:
   type: local-container
   config:
     docker_image: project_default
@@ -98,7 +98,7 @@ dag:
   steps:
     step1:
       type: as-is
-      mode_config:
+      executor_config:
         local-container:
           docker_image: step1_image
       command: my_function_does_all.func

@@ -1226,7 +1226,7 @@ You can nest a ```parallel``` node, ```dag``` or a ```map``` node within paralle
 ### Enabling parallel execution
 
 Though the dag definition defines a ```parallel``` node, the execution of the dag and the parallelism is actually
-controlled by the executor. In ```local``` mode, you can enable parallel branch execution by modifying the config.
+controlled by the executor. In ```local``` execution, you can enable parallel branch execution by modifying the config.
 
 ```yaml
 executor:
@@ -1671,7 +1671,7 @@ The individual steps of the dag are named in  [```dot path convention```](../con
 
 Though the dag definition defines a ```map``` node where the branches can be executed in parallel,
 the execution of the dag and the parallelism is actually
-controlled by the executor. In ```local``` mode, you can enable parallel branch execution by modifying the config.
+controlled by the executor. In ```local``` execution, you can enable parallel branch execution by modifying the config.
 
 ```yaml
 executor:
@@ -1743,7 +1743,7 @@ dag:
 ```
 
 But a deployment pattern, like ```demo-renderer```, can use it to inject a command into the bash script. To test it out,
-uncomment the config to change to mode to ```demo-renderer``` and the run log store to be ```file-system``` and
+uncomment the config to change to executor to ```demo-renderer``` and the run log store to be ```file-system``` and
 execute it like below.
 
 ```magnus execute --file getting-started.yaml```
@@ -1785,8 +1785,8 @@ magnus execute_single_node $1 success --file getting-started.yaml
 ```
 
 The shell script is translation of the dag into a series of bash commands but notice the command ```echo hello``` as
-part of the script. While the ```local``` mode interpreted that node as a stub or a mock node, the ```demo-renderer```
-mode used the ```render_string``` variable of the node ```config``` to inject a script.
+part of the script. While the ```local``` executor interpreted that node as a stub or a mock node, the
+```demo-renderer``` execution used the ```render_string``` variable of the node ```config``` to inject a script.
 
 This feature is very useful when you want certain few steps (may be email notifications) to be only possible in
 production like environments but want to mock the during dev/experimental set up.

@@ -1,4 +1,4 @@
-mode:
+executor:
   type: local
   config:
     enable_parallel: "False"

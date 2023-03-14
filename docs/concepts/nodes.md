@@ -99,14 +99,14 @@ On_failure could be an use case where you want to send a failure notification be
 
 ### mode_config (optional)
 Use this section to pass instructions to the executor.
-For example, we can instruct the ```local-container``` mode to use a different docker image to run this step of the
+For example, we can instruct the ```local-container``` executor to use a different docker image to run this step of the
 pipeline.
 
 Example usage of mode_config:
 
 ```yaml
 # In config.yaml
-mode:
+executor:
   type: local-container
   config:
     docker_image: python:3.7
@@ -123,7 +123,7 @@ dag:
       type: task
       command: clean_up.sh
       command_type: shell
-      mode_config:
+      executor_config:
         docker_image: ubuntu:latest
       next: Success
     Success:
@@ -141,7 +141,7 @@ from magnus import Task, Pipeline
 def pipeline():
   first = Task(name='Cool function', command='my_module.my_cool_function')
   second = Task(name='Clean Up', command='clean_up.sh', command_type='shell',
-            mode_config={'docker_image': 'ubunutu:latest'})
+            executor_config={'docker_image': 'ubunutu:latest'})
 
   pipeline = pipeline(name='my pipeline')
   pipeline.construct([first, second])
@@ -585,8 +585,8 @@ Taking the same example, we can imagine that there is an executor which can depl
 a template to be generated as part of the continuos integration.
 
 ```yaml
-mode:
-  type: <some mode which deploys trained models>
+executor:
+  type: <some executor which deploys trained models>
 
 dag:
   description: A mocked data science pipeline
@@ -788,7 +788,7 @@ class BaseNode:
     errors_on: List[str] = []
 
     class Config(BaseModel):
-        mode_config: dict = {}
+        executor_config: dict = {}
 
         def __init__(self, *args, **kwargs):
             next_node = kwargs.get('next', '')
@@ -816,7 +816,7 @@ class BaseNode:
         composite nodes.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor mode class
+            executor (magnus.executor.BaseExecutor): The executor class
             mock (bool, optional): Don't run, just pretend. Defaults to False.
             map_variable (str, optional): The value of the map iteration variable, if part of a map node.
                 Defaults to ''.
@@ -834,7 +834,7 @@ class BaseNode:
         Function should only be implemented for composite nodes like dag, map, parallel.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor mode.
+            executor (magnus.executor.BaseExecutor): The executor.
 
         Raises:
             NotImplementedError: Base class, hence not implemented.

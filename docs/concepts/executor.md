@@ -54,8 +54,8 @@ Any configuration parameters the execution provider accepts.
 
 ## Parameterized definition
 
-As with any part of the magnus configuration, you can parameterize the configuration of Mode to switch between
-Mode providers without changing the base definition.
+As with any part of the magnus configuration, you can parameterize the configuration of executor to switch between
+execution providers without changing the base definition.
 
 Please follow the example provided [here](../dag/#parameterized_definition) for more information.
 
@@ -97,14 +97,14 @@ class BaseExecutor:
 
     _execute_node:
         This method is where the actual execution of the work happens.
-        This method is already in the compute environment of the mode.
+        This method is already in the compute environment of the executor.
         Use prepare_node_for_execution to adjust settings.
         The base class is given an implementation and in most cases should not be touched.
 
         Helper method: prepare_for_node_execution would be called prior to calling _execute_node.
             Use it to modify settings if needed
 
-    The above logic holds good when we are in interactive compute mode i.e. local, local-container, local-aws-batch
+    The above logic holds good when we are in interactive compute executors i.e. local, local-container
 
     But in 3rd party orchestration mode, we might have to render the job specifications and the roles might be different
 
@@ -152,7 +152,7 @@ class BaseExecutor:
         Defaults to False and left for the compute modes to decide.
 
         Returns:
-            bool: True if the mode allows parallel execution of branches.
+            bool: True if the executor allows parallel execution of branches.
         """
         return self.config.enable_parallel
 
@@ -579,7 +579,7 @@ class BaseExecutor:
         if run_log.status == defaults.FAIL:
             raise Exception('Pipeline execution failed')
 
-    def _resolve_node_config(self, node: BaseNode):
+    def _resolve_executor_config(self, node: BaseNode):
         """
         The mode_config section can contain specific over-rides to an global executor config.
         To avoid too much clutter in the dag definition, we allow the configuration file to have placeholders block.
@@ -587,7 +587,7 @@ class BaseExecutor:
 
         For example:
         # configuration.yaml
-        mode:
+        executor:
           type: cloud-implementation
           config:
             k1: v1

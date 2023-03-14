@@ -39,7 +39,7 @@ class BaseNode:
     errors_on: List[str] = []
 
     class Config(BaseModel):
-        mode_config: dict = {}
+        executor_config: dict = {}
 
         def __init__(self, *args, **kwargs):
             next_node = kwargs.get('next', '')
@@ -274,18 +274,18 @@ class BaseNode:
             return self.config.next_node
         return None
 
-    def _get_mode_config(self, mode_type) -> dict:
+    def _get_executor_config(self, executor_type) -> dict:
         """
-        Return the mode config of the node, if defined, or empty dict
+        Return the executor config of the node, if defined, or empty dict
 
         Args:
-            mode_type (str): The mode type that the config refers to.
+            executor_type (str): The executor type that the config refers to.
 
         Returns:
-            dict: The mode config, if defined or an empty dict
+            dict: The executor config, if defined or an empty dict
         This is a base implementation which the BaseNode does not satisfy
         """
-        return self.config.mode_config.get(mode_type, {})
+        return self.config.executor_config.get(executor_type, {})
 
     def _get_max_attempts(self) -> int:
         """
@@ -305,7 +305,7 @@ class BaseNode:
         composite nodes.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor mode class
+            executor (magnus.executor.BaseExecutor): The executor class
             mock (bool, optional): Don't run, just pretend. Defaults to False.
             map_variable (str, optional): The value of the map iteration variable, if part of a map node.
                 Defaults to ''.
@@ -323,7 +323,7 @@ class BaseNode:
         Function should only be implemented for composite nodes like dag, map, parallel.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor mode.
+            executor (magnus.executor.BaseExecutor): The executor.
 
         Raises:
             NotImplementedError: Base class, hence not implemented.
@@ -603,7 +603,7 @@ class ParallelNode(BaseNode):
         """
         This function does the actual execution of the sub-branches of the parallel node.
 
-        From a design perspective, this function should not be called if the execution mode is 3rd party orchestrated.
+        From a design perspective, this function should not be called if the execution is 3rd party orchestrated.
 
         The modes that render the job specifications, do not need to interact with this node at all as they have their
         own internal mechanisms of handing parallel states.
@@ -769,7 +769,7 @@ class MapNode(BaseNode):
         """
         This function does the actual execution of the branch of the map node.
 
-        From a design perspective, this function should not be called if the execution mode is 3rd party orchestrated.
+        From a design perspective, this function should not be called if the execution is 3rd party orchestrated.
 
         The modes that render the job specifications, do not need to interact with this node at all as
         they have their own internal mechanisms of handing map states or dynamic parallel states.
@@ -955,7 +955,7 @@ class DagNode(BaseNode):
         """
         This function does the actual execution of the branch of the dag node.
 
-        From a design perspective, this function should not be called if the execution mode is 3rd party orchestrated.
+        From a design perspective, this function should not be called if the execution is 3rd party orchestrated.
 
         The modes that render the job specifications, do not need to interact with this node at all
         as they have their own internal mechanisms of handling sub dags.
