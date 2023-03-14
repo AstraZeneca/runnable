@@ -222,12 +222,12 @@ class BaseTaskType:
 
 ```
 
-The custom extensions should be registered as part of the namespace: ```magnus.tasks.BaseTaskType``` for it to be
+The custom extensions should be registered as part of the namespace: ```tasks``` for it to be
 loaded.
 
 ```toml
 # For example, as part of your pyproject.toml
-[tool.poetry.plugins."magnus.tasks.BaseTaskType"]
+[tool.poetry.plugins."tasks"]
 "sql" = "YOUR_PACKAGE:SQLtaskType"
 
 ```

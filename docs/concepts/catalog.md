@@ -137,6 +137,51 @@ def my_function():
 
 ---
 
+## Passing Data Objects
+
+While the is good for files, it is inconvenient to dump and load the object into files for the cataloging to happen.
+Magnus provides utility functions to make it easier.
+
+### Get object from catalog
+
+To get a object from the catalog, use ```get_object``` from magnus.
+
+For example, the below code gets a pandas dataframe from previous steps, called ```interesting_data``` from the catalog.
+
+
+```python
+from magnus import get_object
+
+def my_function():
+  df = get_object("interesting_data")
+
+```
+
+Be aware that, the function would raise an exception if ```interesting_data``` was not added to catalog before.
+
+### Put object in catalog
+
+To put a object into the catalog, use ```put_object``` from magnus.
+
+For example, the below code puts the dataframe ```interesting_data``` into the catalog as ```interesting_data.pickle```.
+
+
+```python
+from magnus import put_object
+
+def my_function():
+  put_object(data=interesting_data, name="interesting_data")
+
+```
+
+---
+!!! Note
+
+    We internally use pickle for the serialization and deserialization. Please raise a feature request if you need
+    other kind of serializers.
+
+---
+
 
 ## Parameterized definition
 
@@ -240,11 +285,11 @@ class BaseCatalog:
 ```
 
 
-The custom extensions should be registered as part of the namespace: ```magnus.catalog.BaseCatalog``` for it to be
+The custom extensions should be registered as part of the namespace: ```catalog``` for it to be
 loaded.
 
 ```toml
 # For example, as part of your pyproject.toml
-[tool.poetry.plugins."magnus.catalog.BaseCatalog"]
+[tool.poetry.plugins."catalog"]
 "gfs" = "YOUR_PACKAGE:GFStorage"
 ```

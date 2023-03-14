@@ -62,7 +62,7 @@ Let us create a configuration file which changes the behavior of magnus to trans
 
 ```yaml
 # config.yaml
-mode:
+executor:
   type: demo-renderer
 
 run_log_store:

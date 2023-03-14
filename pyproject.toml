@@ -44,54 +44,56 @@ ipykernel = "^6.21.2"
 [tool.poetry.scripts]
 magnus= 'magnus.cli:cli'
 
+
 # Plugins for Executors
-[tool.poetry.plugins."magnus.executor.BaseExecutor"]
+[tool.poetry.plugins."executor"]
 "local" = "magnus.executor:LocalExecutor"
 "local-container" = "magnus.executor:LocalContainerExecutor"
 "demo-renderer" = "magnus.executor:DemoRenderer"
 
 # Plugins for Catalog
-[tool.poetry.plugins."magnus.catalog.BaseCatalog"]
+[tool.poetry.plugins."catalog"]
 "do-nothing" = "magnus.catalog:DoNothingCatalog"
 "file-system" = "magnus.catalog:FileSystemCatalog"
 
 # Plugins for Secrets
-[tool.poetry.plugins."magnus.secrets.BaseSecrets"]
+[tool.poetry.plugins."secrets"]
 "do-nothing" = "magnus.secrets:DoNothingSecretManager"
 "dotenv" = "magnus.secrets:DotEnvSecrets"
 "env-secrets-manager" = "magnus.secrets:EnvSecretsManager"
 
 # Plugins for Run Log store
-[tool.poetry.plugins."magnus.datastore.BaseRunLogStore"]
+[tool.poetry.plugins."run_log_store"]
 "buffered" = "magnus.datastore:BufferRunLogstore"
 "file-system" = "magnus.datastore:FileSystemRunLogstore"
 "chunked-fs" = "magnus.datastore:ChunkedFileSystemRunLogStore"
 
 # Plugins for Experiment tracker
-[tool.poetry.plugins."magnus.experiment_tracker.BaseExperimentTracker"]
+[tool.poetry.plugins."experiment_tracker"]
 "do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
 
 # Plugins for Pickler
-[tool.poetry.plugins."magnus.pickler.BasePickler"]
+# TODO: Currently not being extended, need to get more use cases
+[tool.poetry.plugins."pickler"]
 "pickle" = "magnus.pickler:NativePickler"
 
 
 # Plugins for Integration
-[tool.poetry.plugins."magnus.integration.BaseIntegration"]
-# {executor.name}-{service}-{service.name}
-"local-run_log_store-buffered" = "magnus.integration:LocalComputeBufferedRunLogStore"
-"local-run_log_store-file-system" = "magnus.integration:LocalComputeFileSystemRunLogStore"
-"local-container-run_log_store-buffered" = "magnus.integration:LocalContainerComputeBufferedRunLogStore"
-"local-container-run_log_store-file-system" = "magnus.integration:LocalContainerComputeFileSystemRunLogstore"
-"local-container-secrets-dotenv" = "magnus.integration:LocalContainerComputeDotEnvSecrets"
-"local-container-secrets-environment" = "magnus.integration:LocalContainerComputeEnvSecretsManager"
-"local-container-catalog-do-nothing" = "magnus.integration:LocalContainerDoNothingCatalog"
-"local-catalog-do-nothing" = "magnus.integration:LocalDoNothingCatalog"
-"local-container-catalog-file-system" = "magnus.integration:LocalContainerComputeFileSystemCatalog"
-"demo-renderer-run_log_store-buffered" = "magnus.integration:DemoRenderBufferedRunLogStore"
+[tool.poetry.plugins."integration"]
+# The name does not matter, the core would be labelled c
+"c1" = "magnus.integration:LocalComputeBufferedRunLogStore"
+"c2" = "magnus.integration:LocalComputeFileSystemRunLogStore"
+"c3" = "magnus.integration:LocalContainerComputeBufferedRunLogStore"
+"c4" = "magnus.integration:LocalContainerComputeFileSystemRunLogstore"
+"c5" = "magnus.integration:LocalContainerComputeDotEnvSecrets"
+"c6" = "magnus.integration:LocalContainerComputeEnvSecretsManager"
+"c7" = "magnus.integration:LocalContainerDoNothingCatalog"
+"c8" = "magnus.integration:LocalDoNothingCatalog"
+"c9" = "magnus.integration:LocalContainerComputeFileSystemCatalog"
+"c10" = "magnus.integration:DemoRenderBufferedRunLogStore"
 
 # Plugins for Tasks
-[tool.poetry.plugins."magnus.tasks.BaseTaskType"]
+[tool.poetry.plugins."tasks"]
 "python" = "magnus.tasks:PythonTaskType"
 "python-lambda" = "magnus.tasks:PythonLambdaTaskType"
 "shell" = "magnus.tasks:ShellTaskType"
@@ -99,7 +101,7 @@ magnus= 'magnus.cli:cli'
 "python-function" = "magnus.tasks:PythonFunctionType"
 
 # Plugins for Nodes
-[tool.poetry.plugins."magnus.nodes.BaseNode"]
+[tool.poetry.plugins."nodes"]
 "task" = "magnus.nodes:TaskNode"
 "fail" = "magnus.nodes:FailNode"
 "success" = "magnus.nodes:SuccessNode"

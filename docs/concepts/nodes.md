@@ -852,11 +852,11 @@ class BaseNode:
 
 
 
-The custom extensions should be registered as part of the namespace: ```magnus.nodes.BaseNode``` for it to be
+The custom extensions should be registered as part of the namespace: ```nodes``` for it to be
 loaded.
 
 ```toml
 # For example, as part of your pyproject.toml
-[tool.poetry.plugins."magnus.nodes.BaseNode"]
+[tool.poetry.plugins."nodes"]
 "mail" = "YOUR_PACKAGE:MailTeam"
 ```

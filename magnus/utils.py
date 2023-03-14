@@ -544,40 +544,6 @@ def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write
     return action
 
 
-def get_service_namespace(service_type: str) -> str:
-    """
-    Return the namespace of the service type
-
-    Args:
-        service_type (str): Should be one of executor, run_log_store, catalog, secrets
-
-    Raises:
-        Exception: If the service type is not one of the accepted values
-
-    Object:
-        str: The name space of the base class
-    """
-    if service_type == 'executor':
-        return 'magnus.executor.BaseExecutor'
-
-    if service_type == 'run_log_store':
-        return 'magnus.datastore.BaseRunLogStore'
-
-    if service_type == 'catalog':
-        return 'magnus.catalog.BaseCatalog'
-
-    if service_type == 'secrets':
-        return 'magnus.secrets.BaseSecrets'
-
-    if service_type == 'experiment_tracking':
-        return 'magnus.experiment_tracker.BaseExperimentTracker'
-
-    if service_type == 'pickler':
-        return 'magnus.pickler.BasePickler'
-
-    raise Exception('Service type is not recognized')
-
-
 def get_provider_by_name_and_type(service_type: str, service_details: dict):
     """
     Given a service type, one of executor, run_log_store, catalog, secrets and the config
@@ -594,7 +560,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: dict):
     Returns:
         object: A service object
     """
-    namespace = get_service_namespace(service_type=service_type)
+    namespace = service_type
 
     service_name = service_details['type']
     service_config = {}
@@ -656,7 +622,6 @@ def get_run_config(executor: BaseExecutor) -> dict:
     run_config['experiment_tracker'] = {'type': executor.experiment_tracker.service_name,
                                         'config': executor.experiment_tracker.config}
     run_config['variables'] = executor.variables  # type: ignore
-
 
     if executor.dag:
         # Some executions do not define a dag
