@@ -1,5 +1,6 @@
 # Local Container
 
+
 Local container is an interactive executor. In this, the traversal of the dag is done on the
 local computer but the
 actual execution happens on a container (running on local machine). This executor should enable you to test
@@ -17,6 +18,7 @@ All secrets and catalog providers are compatible with this executor.
     Magnus does not build the docker image for you but uses a docker image provided.
 ---
 ## Configuration
+
 
 The full configuration of this executor is:
 
@@ -76,6 +78,7 @@ RUN poetry install
 ```
 
 ### Node over-rides
+
 
 The docker image/environment provided at ```executor``` can be over-ridden by individual nodes of the graph by providing
  a ```executor_config``` as part of the definition. Since ```executor_config``` is universally used by all modes, the

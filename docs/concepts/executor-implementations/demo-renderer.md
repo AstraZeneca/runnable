@@ -7,6 +7,7 @@ In this set up, we ignore max run time set on the dag completely.
 
 ## Configuration
 
+
 The full configuration of the executor is:
 
 ```yaml

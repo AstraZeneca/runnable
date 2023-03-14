@@ -98,6 +98,7 @@ class BaseExecutor:
     _execute_node:
         This method is where the actual execution of the work happens.
         This method is already in the compute environment of the executor.
+
         Use prepare_node_for_execution to adjust settings.
         The base class is given an implementation and in most cases should not be touched.
 
@@ -153,6 +154,7 @@ class BaseExecutor:
 
         Returns:
             bool: True if the executor allows parallel execution of branches.
+
         """
         return self.config.enable_parallel
 
@@ -599,7 +601,7 @@ class BaseExecutor:
         dag:
           steps:
             step1:
-              mode_config:
+              executor_config:
                 cloud-implementation:
                   k1: value_specific_to_node
                   k2:
@@ -611,7 +613,7 @@ class BaseExecutor:
 
         """
         effective_node_config = copy.deepcopy(self.config.dict())
-        ctx_node_config = node._get_mode_config(self.service_name)
+        ctx_node_config = node._get_executor_config(self.service_name)
 
         placeholders = self.config.placeholders
 

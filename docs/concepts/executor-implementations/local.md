@@ -1,5 +1,6 @@
 # Local
 
+
 Local executor is an interactive mode. In this, magnus does the traversal of the graph and execution of nodes
 on the local compute from which it is executed.
 
@@ -14,6 +15,7 @@ The full configuration of local executor is:
 
 ```yaml
 executor:
+
   type: local
   config:
     enable_parallel:
