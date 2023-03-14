@@ -1,6 +1,7 @@
 import logging
+from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from magnus import defaults
 from magnus.catalog import BaseCatalog
@@ -21,8 +22,8 @@ class BaseIntegration:
     """
     Base class for handling integration between Executor and one of Catalog, Secrets, RunLogStore.
     """
-    mode_type = ''
-    service_type = ''  # One of secret, catalog, datastore
+    executor_type = ''
+    service_type = ''  # One of secret, catalog, datastore, experiment tracker
     service_provider = ''  # The actual implementation of the service
 
     def __init__(self, executor: 'BaseExecutor', integration_service: object):
@@ -97,11 +98,11 @@ def get_integration_handler(executor: 'BaseExecutor', service: object) -> BaseIn
     integrations = []
 
     mgr = extension.ExtensionManager(
-        namespace="integration",
+        namespace="magnus.integration.BaseIntegration",
         invoke_on_load=True,
         invoke_kwds={'executor': executor, 'integration_service': service}
     )
-    for name, kls in mgr.items():
+    for _, kls in mgr.items():
         if (kls.obj.service_type == service_type and  # type: ignore
                 kls.obj.mode_type == executor.service_name and  # type: ignore
                 kls.obj.service_provider == service_name):
@@ -164,7 +165,7 @@ class LocalComputeBufferedRunLogStore(BaseIntegration):
     """
     Local compute and buffered
     """
-    mode_type = 'local'
+    executor_type = 'local'
     service_type = 'run_log_store'  # One of secret, catalog, datastore
     service_provider = 'buffered'  # The actual implementation of the service
 
@@ -180,7 +181,7 @@ class LocalComputeFileSystemRunLogStore(BaseIntegration):
     """
     Local compute and File system run log store
     """
-    mode_type = 'local'
+    executor_type = 'local'
     service_type = 'run_log_store'  # One of secret, catalog, datastore
     service_provider = 'file-system'  # The actual implementation of the service
 
@@ -199,7 +200,7 @@ class LocalContainerComputeBufferedRunLogStore(BaseIntegration):
     """
     Only local execution mode is possible for Buffered Run Log store
     """
-    mode_type = 'local-container'
+    executor_type = 'local-container'
     service_type = 'run_log_store'  # One of secret, catalog, datastore
     service_provider = 'buffered'  # The actual implementation of the service
 
@@ -211,7 +212,7 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
     """
     Integration between local container and file system run log store
     """
-    mode_type = 'local-container'
+    executor_type = 'local-container'
     service_type = 'run_log_store'  # One of secret, catalog, datastore
     service_provider = 'file-system'  # The actual implementation of the service
 
@@ -240,7 +241,7 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
     """
     Integration between local container and dot env secrets
     """
-    mode_type = 'local-container'
+    executor_type = 'local-container'
     service_type = 'secrets'  # One of secret, catalog, datastore
     service_provider = 'dotenv'  # The actual implementation of the service
 
@@ -262,7 +263,7 @@ class LocalContainerComputeEnvSecretsManager(BaseIntegration):
     """
     Integration between local container and env secrets manager
     """
-    mode_type = 'local-container'
+    executor_type = 'local-container'
     service_type = 'secrets'  # One of secret, catalog, datastore
     service_provider = 'env-secrets-manager'  # The actual implementation of the service
 
@@ -279,7 +280,7 @@ class LocalContainerDoNothingCatalog(BaseIntegration):
     """
     Integration between local container and do nothing catalog
     """
-    mode_type = 'local-container'
+    executor_type = 'local-container'
     service_type = 'catalog'  # One of secret, catalog, datastore
     service_provider = 'do-nothing'  # The actual implementation of the service
 
@@ -294,7 +295,7 @@ class LocalDoNothingCatalog(BaseIntegration):
     """
     Integration between local and do nothing catalog
     """
-    mode_type = 'local'
+    executor_type = 'local'
     service_type = 'catalog'  # One of secret, catalog, datastore
     service_provider = 'do-nothing'  # The actual implementation of the service
 
@@ -309,7 +310,7 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
     """
     Integration pattern between Local container and File System catalog
     """
-    mode_type = 'local-container'
+    executor_type = 'local-container'
     service_type = 'catalog'  # One of secret, catalog, datastore
     service_provider = 'file-system'  # The actual implementation of the service
 
@@ -328,7 +329,7 @@ class DemoRenderBufferedRunLogStore(BaseIntegration):
     """
     Demo rendered and buffered
     """
-    mode_type = 'demo-renderer'
+    executor_type = 'demo-renderer'
     service_type = 'run_log_store'  # One of secret, catalog, datastore
     service_provider = 'buffered'  # The actual implementation of the service
 
@@ -339,3 +340,17 @@ class DemoRenderBufferedRunLogStore(BaseIntegration):
         )
         logger.exception(msg)
         raise Exception(msg)
+
+
+class CoreIntegrations(BaseIntegration):
+    sub_integrations = [LocalComputeBufferedRunLogStore,
+                        LocalComputeFileSystemRunLogStore,
+                        LocalContainerComputeBufferedRunLogStore,
+                        LocalContainerComputeFileSystemRunLogstore,
+                        LocalContainerComputeDotEnvSecrets,
+                        LocalContainerComputeEnvSecretsManager,
+                        LocalContainerDoNothingCatalog,
+                        LocalDoNothingCatalog,
+                        LocalContainerComputeFileSystemCatalog,
+                        DemoRenderBufferedRunLogStore
+                        ]

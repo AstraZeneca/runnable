@@ -80,17 +80,17 @@ magnus= 'magnus.cli:cli'
 
 # Plugins for Integration
 [tool.poetry.plugins."integration"]
-# {executor.name}-{service}-{service.name}
-"local-run_log_store-buffered" = "magnus.integration:LocalComputeBufferedRunLogStore"
-"local-run_log_store-file-system" = "magnus.integration:LocalComputeFileSystemRunLogStore"
-"local-container-run_log_store-buffered" = "magnus.integration:LocalContainerComputeBufferedRunLogStore"
-"local-container-run_log_store-file-system" = "magnus.integration:LocalContainerComputeFileSystemRunLogstore"
-"local-container-secrets-dotenv" = "magnus.integration:LocalContainerComputeDotEnvSecrets"
-"local-container-secrets-environment" = "magnus.integration:LocalContainerComputeEnvSecretsManager"
-"local-container-catalog-do-nothing" = "magnus.integration:LocalContainerDoNothingCatalog"
-"local-catalog-do-nothing" = "magnus.integration:LocalDoNothingCatalog"
-"local-container-catalog-file-system" = "magnus.integration:LocalContainerComputeFileSystemCatalog"
-"demo-renderer-run_log_store-buffered" = "magnus.integration:DemoRenderBufferedRunLogStore"
+# The name does not matter, the core would be labelled c
+"c1" = "magnus.integration:LocalComputeBufferedRunLogStore"
+"c2" = "magnus.integration:LocalComputeFileSystemRunLogStore"
+"c3" = "magnus.integration:LocalContainerComputeBufferedRunLogStore"
+"c4" = "magnus.integration:LocalContainerComputeFileSystemRunLogstore"
+"c5" = "magnus.integration:LocalContainerComputeDotEnvSecrets"
+"c6" = "magnus.integration:LocalContainerComputeEnvSecretsManager"
+"c7" = "magnus.integration:LocalContainerDoNothingCatalog"
+"c8" = "magnus.integration:LocalDoNothingCatalog"
+"c9" = "magnus.integration:LocalContainerComputeFileSystemCatalog"
+"c10" = "magnus.integration:DemoRenderBufferedRunLogStore"
 
 # Plugins for Tasks
 [tool.poetry.plugins."tasks"]
