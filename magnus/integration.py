@@ -340,17 +340,3 @@ class DemoRenderBufferedRunLogStore(BaseIntegration):
         )
         logger.exception(msg)
         raise Exception(msg)
-
-
-class CoreIntegrations(BaseIntegration):
-    sub_integrations = [LocalComputeBufferedRunLogStore,
-                        LocalComputeFileSystemRunLogStore,
-                        LocalContainerComputeBufferedRunLogStore,
-                        LocalContainerComputeFileSystemRunLogstore,
-                        LocalContainerComputeDotEnvSecrets,
-                        LocalContainerComputeEnvSecretsManager,
-                        LocalContainerDoNothingCatalog,
-                        LocalDoNothingCatalog,
-                        LocalContainerComputeFileSystemCatalog,
-                        DemoRenderBufferedRunLogStore
-                        ]
