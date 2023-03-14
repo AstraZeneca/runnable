@@ -15,4 +15,4 @@ would not be cataloged.
 
 ## Design thought
 
-Use this catalog type to temporarily switch of cataloging in local mode for debugging purposes.
+Use this catalog type to temporarily switch of cataloging in local executor for debugging purposes.

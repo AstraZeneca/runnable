@@ -544,12 +544,12 @@ def test_base_executor__resolve_node_config_gives_global_config_if_node_does_not
 
     base_executor = executor.BaseExecutor(config={'a': 1})
 
-    assert base_executor._resolve_node_config(mock_node) == {'a': 1}
+    assert base_executor._resolve_executor_config(mock_node) == {'a': 1}
 
 
 def test_base_executor__resolve_node_config_updates_global_config_if_node_overrides(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
-    mock_node._get_mode_config.return_value = {'a': 2}
+    mock_node._get_executor_config.return_value = {'a': 2}
 
     class MockConfig(BaseModel, extra=Extra.allow):
         placeholders: dict = {}
@@ -558,12 +558,12 @@ def test_base_executor__resolve_node_config_updates_global_config_if_node_overri
 
     base_executor = executor.BaseExecutor(config={'a': 1})
 
-    assert base_executor._resolve_node_config(mock_node) == {'a': 2}
+    assert base_executor._resolve_executor_config(mock_node) == {'a': 2}
 
 
 def test_base_executor__resolve_node_config_updates_global_config_if_node_adds(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
-    mock_node._get_mode_config.return_value = {'b': 2}
+    mock_node._get_executor_config.return_value = {'b': 2}
 
     class MockConfig(BaseModel, extra=Extra.allow):
         placeholders: dict = {}
@@ -572,12 +572,12 @@ def test_base_executor__resolve_node_config_updates_global_config_if_node_adds(m
 
     base_executor = executor.BaseExecutor(config={'a': 1})
 
-    assert base_executor._resolve_node_config(mock_node) == {'a': 1, 'b': 2}
+    assert base_executor._resolve_executor_config(mock_node) == {'a': 1, 'b': 2}
 
 
 def test_base_executor__resolve_node_config_updates_global_config_from_placeholders(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
-    mock_node._get_mode_config.return_value = {'b': 2, 'replace': None}
+    mock_node._get_executor_config.return_value = {'b': 2, 'replace': None}
 
     config = {
         'a': 1,
@@ -594,12 +594,12 @@ def test_base_executor__resolve_node_config_updates_global_config_from_placehold
 
     base_executor = executor.BaseExecutor(config=config)
 
-    assert base_executor._resolve_node_config(mock_node) == {'a': 1, 'c': 3, 'b': 2}
+    assert base_executor._resolve_executor_config(mock_node) == {'a': 1, 'c': 3, 'b': 2}
 
 
 def test_base_executor_resolve_node_supresess_global_config_from_placeholders_if_its_not_mapping(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
-    mock_node._get_mode_config.return_value = {'b': 2, 'replace': None}
+    mock_node._get_executor_config.return_value = {'b': 2, 'replace': None}
 
     config = {
         'a': 1,
@@ -616,7 +616,7 @@ def test_base_executor_resolve_node_supresess_global_config_from_placeholders_if
 
     base_executor = executor.BaseExecutor(config=config)
 
-    assert base_executor._resolve_node_config(mock_node) == {'a': 1, 'b': 2}
+    assert base_executor._resolve_executor_config(mock_node) == {'a': 1, 'b': 2}
 
 
 def test_base_executor_execute_graph_raises_exception_if_loop(mocker, monkeypatch):
@@ -714,7 +714,7 @@ def test_local_container_executor_add_code_ids_uses_local_docker_image_if_provid
     monkeypatch.setattr(executor.BaseExecutor, 'add_code_identities', mock_super_add_code_ids)
 
     mock_node = mocker.MagicMock()
-    mock_node._get_mode_config.return_value = {'docker_image': 'local'}
+    mock_node._get_executor_config.return_value = {'docker_image': 'local'}
 
     mock_get_local_docker_image_id = mocker.MagicMock()
     monkeypatch.setattr(executor.utils, 'get_local_docker_image_id', mock_get_local_docker_image_id)

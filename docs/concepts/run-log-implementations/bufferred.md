@@ -11,7 +11,7 @@ When not to use:
 
 - When you need to compare outputs between runs or experiments.
 - Close to production runs or in production unless you do not want to store any run logs.
-- Other than Local compute mode, no other compute modes accept this as a Run Log store.
+- Other than Local compute execution, no other compute modes accept this as a Run Log store.
 
 ## Configuration
 

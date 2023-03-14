@@ -1,19 +1,21 @@
 # Local
 
-Local mode is an interactive mode. In this mode, magnus does the traversal of the graph and execution of nodes
+
+Local executor is an interactive mode. In this, magnus does the traversal of the graph and execution of nodes
 on the local compute from which it is executed.
 
 In this set up, we ignore max run time set on the dag completely.
 
-All types of secrets, catalog and run log store are compatible with this mode. And this compute mode is default if
-no mode if provided in the dag definition.
+All types of secrets, catalog and run log store are compatible with this executor. And this compute executor is default
+if no executor if provided in the dag definition.
 
 ## Configuration
 
-The full configuration of local mode is:
+The full configuration of local executor is:
 
 ```yaml
-mode:
+executor:
+
   type: local
   config:
     enable_parallel:

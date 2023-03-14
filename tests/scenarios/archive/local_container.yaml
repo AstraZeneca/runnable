@@ -1,4 +1,4 @@
-mode:
+executor:
   type: local-container
   config:
     enable_parallel: "False"

@@ -92,7 +92,7 @@ class BaseExecutor:
         For most transpilers it is inconsequential as its always True and supported by platforms.
 
         Returns:
-            bool: True if the mode allows parallel execution of branches.
+            bool: True if the execution allows parallel execution of branches.
         """
         return self.config.enable_parallel
 
@@ -245,7 +245,8 @@ class BaseExecutor:
         This is the entry point when we do the actual execution of the function.
         DO NOT Over-ride this function.
 
-        While in interactive mode, we just compute, in 3rd party interactive mode, we need to reach this function.
+        While in interactive execution, we just compute, in 3rd party interactive execution, we need to reach
+        this function.
 
         In most cases,
             * We get the corresponding step_log of the node and the parameters.
@@ -556,15 +557,15 @@ class BaseExecutor:
         if run_log.status == defaults.FAIL:
             raise Exception('Pipeline execution failed')
 
-    def _resolve_node_config(self, node: BaseNode):
+    def _resolve_executor_config(self, node: BaseNode):
         """
-        The mode_config section can contain specific over-rides to an global executor config.
+        The executor_config section can contain specific over-rides to an global executor config.
         To avoid too much clutter in the dag definition, we allow the configuration file to have placeholders block.
         The nodes can over-ride the global config by referring to key in the placeholder.
 
         For example:
         # configuration.yaml
-        mode:
+        execution:
           type: cloud-implementation
           config:
             k1: v1
@@ -576,7 +577,7 @@ class BaseExecutor:
         dag:
           steps:
             step1:
-              mode_config:
+              executor_config:
                 cloud-implementation:
                   k1: value_specific_to_node
                   k2:
@@ -588,7 +589,7 @@ class BaseExecutor:
 
         """
         effective_node_config = copy.deepcopy(self.config.dict())
-        ctx_node_config = node._get_mode_config(self.service_name)
+        ctx_node_config = node._get_executor_config(self.service_name)
 
         placeholders = self.config.placeholders
 
@@ -633,7 +634,7 @@ class LocalExecutor(BaseExecutor):
     Also ensure that the local compute is good enough for the compute to happen of all the steps.
 
     Example config:
-    mode:
+    execution:
       type: local
       config:
         enable_parallel: True or False to enable parallel.
@@ -678,9 +679,9 @@ class LocalContainerExecutor(BaseExecutor):
 
     Ensure that the local compute has enough resources to finish all your jobs.
 
-    The image of the run, could either be provided as default in the configuration of the mode
+    The image of the run, could either be provided as default in the configuration of the execution engine
     i.e.:
-    mode:
+    execution:
       type: 'local-container'
       config:
         docker_image: the image you want the code to run in.
@@ -690,7 +691,7 @@ class LocalContainerExecutor(BaseExecutor):
     dag:
       steps:
         step:
-          mode_config:
+          executor_config:
             local-container:
                 docker_image: The image that you want that single step to run in.
     This image would only be used for that step only.
@@ -699,7 +700,7 @@ class LocalContainerExecutor(BaseExecutor):
     and ensure that the docker image provided is the correct one.
 
     Example config:
-    mode:
+    execution:
       type: local-container
       config:
         docker_image: The default docker image to use if the node does not provide one.
@@ -731,7 +732,7 @@ class LocalContainerExecutor(BaseExecutor):
         """
 
         super().add_code_identities(node, step_log)
-        mode_config = self._resolve_node_config(node)
+        mode_config = self._resolve_executor_config(node)
 
         docker_image = mode_config.get('docker_image', None)
         if docker_image:
@@ -769,23 +770,22 @@ class LocalContainerExecutor(BaseExecutor):
         if step_log.status != defaults.SUCCESS:
             msg = (
                 'Node execution inside the container failed. Please check the logs.\n'
-                'Note: If you do not see any docker issue from your side and the code works properly on local mode '
-                'please raise a bug report.'
-            )
+                'Note: If you do not see any docker issue from your side and the code works properly on local execution'
+                'please raise a bug report.')
             logger.warning(msg)
 
     def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
         If the config has "run_in_local: True", we compute it on local system instead of container.
-        In local container mode, we just spin the container to execute magnus execute_single_node.
+        In local container execution, we just spin the container to execute magnus execute_single_node.
 
         Args:
             node (BaseNode): The node we are currently executing
             map_variable (str, optional): If the node is part of the map branch. Defaults to ''.
         """
-        mode_config = self._resolve_node_config(node)
+        executor_config = self._resolve_executor_config(node)
 
-        if "run_in_local" in mode_config and mode_config["run_in_local"]:
+        if "run_in_local" in executor_config and executor_config["run_in_local"]:
             # Do not change config but only validate the configuration.
             integration.validate(self, self.run_log_store)
             integration.validate(self, self.catalog_handler)
@@ -803,7 +803,7 @@ class LocalContainerExecutor(BaseExecutor):
         if step_log.status != defaults.SUCCESS:
             msg = (
                 'Node execution inside the container failed. Please check the logs.\n'
-                'Note: If you do not see any docker issue from your side and the code works properly on local mode '
+                'Note: If you do not see any docker issue from your side and the code works properly on local execution'
                 'please raise a bug report.'
             )
             logger.warning(msg)
@@ -827,13 +827,13 @@ class LocalContainerExecutor(BaseExecutor):
         try:
             logger.info(f'Running the command {command}')
             #  Overrides global config with local
-            mode_config = self._resolve_node_config(node)
-            docker_image = mode_config.get('docker_image', None)
-            environment = mode_config.get('environment', {})
+            executor_config = self._resolve_executor_config(node)
+            docker_image = executor_config.get('docker_image', None)
+            environment = executor_config.get('environment', {})
             environment.update(self.variables)
             if not docker_image:
                 raise Exception(
-                    f'Please provide a docker_image using mode_config of the step {node.name} or at global mode')
+                    f'Please provide a docker_image using executor_config of the step {node.name} or at global config')
 
             # TODO: Should consider using getpass.getuser() when running the docker container? Volume permissions
             container = client.containers.create(image=docker_image,
@@ -864,10 +864,10 @@ class DemoRenderer(BaseExecutor):
 
     BaseExecutor implements many of the functionalities that are common and can be safe defaults.
     In this renderer example: We just render a bash script that sequentially calls the steps.
-    We do not handle composite steps in this mode.
+    We do not handle composite steps in this execution type.
 
     Example config:
-    mode:
+    executor:
       type: demo-renderer
     """
     service_name = 'demo-renderer'

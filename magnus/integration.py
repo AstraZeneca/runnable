@@ -32,7 +32,7 @@ class BaseIntegration:
 
     def validate(self, **kwargs):
         """
-        Raise an exception if the mode_type is not compatible with service provider.
+        Raise an exception if the executor_type is not compatible with service provider.
 
         By default, it is considered as compatible.
         """
@@ -104,7 +104,7 @@ def get_integration_handler(executor: 'BaseExecutor', service: object) -> BaseIn
     )
     for _, kls in mgr.items():
         if (kls.obj.service_type == service_type and  # type: ignore
-                kls.obj.mode_type == executor.service_name and  # type: ignore
+                kls.obj.executor_type == executor.service_name and  # type: ignore
                 kls.obj.service_provider == service_name):
             logger.info(f'Identified an integration pattern {kls.obj}')
             integrations.append(kls.obj)
@@ -198,14 +198,14 @@ class LocalComputeFileSystemRunLogStore(BaseIntegration):
 
 class LocalContainerComputeBufferedRunLogStore(BaseIntegration):
     """
-    Only local execution mode is possible for Buffered Run Log store
+    Only local executions is possible for Buffered Run Log store
     """
     executor_type = 'local-container'
     service_type = 'run_log_store'  # One of secret, catalog, datastore
     service_provider = 'buffered'  # The actual implementation of the service
 
     def validate(self, **kwargs):
-        raise Exception('Only local compute mode is possible for buffered run log store')
+        raise Exception('Only local compute executions is possible for buffered run log store')
 
 
 class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
@@ -269,7 +269,7 @@ class LocalContainerComputeEnvSecretsManager(BaseIntegration):
 
     def validate(self, **kwargs):
         msg = (
-            'Local container mode cannot be used with environment secrets manager. '
+            'Local container executions cannot be used with environment secrets manager. '
             'Please use a supported secrets manager'
         )
         logger.exception(msg)

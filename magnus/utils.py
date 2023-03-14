@@ -29,7 +29,7 @@ logger = logging.getLogger(defaults.NAME)
 try:
     import docker
 except ImportError:
-    logger.warning('docker was not installed, local-container mode will not function')
+    logger.warning('docker was not installed, local-container executor will not function')
 
 
 def does_file_exist(file_path: str) -> bool:

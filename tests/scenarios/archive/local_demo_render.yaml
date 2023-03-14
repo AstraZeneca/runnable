@@ -1,4 +1,4 @@
-mode:
+executor:
   type: demo-renderer
   config:
     enable_parallel: "False"

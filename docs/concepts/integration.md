@@ -27,7 +27,7 @@ class BaseIntegration:
     """
     Base class for handling integration between Executor and one of Catalog, Secrets, RunLogStore.
     """
-    mode_type = None
+    executor_type = None
     service_type = None  # One of secret, catalog, datastore
     service_provider = None  # The actual implementation of the service
 
@@ -37,7 +37,7 @@ class BaseIntegration:
 
     def validate(self, **kwargs):
         """
-        Raise an exception if the mode_type is not compatible with service provider.
+        Raise an exception if the executor_type is not compatible with service provider.
 
         By default, it is considered as compatible.
         """
@@ -71,14 +71,14 @@ to be loaded.
 "local-secrets-vault" = "YOUR_PACKAGE:LocalComputeSecretsVault"
 ```
 
-All extensions need to be unique given a ```mode_type```, ```service_type``` and ```service_provider```.
+All extensions need to be unique given a ```executor_type```, ```service_type``` and ```service_provider```.
 Duplicate integrations will be raised as an exception.
 
 
 ## Example
 
 Consider the example of S3 Run log store. For the execution engine of ```local```, the aws credentials file is available
-on the local machine and we can store the run logs in the S3 bucket. But for the mode ```local-container```, the
+on the local machine and we can store the run logs in the S3 bucket. But for the executor ```local-container```, the
 aws credentials file has to be mounted in the container for the container to have access to S3.
 
 This could be achieved by writing an integration pattern between S3 and ```local-container``` to do the same.
@@ -88,7 +88,7 @@ class LocalContainerComputeS3Store(BaseIntegration):
     """
     Integration between local container and S3 run log store
     """
-    mode_type = 'local-container'
+    executor_type = 'local-container'
     service_type = 'run-log-store'  # One of secret, catalog, datastore
     service_provider = 's3'  # The actual implementation of the service
 

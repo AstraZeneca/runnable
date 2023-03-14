@@ -70,18 +70,6 @@ class BranchNotFoundError(Exception):  # pragma: no cover
         self.message = f'Branch of name {name} is not found the graph'
 
 
-class UnSupportedModeError(Exception):  # pragma: no cover
-    """
-    Exception class
-    Args:
-        Exception ([type]): [description]
-    """
-
-    def __init__(self, name, operation):
-        super().__init__()
-        self.message = f'Mode of type {name} is not supporterted for operation {operation}'
-
-
 class SecretNotFoundError(Exception):  # pragma: no cover
     """
     Exception class
