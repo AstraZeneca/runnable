@@ -785,8 +785,8 @@ class LocalContainerExecutor(BaseExecutor):
         """
         executor_config = self._resolve_executor_config(node)
 
-        print(executor_config)
-        print('&&&&&&&&&&&&&&&&&')
+        logger.debug("Here is the resolved executor config")
+        logger.debug(executor_config)
 
         if "run_in_local" in executor_config and executor_config["run_in_local"]:
             # Do not change config but only validate the configuration.
