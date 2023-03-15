@@ -25,9 +25,9 @@ class ColorFormatter(logging.Formatter):
 
     def __init__(self, *args, **kwargs):
         # can't do super(...) here because Formatter is an old school class
-        logging.Formatter.__init__(self, *args, **kwargs)
+        logging.Formatter.__init__(self, *args, **kwargs)  # pragma: no cover
 
-    def format(self, record):
+    def format(self, record):  # pragma: no cover
         levelname = record.levelname
         color = chalk_colors[levelname.lower()]
         message = logging.Formatter.format(self, record)
