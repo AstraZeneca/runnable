@@ -40,6 +40,24 @@ def get_config():
     return config
 
 
+def get_container_config():
+    config = {
+        'executor': {
+            'type': 'local-container',
+            'config': {
+                "docker_image": "does-not-matter"
+            }
+        },
+        'run_log_store': {
+            'type': 'file-system',
+            'config': {
+                'log_folder': ''
+            }
+        }
+    }
+    return config
+
+
 def get_chunked_config():
     config = {
         'executor': {
@@ -133,6 +151,31 @@ def test_success(success_graph):
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
             dag = {'dag': success_graph()._to_dict()}
+
+            write_dag_and_config(context_dir_path, dag, config)
+
+            run_id = 'testing_success'
+
+            pipeline.execute(configuration_file=str(context_dir_path / 'config.yaml'),
+                             pipeline_file=str(context_dir_path / 'dag.yaml'), run_id=run_id)
+
+            try:
+                run_log = get_run_log(context_dir_path, run_id)
+                assert run_log['status'] == defaults.SUCCESS
+                assert list(run_log['steps'].keys()) == ['first', 'second', 'success']
+            except:
+                assert False
+
+
+@pytest.mark.no_cover
+def test_success_executor_config(success_container_graph):
+    configs = [get_container_config()]
+
+    for config in configs:
+
+        with tempfile.TemporaryDirectory() as context_dir:
+            context_dir_path = Path(context_dir)
+            dag = {'dag': success_container_graph()._to_dict()}
 
             write_dag_and_config(context_dir_path, dag, config)
 

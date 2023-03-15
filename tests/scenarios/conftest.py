@@ -18,6 +18,26 @@ def as_is_node():
 
 
 @pytest.fixture
+def as_is_container_node():
+    def _closure(name, next_node, on_failure=''):
+        step_config = {
+            'command': "does not matter",
+            'command_type': 'python-function',
+            'type': 'as-is',
+            'next': next_node,
+            'on_failure': on_failure,
+            'executor_config': {
+                'local-container':
+                {
+                    'run_in_local': True
+                }
+            }
+        }
+        return graph.create_node(name=name, step_config=step_config)
+    return _closure
+
+
+@pytest.fixture
 def exception_node():
     def _closure(name, next_node, on_failure=''):
         step_config = {
@@ -52,6 +72,17 @@ def success_graph(as_is_node):
         dag = graph.Graph(start_at='first')
         dag.add_node(as_is_node('first', 'second'))
         dag.add_node(as_is_node('second', 'success'))
+        dag.add_terminal_nodes()
+        return dag
+    return _closure
+
+
+@pytest.fixture
+def success_container_graph(as_is_container_node):
+    def _closure():
+        dag = graph.Graph(start_at='first')
+        dag.add_node(as_is_container_node('first', 'second'))
+        dag.add_node(as_is_container_node('second', 'success'))
         dag.add_terminal_nodes()
         return dag
     return _closure
