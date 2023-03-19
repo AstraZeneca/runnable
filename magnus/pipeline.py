@@ -464,4 +464,8 @@ def execute_nb_or_func(run_id, command: str, catalog_config: dict,  configuratio
     logger.info('Executing the job')
     mode_executor.execute_node(node=node)
 
+    # Update the status of the run log
+    step_log = mode_executor.run_log_store.get_step_log(node._get_step_log_name(), run_id)
+    mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
+
     mode_executor.send_return_code()

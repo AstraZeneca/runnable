@@ -672,6 +672,10 @@ class LocalExecutor(BaseExecutor):
         self.run_log_store.add_step_log(step_log, self.run_id)
         self.execute_node(node=node)
 
+        # Update the run log status
+        step_log = self.run_log_store.get_step_log(node._get_step_log_name(), self.run_id)
+        self.run_log_store.update_run_log_status(run_id=self.run_id, status=step_log.status)
+
 
 class LocalContainerExecutor(BaseExecutor):
     """
@@ -767,6 +771,7 @@ class LocalContainerExecutor(BaseExecutor):
 
         # Check the step log status and warn if necessary. Docker errors are generally suppressed.
         step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable=None), self.run_id)
+        self.run_log_store.update_run_log_status(run_id=self.run_id, status=step_log.status)
         if step_log.status != defaults.SUCCESS:
             msg = (
                 'Node execution inside the container failed. Please check the logs.\n'
