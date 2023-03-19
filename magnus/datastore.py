@@ -353,6 +353,7 @@ class BaseRunLogStore:
             run_id (str): The run_id of the run
             status (str): The new status of the run
         """
+        logger.info(f'Updating status of run_id {run_id} to {status}')
         run_log = self.get_run_log_by_id(run_id, full=False)
         run_log.status = status
         self.put_run_log(run_log)

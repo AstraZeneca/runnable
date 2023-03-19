@@ -460,7 +460,6 @@ def execute_nb_or_func(run_id, command: str, catalog_config: dict,  configuratio
 
     # Prepare for graph execution
     mode_executor.prepare_for_node_execution()
-
     logger.info('Executing the job')
     mode_executor.execute_node(node=node)
 
