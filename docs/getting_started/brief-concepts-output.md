@@ -15,92 +15,9 @@ data scientists/ML researchers as simple as possible.
 
 Though the example pipeline we just ran did nothing useful, it helps in understanding the different *systems* in place.
 
-
-``` json
-{
-    "run_id": "20230131195647",
-    "dag_hash": "",
-    "use_cached": false,
-    "tag": "",
-    "original_run_id": "",
-    "status": "SUCCESS",
-    "steps": {
-        ...
-    },
-    "parameters": {
-        "x": 4
-    },
-    "run_config": {
-        "executor": {
-            "type": "local",
-            "config": {
-                "enable_parallel": false,
-                "placeholders": {}
-            }
-        },
-        "run_log_store": {
-            "type": "buffered",
-            "config": {}
-        },
-        "catalog": {
-            "type": "file-system",
-            "config": {
-                "compute_data_folder": "data",
-                "catalog_location": ".catalog"
-            }
-        },
-        "secrets": {
-            "type": "do-nothing",
-            "config": {}
-        },
-        "experiment_tracker": {
-            "type": "do-nothing",
-            "config": {}
-        },
-        "variables": {},
-        "pipeline": {
-            "start_at": "step parameters",
-            "name": "getting_started",
-            "description": "",
-            "max_time": 86400,
-            "steps": {
-                "step parameters": {
-                    "mode_config": {},
-                    "next_node": "step shell",
-                    "command": "lambda x: {'x': int(x) + 1}",
-                    "command_type": "python-lambda",
-                    "command_config": {},
-                    "catalog": {},
-                    "retry": 1,
-                    "on_failure": "",
-                    "type": "task"
-                },
-                "step shell": {
-                    "mode_config": {},
-                    "next_node": "success",
-                    "command": "mkdir data ; env >> data/data.txt",
-                    "command_type": "shell",
-                    "command_config": {},
-                    "catalog": {
-                        "put": "*"
-                    },
-                    "retry": 1,
-                    "on_failure": "",
-                    "type": "task"
-                },
-                "success": {
-                    "mode_config": {},
-                    "type": "success"
-                },
-                "fail": {
-                    "mode_config": {},
-                    "type": "fail"
-                }
-            }
-        }
-    }
-}
-```
+--8<--
+README.md:exampleOutput
+--8<--
 
 ## Run id
 

@@ -40,12 +40,15 @@ theme:
 # Extensions
 markdown_extensions:
   - pymdownx.snippets:
-      base_path: "docs"
+      base_path: "."
   - admonition
   - codehilite
   - footnotes
   - pymdownx.highlight
   - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
   - toc:
       permalink: true
       separator: "_"

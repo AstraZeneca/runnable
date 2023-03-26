@@ -23,42 +23,8 @@ Magnus is designed to make the executor talk to the service providers at both th
 needed for the config to make it happen via the ```BaseIntegration``` pattern.
 
 ```python
-class BaseIntegration:
-    """
-    Base class for handling integration between Executor and one of Catalog, Secrets, RunLogStore.
-    """
-    executor_type = None
-    service_type = None  # One of secret, catalog, datastore
-    service_provider = None  # The actual implementation of the service
-
-    def __init__(self, executor, integration_service):
-        self.executor = executor
-        self.service = integration_service
-
-    def validate(self, **kwargs):
-        """
-        Raise an exception if the executor_type is not compatible with service provider.
-
-        By default, it is considered as compatible.
-        """
-
-    def configure_for_traversal(self, **kwargs):
-        """
-        Do any changes needed to both executor and service provider during traversal of the graph.
-
-        You are in the compute environment traversing the graph by this time.
-
-        By default, no change is required.
-        """
-
-    def configure_for_execution(self,  **kwargs):
-        """
-        Do any changes needed to both executor and service provider during execution of a node.
-
-        You are in the compute environment by this time.
-
-        By default, no change is required.
-        """
+# Source code present at magnus/integration.py
+--8<-- "magnus/integration.py:docs"
 ```
 
 The custom extensions should be registered as part of the namespace: ```magnus.integration.BaseIntegration``` for it

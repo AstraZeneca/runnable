@@ -200,88 +200,8 @@ The ```BaseCatalog``` implementation is as follows:
 
 ```python
 # You can find the source code in magnus/catalog.py
+--8<-- "magnus/catalog.py:docs"
 
-from pydantic import BaseModel
-
-class BaseCatalog:
-    """
-    Base Catalog class definition.
-
-    All implementations of the catalog handler should inherit and extend this class.
-    """
-    service_name = ''
-
-    class Config(BaseModel):
-        compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
-
-    def __init__(self, config: dict, **kwargs):
-        config = config or {}
-        self.config = self.Config(**config)
-
-    @property
-    def compute_data_folder(self) -> str:
-        """
-        Returns the compute data folder defined as per the config of the catalog.
-
-        Returns:
-            [str]: The compute data folder as defined or defaults to magnus default 'data/'
-        """
-        return self.config.compute_data_folder
-
-    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
-        """
-        Get the catalog item by 'name' for the 'run id' and store it in compute data folder.
-
-        The catalog location should have been created before you can get from it.
-
-        Args:
-            name (str): The name of the catalog item
-            run_id (str): The run_id of the run.
-            compute_data_folder (str, optional): The compute data folder. Defaults to magnus default (data/)
-
-        Raises:
-            NotImplementedError: Base class, hence not implemented
-
-        Returns:
-            List(object) : A list of catalog objects
-        """
-        raise NotImplementedError
-
-    def put(self, name: str, run_id: str, compute_data_folder=None, synced_catalogs=None, **kwargs) -> List[object]:
-
-        """
-        Put the file by 'name' from the 'compute_data_folder' in the catalog for the run_id.
-
-        If previous syncing has happened and the file has not been changed, we do not sync again.
-
-        Args:
-            name (str): The name of the catalog item.
-            run_id (str): The run_id of the run.
-            compute_data_folder (str, optional): The compute data folder. Defaults to magnus default (data/)
-            synced_catalogs (dict, optional): Any previously synced catalogs. Defaults to None.
-
-        Raises:
-            NotImplementedError: Base class, hence not implemented
-
-        Returns:
-            List(object) : A list of catalog objects
-        """
-        raise NotImplementedError
-
-    def sync_between_runs(self, previous_run_id: str, run_id: str):
-        """
-        Given run_id of a previous run, sync them to the catalog of the run given by run_id.
-
-        This function is used for re-running older runs.
-
-        Args:
-            previous_run_id (str): The run id of the previous run
-            run_id (str): The run_id to which the data catalogs should be synced to.
-
-        Raises:
-            NotImplementedError: Base class, hence not implemented
-        """
-        raise NotImplementedError
 ```
 
 

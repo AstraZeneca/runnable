@@ -2,51 +2,9 @@
 
 ---
 
-``` yaml
-dag:
-  description: Getting started
-  start_at: step parameters
-  steps:
-    step parameters:
-      type: task
-      command_type: python-lambda
-      command: "lambda x: {'x': int(x) + 1}"
-      next: step shell
-    step shell:
-      type: task
-      command_type: shell
-      command: mkdir data ; env >> data/data.txt # For Linux/macOS
-      next: success
-      catalog:
-        put:
-          - "*"
-    success:
-      type: success
-    fail:
-      type: fail
-```
-
-Or via the Python SDK:
-
-```python
-
-#in pipeline.py
-from magnus import Pipeline, Task
-
-def pipeline():
-    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
-                next_node='step shell')
-    second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
-                  command_type='shell', catalog={'put': '*'})
-
-    pipeline = Pipeline(start_at=first, name='getting_started')
-    pipeline.construct([first, second])
-    pipeline.execute(parameters_file='parameters.yaml')
-
-if __name__ == '__main__':
-    pipeline()
-
-```
+--8<--
+README.md:exampleInput
+--8<--
 
 
 ## dag

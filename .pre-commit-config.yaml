@@ -8,8 +8,9 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: mkdocs.yml
       - id: check-added-large-files
-        exclude: docs/assets
+        exclude: assets
   # sorts imports by alphabetically and into base>packages>local
   - repo: https://github.com/PyCQA/isort
     rev: "5.7.0"
@@ -20,3 +21,12 @@ repos:
     hooks:
       - id: autopep8
         args: ["--max-line-length=120", "--in-place", "--recursive"]
+  - repo: https://github.com/psf/black
+    rev: 23.1.0
+    hooks:
+      - id: black
+        # It is recommended to specify the latest version of Python
+        # supported by your project here, or alternatively use
+        # pre-commit's default_language_version, see
+        # https://pre-commit.com/#top_level-default_language_version
+        language_version: python3.8

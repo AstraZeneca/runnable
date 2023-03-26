@@ -21,6 +21,7 @@ def get_run_log_store():
         object: The run log store
     """
     from magnus import context
+
     return context.executor.run_log_store
 
 
@@ -42,6 +43,9 @@ def is_catalog_out_of_sync(catalog, synced_catalogs=None) -> bool:
     return True  # The object does not exist, sync it
 
 
+# --8<-- [start:docs]
+
+
 class BaseCatalog:
     """
     Base Catalog class definition.
@@ -52,7 +56,8 @@ class BaseCatalog:
           Integration patterns modify the config after init to change behaviors.
           Access config properties using getters/property of the class.
     """
-    service_name = ''
+
+    service_name = ""
 
     class Config(BaseModel):
         compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
@@ -71,7 +76,9 @@ class BaseCatalog:
         """
         return self.config.compute_data_folder
 
-    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
+    def get(
+        self, name: str, run_id: str, compute_data_folder=None, **kwargs
+    ) -> List[object]:
         # pylint: disable=unused-argument
         """
         Get the catalog item by 'name' for the 'run id' and store it in compute data folder.
@@ -91,7 +98,14 @@ class BaseCatalog:
         """
         raise NotImplementedError
 
-    def put(self, name: str, run_id: str, compute_data_folder=None, synced_catalogs=None, **kwargs) -> List[object]:
+    def put(
+        self,
+        name: str,
+        run_id: str,
+        compute_data_folder=None,
+        synced_catalogs=None,
+        **kwargs,
+    ) -> List[object]:
         # pylint: disable=unused-argument
         """
         Put the file by 'name' from the 'compute_data_folder' in the catalog for the run_id.
@@ -126,6 +140,9 @@ class BaseCatalog:
         raise NotImplementedError
 
 
+# --8<-- [end:docs]
+
+
 class DoNothingCatalog(BaseCatalog):
     """
     A Catalog handler that does nothing.
@@ -136,27 +153,37 @@ class DoNothingCatalog(BaseCatalog):
       type: do-nothing
 
     """
-    service_name = 'do-nothing'
 
-    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
+    service_name = "do-nothing"
+
+    def get(
+        self, name: str, run_id: str, compute_data_folder=None, **kwargs
+    ) -> List[object]:
         """
         Does nothing
         """
-        logger.info('Using a do-nothing catalog, doing nothing in get')
+        logger.info("Using a do-nothing catalog, doing nothing in get")
         return []
 
-    def put(self, name: str, run_id: str, compute_data_folder=None, synced_catalogs=None, **kwargs) -> List[object]:
+    def put(
+        self,
+        name: str,
+        run_id: str,
+        compute_data_folder=None,
+        synced_catalogs=None,
+        **kwargs,
+    ) -> List[object]:
         """
         Does nothing
         """
-        logger.info('Using a do-nothing catalog, doing nothing in put')
+        logger.info("Using a do-nothing catalog, doing nothing in put")
         return []
 
     def sync_between_runs(self, previous_run_id: str, run_id: str):
         """
         Does nothing
         """
-        logger.info('Using a do-nothing catalog, doing nothing while sync between runs')
+        logger.info("Using a do-nothing catalog, doing nothing while sync between runs")
         ...
 
 
@@ -175,7 +202,8 @@ class FileSystemCatalog(BaseCatalog):
         compute_data_folder: The folder to source the data from.
 
     """
-    service_name = 'file-system'
+
+    service_name = "file-system"
 
     class Config(BaseCatalog.Config):
         catalog_location: str = defaults.CATALOG_LOCATION_FOLDER
@@ -191,7 +219,9 @@ class FileSystemCatalog(BaseCatalog):
         """
         return self.config.catalog_location  # type: ignore
 
-    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
+    def get(
+        self, name: str, run_id: str, compute_data_folder=None, **kwargs
+    ) -> List[object]:
         """
         Get the file by matching glob pattern to the name
 
@@ -205,7 +235,9 @@ class FileSystemCatalog(BaseCatalog):
         Returns:
             List(object) : A list of catalog objects
         """
-        logger.info(f'Using the {self.service_name} catalog and trying to get {name} for run_id: {run_id}')
+        logger.info(
+            f"Using the {self.service_name} catalog and trying to get {name} for run_id: {run_id}"
+        )
 
         copy_to = self.compute_data_folder
         if compute_data_folder:
@@ -216,19 +248,23 @@ class FileSystemCatalog(BaseCatalog):
         catalog_location = self.catalog_location
         run_catalog = Path(catalog_location) / run_id / copy_to
 
-        logger.debug(f'Copying objects to {copy_to} from the run catalog location of {run_catalog}')
+        logger.debug(
+            f"Copying objects to {copy_to} from the run catalog location of {run_catalog}"
+        )
 
         if not utils.does_dir_exist(run_catalog):
             msg = (
-                f'Expected Catalog to be present at: {run_catalog} but not found.\n'
-                'Note: Please make sure that some data was put in the catalog before trying to get from it.\n'
+                f"Expected Catalog to be present at: {run_catalog} but not found.\n"
+                "Note: Please make sure that some data was put in the catalog before trying to get from it.\n"
             )
             raise Exception(msg)
 
         # Iterate through the contents of the run_catalog and copy the files that fit the name pattern
         # We should also return a list of data hashes
         glob_files = run_catalog.glob(name)
-        logger.debug(f'Glob identified {glob_files} as matches to from the catalog location: {run_catalog}')
+        logger.debug(
+            f"Glob identified {glob_files} as matches to from the catalog location: {run_catalog}"
+        )
 
         data_catalogs = []
         run_log_store = get_run_log_store()
@@ -243,18 +279,25 @@ class FileSystemCatalog(BaseCatalog):
             data_catalog.catalog_handler_location = catalog_location
             data_catalog.catalog_relative_path = str(relative_file_path)
             data_catalog.data_hash = utils.get_data_hash(str(file))
-            data_catalog.stage = 'get'
+            data_catalog.stage = "get"
             data_catalogs.append(data_catalog)
 
             # Make the directory in the data folder if required
             Path(copy_to / relative_file_path.parent).mkdir(parents=True, exist_ok=True)
             shutil.copy(file, copy_to / relative_file_path)
 
-            logger.info(f'Copied {file} from {run_catalog} to {copy_to}')
+            logger.info(f"Copied {file} from {run_catalog} to {copy_to}")
 
         return data_catalogs
 
-    def put(self, name: str, run_id: str, compute_data_folder=None, synced_catalogs=None, **kwargs) -> List[object]:
+    def put(
+        self,
+        name: str,
+        run_id: str,
+        compute_data_folder=None,
+        synced_catalogs=None,
+        **kwargs,
+    ) -> List[object]:
         """
         Put the files matching the glob pattern into the catalog.
 
@@ -272,7 +315,9 @@ class FileSystemCatalog(BaseCatalog):
         Returns:
             List(object) : A list of catalog objects
         """
-        logger.info(f'Using the {self.service_name} catalog and trying to put {name} for run_id: {run_id}')
+        logger.info(
+            f"Using the {self.service_name} catalog and trying to put {name} for run_id: {run_id}"
+        )
 
         copy_from = self.compute_data_folder
         if compute_data_folder:
@@ -283,12 +328,14 @@ class FileSystemCatalog(BaseCatalog):
         run_catalog = Path(catalog_location) / run_id
         utils.safe_make_dir(run_catalog)
 
-        logger.debug(f'Copying objects from {copy_from} to the run catalog location of {run_catalog}')
+        logger.debug(
+            f"Copying objects from {copy_from} to the run catalog location of {run_catalog}"
+        )
 
         if not utils.does_dir_exist(copy_from):
             msg = (
-                f'Expected compute data folder to be present at: {compute_data_folder} but not found. \n'
-                'Note: Magnus does not create the compute data folder for you. Please ensure that the folder exists.\n'
+                f"Expected compute data folder to be present at: {compute_data_folder} but not found. \n"
+                "Note: Magnus does not create the compute data folder for you. Please ensure that the folder exists.\n"
             )
             raise Exception(msg)
 
@@ -296,7 +343,9 @@ class FileSystemCatalog(BaseCatalog):
         # We should also return a list of datastore.DataCatalog items
 
         glob_files = copy_from.glob(name)  # type: ignore
-        logger.debug(f'Glob identified {glob_files} as matches to from the compute data folder: {copy_from}')
+        logger.debug(
+            f"Glob identified {glob_files} as matches to from the compute data folder: {copy_from}"
+        )
 
         data_catalogs = []
         run_log_store = get_run_log_store()
@@ -305,23 +354,29 @@ class FileSystemCatalog(BaseCatalog):
                 # Need not add a data catalog for the folder
                 continue
 
-            relative_file_path = file.relative_to('.')
+            relative_file_path = file.relative_to(".")
 
             data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
             data_catalog.catalog_handler_location = catalog_location
-            data_catalog.catalog_relative_path = run_id + os.sep + str(relative_file_path)
+            data_catalog.catalog_relative_path = (
+                run_id + os.sep + str(relative_file_path)
+            )
             data_catalog.data_hash = utils.get_data_hash(str(file))
-            data_catalog.stage = 'put'
+            data_catalog.stage = "put"
             data_catalogs.append(data_catalog)
 
             if is_catalog_out_of_sync(data_catalog, synced_catalogs):
-                logger.info(f'{data_catalog.name} was found to be changed, syncing')
+                logger.info(f"{data_catalog.name} was found to be changed, syncing")
 
                 # Make the directory in the catalog if required
-                Path(run_catalog / relative_file_path.parent).mkdir(parents=True, exist_ok=True)
+                Path(run_catalog / relative_file_path.parent).mkdir(
+                    parents=True, exist_ok=True
+                )
                 shutil.copy(file, run_catalog / relative_file_path)
             else:
-                logger.info(f'{data_catalog.name} was found to be unchanged, ignoring syncing')
+                logger.info(
+                    f"{data_catalog.name} was found to be unchanged, ignoring syncing"
+                )
         return data_catalogs
 
     def sync_between_runs(self, previous_run_id: str, run_id: str):
@@ -336,8 +391,10 @@ class FileSystemCatalog(BaseCatalog):
             Exception: If the previous run log does not exist in the catalog
 
         """
-        logger.info(f'Using the {self.service_name} catalog and syncing catalogs'
-                    'between old: {previous_run_id} to new: {run_id}')
+        logger.info(
+            f"Using the {self.service_name} catalog and syncing catalogs"
+            "between old: {previous_run_id} to new: {run_id}"
+        )
 
         catalog_location = Path(self.catalog_location)
         run_catalog = catalog_location / run_id
@@ -345,13 +402,14 @@ class FileSystemCatalog(BaseCatalog):
 
         if not utils.does_dir_exist(catalog_location / previous_run_id):
             msg = (
-                f'Catalogs from previous run : {previous_run_id} are not found.\n'
-                'Note: Please provision the catalog objects generated by previous run in the same catalog location'
-                ' as the current run, even if the catalog handler for the previous run was different')
+                f"Catalogs from previous run : {previous_run_id} are not found.\n"
+                "Note: Please provision the catalog objects generated by previous run in the same catalog location"
+                " as the current run, even if the catalog handler for the previous run was different"
+            )
             raise Exception(msg)
 
-        cataloged_files = (catalog_location / previous_run_id).glob('**/**')
+        cataloged_files = (catalog_location / previous_run_id).glob("**/**")
 
         for cataloged_file in cataloged_files:
             shutil.copy(cataloged_file, run_catalog)
-            logger.info(f'Copied file from: {cataloged_file} to {run_catalog}')
+            logger.info(f"Copied file from: {cataloged_file} to {run_catalog}")
