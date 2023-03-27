@@ -102,6 +102,7 @@ Copy the contents of this yaml into getting-started.yaml or alternatively in a p
 
 ---
 
+--8<-- [end:exampleRun]
 --8<-- [start:exampleInput]
 
 ``` yaml
@@ -150,7 +151,7 @@ if __name__ == '__main__':
 
 ```
 
---8<-- [end:exampleInput]
+
 
 Since the pipeline expects a parameter ```x```, lets provide that using ```parameters.yaml```
 
@@ -170,7 +171,10 @@ If you are using the python SDK:
 poetry run python pipeline.py
 ```
 
+--8<-- [end:exampleInput]
+
 You should see a list of warnings but your terminal output should look something similar to this:
+
 
 --8<-- [start:exampleOutput]
 
@@ -364,7 +368,7 @@ This is according to the command in ```step shell```.
 
 You should also see a folder ```.catalog``` being created with a single folder corresponding to the run_id of this run.
 
---8<-- [end:exampleRun]
+
 
 To understand more about the input and output, please head over to the
 [documentation](https://project-magnus.github.io/magnus-core/).

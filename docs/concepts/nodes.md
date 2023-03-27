@@ -754,6 +754,8 @@ Calling get_parameter with no key returns all parameters.
 
 ## Extensions
 
+[Extensions are being actively developed and can be found here.](https://github.com/AstraZeneca/magnus-extensions)
+
 You can extend and implement your own ```node_types``` by extending the ```BaseNode``` class.
 
 The base class has the following methods with only one of the two methods to be implemented for custom implementations.

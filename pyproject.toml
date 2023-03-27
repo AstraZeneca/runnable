@@ -21,6 +21,7 @@ docker ={ version = "*", optional = true }
 click-plugins = "^1.1.1"
 ploomber-engine ={ version= "^0.0.19", optional = true }
 
+
 [tool.poetry.extras]
 docker = ['docker']
 notebook = ['ploomber-engine']
@@ -34,6 +35,7 @@ pytest-cov = "*"
 pytest-mock = "*"
 mkdocs = "*"
 mkdocs-material = "*"
+mkdocs-section-index = "^0.3.5"
 mypy = "^0.931"
 tox = "^3.24.5"
 pre-commit = "*"

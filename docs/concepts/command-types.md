@@ -143,6 +143,8 @@ The output notebook is automatically uploaded to the catalog for future referenc
 
 You can extend and implement your ```command_types``` by extending the base class of the command type.
 
+[Extensions are being actively developed and can be found here.](https://github.com/AstraZeneca/magnus-extensions)
+
 ```python
 #Example implementations can be found in magnus/tasks.py
 --8<-- "magnus/tasks.py:docs"

@@ -11,3 +11,7 @@ sidebarDepth: 0
 --8<--
 README.md:intro
 --8<--
+
+## Extensions
+
+Magnus is extensible by design and [are being actively developed.](https://github.com/AstraZeneca/magnus-extensions)

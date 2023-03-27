@@ -196,6 +196,8 @@ Please follow the example provided [here](../dag/#parameterized_definition) for 
 You can easily extend magnus to bring in your custom provider, if a default
 implementation does not exist or you are not happy with the implementation.
 
+[Extensions are being actively developed and can be found here.](https://github.com/AstraZeneca/magnus-extensions)
+
 The ```BaseCatalog``` implementation is as follows:
 
 ```python

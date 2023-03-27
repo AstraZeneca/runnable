@@ -46,11 +46,11 @@ A lot of design principles while writing magnus was to promote [extensibility](.
 Its easy to write extensions to include
 new
 
-- [compute environments](../../concepts/modes-implementations/extensions/) (k8s, on-prem clusters etc)
-- [run log store](../../concepts/run-log-implementations/extensions/) (databases, file systems etc)
-- [data cataloging](../../concepts/catalog-implementations/extensions/) (feature stores, object storage etc)
-- [secret managers](../../concepts/secrets-implementations/extensions/) (vault, azure secrets)
-- experiment tracking
+- [compute environments](../../concepts/executor/#extensions) (k8s, on-prem clusters etc)
+- [run log store](../../concepts/run-log/#extensions) (databases, file systems etc)
+- [data cataloging](../../concepts/catalog/#extensions) (feature stores, object storage etc)
+- [secret managers](../../concepts/secrets/#extensions) (vault, azure secrets)
+- [experiment tracking](../../concepts/experiment-tracking/#extensions) (mlflow, Weights & Biases)
 
 ## Near Zero code change from local to production
 
