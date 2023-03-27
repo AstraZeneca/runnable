@@ -15,7 +15,7 @@
 Add Black, mypy, testing, docs,
 ---
 
---8<-- [start:intro]
+<!--- --8<-- [start:intro] -->
 
 **Magnus** is a *thin* layer of abstraction over the underlying infrastructure to enable data scientist and
 machine learning engineers. It provides:
@@ -54,7 +54,7 @@ Magnus provides patterns typically used in production environments even in the d
 
 :sparkles: :sparkles: Happy Experimenting!! :sparkles: :sparkles:
 
---8<-- [end:intro]
+<!--- --8<-- [end:intro] -->
 
 ## Documentation
 
@@ -67,7 +67,7 @@ All the services of magnus are extendable by design, please refer to
 
 ## Installation
 
---8<-- [start:installation]
+<!--- --8<-- [start:installation] -->
 
 The minimum python version that magnus supports is 3.8
 ## pip
@@ -87,11 +87,11 @@ The command to install in a poetry managed virtual environment
 poetry add magnus
 ```
 
---8<-- [end:installation]
+<!--- --8<-- [end:installation] -->
 
 ## Example Run
 
---8<-- [start:exampleRun]
+<!--- --8<-- [start:exampleRun] -->
 
 To give you a flavour of how magnus works, lets create a simple pipeline.
 
@@ -105,8 +105,8 @@ Copy the contents of this yaml into getting-started.yaml or alternatively in a p
 
 ---
 
---8<-- [end:exampleRun]
---8<-- [start:exampleInput]
+<!--- --8<-- [end:exampleRun] -->
+<!--- --8<-- [start:exampleInput] -->
 
 ``` yaml
 dag:
@@ -174,12 +174,12 @@ If you are using the python SDK:
 poetry run python pipeline.py
 ```
 
---8<-- [end:exampleInput]
+<!--- --8<-- [end:exampleInput] -->
 
 You should see a list of warnings but your terminal output should look something similar to this:
 
 
---8<-- [start:exampleOutput]
+<!--- --8<-- [start:exampleOutput] -->
 
 ``` json
 {
@@ -364,7 +364,7 @@ You should see a list of warnings but your terminal output should look something
 }
 ```
 
---8<-- [end:exampleOutput]
+<!--- --8<-- [end:exampleOutput] -->
 
 You should see that ```data``` folder being created with a file called ```data.txt``` in it.
 This is according to the command in ```step shell```.
