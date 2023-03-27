@@ -6,6 +6,12 @@
 ![logo](docs/assets/logo1.png)
 ---
 
+[![Python version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg)](https://pypi.org/project/magnus/)
+[![PyPI version](https://badge.fury.io/py/magnus.svg)](https://badge.fury.io/py/magnus)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/AstraZeneca/magnus-core/blob/main/LICENSE)
+
+---
+
 --8<-- [start:intro]
 
 **Magnus** is a *thin* layer of abstraction over the underlying infrastructure to enable data scientist and
