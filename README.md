@@ -9,7 +9,10 @@
 [![Python version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg)](https://pypi.org/project/magnus/)
 [![PyPI version](https://badge.fury.io/py/magnus.svg)](https://badge.fury.io/py/magnus)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/AstraZeneca/magnus-core/blob/main/LICENSE)
-
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+Add Black, mypy, testing, docs,
 ---
 
 --8<-- [start:intro]
