@@ -1,5 +1,3 @@
-import functools
-import json
 import logging
 from logging.config import fileConfig
 from types import FunctionType
@@ -7,8 +5,7 @@ from typing import Dict, List, Optional, Union
 
 from pkg_resources import resource_filename
 
-from magnus import defaults, exceptions, graph, nodes, pipeline, utils
-from magnus.interaction import get_tag
+from magnus import defaults, graph, nodes, pipeline, utils
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -100,10 +97,20 @@ logger = logging.getLogger(defaults.NAME)
 
 
 class Task:
-    def __init__(self, name: str, command: Union[str, FunctionType], command_type: str = defaults.COMMAND_TYPE,
-                 command_config: Optional[dict] = None, catalog: Optional[dict] = None,
-                 mode_config: Optional[dict] = None, retry: int = 1, on_failure: str = '',
-                 next_node: str = ''):
+    """A exposed magnus task to be used in SDK."""
+
+    def __init__(
+        self,
+        name: str,
+        command: Union[str, FunctionType],
+        command_type: str = defaults.COMMAND_TYPE,
+        command_config: Optional[dict] = None,
+        catalog: Optional[dict] = None,
+        mode_config: Optional[dict] = None,
+        retry: int = 1,
+        on_failure: str = "",
+        next_node: str = "",
+    ):
         self.name = name
         self.command = command
         self.command_type = command_type
@@ -116,32 +123,43 @@ class Task:
         self.node: Optional[nodes.BaseNode] = None
 
     def _construct_node(self):
+        """Construct a node of the graph."""
         # TODO: The below has issues if the function and the pipeline are in the same module
         # Something to do with __main__ being present
         if isinstance(self.command, FunctionType):
             self.command = utils.get_module_and_func_from_function(self.command)
 
         node_config = {
-            'type': 'task',
-            'next_node': self.next_node,
-            'command': self.command,
-            'command_type': self.command_type,
-            'command_config': self.command_config,
-            'catalog': self.catalog,
-            'mode_config': self.mode_config,
-            'retry': self.retry,
-            'on_failure': self.on_failure
+            "type": "task",
+            "next_node": self.next_node,
+            "command": self.command,
+            "command_type": self.command_type,
+            "command_config": self.command_config,
+            "catalog": self.catalog,
+            "mode_config": self.mode_config,
+            "retry": self.retry,
+            "on_failure": self.on_failure,
         }
         # The node will temporarily have invalid branch names
-        self.node = graph.create_node(name=self.name, step_config=node_config, internal_branch_name='')
+        self.node = graph.create_node(name=self.name, step_config=node_config, internal_branch_name="")
 
     def _fix_internal_name(self):
+        """Should be done after the parallel's are implemented."""
         pass
 
 
 class AsIs:
-    def __init__(self, name: str, mode_config: Optional[dict] = None, retry: int = 1, on_failure: str = '',
-                 next_node: str = '', **kwargs):
+    """An exposed magnus as-is task to be used in SDK."""
+
+    def __init__(
+        self,
+        name: str,
+        mode_config: Optional[dict] = None,
+        retry: int = 1,
+        on_failure: str = "",
+        next_node: str = "",
+        **kwargs
+    ):
         self.name = name
         self.mode_config = mode_config or {}
         self.retry = retry
@@ -152,26 +170,34 @@ class AsIs:
 
     def _construct_node(self):
         node_config = {
-            'type': 'as-is',
-            'next_node': self.next_node,
-            'mode_config': self.mode_config,
-            'retry': self.retry,
-            'on_failure': self.on_failure
+            "type": "as-is",
+            "next_node": self.next_node,
+            "mode_config": self.mode_config,
+            "retry": self.retry,
+            "on_failure": self.on_failure,
         }
         node_config.update(self.additional_kwargs)
         # The node will temporarily have invalid branch names
-        self.node = graph.create_node(name=self.name, step_config=node_config, internal_branch_name='')
+        self.node = graph.create_node(name=self.name, step_config=node_config, internal_branch_name="")
 
     def _fix_internal_name(self):
+        """Should be done after the parallel's are implemented."""
         pass
 
 
 class Pipeline:
     # A way for the user to define a pipeline
     # TODO: Allow for nodes other than Task, AsIs
+    """An exposed magnus pipeline to be used in SDK."""
+
     def __init__(
-            self, start_at: Union[Task, AsIs],
-            name: str = '', description: str = '', max_time: int = defaults.MAX_TIME, internal_branch_name: str = ''):
+        self,
+        start_at: Union[Task, AsIs],
+        name: str = "",
+        description: str = "",
+        max_time: int = defaults.MAX_TIME,
+        internal_branch_name: str = "",
+    ):
         self.start_at = start_at
         self.name = name
         self.description = description
@@ -180,11 +206,12 @@ class Pipeline:
         self.dag: Optional[graph.Graph] = None
 
     def construct(self, steps: List[Task]):
+        """Construct a pipeline from a list of tasks."""
         graph_config: Dict[str, Union[str, int]] = {
-            'description': self.description,
-            'name': self.name,
-            'max_time': self.max_time,
-            'internal_branch_name': self.internal_branch_name
+            "description": self.description,
+            "name": self.name,
+            "max_time": self.max_time,
+            "internal_branch_name": self.internal_branch_name,
         }
         messages: List[str] = []
         for step in steps:
@@ -192,12 +219,12 @@ class Pipeline:
             messages.extend(step.node.validate())  # type: ignore
 
         if not steps:
-            raise Exception('A dag needs at least one step')
+            raise Exception("A dag needs at least one step")
 
         if messages:
-            raise Exception(', '.join(messages))
+            raise Exception(", ".join(messages))
 
-        graph_config['start_at'] = self.start_at.node.name  # type: ignore
+        graph_config["start_at"] = self.start_at.node.name  # type: ignore
 
         dag = graph.Graph(**graph_config)  # type: ignore
         dag.nodes = [step.node for step in steps]  # type: ignore
@@ -207,10 +234,19 @@ class Pipeline:
         dag.validate()
         self.dag = dag
 
-    def execute(self, configuration_file: str = '', run_id: str = '', tag: str = '', parameters_file: str = '',
-                log_level: str = defaults.LOG_LEVEL):
+    def execute(
+        self,
+        configuration_file: str = "",
+        run_id: str = "",
+        tag: str = "",
+        parameters_file: str = "",
+        log_level: str = defaults.LOG_LEVEL,
+    ):
+        """Execute the pipeline.
 
-        fileConfig(resource_filename(__name__, 'log_config.ini'))
+        This method should be beefed up as the use cases grow.
+        """
+        fileConfig(resource_filename(__name__, "log_config.ini"))
         logger = logging.getLogger(defaults.NAME)
         logger.setLevel(log_level)
 
@@ -219,7 +255,8 @@ class Pipeline:
             configuration_file=configuration_file,
             run_id=run_id,
             tag=tag,
-            parameters_file=parameters_file)
+            parameters_file=parameters_file,
+        )
 
         mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
         utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
@@ -228,7 +265,7 @@ class Pipeline:
         # Prepare for graph execution
         mode_executor.prepare_for_graph_execution()
 
-        logger.info('Executing the graph')
+        logger.info("Executing the graph")
         mode_executor.execute_graph(dag=mode_executor.dag)
 
         mode_executor.send_return_code()

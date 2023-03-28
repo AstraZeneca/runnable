@@ -21,8 +21,7 @@ except ImportError:
 
 @contextlib.contextmanager
 def output_to_file(path: str):
-    """
-    Context manager to put the output of a function execution to catalog
+    """Context manager to put the output of a function execution to catalog.
 
     Args:
         path (str): Mostly the command you are executing.
@@ -47,9 +46,7 @@ def output_to_file(path: str):
 
 
 class BaseTaskType:  # pylint: disable=too-few-public-methods
-    """
-    A base task class which does the execution of command defined by the user
-    """
+    """A base task class which does the execution of command defined by the user."""
 
     task_type = ""
 
@@ -62,12 +59,11 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
 
     @property
     def command(self):
+        """Return the command to execute."""
         return self.config.command
 
     def _to_dict(self) -> dict:
-        """
-        Return a dictionary representation of the task
-        """
+        """Return a dictionary representation of the task."""
         task = {}
         task["command"] = self.command
         task["config"] = self.config
@@ -75,8 +71,7 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
         return task
 
     def _get_parameters(self, map_variable: dict = None, **kwargs) -> dict:
-        """
-        Return the parameters in scope for the execution
+        """Return the parameters in scope for the execution.
 
         Args:
             map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
@@ -87,8 +82,7 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
         return utils.get_user_set_parameters(remove=False)
 
     def execute_command(self, map_variable: dict = None, **kwargs):
-        """
-        The function to execute the command.
+        """The function to execute the command.
 
         And map_variable is sent in as an argument into the function.
 
@@ -101,8 +95,7 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
         raise NotImplementedError()
 
     def _set_parameters(self, parameters: dict = None, **kwargs):
-        """
-        Set the parameters back to the environment variables.
+        """Set the parameters back to the environment variables.
 
         Args:
             parameters (dict, optional): The parameters to set back as env variables. Defaults to None.
@@ -131,15 +124,16 @@ class PythonFunctionType(BaseTaskType):
     task_type = "python-function"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
+        """Execute the python function as defined by the command.
+
+        Args:
+            map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
+        """
         parameters = self._get_parameters()
-        filtered_parameters = utils.filter_arguments_for_func(
-            self.command, parameters, map_variable
-        )
+        filtered_parameters = utils.filter_arguments_for_func(self.command, parameters, map_variable)
 
         if map_variable:
-            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(
-                map_variable
-            )
+            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
         logger.info(f"Calling {self.command} with {filtered_parameters}")
 
@@ -159,27 +153,22 @@ class PythonFunctionType(BaseTaskType):
 
 
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
-    """
-    The task class for python command
-    """
+    """The task class for python command."""
 
     task_type = "python"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
+        """Execute the notebook as defined by the command."""
         module, func = utils.get_module_and_func_names(self.command)
         sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
         imported_module = importlib.import_module(module)
         f = getattr(imported_module, func)
 
         parameters = self._get_parameters()
-        filtered_parameters = utils.filter_arguments_for_func(
-            f, parameters, map_variable
-        )
+        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
 
         if map_variable:
-            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(
-                map_variable
-            )
+            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
         logger.info(f"Calling {func} from {module} with {filtered_parameters}")
         with output_to_file(self.command) as _:
@@ -198,13 +187,19 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
 
 class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
-    """
-    The task class for python-lambda command
-    """
+    """The task class for python-lambda command."""
 
     task_type = "python-lambda"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
+        """Execute the lambda function as defined by the command.
+
+        Args:
+            map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
+
+        Raises:
+            Exception: If the lambda function has _ or __ in it that can cause issues.
+        """
         if "_" in self.command or "__" in self.command:
             msg = (
                 f"Command given to {self.task_type} cannot have _ or __ in them. "
@@ -215,18 +210,12 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
         f = eval(self.command)
 
         parameters = self._get_parameters()
-        filtered_parameters = utils.filter_arguments_for_func(
-            f, parameters, map_variable
-        )
+        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
 
         if map_variable:
-            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(
-                map_variable
-            )
+            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
-        logger.info(
-            f"Calling lambda function: {self.command} with {filtered_parameters}"
-        )
+        logger.info(f"Calling lambda function: {self.command} with {filtered_parameters}")
         try:
             user_set_parameters = f(**filtered_parameters)
         except Exception as _e:
@@ -242,9 +231,7 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 
 
 class NotebookTaskType(BaseTaskType):
-    """
-    The task class for Notebook based execution
-    """
+    """The task class for Notebook based execution."""
 
     task_type = "notebook"
 
@@ -266,6 +253,15 @@ class NotebookTaskType(BaseTaskType):
             raise Exception("Notebook task should point to a ipynb file")
 
     def execute_command(self, map_variable: dict = None, **kwargs):
+        """Execute the python notebook as defined by the command.
+
+        Args:
+            map_variable (dict, optional): If the node is part of internal branch. Defaults to None.
+
+        Raises:
+            ImportError: If necessary dependencies are not installed
+            Exception: If anything else fails
+        """
         try:
             if not pm:
                 raise ImportError("Ploomber engine is required for notebook type node")
@@ -274,9 +270,7 @@ class NotebookTaskType(BaseTaskType):
             filtered_parameters = parameters
 
             if map_variable:
-                os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(
-                    map_variable
-                )
+                os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
             notebook_output_path = self.notebook_output_path
 
@@ -299,14 +293,14 @@ class NotebookTaskType(BaseTaskType):
                 del os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"]
 
         except ImportError as e:
-            msg = f"Task type of notebook requires ploomber engine to be installed. Please install via optional: notebook"
+            msg = (
+                "Task type of notebook requires ploomber engine to be installed. Please install via optional: notebook"
+            )
             raise Exception(msg) from e
 
 
 class ShellTaskType(BaseTaskType):
-    """
-    The task class for shell based commands
-    """
+    """The task class for shell based commands."""
 
     task_type = "shell"
 
@@ -315,12 +309,16 @@ class ShellTaskType(BaseTaskType):
         # This is horribly weird, focussing only on python ways of doing for now
         # It might be that we have to write a bash/windows script that does things for us
         # Need to over-ride set parameters too
+        # There could be some ideas from ploomber that are useful here.
+        """Execute the shell command as defined by the command.
+
+        Args:
+            map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
+        """
         subprocess_env = os.environ.copy()
 
         if map_variable:
-            subprocess_env[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(
-                map_variable
-            )
+            subprocess_env[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
         result = subprocess.run(
             self.command,
