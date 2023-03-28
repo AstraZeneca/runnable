@@ -36,10 +36,10 @@ def track_this(step: int = 0, **kwargs):
     prefix = defaults.TRACK_PREFIX
 
     if step:
-        prefix += f'{str(step)}_'
+        prefix += f"{str(step)}_"
 
     for key, value in kwargs.items():
-        logger.info(f'Tracking {key} with value: {value}')
+        logger.info(f"Tracking {key} with value: {value}")
         os.environ[prefix + key] = json.dumps(value)
         context.executor.experiment_tracker.set_metric(key, value, step=step)  # type: ignore
 
@@ -55,7 +55,7 @@ def store_parameter(update: bool = True, **kwargs: dict):
     MAGNUS_PRM_key = json.dumps(value)
     """
     for key, value in kwargs.items():
-        logger.info(f'Storing parameter {key} with value: {value}')
+        logger.info(f"Storing parameter {key} with value: {value}")
         environ_key = defaults.PARAMETER_PREFIX + key
 
         if environ_key in os.environ and not update:
@@ -86,7 +86,7 @@ def get_parameter(key=None) -> Union[str, dict]:
     if not key:
         return parameters
     if key not in parameters:
-        raise Exception(f'Parameter {key} is not set before')
+        raise Exception(f"Parameter {key} is not set before")
     return parameters[key]
 
 
@@ -117,7 +117,7 @@ def get_secret(secret_name: str = None) -> str:
     try:
         return secrets_handler.get(name=secret_name)  # type: ignore
     except exceptions.SecretNotFoundError:
-        logger.exception(f'No secret by the name {secret_name} found in the store')
+        logger.exception(f"No secret by the name {secret_name} found in the store")
         raise
 
 
@@ -143,8 +143,11 @@ def get_from_catalog(name: str, destination_folder: str = None):
     if not destination_folder:
         destination_folder = context.executor.catalog_handler.compute_data_folder  # type: ignore
 
-    data_catalog = context.executor.catalog_handler.get(name, run_id=context.executor.run_id,  # type: ignore
-                                                        compute_data_folder=destination_folder)
+    data_catalog = context.executor.catalog_handler.get(
+        name,
+        run_id=context.executor.run_id,  # type: ignore
+        compute_data_folder=destination_folder,
+    )
 
     if not data_catalog:
         logger.warn(f"No catalog was obtained by the {name}")
@@ -152,7 +155,9 @@ def get_from_catalog(name: str, destination_folder: str = None):
     if context.executor.context_step_log:  # type: ignore
         context.executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
-        logger.warning("Step log context was not found during interaction! The step log will miss the record")
+        logger.warning(
+            "Step log context was not found during interaction! The step log will miss the record"
+        )
 
 
 def put_in_catalog(filepath: str):
@@ -175,15 +180,20 @@ def put_in_catalog(filepath: str):
 
     file_path = Path(filepath)
 
-    data_catalog = context.executor.catalog_handler.put(file_path.name, run_id=context.executor.run_id,  # type: ignore
-                                                        compute_data_folder=file_path.parent)
+    data_catalog = context.executor.catalog_handler.put(
+        file_path.name,
+        run_id=context.executor.run_id,  # type: ignore
+        compute_data_folder=file_path.parent,
+    )
     if not data_catalog:
         logger.warn(f"No catalog was done by the {filepath}")
 
     if context.executor.context_step_log:  # type: ignore
         context.executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
-        logger.warning("Step log context was not found during interaction! The step log will miss the record")
+        logger.warning(
+            "Step log context was not found during interaction! The step log will miss the record"
+        )
 
 
 def put_object(data: Any, name: str):
@@ -215,7 +225,7 @@ def get_object(name: str) -> Any:
     """
     native_pickler = pickler.NativePickler()
 
-    get_from_catalog(name=f"{name}{native_pickler.extension}", destination_folder='.')
+    get_from_catalog(name=f"{name}{native_pickler.extension}", destination_folder=".")
 
     try:
         data = native_pickler.load(name)
@@ -224,9 +234,7 @@ def get_object(name: str) -> Any:
         os.remove(f"{name}{native_pickler.extension}")
         return data
     except FileNotFoundError as e:
-        msg = (
-            f"No object by the name {name} has been put in the catalog before."
-        )
+        msg = f"No object by the name {name} has been put in the catalog before."
         logger.exception(msg)
         raise e
 
@@ -235,7 +243,7 @@ def get_run_id() -> str:
     """
     Returns the run_id of the current run
     """
-    return os.environ.get(defaults.ENV_RUN_ID, '')
+    return os.environ.get(defaults.ENV_RUN_ID, "")
 
 
 def get_tag() -> str:
@@ -245,7 +253,7 @@ def get_tag() -> str:
     Returns:
         str: The tag if provided for the run, otherwise None
     """
-    return os.environ.get(defaults.MAGNUS_RUN_TAG, '')
+    return os.environ.get(defaults.MAGNUS_RUN_TAG, "")
 
 
 def get_experiment_tracker_context():
@@ -274,7 +282,9 @@ def get_experiment_tracker_context():
     return experiment_tracker.client_context
 
 
-def start_interactive_session(run_id: str = "", config_file: str = "", tag: str = "", parameters_file: str = ""):
+def start_interactive_session(
+    run_id: str = "", config_file: str = "", tag: str = "", parameters_file: str = ""
+):
     """
     During interactive python coding, either via notebooks or ipython, you can start a magnus session by calling
     this function. The executor would always be local executor as its interactive.
@@ -291,27 +301,37 @@ def start_interactive_session(run_id: str = "", config_file: str = "", tag: str 
     from magnus import graph
 
     if context.executor:
-        logger.warn("This is not an interactive session or a session has already been activated.")
+        logger.warn(
+            "This is not an interactive session or a session has already been activated."
+        )
         return
 
     run_id = utils.generate_run_id(run_id=run_id)
-    executor = pipeline.prepare_configurations(configuration_file=config_file,
-                                               run_id=run_id, tag=tag, parameters_file=parameters_file,
-                                               force_local_executor=True)
+    executor = pipeline.prepare_configurations(
+        configuration_file=config_file,
+        run_id=run_id,
+        tag=tag,
+        parameters_file=parameters_file,
+        force_local_executor=True,
+    )
 
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=config_file, tag=tag)
+    utils.set_magnus_environment_variables(
+        run_id=run_id, configuration_file=config_file, tag=tag
+    )
 
     executor.execution_plan = defaults.EXECUTION_PLAN.INTERACTIVE.value
     executor.prepare_for_graph_execution()
     step_config = {
-        'command': "interactive",
-        'command_type': "python",
-        'type': 'task',
-        'next': 'success'
+        "command": "interactive",
+        "command_type": "python",
+        "type": "task",
+        "next": "success",
     }
 
     node = graph.create_node(name="interactive", step_config=step_config)
-    step_log = executor.run_log_store.create_step_log("interactive", node._get_step_log_name())
+    step_log = executor.run_log_store.create_step_log(
+        "interactive", node._get_step_log_name()
+    )
     executor.add_code_identities(node=node, step_log=step_log)
 
     step_log.step_type = node.node_type
@@ -320,6 +340,11 @@ def start_interactive_session(run_id: str = "", config_file: str = "", tag: str 
 
 
 def end_interactive_session():
+    """
+    Ends an interactive session.
+
+    Does nothing if the executor is not interactive.
+    """
     from magnus import context  # pylint: disable=import-outside-toplevel
 
     if not context.executor:

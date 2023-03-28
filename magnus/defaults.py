@@ -1,94 +1,87 @@
 from enum import Enum
 
-NAME = 'magnus'
+NAME = "magnus"
 
 # CLI settings
-LOG_LEVEL = 'WARNING'
+LOG_LEVEL = "WARNING"
 
 
 class EXECUTION_PLAN(Enum):
-    # execution_plans
-    CHAINED = 'chained'  #  121 relationship between run log and the dag.
-    UNCHAINED = 'unchained'  # Only captures execution of steps, no relation.
-    INTERACTIVE = 'interactive'  # used for interactive sessions
+    """
+    The possible execution plans for a magnus job.
+    """
+
+    CHAINED = "chained"  #  121 relationship between run log and the dag.
+    UNCHAINED = "unchained"  # Only captures execution of steps, no relation.
+    INTERACTIVE = "interactive"  # used for interactive sessions
 
 
 # Config file environment variable
-MAGNUS_CONFIG_FILE = 'MAGNUS_CONFIG_FILE'
-MAGNUS_RUN_TAG = 'MAGNUS_RUN_TAG'
+MAGNUS_CONFIG_FILE = "MAGNUS_CONFIG_FILE"
+MAGNUS_RUN_TAG = "MAGNUS_RUN_TAG"
 
 # Interaction settings
-TRACK_PREFIX = 'MAGNUS_TRACK_'
-PARAMETER_PREFIX = 'MAGNUS_PRM_'
-VARIABLE_PREFIX = 'MAGNUS_VAR_'
-ENV_RUN_ID = 'MAGNUS_RUN_ID'
-ATTEMPT_NUMBER = 'MAGNUS_STEP_ATTEMPT'
+TRACK_PREFIX = "MAGNUS_TRACK_"
+PARAMETER_PREFIX = "MAGNUS_PRM_"
+VARIABLE_PREFIX = "MAGNUS_VAR_"
+ENV_RUN_ID = "MAGNUS_RUN_ID"
+ATTEMPT_NUMBER = "MAGNUS_STEP_ATTEMPT"
 
 # STATUS progression
 # For Branch, CREATED -> PROCESSING -> SUCCESS OR FAIL
 # For a step, CREATED -> TRIGGERED ->  PROCESSING -> SUCCESS OR FAIL
-CREATED = 'CREATED'
-PROCESSING = 'PROCESSING'
-SUCCESS = 'SUCCESS'
-FAIL = 'FAIL'
-TRIGGERED = 'TRIGGERED'
+CREATED = "CREATED"
+PROCESSING = "PROCESSING"
+SUCCESS = "SUCCESS"
+FAIL = "FAIL"
+TRIGGERED = "TRIGGERED"
 
 # Node and Command settings
-COMMAND_TYPE = 'python'
-NODE_SPEC_FILE = 'node_spec.yaml'
-COMMAND_FRIENDLY_CHARACTER = '%'
+COMMAND_TYPE = "python"
+NODE_SPEC_FILE = "node_spec.yaml"
+COMMAND_FRIENDLY_CHARACTER = "%"
 
 # Default services
-DEFAULT_EXECUTOR = {
-    'type': 'local'
-}
-DEFAULT_RUN_LOG_STORE = {
-    'type': 'buffered'
-}
-DEFAULT_CATALOG = {
-    'type': 'file-system'
-}
-DEFAULT_SECRETS = {
-    'type': 'do-nothing'
-}
-DEFAULT_EXPERIMENT_TRACKER = {
-    'type': 'do-nothing'
-}
+DEFAULT_EXECUTOR = {"type": "local"}
+DEFAULT_RUN_LOG_STORE = {"type": "buffered"}
+DEFAULT_CATALOG = {"type": "file-system"}
+DEFAULT_SECRETS = {"type": "do-nothing"}
+DEFAULT_EXPERIMENT_TRACKER = {"type": "do-nothing"}
 
 # Map state
-MAP_PLACEHOLDER = 'map_variable_placeholder'
+MAP_PLACEHOLDER = "map_variable_placeholder"
 
 # Dag node
-DAG_BRANCH_NAME = 'dag'
+DAG_BRANCH_NAME = "dag"
 
 # RUN settings
 RANDOM_RUN_ID_LEN = 6
 MAX_TIME = 86400  # 1 day in seconds
 
 # User extensions
-USER_CONFIG_FILE = 'magnus-config.yaml'
+USER_CONFIG_FILE = "magnus-config.yaml"
 
 # Executor settings
 ENABLE_PARALLEL = False
 
 # RUN log store settings
-LOG_LOCATION_FOLDER = '.run_log_store'
+LOG_LOCATION_FOLDER = ".run_log_store"
 
 # Dag node
-DAG_BRANCH_NAME = 'dag'
+DAG_BRANCH_NAME = "dag"
 
 # Data catalog settings
-CATALOG_LOCATION_FOLDER = '.catalog'
-COMPUTE_DATA_FOLDER = 'data'
+CATALOG_LOCATION_FOLDER = ".catalog"
+COMPUTE_DATA_FOLDER = "data"
 
 # Secrets settings
-DOTENV_FILE_LOCATION = '.env'
+DOTENV_FILE_LOCATION = ".env"
 
 # AWS settings
-AWS_REGION = 'eu-west-1'
+AWS_REGION = "eu-west-1"
 
 # Docker settings
-DOCKERFILE_NAME = 'Dockerfile'
+DOCKERFILE_NAME = "Dockerfile"
 DOCKERFILE_CONTENT = r"""# Python 3.8 Image without Dependecies
 FROM python:3.8
 
@@ -109,5 +102,5 @@ WORKDIR /app
 
 ${INSTALL_REQUIREMENTS}
 """
-GIT_ARCHIVE_NAME = 'git_tracked'
+GIT_ARCHIVE_NAME = "git_tracked"
 LEN_SHA_FOR_TAG = 8

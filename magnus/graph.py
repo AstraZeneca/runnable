@@ -19,8 +19,14 @@ class Graph:
     We have nodes and traversal is based on start_at and on_failure definition of individual nodes of the graph
     """
 
-    def __init__(self, start_at, name: str = '', description: str = '', max_time: int = 86400,
-                 internal_branch_name: str = ''):
+    def __init__(
+        self,
+        start_at,
+        name: str = "",
+        description: str = "",
+        max_time: int = 86400,
+        internal_branch_name: str = "",
+    ):
         self.start_at = start_at
         self.name = name
         self.description = description
@@ -33,17 +39,17 @@ class Graph:
         Return a dict representation of the graph
         """
         dag = {}
-        dag['start_at'] = self.start_at
-        dag['name'] = self.name
-        dag['description'] = self.description
-        dag['max_time'] = self.max_time
-        dag['steps'] = {}
+        dag["start_at"] = self.start_at
+        dag["name"] = self.name
+        dag["description"] = self.description
+        dag["max_time"] = self.max_time
+        dag["steps"] = {}
         for node in self.nodes:
-            dag['steps'][node.name] = node._to_dict()
+            dag["steps"][node.name] = node._to_dict()
 
         return dag
 
-    def get_node_by_name(self, name: str) -> 'BaseNode':
+    def get_node_by_name(self, name: str) -> "BaseNode":
         """
         Return the Node object by the name
         The name is always relative to the graph
@@ -62,7 +68,7 @@ class Graph:
                 return node
         raise exceptions.NodeNotFoundError(name)
 
-    def get_node_by_internal_name(self, internal_name: str) -> 'BaseNode':
+    def get_node_by_internal_name(self, internal_name: str) -> "BaseNode":
         """
         Return the node by the internal name of the node.
         The internal name uses dot path convention.
@@ -83,10 +89,13 @@ class Graph:
         raise exceptions.NodeNotFoundError(internal_name)
 
     def __str__(self):  # pragma: no cover
-        node_str = ', '.join([x.name for x in self.nodes])
-        return f'Starts at: {self.start_at} and has a max run time of {self.max_time} and {node_str}'
+        """
+        Return a string representation of the graph
+        """
+        node_str = ", ".join([x.name for x in self.nodes])
+        return f"Starts at: {self.start_at} and has a max run time of {self.max_time} and {node_str}"
 
-    def add_node(self, node: 'BaseNode'):
+    def add_node(self, node: "BaseNode"):
         """
         Add a node to the nodes of the graph
 
@@ -112,36 +121,36 @@ class Graph:
 
         missing_nodes = self.missing_neighbors()
         if missing_nodes:
-            message = 'The graph has references to nodes (next, on_failure), these nodes are missing from the DAG:\n'
+            message = "The graph has references to nodes (next, on_failure), these nodes are missing from the DAG:\n"
             message += f'{", ".join(missing_nodes)}'
             logger.error(message)
             messages.append(message)
 
         if not missing_nodes:
             if not self.is_dag():
-                message = 'The DAG is cyclic or does not reach an end state'
+                message = "The DAG is cyclic or does not reach an end state"
                 logger.error(message)
                 messages.append(message)
 
         if not self.is_start_node_present():
-            message = 'The start node is not part of the graph'
+            message = "The start node is not part of the graph"
             logger.error(message)
             messages.append(message)
 
         if not self.success_node_validation():
-            message = 'There should be exactly one success node'
+            message = "There should be exactly one success node"
             logger.error(message)
             messages.append(message)
 
         if not self.fail_node_validation():
-            message = 'There should be exactly one fail node'
+            message = "There should be exactly one fail node"
             logger.error(message)
             messages.append(message)
 
         if messages:
-            raise Exception(',  '.join(messages))
+            raise Exception(",  ".join(messages))
 
-    def get_success_node(self) -> 'BaseNode':
+    def get_success_node(self) -> "BaseNode":
         """
         Return the success node of the graph
 
@@ -152,11 +161,11 @@ class Graph:
             object: The success node
         """
         for node in self.nodes:
-            if node.node_type == 'success':
+            if node.node_type == "success":
                 return node
-        raise Exception('No success node defined')
+        raise Exception("No success node defined")
 
-    def get_fail_node(self) -> 'BaseNode':
+    def get_fail_node(self) -> "BaseNode":
         """
         Returns the fail node of the graph
 
@@ -167,9 +176,9 @@ class Graph:
             object: The fail node of the graph
         """
         for node in self.nodes:
-            if node.node_type == 'fail':
+            if node.node_type == "fail":
                 return node
-        raise Exception('No fail node defined')
+        raise Exception("No fail node defined")
 
     def is_start_node_present(self) -> bool:
         """
@@ -182,7 +191,7 @@ class Graph:
             self.get_node_by_name(self.start_at)
             return True
         except exceptions.NodeNotFoundError:
-            logger.exception('Could not find the node')
+            logger.exception("Could not find the node")
             return False
 
     def success_node_validation(self) -> bool:
@@ -194,7 +203,7 @@ class Graph:
         """
         node_count = 0
         for node in self.nodes:
-            if node.node_type == 'success':
+            if node.node_type == "success":
                 node_count += 1
         if node_count == 1:
             return True
@@ -209,7 +218,7 @@ class Graph:
         """
         node_count = 0
         for node in self.nodes:
-            if node.node_type == 'fail':
+            if node.node_type == "fail":
                 node_count += 1
         if node_count == 1:
             return True
@@ -231,7 +240,9 @@ class Graph:
                     return False
         return True
 
-    def is_cyclic_util(self, node: 'BaseNode', visited: Dict[str, bool], recstack: Dict[str, bool]) -> bool:
+    def is_cyclic_util(
+        self, node: "BaseNode", visited: Dict[str, bool], recstack: Dict[str, bool]
+    ) -> bool:
         """
         Recursive utility that determines if a node and neighbors has a cycle. Is used in is_dag method.
 
@@ -258,7 +269,7 @@ class Graph:
         recstack[node.name] = False
         return False
 
-    def missing_neighbors(self) -> List['BaseNode']:
+    def missing_neighbors(self) -> List["BaseNode"]:
         """
         Iterates through nodes and gets their connecting neighbors and checks if they exist in the graph.
 
@@ -272,13 +283,17 @@ class Graph:
                 try:
                     self.get_node_by_name(neighbor)
                 except exceptions.NodeNotFoundError:
-                    logger.exception('Could not find the node')
+                    logger.exception("Could not find the node")
                     if neighbor not in missing_nodes:
                         missing_nodes.append(neighbor)
         return missing_nodes
 
-    def add_terminal_nodes(self, success_node_name: str = 'success', failure_node_name: str = 'fail',
-                           internal_branch_name: str = None):
+    def add_terminal_nodes(
+        self,
+        success_node_name: str = "success",
+        failure_node_name: str = "fail",
+        internal_branch_name: str = None,
+    ):
         """
         Add the success and fail nodes to the graph
 
@@ -286,21 +301,23 @@ class Graph:
             success_node_name (str, optional): The name of the success node. Defaults to 'success'.
             failure_node_name (str, optional): The name of the failure node. Defaults to 'fail'.
         """
-        success_step_config = {
-            'type': 'success'
-        }
-        success_node = create_node(success_node_name, step_config=success_step_config,
-                                   internal_branch_name=internal_branch_name)
-        fail_step_config = {
-            'type': 'fail'
-        }
-        fail_node = create_node(failure_node_name, step_config=fail_step_config,
-                                internal_branch_name=internal_branch_name)
+        success_step_config = {"type": "success"}
+        success_node = create_node(
+            success_node_name,
+            step_config=success_step_config,
+            internal_branch_name=internal_branch_name,
+        )
+        fail_step_config = {"type": "fail"}
+        fail_node = create_node(
+            failure_node_name,
+            step_config=fail_step_config,
+            internal_branch_name=internal_branch_name,
+        )
         self.add_node(success_node)
         self.add_node(fail_node)
 
 
-def create_graph(dag_config: dict, internal_branch_name: str = '') -> Graph:
+def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
     # pylint: disable=R0914,R0913
     """
     Creates a dag object from the dag definition.
@@ -318,26 +335,33 @@ def create_graph(dag_config: dict, internal_branch_name: str = '') -> Graph:
     Returns:
         Graph: The created graph object
     """
-    description = dag_config.get('description', None)
-    max_time = dag_config.get('max_time', defaults.MAX_TIME)
-    start_at = dag_config.get('start_at')  # Let the start_at be relative to the graph
+    description = dag_config.get("description", None)
+    max_time = dag_config.get("max_time", defaults.MAX_TIME)
+    start_at = dag_config.get("start_at")  # Let the start_at be relative to the graph
 
-    graph = Graph(start_at=start_at, description=description,
-                  max_time=max_time, internal_branch_name=internal_branch_name)
+    graph = Graph(
+        start_at=start_at,
+        description=description,
+        max_time=max_time,
+        internal_branch_name=internal_branch_name,
+    )
 
     logger.info(
-        f'Initialized a graph object that starts at {start_at} and runs for maximum of {max_time} secs')
+        f"Initialized a graph object that starts at {start_at} and runs for maximum of {max_time} secs"
+    )
     messages = []
-    for step in dag_config.get('steps', []):
-        step_config = dag_config['steps'][step]
-        logger.info(f'Adding node {step} with :{step_config}')
+    for step in dag_config.get("steps", []):
+        step_config = dag_config["steps"][step]
+        logger.info(f"Adding node {step} with :{step_config}")
 
-        node = create_node(step, step_config=step_config, internal_branch_name=internal_branch_name)
+        node = create_node(
+            step, step_config=step_config, internal_branch_name=internal_branch_name
+        )
         messages.extend(node.validate())
         graph.add_node(node)
 
     if messages:
-        raise Exception(', '.join(messages))
+        raise Exception(", ".join(messages))
 
     graph.validate()
 
@@ -345,24 +369,43 @@ def create_graph(dag_config: dict, internal_branch_name: str = '') -> Graph:
 
 
 def create_node(name: str, step_config: dict, internal_branch_name: str = None):
+    """
+    Creates a node object from the step configuration.
+
+    Args:
+        name (str): The name of the node
+        step_config (dict): The configuration of the node
+        internal_branch_name (str, optional): If the node belongs to a internal branch. Defaults to None.
+
+    Raises:
+        Exception: If the node type is not supported
+
+    Returns:
+        BaseNode: The created node object
+    """
     internal_name = name
     if internal_branch_name:
-        internal_name = internal_branch_name + '.' + name
+        internal_name = internal_branch_name + "." + name
 
     try:
         node_mgr = driver.DriverManager(
             namespace="nodes",
-            name=step_config['type'],
+            name=step_config["type"],
             invoke_on_load=True,
-            invoke_kwds={"name": name, "internal_name": internal_name,
-                         "config": step_config, "internal_branch_name": internal_branch_name}
+            invoke_kwds={
+                "name": name,
+                "internal_name": internal_name,
+                "config": step_config,
+                "internal_branch_name": internal_branch_name,
+            },
         )
         return node_mgr.driver
     except Exception as _e:
         msg = (
             f"Could not find the node type {step_config['type']}. Please ensure you have installed "
             "the extension that provides the node type."
-            "\nCore supports: task, success, fail, parallel, dag, map, as-is")
+            "\nCore supports: task, success, fail, parallel, dag, map, as-is"
+        )
         raise Exception(msg) from _e
 
 
@@ -379,7 +422,7 @@ def search_node_by_internal_name(dag: Graph, internal_name: str):
         internal_name (str): The internal name of the node.
     """
     # If the node is not part of any branches, then the base graph is where the node belongs
-    dot_path = internal_name.split('.')
+    dot_path = internal_name.split(".")
     if len(dot_path) == 1:
         return dag.get_node_by_internal_name(internal_name), dag
 
@@ -391,14 +434,18 @@ def search_node_by_internal_name(dag: Graph, internal_name: str):
     for i in range(len(dot_path)):
         if i % 2:
             # Its odd, so we are in brach name
-            current_branch = current_node._get_branch_by_name('.'.join(dot_path[:i + 1]))  # type: ignore
-            logger.debug(f'Finding step for {internal_name} in branch: {current_branch}')
+            current_branch = current_node._get_branch_by_name(".".join(dot_path[: i + 1]))  # type: ignore
+            logger.debug(
+                f"Finding step for {internal_name} in branch: {current_branch}"
+            )
         else:
             # Its even, so we are in Step, we start here!
-            current_node = current_branch.get_node_by_internal_name('.'.join(dot_path[:i + 1]))
-            logger.debug(f'Finding {internal_name} in node: {current_node}')
+            current_node = current_branch.get_node_by_internal_name(
+                ".".join(dot_path[: i + 1])
+            )
+            logger.debug(f"Finding {internal_name} in node: {current_node}")
 
-    logger.debug(f'current branch : {current_branch}, current step {current_node}')
+    logger.debug(f"current branch : {current_branch}, current step {current_node}")
     if current_branch and current_node:
         return current_node, current_branch
 
@@ -418,7 +465,7 @@ def search_branch_by_internal_name(dag: Graph, internal_name: str):
         internal_name (str): The internal name of the branch.
     """
     # If the node is not part of any branches, then the base graph is where the node belongs
-    dot_path = internal_name.split('.')
+    dot_path = internal_name.split(".")
     if len(dot_path) == 1:
         return dag
 
@@ -428,18 +475,21 @@ def search_branch_by_internal_name(dag: Graph, internal_name: str):
     current_branch = dag
 
     for i in range(len(dot_path)):
-
         if i % 2:
             # Its odd, so we are in brach name
-            current_branch = current_node._get_branch_by_name('.'.join(dot_path[:i + 1]))  # type: ignore
-            logger.debug(f'Finding step for {internal_name} in branch: {current_branch}')
+            current_branch = current_node._get_branch_by_name(".".join(dot_path[: i + 1]))  # type: ignore
+            logger.debug(
+                f"Finding step for {internal_name} in branch: {current_branch}"
+            )
 
         else:
             # Its even, so we are in Step, we start here!
-            current_node = current_branch.get_node_by_internal_name('.'.join(dot_path[:i + 1]))
-            logger.debug(f'Finding {internal_name} in node: {current_node}')
+            current_node = current_branch.get_node_by_internal_name(
+                ".".join(dot_path[: i + 1])
+            )
+            logger.debug(f"Finding {internal_name} in node: {current_node}")
 
-    logger.debug(f'current branch : {current_branch}, current step {current_node}')
+    logger.debug(f"current branch : {current_branch}, current step {current_node}")
     if current_branch and current_node:
         return current_branch
 

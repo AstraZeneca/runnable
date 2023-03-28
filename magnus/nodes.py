@@ -61,7 +61,10 @@ class BaseNode:
         )
         self.is_composite = False
 
-    def validate(self):
+    def validate(self) -> List[str]:
+        """
+        Return a list of validation errors.
+        """
         messages = []
         if "." in self.name:
             messages.append("Node names cannot have . in them")
@@ -80,6 +83,9 @@ class BaseNode:
         return messages
 
     def _to_dict(self) -> dict:
+        """
+        Return a dict representation of the node.
+        """
         config_dict = dict(self.config.dict())
         config_dict["type"] = self.node_type
         return config_dict
@@ -199,7 +205,13 @@ class BaseNode:
             self.internal_branch_name, map_variable=map_variable
         )
 
-    def __str__(self):  # pragma: no cover
+    def __str__(self) -> str:  # pragma: no cover
+        """
+        String representation of the node.
+
+        Returns:
+            str: The string representation of the node.
+        """
         return f"Node of type {self.node_type} and name {self.internal_name}"
 
     def _get_on_failure_node(self) -> Optional[str]:
@@ -385,6 +397,12 @@ class TaskNode(BaseNode):
         self.task = task_mgr.driver
 
     def _to_dict(self) -> dict:
+        """
+        The dict representation of the node.
+
+        Returns:
+            dict: The dict representation of the node.
+        """
         config_dict = dict(self.config.dict())
         config_dict["type"] = self.node_type
         config_dict["command_config"] = self.config.command_config
@@ -394,6 +412,17 @@ class TaskNode(BaseNode):
     def execute(
         self, executor, mock=False, map_variable: dict = None, **kwargs
     ) -> StepAttempt:
+        """
+        All that we do in magnus is to come to this point where we actually execute the command.
+
+        Args:
+            executor (_type_): The executor class
+            mock (bool, optional): If we should just mock and not execute. Defaults to False.
+            map_variable (dict, optional): If the node is part of internal branch. Defaults to None.
+
+        Returns:
+            StepAttempt: The attempt object
+        """
         # Here is where the juice is
         attempt_log = executor.run_log_store.create_attempt_log()
         try:
@@ -439,6 +468,13 @@ class FailNode(BaseNode):
     errors_on: List[str] = ["next_node", "command", "branches", "on_failure", "catalog"]
 
     def _get_on_failure_node(self) -> Optional[str]:
+        """
+        The on_failure node as defined by the config.
+        Which is nothing as failure nodes do not have an on_failure node.
+
+        Returns:
+            Optional[str]: Returns an empty string.
+        """
         return ""
 
     def _get_max_attempts(self) -> int:
@@ -451,11 +487,29 @@ class FailNode(BaseNode):
         return 1
 
     def _get_catalog_settings(self) -> Optional[dict]:
+        """
+        There are no catalog settings for failure nodes.
+
+        Returns:
+            Optional[dict]: Any empty dict
+        """
         return {}
 
     def execute(
         self, executor, mock=False, map_variable: dict = None, **kwargs
     ) -> StepAttempt:
+        """
+        Execute the failure node.
+        Set the run or branch log status to failure.
+
+        Args:
+            executor (_type_): the executor class
+            mock (bool, optional): If we should just mock and not do the actual execution. Defaults to False.
+            map_variable (dict, optional): If the node belongs to internal branches. Defaults to None.
+
+        Returns:
+            StepAttempt: The step attempt object
+        """
         attempt_log = executor.run_log_store.create_attempt_log()
         try:
             attempt_log.start_time = str(datetime.now())
@@ -501,6 +555,13 @@ class SuccessNode(BaseNode):
     errors_on: List[str] = ["next_node", "command", "branches", "on_failure", "catalog"]
 
     def _get_on_failure_node(self) -> Optional[str]:
+        """
+        The on_failure node as defined by the config.
+        Which is nothing as success nodes do not have an on_failure node.
+
+        Returns:
+            Optional[str]: Returns an empty string.
+        """
         return ""
 
     def _get_max_attempts(self) -> int:
@@ -513,11 +574,28 @@ class SuccessNode(BaseNode):
         return 1
 
     def _get_catalog_settings(self) -> Optional[dict]:
+        """
+        There are no catalog settings for success nodes.
+
+        Returns an empty dict.
+        """
         return {}
 
     def execute(
         self, executor, mock=False, map_variable: dict = None, **kwargs
     ) -> StepAttempt:
+        """
+        Execute the success node.
+        Set the run or branch log status to success.
+
+        Args:
+            executor (_type_): The executor class
+            mock (bool, optional): If we should just mock and not perform anything. Defaults to False.
+            map_variable (dict, optional): If the node belongs to an internal branch. Defaults to None.
+
+        Returns:
+            StepAttempt: The step attempt object
+        """
         attempt_log = executor.run_log_store.create_attempt_log()
         try:
             attempt_log.start_time = str(datetime.now())
@@ -764,11 +842,26 @@ class MapNode(BaseNode):
         self.branch = self.get_sub_graph()
 
     @property
-    def iterate_as(self):
+    def iterate_as(self) -> str:
+        """
+        The name to give the variable in the iteration.
+
+        For example: for i in range(10):
+        Here "i" is the iterate_as
+
+        Returns:
+            str: The name to give the variable in the iteration
+        """
         return self.config.iterate_as
 
     @property
-    def iterate_on(self):
+    def iterate_on(self) -> str:
+        """
+        The parameter to be iterated on.
+
+        Returns:
+            str: The name of the parameter to be iterated on
+        """
         return self.config.iterate_on
 
     def get_sub_graph(self):
@@ -1112,6 +1205,14 @@ class AsISNode(BaseNode):
         retry: int = 1
 
     def _get_catalog_settings(self) -> Optional[dict]:
+        """
+        Get the catalog settings from the config.
+
+        As it is as-is node, we do not need to sync the catalog.
+
+        Returns:
+            dict: The catalog settings
+        """
         return {}
 
     def execute(

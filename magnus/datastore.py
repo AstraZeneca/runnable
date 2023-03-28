@@ -32,10 +32,15 @@ class DataCatalog(BaseModel, extra=Extra.allow):  # type: ignore
 
     # Needed for set operations to work on DataCatalog objects
     def __hash__(self):
+        """
+        Needed to Uniqueize DataCatalog objects.
+        """
         return hash(self.name)
 
-    # Needed for set operations to work on DataCatalog objects
     def __eq__(self, other):
+        """
+        Needed for set operations to work on DataCatalog objects
+        """
         if not isinstance(other, DataCatalog):
             return False
         return other.name == self.name
@@ -694,9 +699,14 @@ class BufferRunLogstore(BaseRunLogStore):
         status: str = defaults.CREATED,
         **kwargs,
     ) -> RunLog:
+        """
         # Creates a Run log
         # Adds it to the db
         # Return the log
+
+        Refer to BaseRunLogStore.create_run_log
+        """
+
         logger.info(f"{self.service_name} Creating a Run Log and adding it to DB")
         self.run_log = RunLog(
             run_id=run_id,
@@ -709,8 +719,11 @@ class BufferRunLogstore(BaseRunLogStore):
         return self.run_log
 
     def get_run_log_by_id(self, run_id: str, full: bool = False, **kwargs):
+        """
         # Returns the run_log defined by id
         # Raises Exception if not found
+        """
+
         logger.info(f"{self.service_name} Getting the run log from DB for {run_id}")
         if self.run_log:
             return self.run_log
@@ -718,7 +731,10 @@ class BufferRunLogstore(BaseRunLogStore):
         raise exceptions.RunLogNotFoundError(run_id)
 
     def put_run_log(self, run_log: RunLog, **kwargs):
-        # Puts the run_log into the database
+        """
+        # Puts the run log in the db
+        # Raises Exception if not found
+        """
         logger.info(
             f"{self.service_name} Putting the run log in the DB: {run_log.run_id}"
         )
@@ -753,6 +769,10 @@ class FileSystemRunLogstore(BaseRunLogStore):
 
     @property
     def log_folder_name(self) -> str:
+        """
+        Returns:
+            str: The name of the log folder
+        """
         return self.config.log_folder
 
     def write_to_folder(self, run_log: RunLog):
@@ -813,8 +833,11 @@ class FileSystemRunLogstore(BaseRunLogStore):
         status: str = defaults.CREATED,
         **kwargs,
     ) -> RunLog:
+        """
         # Creates a Run log
         # Adds it to the db
+        """
+
         try:
             self.get_run_log_by_id(run_id=run_id, full=False)
             raise exceptions.RunLogExistsError(run_id=run_id)
@@ -834,8 +857,10 @@ class FileSystemRunLogstore(BaseRunLogStore):
         return run_log
 
     def get_run_log_by_id(self, run_id: str, full: bool = False, **kwargs) -> RunLog:
+        """
         # Returns the run_log defined by id
         # Raises Exception if not found
+        """
         try:
             logger.info(f"{self.service_name} Getting a Run Log for : {run_id}")
             run_log = self.get_from_folder(run_id)
@@ -844,7 +869,9 @@ class FileSystemRunLogstore(BaseRunLogStore):
             raise exceptions.RunLogNotFoundError(run_id) from e
 
     def put_run_log(self, run_log: RunLog, **kwargs):
+        """
         # Puts the run_log into the database
+        """
         logger.info(
             f"{self.service_name} Putting the run log in the DB: {run_log.run_id}"
         )
@@ -938,12 +965,33 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
 
     @property
     def log_folder_name(self) -> str:
+        """
+        Returns the log folder name
+        """
         return self.config.log_folder
 
     def log_folder_with_run_id(self, run_id: str) -> Path:
+        """
+        Utility function to get the log folder for a run id.
+
+        Args:
+            run_id (str): The run id
+
+        Returns:
+            Path: The path to the log folder with the run id
+        """
         return Path(self.log_folder_name) / run_id
 
-    def safe_suffix_json(self, name: Path):
+    def safe_suffix_json(self, name: Path) -> str:
+        """
+        Safely attach a suffix to a json file.
+
+        Args:
+            name (Path): The name of the file with or without suffix of json
+
+        Returns:
+            str : The name of the file with .json
+        """
         if str(name).endswith("json"):
             return str(name)
 

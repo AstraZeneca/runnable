@@ -29,12 +29,11 @@ logger = logging.getLogger(defaults.NAME)
 try:
     import docker
 except ImportError:
-    logger.warning('docker was not installed, local-container executor will not function')
+    logger.warning("docker was not installed, local-container executor will not function")
 
 
 def does_file_exist(file_path: str) -> bool:
-    """
-    Check if a file exists.
+    """Check if a file exists.
     Implemented here to avoid repetition of logic.
 
     Args:
@@ -48,9 +47,8 @@ def does_file_exist(file_path: str) -> bool:
 
 
 def does_dir_exist(file_path: Union[str, Path]) -> bool:
-    """
-    Check if a directory exists.
-    Implemented here to avoid repetition of logic
+    """Check if a directory exists.
+    Implemented here to avoid repetition of logic.
 
     Args:
         file_path (str or Path): The directory path to check
@@ -63,8 +61,7 @@ def does_dir_exist(file_path: Union[str, Path]) -> bool:
 
 
 def safe_make_dir(directory: Union[str, Path]):
-    """
-    Safely make the directory.
+    """Safely make the directory.
     Ignore if it exists and create the parents if necessary.
 
     Args:
@@ -74,8 +71,7 @@ def safe_make_dir(directory: Union[str, Path]):
 
 
 def generate_run_id(run_id: str = None) -> str:
-    """
-    Generate a new run_id.
+    """Generate a new run_id.
 
     If the input run_id is none, we create one based on time stamp.
 
@@ -94,8 +90,7 @@ def generate_run_id(run_id: str = None) -> str:
 
 
 def apply_variables(apply_to: dict, variables: dict) -> dict:
-    """
-    Safely applies the variables to a config.
+    """Safely applies the variables to a config.
 
     For example: For config:
          {'a' : ${b}}, the value of ${b} is replaced by b in the variables.
@@ -113,7 +108,7 @@ def apply_variables(apply_to: dict, variables: dict) -> dict:
         dict: A transformed dict with variables applied
     """
     if not isinstance(variables, dict):
-        raise Exception('Argument Variables should be dict')
+        raise Exception("Argument Variables should be dict")
 
     json_d = json.dumps(apply_to)
     transformed = str_template(json_d).safe_substitute(**variables)
@@ -121,8 +116,7 @@ def apply_variables(apply_to: dict, variables: dict) -> dict:
 
 
 def get_module_and_func_names(command: str) -> Tuple[str, str]:
-    """
-    Given a string of module.function, this functions returns the module name and func names.
+    """Given a string of module.function, this functions returns the module name and func names.
 
     It also checks to make sure that the string is of expected 'module.func' format
 
@@ -135,23 +129,30 @@ def get_module_and_func_names(command: str) -> Tuple[str, str]:
     Returns:
         Tuple[str, str]: (module_name, function_name) extracted from the input string
     """
-    mods = command.split('.')
+    mods = command.split(".")
     if len(mods) <= 1:
-        raise Exception('The command should be a function to call')
+        raise Exception("The command should be a function to call")
     func = mods[-1]
-    module = '.'.join(mods[:-1])
+    module = ".".join(mods[:-1])
     return module, func
 
 
 def get_module_and_func_from_function(command: FunctionType) -> str:
+    """Given a function, this function returns the module name and func names.
+
+    Args:
+        command (FunctionType): The function to extract the module and func names from
+
+    Returns:
+        str: the module and function in module.func format.
+    """
     module_name = sys.modules[command.__module__]
     func_name = command.__name__
     return f"{module_name}.{func_name}"
 
 
 def get_dag_hash(dag: dict) -> str:
-    """
-    Generates the hash of the dag definition
+    """Generates the hash of the dag definition.
 
     Args:
         dag (dict): The dictionary object containing the dag definition
@@ -160,12 +161,11 @@ def get_dag_hash(dag: dict) -> str:
         str: The hash of the dag definition
     """
     dag_str = json.dumps(dag, sort_keys=True, ensure_ascii=True)
-    return hashlib.sha1(dag_str.encode('utf-8')).hexdigest()
+    return hashlib.sha1(dag_str.encode("utf-8")).hexdigest()
 
 
-def load_yaml(file_path: str, load_type: str = 'safe') -> dict:
-    """
-    Loads an yaml and returns the dictionary
+def load_yaml(file_path: str, load_type: str = "safe") -> dict:
+    """Loads an yaml and returns the dictionary.
 
     Args:
         file_path (str): The path of the yamlfile
@@ -174,109 +174,107 @@ def load_yaml(file_path: str, load_type: str = 'safe') -> dict:
     Returns:
         dict: The mapping as defined in the yaml file
     """
-    with open(file_path, encoding='utf-8') as f:
+    with open(file_path, encoding="utf-8") as f:
         yaml = YAML(typ=load_type, pure=True)
         yaml_config = yaml.load(f)
     return yaml_config
 
 
 def is_a_git_repo() -> bool:
-    """
-    Does a git command to see if the project is git versioned
+    """Does a git command to see if the project is git versioned.
 
     Returns:
         bool: True if it is git versioned, False otherwise
     """
-    command = 'git rev-parse --is-inside-work-tree'
+    command = "git rev-parse --is-inside-work-tree"
     try:
-        subprocess.check_output(
-            command.split()).strip().decode('utf-8')
-        logger.info('Found the code to be git versioned')
+        subprocess.check_output(command.split()).strip().decode("utf-8")
+        logger.info("Found the code to be git versioned")
         return True
     except BaseException:  # pylint: disable=W0702
-        logger.error('No git repo found, unsafe hash')
+        logger.error("No git repo found, unsafe hash")
 
     return False
 
 
 def get_current_code_commit() -> Union[str, None]:
-    """
-    Gets the git sha id if the project is version controlled
+    """Gets the git sha id if the project is version controlled.
 
     Returns:
         Union[str, None]: SHA ID if the code is versioned, None otherwise
     """
-    command = 'git rev-parse HEAD'
+    command = "git rev-parse HEAD"
     if not is_a_git_repo():
         return None
     try:
-        label = subprocess.check_output(
-            command.split()).strip().decode('utf-8')
+        label = subprocess.check_output(command.split()).strip().decode("utf-8")
         logger.info("Found the git commit to be: %s", label)
         return label
     except BaseException:  # pylint: disable=W0702
-        logger.exception('Error getting git hash')
+        logger.exception("Error getting git hash")
         raise
 
 
 def archive_git_tracked(name: str):
-    command = f'git archive -v -o {name}.tar.gz --format=tar.gz HEAD'
+    """Generate a git archive of the tracked files.
+
+    Args:
+        name (str): The name to give the archive
+
+    Raises:
+        Exception: If its not a git repo
+    """
+    command = f"git archive -v -o {name}.tar.gz --format=tar.gz HEAD"
 
     if not is_a_git_repo():
         raise Exception("Not a git repo")
     try:
-        subprocess.check_output(
-            command.split()).strip().decode('utf-8')
+        subprocess.check_output(command.split()).strip().decode("utf-8")
     except BaseException:  # pylint: disable=W0702
-        logger.exception('Error archiving repo')
+        logger.exception("Error archiving repo")
         raise
 
 
 def is_git_clean() -> Tuple[bool, Union[None, str]]:
-    """
-    Checks if the git tree is clean and there are no modified tracked files
+    """Checks if the git tree is clean and there are no modified tracked files.
 
     Returns:
         Tuple[bool, Union[None, str]]: None if its clean, comma-seperated file names if it is changed
     """
-    command = 'git diff --name-only'
+    command = "git diff --name-only"
     if not is_a_git_repo():
         return False, None
     try:
-        label = subprocess.check_output(
-            command.split()).strip().decode('utf-8')
+        label = subprocess.check_output(command.split()).strip().decode("utf-8")
         if not label:
             return True, None
         return False, label
     except BaseException:  # pylint: disable=W0702
-        logger.exception('Error checking if the code is git clean')
+        logger.exception("Error checking if the code is git clean")
 
     return False, None
 
 
 def get_git_remote() -> Union[str, None]:
-    """
-    Gets the remote URL of git
+    """Gets the remote URL of git.
 
     Returns:
         Union[str, None]: Remote URL if the code is version controlled, None otherwise
     """
-    command = 'git config --get remote.origin.url'
+    command = "git config --get remote.origin.url"
     if not is_a_git_repo():
         return None
     try:
-        label = subprocess.check_output(
-            command.split()).strip().decode('utf-8')
-        logger.info('Found the git remote to be: %s', label)
+        label = subprocess.check_output(command.split()).strip().decode("utf-8")
+        logger.info("Found the git remote to be: %s", label)
         return label
     except BaseException:  # pylint: disable=W0702
-        logger.exception('Error getting git remote')
+        logger.exception("Error getting git remote")
         raise
 
 
 def get_local_docker_image_id(image_name: str) -> str:
-    """
-    If we are running in local settings, return the docker image id
+    """If we are running in local settings, return the docker image id.
 
     Args:
         image_name (str): The image name we need the digest for
@@ -287,18 +285,17 @@ def get_local_docker_image_id(image_name: str) -> str:
     try:
         client = docker.from_env()
         image = client.images.get(image_name)
-        return image.attrs['Id']
+        return image.attrs["Id"]
     except ImportError:  # pragma: no cover
-        logger.warning('Did not find docker installed, some functionality might be affected')
+        logger.warning("Did not find docker installed, some functionality might be affected")
     except BaseException:
-        logger.exception(f'Could not find the image by name {image_name}')
+        logger.exception(f"Could not find the image by name {image_name}")
 
-    return ''
+    return ""
 
 
 def get_git_code_identity(run_log_store):
-    """
-    Returns a code identity object for version controlled code.
+    """Returns a code identity object for version controlled code.
 
     Args:
         run_log_store (magnus.datastore.BaseRunLogStore): The run log store used in this process
@@ -309,11 +306,11 @@ def get_git_code_identity(run_log_store):
     code_identity = run_log_store.create_code_identity()
     try:
         code_identity.code_identifier = get_current_code_commit()
-        code_identity.code_identifier_type = 'git'
+        code_identity.code_identifier_type = "git"
         code_identity.code_identifier_dependable, changed = is_git_clean()
         code_identity.code_identifier_url = get_git_remote()
         if changed:
-            code_identity.code_identifier_message = 'changes found in ' + ', '.join(changed.split('\n'))
+            code_identity.code_identifier_message = "changes found in " + ", ".join(changed.split("\n"))
     except BaseException:
         logger.exception("Git code versioning problems")
 
@@ -321,8 +318,7 @@ def get_git_code_identity(run_log_store):
 
 
 def remove_prefix(text: str, prefix: str) -> str:
-    """
-    Removes a prefix if one is present in the input text
+    """Removes a prefix if one is present in the input text.
 
     Args:
         text (str): The input text to remove the prefix from
@@ -332,14 +328,13 @@ def remove_prefix(text: str, prefix: str) -> str:
         str: The original string if no prefix is found, or the right prefix chomped string if present
     """
     if text.startswith(prefix):
-        return text[len(prefix):]
+        return text[len(prefix) :]
     return text  # or whatever is given
 
 
 def get_tracked_data() -> dict:
-    """
-    Scans the environment variables to find any user tracked variables that have a prefix MAGNUS_TRACK_
-    Removes the environment variable to prevent any clashes in the future steps
+    """Scans the environment variables to find any user tracked variables that have a prefix MAGNUS_TRACK_
+    Removes the environment variable to prevent any clashes in the future steps.
 
     Returns:
         dict: A dictionary of user tracked data
@@ -354,8 +349,7 @@ def get_tracked_data() -> dict:
 
 
 def get_user_set_parameters(remove: bool = False) -> dict:
-    """
-    Scans the environment variables for any user returned parameters that have a prefix MAGNUS_PRM_
+    """Scans the environment variables for any user returned parameters that have a prefix MAGNUS_PRM_.
 
     Args:
         remove (bool, optional): Flag to remove the parameter if needed. Defaults to False.
@@ -370,7 +364,7 @@ def get_user_set_parameters(remove: bool = False) -> dict:
             try:
                 parameters[key.lower()] = json.loads(value)
             except json.decoder.JSONDecodeError:
-                logger.error(f'Parameter {key} could not be JSON decoded, adding the literal value')
+                logger.error(f"Parameter {key} could not be JSON decoded, adding the literal value")
                 parameters[key.lower()] = value
 
             if remove:
@@ -379,8 +373,7 @@ def get_user_set_parameters(remove: bool = False) -> dict:
 
 
 def diff_dict(d1: dict, d2: dict) -> dict:
-    """
-    Given two dicts d1 and d2, return a new dict that has upsert items from d1
+    """Given two dicts d1 and d2, return a new dict that has upsert items from d1.
 
     Args:
         d1 (reference): The reference dict.
@@ -401,12 +394,17 @@ def diff_dict(d1: dict, d2: dict) -> dict:
 
 
 def hash_bytestr_iter(bytesiter, hasher, ashexstr=True):  # pylint: disable=C0116
+    """Hashes the given bytesiter using the given hasher."""
     for block in bytesiter:  # pragma: no cover
         hasher.update(block)
     return hasher.hexdigest() if ashexstr else hasher.digest()  # pragma: no cover
 
 
 def file_as_blockiter(afile, blocksize=65536):  # pylint: disable=C0116
+    """From a StackOverflow answer: that is used to generate a MD5 hash of a large files.
+    # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file.
+
+    """
     with afile:  # pragma: no cover
         block = afile.read(blocksize)
         while len(block) > 0:
@@ -415,8 +413,7 @@ def file_as_blockiter(afile, blocksize=65536):  # pylint: disable=C0116
 
 
 def get_data_hash(file_name: str):
-    """
-    Returns the hash of the data file
+    """Returns the hash of the data file.
 
     Args:
         file_name (str): The file name to generated the hash
@@ -425,12 +422,11 @@ def get_data_hash(file_name: str):
         str: The SHA ID of the file contents
     """
     # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
-    return hash_bytestr_iter(file_as_blockiter(open(file_name, 'rb')), hashlib.sha256())  # pragma: no cover
+    return hash_bytestr_iter(file_as_blockiter(open(file_name, "rb")), hashlib.sha256())  # pragma: no cover
 
 
 def filter_arguments_for_func(func: Callable, parameters: dict, map_variable: dict = None) -> dict:
-    """
-    Inspects the function to be called as part of the pipeline to find the arguments of the function.
+    """Inspects the function to be called as part of the pipeline to find the arguments of the function.
     Matches the function arguments to the parameters available either by command line or by up stream steps.
 
     Args:
@@ -441,14 +437,28 @@ def filter_arguments_for_func(func: Callable, parameters: dict, map_variable: di
         dict: The parameters matching the function signature
     """
     sign = signature(func)
-    return filter_arguments_from_parameters(parameters=parameters,
-                                            signature_parameters=sign.parameters,
-                                            map_variable=map_variable)
+    return filter_arguments_from_parameters(
+        parameters=parameters,
+        signature_parameters=sign.parameters,
+        map_variable=map_variable,
+    )
 
 
 def filter_arguments_from_parameters(
-        parameters: dict, signature_parameters: Union[List, Mapping],
-        map_variable: dict = None) -> dict:
+    parameters: dict,
+    signature_parameters: Union[List, Mapping],
+    map_variable: dict = None,
+) -> dict:
+    """Filters the given parameters based on the signature of the function.
+
+    Args:
+        parameters (dict): All the parameters available for the run
+        signature_parameters (Union[List, Mapping]): The arguments of the function signature
+        map_variable (dict, optional): If the function is part of a map step. Defaults to None.
+
+    Returns:
+        dict: The filtered parameters of the function.
+    """
     arguments = {}
 
     for param, value in parameters.items():
@@ -464,9 +474,12 @@ def filter_arguments_from_parameters(
 
 
 def get_node_execution_command(
-        executor: BaseExecutor, node: BaseNode, map_variable: dict = None, over_write_run_id: str = '') -> str:
-    """
-    A utility function to standardize execution call to a node via command line.
+    executor: BaseExecutor,
+    node: BaseNode,
+    map_variable: dict = None,
+    over_write_run_id: str = "",
+) -> str:
+    """A utility function to standardize execution call to a node via command line.
 
     Args:
         executor (object): The executor class.
@@ -483,10 +496,7 @@ def get_node_execution_command(
 
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
-    action = (f'magnus execute_single_node {run_id} '
-              f"{node._command_friendly_name()}"
-              f' --log-level {log_level}'
-              )
+    action = f"magnus execute_single_node {run_id} " f"{node._command_friendly_name()}" f" --log-level {log_level}"
 
     # action = action + f" {node._command_friendly_name()}"
 
@@ -497,18 +507,30 @@ def get_node_execution_command(
         action = action + f" --map-variable '{json.dumps(map_variable)}'"
 
     if executor.configuration_file:
-        action = action + f' --config-file {executor.configuration_file}'
+        action = action + f" --config-file {executor.configuration_file}"
 
     if executor.parameters_file:
-        action = action + f' --parameters-file {executor.parameters_file}'
+        action = action + f" --parameters-file {executor.parameters_file}"
 
     if executor.tag:
-        action = action + f' --tag {executor.tag}'
+        action = action + f" --tag {executor.tag}"
 
     return action
 
 
-def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write_run_id: str = '') -> str:
+def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write_run_id: str = "") -> str:
+    """Get the execution command to run a job via command line.
+
+    This function should be used by all executors to submit jobs in remote environment
+
+    Args:
+        executor (BaseExecutor): The executor class.
+        node (BaseNode): The node being executed.
+        over_write_run_id (str, optional): If the node is part of a map step. Defaults to ''.
+
+    Returns:
+        str: The execution command to run a job via command line.
+    """
     run_id = executor.run_id
 
     if over_write_run_id:
@@ -516,20 +538,18 @@ def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write
 
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
-    action = (f'magnus execute_nb_or_func {run_id} '
-              f' --log-level {log_level}'
-              )
+    action = f"magnus execute_nb_or_func {run_id} " f" --log-level {log_level}"
 
     action = action + f" {node.config.command}"
 
     if executor.configuration_file:
-        action = action + f' --config-file {executor.configuration_file}'
+        action = action + f" --config-file {executor.configuration_file}"
 
     if executor.parameters_file:
-        action = action + f' --parameters-file {executor.parameters_file}'
+        action = action + f" --parameters-file {executor.parameters_file}"
 
     if executor.tag:
-        action = action + f' --tag {executor.tag}'
+        action = action + f" --tag {executor.tag}"
 
     catalog_config = node._get_catalog_settings() or {}
 
@@ -545,8 +565,7 @@ def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write
 
 
 def get_provider_by_name_and_type(service_type: str, service_details: dict):
-    """
-    Given a service type, one of executor, run_log_store, catalog, secrets and the config
+    """Given a service type, one of executor, run_log_store, catalog, secrets and the config
     return the exact child class implementing the service.
     We use stevedore to do the work for us.
 
@@ -562,26 +581,26 @@ def get_provider_by_name_and_type(service_type: str, service_details: dict):
     """
     namespace = service_type
 
-    service_name = service_details['type']
+    service_name = service_details["type"]
     service_config = {}
-    if 'config' in service_details:
-        service_config = service_details.get('config', {})
+    if "config" in service_details:
+        service_config = service_details.get("config", {})
 
-    logger.info(f'Trying to get a service of {service_type} of the name {service_name} with config: {service_config}')
+    logger.info(f"Trying to get a service of {service_type} of the name {service_name} with config: {service_config}")
     try:
         mgr = driver.DriverManager(
             namespace=namespace,
             name=service_name,
             invoke_on_load=True,
-            invoke_kwds={'config': service_config}
+            invoke_kwds={"config": service_config},
         )
         return mgr.driver
     except Exception as _e:
-        raise Exception(f'Could not find the service of type: {service_type} with config: {service_details}') from _e
+        raise Exception(f"Could not find the service of type: {service_type} with config: {service_details}") from _e
 
 
 def get_duration_between_datetime_strings(start_time: str, end_time: str) -> str:
-    """Given two datetime strings, compute the duration between them
+    """Given two datetime strings, compute the duration between them.
 
     Args:
         start_time (str): ISO format datetime string
@@ -596,8 +615,7 @@ def get_duration_between_datetime_strings(start_time: str, end_time: str) -> str
 
 
 def get_run_config(executor: BaseExecutor) -> dict:
-    """
-    Given an executor with assigned services, return the run_config
+    """Given an executor with assigned services, return the run_config.
 
     Args:
         executor (object): The executor with all the services assigned.
@@ -607,32 +625,38 @@ def get_run_config(executor: BaseExecutor) -> dict:
     """
     run_config = {}
 
-    run_config['executor'] = {'type': executor.service_name,
-                              'config': executor.config}
+    run_config["executor"] = {"type": executor.service_name, "config": executor.config}
 
-    run_config['run_log_store'] = {'type': executor.run_log_store.service_name,
-                                   'config': executor.run_log_store.config}
+    run_config["run_log_store"] = {
+        "type": executor.run_log_store.service_name,
+        "config": executor.run_log_store.config,
+    }
 
-    run_config['catalog'] = {'type': executor.catalog_handler.service_name,
-                             'config': executor.catalog_handler.config}
+    run_config["catalog"] = {
+        "type": executor.catalog_handler.service_name,
+        "config": executor.catalog_handler.config,
+    }
 
-    run_config['secrets'] = {'type': executor.secrets_handler.service_name,
-                             'config': executor.secrets_handler.config}
+    run_config["secrets"] = {
+        "type": executor.secrets_handler.service_name,
+        "config": executor.secrets_handler.config,
+    }
 
-    run_config['experiment_tracker'] = {'type': executor.experiment_tracker.service_name,
-                                        'config': executor.experiment_tracker.config}
-    run_config['variables'] = executor.variables  # type: ignore
+    run_config["experiment_tracker"] = {
+        "type": executor.experiment_tracker.service_name,
+        "config": executor.experiment_tracker.config,
+    }
+    run_config["variables"] = executor.variables  # type: ignore
 
     if executor.dag:
         # Some executions do not define a dag
-        run_config['pipeline'] = executor.dag._to_dict()
+        run_config["pipeline"] = executor.dag._to_dict()
 
     return run_config
 
 
 def json_to_ordered_dict(json_str: str) -> OrderedDict:
-    """
-    Decode a JSON str into OrderedDict
+    """Decode a JSON str into OrderedDict.
 
     Args:
         json_str ([str]): The JSON string to decode
@@ -640,14 +664,21 @@ def json_to_ordered_dict(json_str: str) -> OrderedDict:
     Returns:
         [OrderedDict]: The decoded OrderedDict
     """
-
-    if json_str and json_str != '{}':
+    if json_str and json_str != "{}":
         return json.loads(json_str, object_pairs_hook=OrderedDict)
 
     return OrderedDict()
 
 
 def set_magnus_environment_variables(run_id: str = None, configuration_file: str = None, tag: str = None):
+    """Set the environment variables used by magnus. This function should be called during the prepare configurations
+    by all executors.
+
+    Args:
+        run_id (str, optional): The run id of the execution. Defaults to None.
+        configuration_file (str, optional): The configuration file if used. Defaults to None.
+        tag (str, optional): The tag associated with a run. Defaults to None.
+    """
     if run_id:
         os.environ[defaults.ENV_RUN_ID] = run_id
 
@@ -658,7 +689,12 @@ def set_magnus_environment_variables(run_id: str = None, configuration_file: str
         os.environ[defaults.MAGNUS_RUN_TAG] = tag
 
 
-def gather_variables():
+def gather_variables() -> dict:
+    """Gather all the environment variables used by magnus. All the variables start with MAGNUS_VAR_.
+
+    Returns:
+        dict: All the environment variables present in the environment.
+    """
     variables = {}
 
     for env_var, value in os.environ.items():

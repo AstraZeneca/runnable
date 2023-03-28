@@ -253,6 +253,13 @@ class BaseExecutor:
 
     @property
     def step_attempt_number(self) -> int:
+        """
+        The attempt number of the current step.
+        Orchestrators should use this step to submit multiple attempts of the job.
+
+        Returns:
+            int: The attempt number of the current step. Defaults to 1.
+        """
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
     def _execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
@@ -712,6 +719,13 @@ class LocalExecutor(BaseExecutor):
     def execute_node(
         self, node: BaseNode, map_variable: dict[str, str] = None, **kwargs
     ):
+        """
+        For local execution, we just execute the node.
+
+        Args:
+            node (BaseNode): _description_
+            map_variable (dict[str, str], optional): _description_. Defaults to None.
+        """
         self._execute_node(node=node, map_variable=map_variable, **kwargs)
 
     def execute_job(self, node: BaseNode):
@@ -788,7 +802,11 @@ class LocalContainerExecutor(BaseExecutor):
         self.volumes = {}
 
     @property
-    def docker_image(self):
+    def docker_image(self) -> str:
+        """
+        Returns:
+            str: The default docker image to use from the config.
+        """
         return self.config.docker_image
 
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
@@ -814,6 +832,9 @@ class LocalContainerExecutor(BaseExecutor):
             step_log.code_identities.append(code_id)
 
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
+        """
+        We are already in the container, we just execute the node.
+        """
         return self._execute_node(node, map_variable, **kwargs)
 
     def execute_job(self, node: BaseNode):

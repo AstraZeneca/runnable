@@ -33,17 +33,18 @@ notebook = ['ploomber-engine']
 
 
 [tool.poetry.group.dev.dependencies]
-autopep8 = "*"
-pylint = "*"
 pytest = "*"
 pytest-cov = "*"
 pytest-mock = "*"
 mypy = "^0.931"
 tox = "^3.24.5"
 pre-commit = "*"
+ruff = "^0.0.259"
 commit-linter = "^1.0.2"
 python-semantic-release = "^7.33.1"
 ipykernel = "^6.21.2"
+interrogate = "^1.5.0"
+
 
 [tool.poetry.scripts]
 magnus= 'magnus.cli:cli'
@@ -113,6 +114,85 @@ magnus= 'magnus.cli:cli'
 "map" = "magnus.nodes:MapNode"
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = false
+ignore-semiprivate = false
+ignore-private = false
+ignore-property-decorators = false
+ignore-module = true
+ignore-nested-functions = false
+ignore-nested-classes = true
+ignore-setters = false
+fail-under = 95
+exclude = ["setup.py", "docs", "build", "magnus/integration.py"]
+ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
+# possible values: 0 (minimal output), 1 (-v), 2 (-vv)
+verbose = 2
+quiet = false
+whitelist-regex = []
+color = true
+omit-covered-files = false
+
+[tool.black]
+line-length = 120
+
+[tool.ruff]
+# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
+select = ["E", "F","W","I001"]
+
+ignore = []
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["A", "B", "C", "D", "E", "F", "I"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+per-file-ignores = {}
+
+# Builtins
+
+builtins=["__version__"]
+
+# Same as Black.
+line-length = 120
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+# Assume Python 3.10.
+target-version = "py310"
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

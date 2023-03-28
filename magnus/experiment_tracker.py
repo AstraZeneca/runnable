@@ -29,7 +29,10 @@ class BaseExperimentTracker:
         self.config = self.Config(**config)
 
     @property
-    def client_context(self):
+    def client_context(self) -> Any:
+        """
+        Returns the client context.
+        """
         return contextlib.nullcontext()
 
     def log_metric(self, key: str, value: float, step: int = 0):
@@ -81,4 +84,7 @@ class DoNothingTracker(BaseExperimentTracker):
         pass
 
     def log_parameter(self, key: str, value: Any):
+        """
+        Since this is a Do nothing tracker, we don't need to log anything.
+        """
         pass

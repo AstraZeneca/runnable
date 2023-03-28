@@ -3,9 +3,15 @@ from typing import Any
 
 
 class BasePickler:
+    """
+    The base class for all picklers.
 
-    extension = ''
-    service_name = ''
+    We are still in the process of hardening the design of this class.
+    For now, we are just going to use pickle.
+    """
+
+    extension = ""
+    service_name = ""
 
     def dump(self, data: Any, path: str):
         """
@@ -49,18 +55,35 @@ class NativePickler(BasePickler):
     service_name = "pickle"
 
     def dump(self, data: Any, path: str):
+        """
+        Dump an object to the specified path.
+        The path is the full path.
+
+        Args:
+            data (Any): The data to pickle
+            path (str): The path to save the pickle file
+        """
         if not path.endswith(self.extension):
             path = path + self.extension
 
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
 
     def load(self, path: str) -> Any:
+        """
+        Load the object from the specified path.
+
+        Args:
+            path (str): The path to load the object from.
+
+        Returns:
+            Any: The data loaded from the file.
+        """
         if not path.endswith(self.extension):
             path = path + self.extension
 
         data = None
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             data = pickle.load(f)
 
         return data

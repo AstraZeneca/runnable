@@ -18,7 +18,7 @@ def get_default_configs() -> dict:
     if not user_configs:
         return {}
 
-    user_defaults = user_configs.get('defaults', {})
+    user_defaults = user_configs.get("defaults", {})
     if user_defaults:
         return user_defaults
 
@@ -26,13 +26,14 @@ def get_default_configs() -> dict:
 
 
 def prepare_configurations(
-        configuration_file: str = None,
-        pipeline_file: str = None,
-        run_id: str = None,
-        tag: Union[str, None] = None,
-        use_cached: Union[str, None] = '',
-        parameters_file: str = None,
-        force_local_executor: bool = False):
+    configuration_file: str = None,
+    pipeline_file: str = None,
+    run_id: str = None,
+    tag: Union[str, None] = None,
+    use_cached: Union[str, None] = "",
+    parameters_file: str = None,
+    force_local_executor: bool = False,
+):
     # pylint: disable=R0914
     """
     Replace the placeholders in the dag/config against the variables file.
@@ -61,48 +62,56 @@ def prepare_configurations(
     configuration = utils.apply_variables(configuration, variables)
 
     # Run log settings, configuration over-rides everything
-    run_log_config = configuration.get('run_log_store', {})
+    run_log_config = configuration.get("run_log_store", {})
     if not run_log_config:
-        run_log_config = magnus_defaults.get('run_log_store', defaults.DEFAULT_RUN_LOG_STORE)
-    run_log_store = utils.get_provider_by_name_and_type('run_log_store', run_log_config)
+        run_log_config = magnus_defaults.get(
+            "run_log_store", defaults.DEFAULT_RUN_LOG_STORE
+        )
+    run_log_store = utils.get_provider_by_name_and_type("run_log_store", run_log_config)
 
     # Catalog handler settings, configuration over-rides everything
-    catalog_config = configuration.get('catalog', {})
+    catalog_config = configuration.get("catalog", {})
     if not catalog_config:
-        catalog_config = magnus_defaults.get('catalog', defaults.DEFAULT_CATALOG)
-    catalog_handler = utils.get_provider_by_name_and_type('catalog', catalog_config)
+        catalog_config = magnus_defaults.get("catalog", defaults.DEFAULT_CATALOG)
+    catalog_handler = utils.get_provider_by_name_and_type("catalog", catalog_config)
 
     # Secret handler settings, configuration over-rides everything
-    secrets_config = configuration.get('secrets', {})
+    secrets_config = configuration.get("secrets", {})
     if not secrets_config:
-        secrets_config = magnus_defaults.get('secrets', defaults.DEFAULT_SECRETS)
-    secrets_handler = utils.get_provider_by_name_and_type('secrets', secrets_config)
+        secrets_config = magnus_defaults.get("secrets", defaults.DEFAULT_SECRETS)
+    secrets_handler = utils.get_provider_by_name_and_type("secrets", secrets_config)
 
     # experiment tracker settings, configuration over-rides everything
-    tracker_config = configuration.get('experiment_tracker', {})
+    tracker_config = configuration.get("experiment_tracker", {})
     if not tracker_config:
-        tracker_config = magnus_defaults.get('experiment_tracker', defaults.DEFAULT_EXPERIMENT_TRACKER)
-    tracker_handler = utils.get_provider_by_name_and_type('experiment_tracker', tracker_config)
+        tracker_config = magnus_defaults.get(
+            "experiment_tracker", defaults.DEFAULT_EXPERIMENT_TRACKER
+        )
+    tracker_handler = utils.get_provider_by_name_and_type(
+        "experiment_tracker", tracker_config
+    )
 
     # executor configurations, configuration over rides everything
-    executor_config = configuration.get('executor', {})
+    executor_config = configuration.get("executor", {})
     if force_local_executor:
-        executor_config = {'type': 'local'}
+        executor_config = {"type": "local"}
 
     if not executor_config:
-        executor_config = magnus_defaults.get('executor', defaults.DEFAULT_EXECUTOR)
-    configured_executor = utils.get_provider_by_name_and_type('executor', executor_config)
+        executor_config = magnus_defaults.get("executor", defaults.DEFAULT_EXECUTOR)
+    configured_executor = utils.get_provider_by_name_and_type(
+        "executor", executor_config
+    )
 
     if pipeline_file:
         # There are use cases where we are only preparing the executor
         pipeline_config = utils.load_yaml(pipeline_file)
         pipeline_config = utils.apply_variables(pipeline_config, variables=variables)
 
-        logger.info('The input pipeline:')
+        logger.info("The input pipeline:")
         logger.info(json.dumps(pipeline_config, indent=4))
 
         # Create the graph
-        dag_config = pipeline_config['dag']
+        dag_config = pipeline_config["dag"]
         dag_hash = utils.get_dag_hash(dag_config)
         # TODO: Dag nodes should not self refer themselves
         dag = graph.create_graph(dag_config)
@@ -130,12 +139,13 @@ def prepare_configurations(
 
 
 def execute(
-        configuration_file: str,
-        pipeline_file: str,
-        tag: str = None,
-        run_id: str = None,
-        use_cached: str = None,
-        parameters_file: str = None):
+    configuration_file: str,
+    pipeline_file: str,
+    tag: str = None,
+    run_id: str = None,
+    use_cached: str = None,
+    parameters_file: str = None,
+):
     # pylint: disable=R0914,R0913
     """
     The entry point to magnus execution. This method would prepare the configurations and delegates traversal to the
@@ -151,51 +161,58 @@ def execute(
     # Re run settings
     run_id = utils.generate_run_id(run_id=run_id)
 
-    mode_executor = prepare_configurations(configuration_file=configuration_file,
-                                           pipeline_file=pipeline_file,
-                                           run_id=run_id,
-                                           tag=tag,
-                                           use_cached=use_cached,
-                                           parameters_file=parameters_file)
+    mode_executor = prepare_configurations(
+        configuration_file=configuration_file,
+        pipeline_file=pipeline_file,
+        run_id=run_id,
+        tag=tag,
+        use_cached=use_cached,
+        parameters_file=parameters_file,
+    )
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
 
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_magnus_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
 
     previous_run_log = None
     if use_cached:
         try:
-            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
+            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(
+                run_id=use_cached, full=True
+            )
         except exceptions.RunLogNotFoundError as _e:
             msg = (
-                f'There is no run by {use_cached} in the current run log store '
-                f'{mode_executor.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n'
-                'Note: Even if the previous run used a different run log store, provide the run log store in the format'
-                ' accepted by the current run log store.'
+                f"There is no run by {use_cached} in the current run log store "
+                f"{mode_executor.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n"
+                "Note: Even if the previous run used a different run log store, provide the run log store in the format"
+                " accepted by the current run log store."
             )
             raise Exception(msg) from _e
 
         if previous_run_log.dag_hash != mode_executor.dag_hash:
-            logger.warning('The previous dag does not match to the current one!')
+            logger.warning("The previous dag does not match to the current one!")
         mode_executor.previous_run_log = previous_run_log
-        logger.info('Found a previous run log and using it as cache')
+        logger.info("Found a previous run log and using it as cache")
 
     # Prepare for graph execution
     mode_executor.prepare_for_graph_execution()
 
-    logger.info('Executing the graph')
+    logger.info("Executing the graph")
     mode_executor.execute_graph(dag=mode_executor.dag)
 
     mode_executor.send_return_code()
 
 
 def execute_single_step(
-        configuration_file: str,
-        pipeline_file: str,
-        step_name: str,
-        run_id: str,
-        tag: str = None,
-        parameters_file: str = None,
-        use_cached: str = None,):
+    configuration_file: str,
+    pipeline_file: str,
+    step_name: str,
+    run_id: str,
+    tag: str = None,
+    parameters_file: str = None,
+    use_cached: str = None,
+):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a single step of magnus.
@@ -213,57 +230,62 @@ def execute_single_step(
     """
     run_id = utils.generate_run_id(run_id=run_id)
 
-    mode_executor = prepare_configurations(configuration_file=configuration_file,
-                                           pipeline_file=pipeline_file,
-                                           run_id=run_id,
-                                           tag=tag,
-                                           use_cached='',
-                                           parameters_file=parameters_file)
+    mode_executor = prepare_configurations(
+        configuration_file=configuration_file,
+        pipeline_file=pipeline_file,
+        run_id=run_id,
+        tag=tag,
+        use_cached="",
+        parameters_file=parameters_file,
+    )
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_magnus_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
     try:
         _ = mode_executor.dag.get_node_by_name(step_name)
     except exceptions.NodeNotFoundError as e:
-        msg = (
-            f"The node by name {step_name} is not found in the graph. Please provide a valid node name"
-        )
+        msg = f"The node by name {step_name} is not found in the graph. Please provide a valid node name"
         raise Exception(msg) from e
 
     previous_run_log = None
     if use_cached:
         try:
-            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
+            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(
+                run_id=use_cached, full=True
+            )
         except exceptions.RunLogNotFoundError as _e:
             msg = (
-                f'There is no run by {use_cached} in the current run log store '
-                f'{mode_executor.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n'
-                'Note: Even if the previous run used a different run log store, provide the run log store in the format'
-                ' accepted by the current run log store.'
+                f"There is no run by {use_cached} in the current run log store "
+                f"{mode_executor.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n"
+                "Note: Even if the previous run used a different run log store, provide the run log store in the format"
+                " accepted by the current run log store."
             )
             raise Exception(msg) from _e
 
         if previous_run_log.dag_hash != mode_executor.dag_hash:
-            logger.warning('The previous dag does not match to the current one!')
+            logger.warning("The previous dag does not match to the current one!")
         mode_executor.previous_run_log = previous_run_log
-        logger.info('Found a previous run log and using it as cache')
+        logger.info("Found a previous run log and using it as cache")
 
     mode_executor.single_step = step_name
     mode_executor.prepare_for_graph_execution()
 
-    logger.info('Executing the graph')
+    logger.info("Executing the graph")
     mode_executor.execute_graph(dag=mode_executor.dag)
 
     mode_executor.send_return_code()
 
 
 def execute_single_node(
-        configuration_file: str,
-        pipeline_file: str,
-        step_name: str,
-        map_variable: str,
-        run_id: str,
-        tag: str = None,
-        parameters_file: str = None):
+    configuration_file: str,
+    pipeline_file: str,
+    step_name: str,
+    map_variable: str,
+    run_id: str,
+    tag: str = None,
+    parameters_file: str = None,
+):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a single node of magnus. Orchestration modes should extensively use this
@@ -281,41 +303,51 @@ def execute_single_node(
 
     """
     from magnus import nodes
-    mode_executor = prepare_configurations(configuration_file=configuration_file,
-                                           pipeline_file=pipeline_file,
-                                           run_id=run_id,
-                                           tag=tag,
-                                           use_cached='',
-                                           parameters_file=parameters_file)
+
+    mode_executor = prepare_configurations(
+        configuration_file=configuration_file,
+        pipeline_file=pipeline_file,
+        run_id=run_id,
+        tag=tag,
+        use_cached="",
+        parameters_file=parameters_file,
+    )
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_magnus_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
 
     mode_executor.prepare_for_node_execution()
 
     if not mode_executor.dag:
         # There are a few entry points that make graph dynamically and do not have a dag defined statically.
-        run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
-        mode_executor.dag = graph.create_graph(run_log.run_config['pipeline'])
+        run_log = mode_executor.run_log_store.get_run_log_by_id(
+            run_id=run_id, full=False
+        )
+        mode_executor.dag = graph.create_graph(run_log.run_config["pipeline"])
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    node_to_execute, _ = graph.search_node_by_internal_name(mode_executor.dag, step_internal_name)
+    node_to_execute, _ = graph.search_node_by_internal_name(
+        mode_executor.dag, step_internal_name
+    )
 
-    logger.info('Executing the single node of : %s', node_to_execute)
+    logger.info("Executing the single node of : %s", node_to_execute)
     mode_executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
 
-    mode_executor.send_return_code(stage='execution')
+    mode_executor.send_return_code(stage="execution")
 
 
 def execute_single_brach(
-        configuration_file: str,
-        pipeline_file: str,
-        branch_name: str,
-        map_variable: str,
-        run_id: str,
-        tag: str):
+    configuration_file: str,
+    pipeline_file: str,
+    branch_name: str,
+    map_variable: str,
+    run_id: str,
+    tag: str,
+):
     # pylint: disable=R0914,R0913
     """
     The entry point into executing a branch of the graph. Interactive modes in parallel runs use this to execute
@@ -331,33 +363,43 @@ def execute_single_brach(
         tag (str): If a tag is provided at the run time
     """
     from magnus import nodes
-    mode_executor = prepare_configurations(configuration_file=configuration_file,
-                                           pipeline_file=pipeline_file,
-                                           run_id=run_id,
-                                           tag=tag,
-                                           use_cached='')
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-    branch_internal_name = nodes.BaseNode._get_internal_name_from_command_name(branch_name)
+    mode_executor = prepare_configurations(
+        configuration_file=configuration_file,
+        pipeline_file=pipeline_file,
+        run_id=run_id,
+        tag=tag,
+        use_cached="",
+    )
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
+    utils.set_magnus_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
+
+    branch_internal_name = nodes.BaseNode._get_internal_name_from_command_name(
+        branch_name
+    )
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    branch_to_execute = graph.search_branch_by_internal_name(mode_executor.dag, branch_internal_name)
+    branch_to_execute = graph.search_branch_by_internal_name(
+        mode_executor.dag, branch_internal_name
+    )
 
-    logger.info('Executing the single branch of %s', branch_to_execute)
+    logger.info("Executing the single branch of %s", branch_to_execute)
     mode_executor.execute_graph(dag=branch_to_execute, map_variable=map_variable_dict)
 
     mode_executor.send_return_code()
 
 
 def execute_notebook(
-        notebook_file: str,
-        catalog_config: dict,
-        configuration_file: str,
-        tag: str = None,
-        run_id: str = None,
-        parameters_file: str = None):
+    notebook_file: str,
+    catalog_config: dict,
+    configuration_file: str,
+    tag: str = None,
+    run_id: str = None,
+    parameters_file: str = None,
+):
     # pylint: disable=R0914,R0913
     """
     The entry point to magnus execution of a notebook. This method would prepare the configurations and
@@ -369,36 +411,40 @@ def execute_notebook(
         configuration_file=configuration_file,
         run_id=run_id,
         tag=tag,
-        parameters_file=parameters_file)
+        parameters_file=parameters_file,
+    )
 
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_magnus_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
 
     step_config = {
-        'command': notebook_file,
-        'command_type': 'notebook',
-        'type': 'task',
-        'next': 'success',
-        'catalog': catalog_config,
+        "command": notebook_file,
+        "command_type": "notebook",
+        "type": "task",
+        "next": "success",
+        "catalog": catalog_config,
     }
-    node = graph.create_node(name=f'executing job', step_config=step_config)
+    node = graph.create_node(name=f"executing job", step_config=step_config)
 
     # Prepare for graph execution
     mode_executor.prepare_for_graph_execution()
 
-    logger.info('Executing the job')
+    logger.info("Executing the job")
     mode_executor.execute_job(node=node)
 
     mode_executor.send_return_code()
 
 
 def execute_function(
-        command: str,
-        catalog_config: dict,
-        configuration_file: str,
-        tag: str = None,
-        run_id: str = None,
-        parameters_file: str = None):
+    command: str,
+    catalog_config: dict,
+    configuration_file: str,
+    tag: str = None,
+    run_id: str = None,
+    parameters_file: str = None,
+):
     # pylint: disable=R0914,R0913
     """
     The entry point to magnus execution of a function. This method would prepare the configurations and
@@ -410,61 +456,83 @@ def execute_function(
         configuration_file=configuration_file,
         run_id=run_id,
         tag=tag,
-        parameters_file=parameters_file)
+        parameters_file=parameters_file,
+    )
 
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_magnus_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
 
     # Prepare the graph with a single node
     step_config = {
-        'command': command,
-        'command_type': 'python',
-        'type': 'task',
-        'next': 'success',
-        'catalog': catalog_config,
+        "command": command,
+        "command_type": "python",
+        "type": "task",
+        "next": "success",
+        "catalog": catalog_config,
     }
-    node = graph.create_node(name=f'executing job', step_config=step_config)
+    node = graph.create_node(name=f"executing job", step_config=step_config)
 
     # Prepare for graph execution
     mode_executor.prepare_for_graph_execution()
 
-    logger.info('Executing the job')
+    logger.info("Executing the job")
     mode_executor.execute_job(node=node)
 
     mode_executor.send_return_code()
 
 
-def execute_nb_or_func(run_id, command: str, catalog_config: dict,  configuration_file: str,
-                       parameters_file: str = "", tag: str = ""):
+def execute_nb_or_func(
+    run_id,
+    command: str,
+    catalog_config: dict,
+    configuration_file: str,
+    parameters_file: str = "",
+    tag: str = "",
+):
+    """
+    Internal function to execute a notebook or function.
+    This function is called by executors who do not execute in the same environment as the traversal.
+
+    Examples include local-container or any transpilers or K8's job.
+    """
     mode_executor = prepare_configurations(
         configuration_file=configuration_file,
         run_id=run_id,
         tag=tag,
-        parameters_file=parameters_file)
+        parameters_file=parameters_file,
+    )
 
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_magnus_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
 
     command_type = "python"
     if command.endswith(".ipynb"):
         command_type = "notebook"
 
     step_config = {
-        'command': command,
-        'command_type': command_type,
-        'type': 'task',
-        'next': 'success',
-        'catalog': catalog_config,
+        "command": command,
+        "command_type": command_type,
+        "type": "task",
+        "next": "success",
+        "catalog": catalog_config,
     }
-    node = graph.create_node(name=f'executing job', step_config=step_config)
+    node = graph.create_node(name=f"executing job", step_config=step_config)
 
     # Prepare for graph execution
     mode_executor.prepare_for_node_execution()
-    logger.info('Executing the job')
+    logger.info("Executing the job")
     mode_executor.execute_node(node=node)
 
     # Update the status of the run log
-    step_log = mode_executor.run_log_store.get_step_log(node._get_step_log_name(), run_id)
-    mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
+    step_log = mode_executor.run_log_store.get_step_log(
+        node._get_step_log_name(), run_id
+    )
+    mode_executor.run_log_store.update_run_log_status(
+        run_id=run_id, status=step_log.status
+    )
 
     mode_executor.send_return_code()
