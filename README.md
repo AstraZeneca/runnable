@@ -8,15 +8,15 @@
 </p>
 ---
 
-[![Python version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg)](https://pypi.org/project/magnus/)
-[![PyPI version](https://badge.fury.io/py/magnus.svg)](https://badge.fury.io/py/magnus)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/AstraZeneca/magnus-core/blob/main/LICENSE)
-[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
-[![Tests](https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml/badge.svg)](https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml)
-[![docs](https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml/badge.svg)](https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml)
-
+<p align="center">
+<a href="https://pypi.org/project/magnus/"><img alt="python:" src="https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg"></a>
+<a href="https://pypi.org/project/magnus/"><img alt="Pypi" src="https://badge.fury.io/py/magnus.svg"></a>
+<a href="https://github.com/AstraZeneca/magnus-core/blob/main/LICENSE"><img alt"License" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a>
+<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+<a href="https://github.com/python/mypy"><img alt="MyPy Checked" src="https://www.mypy-lang.org/static/mypy_badge.svg"></a>
+<a href="https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml"><img alt="Tests:" src="https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml/badge.svg">
+<a href="https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml"><img alt="Docs:" src="https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml/badge.svg">
+</p>
 ---
 
 <!--- --8<-- [start:intro] -->
