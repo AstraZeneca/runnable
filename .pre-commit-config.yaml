@@ -30,3 +30,8 @@ repos:
         # pre-commit's default_language_version, see
         # https://pre-commit.com/#top_level-default_language_version
         language_version: python3.8
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.5.0 # or master if you're bold
+    hooks:
+      - id: interrogate
+        args: [--quiet, --fail-under=80]
