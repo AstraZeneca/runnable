@@ -104,56 +104,14 @@ Please follow the example provided [here](../dag/#parameterized_definition) for 
 You can easily extend magnus to bring in your custom provider, if a default
 implementation does not exist or you are not happy with the implementation.
 
+[Extensions are being actively developed and can be found here.](https://github.com/AstraZeneca/magnus-extensions)
+
 To implement your custom experiment tracker, please extend BaseExperimentTracker class of magnus whose definition is
 given below.
 
 ```python
-from pydantic import BaseModel
-
-class BaseExperimentTracker:
-    """
-    Base Experiment tracker class definition.
-    """
-
-    service_name = ''
-
-    class Config(BaseModel):
-        pass
-
-    def __init__(self, config: dict = None, **kwargs):  # pylint: disable=unused-argument
-        config = config or {}
-        self.config = self.Config(**config)
-
-    @property
-    def client_context(self):
-        return contextlib.nullcontext()
-
-    def log_metric(self, key: str, value: float, step: int = 0):
-        """
-        Sets the metric in the experiment tracking.
-
-        Args:
-            key (str): The key against you want to store the value
-            value (float): The value of the metric
-            step (int): Optional step at which it was recorded
-
-        Raises:
-            NotImplementedError: Base class, hence not implemented
-        """
-        raise NotImplementedError
-
-    def log_parameter(self, key: str, value: Any):
-        """
-        Logs a parameter in the experiment tracking.
-
-        Args:
-            key (str): The key against you want to store the value
-            value (Any): The value of the metric
-
-        Raises:
-            NotImplementedError: Base class, hence not implemented
-        """
-        raise NotImplementedError
+# Source code present at magnus/experiment_tracker.py
+--8<-- "magnus/experiment_tracker.py:docs"
 ```
 
 The custom extensions should be registered as part of the namespace:

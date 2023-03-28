@@ -1,8 +1,23 @@
+
+
 # Hello from magnus
 
 
 ![logo](docs/assets/logo1.png)
 ---
+
+[![Python version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg)](https://pypi.org/project/magnus/)
+[![PyPI version](https://badge.fury.io/py/magnus.svg)](https://badge.fury.io/py/magnus)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/AstraZeneca/magnus-core/blob/main/LICENSE)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+![Tests Passing](https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml/badge.svg)
+![Docs Building](https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml/badge.svg)
+
+---
+
+<!--- --8<-- [start:intro] -->
 
 **Magnus** is a *thin* layer of abstraction over the underlying infrastructure to enable data scientist and
 machine learning engineers. It provides:
@@ -29,7 +44,7 @@ the execution happens. This is usually via git, virtual environment manager and 
 ## What does it do?
 
 
-![works](docs/assets/work.png)
+![works](assets/work.png)
 
 ### Shift Left
 
@@ -39,8 +54,9 @@ Magnus provides patterns typically used in production environments even in the d
 - Enables best practices and understanding of infrastructure patterns.
 - Run the same code on your local machines or in production environments.
 
-:sparkles::sparkles:Happy Experimenting!!:sparkles::sparkles:
+:sparkles: :sparkles: Happy Experimenting!! :sparkles: :sparkles:
 
+<!--- --8<-- [end:intro] -->
 
 ## Documentation
 
@@ -53,6 +69,7 @@ All the services of magnus are extendable by design, please refer to
 
 ## Installation
 
+<!--- --8<-- [start:installation] -->
 
 The minimum python version that magnus supports is 3.8
 ## pip
@@ -72,7 +89,11 @@ The command to install in a poetry managed virtual environment
 poetry add magnus
 ```
 
+<!--- --8<-- [end:installation] -->
+
 ## Example Run
+
+<!--- --8<-- [start:exampleRun] -->
 
 To give you a flavour of how magnus works, lets create a simple pipeline.
 
@@ -85,6 +106,9 @@ Copy the contents of this yaml into getting-started.yaml or alternatively in a p
    The command as given should work in linux/macOS but for windows, please change accordingly.
 
 ---
+
+<!--- --8<-- [end:exampleRun] -->
+<!--- --8<-- [start:exampleInput] -->
 
 ``` yaml
 dag:
@@ -132,6 +156,8 @@ if __name__ == '__main__':
 
 ```
 
+
+
 Since the pipeline expects a parameter ```x```, lets provide that using ```parameters.yaml```
 
 ```yaml
@@ -150,7 +176,12 @@ If you are using the python SDK:
 poetry run python pipeline.py
 ```
 
+<!--- --8<-- [end:exampleInput] -->
+
 You should see a list of warnings but your terminal output should look something similar to this:
+
+
+<!--- --8<-- [start:exampleOutput] -->
 
 ``` json
 {
@@ -335,10 +366,14 @@ You should see a list of warnings but your terminal output should look something
 }
 ```
 
+<!--- --8<-- [end:exampleOutput] -->
+
 You should see that ```data``` folder being created with a file called ```data.txt``` in it.
 This is according to the command in ```step shell```.
 
 You should also see a folder ```.catalog``` being created with a single folder corresponding to the run_id of this run.
+
+
 
 To understand more about the input and output, please head over to the
 [documentation](https://project-magnus.github.io/magnus-core/).

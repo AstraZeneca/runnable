@@ -15,6 +15,8 @@ from magnus.graph import create_graph
 
 logger = logging.getLogger(defaults.NAME)
 
+# --8<-- [start:docs]
+
 
 class BaseNode:
     """
@@ -34,7 +36,7 @@ class BaseNode:
     The internal branch name should always be even when split against dot.
     """
 
-    node_type = ''
+    node_type = ""
     required_fields: List[str] = []
     errors_on: List[str] = []
 
@@ -42,10 +44,10 @@ class BaseNode:
         executor_config: dict = {}
 
         def __init__(self, *args, **kwargs):
-            next_node = kwargs.get('next', '')
+            next_node = kwargs.get("next", "")
             if next_node:
-                del kwargs['next']
-                kwargs['next_node'] = next_node
+                del kwargs["next"]
+                kwargs["next_node"] = next_node
 
             super().__init__(*args, **kwargs)
 
@@ -54,33 +56,37 @@ class BaseNode:
         self.name = name
         self.internal_name = internal_name  #  Dot notation naming of the steps
         self.config = self.Config(**config)
-        self.internal_branch_name = internal_branch_name  # parallel, map, dag only have internal names
+        self.internal_branch_name = (
+            internal_branch_name  # parallel, map, dag only have internal names
+        )
         self.is_composite = False
 
     def validate(self):
         messages = []
-        if '.' in self.name:
-            messages.append('Node names cannot have . in them')
+        if "." in self.name:
+            messages.append("Node names cannot have . in them")
 
-        if '%' in self.name:
+        if "%" in self.name:
             messages.append("Node names cannot have '%' in them")
 
         for req in self.required_fields:
             if not req in self.config.dict():
-                messages.append(f'{self.name} should have {req} field')
+                messages.append(f"{self.name} should have {req} field")
                 continue
 
         for err in self.errors_on:
             if err in self.config.dict():
-                messages.append(f'{self.name} should not have {err} field')
+                messages.append(f"{self.name} should not have {err} field")
         return messages
 
     def _to_dict(self) -> dict:
         config_dict = dict(self.config.dict())
-        config_dict['type'] = self.node_type
+        config_dict["type"] = self.node_type
         return config_dict
 
-    def _command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
+    def _command_friendly_name(
+        self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER
+    ) -> str:
         """
         Replace spaces with special character for spaces.
         Spaces in the naming of the node is convenient for the user but causes issues when used programmatically.
@@ -88,9 +94,9 @@ class BaseNode:
         Returns:
             str: The command friendly name of the node
         """
-        return self.internal_name.replace(' ', replace_with)
+        return self.internal_name.replace(" ", replace_with)
 
-    @ classmethod
+    @classmethod
     def _get_internal_name_from_command_name(cls, command_name: str) -> str:
         """
         Replace Magnus specific character (%) with whitespace.
@@ -102,9 +108,9 @@ class BaseNode:
         Returns:
             str: The internal name of the step
         """
-        return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, ' ')
+        return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, " ")
 
-    @ classmethod
+    @classmethod
     def _resolve_map_placeholders(cls, name: str, map_variable: dict = None) -> str:
         """
         If there is no map step used, then we just return the name as we find it.
@@ -170,7 +176,9 @@ class BaseNode:
         Returns:
             str: The dot path name of the step log name
         """
-        return self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
+        return self._resolve_map_placeholders(
+            self.internal_name, map_variable=map_variable
+        )
 
     def _get_branch_log_name(self, map_variable: dict = None) -> str:
         """
@@ -187,10 +195,12 @@ class BaseNode:
         Returns:
             str: The dot path name of the branch log
         """
-        return self._resolve_map_placeholders(self.internal_branch_name, map_variable=map_variable)
+        return self._resolve_map_placeholders(
+            self.internal_branch_name, map_variable=map_variable
+        )
 
     def __str__(self):  # pragma: no cover
-        return f'Node of type {self.node_type} and name {self.internal_name}'
+        return f"Node of type {self.node_type} and name {self.internal_name}"
 
     def _get_on_failure_node(self) -> Optional[str]:
         """
@@ -230,7 +240,7 @@ class BaseNode:
         Raises:
             Exception: [description]
         """
-        raise Exception(f'Node of type {self.node_type} does not have any branches')
+        raise Exception(f"Node of type {self.node_type} does not have any branches")
 
     def _is_terminal_node(self) -> bool:
         """
@@ -239,7 +249,7 @@ class BaseNode:
         Returns:
             bool: True or False of whether there is next node.
         """
-        if self.node_type in ['success', 'fail']:
+        if self.node_type in ["success", "fail"]:
             return True
 
         return False
@@ -297,7 +307,9 @@ class BaseNode:
         """
         return self.config.retry
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(
+        self, executor, mock=False, map_variable: dict = None, **kwargs
+    ) -> StepAttempt:
         """
         The actual function that does the execution of the command in the config.
 
@@ -331,15 +343,19 @@ class BaseNode:
         raise NotImplementedError
 
 
+# --8<-- [end:docs]
+
+
 class TaskNode(BaseNode):
     """
     A node of type Task.
 
     This node does the actual function execution of the graph in all cases.
     """
-    node_type = 'task'
-    required_fields = ['next_node', 'command']
-    errors_on = ['branches']
+
+    node_type = "task"
+    required_fields = ["next_node", "command"]
+    errors_on = ["branches"]
 
     class Config(BaseNode.Config):
         next_node: str
@@ -348,7 +364,7 @@ class TaskNode(BaseNode):
         command_config: dict = {}
         catalog: dict = {}
         retry: int = 1
-        on_failure: str = ''
+        on_failure: str = ""
 
     def __init__(self, name, internal_name, config, internal_branch_name=None):
         super().__init__(name, internal_name, config, internal_branch_name)
@@ -357,9 +373,7 @@ class TaskNode(BaseNode):
         logger.info(f"Trying to get a task of type {task_type}")
         try:
             task_mgr = driver.DriverManager(
-                namespace="tasks",
-                name=task_type,
-                invoke_on_load=False
+                namespace="tasks", name=task_type, invoke_on_load=False
             )
         except Exception as _e:
             msg = (
@@ -372,12 +386,14 @@ class TaskNode(BaseNode):
 
     def _to_dict(self) -> dict:
         config_dict = dict(self.config.dict())
-        config_dict['type'] = self.node_type
-        config_dict['command_config'] = self.config.command_config
-        config_dict['command_type'] = self.task.task_type
+        config_dict["type"] = self.node_type
+        config_dict["command_config"] = self.config.command_config
+        config_dict["command_type"] = self.task.task_type
         return config_dict
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(
+        self, executor, mock=False, map_variable: dict = None, **kwargs
+    ) -> StepAttempt:
         # Here is where the juice is
         attempt_log = executor.run_log_store.create_attempt_log()
         try:
@@ -385,18 +401,19 @@ class TaskNode(BaseNode):
             attempt_log.status = defaults.SUCCESS
             if not mock:
                 # Do not run if we are mocking the execution, could be useful for caching and dry runs
-                command_config = {'command': self.config.command}
+                command_config = {"command": self.config.command}
                 command_config.update(self.config.command_config)
                 task = self.task(config=command_config)
                 task.execute_command(map_variable=map_variable)
         except Exception as _e:  # pylint: disable=W0703
-            logger.exception('Task failed')
+            logger.exception("Task failed")
             attempt_log.status = defaults.FAIL
             attempt_log.message = str(_e)
         finally:
             attempt_log.end_time = str(datetime.now())
             attempt_log.duration = utils.get_duration_between_datetime_strings(
-                attempt_log.start_time, attempt_log.end_time)
+                attempt_log.start_time, attempt_log.end_time
+            )
         return attempt_log
 
     def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
@@ -409,19 +426,20 @@ class TaskNode(BaseNode):
         Raises:
             Exception: Not a composite node, always raises an exception
         """
-        raise Exception('Node is not a composite node, invalid traversal rule')
+        raise Exception("Node is not a composite node, invalid traversal rule")
 
 
 class FailNode(BaseNode):
     """
     A leaf node of the graph that represents a failure node
     """
-    node_type = 'fail'
+
+    node_type = "fail"
     required_fields: List[str] = []
-    errors_on: List[str] = ['next_node', 'command', 'branches', 'on_failure', 'catalog']
+    errors_on: List[str] = ["next_node", "command", "branches", "on_failure", "catalog"]
 
     def _get_on_failure_node(self) -> Optional[str]:
-        return ''
+        return ""
 
     def _get_max_attempts(self) -> int:
         """
@@ -435,23 +453,29 @@ class FailNode(BaseNode):
     def _get_catalog_settings(self) -> Optional[dict]:
         return {}
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(
+        self, executor, mock=False, map_variable: dict = None, **kwargs
+    ) -> StepAttempt:
         attempt_log = executor.run_log_store.create_attempt_log()
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
             #  could be a branch or run log
             run_or_branch_log = executor.run_log_store.get_branch_log(
-                self._get_branch_log_name(map_variable), executor.run_id)
+                self._get_branch_log_name(map_variable), executor.run_id
+            )
             run_or_branch_log.status = defaults.FAIL
             executor.run_log_store.add_branch_log(run_or_branch_log, executor.run_id)
         except BaseException:  # pylint: disable=W0703
-            logger.exception('Fail node execution failed')
+            logger.exception("Fail node execution failed")
         finally:
-            attempt_log.status = defaults.SUCCESS  # This is a dummy node, so we ignore errors and mark SUCCESS
+            attempt_log.status = (
+                defaults.SUCCESS
+            )  # This is a dummy node, so we ignore errors and mark SUCCESS
             attempt_log.end_time = str(datetime.now())
             attempt_log.duration = utils.get_duration_between_datetime_strings(
-                attempt_log.start_time, attempt_log.end_time)
+                attempt_log.start_time, attempt_log.end_time
+            )
         return attempt_log
 
     def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
@@ -464,19 +488,20 @@ class FailNode(BaseNode):
         Raises:
             Exception: Not a composite node, always raises an exception
         """
-        raise Exception('Node is not a composite node, invalid traversal rule')
+        raise Exception("Node is not a composite node, invalid traversal rule")
 
 
 class SuccessNode(BaseNode):
     """
     A leaf node of the graph that represents a success node
     """
-    node_type = 'success'
+
+    node_type = "success"
     required_fields: List[str] = []
-    errors_on: List[str] = ['next_node', 'command', 'branches', 'on_failure', 'catalog']
+    errors_on: List[str] = ["next_node", "command", "branches", "on_failure", "catalog"]
 
     def _get_on_failure_node(self) -> Optional[str]:
-        return ''
+        return ""
 
     def _get_max_attempts(self) -> int:
         """
@@ -490,23 +515,29 @@ class SuccessNode(BaseNode):
     def _get_catalog_settings(self) -> Optional[dict]:
         return {}
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(
+        self, executor, mock=False, map_variable: dict = None, **kwargs
+    ) -> StepAttempt:
         attempt_log = executor.run_log_store.create_attempt_log()
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
             #  could be a branch or run log
             run_or_branch_log = executor.run_log_store.get_branch_log(
-                self._get_branch_log_name(map_variable), executor.run_id)
+                self._get_branch_log_name(map_variable), executor.run_id
+            )
             run_or_branch_log.status = defaults.SUCCESS
             executor.run_log_store.add_branch_log(run_or_branch_log, executor.run_id)
         except BaseException:  # pylint: disable=W0703
-            logger.exception('Success node execution failed')
+            logger.exception("Success node execution failed")
         finally:
-            attempt_log.status = defaults.SUCCESS  # This is a dummy node and we make sure we mark it as success
+            attempt_log.status = (
+                defaults.SUCCESS
+            )  # This is a dummy node and we make sure we mark it as success
             attempt_log.end_time = str(datetime.now())
             attempt_log.duration = utils.get_duration_between_datetime_strings(
-                attempt_log.start_time, attempt_log.end_time)
+                attempt_log.start_time, attempt_log.end_time
+            )
         return attempt_log
 
     def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
@@ -519,7 +550,7 @@ class SuccessNode(BaseNode):
         Raises:
             Exception: Not a composite node, always raises an exception
         """
-        raise Exception('Node is not a composite node, invalid traversal rule')
+        raise Exception("Node is not a composite node, invalid traversal rule")
 
 
 class ParallelNode(BaseNode):
@@ -535,18 +566,21 @@ class ParallelNode(BaseNode):
             . . .
 
     """
-    node_type = 'parallel'
-    required_fields = ['next_node', 'branches']
-    errors_on = ['command', 'catalog', 'retry']
+
+    node_type = "parallel"
+    required_fields = ["next_node", "branches"]
+    errors_on = ["command", "catalog", "retry"]
 
     class Config(BaseNode.Config):
         next_node: str
         branches: dict
-        on_failure: str = ''
+        on_failure: str = ""
 
     def __init__(self, name, internal_name, config, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, internal_branch_name=internal_branch_name)
+        super().__init__(
+            name, internal_name, config, internal_branch_name=internal_branch_name
+        )
         self.branches = self.get_sub_graphs()
         self.is_composite = True
 
@@ -561,11 +595,14 @@ class ParallelNode(BaseNode):
 
         branches = {}
         for branch_name, branch_config in self.config.branches.items():
-            sub_graph = create_graph(branch_config, internal_branch_name=self.internal_name + '.' + branch_name)
-            branches[self.internal_name + '.' + branch_name] = sub_graph
+            sub_graph = create_graph(
+                branch_config,
+                internal_branch_name=self.internal_name + "." + branch_name,
+            )
+            branches[self.internal_name + "." + branch_name] = sub_graph
 
         if not branches:
-            raise Exception('A parallel node should have branches')
+            raise Exception("A parallel node should have branches")
         return branches
 
     def _get_branch_by_name(self, branch_name: str):
@@ -584,7 +621,7 @@ class ParallelNode(BaseNode):
         if branch_name in self.branches:
             return self.branches[branch_name]
 
-        raise Exception(f'No branch by name: {branch_name} is present in {self.name}')
+        raise Exception(f"No branch by name: {branch_name} is present in {self.name}")
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
         """
@@ -597,7 +634,7 @@ class ParallelNode(BaseNode):
         Raises:
             NotImplementedError: This method should never be called for a node of type Parallel
         """
-        raise Exception('Node is of type composite, error in traversal rules')
+        raise Exception("Node is of type composite, error in traversal rules")
 
     def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
         """
@@ -622,7 +659,9 @@ class ParallelNode(BaseNode):
         """
         # Prepare the branch logs
         for internal_branch_name, branch in self.branches.items():
-            effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
+            effective_branch_name = self._resolve_map_placeholders(
+                internal_branch_name, map_variable=map_variable
+            )
 
             branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
             branch_log.status = defaults.PROCESSING
@@ -636,12 +675,14 @@ class ParallelNode(BaseNode):
                 # Trigger parallel jobs
                 action = magnus.pipeline.execute_single_brach
                 kwargs = {
-                    'configuration_file': executor.configuration_file,
-                    'pipeline_file': executor.pipeline_file,
-                    'branch_name': internal_branch_name.replace(' ', defaults.COMMAND_FRIENDLY_CHARACTER),
-                    'run_id': executor.run_id,
-                    'map_variable': json.dumps(map_variable),
-                    'tag': executor.tag
+                    "configuration_file": executor.configuration_file,
+                    "pipeline_file": executor.pipeline_file,
+                    "branch_name": internal_branch_name.replace(
+                        " ", defaults.COMMAND_FRIENDLY_CHARACTER
+                    ),
+                    "run_id": executor.run_id,
+                    "map_variable": json.dumps(map_variable),
+                    "tag": executor.tag,
                 }
                 process = multiprocessing.Process(target=action, kwargs=kwargs)
                 jobs.append(process)
@@ -657,8 +698,12 @@ class ParallelNode(BaseNode):
         step_success_bool = True
         waiting = False
         for internal_branch_name, branch in self.branches.items():
-            effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
-            branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
+            effective_branch_name = self._resolve_map_placeholders(
+                internal_branch_name, map_variable=map_variable
+            )
+            branch_log = executor.run_log_store.get_branch_log(
+                effective_branch_name, executor.run_id
+            )
             if branch_log.status == defaults.FAIL:
                 step_success_bool = False
 
@@ -666,8 +711,12 @@ class ParallelNode(BaseNode):
                 waiting = True
 
         # Collate all the results and update the status of the step
-        effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
-        step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
+        effective_internal_name = self._resolve_map_placeholders(
+            self.internal_name, map_variable=map_variable
+        )
+        step_log = executor.run_log_store.get_step_log(
+            effective_internal_name, executor.run_id
+        )
         step_log.status = defaults.PROCESSING
 
         if step_success_bool:  #  If none failed and nothing is waiting
@@ -693,20 +742,23 @@ class MapNode(BaseNode):
 
     The internal naming convention creates branches dynamically based on the iteration value
     """
-    node_type = 'map'
-    required_fields = ['next_node', 'iterate_on', 'iterate_as', 'branch']
-    errors_on = ['command', 'catalog', 'retry']
+
+    node_type = "map"
+    required_fields = ["next_node", "iterate_on", "iterate_as", "branch"]
+    errors_on = ["command", "catalog", "retry"]
 
     class Config(BaseNode.Config):
         next_node: str
         branch: dict
         iterate_on: str
         iterate_as: str
-        on_failure: str = ''
+        on_failure: str = ""
 
     def __init__(self, name, internal_name, config, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, internal_branch_name=internal_branch_name)
+        super().__init__(
+            name, internal_name, config, internal_branch_name=internal_branch_name
+        )
         self.is_composite = True
         self.branch_placeholder_name = defaults.MAP_PLACEHOLDER
         self.branch = self.get_sub_graph()
@@ -732,7 +784,11 @@ class MapNode(BaseNode):
 
         branch_config = self.config.branch
         branch = create_graph(
-            branch_config, internal_branch_name=self.internal_name + '.' + self.branch_placeholder_name)
+            branch_config,
+            internal_branch_name=self.internal_name
+            + "."
+            + self.branch_placeholder_name,
+        )
         return branch
 
     def _get_branch_by_name(self, branch_name: str):
@@ -763,7 +819,7 @@ class MapNode(BaseNode):
         Raises:
             NotImplementedError: This method should never be called for a node of type Parallel
         """
-        raise Exception('Node is of type composite, error in traversal rules')
+        raise Exception("Node is of type composite, error in traversal rules")
 
     def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
         """
@@ -794,17 +850,18 @@ class MapNode(BaseNode):
         run_log = executor.run_log_store.get_run_log_by_id(executor.run_id)
         if self.iterate_on not in run_log.parameters:
             raise Exception(
-                f'Expected parameter {self.iterate_on} not present in Run Log parameters, was it ever set before?')
+                f"Expected parameter {self.iterate_on} not present in Run Log parameters, was it ever set before?"
+            )
 
         iterate_on = run_log.parameters[self.iterate_on]
         if not isinstance(iterate_on, list):
-            raise Exception('Only list is allowed as a valid iterator type')
+            raise Exception("Only list is allowed as a valid iterator type")
 
         # Prepare the branch logs
         for iter_variable in iterate_on:
             effective_branch_name = self._resolve_map_placeholders(
-                self.internal_name + '.' + str(iter_variable),
-                map_variable=map_variable)
+                self.internal_name + "." + str(iter_variable), map_variable=map_variable
+            )
             branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
             branch_log.status = defaults.PROCESSING
             executor.run_log_store.add_branch_log(branch_log, executor.run_id)
@@ -820,12 +877,14 @@ class MapNode(BaseNode):
                 # Trigger parallel jobs
                 action = magnus.pipeline.execute_single_brach
                 kwargs = {
-                    'configuration_file': executor.configuration_file,
-                    'pipeline_file': executor.pipeline_file,
-                    'branch_name': self.branch.internal_branch_name.replace(' ', defaults.COMMAND_FRIENDLY_CHARACTER),
-                    'run_id': executor.run_id,
-                    'map_variable': json.dumps(effective_map_variable),
-                    'tag': executor.tag
+                    "configuration_file": executor.configuration_file,
+                    "pipeline_file": executor.pipeline_file,
+                    "branch_name": self.branch.internal_branch_name.replace(
+                        " ", defaults.COMMAND_FRIENDLY_CHARACTER
+                    ),
+                    "run_id": executor.run_id,
+                    "map_variable": json.dumps(effective_map_variable),
+                    "tag": executor.tag,
                 }
                 process = multiprocessing.Process(target=action, kwargs=kwargs)
                 jobs.append(process)
@@ -833,7 +892,9 @@ class MapNode(BaseNode):
 
             else:
                 # If parallel is not enabled, execute them sequentially
-                executor.execute_graph(self.branch, map_variable=effective_map_variable, **kwargs)
+                executor.execute_graph(
+                    self.branch, map_variable=effective_map_variable, **kwargs
+                )
 
         for job in jobs:
             job.join()
@@ -841,10 +902,12 @@ class MapNode(BaseNode):
         step_success_bool = True
         waiting = False
         for iter_variable in iterate_on:
-            effective_branch_name = self._resolve_map_placeholders(self.internal_name + '.' + str(iter_variable),
-                                                                   map_variable=map_variable)
+            effective_branch_name = self._resolve_map_placeholders(
+                self.internal_name + "." + str(iter_variable), map_variable=map_variable
+            )
             branch_log = executor.run_log_store.get_branch_log(
-                effective_branch_name, executor.run_id)
+                effective_branch_name, executor.run_id
+            )
             if branch_log.status == defaults.FAIL:
                 step_success_bool = False
 
@@ -852,8 +915,12 @@ class MapNode(BaseNode):
                 waiting = True
 
         # Collate all the results and update the status of the step
-        effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
-        step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
+        effective_internal_name = self._resolve_map_placeholders(
+            self.internal_name, map_variable=map_variable
+        )
+        step_log = executor.run_log_store.get_step_log(
+            effective_internal_name, executor.run_id
+        )
         step_log.status = defaults.PROCESSING
 
         if step_success_bool:  #  If none failed and nothing is waiting
@@ -875,18 +942,21 @@ class DagNode(BaseNode):
 
         The config is expected to have a variable 'dag_definition'.
     """
-    node_type = 'dag'
-    required_fields = ['next_node', 'dag_definition']
-    errors_on = ['command', 'catalog', 'retry']
+
+    node_type = "dag"
+    required_fields = ["next_node", "dag_definition"]
+    errors_on = ["command", "catalog", "retry"]
 
     class Config(BaseNode.Config):
         next_node: str
         dag_definition: str
-        on_failure: str = ''
+        on_failure: str = ""
 
     def __init__(self, name, internal_name, config, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, internal_branch_name=internal_branch_name)
+        super().__init__(
+            name, internal_name, config, internal_branch_name=internal_branch_name
+        )
         self.sub_dag_file = self.config.dag_definition
         self.is_composite = True
         self.branch = self.get_sub_graph()
@@ -899,7 +969,7 @@ class DagNode(BaseNode):
         Returns:
             [type]: [description]
         """
-        return self.internal_name + '.' + defaults.DAG_BRANCH_NAME
+        return self.internal_name + "." + defaults.DAG_BRANCH_NAME
 
     def get_sub_graph(self):
         """
@@ -913,11 +983,14 @@ class DagNode(BaseNode):
         """
 
         dag_config = utils.load_yaml(self.sub_dag_file)
-        if 'dag' not in dag_config:
-            raise Exception(f'No DAG found in {self.sub_dag_file}, please provide it in dag block')
+        if "dag" not in dag_config:
+            raise Exception(
+                f"No DAG found in {self.sub_dag_file}, please provide it in dag block"
+            )
 
-        branch = create_graph(dag_config['dag'],
-                              internal_branch_name=self._internal_branch_name)
+        branch = create_graph(
+            dag_config["dag"], internal_branch_name=self._internal_branch_name
+        )
         return branch
 
     def _get_branch_by_name(self, branch_name: str):
@@ -934,7 +1007,9 @@ class DagNode(BaseNode):
             Exception: If the branch_name is not 'dag'
         """
         if branch_name != self._internal_branch_name:
-            raise Exception(f'Node of type {self.node_type} only allows a branch of name {defaults.DAG_BRANCH_NAME}')
+            raise Exception(
+                f"Node of type {self.node_type} only allows a branch of name {defaults.DAG_BRANCH_NAME}"
+            )
 
         return self.branch
 
@@ -949,7 +1024,7 @@ class DagNode(BaseNode):
         Raises:
             NotImplementedError: This method should never be called for a node of type Parallel
         """
-        raise Exception('Node is of type composite, error in traversal rules')
+        raise Exception("Node is of type composite, error in traversal rules")
 
     def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
         """
@@ -979,8 +1054,12 @@ class DagNode(BaseNode):
         step_success_bool = True
         waiting = False
 
-        effective_branch_name = self._resolve_map_placeholders(self._internal_branch_name, map_variable=map_variable)
-        effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
+        effective_branch_name = self._resolve_map_placeholders(
+            self._internal_branch_name, map_variable=map_variable
+        )
+        effective_internal_name = self._resolve_map_placeholders(
+            self.internal_name, map_variable=map_variable
+        )
 
         branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
         branch_log.status = defaults.PROCESSING
@@ -988,14 +1067,18 @@ class DagNode(BaseNode):
 
         executor.execute_graph(self.branch, map_variable=map_variable, **kwargs)
 
-        branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
+        branch_log = executor.run_log_store.get_branch_log(
+            effective_branch_name, executor.run_id
+        )
         if branch_log.status == defaults.FAIL:
             step_success_bool = False
 
         if branch_log.status == defaults.PROCESSING:
             waiting = True
 
-        step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
+        step_log = executor.run_log_store.get_step_log(
+            effective_internal_name, executor.run_id
+        )
         step_log.status = defaults.PROCESSING
 
         if step_success_bool:  #  If none failed and nothing is waiting
@@ -1020,17 +1103,20 @@ class AsISNode(BaseNode):
 
     But in render mode for job specification of a 3rd party orchestrator, this node comes handy.
     """
-    node_type = 'as-is'
+
+    node_type = "as-is"
 
     class Config(BaseNode.Config, extra=Extra.allow):  # type: ignore
         next_node: str
-        on_failure: str = ''
+        on_failure: str = ""
         retry: int = 1
 
     def _get_catalog_settings(self) -> Optional[dict]:
         return {}
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(
+        self, executor, mock=False, map_variable: dict = None, **kwargs
+    ) -> StepAttempt:
         """
         Do Nothing node.
         We just send an success attempt log back to the caller
@@ -1046,11 +1132,14 @@ class AsISNode(BaseNode):
         attempt_log = executor.run_log_store.create_attempt_log()
 
         attempt_log.start_time = str(datetime.now())
-        attempt_log.status = defaults.SUCCESS  # This is a dummy node and always will be success
+        attempt_log.status = (
+            defaults.SUCCESS
+        )  # This is a dummy node and always will be success
 
         attempt_log.end_time = str(datetime.now())
         attempt_log.duration = utils.get_duration_between_datetime_strings(
-            attempt_log.start_time, attempt_log.end_time)
+            attempt_log.start_time, attempt_log.end_time
+        )
         return attempt_log
 
     def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
@@ -1063,4 +1152,4 @@ class AsISNode(BaseNode):
         Raises:
             Exception: Not a composite node, always raises an exception
         """
-        raise Exception('Node is not a composite node, invalid traversal rule')
+        raise Exception("Node is not a composite node, invalid traversal rule")

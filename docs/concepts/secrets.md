@@ -99,44 +99,14 @@ Please follow the example provided [here](../dag/#parameterized_definition) for 
 You can easily extend magnus to bring in your custom provider, if a default
 implementation does not exist or you are not happy with the implementation.
 
+[Extensions are being actively developed and can be found here.](https://github.com/AstraZeneca/magnus-extensions)
+
 To implement your custom secret class, please extend BaseSecret class of magnus whose definition is given below.
 
 ```python
-from pydantic import BaseModel
+# Source code found in magnus/secrets.py
+--8<-- "magnus/secrets.py:docs"
 
-class BaseSecrets:
-    """
-    A base class for Secrets Handler.
-    All implementations should extend this class.
-
-    Note: As a general guideline, do not extract anything from the config to set class level attributes.
-          Integration patterns modify the config after init to change behaviors.
-          Access config properties using getters/property of the class.
-
-    Raises:
-        NotImplementedError: Base class and not implemented
-    """
-    service_name = ''
-
-    class Config(BaseModel):
-        pass
-
-    def __init__(self, config: dict, **kwargs):
-        config = config or {}
-        self.config = self.Config(**config)
-
-    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
-        """
-        Return the secret by name.
-        If no name is give, return all the secrets.
-
-        Args:
-            name (str): The name of the secret to return.
-
-        Raises:
-            NotImplementedError: Base class and hence not implemented.
-        """
-        raise NotImplementedError
 ```
 
 The custom extensions should be registered as part of the namespace: ```secrets``` for it to be

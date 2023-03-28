@@ -28,7 +28,7 @@ def output_to_file(path: str):
         path (str): Mostly the command you are executing.
 
     """
-    log_file = open(f"{path}.log", 'w')
+    log_file = open(f"{path}.log", "w")
     f = io.StringIO()
     try:
         with contextlib.redirect_stdout(f):
@@ -43,11 +43,15 @@ def output_to_file(path: str):
         os.remove(log_file.name)
 
 
+# --8<-- [start:docs]
+
+
 class BaseTaskType:  # pylint: disable=too-few-public-methods
     """
     A base task class which does the execution of command defined by the user
     """
-    task_type = ''
+
+    task_type = ""
 
     class Config(BaseModel):
         command: str
@@ -65,8 +69,8 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
         Return a dictionary representation of the task
         """
         task = {}
-        task['command'] = self.command
-        task['config'] = self.config
+        task["command"] = self.command
+        task["config"] = self.config
 
         return task
 
@@ -109,41 +113,47 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
 
         if not isinstance(parameters, dict):
             msg = (
-                f'call to function {self.command} returns of type: {type(parameters)}. '
-                'Only dictionaries are supported as return values for functions as part part of magnus pipeline.')
+                f"call to function {self.command} returns of type: {type(parameters)}. "
+                "Only dictionaries are supported as return values for functions as part part of magnus pipeline."
+            )
             logger.warn(msg)
             return
 
         for key, value in parameters.items():
-            logger.info(f'Setting User defined parameter {key} with value: {value}')
+            logger.info(f"Setting User defined parameter {key} with value: {value}")
             os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
 
 
+# --8<-- [end:docs]
+
+
 class PythonFunctionType(BaseTaskType):
-    task_type = 'python-function'
+    task_type = "python-function"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         parameters = self._get_parameters()
-        filtered_parameters = utils.filter_arguments_for_func(self.command, parameters, map_variable)
+        filtered_parameters = utils.filter_arguments_for_func(
+            self.command, parameters, map_variable
+        )
 
         if map_variable:
-            os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(
+                map_variable
+            )
 
-        logger.info(f'Calling {self.command} with {filtered_parameters}')
+        logger.info(f"Calling {self.command} with {filtered_parameters}")
 
         with output_to_file(self.command) as _:
             try:
                 user_set_parameters = self.command(**filtered_parameters)
             except Exception as _e:
-                msg = (
-                    f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
-                )
+                msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
                 logger.exception(msg)
                 logger.exception(_e)
                 raise
 
             if map_variable:
-                del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+                del os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"]
 
             self._set_parameters(user_set_parameters)
 
@@ -152,7 +162,8 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """
     The task class for python command
     """
-    task_type = 'python'
+
+    task_type = "python"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         module, func = utils.get_module_and_func_names(self.command)
@@ -161,25 +172,27 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         f = getattr(imported_module, func)
 
         parameters = self._get_parameters()
-        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
+        filtered_parameters = utils.filter_arguments_for_func(
+            f, parameters, map_variable
+        )
 
         if map_variable:
-            os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(
+                map_variable
+            )
 
-        logger.info(f'Calling {func} from {module} with {filtered_parameters}')
+        logger.info(f"Calling {func} from {module} with {filtered_parameters}")
         with output_to_file(self.command) as _:
             try:
                 user_set_parameters = f(**filtered_parameters)
             except Exception as _e:
-                msg = (
-                    f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
-                )
+                msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
                 logger.exception(msg)
                 logger.exception(_e)
                 raise
 
             if map_variable:
-                del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+                del os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"]
 
             self._set_parameters(user_set_parameters)
 
@@ -188,37 +201,42 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
     """
     The task class for python-lambda command
     """
-    task_type = 'python-lambda'
+
+    task_type = "python-lambda"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
-        if '_' in self.command or '__' in self.command:
+        if "_" in self.command or "__" in self.command:
             msg = (
-                f'Command given to {self.task_type} cannot have _ or __ in them. '
-                'The string is supposed to be for simple expressions only.'
+                f"Command given to {self.task_type} cannot have _ or __ in them. "
+                "The string is supposed to be for simple expressions only."
             )
             raise Exception(msg)
 
         f = eval(self.command)
 
         parameters = self._get_parameters()
-        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
+        filtered_parameters = utils.filter_arguments_for_func(
+            f, parameters, map_variable
+        )
 
         if map_variable:
-            os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(
+                map_variable
+            )
 
-        logger.info(f'Calling lambda function: {self.command} with {filtered_parameters}')
+        logger.info(
+            f"Calling lambda function: {self.command} with {filtered_parameters}"
+        )
         try:
             user_set_parameters = f(**filtered_parameters)
         except Exception as _e:
-            msg = (
-                f'Call to the function {self.command} with {filtered_parameters} did not succeed.\n'
-            )
+            msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
             logger.exception(msg)
             logger.exception(_e)
             raise
 
         if map_variable:
-            del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+            del os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"]
 
         self._set_parameters(user_set_parameters)
 
@@ -227,10 +245,11 @@ class NotebookTaskType(BaseTaskType):
     """
     The task class for Notebook based execution
     """
-    task_type = 'notebook'
+
+    task_type = "notebook"
 
     class Config(BaseTaskType.Config):
-        notebook_output_path: str = ''
+        notebook_output_path: str = ""
         optional_ploomber_args: dict = {}
 
     @property
@@ -238,35 +257,37 @@ class NotebookTaskType(BaseTaskType):
         if self.config.notebook_output_path:
             return self.config.notebook_output_path
 
-        return ''.join(self.command.split('.')[:-1]) + '_out.ipynb'
+        return "".join(self.command.split(".")[:-1]) + "_out.ipynb"
 
     def __init__(self, config: dict = None):
         super().__init__(config)
 
-        if not self.config.command.endswith('.ipynb'):
-            raise Exception('Notebook task should point to a ipynb file')
+        if not self.config.command.endswith(".ipynb"):
+            raise Exception("Notebook task should point to a ipynb file")
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         try:
             if not pm:
-                raise ImportError('Ploomber engine is required for notebook type node')
+                raise ImportError("Ploomber engine is required for notebook type node")
 
             parameters = self._get_parameters()
             filtered_parameters = parameters
 
             if map_variable:
-                os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+                os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(
+                    map_variable
+                )
 
             notebook_output_path = self.notebook_output_path
 
             ploomber_optional_args = self.config.optional_ploomber_args  # type: ignore
 
             kwds = {
-                'input_path': self.command,
-                'output_path': notebook_output_path,
-                'parameters': filtered_parameters,
-                'log_output': True,
-                'progress_bar': False
+                "input_path": self.command,
+                "output_path": notebook_output_path,
+                "parameters": filtered_parameters,
+                "log_output": True,
+                "progress_bar": False,
             }
 
             kwds.update(ploomber_optional_args)
@@ -275,12 +296,10 @@ class NotebookTaskType(BaseTaskType):
 
             put_in_catalog(notebook_output_path)
             if map_variable:
-                del os.environ[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE']
+                del os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"]
 
         except ImportError as e:
-            msg = (
-                f'Task type of notebook requires ploomber engine to be installed. Please install via optional: notebook'
-            )
+            msg = f"Task type of notebook requires ploomber engine to be installed. Please install via optional: notebook"
             raise Exception(msg) from e
 
 
@@ -288,7 +307,8 @@ class ShellTaskType(BaseTaskType):
     """
     The task class for shell based commands
     """
-    task_type = 'shell'
+
+    task_type = "shell"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         # TODO can we do this without shell=True. Hate that but could not find a way out
@@ -298,10 +318,19 @@ class ShellTaskType(BaseTaskType):
         subprocess_env = os.environ.copy()
 
         if map_variable:
-            subprocess_env[defaults.PARAMETER_PREFIX + 'MAP_VARIABLE'] = json.dumps(map_variable)
+            subprocess_env[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(
+                map_variable
+            )
 
-        result = subprocess.run(self.command, check=True, env=subprocess_env, shell=True,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        result = subprocess.run(
+            self.command,
+            check=True,
+            env=subprocess_env,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
 
         print(result.stdout)
         print(result.stderr)

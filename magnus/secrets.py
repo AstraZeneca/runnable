@@ -10,6 +10,7 @@ from magnus import defaults, exceptions, utils
 logger = logging.getLogger(defaults.NAME)
 
 
+# --8<-- [start:docs]
 class BaseSecrets:
     """
     A base class for Secrets Handler.
@@ -22,7 +23,8 @@ class BaseSecrets:
     Raises:
         NotImplementedError: Base class and not implemented
     """
-    service_name = ''
+
+    service_name = ""
 
     class Config(BaseModel):
         pass
@@ -45,12 +47,15 @@ class BaseSecrets:
         raise NotImplementedError
 
 
+# --8<-- [end:docs]
+
+
 class DoNothingSecretManager(BaseSecrets):
     """
     Does nothing secret manager
     """
 
-    service_name = 'do-nothing'
+    service_name = "do-nothing"
 
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
@@ -70,7 +75,7 @@ class DoNothingSecretManager(BaseSecrets):
             [type]: [description]
         """
         if name:
-            return ''
+            return ""
         return {}
 
 
@@ -81,7 +86,7 @@ class EnvSecretsManager(BaseSecrets):
     This secret manager returns nothing if the key does not match
     """
 
-    service_name = 'env-secrets-manager'
+    service_name = "env-secrets-manager"
 
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
@@ -106,7 +111,9 @@ class EnvSecretsManager(BaseSecrets):
             try:
                 return os.environ[name]
             except KeyError:
-                raise exceptions.SecretNotFoundError(secret_name=name, secret_setting="environment")
+                raise exceptions.SecretNotFoundError(
+                    secret_name=name, secret_setting="environment"
+                )
 
         return {}
 
@@ -119,7 +126,7 @@ class DotEnvSecrets(BaseSecrets):
     production.
     """
 
-    service_name = 'dotenv'
+    service_name = "dotenv"
 
     class Config(BaseModel):
         location: str = defaults.DOTENV_FILE_LOCATION
@@ -154,16 +161,20 @@ class DotEnvSecrets(BaseSecrets):
         """
         secrets_location = self.secrets_location
         if not utils.does_file_exist(secrets_location):
-            raise Exception(f'Did not find the secrets file in {secrets_location}')
+            raise Exception(f"Did not find the secrets file in {secrets_location}")
 
-        with open(secrets_location, 'r') as fr:
+        with open(secrets_location, "r") as fr:
             for secret_line in fr:
-                secret_line = secret_line.split('#')[0]  #  To remove any comments the user might have put
-                data = secret_line.split('=')
+                secret_line = secret_line.split("#")[
+                    0
+                ]  #  To remove any comments the user might have put
+                data = secret_line.split("=")
                 if len(data) != 2:
-                    raise Exception('A secret should be of format, secret_name=secret_value[# any comment]')
+                    raise Exception(
+                        "A secret should be of format, secret_name=secret_value[# any comment]"
+                    )
                 key, value = data
-                self.secrets[key] = value.strip('\n')
+                self.secrets[key] = value.strip("\n")
 
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:
         """
@@ -188,4 +199,6 @@ class DotEnvSecrets(BaseSecrets):
             return self.secrets[name]
 
         secrets_location = self.secrets_location
-        raise exceptions.SecretNotFoundError(secret_name=name, secret_setting=secrets_location)
+        raise exceptions.SecretNotFoundError(
+            secret_name=name, secret_setting=secrets_location
+        )
