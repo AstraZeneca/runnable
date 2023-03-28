@@ -21,6 +21,12 @@ click-plugins = "^1.1.1"
 ploomber-engine ={ version= "^0.0.19", optional = true }
 docker ={ version = "*", optional = true }
 
+[tool.poetry.group.docs.dependencies]
+mkdocs = "*"
+mkdocs-material = "*"
+mkdocs-section-index = "^0.3.5"
+
+
 [tool.poetry.extras]
 docker = ['docker']
 notebook = ['ploomber-engine']
