@@ -41,6 +41,7 @@ pre-commit = "*"
 commit-linter = "^1.0.2"
 python-semantic-release = "^7.33.1"
 ipykernel = "^6.21.2"
+interrogate = "^1.5.0"
 
 [tool.poetry.scripts]
 magnus= 'magnus.cli:cli'
@@ -110,6 +111,29 @@ magnus= 'magnus.cli:cli'
 "map" = "magnus.nodes:MapNode"
 "dag" = "magnus.nodes:DagNode"
 "as-is" = "magnus.nodes:AsISNode"
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = false
+ignore-semiprivate = false
+ignore-private = false
+ignore-property-decorators = false
+ignore-module = true
+ignore-nested-functions = false
+ignore-nested-classes = true
+ignore-setters = false
+fail-under = 80
+exclude = ["setup.py", "docs", "build"]
+ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
+# possible values: 0 (minimal output), 1 (-v), 2 (-vv)
+verbose = 2
+quiet = false
+whitelist-regex = []
+color = true
+omit-covered-files = false
+#generate-badge = "."
+#badge-format = "svg"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
