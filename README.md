@@ -3,7 +3,9 @@
 # Hello from magnus
 
 
-![logo](docs/assets/logo1.png)
+<p align="center">
+  <img src="https://github.com/AstraZeneca/magnus-core/blob/main/assets/logo-readme.png?raw=true" alt="Logo"/>
+</p>
 ---
 
 [![Python version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg)](https://pypi.org/project/magnus/)
