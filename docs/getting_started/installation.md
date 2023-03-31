@@ -10,13 +10,13 @@ README.md:installation
 To run the pipelines/functions/notebooks in a container, you need to install magnus with docker functionality.
 
 ```shell
-pip install magnus[docker]
+pip install "magnus[docker]"
 ```
 
 or if you are using poetry
 
 ```shell
-poetry add magnus[docker]
+poetry add "magnus[docker]"
 ```
 
 ### Notebook
@@ -24,11 +24,11 @@ poetry add magnus[docker]
 To use notebook functionality, you need to install magnus with notebook functionality.
 
 ```shell
-pip install magnus[notebook]
+pip install "magnus[notebook]"
 ```
 
 or if you are using poetry
 
 ```shell
-poetry add magnus[notebook]
+poetry add "magnus[notebook]"
 ```
