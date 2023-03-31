@@ -99,6 +99,8 @@ to match the name to pattern.
 
 You can also interact with the catalog within your python programs if it is convenient than providing it in yaml.
 
+--8<-- [start:how-do-i-pass-data]
+
 ### Get from catalog
 
 To get a file from the catalog, use ```get_from_catalog``` from magnus.
@@ -137,7 +139,11 @@ def my_function():
 
 ---
 
+--8<-- [end:how-do-i-pass-data]
+
 ## Passing Data Objects
+
+--8<-- [start:how-do-i-pass-objects]
 
 While the is good for files, it is inconvenient to dump and load the object into files for the cataloging to happen.
 Magnus provides utility functions to make it easier.
@@ -182,6 +188,7 @@ def my_function():
 
 ---
 
+--8<-- [end:how-do-i-pass-objects]
 
 ## Parameterized definition
 

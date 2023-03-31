@@ -630,6 +630,8 @@ use as-is to inject a script that behaves like a map state and triggers all the 
 
 ## Passing data
 
+--8<-- [start:how-do-i-pass-simple]
+
 In magnus, we classify 2 kinds of data sets that can be passed around to down stream steps.
 
 - Data: Processed files by an upstream step should be available for downstream steps when required.
@@ -751,6 +753,7 @@ def my_cool_function():
 ```
 Calling get_parameter with no key returns all parameters.
 
+--8<-- [end:how-do-i-pass-simple]
 
 ## Extensions
 

@@ -107,6 +107,8 @@ You should be able to see ```Hello universe``` in the logs.
 
 ## Parameterized Definition
 
+--8<-- [start:how-do-i-parameterize]
+
 Magnus allows dag definitions to be parameterized by using placeholders. We use [python String templates](https://docs.python.org/3.7/library/string.html#template-strings) to enable parameter substitution. As we use, [safe_substitution](https://docs.python.org/3.7/library/string.html#string.Template.safe_substitute) it means that we silently ignore any parameter that is not found.
 You should make sure that the parameters are properly defined.
 
@@ -149,3 +151,5 @@ value is not known before hand.
 
 For example: consider a containerized execution of the pipeline. The container tag to run might be only known after
 building the container and this can be supplied dynamically at run time.
+
+--8<-- [end:how-do-i-parameterize]
