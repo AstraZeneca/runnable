@@ -7,11 +7,11 @@ from pkg_resources import iter_entry_points, resource_filename
 
 from magnus import defaults, docker_utils, pipeline
 
-fileConfig(resource_filename(__name__, 'log_config.ini'))
+fileConfig(resource_filename(__name__, "log_config.ini"))
 logger = logging.getLogger(defaults.NAME)
 
 
-@with_plugins(iter_entry_points('magnus.cli_plugins'))
+@with_plugins(iter_entry_points("magnus.cli_plugins"))
 @click.group()
 @click.version_option()
 def cli():
@@ -22,17 +22,28 @@ def cli():
     pass
 
 
-@cli.command('execute', short_help="Execute/translate a pipeline")
-@click.option('-f', '--file', default='pipeline.yaml', help='The pipeline definition file', show_default=True)
-@click.option('-c', '--config-file', default=None,
-              help="config file, in yaml, to be used for the run", show_default=True)
-@click.option('-p', '--parameters-file', default=None,
-              help="Parameters, in yaml,  accessible by the application", show_default=True)
-@click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
-              type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
-@click.option('--tag', help='A tag attached to the run')
-@click.option('--run-id', help='An optional run_id, one would be generated if not provided')
-@click.option('--use-cached', help='Provide the previous run_id to re-run.', show_default=True)
+@cli.command("execute", short_help="Execute/translate a pipeline")
+@click.option("-f", "--file", default="pipeline.yaml", help="The pipeline definition file", show_default=True)
+@click.option(
+    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+)
+@click.option(
+    "-p",
+    "--parameters-file",
+    default=None,
+    help="Parameters, in yaml,  accessible by the application",
+    show_default=True,
+)
+@click.option(
+    "--log-level",
+    default=defaults.LOG_LEVEL,
+    help="The log level",
+    show_default=True,
+    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
+)
+@click.option("--tag", help="A tag attached to the run")
+@click.option("--run-id", help="An optional run_id, one would be generated if not provided")
+@click.option("--use-cached", help="Provide the previous run_id to re-run.", show_default=True)
 def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cached):  # pragma: no cover
     """
     External entry point to executing a pipeline. This command is most commonly used
@@ -43,22 +54,38 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cach
     """
     logger.setLevel(log_level)
     pipeline.execute(
-        configuration_file=config_file, pipeline_file=file, tag=tag,
-        run_id=run_id, use_cached=use_cached, parameters_file=parameters_file)
+        configuration_file=config_file,
+        pipeline_file=file,
+        tag=tag,
+        run_id=run_id,
+        use_cached=use_cached,
+        parameters_file=parameters_file,
+    )
 
 
-@cli.command('execute_step', short_help="Execute a single step of the pipeline")
-@click.argument('step_name')
-@click.option('-f', '--file', default='pipeline.yaml', help='The pipeline definition file', show_default=True)
-@click.option('-c', '--config-file', default=None,
-              help="config file, in yaml, to be used for the run", show_default=True)
-@click.option('-p', '--parameters-file', default=None,
-              help="Parameters, in yaml,  accessible by the application", show_default=True)
-@click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
-              type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
-@click.option('--tag', help='A tag attached to the run')
-@click.option('--run-id', help='An optional run_id, one would be generated if not provided')
-@click.option('--use-cached', help='Provide the previous run_id to re-run.', show_default=True)
+@cli.command("execute_step", short_help="Execute a single step of the pipeline")
+@click.argument("step_name")
+@click.option("-f", "--file", default="pipeline.yaml", help="The pipeline definition file", show_default=True)
+@click.option(
+    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+)
+@click.option(
+    "-p",
+    "--parameters-file",
+    default=None,
+    help="Parameters, in yaml,  accessible by the application",
+    show_default=True,
+)
+@click.option(
+    "--log-level",
+    default=defaults.LOG_LEVEL,
+    help="The log level",
+    show_default=True,
+    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
+)
+@click.option("--tag", help="A tag attached to the run")
+@click.option("--run-id", help="An optional run_id, one would be generated if not provided")
+@click.option("--use-cached", help="Provide the previous run_id to re-run.", show_default=True)
 def execute_step(step_name, file, config_file, parameters_file, log_level, tag, run_id, use_cached):  # pragma: no cover
     """
     External entry point to executing a single step of the pipeline.
@@ -73,22 +100,39 @@ def execute_step(step_name, file, config_file, parameters_file, log_level, tag, 
     """
     logger.setLevel(log_level)
     pipeline.execute_single_step(
-        configuration_file=config_file, pipeline_file=file, step_name=step_name, tag=tag,
-        run_id=run_id, parameters_file=parameters_file, use_cached=use_cached)
+        configuration_file=config_file,
+        pipeline_file=file,
+        step_name=step_name,
+        tag=tag,
+        run_id=run_id,
+        parameters_file=parameters_file,
+        use_cached=use_cached,
+    )
 
 
 @cli.command("execute_single_node", short_help="Internal entry point to execute a single node", hidden=True)
-@click.argument('run_id')
-@click.argument('step_name')
-@click.option('--map-variable', default='', help='The map variable dictionary in str', show_default=True)
-@click.option('-f', '--file', default='', help='The pipeline definition file', show_default=True)
-@click.option('-c', '--config-file', default=None,
-              help="config file, in yaml, to be used for the run", show_default=True)
-@click.option('-p', '--parameters-file', default=None,
-              help="Parameters, in yaml,  accessible by the application", show_default=True)
-@click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
-              type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
-@click.option('--tag', default='', help='A tag attached to the run')
+@click.argument("run_id")
+@click.argument("step_name")
+@click.option("--map-variable", default="", help="The map variable dictionary in str", show_default=True)
+@click.option("-f", "--file", default="", help="The pipeline definition file", show_default=True)
+@click.option(
+    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+)
+@click.option(
+    "-p",
+    "--parameters-file",
+    default=None,
+    help="Parameters, in yaml,  accessible by the application",
+    show_default=True,
+)
+@click.option(
+    "--log-level",
+    default=defaults.LOG_LEVEL,
+    help="The log level",
+    show_default=True,
+    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
+)
+@click.option("--tag", default="", help="A tag attached to the run")
 def execute_single_node(run_id, step_name, map_variable, file, config_file, parameters_file, log_level, tag):
     """
     Internal entrypoint for magnus to execute a single node.
@@ -99,20 +143,32 @@ def execute_single_node(run_id, step_name, map_variable, file, config_file, para
     logger.setLevel(log_level)
 
     # Execute the node as part of the graph execution.
-    pipeline.execute_single_node(configuration_file=config_file, pipeline_file=file,
-                                 step_name=step_name, map_variable=map_variable,
-                                 run_id=run_id, tag=tag, parameters_file=parameters_file)
+    pipeline.execute_single_node(
+        configuration_file=config_file,
+        pipeline_file=file,
+        step_name=step_name,
+        map_variable=map_variable,
+        run_id=run_id,
+        tag=tag,
+        parameters_file=parameters_file,
+    )
 
 
 @cli.command("execute_single_branch", short_help="Internal entry point to execute a single branch", hidden=True)
-@click.argument('run_id')
-@click.argument('branch_name')
-@click.option('--map-variable', default='', help='The map variable dictionary in str', show_default=True)
-@click.option('-f', '--file', default='pipeline.yaml', help='The pipeline definition file', show_default=True)
-@click.option('-c', '--config-file', default=None,
-              help="config file, in yaml, to be used for the run", show_default=True)
-@click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
-              type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
+@click.argument("run_id")
+@click.argument("branch_name")
+@click.option("--map-variable", default="", help="The map variable dictionary in str", show_default=True)
+@click.option("-f", "--file", default="pipeline.yaml", help="The pipeline definition file", show_default=True)
+@click.option(
+    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+)
+@click.option(
+    "--log-level",
+    default=defaults.LOG_LEVEL,
+    help="The log level",
+    show_default=True,
+    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
+)
 def execute_single_branch(run_id, branch_name, map_variable, file, config_file, log_level):
     """
     Internal entrypoint for magnus to execute a single branch.
@@ -120,25 +176,39 @@ def execute_single_branch(run_id, branch_name, map_variable, file, config_file, 
     """
     logger.setLevel(log_level)
 
-    pipeline.execute_single_brach(configuration_file=config_file,
-                                  pipeline_file=file, branch_name=branch_name, map_variable=map_variable,
-                                  run_id=run_id)
+    pipeline.execute_single_brach(
+        configuration_file=config_file,
+        pipeline_file=file,
+        branch_name=branch_name,
+        map_variable=map_variable,
+        run_id=run_id,
+    )
 
 
 @cli.command("execute_notebook", short_help="Entry point to execute a notebook")
-@click.argument('filename')
-@click.option('-c', '--config-file', default=None,
-              help="config file, in yaml, to be used for the run", show_default=True)
-@click.option('-p', '--parameters-file', default=None,
-              help="Parameters, in yaml,  accessible by the application", show_default=True)
-@click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
-              type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
-@click.option('--data-folder', '-d', default='data/', help="The catalog data folder")
-@click.option('--put-in-catalog', '-put', default=None, multiple=True, help="The data to put from the catalog")
-@click.option('--tag', help='A tag attached to the run')
-@click.option('--run-id', help='An optional run_id, one would be generated if not provided')
-def execute_notebook(filename, config_file, parameters_file, log_level, data_folder,
-                     put_in_catalog, tag, run_id):
+@click.argument("filename")
+@click.option(
+    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+)
+@click.option(
+    "-p",
+    "--parameters-file",
+    default=None,
+    help="Parameters, in yaml,  accessible by the application",
+    show_default=True,
+)
+@click.option(
+    "--log-level",
+    default=defaults.LOG_LEVEL,
+    help="The log level",
+    show_default=True,
+    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
+)
+@click.option("--data-folder", "-d", default="data/", help="The catalog data folder")
+@click.option("--put-in-catalog", "-put", default=None, multiple=True, help="The data to put from the catalog")
+@click.option("--tag", help="A tag attached to the run")
+@click.option("--run-id", help="An optional run_id, one would be generated if not provided")
+def execute_notebook(filename, config_file, parameters_file, log_level, data_folder, put_in_catalog, tag, run_id):
     """
     External entry point to execute a Jupyter notebook in isolation.
 
@@ -146,31 +216,44 @@ def execute_notebook(filename, config_file, parameters_file, log_level, data_fol
     The execution plan is unchained.
     """
     logger.setLevel(log_level)
-    catalog_config = {
-        'compute_data_folder': data_folder,
-        'put': list(put_in_catalog) if put_in_catalog else None
-    }
+    catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
     if not filename.endswith(".ipynb"):
         raise Exception("A notebook should always have ipynb as the extension")
 
-    pipeline.execute_notebook(notebook_file=filename, catalog_config=catalog_config, configuration_file=config_file,
-                              parameters_file=parameters_file, tag=tag, run_id=run_id)
+    pipeline.execute_notebook(
+        notebook_file=filename,
+        catalog_config=catalog_config,
+        configuration_file=config_file,
+        parameters_file=parameters_file,
+        tag=tag,
+        run_id=run_id,
+    )
 
 
 @cli.command("execute_function", short_help="Entry point to execute a python function")
-@click.argument('command')
-@click.option('-c', '--config-file', default=None,
-              help="config file, in yaml, to be used for the run", show_default=True)
-@click.option('-p', '--parameters-file', default=None,
-              help="Parameters, in yaml,  accessible by the application", show_default=True)
-@click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
-              type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
-@click.option('--data-folder', '-d', default='data/', help="The catalog data folder")
-@click.option('--put-in-catalog', '-put', default=None, multiple=True, help="The data to put from the catalog")
-@click.option('--tag', help='A tag attached to the run')
-@click.option('--run-id', help='An optional run_id, one would be generated if not provided')
-def execute_function(command, config_file, parameters_file, log_level, data_folder,
-                     put_in_catalog, tag, run_id):
+@click.argument("command")
+@click.option(
+    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+)
+@click.option(
+    "-p",
+    "--parameters-file",
+    default=None,
+    help="Parameters, in yaml,  accessible by the application",
+    show_default=True,
+)
+@click.option(
+    "--log-level",
+    default=defaults.LOG_LEVEL,
+    help="The log level",
+    show_default=True,
+    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
+)
+@click.option("--data-folder", "-d", default="data/", help="The catalog data folder")
+@click.option("--put-in-catalog", "-put", default=None, multiple=True, help="The data to put from the catalog")
+@click.option("--tag", help="A tag attached to the run")
+@click.option("--run-id", help="An optional run_id, one would be generated if not provided")
+def execute_function(command, config_file, parameters_file, log_level, data_folder, put_in_catalog, tag, run_id):
     """
     External entry point to execute a python function in isolation.
 
@@ -178,53 +261,82 @@ def execute_function(command, config_file, parameters_file, log_level, data_fold
     The execution plan is unchained.
     """
     logger.setLevel(log_level)
-    catalog_config = {
-        'compute_data_folder': data_folder,
-        'put': list(put_in_catalog) if put_in_catalog else None
-    }
-    pipeline.execute_function(command=command, catalog_config=catalog_config, configuration_file=config_file,
-                              parameters_file=parameters_file, tag=tag, run_id=run_id)
+    catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
+    pipeline.execute_function(
+        command=command,
+        catalog_config=catalog_config,
+        configuration_file=config_file,
+        parameters_file=parameters_file,
+        tag=tag,
+        run_id=run_id,
+    )
 
 
 @cli.command("execute_nb_or_func", short_help="Entry point to execute a notebook or function")
-@click.argument('run_id')
-@click.argument('nb_or_func')
-@click.option('-c', '--config-file', default=None,
-              help="config file, in yaml, to be used for the run", show_default=True)
-@click.option('-p', '--parameters-file', default=None,
-              help="Parameters, in yaml,  accessible by the application", show_default=True)
-@click.option('--log-level', default=defaults.LOG_LEVEL, help='The log level', show_default=True,
-              type=click.Choice(['INFO', 'DEBUG', 'WARNING', 'ERROR', 'FATAL']))
-@click.option('--data-folder', '-d', default='data/', help="The catalog data folder")
-@click.option('--put-in-catalog', '-put', default=None, multiple=True, help="The data to put from the catalog")
-@click.option('--tag', help='A tag attached to the run')
-def execute_nb_or_function(run_id, nb_or_func, config_file, parameters_file, log_level,
-                           data_folder, put_in_catalog, tag):
+@click.argument("run_id")
+@click.argument("nb_or_func")
+@click.option(
+    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+)
+@click.option(
+    "-p",
+    "--parameters-file",
+    default=None,
+    help="Parameters, in yaml,  accessible by the application",
+    show_default=True,
+)
+@click.option(
+    "--log-level",
+    default=defaults.LOG_LEVEL,
+    help="The log level",
+    show_default=True,
+    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
+)
+@click.option("--data-folder", "-d", default="data/", help="The catalog data folder")
+@click.option("--put-in-catalog", "-put", default=None, multiple=True, help="The data to put from the catalog")
+@click.option("--tag", help="A tag attached to the run")
+def execute_nb_or_function(
+    run_id, nb_or_func, config_file, parameters_file, log_level, data_folder, put_in_catalog, tag
+):
     """
     Internal entry point to execute a notebook or function.
     Executors other than local should use this entry point to execute the notebook or function in the requested
     environment.
     """
     logger.setLevel(log_level)
-    catalog_config = {
-        'compute_data_folder': data_folder,
-        'put': list(put_in_catalog) if put_in_catalog else None
-    }
-    pipeline.execute_nb_or_func(command=nb_or_func, catalog_config=catalog_config, configuration_file=config_file,
-                                parameters_file=parameters_file, tag=tag, run_id=run_id)
+    catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
+    pipeline.execute_nb_or_func(
+        command=nb_or_func,
+        catalog_config=catalog_config,
+        configuration_file=config_file,
+        parameters_file=parameters_file,
+        tag=tag,
+        run_id=run_id,
+    )
 
 
-@cli.command('build_docker', short_help="Utility tool to build docker images")
-@click.argument('image_name')
-@click.option('-f', '--docker-file', default=None, help="The dockerfile to be used. If None, we generate one")
-@click.option('-s', '--style', default="poetry", help="The method used to get requirements", show_default=True)
-@click.option('-t', "--tag", default="latest", help="The tag assigned to the image", show_default=True)
-@click.option('-c', '--commit-tag', is_flag=True, default=False, help="Use commit id as tag. Over-rides tag option",
-              show_default=True)
-@click.option('-d', '--dry-run', is_flag=True, default=False, help="Generate the dockerfile, but NOT the image",
-              show_default=True)
-@click.option('--git-tracked/--all', default=True, help="Controls what should be added to image. All vs git-tracked",
-              show_default=True)
+@cli.command("build_docker", short_help="Utility tool to build docker images")
+@click.argument("image_name")
+@click.option("-f", "--docker-file", default=None, help="The dockerfile to be used. If None, we generate one")
+@click.option("-s", "--style", default="poetry", help="The method used to get requirements", show_default=True)
+@click.option("-t", "--tag", default="latest", help="The tag assigned to the image", show_default=True)
+@click.option(
+    "-c",
+    "--commit-tag",
+    is_flag=True,
+    default=False,
+    help="Use commit id as tag. Over-rides tag option",
+    show_default=True,
+)
+@click.option(
+    "-d", "--dry-run", is_flag=True, default=False, help="Generate the dockerfile, but NOT the image", show_default=True
+)
+@click.option(
+    "--git-tracked/--all",
+    default=True,
+    help="Controls what should be added to image. All vs git-tracked",
+    show_default=True,
+)
 def build_docker(image_name, docker_file, style, tag, commit_tag, dry_run, git_tracked):
     """
     A utility function to create docker images from the existing codebase.
@@ -239,5 +351,12 @@ def build_docker(image_name, docker_file, style, tag, commit_tag, dry_run, git_t
 
     2). The auto-generated dockerfile uses, python 3.8 as the default image and adds the current folder.
     """
-    docker_utils.build_docker(image_name=image_name, docker_file=docker_file, style=style,
-                              tag=tag, commit_tag=commit_tag, dry_run=dry_run, git_tracked=git_tracked)
+    docker_utils.build_docker(
+        image_name=image_name,
+        docker_file=docker_file,
+        style=style,
+        tag=tag,
+        commit_tag=commit_tag,
+        dry_run=dry_run,
+        git_tracked=git_tracked,
+    )
