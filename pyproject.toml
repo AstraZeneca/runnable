@@ -43,7 +43,6 @@ ruff = "^0.0.259"
 commit-linter = "^1.0.2"
 python-semantic-release = "^7.33.1"
 ipykernel = "^6.21.2"
-interrogate = "^1.5.0"
 black = "^23.3.0"
 
 
