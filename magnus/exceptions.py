@@ -7,7 +7,7 @@ class RunLogExistsError(Exception):  # pragma: no cover
 
     def __init__(self, run_id):
         super().__init__()
-        self.message = f'Run id for {run_id} is already found in the datastore'
+        self.message = f"Run id for {run_id} is already found in the datastore"
 
 
 class RunLogNotFoundError(Exception):  # pragma: no cover
@@ -19,7 +19,7 @@ class RunLogNotFoundError(Exception):  # pragma: no cover
 
     def __init__(self, run_id):
         super().__init__()
-        self.message = f'Run id for {run_id} is not found in the datastore'
+        self.message = f"Run id for {run_id} is not found in the datastore"
 
 
 class StepLogNotFoundError(Exception):  # pragma: no cover
@@ -31,7 +31,7 @@ class StepLogNotFoundError(Exception):  # pragma: no cover
 
     def __init__(self, run_id, name):
         super().__init__()
-        self.message = f'Step log for {name} is not found in the datastore for Run id: {run_id}'
+        self.message = f"Step log for {name} is not found in the datastore for Run id: {run_id}"
 
 
 class BranchLogNotFoundError(Exception):  # pragma: no cover
@@ -43,7 +43,7 @@ class BranchLogNotFoundError(Exception):  # pragma: no cover
 
     def __init__(self, run_id, name):
         super().__init__()
-        self.message = f'Branch log for {name} is not found in the datastore for Run id: {run_id}'
+        self.message = f"Branch log for {name} is not found in the datastore for Run id: {run_id}"
 
 
 class NodeNotFoundError(Exception):  # pragma: no cover
@@ -55,7 +55,7 @@ class NodeNotFoundError(Exception):  # pragma: no cover
 
     def __init__(self, name):
         super().__init__()
-        self.message = f'Node of name {name} is not found the graph'
+        self.message = f"Node of name {name} is not found the graph"
 
 
 class BranchNotFoundError(Exception):  # pragma: no cover
@@ -67,7 +67,7 @@ class BranchNotFoundError(Exception):  # pragma: no cover
 
     def __init__(self, name):
         super().__init__()
-        self.message = f'Branch of name {name} is not found the graph'
+        self.message = f"Branch of name {name} is not found the graph"
 
 
 class SecretNotFoundError(Exception):  # pragma: no cover
@@ -79,4 +79,4 @@ class SecretNotFoundError(Exception):  # pragma: no cover
 
     def __init__(self, secret_name, secret_setting):
         super().__init__()
-        self.message = f'No secret found by name:{secret_name} in {secret_setting}'
+        self.message = f"No secret found by name:{secret_name} in {secret_setting}"

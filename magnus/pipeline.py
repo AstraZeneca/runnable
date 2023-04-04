@@ -64,9 +64,7 @@ def prepare_configurations(
     # Run log settings, configuration over-rides everything
     run_log_config = configuration.get("run_log_store", {})
     if not run_log_config:
-        run_log_config = magnus_defaults.get(
-            "run_log_store", defaults.DEFAULT_RUN_LOG_STORE
-        )
+        run_log_config = magnus_defaults.get("run_log_store", defaults.DEFAULT_RUN_LOG_STORE)
     run_log_store = utils.get_provider_by_name_and_type("run_log_store", run_log_config)
 
     # Catalog handler settings, configuration over-rides everything
@@ -84,12 +82,8 @@ def prepare_configurations(
     # experiment tracker settings, configuration over-rides everything
     tracker_config = configuration.get("experiment_tracker", {})
     if not tracker_config:
-        tracker_config = magnus_defaults.get(
-            "experiment_tracker", defaults.DEFAULT_EXPERIMENT_TRACKER
-        )
-    tracker_handler = utils.get_provider_by_name_and_type(
-        "experiment_tracker", tracker_config
-    )
+        tracker_config = magnus_defaults.get("experiment_tracker", defaults.DEFAULT_EXPERIMENT_TRACKER)
+    tracker_handler = utils.get_provider_by_name_and_type("experiment_tracker", tracker_config)
 
     # executor configurations, configuration over rides everything
     executor_config = configuration.get("executor", {})
@@ -98,9 +92,7 @@ def prepare_configurations(
 
     if not executor_config:
         executor_config = magnus_defaults.get("executor", defaults.DEFAULT_EXECUTOR)
-    configured_executor = utils.get_provider_by_name_and_type(
-        "executor", executor_config
-    )
+    configured_executor = utils.get_provider_by_name_and_type("executor", executor_config)
 
     if pipeline_file:
         # There are use cases where we are only preparing the executor
@@ -171,16 +163,12 @@ def execute(
     )
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
 
-    utils.set_magnus_environment_variables(
-        run_id=run_id, configuration_file=configuration_file, tag=tag
-    )
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     previous_run_log = None
     if use_cached:
         try:
-            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(
-                run_id=use_cached, full=True
-            )
+            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
         except exceptions.RunLogNotFoundError as _e:
             msg = (
                 f"There is no run by {use_cached} in the current run log store "
@@ -239,9 +227,7 @@ def execute_single_step(
         parameters_file=parameters_file,
     )
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_magnus_environment_variables(
-        run_id=run_id, configuration_file=configuration_file, tag=tag
-    )
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
     try:
         _ = mode_executor.dag.get_node_by_name(step_name)
     except exceptions.NodeNotFoundError as e:
@@ -251,9 +237,7 @@ def execute_single_step(
     previous_run_log = None
     if use_cached:
         try:
-            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(
-                run_id=use_cached, full=True
-            )
+            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
         except exceptions.RunLogNotFoundError as _e:
             msg = (
                 f"There is no run by {use_cached} in the current run log store "
@@ -313,26 +297,20 @@ def execute_single_node(
         parameters_file=parameters_file,
     )
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_magnus_environment_variables(
-        run_id=run_id, configuration_file=configuration_file, tag=tag
-    )
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     mode_executor.prepare_for_node_execution()
 
     if not mode_executor.dag:
         # There are a few entry points that make graph dynamically and do not have a dag defined statically.
-        run_log = mode_executor.run_log_store.get_run_log_by_id(
-            run_id=run_id, full=False
-        )
+        run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
         mode_executor.dag = graph.create_graph(run_log.run_config["pipeline"])
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    node_to_execute, _ = graph.search_node_by_internal_name(
-        mode_executor.dag, step_internal_name
-    )
+    node_to_execute, _ = graph.search_node_by_internal_name(mode_executor.dag, step_internal_name)
 
     logger.info("Executing the single node of : %s", node_to_execute)
     mode_executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
@@ -372,19 +350,13 @@ def execute_single_brach(
         use_cached="",
     )
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_magnus_environment_variables(
-        run_id=run_id, configuration_file=configuration_file, tag=tag
-    )
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-    branch_internal_name = nodes.BaseNode._get_internal_name_from_command_name(
-        branch_name
-    )
+    branch_internal_name = nodes.BaseNode._get_internal_name_from_command_name(branch_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    branch_to_execute = graph.search_branch_by_internal_name(
-        mode_executor.dag, branch_internal_name
-    )
+    branch_to_execute = graph.search_branch_by_internal_name(mode_executor.dag, branch_internal_name)
 
     logger.info("Executing the single branch of %s", branch_to_execute)
     mode_executor.execute_graph(dag=branch_to_execute, map_variable=map_variable_dict)
@@ -415,9 +387,7 @@ def execute_notebook(
     )
 
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_magnus_environment_variables(
-        run_id=run_id, configuration_file=configuration_file, tag=tag
-    )
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     step_config = {
         "command": notebook_file,
@@ -426,7 +396,7 @@ def execute_notebook(
         "next": "success",
         "catalog": catalog_config,
     }
-    node = graph.create_node(name=f"executing job", step_config=step_config)
+    node = graph.create_node(name="executing job", step_config=step_config)
 
     # Prepare for graph execution
     mode_executor.prepare_for_graph_execution()
@@ -460,9 +430,7 @@ def execute_function(
     )
 
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_magnus_environment_variables(
-        run_id=run_id, configuration_file=configuration_file, tag=tag
-    )
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     # Prepare the graph with a single node
     step_config = {
@@ -472,7 +440,7 @@ def execute_function(
         "next": "success",
         "catalog": catalog_config,
     }
-    node = graph.create_node(name=f"executing job", step_config=step_config)
+    node = graph.create_node(name="executing job", step_config=step_config)
 
     # Prepare for graph execution
     mode_executor.prepare_for_graph_execution()
@@ -505,9 +473,7 @@ def execute_nb_or_func(
     )
 
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_magnus_environment_variables(
-        run_id=run_id, configuration_file=configuration_file, tag=tag
-    )
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     command_type = "python"
     if command.endswith(".ipynb"):
@@ -520,7 +486,7 @@ def execute_nb_or_func(
         "next": "success",
         "catalog": catalog_config,
     }
-    node = graph.create_node(name=f"executing job", step_config=step_config)
+    node = graph.create_node(name="executing job", step_config=step_config)
 
     # Prepare for graph execution
     mode_executor.prepare_for_node_execution()
@@ -528,11 +494,7 @@ def execute_nb_or_func(
     mode_executor.execute_node(node=node)
 
     # Update the status of the run log
-    step_log = mode_executor.run_log_store.get_step_log(
-        node._get_step_log_name(), run_id
-    )
-    mode_executor.run_log_store.update_run_log_status(
-        run_id=run_id, status=step_log.status
-    )
+    step_log = mode_executor.run_log_store.get_step_log(node._get_step_log_name(), run_id)
+    mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
 
     mode_executor.send_return_code()

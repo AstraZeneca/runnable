@@ -240,9 +240,7 @@ class Graph:
                     return False
         return True
 
-    def is_cyclic_util(
-        self, node: "BaseNode", visited: Dict[str, bool], recstack: Dict[str, bool]
-    ) -> bool:
+    def is_cyclic_util(self, node: "BaseNode", visited: Dict[str, bool], recstack: Dict[str, bool]) -> bool:
         """
         Recursive utility that determines if a node and neighbors has a cycle. Is used in is_dag method.
 
@@ -346,17 +344,13 @@ def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
         internal_branch_name=internal_branch_name,
     )
 
-    logger.info(
-        f"Initialized a graph object that starts at {start_at} and runs for maximum of {max_time} secs"
-    )
+    logger.info(f"Initialized a graph object that starts at {start_at} and runs for maximum of {max_time} secs")
     messages = []
     for step in dag_config.get("steps", []):
         step_config = dag_config["steps"][step]
         logger.info(f"Adding node {step} with :{step_config}")
 
-        node = create_node(
-            step, step_config=step_config, internal_branch_name=internal_branch_name
-        )
+        node = create_node(step, step_config=step_config, internal_branch_name=internal_branch_name)
         messages.extend(node.validate())
         graph.add_node(node)
 
@@ -435,14 +429,10 @@ def search_node_by_internal_name(dag: Graph, internal_name: str):
         if i % 2:
             # Its odd, so we are in brach name
             current_branch = current_node._get_branch_by_name(".".join(dot_path[: i + 1]))  # type: ignore
-            logger.debug(
-                f"Finding step for {internal_name} in branch: {current_branch}"
-            )
+            logger.debug(f"Finding step for {internal_name} in branch: {current_branch}")
         else:
             # Its even, so we are in Step, we start here!
-            current_node = current_branch.get_node_by_internal_name(
-                ".".join(dot_path[: i + 1])
-            )
+            current_node = current_branch.get_node_by_internal_name(".".join(dot_path[: i + 1]))
             logger.debug(f"Finding {internal_name} in node: {current_node}")
 
     logger.debug(f"current branch : {current_branch}, current step {current_node}")
@@ -478,15 +468,11 @@ def search_branch_by_internal_name(dag: Graph, internal_name: str):
         if i % 2:
             # Its odd, so we are in brach name
             current_branch = current_node._get_branch_by_name(".".join(dot_path[: i + 1]))  # type: ignore
-            logger.debug(
-                f"Finding step for {internal_name} in branch: {current_branch}"
-            )
+            logger.debug(f"Finding step for {internal_name} in branch: {current_branch}")
 
         else:
             # Its even, so we are in Step, we start here!
-            current_node = current_branch.get_node_by_internal_name(
-                ".".join(dot_path[: i + 1])
-            )
+            current_node = current_branch.get_node_by_internal_name(".".join(dot_path[: i + 1]))
             logger.debug(f"Finding {internal_name} in node: {current_node}")
 
     logger.debug(f"current branch : {current_branch}, current step {current_node}")

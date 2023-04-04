@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-from collections import OrderedDict
 from enum import Enum
 from pathlib import Path
 from string import Template
@@ -67,12 +66,8 @@ class CodeIdentity(BaseModel, extra=Extra.allow):  # type: ignore
 
     code_identifier: Optional[str] = ""  # GIT sha code or docker image id
     code_identifier_type: Optional[str] = ""  # git or docker
-    code_identifier_dependable: Optional[
-        bool
-    ] = False  # If git, checks if the tree is clean.
-    code_identifier_url: Optional[
-        str
-    ] = ""  # The git remote url or docker repository url
+    code_identifier_dependable: Optional[bool] = False  # If git, checks if the tree is clean.
+    code_identifier_url: Optional[str] = ""  # The git remote url or docker repository url
     code_identifier_message: Optional[str] = ""  # Any optional message
 
 
@@ -202,9 +197,7 @@ class RunLog(BaseModel):
 
         return list(set(data_catalogs))
 
-    def search_branch_by_internal_name(
-        self, i_name: str
-    ) -> Tuple[Union[BranchLog, RunLog], Union[StepLog, None]]:
+    def search_branch_by_internal_name(self, i_name: str) -> Tuple[Union[BranchLog, RunLog], Union[StepLog, None]]:
         """
         Given a branch internal name, search for it in the run log.
 
@@ -251,9 +244,7 @@ class RunLog(BaseModel):
 
         raise exceptions.BranchLogNotFoundError(self.run_id, i_name)
 
-    def search_step_by_internal_name(
-        self, i_name: str
-    ) -> Tuple[StepLog, Union[BranchLog, None]]:
+    def search_step_by_internal_name(self, i_name: str) -> Tuple[StepLog, Union[BranchLog, None]]:
         """
         Given a steps internal name, search for the step name.
 
@@ -280,9 +271,7 @@ class RunLog(BaseModel):
                 # Its odd, so we are in brach name
                 current_branch = current_step.branches[".".join(dot_path[: i + 1])]  # type: ignore
                 current_steps = current_branch.steps
-                logger.debug(
-                    f"Finding step log for {i_name} in branch: {current_branch}"
-                )
+                logger.debug(f"Finding step log for {i_name} in branch: {current_branch}")
             else:
                 # Its even, so we are in step, we start here!
                 current_step = current_steps[".".join(dot_path[: i + 1])]
@@ -390,9 +379,7 @@ class BaseRunLogStore:
         run_log.status = status
         self.put_run_log(run_log)
 
-    def get_parameters(
-        self, run_id: str, **kwargs
-    ) -> dict:  # pylint: disable=unused-argument
+    def get_parameters(self, run_id: str, **kwargs) -> dict:  # pylint: disable=unused-argument
         """
         Get the parameters from the Run log defined by the run_id
 
@@ -411,9 +398,7 @@ class BaseRunLogStore:
         run_log = self.get_run_log_by_id(run_id=run_id)
         return run_log.parameters
 
-    def set_parameters(
-        self, run_id: str, parameters: dict, **kwargs
-    ):  # pylint: disable=unused-argument
+    def set_parameters(self, run_id: str, parameters: dict, **kwargs):  # pylint: disable=unused-argument
         """
         Update the parameters of the Run log with the new parameters
 
@@ -434,9 +419,7 @@ class BaseRunLogStore:
         run_log.parameters.update(parameters)
         self.put_run_log(run_log=run_log)
 
-    def get_run_config(
-        self, run_id: str, **kwargs
-    ) -> dict:  # pylint: disable=unused-argument
+    def get_run_config(self, run_id: str, **kwargs) -> dict:  # pylint: disable=unused-argument
         """
         Given a run_id, return the run_config used to perform the run.
 
@@ -450,9 +433,7 @@ class BaseRunLogStore:
         run_log = self.get_run_log_by_id(run_id=run_id)
         return run_log.run_config
 
-    def set_run_config(
-        self, run_id: str, run_config: dict, **kwargs
-    ):  # pylint: disable=unused-argument
+    def set_run_config(self, run_id: str, run_config: dict, **kwargs):  # pylint: disable=unused-argument
         """Set the run config used to run the run_id
 
         Args:
@@ -464,9 +445,7 @@ class BaseRunLogStore:
         run_log.run_config.update(run_config)
         self.put_run_log(run_log=run_log)
 
-    def create_step_log(
-        self, name: str, internal_name: str, **kwargs
-    ):  # pylint: disable=unused-argument
+    def create_step_log(self, name: str, internal_name: str, **kwargs):  # pylint: disable=unused-argument
         """
         Create a step log by the name and internal name
 
@@ -484,9 +463,7 @@ class BaseRunLogStore:
         logger.info(f"{self.service_name} Creating a Step Log: {internal_name}")
         return StepLog(name=name, internal_name=internal_name, status=defaults.CREATED)
 
-    def get_step_log(
-        self, internal_name: str, run_id: str, **kwargs
-    ) -> StepLog:  # pylint: disable=unused-argument
+    def get_step_log(self, internal_name: str, run_id: str, **kwargs) -> StepLog:  # pylint: disable=unused-argument
         """
         Get a step log from the datastore for run_id and the internal naming of the step log
 
@@ -508,16 +485,12 @@ class BaseRunLogStore:
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
             StepLogNotFoundError: If the step log for internal_name is not found in the datastore for run_id
         """
-        logger.info(
-            f"{self.service_name} Getting the step log: {internal_name} of {run_id}"
-        )
+        logger.info(f"{self.service_name} Getting the step log: {internal_name} of {run_id}")
         run_log = self.get_run_log_by_id(run_id=run_id)
         step_log, _ = run_log.search_step_by_internal_name(internal_name)
         return step_log
 
-    def add_step_log(
-        self, step_log: StepLog, run_id: str, **kwargs
-    ):  # pylint: disable=unused-argument
+    def add_step_log(self, step_log: StepLog, run_id: str, **kwargs):  # pylint: disable=unused-argument
         """
         Add the step log in the run log as identified by the run_id in the datastore
 
@@ -547,9 +520,7 @@ class BaseRunLogStore:
         branch.steps[step_log.internal_name] = step_log
         self.put_run_log(run_log=run_log)
 
-    def create_branch_log(
-        self, internal_branch_name: str, **kwargs
-    ) -> BranchLog:  # pylint: disable=unused-argument
+    def create_branch_log(self, internal_branch_name: str, **kwargs) -> BranchLog:  # pylint: disable=unused-argument
         """
         Creates a uncommitted branch log object by the internal name given
 
@@ -560,9 +531,7 @@ class BaseRunLogStore:
             BranchLog: Uncommitted and initialized with defaults BranchLog object
         """
         # Create a new BranchLog
-        logger.info(
-            f"{self.service_name} Creating a Branch Log : {internal_branch_name}"
-        )
+        logger.info(f"{self.service_name} Creating a Branch Log : {internal_branch_name}")
         return BranchLog(internal_name=internal_branch_name, status=defaults.CREATED)
 
     def get_branch_log(
@@ -620,9 +589,7 @@ class BaseRunLogStore:
         step.branches[internal_branch_name] = branch_log  # type: ignore
         self.put_run_log(run_log)
 
-    def create_attempt_log(
-        self, **kwargs
-    ) -> StepAttempt:  # pylint: disable=unused-argument
+    def create_attempt_log(self, **kwargs) -> StepAttempt:  # pylint: disable=unused-argument
         """
         Returns an uncommitted step attempt log.
 
@@ -632,9 +599,7 @@ class BaseRunLogStore:
         logger.info(f"{self.service_name} Creating an attempt log")
         return StepAttempt()
 
-    def create_code_identity(
-        self, **kwargs
-    ) -> CodeIdentity:  # pylint: disable=unused-argument
+    def create_code_identity(self, **kwargs) -> CodeIdentity:  # pylint: disable=unused-argument
         """
         Creates an uncommitted Code identity class
 
@@ -644,9 +609,7 @@ class BaseRunLogStore:
         logger.info(f"{self.service_name} Creating Code identity")
         return CodeIdentity()
 
-    def create_data_catalog(
-        self, name: str, **kwargs
-    ) -> DataCatalog:  # pylint: disable=unused-argument
+    def create_data_catalog(self, name: str, **kwargs) -> DataCatalog:  # pylint: disable=unused-argument
         """
         Create a uncommitted data catalog object
 
@@ -735,9 +698,7 @@ class BufferRunLogstore(BaseRunLogStore):
         # Puts the run log in the db
         # Raises Exception if not found
         """
-        logger.info(
-            f"{self.service_name} Putting the run log in the DB: {run_log.run_id}"
-        )
+        logger.info(f"{self.service_name} Putting the run log in the DB: {run_log.run_id}")
         self.run_log = run_log
 
 
@@ -790,9 +751,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
         json_file_path = write_to_path / f"{run_id}.json"
 
         with json_file_path.open("w") as fw:
-            json.dump(
-                run_log.dict(), fw, ensure_ascii=True, indent=4
-            )  # pylint: disable=no-member
+            json.dump(run_log.dict(), fw, ensure_ascii=True, indent=4)  # pylint: disable=no-member
 
     def get_from_folder(self, run_id: str) -> RunLog:
         """
@@ -872,9 +831,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
         """
         # Puts the run_log into the database
         """
-        logger.info(
-            f"{self.service_name} Putting the run log in the DB: {run_log.run_id}"
-        )
+        logger.info(f"{self.service_name} Putting the run log in the DB: {run_log.run_id}")
         self.write_to_folder(run_log)
 
 
@@ -926,9 +883,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             return "-".join([self.LogTypes.PARAMETER.value, name])
 
         if not name:
-            raise Exception(
-                f"Name should be provided for naming pattern for {log_type}"
-            )
+            raise Exception(f"Name should be provided for naming pattern for {log_type}")
 
         if log_type == self.LogTypes.STEP_LOG:
             return "-".join([self.LogTypes.STEP_LOG.value, name, "${creation_time}"])
@@ -938,9 +893,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
 
         raise Exception("Unexpected log type sent")
 
-    def get_matches(
-        self, run_id: str, name: str, multiple_allowed: bool = False
-    ) -> Optional[Union[List[Path], Path]]:
+    def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[List[Path], Path]]:
         """
         Get contents of files matching the pattern name*
 
@@ -1038,9 +991,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             name (str, optional): The name against the contents have to be stored. Defaults to ''.
         """
         naming_pattern = self.naming_pattern(log_type=log_type, name=name)
-        match = self.get_matches(
-            run_id=run_id, name=naming_pattern, multiple_allowed=False
-        )
+        match = self.get_matches(run_id=run_id, name=naming_pattern, multiple_allowed=False)
         # The boolean multiple allowed confuses mypy a lot!
         name_to_give: Path = None  # type: ignore
         if match:
@@ -1048,16 +999,12 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             contents = dict(existing_contents, **contents)
             name_to_give = match  # type: ignore
         else:
-            _name = Template(naming_pattern).safe_substitute(
-                {"creation_time": str(int(time.time_ns()))}
-            )
+            _name = Template(naming_pattern).safe_substitute({"creation_time": str(int(time.time_ns()))})
             name_to_give = self.log_folder_with_run_id(run_id=run_id) / _name
 
         self._store(run_id=run_id, contents=contents, name=name_to_give)
 
-    def retrieve(
-        self, run_id: str, log_type: LogTypes, name: str = "", multiple_allowed=False
-    ) -> Any:
+    def retrieve(self, run_id: str, log_type: LogTypes, name: str = "", multiple_allowed=False) -> Any:
         """
         Retrieve the model given a log_type and a name.
         Use multiple_allowed to control if you are expecting multiple of them.
@@ -1087,9 +1034,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             raise Exception(f"Name is required during retrieval for {log_type}")
 
         naming_pattern = self.naming_pattern(log_type=log_type, name=name)
-        matches = self.get_matches(
-            run_id=run_id, name=naming_pattern, multiple_allowed=multiple_allowed
-        )
+        matches = self.get_matches(run_id=run_id, name=naming_pattern, multiple_allowed=multiple_allowed)
         if matches:
             if not multiple_allowed:
                 contents = self._retrieve(name=matches)  # type: ignore
@@ -1105,9 +1050,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
 
         raise FileNotFoundError()
 
-    def orderly_retrieve(
-        self, run_id: str, log_type: LogTypes
-    ) -> dict[str, Union[StepLog, BranchLog]]:
+    def orderly_retrieve(self, run_id: str, log_type: LogTypes) -> dict[str, Union[StepLog, BranchLog]]:
         """Should only be used by prepare full run log.
 
         Retrieves the StepLog or BranchLog sorted according to creation time.
@@ -1141,9 +1084,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
 
         return logs
 
-    def _get_parent_branch(
-        self, name: str
-    ) -> Union[str, None]:  # pylint: disable=R0201
+    def _get_parent_branch(self, name: str) -> Union[str, None]:  # pylint: disable=R0201
         """
         Returns the name of the parent branch.
         If the step is part of main dag, return None.
@@ -1189,12 +1130,8 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         run_id = run_log.run_id
         run_log.parameters = self.get_parameters(run_id=run_id)
 
-        ordered_steps = self.orderly_retrieve(
-            run_id=run_id, log_type=self.LogTypes.STEP_LOG
-        )
-        ordered_branches = self.orderly_retrieve(
-            run_id=run_id, log_type=self.LogTypes.BRANCH_LOG
-        )
+        ordered_steps = self.orderly_retrieve(run_id=run_id, log_type=self.LogTypes.STEP_LOG)
+        ordered_branches = self.orderly_retrieve(run_id=run_id, log_type=self.LogTypes.BRANCH_LOG)
 
         current_branch: Any = None  # It could be str, None, RunLog
         for step_internal_name in ordered_steps:
@@ -1244,9 +1181,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             status=status,
         )
 
-        self.store(
-            run_id=run_id, contents=run_log.dict(), log_type=self.LogTypes.RUN_LOG
-        )
+        self.store(run_id=run_id, contents=run_log.dict(), log_type=self.LogTypes.RUN_LOG)
         return run_log
 
     def get_run_log_by_id(self, run_id: str, full: bool = False, **kwargs) -> RunLog:
@@ -1266,9 +1201,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         """
         try:
             logger.info(f"{self.service_name} Getting a Run Log for : {run_id}")
-            run_log = self.retrieve(
-                run_id=run_id, log_type=self.LogTypes.RUN_LOG, multiple_allowed=False
-            )
+            run_log = self.retrieve(run_id=run_id, log_type=self.LogTypes.RUN_LOG, multiple_allowed=False)
 
             if full:
                 self._prepare_full_run_log(run_log=run_log)
@@ -1291,13 +1224,9 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             NotImplementedError: This is a base class and therefore has no default implementation
         """
         run_id = run_log.run_id
-        self.store(
-            run_id=run_id, contents=run_log.dict(), log_type=self.LogTypes.RUN_LOG
-        )
+        self.store(run_id=run_id, contents=run_log.dict(), log_type=self.LogTypes.RUN_LOG)
 
-    def get_parameters(
-        self, run_id: str, **kwargs
-    ) -> dict:  # pylint: disable=unused-argument
+    def get_parameters(self, run_id: str, **kwargs) -> dict:  # pylint: disable=unused-argument
         """
         Get the parameters from the Run log defined by the run_id
 
@@ -1315,21 +1244,15 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         """
         parameters = {}
         try:
-            parameters_list = self.retrieve(
-                run_id=run_id, log_type=self.LogTypes.PARAMETER, multiple_allowed=True
-            )
-            parameters = {
-                key: value for param in parameters_list for key, value in param.items()
-            }
+            parameters_list = self.retrieve(run_id=run_id, log_type=self.LogTypes.PARAMETER, multiple_allowed=True)
+            parameters = {key: value for param in parameters_list for key, value in param.items()}
         except FileNotFoundError:
             # No parameters are set
             pass
 
         return parameters
 
-    def set_parameters(
-        self, run_id: str, parameters: dict, **kwargs
-    ):  # pylint: disable=unused-argument
+    def set_parameters(self, run_id: str, parameters: dict, **kwargs):  # pylint: disable=unused-argument
         """
         Update the parameters of the Run log with the new parameters
 
@@ -1354,9 +1277,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
                 name=key,
             )
 
-    def get_run_config(
-        self, run_id: str, **kwargs
-    ) -> dict:  # pylint: disable=unused-argument
+    def get_run_config(self, run_id: str, **kwargs) -> dict:  # pylint: disable=unused-argument
         """
         Given a run_id, return the run_config used to perform the run.
 
@@ -1370,9 +1291,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         run_log = self.get_run_log_by_id(run_id=run_id)
         return run_log.run_config
 
-    def set_run_config(
-        self, run_id: str, run_config: dict, **kwargs
-    ):  # pylint: disable=unused-argument
+    def set_run_config(self, run_id: str, run_config: dict, **kwargs):  # pylint: disable=unused-argument
         """Set the run config used to run the run_id
 
         Args:
@@ -1384,9 +1303,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         run_log.run_config.update(run_config)
         self.put_run_log(run_log=run_log)
 
-    def get_step_log(
-        self, internal_name: str, run_id: str, **kwargs
-    ) -> StepLog:  # pylint: disable=unused-argument
+    def get_step_log(self, internal_name: str, run_id: str, **kwargs) -> StepLog:  # pylint: disable=unused-argument
         """
         Get a step log from the datastore for run_id and the internal naming of the step log
 
@@ -1408,9 +1325,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
             StepLogNotFoundError: If the step log for internal_name is not found in the datastore for run_id
         """
-        logger.info(
-            f"{self.service_name} Getting the step log: {internal_name} of {run_id}"
-        )
+        logger.info(f"{self.service_name} Getting the step log: {internal_name} of {run_id}")
 
         step_log = self.retrieve(
             run_id=run_id,
@@ -1421,9 +1336,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
 
         return step_log
 
-    def add_step_log(
-        self, step_log: StepLog, run_id: str, **kwargs
-    ):  # pylint: disable=unused-argument
+    def add_step_log(self, step_log: StepLog, run_id: str, **kwargs):  # pylint: disable=unused-argument
         """
         Add the step log in the run log as identified by the run_id in the datastore
 
@@ -1442,9 +1355,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             BranchLogNotFoundError: If the branch of the step log for internal_name is not found in the datastore
                                     for run_id
         """
-        logger.info(
-            f"{self.service_name} Adding the step log to DB: {step_log.internal_name}"
-        )
+        logger.info(f"{self.service_name} Adding the step log to DB: {step_log.internal_name}")
 
         self.store(
             run_id=run_id,
@@ -1470,9 +1381,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         """
         if not internal_branch_name:
             return self.get_run_log_by_id(run_id=run_id)
-        branch = self.retrieve(
-            run_id=run_id, log_type=self.LogTypes.BRANCH_LOG, name=internal_branch_name
-        )
+        branch = self.retrieve(run_id=run_id, log_type=self.LogTypes.BRANCH_LOG, name=internal_branch_name)
         return branch
 
     def add_branch_log(
@@ -1497,9 +1406,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
 
         internal_branch_name = branch_log.internal_name
 
-        logger.info(
-            f"{self.service_name} Adding the branch log to DB: {branch_log.internal_name}"
-        )
+        logger.info(f"{self.service_name} Adding the branch log to DB: {branch_log.internal_name}")
         self.store(
             run_id=run_id,
             log_type=self.LogTypes.BRANCH_LOG,
