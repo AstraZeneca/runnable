@@ -1,7 +1,6 @@
 import logging
-from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from magnus import defaults
 from magnus.catalog import BaseCatalog
@@ -80,14 +79,10 @@ def get_service_type(service_provider: object) -> str:
     if isinstance(service_provider, BaseExperimentTracker):
         return "experiment_tracker"
 
-    raise Exception(
-        "Service Provider is not a inherited from any of the Base Service providers"
-    )
+    raise Exception("Service Provider is not a inherited from any of the Base Service providers")
 
 
-def get_integration_handler(
-    executor: "BaseExecutor", service: object
-) -> BaseIntegration:
+def get_integration_handler(executor: "BaseExecutor", service: object) -> BaseIntegration:
     """
     Return the integration handler between executor and the service.
 
@@ -220,9 +215,7 @@ class LocalContainerComputeBufferedRunLogStore(BaseIntegration):
     service_provider = "buffered"  # The actual implementation of the service
 
     def validate(self, **kwargs):
-        raise Exception(
-            "Only local compute executions is possible for buffered run log store"
-        )
+        raise Exception("Only local compute executions is possible for buffered run log store")
 
 
 class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
@@ -264,9 +257,7 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
     service_provider = "dotenv"  # The actual implementation of the service
 
     def validate(self, **kwargs):
-        logger.warning(
-            "Using dot env for non local deployments is not ideal, consider options"
-        )
+        logger.warning("Using dot env for non local deployments is not ideal, consider options")
 
     def configure_for_traversal(self, **kwargs):
         secrets_location = self.service.secrets_location

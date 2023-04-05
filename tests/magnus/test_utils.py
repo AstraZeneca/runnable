@@ -4,36 +4,38 @@ import sys
 
 import pytest
 
-from magnus import defaults  # pylint: disable=import-error
-from magnus import exceptions  # pylint: disable=import-error
-from magnus import utils  # pylint: disable=import-error
+
+from magnus import (
+    defaults,  # pylint: disable=import-error
+    utils,  # pylint: disable=import-error
+)
 
 
 def test_does_file_exist_returns_true_if_path_true(mocker, monkeypatch):
-    monkeypatch.setattr(utils.Path, 'is_file', lambda x: True)
-    assert utils.does_file_exist('test_path')
+    monkeypatch.setattr(utils.Path, "is_file", lambda x: True)
+    assert utils.does_file_exist("test_path")
 
 
 def test_does_file_exist_returns_false_if_path_false(mocker, monkeypatch):
-    monkeypatch.setattr(utils.Path, 'is_file', lambda x: False)
-    assert not utils.does_file_exist('test_path')
+    monkeypatch.setattr(utils.Path, "is_file", lambda x: False)
+    assert not utils.does_file_exist("test_path")
 
 
 def test_does_dir_exist_returns_true_if_path_true(mocker, monkeypatch):
-    monkeypatch.setattr(utils.Path, 'is_dir', lambda x: True)
-    assert utils.does_dir_exist('test_path')
+    monkeypatch.setattr(utils.Path, "is_dir", lambda x: True)
+    assert utils.does_dir_exist("test_path")
 
 
 def test_does_dir_exist_returns_false_if_path_false(mocker, monkeypatch):
-    monkeypatch.setattr(utils.Path, 'is_dir', lambda x: False)
-    assert not utils.does_dir_exist('test_path')
+    monkeypatch.setattr(utils.Path, "is_dir", lambda x: False)
+    assert not utils.does_dir_exist("test_path")
 
 
 def test_safe_make_dir_calls_with_correct_arguments(mocker, monkeypatch):
     mock_mkdir = mocker.MagicMock()
-    monkeypatch.setattr(utils.Path, 'mkdir', mock_mkdir)
+    monkeypatch.setattr(utils.Path, "mkdir", mock_mkdir)
 
-    utils.safe_make_dir('test')
+    utils.safe_make_dir("test")
     mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
 
@@ -43,105 +45,105 @@ def test_generate_run_id_makes_one_if_not_provided():
 
 
 def test_generate_run_id_returns_the_same_run_id_if_provided():
-    run_id = utils.generate_run_id('test')
+    run_id = utils.generate_run_id("test")
 
-    assert run_id == 'test'
+    assert run_id == "test"
 
 
 def test_apply_variables_raises_exception_if_variables_is_not_dict():
     with pytest.raises(Exception):
-        utils.apply_variables('test', '')
+        utils.apply_variables("test", "")
 
 
 def test_apply_variables_applies_variables():
-    apply_to = '${var}_${var1}'
+    apply_to = "${var}_${var1}"
 
-    transformed = utils.apply_variables(apply_to, variables={'var': 'hello', 'var1': 'me'})
-    assert transformed == 'hello_me'
+    transformed = utils.apply_variables(apply_to, variables={"var": "hello", "var1": "me"})
+    assert transformed == "hello_me"
 
 
 def test_apply_variables_applies_known_variables():
-    apply_to = '${var}_${var1}'
+    apply_to = "${var}_${var1}"
 
-    transformed = utils.apply_variables(apply_to, variables={'var': 'hello'})
-    assert transformed == 'hello_${var1}'
+    transformed = utils.apply_variables(apply_to, variables={"var": "hello"})
+    assert transformed == "hello_${var1}"
 
 
 def test_get_module_and_func_names_raises_exception_for_incorrect_command():
-    command = 'hello'
+    command = "hello"
 
     with pytest.raises(Exception):
         utils.get_module_and_func_names(command)
 
 
 def test_get_module_and_func_names_returns_module_and_func_names():
-    command = 'module.func'
+    command = "module.func"
 
     m, f = utils.get_module_and_func_names(command)
 
-    assert m == 'module'
-    assert f == 'func'
+    assert m == "module"
+    assert f == "func"
 
 
 def test_get_module_and_func_names_returns_module_and_func_names_inner():
-    command = 'module1.module2.func'
+    command = "module1.module2.func"
 
     m, f = utils.get_module_and_func_names(command)
 
-    assert m == 'module1.module2'
-    assert f == 'func'
+    assert m == "module1.module2"
+    assert f == "func"
 
 
 def test_get_dag_hash_sorts_keys(mocker, monkeypatch):
-    dag = {'b': 1, 'a': 2}
+    dag = {"b": 1, "a": 2}
 
     mock_sha1 = mocker.MagicMock()
     mock_hashlib = mocker.MagicMock()
     mock_hashlib.sha1 = mock_sha1
-    monkeypatch.setattr(utils, 'hashlib', mock_hashlib)
+    monkeypatch.setattr(utils, "hashlib", mock_hashlib)
 
     utils.get_dag_hash(dag)
 
-    mock_sha1.assert_called_once_with('{"a": 2, "b": 1}'.encode('utf-8'))
+    mock_sha1.assert_called_once_with('{"a": 2, "b": 1}'.encode("utf-8"))
 
 
 def test_load_yaml_raises_exception_if_yaml_load_does(mocker, monkeypatch):
-    mocker.patch('builtins.open', mocker.mock_open(read_data='data'))
+    mocker.patch("builtins.open", mocker.mock_open(read_data="data"))
 
     mock_yaml_load = mocker.MagicMock(side_effect=Exception())
     mock_yaml = mocker.MagicMock()
 
     mock_yaml.load = mock_yaml_load
 
-    monkeypatch.setattr(utils, 'YAML', mocker.MagicMock(return_value=mock_yaml))
+    monkeypatch.setattr(utils, "YAML", mocker.MagicMock(return_value=mock_yaml))
     with pytest.raises(Exception):
-        utils.load_yaml('test')
+        utils.load_yaml("test")
 
 
 def test_load_yaml_returns_from_yaml_load(mocker, monkeypatch):
-    mocker.patch('builtins.open', mocker.mock_open(read_data='data'))
+    mocker.patch("builtins.open", mocker.mock_open(read_data="data"))
 
-    mock_yaml_load = mocker.MagicMock(return_value='test')
+    mock_yaml_load = mocker.MagicMock(return_value="test")
     mock_yaml = mocker.MagicMock()
 
     mock_yaml.load = mock_yaml_load
 
-    monkeypatch.setattr(utils, 'YAML', mocker.MagicMock(return_value=mock_yaml))
-    assert 'test' == utils.load_yaml('does not matter')
+    monkeypatch.setattr(utils, "YAML", mocker.MagicMock(return_value=mock_yaml))
+    assert "test" == utils.load_yaml("does not matter")
 
 
 def test_is_a_git_repo_suppresses_exceptions(mocker, monkeypatch):
     mock_subprocess = mocker.MagicMock(side_effect=Exception())
 
-    monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
+    monkeypatch.setattr(utils.subprocess, "check_output", mock_subprocess)
 
-    assert utils.is_a_git_repo() == False
+    assert utils.is_a_git_repo() is False
 
 
 def test_is_a_git_repo_returns_true_if_command_worked(mocker, monkeypatch):
     mock_subprocess = mocker.MagicMock()
 
-    monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
+    monkeypatch.setattr(utils.subprocess, "check_output", mock_subprocess)
 
     assert utils.is_a_git_repo()
 
@@ -151,8 +153,8 @@ def test_get_current_code_commit_does_suppresses_exceptions(mocker, monkeypatch)
 
     mock_subprocess = mocker.MagicMock(side_effect=Exception())
 
-    monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
-    monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
+    monkeypatch.setattr(utils.subprocess, "check_output", mock_subprocess)
+    monkeypatch.setattr(utils, "is_a_git_repo", mock_is_a_git_repo)
 
     with pytest.raises(Exception):
         utils.get_current_code_commit()
@@ -161,7 +163,7 @@ def test_get_current_code_commit_does_suppresses_exceptions(mocker, monkeypatch)
 def test_get_current_code_returns_none_if_not_a_git_repo(mocker, monkeypatch):
     mock_is_a_git_repo = mocker.MagicMock(return_value=False)
 
-    monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
+    monkeypatch.setattr(utils, "is_a_git_repo", mock_is_a_git_repo)
 
     assert utils.get_current_code_commit() is None
 
@@ -169,13 +171,13 @@ def test_get_current_code_returns_none_if_not_a_git_repo(mocker, monkeypatch):
 def test_get_current_code_commit_returns_calls_value(mocker, monkeypatch):
     mock_is_a_git_repo = mocker.MagicMock(return_value=True)
 
-    mock_subprocess = mocker.MagicMock(return_value=b'test')
+    mock_subprocess = mocker.MagicMock(return_value=b"test")
     # mock_subprocess.return_value.return_value = 'test'
 
-    monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
-    monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
+    monkeypatch.setattr(utils.subprocess, "check_output", mock_subprocess)
+    monkeypatch.setattr(utils, "is_a_git_repo", mock_is_a_git_repo)
 
-    assert utils.get_current_code_commit() == 'test'
+    assert utils.get_current_code_commit() == "test"
 
 
 def test_is_git_clean_suppresses_exceptions(mocker, monkeypatch):
@@ -183,8 +185,8 @@ def test_is_git_clean_suppresses_exceptions(mocker, monkeypatch):
 
     mock_subprocess = mocker.MagicMock(side_effect=Exception())
 
-    monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
-    monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
+    monkeypatch.setattr(utils.subprocess, "check_output", mock_subprocess)
+    monkeypatch.setattr(utils, "is_a_git_repo", mock_is_a_git_repo)
 
     assert utils.is_git_clean() == (False, None)
 
@@ -192,7 +194,7 @@ def test_is_git_clean_suppresses_exceptions(mocker, monkeypatch):
 def test_is_git_clean_returns_none_if_not_a_git_repo(mocker, monkeypatch):
     mock_is_a_git_repo = mocker.MagicMock(return_value=False)
 
-    monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
+    monkeypatch.setattr(utils, "is_a_git_repo", mock_is_a_git_repo)
 
     assert utils.is_git_clean() == (False, None)
 
@@ -200,23 +202,23 @@ def test_is_git_clean_returns_none_if_not_a_git_repo(mocker, monkeypatch):
 def test_is_git_clean_returns_false_when_call_is_not_empty(mocker, monkeypatch):
     mock_is_a_git_repo = mocker.MagicMock(return_value=True)
 
-    mock_subprocess = mocker.MagicMock(return_value=b'test')
+    mock_subprocess = mocker.MagicMock(return_value=b"test")
     # mock_subprocess.return_value.return_value = 'test'
 
-    monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
-    monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
+    monkeypatch.setattr(utils.subprocess, "check_output", mock_subprocess)
+    monkeypatch.setattr(utils, "is_a_git_repo", mock_is_a_git_repo)
 
-    assert utils.is_git_clean() == (False, 'test')
+    assert utils.is_git_clean() == (False, "test")
 
 
 def test_is_git_clean_returns_true_when_call_is_empty(mocker, monkeypatch):
     mock_is_a_git_repo = mocker.MagicMock(return_value=True)
 
-    mock_subprocess = mocker.MagicMock(return_value=b'')
+    mock_subprocess = mocker.MagicMock(return_value=b"")
     # mock_subprocess.return_value.return_value = 'test'
 
-    monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
-    monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
+    monkeypatch.setattr(utils.subprocess, "check_output", mock_subprocess)
+    monkeypatch.setattr(utils, "is_a_git_repo", mock_is_a_git_repo)
 
     assert utils.is_git_clean() == (True, None)
 
@@ -226,8 +228,8 @@ def test_get_git_remote_does_not_suppresses_exceptions(mocker, monkeypatch):
 
     mock_subprocess = mocker.MagicMock(side_effect=Exception())
 
-    monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
-    monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
+    monkeypatch.setattr(utils.subprocess, "check_output", mock_subprocess)
+    monkeypatch.setattr(utils, "is_a_git_repo", mock_is_a_git_repo)
     with pytest.raises(Exception):
         utils.get_git_remote()
 
@@ -235,7 +237,7 @@ def test_get_git_remote_does_not_suppresses_exceptions(mocker, monkeypatch):
 def test_get_git_remote_returns_none_if_not_a_git_repo(mocker, monkeypatch):
     mock_is_a_git_repo = mocker.MagicMock(return_value=False)
 
-    monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
+    monkeypatch.setattr(utils, "is_a_git_repo", mock_is_a_git_repo)
 
     assert utils.get_git_remote() is None
 
@@ -243,18 +245,18 @@ def test_get_git_remote_returns_none_if_not_a_git_repo(mocker, monkeypatch):
 def test_get_git_remote_returns_calls_value(mocker, monkeypatch):
     mock_is_a_git_repo = mocker.MagicMock(return_value=True)
 
-    mock_subprocess = mocker.MagicMock(return_value=b'test')
+    mock_subprocess = mocker.MagicMock(return_value=b"test")
 
-    monkeypatch.setattr(utils.subprocess, 'check_output', mock_subprocess)
-    monkeypatch.setattr(utils, 'is_a_git_repo', mock_is_a_git_repo)
+    monkeypatch.setattr(utils.subprocess, "check_output", mock_subprocess)
+    monkeypatch.setattr(utils, "is_a_git_repo", mock_is_a_git_repo)
 
-    assert utils.get_git_remote() == 'test'
+    assert utils.get_git_remote() == "test"
 
 
 def test_get_git_code_identity_returns_default_in_case_of_exception(mocker, monkeypatch):
     mock_get_current_code_commit = mocker.MagicMock(side_effect=Exception())
 
-    monkeypatch.setattr(utils, 'get_current_code_commit', mock_get_current_code_commit)
+    monkeypatch.setattr(utils, "get_current_code_commit", mock_get_current_code_commit)
 
     class MockCodeIdentity:
         pass
@@ -266,13 +268,13 @@ def test_get_git_code_identity_returns_default_in_case_of_exception(mocker, monk
 
 
 def test_get_git_code_identity_returns_entities_from_other_functions(monkeypatch, mocker):
-    mock_get_current_code_commit = mocker.MagicMock(return_value='code commit')
-    mock_is_git_clean = mocker.MagicMock(return_value=(False, 'first file, second file'))
-    mock_get_git_remote = mocker.MagicMock(return_value='git remote')
+    mock_get_current_code_commit = mocker.MagicMock(return_value="code commit")
+    mock_is_git_clean = mocker.MagicMock(return_value=(False, "first file, second file"))
+    mock_get_git_remote = mocker.MagicMock(return_value="git remote")
 
-    monkeypatch.setattr(utils, 'get_current_code_commit', mock_get_current_code_commit)
-    monkeypatch.setattr(utils, 'is_git_clean', mock_is_git_clean)
-    monkeypatch.setattr(utils, 'get_git_remote', mock_get_git_remote)
+    monkeypatch.setattr(utils, "get_current_code_commit", mock_get_current_code_commit)
+    monkeypatch.setattr(utils, "is_git_clean", mock_is_git_clean)
+    monkeypatch.setattr(utils, "get_git_remote", mock_get_git_remote)
 
     mock_code_id = mocker.MagicMock()
 
@@ -281,83 +283,83 @@ def test_get_git_code_identity_returns_entities_from_other_functions(monkeypatch
 
     utils.get_git_code_identity(run_log_store)
 
-    assert mock_code_id.code_identifier == 'code commit'
+    assert mock_code_id.code_identifier == "code commit"
     assert mock_code_id.code_identifier_dependable is False
-    assert mock_code_id.code_identifier_url == 'git remote'
+    assert mock_code_id.code_identifier_url == "git remote"
 
 
 def test_remove_prefix_returns_text_as_found_if_prefix_not_found():
-    text = 'hi'
+    text = "hi"
 
-    assert utils.remove_prefix(text, 'b') == text
+    assert utils.remove_prefix(text, "b") == text
 
 
 def test_remove_prefix_returns_text_removes_prefix_if_found():
-    text = 'hi'
+    text = "hi"
 
-    assert utils.remove_prefix(text, 'h') == 'i'
+    assert utils.remove_prefix(text, "h") == "i"
 
 
 def test_remove_prefix_returns_text_removes_prefix_if_found_full():
-    text = 'hi'
+    text = "hi"
 
-    assert utils.remove_prefix(text, 'hi') == ''
+    assert utils.remove_prefix(text, "hi") == ""
 
 
 def test_get_user_set_parameters_does_nothing_if_prefix_does_not_match(monkeypatch):
-    monkeypatch.setenv('random', 'value')
+    monkeypatch.setenv("random", "value")
 
     assert utils.get_user_set_parameters() == {}
 
 
 def test_get_user_set_parameters_returns_the_parameter_if_prefix_match_int(monkeypatch):
-    monkeypatch.setenv(defaults.PARAMETER_PREFIX + 'key', '1')
+    monkeypatch.setenv(defaults.PARAMETER_PREFIX + "key", "1")
 
-    assert utils.get_user_set_parameters() == {'key': 1}
+    assert utils.get_user_set_parameters() == {"key": 1}
 
 
 def test_get_user_set_parameters_returns_the_parameter_if_prefix_match_string(monkeypatch):
-    monkeypatch.setenv(defaults.PARAMETER_PREFIX + 'key', '"value"')
+    monkeypatch.setenv(defaults.PARAMETER_PREFIX + "key", '"value"')
 
-    assert utils.get_user_set_parameters() == {'key': 'value'}
+    assert utils.get_user_set_parameters() == {"key": "value"}
 
 
 def test_get_user_set_parameters_removes_the_parameter_if_prefix_match_remove(monkeypatch):
-    monkeypatch.setenv(defaults.PARAMETER_PREFIX + 'key', '1')
+    monkeypatch.setenv(defaults.PARAMETER_PREFIX + "key", "1")
 
-    assert defaults.PARAMETER_PREFIX + 'key' in os.environ
+    assert defaults.PARAMETER_PREFIX + "key" in os.environ
 
     utils.get_user_set_parameters(remove=True)
 
-    assert defaults.PARAMETER_PREFIX + 'key' not in os.environ
+    assert defaults.PARAMETER_PREFIX + "key" not in os.environ
 
 
 def test_get_tracked_data_does_nothing_if_prefix_does_not_match(monkeypatch):
-    monkeypatch.setenv('random', 'value')
+    monkeypatch.setenv("random", "value")
 
     assert utils.get_tracked_data() == {}
 
 
 def test_get_tracked_data_returns_the_data_if_prefix_match_int(monkeypatch):
-    monkeypatch.setenv(defaults.TRACK_PREFIX + 'key', '1')
+    monkeypatch.setenv(defaults.TRACK_PREFIX + "key", "1")
 
-    assert utils.get_tracked_data() == {'key': 1}
+    assert utils.get_tracked_data() == {"key": 1}
 
 
 def test_get_tracked_data_returns_the_data_if_prefix_match_string(monkeypatch):
-    monkeypatch.setenv(defaults.TRACK_PREFIX + 'key', '"value"')
+    monkeypatch.setenv(defaults.TRACK_PREFIX + "key", '"value"')
 
-    assert utils.get_tracked_data() == {'key': 'value'}
+    assert utils.get_tracked_data() == {"key": "value"}
 
 
 def test_get_tracked_data_removes_the_data_if_prefix_match_remove(monkeypatch):
-    monkeypatch.setenv(defaults.TRACK_PREFIX + 'key', '1')
+    monkeypatch.setenv(defaults.TRACK_PREFIX + "key", "1")
 
-    assert defaults.TRACK_PREFIX + 'key' in os.environ
+    assert defaults.TRACK_PREFIX + "key" in os.environ
 
     utils.get_tracked_data()
 
-    assert defaults.TRACK_PREFIX + 'key' not in os.environ
+    assert defaults.TRACK_PREFIX + "key" not in os.environ
 
 
 def test_get_local_docker_image_id_gets_image_from_docker_client(mocker, monkeypatch):
@@ -366,13 +368,14 @@ def test_get_local_docker_image_id_gets_image_from_docker_client(mocker, monkeyp
 
     mock_docker.from_env.return_value = mock_client
 
-    monkeypatch.setattr(utils, 'docker', mock_docker)
+    with pytest.MonkeyPatch().context() as ctx:
+        sys.modules["docker"] = mock_docker
 
-    class MockImage:
-        attrs = {'Id': 'I am a docker image ID'}
+        class MockImage:
+            attrs = {"Id": "I am a docker image ID"}
 
-    mock_client.images.get = mocker.MagicMock(return_value=MockImage())
-    assert utils.get_local_docker_image_id('test') == 'I am a docker image ID'
+        mock_client.images.get = mocker.MagicMock(return_value=MockImage())
+        assert utils.get_local_docker_image_id("test") == "I am a docker image ID"
 
 
 def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch):
@@ -381,18 +384,19 @@ def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch
 
     mock_docker.from_env.return_value = mock_client
 
-    monkeypatch.setattr(utils, 'docker', mock_docker)
+    with pytest.MonkeyPatch().context() as ctx:
+        sys.modules["docker"] = mock_docker
 
-    mock_client.images.get = mocker.MagicMock(side_effect=Exception('No Image exists'))
+        mock_client.images.get = mocker.MagicMock(side_effect=Exception("No Image exists"))
 
-    assert utils.get_local_docker_image_id('test') is ''
+        assert utils.get_local_docker_image_id("test") == ""
 
 
 def test_filter_arguments_for_func_works_only_named_arguments_in_func_spec():
     def my_func(a, b):
         pass
 
-    parameters = {'a': 1, 'b': 1}
+    parameters = {"a": 1, "b": 1}
 
     assert parameters == utils.filter_arguments_for_func(my_func, parameters, map_variable=None)
 
@@ -410,109 +414,120 @@ def test_filter_arguments_for_func_identifies_args_from_map_variables():
     def my_func(y_i, a=2, b=1):
         pass
 
-    parameters = {'a': 1, 'b': 1}
+    parameters = {"a": 1, "b": 1}
 
-    assert {'a': 1, 'b': 1, 'y_i': 'y'} == utils.filter_arguments_for_func(
-        my_func, parameters, map_variable={'y_i': 'y'})
+    assert {"a": 1, "b": 1, "y_i": "y"} == utils.filter_arguments_for_func(
+        my_func, parameters, map_variable={"y_i": "y"}
+    )
 
 
 def test_get_node_execution_command_returns_magnus_execute():
     class MockExecutor:
-        run_id = 'test_run_id'
-        pipeline_file = 'test_pipeline_file'
+        run_id = "test_run_id"
+        pipeline_file = "test_pipeline_file"
         variables_file = None
         configuration_file = None
         parameters_file = None
         tag = None
 
     class MockNode:
-        internal_name = 'test_node_id'
+        internal_name = "test_node_id"
 
         def _command_friendly_name(self):
-            return 'test_node_id'
+            return "test_node_id"
 
-    assert utils.get_node_execution_command(MockExecutor(), MockNode()) == \
-        'magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file'
+    assert (
+        utils.get_node_execution_command(MockExecutor(), MockNode())
+        == "magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file"
+    )
 
 
 def test_get_node_execution_command_overwrites_run_id_if_asked():
     class MockExecutor:
-        run_id = 'test_run_id'
-        pipeline_file = 'test_pipeline_file'
+        run_id = "test_run_id"
+        pipeline_file = "test_pipeline_file"
         variables_file = None
         configuration_file = None
         parameters_file = None
         tag = None
 
     class MockNode:
-        internal_name = 'test_node_id'
+        internal_name = "test_node_id"
 
         def _command_friendly_name(self):
-            return 'test_node_id'
+            return "test_node_id"
 
-    assert utils.get_node_execution_command(MockExecutor(), MockNode(), over_write_run_id='override') == \
-        'magnus execute_single_node override test_node_id --log-level WARNING --file test_pipeline_file'
+    assert (
+        utils.get_node_execution_command(MockExecutor(), MockNode(), over_write_run_id="override")
+        == "magnus execute_single_node override test_node_id --log-level WARNING --file test_pipeline_file"
+    )
 
 
 def test_get_node_execution_command_returns_magnus_execute_appends_variables_file():
     class MockExecutor:
-        run_id = 'test_run_id'
-        pipeline_file = 'test_pipeline_file'
+        run_id = "test_run_id"
+        pipeline_file = "test_pipeline_file"
         configuration_file = None
         parameters_file = None
         tag = None
 
     class MockNode:
-        internal_name = 'test_node_id'
+        internal_name = "test_node_id"
 
         def _command_friendly_name(self):
-            return 'test_node_id'
+            return "test_node_id"
 
-    assert utils.get_node_execution_command(MockExecutor(), MockNode()) == \
-        'magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file'
+    assert (
+        utils.get_node_execution_command(MockExecutor(), MockNode())
+        == "magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file"
+    )
 
 
 def test_get_node_execution_command_returns_magnus_execute_appends_parameters_file():
     class MockExecutor:
-        run_id = 'test_run_id'
-        pipeline_file = 'test_pipeline_file'
+        run_id = "test_run_id"
+        pipeline_file = "test_pipeline_file"
         variables_file = None
         configuration_file = None
-        parameters_file = 'test_parameters_file'
+        parameters_file = "test_parameters_file"
         tag = None
 
     class MockNode:
-        internal_name = 'test_node_id'
+        internal_name = "test_node_id"
 
         def _command_friendly_name(self):
-            return 'test_node_id'
+            return "test_node_id"
 
-    assert utils.get_node_execution_command(MockExecutor(), MockNode()) == \
-        'magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file' \
-        ' --parameters-file test_parameters_file'
+    assert (
+        utils.get_node_execution_command(MockExecutor(), MockNode())
+        == "magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file"
+        " --parameters-file test_parameters_file"
+    )
 
 
 def test_get_node_execution_command_returns_magnus_execute_appends_map_variable():
     class MockExecutor:
-        run_id = 'test_run_id'
-        pipeline_file = 'test_pipeline_file'
+        run_id = "test_run_id"
+        pipeline_file = "test_pipeline_file"
         variables_file = None
         configuration_file = None
         parameters_file = None
         tag = None
 
     class MockNode:
-        internal_name = 'test_node_id'
+        internal_name = "test_node_id"
 
         def _command_friendly_name(self):
-            return 'test_node_id'
+            return "test_node_id"
 
-    map_variable = {'test_map': 'map_value'}
+    map_variable = {"test_map": "map_value"}
     json_dump = json.dumps(map_variable)
-    assert utils.get_node_execution_command(MockExecutor(), MockNode(), map_variable=map_variable) == \
-        f"magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file --map-variable '{json_dump}'"
+    assert (
+        utils.get_node_execution_command(MockExecutor(), MockNode(), map_variable=map_variable)
+        == f"magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file --map-variable '{json_dump}'"  # noqa    )
+    )
 
 
 def test_get_service_base_class_throws_exception_for_unknown_service():
     with pytest.raises(Exception):
-        utils.get_service_base_class('Does not exist')
+        utils.get_service_base_class("Does not exist")

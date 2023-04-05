@@ -97,6 +97,4 @@ def build_docker(
         return
 
     docker_client = docker.from_env()
-    docker_client.images.build(
-        path=f".", dockerfile=docker_file, tag=f"{image_name}:{tag}", quiet=False
-    )
+    docker_client.images.build(path=".", dockerfile=docker_file, tag=f"{image_name}:{tag}", quiet=False)

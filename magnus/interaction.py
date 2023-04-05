@@ -28,7 +28,7 @@ def track_this(step: int = 0, **kwargs):
 
     if not context.executor:
         msg = (
-            f"There are no active executor and services. This should not have happened and is a bug."
+            "There are no active executor and services. This should not have happened and is a bug."
             " Please raise a bug report."
         )
         raise Exception(msg)
@@ -108,7 +108,7 @@ def get_secret(secret_name: str = None) -> str:
 
     if not context.executor:
         msg = (
-            f"There are no active executor and services. This should not have happened and is a bug."
+            "There are no active executor and services. This should not have happened and is a bug."
             " Please raise a bug report."
         )
         raise Exception(msg)
@@ -135,7 +135,7 @@ def get_from_catalog(name: str, destination_folder: str = None):
 
     if not context.executor:
         msg = (
-            f"There are no active executor and services. This should not have happened and is a bug."
+            "There are no active executor and services. This should not have happened and is a bug."
             " Please raise a bug report."
         )
         raise Exception(msg)
@@ -155,9 +155,7 @@ def get_from_catalog(name: str, destination_folder: str = None):
     if context.executor.context_step_log:  # type: ignore
         context.executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
-        logger.warning(
-            "Step log context was not found during interaction! The step log will miss the record"
-        )
+        logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
 
 def put_in_catalog(filepath: str):
@@ -173,7 +171,7 @@ def put_in_catalog(filepath: str):
 
     if not context.executor:
         msg = (
-            f"There are no active executor and services. This should not have happened and is a bug."
+            "There are no active executor and services. This should not have happened and is a bug."
             " Please raise a bug report."
         )
         raise Exception(msg)
@@ -191,9 +189,7 @@ def put_in_catalog(filepath: str):
     if context.executor.context_step_log:  # type: ignore
         context.executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
-        logger.warning(
-            "Step log context was not found during interaction! The step log will miss the record"
-        )
+        logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
 
 def put_object(data: Any, name: str):
@@ -273,7 +269,7 @@ def get_experiment_tracker_context():
 
     if not context.executor:
         msg = (
-            f"There are no active executor and services. This should not have happened and is a bug."
+            "There are no active executor and services. This should not have happened and is a bug."
             " Please raise a bug report."
         )
         raise Exception(msg)
@@ -282,9 +278,7 @@ def get_experiment_tracker_context():
     return experiment_tracker.client_context
 
 
-def start_interactive_session(
-    run_id: str = "", config_file: str = "", tag: str = "", parameters_file: str = ""
-):
+def start_interactive_session(run_id: str = "", config_file: str = "", tag: str = "", parameters_file: str = ""):
     """
     During interactive python coding, either via notebooks or ipython, you can start a magnus session by calling
     this function. The executor would always be local executor as its interactive.
@@ -297,13 +291,13 @@ def start_interactive_session(
         tag (str, optional): The tag to attach to the run. Defaults to "".
         parameters_file (str, optional): The parameters file to use. Defaults to "".
     """
-    from magnus import context  # pylint: disable=import-outside-toplevel
-    from magnus import graph
+    from magnus import (
+        context,  # pylint: disable=import-outside-toplevel
+        graph,
+    )
 
     if context.executor:
-        logger.warn(
-            "This is not an interactive session or a session has already been activated."
-        )
+        logger.warn("This is not an interactive session or a session has already been activated.")
         return
 
     run_id = utils.generate_run_id(run_id=run_id)
@@ -315,9 +309,7 @@ def start_interactive_session(
         force_local_executor=True,
     )
 
-    utils.set_magnus_environment_variables(
-        run_id=run_id, configuration_file=config_file, tag=tag
-    )
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=config_file, tag=tag)
 
     executor.execution_plan = defaults.EXECUTION_PLAN.INTERACTIVE.value
     executor.prepare_for_graph_execution()
@@ -329,9 +321,7 @@ def start_interactive_session(
     }
 
     node = graph.create_node(name="interactive", step_config=step_config)
-    step_log = executor.run_log_store.create_step_log(
-        "interactive", node._get_step_log_name()
-    )
+    step_log = executor.run_log_store.create_step_log("interactive", node._get_step_log_name())
     executor.add_code_identities(node=node, step_log=step_log)
 
     step_log.step_type = node.node_type

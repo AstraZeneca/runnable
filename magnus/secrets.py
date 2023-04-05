@@ -1,6 +1,5 @@
 import logging
 import os
-from functools import lru_cache
 from typing import Union
 
 from pydantic import BaseModel
@@ -111,9 +110,7 @@ class EnvSecretsManager(BaseSecrets):
             try:
                 return os.environ[name]
             except KeyError:
-                raise exceptions.SecretNotFoundError(
-                    secret_name=name, secret_setting="environment"
-                )
+                raise exceptions.SecretNotFoundError(secret_name=name, secret_setting="environment")
 
         return {}
 
@@ -165,14 +162,10 @@ class DotEnvSecrets(BaseSecrets):
 
         with open(secrets_location, "r") as fr:
             for secret_line in fr:
-                secret_line = secret_line.split("#")[
-                    0
-                ]  #  To remove any comments the user might have put
+                secret_line = secret_line.split("#")[0]  #  To remove any comments the user might have put
                 data = secret_line.split("=")
                 if len(data) != 2:
-                    raise Exception(
-                        "A secret should be of format, secret_name=secret_value[# any comment]"
-                    )
+                    raise Exception("A secret should be of format, secret_name=secret_value[# any comment]")
                 key, value = data
                 self.secrets[key] = value.strip("\n")
 
@@ -199,6 +192,4 @@ class DotEnvSecrets(BaseSecrets):
             return self.secrets[name]
 
         secrets_location = self.secrets_location
-        raise exceptions.SecretNotFoundError(
-            secret_name=name, secret_setting=secrets_location
-        )
+        raise exceptions.SecretNotFoundError(secret_name=name, secret_setting=secrets_location)

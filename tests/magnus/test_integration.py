@@ -1,6 +1,6 @@
-from magnus import \
-    integration  # pylint: disable=import-error; pylint: disable=import-error
-from magnus import catalog, datastore, secrets
+from magnus import (
+    integration,  # pylint: disable=import-error; pylint: disable=import-error
+)
 
 
 def test_base_integration_validate_does_nothing():
@@ -24,7 +24,7 @@ def test_validate_calls_validate_of_integration_handler(monkeypatch, mocker):
 
     mock_integration_handler.return_value.validate = mock_validate
 
-    monkeypatch.setattr(integration, 'get_integration_handler', lambda x, y: mock_integration_handler())
+    monkeypatch.setattr(integration, "get_integration_handler", lambda x, y: mock_integration_handler())
 
     integration.validate(None, None)
 
@@ -37,7 +37,7 @@ def test_configure_for_traversal_calls_validate_of_integration_handler(monkeypat
 
     mock_integration_handler.return_value.configure_for_traversal = mock_configure_for_traversal
 
-    monkeypatch.setattr(integration, 'get_integration_handler', lambda x, y: mock_integration_handler())
+    monkeypatch.setattr(integration, "get_integration_handler", lambda x, y: mock_integration_handler())
 
     integration.configure_for_traversal(None, None)
 
@@ -50,7 +50,7 @@ def test_configure_for_execution_calls_validate_of_integration_handler(monkeypat
 
     mock_integration_handler.return_value.configure_for_execution = mock_configure_for_execution
 
-    monkeypatch.setattr(integration, 'get_integration_handler', lambda x, y: mock_integration_handler())
+    monkeypatch.setattr(integration, "get_integration_handler", lambda x, y: mock_integration_handler())
 
     integration.configure_for_execution(None, None)
 
@@ -59,10 +59,10 @@ def test_configure_for_execution_calls_validate_of_integration_handler(monkeypat
 
 def test_get_integration_handler_returns_base_integration_if_subclass_not_found(monkeypatch, mocker):
     mock_service = mocker.MagicMock()
-    monkeypatch.setattr(integration, 'get_service_type', lambda x: 'DummyService')
+    monkeypatch.setattr(integration, "get_service_type", lambda x: "DummyService")
 
     mock_executor = mocker.MagicMock()
-    mock_executor.executor_type = 'DummyExecutor'
+    mock_executor.executor_type = "DummyExecutor"
 
     obj = integration.get_integration_handler(mock_executor, mock_service)
     assert isinstance(obj, integration.BaseIntegration)

@@ -1,5 +1,4 @@
 import contextlib
-import functools
 import logging
 from typing import Any
 
@@ -22,9 +21,7 @@ class BaseExperimentTracker:
     class Config(BaseModel):
         pass
 
-    def __init__(
-        self, config: dict = None, **kwargs
-    ):  # pylint: disable=unused-argument
+    def __init__(self, config: dict = None, **kwargs):  # pylint: disable=unused-argument
         config = config or {}
         self.config = self.Config(**config)
 

@@ -13,11 +13,6 @@ from magnus import defaults, put_in_catalog, utils
 
 logger = logging.getLogger(defaults.NAME)
 
-try:
-    import ploomber_engine as pm
-except ImportError:
-    pm = None
-
 
 @contextlib.contextmanager
 def output_to_file(path: str):
@@ -263,8 +258,7 @@ class NotebookTaskType(BaseTaskType):
             Exception: If anything else fails
         """
         try:
-            if not pm:
-                raise ImportError("Ploomber engine is required for notebook type node")
+            import ploomber_engine as pm
 
             parameters = self._get_parameters()
             filtered_parameters = parameters

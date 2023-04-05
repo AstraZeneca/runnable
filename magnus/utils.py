@@ -26,11 +26,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(defaults.NAME)
 
-try:
-    import docker
-except ImportError:
-    logger.warning("docker was not installed, local-container executor will not function")
-
 
 def does_file_exist(file_path: str) -> bool:
     """Check if a file exists.
@@ -283,6 +278,8 @@ def get_local_docker_image_id(image_name: str) -> str:
         str: The docker image digest
     """
     try:
+        import docker
+
         client = docker.from_env()
         image = client.images.get(image_name)
         return image.attrs["Id"]
