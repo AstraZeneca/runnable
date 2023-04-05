@@ -1,7 +1,9 @@
 import json
 import os
+import sys
 
 import pytest
+
 
 from magnus import (
     defaults,  # pylint: disable=import-error
@@ -366,13 +368,14 @@ def test_get_local_docker_image_id_gets_image_from_docker_client(mocker, monkeyp
 
     mock_docker.from_env.return_value = mock_client
 
-    monkeypatch.setattr(utils, "docker", mock_docker)
+    with pytest.MonkeyPatch().context() as ctx:
+        sys.modules["docker"] = mock_docker
 
-    class MockImage:
-        attrs = {"Id": "I am a docker image ID"}
+        class MockImage:
+            attrs = {"Id": "I am a docker image ID"}
 
-    mock_client.images.get = mocker.MagicMock(return_value=MockImage())
-    assert utils.get_local_docker_image_id("test") == "I am a docker image ID"
+        mock_client.images.get = mocker.MagicMock(return_value=MockImage())
+        assert utils.get_local_docker_image_id("test") == "I am a docker image ID"
 
 
 def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch):
@@ -381,11 +384,12 @@ def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch
 
     mock_docker.from_env.return_value = mock_client
 
-    monkeypatch.setattr(utils, "docker", mock_docker)
+    with pytest.MonkeyPatch().context() as ctx:
+        sys.modules["docker"] = mock_docker
 
-    mock_client.images.get = mocker.MagicMock(side_effect=Exception("No Image exists"))
+        mock_client.images.get = mocker.MagicMock(side_effect=Exception("No Image exists"))
 
-    assert utils.get_local_docker_image_id("test") == ""
+        assert utils.get_local_docker_image_id("test") == ""
 
 
 def test_filter_arguments_for_func_works_only_named_arguments_in_func_spec():
