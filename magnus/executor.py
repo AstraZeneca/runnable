@@ -639,6 +639,41 @@ class BaseExecutor:
         """
         raise NotImplementedError
 
+    def fan_out(self, node: BaseNode, map_variable: dict = None):
+        """
+        This method is used to appropriately fan-out the execution of a composite node.
+        This is only useful when we want to execute a composite node during 3rd party orchestrators.
+
+        All 3rd party orchestrators should use this method to fan-out the execution of a composite node.
+        This ensures:
+            - The dot path notation is preserved, this method should create the step and call the node's fan out to
+            create the branch logs and let the 3rd party do the actual step execution.
+            - Gives 3rd party orchestrators an opportunity to set out the required for running a composite node.
+
+        Args:
+            node (BaseNode): The node to fan-out
+            map_variable (dict, optional): If the node if of a map state,.Defaults to None.
+
+        """
+        ...
+
+    def fan_in(self, node: BaseNode, map_variable: dict = None):
+        """
+        This method is used to appropriately fan-in after the execution of a composite node.
+        This is only useful when we want to execute a composite node during 3rd party orchestrators.
+
+        All 3rd party orchestrators should use this method to fan-in the execution of a composite node.
+        This ensures:
+            - Gives the renderer's the control on where to go depending upon the state of the composite node.
+            - The status of the step and its underlying branches are correctly updated.
+
+        Args:
+            node (BaseNode): The node to fan-in
+            map_variable (dict, optional): If the node if of a map state,.Defaults to None.
+
+        """
+        ...
+
 
 # --8<-- [end:docs]
 

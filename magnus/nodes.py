@@ -344,6 +344,40 @@ class BaseNode:
         """
         raise NotImplementedError
 
+    def fan_out(self, executor, map_variable: dict = None, **kwargs):
+        """
+        This function would be called to set up the execution of the individual
+        branches of a composite node.
+
+        Function should only be implemented for composite nodes like dag, map, parallel.
+
+        Args:
+            executor (magnus.executor.BaseExecutor): The executor.
+            map_variable (str, optional): The value of the map iteration variable, if part of a map node.
+
+        Raises:
+            Exception: If the node is not a composite node.
+        """
+        if not self.is_composite:
+            raise Exception(f"Node of type {self.node_type} is not a composite node. This is a bug.")
+
+    def fan_in(self, executor, map_variable: dict = None, **kwargs):
+        """
+        This function would be called to tear down the execution of the individual
+        branches of a composite node.
+
+        Function should only be implemented for composite nodes like dag, map, parallel.
+
+        Args:
+            executor (magnus.executor.BaseExecutor): The executor.
+            map_variable (str, optional): The value of the map iteration variable, if part of a map node.
+
+        Raises:
+            Exception: If the node is not a composite node.
+        """
+        if not self.is_composite:
+            raise Exception(f"Node of type {self.node_type} is not a composite node. This is a bug.")
+
 
 # --8<-- [end:docs]
 
@@ -690,6 +724,25 @@ class ParallelNode(BaseNode):
         """
         raise Exception("Node is of type composite, error in traversal rules")
 
+    def fan_out(self, executor, map_variable: dict = None, **kwargs):
+        """
+        The general fan out method for a node of type Parallel.
+        This method assumes that the step log has already been created.
+
+        3rd party orchestrators should create the step log and use this method to create the branch logs.
+
+        Args:
+            executor (BaseExecutor): The executor class as defined by the config
+            map_variable (dict, optional): If the node is part of a map node. Defaults to None.
+        """
+        # Prepare the branch logs
+        for internal_branch_name, _ in self.branches.items():
+            effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
+
+            branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
+            branch_log.status = defaults.PROCESSING
+            executor.run_log_store.add_branch_log(branch_log, executor.run_id)
+
     def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
         """
         This function does the actual execution of the sub-branches of the parallel node.
@@ -711,13 +764,7 @@ class ParallelNode(BaseNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-        # Prepare the branch logs
-        for internal_branch_name, branch in self.branches.items():
-            effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
-
-            branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
-            branch_log.status = defaults.PROCESSING
-            executor.run_log_store.add_branch_log(branch_log, executor.run_id)
+        self.fan_out(executor, map_variable=map_variable, **kwargs)
 
         jobs = []
         # Given that we can have nesting and complex graphs, controlling the number of processes is hard.
@@ -745,25 +792,31 @@ class ParallelNode(BaseNode):
         for job in jobs:
             job.join()  # Find status of the branches
 
+        self.fan_in(executor, map_variable=map_variable, **kwargs)
+
+    def fan_in(self, executor, map_variable: dict = None, **kwargs):
+        """
+        The general fan in method for a node of type Parallel.
+
+        3rd party orchestrators should use this method to find the status of the composite step.
+
+        Args:
+            executor (BaseExecutor): The executor class as defined by the config
+            map_variable (dict, optional): If the node is part of a map. Defaults to None.
+        """
         step_success_bool = True
-        waiting = False
-        for internal_branch_name, branch in self.branches.items():
+        for internal_branch_name, _ in self.branches.items():
             effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
             branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
-            if branch_log.status == defaults.FAIL:
+            if branch_log.status != defaults.SUCCESS:
                 step_success_bool = False
-
-            if branch_log.status == defaults.PROCESSING:
-                waiting = True
 
         # Collate all the results and update the status of the step
         effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
         step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
-        step_log.status = defaults.PROCESSING
 
-        if step_success_bool:  #  If none failed and nothing is waiting
-            if not waiting:
-                step_log.status = defaults.SUCCESS
+        if step_success_bool:  #  If none failed
+            step_log.status = defaults.SUCCESS
         else:
             step_log.status = defaults.FAIL
 
@@ -774,7 +827,7 @@ class MapNode(BaseNode):
     """
     A composite node that contains ONE graph object within itself that has to be executed with an iterable.
 
-    The structure is genrally:
+    The structure is generally:
         MapNode:
             branch
 
@@ -870,9 +923,32 @@ class MapNode(BaseNode):
             mock (bool, optional): If the operation is just a mock. Defaults to False.
 
         Raises:
-            NotImplementedError: This method should never be called for a node of type Parallel
+            NotImplementedError: This method should never be called for a node of type map.
         """
         raise Exception("Node is of type composite, error in traversal rules")
+
+    def fan_out(self, executor, map_variable: dict = None, **kwargs):
+        """
+        The general method to fan out for a node of type map.
+        This method assumes that the step log has already been created.
+
+        3rd party orchestrators should call this method to create the individual branch logs.
+
+        Args:
+            executor (BaseExecutor): The executor class as defined by the config
+            map_variable (dict, optional): If the node is part of map. Defaults to None.
+        """
+        run_log = executor.run_log_store.get_run_log_by_id(executor.run_id)
+        iterate_on = run_log.parameters[self.iterate_on]
+
+        # Prepare the branch logs
+        for iter_variable in iterate_on:
+            effective_branch_name = self._resolve_map_placeholders(
+                self.internal_name + "." + str(iter_variable), map_variable=map_variable
+            )
+            branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
+            branch_log.status = defaults.PROCESSING
+            executor.run_log_store.add_branch_log(branch_log, executor.run_id)
 
     def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
         """
@@ -910,14 +986,7 @@ class MapNode(BaseNode):
         if not isinstance(iterate_on, list):
             raise Exception("Only list is allowed as a valid iterator type")
 
-        # Prepare the branch logs
-        for iter_variable in iterate_on:
-            effective_branch_name = self._resolve_map_placeholders(
-                self.internal_name + "." + str(iter_variable), map_variable=map_variable
-            )
-            branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
-            branch_log.status = defaults.PROCESSING
-            executor.run_log_store.add_branch_log(branch_log, executor.run_id)
+        self.fan_out(executor, map_variable=map_variable, **kwargs)
 
         jobs = []
         # Given that we can have nesting and complex graphs, controlling the number of processess is hard.
@@ -947,28 +1016,38 @@ class MapNode(BaseNode):
 
         for job in jobs:
             job.join()
+
+        self.fan_in(executor, map_variable=map_variable, **kwargs)
+
+    def fan_in(self, executor, map_variable: dict = None, **kwargs):
+        """
+        The general method to fan in for a node of type map.
+
+        3rd  party orchestrators should call this method to find the status of the step log.
+
+        Args:
+            executor (BaseExecutor): The executor class as defined by the config
+            map_variable (dict, optional): If the node is part of map node. Defaults to None.
+        """
+        run_log = executor.run_log_store.get_run_log_by_id(executor.run_id)
+        iterate_on = run_log.parameters[self.iterate_on]
         # # Find status of the branches
         step_success_bool = True
-        waiting = False
+
         for iter_variable in iterate_on:
             effective_branch_name = self._resolve_map_placeholders(
                 self.internal_name + "." + str(iter_variable), map_variable=map_variable
             )
             branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
-            if branch_log.status == defaults.FAIL:
+            if branch_log.status != defaults.SUCCESS:
                 step_success_bool = False
-
-            if branch_log.status == defaults.PROCESSING:
-                waiting = True
 
         # Collate all the results and update the status of the step
         effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
         step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
-        step_log.status = defaults.PROCESSING
 
         if step_success_bool:  #  If none failed and nothing is waiting
-            if not waiting:
-                step_log.status = defaults.SUCCESS
+            step_log.status = defaults.SUCCESS
         else:
             step_log.status = defaults.FAIL
 
@@ -1061,6 +1140,21 @@ class DagNode(BaseNode):
         """
         raise Exception("Node is of type composite, error in traversal rules")
 
+    def fan_out(self, executor, map_variable: dict = None, **kwargs):
+        """
+        The general method to fan out for a node of type dag.
+        The method assumes that the step log has already been created.
+
+        Args:
+            executor (BaseExecutor): The executor class as defined by the config
+            map_variable (dict, optional): _description_. Defaults to None.
+        """
+        effective_branch_name = self._resolve_map_placeholders(self._internal_branch_name, map_variable=map_variable)
+
+        branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
+        branch_log.status = defaults.PROCESSING
+        executor.run_log_store.add_branch_log(branch_log, executor.run_id)
+
     def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
         """
         This function does the actual execution of the branch of the dag node.
@@ -1086,31 +1180,33 @@ class DagNode(BaseNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-        step_success_bool = True
-        waiting = False
+        self.fan_out(executor, map_variable=map_variable, **kwargs)
+        executor.execute_graph(self.branch, map_variable=map_variable, **kwargs)
+        self.fan_in(executor, map_variable=map_variable, **kwargs)
 
+    def fan_in(self, executor, map_variable: dict = None, **kwargs):
+        """
+        The general method to fan in for a node of type dag.
+
+        3rd party orchestrators should call this method to find the status of the step log.
+
+        Args:
+            executor (BaseExecutor): The executor class as defined by the config
+            map_variable (dict, optional): If the node is part of type dag. Defaults to None.
+        """
+        step_success_bool = True
         effective_branch_name = self._resolve_map_placeholders(self._internal_branch_name, map_variable=map_variable)
         effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
 
-        branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
-        branch_log.status = defaults.PROCESSING
-        executor.run_log_store.add_branch_log(branch_log, executor.run_id)
-
-        executor.execute_graph(self.branch, map_variable=map_variable, **kwargs)
-
         branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
-        if branch_log.status == defaults.FAIL:
+        if branch_log.status != defaults.SUCCESS:
             step_success_bool = False
-
-        if branch_log.status == defaults.PROCESSING:
-            waiting = True
 
         step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
         step_log.status = defaults.PROCESSING
 
         if step_success_bool:  #  If none failed and nothing is waiting
-            if not waiting:
-                step_log.status = defaults.SUCCESS
+            step_log.status = defaults.SUCCESS
         else:
             step_log.status = defaults.FAIL
 

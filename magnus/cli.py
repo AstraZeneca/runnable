@@ -315,6 +315,51 @@ def execute_nb_or_function(
     )
 
 
+@cli.command("fan", short_help="Internal entry point to fan in or out a composite node", hidden=True)
+@click.argument("run_id")
+@click.argument("step_name")
+@click.option("-m", "--mode", help="fan in or fan out", required=True, type=click.Choice(["in", "out"]))
+@click.option("--map-variable", default="", help="The map variable dictionary in str", show_default=True)
+@click.option("-f", "--file", default="", help="The pipeline definition file", show_default=True)
+@click.option(
+    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+)
+@click.option(
+    "-p",
+    "--parameters-file",
+    default=None,
+    help="Parameters, in yaml,  accessible by the application",
+    show_default=True,
+)
+@click.option(
+    "--log-level",
+    default=defaults.LOG_LEVEL,
+    help="The log level",
+    show_default=True,
+    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
+)
+@click.option("--tag", default="", help="A tag attached to the run")
+def fan(run_id, step_name, mode, map_variable, file, config_file, parameters_file, log_level, tag):
+    """
+    Internal entrypoint for magnus to fan in or out a composite node.
+
+    Only 3rd party orchestrators should use this entry point.
+    """
+    logger.setLevel(log_level)
+
+    # Fan in or out
+    pipeline.fan(
+        configuration_file=config_file,
+        pipeline_file=file,
+        step_name=step_name,
+        mode=mode,
+        map_variable=map_variable,
+        run_id=run_id,
+        tag=tag,
+        parameters_file=parameters_file,
+    )
+
+
 @cli.command("build_docker", short_help="Utility tool to build docker images")
 @click.argument("image_name")
 @click.option("-f", "--docker-file", default=None, help="The dockerfile to be used. If None, we generate one")
