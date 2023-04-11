@@ -644,6 +644,10 @@ class BaseExecutor:
         This method is used to appropriately fan-out the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
 
+        Reason: Transpilers typically try to run the leaf nodes but do not have any capacity to do anything for the
+        step which is composite. By calling this fan-out before calling the leaf nodes, we have an opportunity to
+        do the right set up (creating the step log, exposing the parameters, etc.) for the composite step.
+
         All 3rd party orchestrators should use this method to fan-out the execution of a composite node.
         This ensures:
             - The dot path notation is preserved, this method should create the step and call the node's fan out to
@@ -661,6 +665,10 @@ class BaseExecutor:
         """
         This method is used to appropriately fan-in after the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
+
+        Reason: Transpilers typically try to run the leaf nodes but do not have any capacity to do anything for the
+        step which is composite. By calling this fan-in after calling the leaf nodes, we have an opportunity to
+        act depending upon the status of the individual branches.
 
         All 3rd party orchestrators should use this method to fan-in the execution of a composite node.
         This ensures:
