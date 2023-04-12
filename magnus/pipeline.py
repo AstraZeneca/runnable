@@ -498,3 +498,59 @@ def execute_nb_or_func(
     mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
 
     mode_executor.send_return_code()
+
+
+def fan(
+    configuration_file: str,
+    pipeline_file: str,
+    step_name: str,
+    mode: str,
+    map_variable: str,
+    run_id: str,
+    tag: str = None,
+    parameters_file: str = None,
+):
+    # pylint: disable=R0914,R0913
+    """
+    The entry point to either fan in or out for a composite node. Only 3rd party orchestrators should use this.
+
+    It should have similar set up of configurations to execute because orchestrator modes can initiate the execution.
+
+    Args:
+        configuration_file (str): The configuration file.
+        mode: in or out
+        step_name : The name of the step to execute in dot path convention
+        pipeline_file (str): The config/dag file
+        run_id (str): The run id of the run.
+        tag (str): If a tag is provided at the run time
+        parameters_file (str): The parameters being sent in to the application
+
+    """
+    from magnus import nodes
+
+    mode_executor = prepare_configurations(
+        configuration_file=configuration_file,
+        pipeline_file=pipeline_file,
+        run_id=run_id,
+        tag=tag,
+        use_cached="",
+        parameters_file=parameters_file,
+    )
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+
+    mode_executor.prepare_for_node_execution()
+
+    step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
+    node_to_execute, _ = graph.search_node_by_internal_name(mode_executor.dag, step_internal_name)
+
+    map_variable_dict = utils.json_to_ordered_dict(map_variable)
+
+    if mode == "in":
+        logger.info("Fanning in for : %s", node_to_execute)
+        mode_executor.fan_in(node=node_to_execute, map_variable=map_variable_dict)
+    elif mode == "out":
+        logger.info("Fanning out for : %s", node_to_execute)
+        mode_executor.fan_out(node=node_to_execute, map_variable=map_variable_dict)
+    else:
+        raise ValueError(f"Invalid mode {mode}")
