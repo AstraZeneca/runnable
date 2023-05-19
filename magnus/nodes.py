@@ -938,8 +938,7 @@ class MapNode(BaseNode):
             executor (BaseExecutor): The executor class as defined by the config
             map_variable (dict, optional): If the node is part of map. Defaults to None.
         """
-        run_log = executor.run_log_store.get_run_log_by_id(executor.run_id)
-        iterate_on = run_log.parameters[self.iterate_on]
+        iterate_on = executor.run_log_store.get_parameters(executor.run_id)[self.iterate_on]
 
         # Prepare the branch logs
         for iter_variable in iterate_on:
@@ -1029,8 +1028,7 @@ class MapNode(BaseNode):
             executor (BaseExecutor): The executor class as defined by the config
             map_variable (dict, optional): If the node is part of map node. Defaults to None.
         """
-        run_log = executor.run_log_store.get_run_log_by_id(executor.run_id)
-        iterate_on = run_log.parameters[self.iterate_on]
+        iterate_on = executor.run_log_store.get_parameters(executor.run_id)[self.iterate_on]
         # # Find status of the branches
         step_success_bool = True
 
