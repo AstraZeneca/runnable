@@ -495,8 +495,6 @@ def get_node_execution_command(
 
     action = f"magnus execute_single_node {run_id} " f"{node._command_friendly_name()}" f" --log-level {log_level}"
 
-    # action = action + f" {node._command_friendly_name()}"
-
     if executor.pipeline_file:
         action = action + f" --file {executor.pipeline_file}"
 
@@ -508,6 +506,49 @@ def get_node_execution_command(
 
     if executor.parameters_file:
         action = action + f" --parameters-file {executor.parameters_file}"
+
+    if executor.tag:
+        action = action + f" --tag {executor.tag}"
+
+    return action
+
+
+def get_fan_command(
+    executor: BaseExecutor,
+    mode: str,
+    node: BaseNode,
+    run_id: str,
+    map_variable: dict = None,
+) -> str:
+    """
+    An utility function to return the fan "in or out" command
+
+    Args:
+        executor (BaseExecutor): The executor class
+        mode (str): in or out
+        node (BaseNode): The composite node that we are fanning in or out
+        run_id (str): The run id.
+        map_variable (dict, optional): If the node is a map, we have the map variable. Defaults to None.
+
+    Returns:
+        str: The fan in or out command
+    """
+    log_level = logging.getLevelName(logger.getEffectiveLevel())
+    action = (
+        f"magnus fan {run_id} "
+        f"{node._command_friendly_name()} "
+        f"--mode {mode} "
+        f"--file {executor.pipeline_file} "
+        f"--log-level {log_level} "
+    )
+    if executor.configuration_file:
+        action = action + f" --config-file {executor.configuration_file} "
+
+    if executor.parameters_file:
+        action = action + f" --parameters-file {executor.parameters_file}"
+
+    if map_variable:
+        action = action + f" --map-variable '{json.dumps(map_variable)}'"
 
     if executor.tag:
         action = action + f" --tag {executor.tag}"

@@ -106,7 +106,7 @@ class Task:
         command_type: str = defaults.COMMAND_TYPE,
         command_config: Optional[dict] = None,
         catalog: Optional[dict] = None,
-        mode_config: Optional[dict] = None,
+        executor_config: Optional[dict] = None,
         retry: int = 1,
         on_failure: str = "",
         next_node: str = "",
@@ -116,7 +116,7 @@ class Task:
         self.command_type = command_type
         self.command_config = command_config or {}
         self.catalog = catalog or {}
-        self.mode_config = mode_config or {}
+        self.executor_config = executor_config or {}
         self.retry = retry
         self.on_failure = on_failure
         self.next_node = next_node or "success"
@@ -136,7 +136,7 @@ class Task:
             "command_type": self.command_type,
             "command_config": self.command_config,
             "catalog": self.catalog,
-            "mode_config": self.mode_config,
+            "executor_config": self.executor_config,
             "retry": self.retry,
             "on_failure": self.on_failure,
         }
