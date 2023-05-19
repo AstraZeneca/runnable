@@ -43,7 +43,6 @@ catalog:
 [File system](../../concepts/run-log-implementations/file-system/) run log store persists the logs
 on physical folder and therefore more suitable.
 
-There are other ways to change the configurations which are detailed [here](../../concepts/configurations).
 
 ## Transpilation
 

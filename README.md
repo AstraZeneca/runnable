@@ -6,6 +6,8 @@
 <p align="center">
   <img src="https://github.com/AstraZeneca/magnus-core/blob/main/assets/logo-readme.png?raw=true" alt="Logo"/>
 </p>
+
+<!--- --8<-- [start:intro] -->
 ---
 
 <p align="center">
@@ -14,12 +16,11 @@
 <a href="https://github.com/AstraZeneca/magnus-core/blob/main/LICENSE"><img alt"License" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a>
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 <a href="https://github.com/python/mypy"><img alt="MyPy Checked" src="https://www.mypy-lang.org/static/mypy_badge.svg"></a>
-<a href="https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml"><img alt="Tests:" src="https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml/badge.svg">
-<a href="https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml"><img alt="Docs:" src="https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml/badge.svg">
+<a href="https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml"><img alt="Tests:" src="https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml/badge.svg"></a>
+<a href="https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml"><img alt="Docs:" src="https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml/badge.svg"></a>
 </p>
 ---
 
-<!--- --8<-- [start:intro] -->
 
 **Magnus** is a *thin* layer of abstraction over the underlying infrastructure to enable data scientist and
 machine learning engineers. It provides:
@@ -48,6 +49,19 @@ the execution happens. This is usually via git, virtual environment manager and 
 
 ![works](assets/work.png)
 
+The interface of magnus, from a data scientist point of view, is simply:
+
+- ```execute``` or ```execute_job```: Executes a pipeline or job in a configured environment.
+
+- Within a job or a pipeline:
+
+    - ```put_in_catalog``` or ```get_from_catalog```: To pass/access files to downstream steps of the pipeline.
+    - ```put_object``` or ```get_object```: To pass/access python objects to downstream steps of the pipeline.
+    - ```track_this```: To track metrics per step of the pipeline or the job.
+    - ```get_secret```: To get a secret from the configured environment.
+
+
+
 ### Shift Left
 
 Magnus provides patterns typically used in production environments even in the development phase.
@@ -64,10 +78,6 @@ Magnus provides patterns typically used in production environments even in the d
 
 [More details about the project and how to use it available here](https://astrazeneca.github.io/magnus-core/).
 
-## Extensions
-
-All the services of magnus are extendable by design, please refer to
-[magnus extensions](https://github.com/AstraZeneca/magnus-extensions)
 
 ## Installation
 
@@ -104,8 +114,8 @@ Copy the contents of this yaml into getting-started.yaml or alternatively in a p
 ---
 !!! Note
 
-   The below execution would create a folder called 'data' in the current working directory.
-   The command as given should work in linux/macOS but for windows, please change accordingly.
+    The below execution would create a folder called 'data' in the current working directory.
+    The command as given should work in linux/macOS but for windows, please change accordingly.
 
 ---
 

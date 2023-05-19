@@ -21,11 +21,6 @@ of this executors or local, local container etc.
 of dag definition. To still achieve the capabilities of interactive executors, the orchestration language is
 directed to call an internal method instead of your actual function.
 
-Specifically, the orchestration is asked to call
-
-```shell
-magnus execute_single_node --file my-project.yaml --config-file config.yaml --step-name step-to-call
-```
 
 The branches of the original dag are also translated to the orchestrators language if its supported. If the
 orchestration executors does not support a feature that magnus supports, you could still make it work by a mixed model.

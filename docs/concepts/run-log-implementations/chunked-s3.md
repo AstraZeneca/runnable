@@ -1,0 +1,84 @@
+# Chunked S3
+
+S3 is widely used a data storage and magnus can use S3 as a run log store.
+
+The traditional S3 log store is unreliable and suffers from race conditions if there are parallel tasks during the
+execution. Chunked S3 is an enhancement over that which splits the Run log into multiple thread safe components. So
+instead of one single ```.json``` file in S3, chunked-s3 would have multiple ```.json``` files.
+
+## Additional dependencies
+
+Magnus extensions needs AWS capabilities via boto3 to use S3. You can install it via
+
+```pip install magnus_extensions[aws]```
+
+or via:
+
+```poetry add magnus_extensions[aws]```
+
+## Configuration
+
+The full configuration to use Chunked S3 as run log store:
+
+```yaml
+run_log_store:
+  type: chunked-s3
+  config:
+    aws_profile: str # defaults to ''
+    use_credentials: bool # defaults to False
+    region: str # defaults to eu-west-1
+    aws_credentials_file: str # defaults to str(Path.home() / '.aws' / 'credentials')
+    aws_access_key_name: str # defaults to  'AWS_ACCESS_KEY_ID'
+    aws_secret_access_key_name: str # defaults to 'AWS_SECRET_ACCESS_KEY'
+    aws_session_key_name: str # defaults to 'AWS_SESSION_TOKEN'
+    role_arn: str # defaults to ''
+    session_duration_in_seconds: int # defaults to 900
+    s3_bucket: str # Should be PROVIDED
+    prefix: str # defaults to str
+```
+
+
+- ### s3_bucket:
+
+The s3 bucket to use as a catalog
+
+- ### prefix:
+
+The prefix to the path where the run logs are stored.
+
+For example: if the prefix is ```datastore```, then the run log per run would be stored at:
+
+```<s3_bucket>/datastore/<run_id>.json```.
+
+- ### aws_profile:
+  Defaults to '' or the ```default``` profile.
+
+- ### use_credentials:
+  Defaults to False. It is always safer to use RBAC instead of credentials.
+
+- ### region:
+  Defaults to eu-west-1. The AWS region you want a boto3 session to be instantiated.
+
+- ### aws_credentials_file:
+  Defaults to str(Path.home() / '.aws' / 'credentials').
+  The file where AWS credentials are typically stored. This file is used in both use_credentials and by internally by
+  boto3 while looking for profiles.
+
+- ### aws_access_key_name:
+  Defaults to  'AWS_ACCESS_KEY_ID'.
+  The environmental variable name that is to be used as aws access key, if you are using credentials.
+
+- ### aws_secret_access_key_name:
+  Defaults to 'AWS_SECRET_ACCESS_KEY'.
+  The environmental variable name that is used as AWS Secret access key, if you are using credentials.
+
+- ### aws_session_key_name:
+  Defaults to 'AWS_SESSION_TOKEN'
+  The environmental variable name that is used for AWS session token, if you are using credentials.
+- ### role_arn:
+  Defaults to ''.
+  The role to assume if you are using sessions.
+
+- ### session_duration_in_seconds:
+  Defaults to 900
+  The duration of the AWS session.

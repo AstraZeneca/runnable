@@ -45,7 +45,7 @@ step name:
   command:
   command_type: # Defaults to python
   on_failure:  # Defaults to None
-  mode_config: # Defaults to None
+  executor_config: # Defaults to None
   catalog: # Defaults to None
     compute_data_folder:
     get:
@@ -59,7 +59,7 @@ from magnus import Task
 
 first = Task(name: str, command: str, command_type: str = 'python',
             command_config: Optional[dict]=None, catalog: Optional[dict]=None,
-            mode_config: Optional[dict]=None, retry: int = 1, on_failure: str = '', next_node:str=None)
+            executor_config: Optional[dict]=None, retry: int = 1, on_failure: str = '', next_node:str=None)
 ```
 The name given to the task has the same behavior as the ```step name``` given in the yaml definition.
 
@@ -77,6 +77,13 @@ def my_cool_function():
     pass
 ```
 
+### next (required)
+The name of the node in the graph to go if the node succeeds.
+
+In python SDK, you need to provide the next node of the execution using ```next_node``` unless the node ends in
+```success``` state. If you want to end the graph execution to fail state, you can use ```next_node='fail'```.
+
+
 ### command_type (optional)
 Defaults to python if nothing is provided. For more information, please refer [command types](../command-types)
 
@@ -86,10 +93,6 @@ The number of attempts to make before failing the node. Default to 1.
 For local executions, this is always be 1 independent of the actual ```retry``` value.
 For cloud based implementations, the retry value is passed to the implementation.
 
-### next (required)
-The name of the node in the graph to go if the node succeeds.
-
-```next``` is optional via SDK as it is assigned during pipeline construction stage.
 
 ### on_failure (optional)
 The name of the node in the graph to go if the node fails.
@@ -97,7 +100,7 @@ This is optional as we would move to the fail node of the graph if one is not pr
 
 On_failure could be an use case where you want to send a failure notification before marking the run as failure.
 
-### mode_config (optional)
+### executor_config (optional)
 Use this section to pass instructions to the executor.
 For example, we can instruct the ```local-container``` executor to use a different docker image to run this step of the
 pipeline.
@@ -141,7 +144,7 @@ from magnus import Task, Pipeline
 def pipeline():
   first = Task(name='Cool function', command='my_module.my_cool_function')
   second = Task(name='Clean Up', command='clean_up.sh', command_type='shell',
-            executor_config={'docker_image': 'ubunutu:latest'})
+            executor_config={'docker_image': 'ubuntu:latest'})
 
   pipeline = pipeline(name='my pipeline')
   pipeline.construct([first, second])
@@ -155,7 +158,7 @@ if __name__ == '__main__':
 In the above example, while all the steps except for ```Clean Up``` happen in python3.7 docker image, the ```Clean Up```
 happens in Ubuntu.
 
-mode_config provides a way for dag to have customizable instructions to the executor.
+executor_config provides a way for dag to have customizable instructions to the executor.
 
 ### catalog (optional)
 
@@ -211,10 +214,7 @@ was successful, we skip it.
 5. Check the catalog-put list for any files that have to be synced back to catalog from the compute data folder.
 
 
-### next_node:
 
-In python SDK, you need to provide the next node of the execution using ```next_node``` unless the node ends in
-```success``` state. If you want to end the graph execution to fail state, you can use ```next_node='fail'```.
 
 
 ## Success
@@ -630,7 +630,7 @@ use as-is to inject a script that behaves like a map state and triggers all the 
 
 ## Passing data
 
---8<-- [start:how-do-i-pass-simple]
+<!-- --8<-- [start:how-do-i-pass-simple] -->
 
 In magnus, we classify 2 kinds of data sets that can be passed around to down stream steps.
 
@@ -753,7 +753,7 @@ def my_cool_function():
 ```
 Calling get_parameter with no key returns all parameters.
 
---8<-- [end:how-do-i-pass-simple]
+<!-- --8<-- [end:how-do-i-pass-simple] -->
 
 ## Extensions
 

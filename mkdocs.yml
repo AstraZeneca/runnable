@@ -84,35 +84,42 @@ nav:
       - "Node": "concepts/nodes.md"
       - "Command types": "concepts/command-types.md"
       - "Dag": "concepts/dag.md"
-      - "Catalog":
-          - "concepts/catalog.md"
-          - "Do Nothing Catalog": "concepts/catalog-implementations/do-nothing.md"
-          - "File System": "concepts/catalog-implementations/file-system.md"
-      - "Secrets":
-          - "concepts/secrets.md"
-          - "Dot Env": "concepts/secrets-implementations/dot-env.md"
-          - "Do Nothing": "concepts/secrets-implementations/do-nothing.md"
-          - "Env Secrets Manager": "concepts/secrets-implementations/env-secrets-manager.md"
-      - "Run Log":
-          - "concepts/run-log.md"
-          - "Buffered": "concepts/run-log-implementations/bufferred.md"
-          - "File System": "concepts/run-log-implementations/file-system.md"
-          - "Chunked File System": "concepts/run-log-implementations/chunked-fs.md"
-      - "Experiment Tracking":
-          - "concepts/experiment-tracking.md"
-      - "Integration":
-          - "concepts/integration.md"
-      - "Executors":
-          - "concepts/executor.md"
-          - "Local": "concepts/executor-implementations/local.md"
-          - "Local Container": "concepts/executor-implementations/local-container.md"
-          - "Demo Renderer": "concepts/executor-implementations/demo-renderer.md"
+      - "Catalog": "concepts/catalog.md"
+      - "Secrets": "concepts/secrets.md"
+      - "Run Log": "concepts/run-log.md"
+      - "Experiment Tracking": "concepts/experiment-tracking.md"
+      #- "Integration": "concepts/integration.md"
+      - "Executors": "concepts/executor.md"
+
   - "Command Line":
       - "command-line.md"
+  - "Executors":
+      - "Local": "concepts/executor-implementations/local.md"
+      - "Local Container": "concepts/executor-implementations/local-container.md"
+      - "Kubeflow": "concepts/executor-implementations/kfp.md"
+      - "Argo": "concepts/executor-implementations/argo.md"
+      - "K8s-job": "concepts/executor-implementations/k8s-job.md"
+      - "Demo Renderer": "concepts/executor-implementations/demo-renderer.md"
+  - "Run Logs":
+      - "Buffered": "concepts/run-log-implementations/bufferred.md"
+      - "File System": "concepts/run-log-implementations/file-system.md"
+      - "Chunked File System": "concepts/run-log-implementations/chunked-fs.md"
+      - "S3": "concepts/run-log-implementations/s3.md"
+      - "Chunked S3": "concepts/run-log-implementations/chunked-s3.md"
+  - "Catalog":
+      - "Do Nothing Catalog": "concepts/catalog-implementations/do-nothing.md"
+      - "File System": "concepts/catalog-implementations/file-system.md"
+      - "S3": "concepts/catalog-implementations/s3.md"
+  - "Secrets":
+      - "Dot Env": "concepts/secrets-implementations/dot-env.md"
+      - "Do Nothing": "concepts/secrets-implementations/do-nothing.md"
+      - "Env Secrets Manager": "concepts/secrets-implementations/env-secrets-manager.md"
+      #- "AWS Secrets Manager": "concepts/secrets-implementations/aws_secrets_manager.md"
+  - "Experiment Tracking":
+      - "MLFlow": "concepts/experiment-implementations/mlflow.md"
   - "How do I?":
       - "how-do-i.md"
   - "Examples":
       - "examples.md"
   - "Extensions":
       - "extensions/extensions.md"
-  - "Releases": "RELEASES.md"

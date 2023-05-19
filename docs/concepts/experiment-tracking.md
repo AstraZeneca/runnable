@@ -30,7 +30,7 @@ Any configuration parameters the experiment tracking tool accepts.
 
 ## Interaction within code
 
---8<-- [start:how-do-i-track]
+<!-- --8<-- [start:how-do-i-track] -->
 
 In magnus, experiment tracking is defined per step of the pipeline. You can instruct magnus to track a metric by:
 
@@ -93,7 +93,7 @@ with context as ctx:
 With experiment tracking tools that support grouping of experiments under a logical group, you can use ```tag``` of
 magnus.
 
---8<-- [end:how-do-i-track]
+<!-- --8<-- [end:how-do-i-track] -->
 
 ## Parameterized definition
 
