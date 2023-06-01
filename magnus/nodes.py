@@ -975,13 +975,14 @@ class MapNode(BaseNode):
             map_variable (dict): The map variables the graph belongs to
             **kwargs: Optional kwargs passed around
         """
-        run_log = executor.run_log_store.get_run_log_by_id(executor.run_id)
-        if self.iterate_on not in run_log.parameters:
+        iterate_on = None
+        try:
+            iterate_on = executor.run_log_store.get_parameters(executor.run_id)[self.iterate_on]
+        except KeyError:
             raise Exception(
                 f"Expected parameter {self.iterate_on} not present in Run Log parameters, was it ever set before?"
             )
 
-        iterate_on = run_log.parameters[self.iterate_on]
         if not isinstance(iterate_on, list):
             raise Exception("Only list is allowed as a valid iterator type")
 
