@@ -659,7 +659,15 @@ class BaseExecutor:
             map_variable (dict, optional): If the node if of a map state,.Defaults to None.
 
         """
-        ...
+        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable=map_variable))
+
+        self.add_code_identities(node=node, step_log=step_log)
+
+        step_log.step_type = node.node_type
+        step_log.status = defaults.PROCESSING
+        self.run_log_store.add_step_log(step_log, self.run_id)
+
+        node.fan_out(executor=self, map_variable=map_variable)
 
     def fan_in(self, node: BaseNode, map_variable: dict = None):
         """
@@ -680,7 +688,12 @@ class BaseExecutor:
             map_variable (dict, optional): If the node if of a map state,.Defaults to None.
 
         """
-        ...
+        node.fan_in(executor=self, map_variable=map_variable)
+
+        step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable=map_variable), self.run_id)
+
+        if step_log.status == defaults.FAIL:
+            raise Exception(f"Step {node.name} failed")
 
 
 # --8<-- [end:docs]
