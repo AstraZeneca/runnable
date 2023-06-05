@@ -10,7 +10,7 @@ repository = "https://github.com/AstraZeneca/magnus-core"
 documentation = "https://astrazeneca.github.io/magnus-core/"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.7"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 yachalk = "*"
@@ -18,7 +18,7 @@ pydantic = "^1.9.0"
 stevedore = "^3.5.0"
 "click" = "*"
 click-plugins = "^1.1.1"
-ploomber-engine ={ version= "^0.0.19", optional = true }
+ploomber-engine ={ version= "^0.0.19", optional = true, python = ">=3.8,<4.0" }
 docker ={ version = "*", optional = true }
 
 [tool.poetry.group.docs.dependencies]
@@ -42,7 +42,6 @@ pre-commit = "*"
 ruff = "^0.0.259"
 commit-linter = "^1.0.2"
 python-semantic-release = "^7.33.1"
-ipykernel = "^6.21.2"
 black = "^23.3.0"
 
 
