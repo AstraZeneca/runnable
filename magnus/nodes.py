@@ -20,7 +20,7 @@ logger = logging.getLogger(defaults.NAME)
 
 class BaseNode:
     """
-    Base class with common functionality provided for a Node of a graph.
+    Base model class with common functionality provided for a Node of a graph.
 
     A node of a graph could be a
         * single execution node as task, success, fail.
