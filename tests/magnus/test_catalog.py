@@ -292,7 +292,7 @@ def test_file_system_catalog_put_uses_compute_folder_by_default(monkeypatch, moc
 
     mock_does_dir_exist = mocker.MagicMock(side_effect=Exception())
     monkeypatch.setattr(catalog.utils, "does_dir_exist", mock_does_dir_exist)
-    monkeypatch.setattr(catalog.FileSystemCatalog, "catalog_location", mocker.MagicMock(return_value="this_location"))
+    monkeypatch.setattr(catalog.FileSystemCatalog, "catalog_location", "this_location")
     monkeypatch.setattr(catalog, "BaseCatalog", mocker.MagicMock())
 
     catalog_handler = catalog.FileSystemCatalog(config={"type": "file-system"})
@@ -308,7 +308,7 @@ def test_file_system_catalog_put_uses_compute_folder_provided(monkeypatch, mocke
 
     mock_does_dir_exist = mocker.MagicMock(side_effect=Exception())
     monkeypatch.setattr(catalog.utils, "does_dir_exist", mock_does_dir_exist)
-    monkeypatch.setattr(catalog.FileSystemCatalog, "catalog_location", mocker.MagicMock(return_value="this_location"))
+    monkeypatch.setattr(catalog.FileSystemCatalog, "catalog_location", "this_location")
     monkeypatch.setattr(catalog, "BaseCatalog", mocker.MagicMock())
 
     catalog_handler = catalog.FileSystemCatalog(config={"type": "file-system"})
