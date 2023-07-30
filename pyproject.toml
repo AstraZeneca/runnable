@@ -102,7 +102,7 @@ magnus= 'magnus.cli:cli'
 "python-lambda" = "magnus.tasks:PythonLambdaTaskType"
 "shell" = "magnus.tasks:ShellTaskType"
 "notebook" = "magnus.tasks:NotebookTaskType"
-"python-function" = "magnus.tasks:PythonFunctionType"
+"container" = "magnus.tasks:ContainerTaskType"
 
 # Plugins for Nodes
 [tool.poetry.plugins."nodes"]
