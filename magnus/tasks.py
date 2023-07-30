@@ -297,6 +297,7 @@ class ShellTaskType(BaseTaskType):
 
 class ContainerTaskType(BaseTaskType):
     """
+    TODO: This is not fully done
     The task class for container based execution.
     """
 
