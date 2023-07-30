@@ -222,8 +222,8 @@ def test_failure(fail_graph):
                     pipeline_file=str(context_dir_path / "dag.yaml"),
                     run_id=run_id,
                 )
-            except:
-                pass
+            except Exception as ex:
+                print(ex)
 
             try:
                 run_log = get_run_log(context_dir_path, run_id)

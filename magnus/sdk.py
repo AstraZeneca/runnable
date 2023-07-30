@@ -216,6 +216,7 @@ class Pipeline:
         messages: List[str] = []
         for step in steps:
             step._construct_node()
+            print(step.node.__dict__)
             messages.extend(step.node.validate())  # type: ignore
 
         if not steps:

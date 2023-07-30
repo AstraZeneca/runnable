@@ -6,64 +6,28 @@ import logging
 import os
 import subprocess
 import sys
+from typing import ClassVar, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra, validator
+from stevedore import driver
 
-from magnus import defaults, put_in_catalog, utils
+from magnus import defaults, utils
 
 logger = logging.getLogger(defaults.NAME)
-
-
-@contextlib.contextmanager
-def output_to_file(path: str):
-    """Context manager to put the output of a function execution to catalog.
-
-    Args:
-        path (str): Mostly the command you are executing.
-
-    """
-    log_file = open(f"{path}.log", "w")
-    f = io.StringIO()
-    try:
-        with contextlib.redirect_stdout(f):
-            yield
-    finally:
-        print(f.getvalue())  # print to console
-        log_file.write(f.getvalue())  # Print to file
-
-        f.close()
-        log_file.close()
-        put_in_catalog(log_file.name)
-        os.remove(log_file.name)
 
 
 # --8<-- [start:docs]
 
 
-class BaseTaskType:  # pylint: disable=too-few-public-methods
+class BaseTaskType(BaseModel):  # pylint: disable=too-few-public-methods
     """A base task class which does the execution of command defined by the user."""
 
-    task_type = ""
+    task_type: ClassVar[str] = ""
+    command: str
+    node_name: str
 
-    class Config(BaseModel):
-        command: str
-
-    def __init__(self, config: dict = None):
-        config = config or {}
-        self.config = self.Config(**config)
-
-    @property
-    def command(self):
-        """Return the command to execute."""
-        return self.config.command
-
-    def _to_dict(self) -> dict:
-        """Return a dictionary representation of the task."""
-        task = {}
-        task["command"] = self.command
-        task["config"] = self.config
-
-        return task
+    class Config:
+        extra = Extra.forbid
 
     def _get_parameters(self, map_variable: dict = None, **kwargs) -> dict:
         """Return the parameters in scope for the execution.
@@ -111,46 +75,44 @@ class BaseTaskType:  # pylint: disable=too-few-public-methods
             logger.info(f"Setting User defined parameter {key} with value: {value}")
             os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
 
-
-# --8<-- [end:docs]
-
-
-class PythonFunctionType(BaseTaskType):
-    task_type = "python-function"
-
-    def execute_command(self, map_variable: dict = None, **kwargs):
-        """Execute the python function as defined by the command.
+    @contextlib.contextmanager
+    def output_to_file(self, map_variable: dict = None):
+        """Context manager to put the output of a function execution to catalog.
 
         Args:
-            map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
+            map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
+
         """
-        parameters = self._get_parameters()
-        filtered_parameters = utils.filter_arguments_for_func(self.command, parameters, map_variable)
+        from magnus import put_in_catalog  # Causing cyclic imports
 
+        log_file_name = self.node_name.replace(" ", "_")
         if map_variable:
-            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
+            for _, value in map_variable.items():
+                log_file_name += "_" + str(value)
 
-        logger.info(f"Calling {self.command} with {filtered_parameters}")
+        log_file = open(log_file_name, "w")
 
-        with output_to_file(self.command) as _:
-            try:
-                user_set_parameters = self.command(**filtered_parameters)
-            except Exception as _e:
-                msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
-                logger.exception(msg)
-                logger.exception(_e)
-                raise
+        f = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(f):
+                yield
+        finally:
+            print(f.getvalue())  # print to console
+            log_file.write(f.getvalue())  # Print to file
 
-            if map_variable:
-                del os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"]
+            f.close()
+            log_file.close()
+            put_in_catalog(log_file.name)
+            os.remove(log_file.name)
 
-            self._set_parameters(user_set_parameters)
+
+# --8<-- [end:docs]
 
 
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """The task class for python command."""
 
-    task_type = "python"
+    task_type: ClassVar[str] = "python"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the notebook as defined by the command."""
@@ -166,7 +128,8 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
         logger.info(f"Calling {func} from {module} with {filtered_parameters}")
-        with output_to_file(self.command) as _:
+
+        with self.output_to_file(map_variable=map_variable) as _:
             try:
                 user_set_parameters = f(**filtered_parameters)
             except Exception as _e:
@@ -184,7 +147,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """The task class for python-lambda command."""
 
-    task_type = "python-lambda"
+    task_type: ClassVar[str] = "python-lambda"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the lambda function as defined by the command.
@@ -228,24 +191,23 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 class NotebookTaskType(BaseTaskType):
     """The task class for Notebook based execution."""
 
-    task_type = "notebook"
+    task_type: ClassVar[str] = "notebook"
+    notebook_output_path: str = ""
+    optional_ploomber_args: dict = {}
 
-    class Config(BaseTaskType.Config):
-        notebook_output_path: str = ""
-        optional_ploomber_args: dict = {}
-
-    @property
-    def notebook_output_path(self):
-        if self.config.notebook_output_path:
-            return self.config.notebook_output_path
-
-        return "".join(self.command.split(".")[:-1]) + "_out.ipynb"
-
-    def __init__(self, config: dict = None):
-        super().__init__(config)
-
-        if not self.config.command.endswith(".ipynb"):
+    @validator("command")
+    def notebook_should_end_with_ipynb(cls, command: str):
+        if not command.endswith(".ipynb"):
             raise Exception("Notebook task should point to a ipynb file")
+
+        return command
+
+    @validator("notebook_output_path")
+    def correct_notebook_output_path(cls, notebook_output_path: str, values: dict):
+        if notebook_output_path:
+            return notebook_output_path
+
+        return "".join(values["command"].command.split(".")[:-1]) + "_out.ipynb"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the python notebook as defined by the command.
@@ -260,15 +222,20 @@ class NotebookTaskType(BaseTaskType):
         try:
             import ploomber_engine as pm
 
+            from magnus import put_in_catalog  # Causes issues with cyclic import
+
             parameters = self._get_parameters()
             filtered_parameters = parameters
+
+            notebook_output_path = self.notebook_output_path
 
             if map_variable:
                 os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
-            notebook_output_path = self.notebook_output_path
+                for _, value in map_variable.items():
+                    notebook_output_path += "_" + str(value)
 
-            ploomber_optional_args = self.config.optional_ploomber_args  # type: ignore
+            ploomber_optional_args = self.optional_ploomber_args  # type: ignore
 
             kwds = {
                 "input_path": self.command,
@@ -296,14 +263,11 @@ class NotebookTaskType(BaseTaskType):
 class ShellTaskType(BaseTaskType):
     """The task class for shell based commands."""
 
-    task_type = "shell"
+    task_type: ClassVar[str] = "shell"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
-        # TODO can we do this without shell=True. Hate that but could not find a way out
-        # This is horribly weird, focussing only on python ways of doing for now
-        # It might be that we have to write a bash/windows script that does things for us
-        # Need to over-ride set parameters too
-        # There could be some ideas from ploomber that are useful here.
+        # Using shell=True as we want to have chained commands to be executed in the same shell.
+        # TODO can we do this without shell=True.
         """Execute the shell command as defined by the command.
 
         Args:
@@ -314,15 +278,120 @@ class ShellTaskType(BaseTaskType):
         if map_variable:
             subprocess_env[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
-        result = subprocess.run(
+        with subprocess.Popen(
             self.command,
-            check=True,
-            env=subprocess_env,
             shell=True,
+            env=subprocess_env,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             universal_newlines=True,
-        )
+        ) as proc, self.output_to_file(map_variable=map_variable) as _:
+            for line in proc.stdout:  # type: ignore
+                logger.info(line)
+                print(line)
 
-        print(result.stdout)
-        print(result.stderr)
+            proc.wait()
+            if proc.returncode != 0:
+                raise Exception("Command failed")
+
+
+class ContainerTaskType(BaseTaskType):
+    """
+    The task class for container based execution.
+    """
+
+    task_type: ClassVar[str] = "container"
+    image: str
+
+    def execute_command(self, map_variable: dict = None, **kwargs):
+        # Conditional import
+        try:
+            import docker  # pylint: disable=C0415
+
+            client = docker.from_env()
+        except ImportError as e:
+            msg = "Task type of container requires docker to be installed. Please install via optional: docker"
+            logger.exception(msg)
+            raise Exception(msg) from e
+        except Exception as ex:
+            logger.exception("Could not get access to docker")
+            raise Exception("Could not get the docker socket file, do you have docker installed?") from ex
+
+        container_env_variables = {}
+
+        for key, value in self._get_parameters().items():
+            container_env_variables[defaults.PARAMETER_PREFIX + key] = value
+
+        if map_variable:
+            container_env_variables[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
+
+        try:
+            container = client.containers.create(
+                image=self.config.image,
+                command=self.command,
+                auto_remove=False,
+                network_mode="host",
+                environment=container_env_variables,
+            )
+            container.start()
+            stream = container.logs(stream=True, follow=True)
+            while True:
+                try:
+                    output = next(stream).decode("utf-8")
+                    output = output.strip("\r\n")
+                    logger.info(output)
+                except StopIteration:
+                    logger.info("Docker Run completed")
+                    break
+
+        except Exception as _e:
+            logger.exception("Problems with spinning up the container")
+            raise _e
+
+
+def create_task(
+    node_name: str,
+    command: str,
+    image: str = "",
+    command_type: str = defaults.COMMAND_TYPE,
+    command_config: Optional[dict] = None,
+) -> BaseTaskType:
+    """
+    Creates a task object from the command configuration.
+
+    Args:
+        command (str): The command to run
+        image (str, optional): Only in case of a container based command. Defaults to "".
+        command_type (str, optional): The command type. Defaults to defaults.COMMAND_TYPE, python
+        command_config (Optional[dict], optional): Any optional command config. Defaults to None.
+
+    Returns:
+        tasks.BaseTaskType: The command object
+    """
+    # If we want to run a container, we need to know which container.
+    if command_type == ContainerTaskType.task_type and not image:
+        msg = "Image is required when trying to run a container task type"
+        logger.exception(msg)
+        raise Exception(msg)
+
+    command_config = command_config or {}
+    command_config["command"] = command
+    command_config["node_name"] = node_name
+
+    if image:
+        command_config["image"] = image
+
+    try:
+        task_mgr = driver.DriverManager(
+            namespace="tasks",
+            name=command_type,
+            invoke_on_load=True,
+            invoke_kwds=command_config,
+        )
+        return task_mgr.driver
+    except Exception as _e:
+        msg = (
+            f"Could not find the task type {command_type}. Please ensure you have installed "
+            "the extension that provides the node type."
+        )
+        raise Exception(msg) from _e

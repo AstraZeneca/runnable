@@ -8,11 +8,12 @@ def as_is_node():
     def _closure(name, next_node, on_failure=""):
         step_config = {
             "command": "does not matter",
-            "command_type": "python-function",
+            "command_type": "python",
             "type": "as-is",
             "next": next_node,
             "on_failure": on_failure,
         }
+
         return graph.create_node(name=name, step_config=step_config)
 
     return _closure
@@ -23,7 +24,7 @@ def as_is_container_node():
     def _closure(name, next_node, on_failure=""):
         step_config = {
             "command": "does not matter",
-            "command_type": "python-function",
+            "command_type": "python",
             "type": "as-is",
             "next": next_node,
             "on_failure": on_failure,
@@ -44,6 +45,7 @@ def exception_node():
             "next": next_node,
             "on_failure": on_failure,
         }
+
         return graph.create_node(name=name, step_config=step_config)
 
     return _closure

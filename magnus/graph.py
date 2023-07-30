@@ -382,9 +382,10 @@ def create_node(name: str, step_config: dict, internal_branch_name: str = None):
         internal_name = internal_branch_name + "." + name
 
     try:
+        node_type = step_config.pop("type")  # Remove the type as it is not used in node creation.
         node_mgr = driver.DriverManager(
             namespace="nodes",
-            name=step_config["type"],
+            name=node_type,
             invoke_on_load=True,
             invoke_kwds={
                 "name": name,
@@ -394,6 +395,10 @@ def create_node(name: str, step_config: dict, internal_branch_name: str = None):
             },
         )
         return node_mgr.driver
+    except KeyError:
+        msg = "The node configuration does not contain the required key 'type'."
+        logger.exception(step_config)
+        raise Exception(msg)
     except Exception as _e:
         msg = (
             f"Could not find the node type {step_config['type']}. Please ensure you have installed "

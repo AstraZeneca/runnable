@@ -73,7 +73,7 @@ def test_base_node__get_branch_log_name_returns_map_modified_internal_name_if_ma
 
 
 def test_base_node__get_branch_by_name_raises_exception():
-    node = nodes.BaseNode(name="test", internal_name="test", config={"catalog": "some settings"})
+    node = nodes.BaseNode(name="test", internal_name="test", config={})
 
     with pytest.raises(Exception):
         node._get_branch_by_name("fail")
@@ -133,8 +133,7 @@ def test_task_node_sets_attempt_log_success_in_no_exception_of_execution(mocker,
     configuration = {"command": "test", "next": "next_node"}
     task_node = nodes.TaskNode(name="test", internal_name="test", config=configuration)
 
-    task_node.task = mocker.MagicMock()
-    task_node.task.execute_command = mocker.MagicMock()
+    task_node.executable = mocker.MagicMock()
 
     task_node.execute(executor=mock_executor)
 
@@ -157,7 +156,7 @@ def test_fail_node_sets_branch_log_fail(mocker, monkeypatch):
     mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
     mock_executor.run_log_store.get_branch_log = mocker.MagicMock(return_value=mock_branch_log)
 
-    node = nodes.FailNode(name="test", internal_name="test", config={"command": "nocommand"})
+    node = nodes.FailNode(name="test", internal_name="test", config={})
 
     node.execute(executor=mock_executor)
 
@@ -172,7 +171,7 @@ def test_fail_node_sets_attempt_log_success_even_in_exception(mocker, monkeypatc
     mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
     mock_executor.run_log_store.get_branch_log = mocker.MagicMock(side_effect=Exception())
 
-    node = nodes.FailNode(name="test", internal_name="test", config={"command": "nocommand"})
+    node = nodes.FailNode(name="test", internal_name="test", config={})
 
     node.execute(executor=mock_executor)
 
@@ -180,7 +179,7 @@ def test_fail_node_sets_attempt_log_success_even_in_exception(mocker, monkeypatc
 
 
 def test_fail_node_execute_as_graph_raises_exception():
-    fail_node = nodes.FailNode(name="test", internal_name="test", config={"command": "nocommand"})
+    fail_node = nodes.FailNode(name="test", internal_name="test", config={})
 
     with pytest.raises(Exception):
         fail_node.execute_as_graph(None)
@@ -194,7 +193,7 @@ def test_success_node_sets_branch_log_success(mocker, monkeypatch):
     mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
     mock_executor.run_log_store.get_branch_log = mocker.MagicMock(return_value=mock_branch_log)
 
-    node = nodes.SuccessNode(name="test", internal_name="test", config={"command": "nocommand"})
+    node = nodes.SuccessNode(name="test", internal_name="test", config={})
 
     node.execute(executor=mock_executor)
 
@@ -209,7 +208,7 @@ def test_success_node_sets_attempt_log_success_even_in_exception(mocker, monkeyp
     mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
     mock_executor.run_log_store.get_branch_log = mocker.MagicMock(side_effect=Exception())
 
-    node = nodes.SuccessNode(name="test", internal_name="test", config={"command": "nocommand"})
+    node = nodes.SuccessNode(name="test", internal_name="test", config={})
 
     node.execute(executor=mock_executor)
 
@@ -217,7 +216,7 @@ def test_success_node_sets_attempt_log_success_even_in_exception(mocker, monkeyp
 
 
 def test_success_node_execute_as_graph_raises_exception():
-    success_node = nodes.SuccessNode(name="test", internal_name="test", config={"command": "nocommand"})
+    success_node = nodes.SuccessNode(name="test", internal_name="test", config={})
 
     with pytest.raises(Exception):
         success_node.execute_as_graph(None)
