@@ -394,11 +394,11 @@ class TaskNode(BaseNode):
     """
 
     node_type = "task"
-    required_fields = ["next_node", "command"]
+    required_fields = ["next_node"]
     errors_on = ["branches"]
 
     class Config(BaseNode.Config):
-        command: str
+        command: str = ""
         command_type: str = defaults.COMMAND_TYPE
         image: str = ""
         next_node: str

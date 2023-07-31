@@ -6,7 +6,8 @@ import logging
 import os
 import subprocess
 import sys
-from typing import ClassVar, Optional
+from pathlib import Path
+from typing import ClassVar, Optional, cast
 
 from pydantic import BaseModel, Extra, validator
 from stevedore import driver
@@ -23,7 +24,6 @@ class BaseTaskType(BaseModel):  # pylint: disable=too-few-public-methods
     """A base task class which does the execution of command defined by the user."""
 
     task_type: ClassVar[str] = ""
-    command: str
     node_name: str
 
     class Config:
@@ -113,6 +113,14 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """The task class for python command."""
 
     task_type: ClassVar[str] = "python"
+    command: str
+
+    @validator("command")
+    def validate_command(cls, command: str):
+        if not command:
+            raise Exception("Command cannot be empty for shell task")
+
+        return command
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the notebook as defined by the command."""
@@ -148,6 +156,14 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
     """The task class for python-lambda command."""
 
     task_type: ClassVar[str] = "python-lambda"
+    command: str
+
+    @validator("command")
+    def validate_command(cls, command: str):
+        if not command:
+            raise Exception("Command cannot be empty for shell task")
+
+        return command
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the lambda function as defined by the command.
@@ -191,12 +207,16 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 class NotebookTaskType(BaseTaskType):
     """The task class for Notebook based execution."""
 
+    command: str
     task_type: ClassVar[str] = "notebook"
     notebook_output_path: str = ""
     optional_ploomber_args: dict = {}
 
     @validator("command")
     def notebook_should_end_with_ipynb(cls, command: str):
+        if not command:
+            raise Exception("Command should point to the ipynb file")
+
         if not command.endswith(".ipynb"):
             raise Exception("Notebook task should point to a ipynb file")
 
@@ -264,6 +284,14 @@ class ShellTaskType(BaseTaskType):
     """The task class for shell based commands."""
 
     task_type: ClassVar[str] = "shell"
+    command: str
+
+    @validator("command")
+    def validate_command(cls, command: str):
+        if not command:
+            raise Exception("Command cannot be empty for shell task")
+
+        return command
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         # Using shell=True as we want to have chained commands to be executed in the same shell.
@@ -303,13 +331,19 @@ class ContainerTaskType(BaseTaskType):
 
     task_type: ClassVar[str] = "container"
     image: str
+    mount_path_prefix: str = "/opt/magnus"
+    command: str = ""  # Would be defaulted to the entrypoint of the container
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         # Conditional import
+        from magnus.context import executor as context_executor
+        from magnus.executor import BaseExecutor
+
         try:
             import docker  # pylint: disable=C0415
 
             client = docker.from_env()
+            api_client = docker.APIClient()
         except ImportError as e:
             msg = "Task type of container requires docker to be installed. Please install via optional: docker"
             logger.exception(msg)
@@ -326,16 +360,26 @@ class ContainerTaskType(BaseTaskType):
         if map_variable:
             container_env_variables[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
+        compute_data_folder = cast(BaseExecutor, context_executor).get_effective_compute_data_folder()
+        mount_volumes = {}
+        if compute_data_folder:
+            mount_volumes[str(Path(compute_data_folder).resolve())] = {
+                "bind": f"{self.mount_path_prefix}/{compute_data_folder}",
+                "mode": "rw",
+            }
+            logger.info(f"Mounting {compute_data_folder} to {self.mount_path_prefix}/{compute_data_folder}")
+
         try:
             container = client.containers.create(
-                image=self.config.image,
+                image=self.image,
                 command=self.command,
                 auto_remove=False,
                 network_mode="host",
                 environment=container_env_variables,
+                volumes=mount_volumes,
             )
             container.start()
-            stream = container.logs(stream=True, follow=True)
+            stream = api_client.logs(container=container.id, timestamps=True, stream=True, follow=True)
             while True:
                 try:
                     output = next(stream).decode("utf-8")
@@ -344,6 +388,12 @@ class ContainerTaskType(BaseTaskType):
                 except StopIteration:
                     logger.info("Docker Run completed")
                     break
+
+            exit_status = api_client.inspect_container(container.id)["State"]["ExitCode"]
+            container.remove(force=True)
+            if exit_status != 0:
+                msg = f"Docker command failed with exit code {exit_status}"
+                raise Exception(msg)
 
         except Exception as _e:
             logger.exception("Problems with spinning up the container")
