@@ -267,7 +267,8 @@ class NotebookTaskType(BaseTaskType):
 
             kwds.update(ploomber_optional_args)
 
-            pm.execute_notebook(**kwds)
+            with self.output_to_file(map_variable=map_variable) as _:
+                pm.execute_notebook(**kwds)
 
             put_in_catalog(notebook_output_path)
             if map_variable:
@@ -295,7 +296,6 @@ class ShellTaskType(BaseTaskType):
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         # Using shell=True as we want to have chained commands to be executed in the same shell.
-        # TODO can we do this without shell=True.
         """Execute the shell command as defined by the command.
 
         Args:
@@ -325,19 +325,18 @@ class ShellTaskType(BaseTaskType):
 
 class ContainerTaskType(BaseTaskType):
     """
-    TODO: This is not fully done
     The task class for container based execution.
     """
 
     task_type: ClassVar[str] = "container"
     image: str
-    mount_path_prefix: str = "/opt/magnus"
+    mount_path_prefix: str = "/opt/magnus/data"
     command: str = ""  # Would be defaulted to the entrypoint of the container
+    output_parameters: str = "/opt/magnus/parameters.json"
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         # Conditional import
         from magnus.context import executor as context_executor
-        from magnus.executor import BaseExecutor
 
         try:
             import docker  # pylint: disable=C0415
@@ -360,24 +359,22 @@ class ContainerTaskType(BaseTaskType):
         if map_variable:
             container_env_variables[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
-        compute_data_folder = cast(BaseExecutor, context_executor).get_effective_compute_data_folder()
-        mount_volumes = {}
-        if compute_data_folder:
-            mount_volumes[str(Path(compute_data_folder).resolve())] = {
-                "bind": f"{self.mount_path_prefix}/{compute_data_folder}",
-                "mode": "rw",
-            }
-            logger.info(f"Mounting {compute_data_folder} to {self.mount_path_prefix}/{compute_data_folder}")
+        mount_volumes = self.get_mount_volumes()
+
+        executor_config = context_executor._resolve_executor_config(context_executor.context_node)
+        optional_docker_args = executor_config.get("optional_docker_args", {})
 
         try:
             container = client.containers.create(
-                image=self.image,
+                self.image,
                 command=self.command,
                 auto_remove=False,
                 network_mode="host",
                 environment=container_env_variables,
                 volumes=mount_volumes,
+                **optional_docker_args,
             )
+
             container.start()
             stream = api_client.logs(container=container.id, timestamps=True, stream=True, follow=True)
             while True:
@@ -390,7 +387,7 @@ class ContainerTaskType(BaseTaskType):
                     break
 
             exit_status = api_client.inspect_container(container.id)["State"]["ExitCode"]
-            container.remove(force=True)
+            # container.remove(force=True)
             if exit_status != 0:
                 msg = f"Docker command failed with exit code {exit_status}"
                 raise Exception(msg)
@@ -398,6 +395,26 @@ class ContainerTaskType(BaseTaskType):
         except Exception as _e:
             logger.exception("Problems with spinning up the container")
             raise _e
+
+    def get_mount_volumes(self) -> dict:
+        """
+        Get the required mount volumes from the configuration.
+        We need to mount both the catalog and the parameter.json files.
+
+        Returns:
+            dict: The mount volumes in the format that docker expects.
+        """
+        from magnus.context import executor as context_executor
+        from magnus.executor import BaseExecutor
+
+        compute_data_folder = cast(BaseExecutor, context_executor).get_effective_compute_data_folder()
+        mount_volumes = {}
+        if compute_data_folder:
+            mount_volumes[str(Path(compute_data_folder).resolve())] = {
+                "bind": f"{self.mount_path_prefix}/{compute_data_folder}",
+                "mode": "rw",
+            }
+            logger.info(f"Mounting {compute_data_folder} to {self.mount_path_prefix}/{compute_data_folder}")
 
 
 def create_task(

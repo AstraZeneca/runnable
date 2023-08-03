@@ -398,7 +398,7 @@ class TaskNode(BaseNode):
     errors_on = ["branches"]
 
     class Config(BaseNode.Config):
-        command: str = ""
+        command: str = ""  # Command is optional for container task nodes while required for every other type
         command_type: str = defaults.COMMAND_TYPE
         image: str = ""
         next_node: str
