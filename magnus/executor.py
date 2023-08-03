@@ -652,7 +652,6 @@ class BaseExecutor:
                 )
 
             effective_node_config[key] = value
-
         effective_node_config.pop("placeholders", None)
 
         return effective_node_config
@@ -915,11 +914,12 @@ class LocalContainerExecutor(BaseExecutor):
         logger.debug("Here is the resolved executor config")
         logger.debug(executor_config)
 
+        from magnus.nodes import TaskNode
         from magnus.tasks import ContainerTaskType
 
-        if (
-            "run_in_local" in executor_config and executor_config["run_in_local"]
-        ) or node.executable.task_type == ContainerTaskType.task_type:
+        if ("run_in_local" in executor_config and executor_config["run_in_local"]) or cast(
+            TaskNode, node
+        ).executable.task_type == ContainerTaskType.task_type:
             # Do not change config but only validate the configuration.
             # Trigger the job on local system instead of a container
             # Or if the task type is a container, just spin the container.
