@@ -917,9 +917,9 @@ class LocalContainerExecutor(BaseExecutor):
         from magnus.nodes import TaskNode
         from magnus.tasks import ContainerTaskType
 
-        if ("run_in_local" in executor_config and executor_config["run_in_local"]) or cast(
-            TaskNode, node
-        ).executable.task_type == ContainerTaskType.task_type:
+        if executor_config.get("run_in_local", None) or (
+            cast(TaskNode, node).executable.task_type == ContainerTaskType.task_type
+        ):
             # Do not change config but only validate the configuration.
             # Trigger the job on local system instead of a container
             # Or if the task type is a container, just spin the container.

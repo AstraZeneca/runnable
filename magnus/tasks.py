@@ -4,8 +4,10 @@ import io
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import ClassVar, Optional, cast
 
@@ -24,6 +26,7 @@ class BaseTaskType(BaseModel):  # pylint: disable=too-few-public-methods
     """A base task class which does the execution of command defined by the user."""
 
     task_type: ClassVar[str] = ""
+
     node_name: str
 
     class Config:
@@ -113,6 +116,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """The task class for python command."""
 
     task_type: ClassVar[str] = "python"
+
     command: str
 
     @validator("command")
@@ -156,6 +160,7 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
     """The task class for python-lambda command."""
 
     task_type: ClassVar[str] = "python-lambda"
+
     command: str
 
     @validator("command")
@@ -207,8 +212,9 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 class NotebookTaskType(BaseTaskType):
     """The task class for Notebook based execution."""
 
-    command: str
     task_type: ClassVar[str] = "notebook"
+
+    command: str
     notebook_output_path: str = ""
     optional_ploomber_args: dict = {}
 
@@ -285,6 +291,7 @@ class ShellTaskType(BaseTaskType):
     """The task class for shell based commands."""
 
     task_type: ClassVar[str] = "shell"
+
     command: str
 
     @validator("command")
@@ -329,10 +336,17 @@ class ContainerTaskType(BaseTaskType):
     """
 
     task_type: ClassVar[str] = "container"
+
     image: str
-    mount_path_prefix: str = "/opt/magnus/data"
+    context_path: str = "/opt/magnus"
     command: str = ""  # Would be defaulted to the entrypoint of the container
-    output_parameters: str = "/opt/magnus/parameters.json"
+    data_folder: str = "data"  # Would be relative to the context_path
+    output_parameters_file: str = "parameters.json"  # would be relative to the context_path
+
+    _temp_dir: str = ""
+
+    class Config:
+        underscore_attrs_are_private = True
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         # Conditional import
@@ -361,7 +375,7 @@ class ContainerTaskType(BaseTaskType):
 
         mount_volumes = self.get_mount_volumes()
 
-        executor_config = context_executor._resolve_executor_config(context_executor.context_node)
+        executor_config = context_executor._resolve_executor_config(context_executor.context_node)  # type: ignore
         optional_docker_args = executor_config.get("optional_docker_args", {})
 
         try:
@@ -387,14 +401,26 @@ class ContainerTaskType(BaseTaskType):
                     break
 
             exit_status = api_client.inspect_container(container.id)["State"]["ExitCode"]
-            # container.remove(force=True)
+            container.remove(force=True)
+
             if exit_status != 0:
                 msg = f"Docker command failed with exit code {exit_status}"
                 raise Exception(msg)
 
+            if self._temp_dir:
+                parameters_file = Path(self._temp_dir) / self.output_parameters_file
+                container_return_parameters = {}
+                if parameters_file.is_file():
+                    with open(parameters_file, "r") as f:
+                        container_return_parameters = json.load(f)
+
+                self._set_parameters(container_return_parameters)
         except Exception as _e:
             logger.exception("Problems with spinning up the container")
             raise _e
+        finally:
+            if self._temp_dir:
+                shutil.rmtree(self._temp_dir)
 
     def get_mount_volumes(self) -> dict:
         """
@@ -409,12 +435,25 @@ class ContainerTaskType(BaseTaskType):
 
         compute_data_folder = cast(BaseExecutor, context_executor).get_effective_compute_data_folder()
         mount_volumes = {}
+
+        # Create temporary directory for parameters.json and map it to context_path
+        self._temp_dir = tempfile.mkdtemp()
+        mount_volumes[str(Path(self._temp_dir).resolve())] = {
+            "bind": f"{str(Path(self.context_path).resolve())}/",
+            "mode": "rw",
+        }
+        logger.info(f"Mounting {str(Path(self._temp_dir).resolve())} to {str(str(Path(self.context_path).resolve()))}/")
+
+        # Map the data folder to context_path/data_folder
         if compute_data_folder:
+            path_to_data = Path(self.context_path) / self.data_folder
             mount_volumes[str(Path(compute_data_folder).resolve())] = {
-                "bind": f"{self.mount_path_prefix}/{compute_data_folder}",
+                "bind": f"{str(path_to_data)}/",
                 "mode": "rw",
             }
-            logger.info(f"Mounting {compute_data_folder} to {self.mount_path_prefix}/{compute_data_folder}")
+            logger.info(f"Mounting {compute_data_folder} to {str(path_to_data)}/")
+
+        return mount_volumes
 
 
 def create_task(
