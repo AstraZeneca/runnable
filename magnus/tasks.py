@@ -4,9 +4,12 @@ import io
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
-from typing import ClassVar, Optional
+import tempfile
+from pathlib import Path
+from typing import ClassVar, List, cast
 
 from pydantic import BaseModel, Extra, validator
 from stevedore import driver
@@ -23,7 +26,7 @@ class BaseTaskType(BaseModel):  # pylint: disable=too-few-public-methods
     """A base task class which does the execution of command defined by the user."""
 
     task_type: ClassVar[str] = ""
-    command: str
+
     node_name: str
 
     class Config:
@@ -114,6 +117,15 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     task_type: ClassVar[str] = "python"
 
+    command: str
+
+    @validator("command")
+    def validate_command(cls, command: str):
+        if not command:
+            raise Exception("Command cannot be empty for shell task")
+
+        return command
+
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the notebook as defined by the command."""
         module, func = utils.get_module_and_func_names(self.command)
@@ -148,6 +160,15 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
     """The task class for python-lambda command."""
 
     task_type: ClassVar[str] = "python-lambda"
+
+    command: str
+
+    @validator("command")
+    def validate_command(cls, command: str):
+        if not command:
+            raise Exception("Command cannot be empty for shell task")
+
+        return command
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the lambda function as defined by the command.
@@ -192,11 +213,16 @@ class NotebookTaskType(BaseTaskType):
     """The task class for Notebook based execution."""
 
     task_type: ClassVar[str] = "notebook"
+
+    command: str
     notebook_output_path: str = ""
     optional_ploomber_args: dict = {}
 
     @validator("command")
     def notebook_should_end_with_ipynb(cls, command: str):
+        if not command:
+            raise Exception("Command should point to the ipynb file")
+
         if not command.endswith(".ipynb"):
             raise Exception("Notebook task should point to a ipynb file")
 
@@ -247,7 +273,8 @@ class NotebookTaskType(BaseTaskType):
 
             kwds.update(ploomber_optional_args)
 
-            pm.execute_notebook(**kwds)
+            with self.output_to_file(map_variable=map_variable) as _:
+                pm.execute_notebook(**kwds)
 
             put_in_catalog(notebook_output_path)
             if map_variable:
@@ -265,9 +292,17 @@ class ShellTaskType(BaseTaskType):
 
     task_type: ClassVar[str] = "shell"
 
+    command: str
+
+    @validator("command")
+    def validate_command(cls, command: str):
+        if not command:
+            raise Exception("Command cannot be empty for shell task")
+
+        return command
+
     def execute_command(self, map_variable: dict = None, **kwargs):
         # Using shell=True as we want to have chained commands to be executed in the same shell.
-        # TODO can we do this without shell=True.
         """Execute the shell command as defined by the command.
 
         Args:
@@ -302,14 +337,28 @@ class ContainerTaskType(BaseTaskType):
     """
 
     task_type: ClassVar[str] = "container"
+
     image: str
+    context_path: str = "/opt/magnus"
+    command: str = ""  # Would be defaulted to the entrypoint of the container
+    data_folder: str = "data"  # Would be relative to the context_path
+    output_parameters_file: str = "parameters.json"  # would be relative to the context_path
+    secrets: List[str] = []
+
+    _temp_dir: str = ""
+
+    class Config:
+        underscore_attrs_are_private = True
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         # Conditional import
+        from magnus.context import executor as context_executor
+
         try:
             import docker  # pylint: disable=C0415
 
             client = docker.from_env()
+            api_client = docker.APIClient()
         except ImportError as e:
             msg = "Task type of container requires docker to be installed. Please install via optional: docker"
             logger.exception(msg)
@@ -326,16 +375,28 @@ class ContainerTaskType(BaseTaskType):
         if map_variable:
             container_env_variables[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
+        for secret_name in self.secrets:
+            secret_value = context_executor.secrets_handler.get(secret_name)  # type: ignore
+            container_env_variables[secret_name] = secret_value
+
+        mount_volumes = self.get_mount_volumes()
+
+        executor_config = context_executor._resolve_executor_config(context_executor.context_node)  # type: ignore
+        optional_docker_args = executor_config.get("optional_docker_args", {})
+
         try:
             container = client.containers.create(
-                image=self.config.image,
+                self.image,
                 command=self.command,
                 auto_remove=False,
                 network_mode="host",
                 environment=container_env_variables,
+                volumes=mount_volumes,
+                **optional_docker_args,
             )
+
             container.start()
-            stream = container.logs(stream=True, follow=True)
+            stream = api_client.logs(container=container.id, timestamps=True, stream=True, follow=True)
             while True:
                 try:
                     output = next(stream).decode("utf-8")
@@ -345,49 +406,84 @@ class ContainerTaskType(BaseTaskType):
                     logger.info("Docker Run completed")
                     break
 
+            exit_status = api_client.inspect_container(container.id)["State"]["ExitCode"]
+            container.remove(force=True)
+
+            if exit_status != 0:
+                msg = f"Docker command failed with exit code {exit_status}"
+                raise Exception(msg)
+
+            if self._temp_dir:
+                parameters_file = Path(self._temp_dir) / self.output_parameters_file
+                container_return_parameters = {}
+                if parameters_file.is_file():
+                    with open(parameters_file, "r") as f:
+                        container_return_parameters = json.load(f)
+
+                self._set_parameters(container_return_parameters)
         except Exception as _e:
             logger.exception("Problems with spinning up the container")
             raise _e
+        finally:
+            if self._temp_dir:
+                shutil.rmtree(self._temp_dir)
+
+    def get_mount_volumes(self) -> dict:
+        """
+        Get the required mount volumes from the configuration.
+        We need to mount both the catalog and the parameter.json files.
+
+        Returns:
+            dict: The mount volumes in the format that docker expects.
+        """
+        from magnus.context import executor as context_executor
+        from magnus.executor import BaseExecutor
+
+        compute_data_folder = cast(BaseExecutor, context_executor).get_effective_compute_data_folder()
+        mount_volumes = {}
+
+        # Create temporary directory for parameters.json and map it to context_path
+        self._temp_dir = tempfile.mkdtemp()
+        mount_volumes[str(Path(self._temp_dir).resolve())] = {
+            "bind": f"{str(Path(self.context_path).resolve())}/",
+            "mode": "rw",
+        }
+        logger.info(f"Mounting {str(Path(self._temp_dir).resolve())} to {str(Path(self.context_path).resolve())}/")
+
+        # Map the data folder to context_path/data_folder
+        if compute_data_folder:
+            path_to_data = Path(self.context_path) / self.data_folder
+            mount_volumes[str(Path(compute_data_folder).resolve())] = {
+                "bind": f"{str(path_to_data)}/",
+                "mode": "rw",
+            }
+            logger.info(f"Mounting {compute_data_folder} to {str(path_to_data)}/")
+
+        return mount_volumes
 
 
-def create_task(
-    node_name: str,
-    command: str,
-    image: str = "",
-    command_type: str = defaults.COMMAND_TYPE,
-    command_config: Optional[dict] = None,
-) -> BaseTaskType:
+def create_task(kwargs_for_init) -> BaseTaskType:
     """
     Creates a task object from the command configuration.
 
     Args:
-        command (str): The command to run
-        image (str, optional): Only in case of a container based command. Defaults to "".
-        command_type (str, optional): The command type. Defaults to defaults.COMMAND_TYPE, python
-        command_config (Optional[dict], optional): Any optional command config. Defaults to None.
+        A dictionary of keyword arguments that are sent by the user to the task.
+        Check against the model class for the validity of it.
 
     Returns:
         tasks.BaseTaskType: The command object
     """
-    # If we want to run a container, we need to know which container.
-    if command_type == ContainerTaskType.task_type and not image:
-        msg = "Image is required when trying to run a container task type"
-        logger.exception(msg)
-        raise Exception(msg)
+    command_type = kwargs_for_init.pop("command_type", defaults.COMMAND_TYPE)
 
-    command_config = command_config or {}
-    command_config["command"] = command
-    command_config["node_name"] = node_name
-
-    if image:
-        command_config["image"] = image
+    command_config = kwargs_for_init.pop("command_config", {})
+    kwargs_for_init.update(command_config)
 
     try:
         task_mgr = driver.DriverManager(
             namespace="tasks",
             name=command_type,
             invoke_on_load=True,
-            invoke_kwds=command_config,
+            invoke_kwds=kwargs_for_init,
         )
         return task_mgr.driver
     except Exception as _e:

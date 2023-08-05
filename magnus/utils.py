@@ -12,7 +12,7 @@ from inspect import signature
 from pathlib import Path
 from string import Template as str_template
 from types import FunctionType
-from typing import TYPE_CHECKING, Callable, List, Mapping, Tuple, Union
+from typing import TYPE_CHECKING, Callable, List, Mapping, Tuple, Union, cast
 
 from ruamel.yaml import YAML  # type: ignore
 from stevedore import driver
@@ -661,6 +661,8 @@ def get_run_config(executor: BaseExecutor) -> dict:
     Returns:
         dict: The run_config.
     """
+    from magnus.catalog import BaseCatalog
+
     run_config = {}
 
     run_config["executor"] = {"type": executor.service_name, "config": executor.config}
@@ -671,8 +673,8 @@ def get_run_config(executor: BaseExecutor) -> dict:
     }
 
     run_config["catalog"] = {
-        "type": executor.catalog_handler.service_name,
-        "config": executor.catalog_handler.config,
+        "type": cast(BaseCatalog, executor.catalog_handler).service_name,
+        "config": cast(BaseCatalog, executor.catalog_handler).config,
     }
 
     run_config["secrets"] = {

@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Union, cast
 
 from magnus import defaults, exceptions, pickler, pipeline, utils
 
@@ -132,6 +132,7 @@ def get_from_catalog(name: str, destination_folder: str = None):
 
     """
     from magnus import context  # pylint: disable=import-outside-toplevel
+    from magnus.catalog import BaseCatalog
 
     if not context.executor:
         msg = (
@@ -143,7 +144,7 @@ def get_from_catalog(name: str, destination_folder: str = None):
     if not destination_folder:
         destination_folder = context.executor.catalog_handler.compute_data_folder  # type: ignore
 
-    data_catalog = context.executor.catalog_handler.get(
+    data_catalog = cast(BaseCatalog, context.executor.catalog_handler).get(
         name,
         run_id=context.executor.run_id,  # type: ignore
         compute_data_folder=destination_folder,
@@ -168,6 +169,7 @@ def put_in_catalog(filepath: str):
         filepath (str): The path of the file to put in the catalog
     """
     from magnus import context  # pylint: disable=import-outside-toplevel
+    from magnus.catalog import BaseCatalog
 
     if not context.executor:
         msg = (
@@ -178,7 +180,7 @@ def put_in_catalog(filepath: str):
 
     file_path = Path(filepath)
 
-    data_catalog = context.executor.catalog_handler.put(
+    data_catalog = cast(BaseCatalog, context.executor.catalog_handler).put(
         file_path.name,
         run_id=context.executor.run_id,  # type: ignore
         compute_data_folder=file_path.parent,

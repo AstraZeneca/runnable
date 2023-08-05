@@ -8,7 +8,7 @@ from magnus import defaults, tasks
 
 @pytest.fixture
 def configuration():
-    return {"command": "dummy", "node_name": "dummy"}
+    return {"node_name": "dummy"}
 
 
 def test_base_task_execute_command_raises_not_implemented_error(configuration):
@@ -63,6 +63,7 @@ def test_python_task_command_raises_exception_if_function_fails(mocker, monkeypa
 
     monkeypatch.setattr(tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
 
+    configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)
     with pytest.raises(Exception):
         py_exec.execute_command()
@@ -80,6 +81,7 @@ def test_python_task_command_calls_with_no_parameters_if_none_sent(mocker, monke
     monkeypatch.setattr(tasks.BaseTaskType, "output_to_file", mocker.MagicMock(return_value=contextlib.nullcontext()))
     monkeypatch.setattr(tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={}))
 
+    configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)
 
     py_exec.execute_command()
@@ -99,6 +101,7 @@ def test_python_task_command_calls_with_parameters_if_sent_by_filter(mocker, mon
     monkeypatch.setattr(tasks.BaseTaskType, "output_to_file", mocker.MagicMock(return_value=contextlib.nullcontext()))
     monkeypatch.setattr(tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
 
+    configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)
     py_exec.execute_command()
     dummy_func.assert_called_once_with(a=1)
@@ -116,6 +119,7 @@ def test_python_task_command_sends_no_mapped_variable_if_not_present_in_signatur
     monkeypatch.setattr(tasks.BaseTaskType, "output_to_file", mocker.MagicMock(return_value=contextlib.nullcontext()))
     monkeypatch.setattr(tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
 
+    configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)
     py_exec.execute_command(map_variable={"map_name": "map_value"})
     dummy_func.assert_called_once_with(a=1)
@@ -135,6 +139,7 @@ def test_python_task_command_sends_mapped_variable_if_present_in_signature(mocke
         tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1, "map_name": "map_value"})
     )
 
+    configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)
     py_exec.execute_command()
     dummy_func.assert_called_once_with(a=1, map_name="map_value")
@@ -152,6 +157,7 @@ def test_python_task_command_sets_env_variable_of_return_values(mocker, monkeypa
     monkeypatch.setattr(tasks.BaseTaskType, "output_to_file", mocker.MagicMock(return_value=contextlib.nullcontext()))
     monkeypatch.setattr(tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
 
+    configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)
     py_exec.execute_command(map_variable="iterme")
 

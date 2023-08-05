@@ -5,16 +5,16 @@ import json
 import logging
 import os
 import re
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, cast
 
 from pydantic import BaseModel
 
 from magnus import defaults, exceptions, integration, interaction, utils
+from magnus.catalog import BaseCatalog
 from magnus.graph import Graph
 from magnus.nodes import BaseNode
 
 if TYPE_CHECKING:
-    from magnus.catalog import BaseCatalog
     from magnus.datastore import BaseRunLogStore, DataCatalog, StepLog
     from magnus.experiment_tracker import BaseExperimentTracker
     from magnus.secrets import BaseSecrets
@@ -63,13 +63,14 @@ class BaseExecutor:
         self.dag_hash: str = ""
         self.execution_plan: str = ""  # Chained or unchained
         # Services
-        self.catalog_handler: BaseCatalog = None  # type: ignore
+        self.catalog_handler: Optional[BaseCatalog] = None
         self.secrets_handler: BaseSecrets = None  # type: ignore
         self.experiment_tracker: BaseExperimentTracker = None  # type: ignore
         self.run_log_store: BaseRunLogStore = None  # type: ignore
         self.previous_run_log = None
 
         self.context_step_log: Optional[StepLog] = None
+        self.context_node: Optional[BaseNode] = None
 
     @property
     def step_decorator_run_id(self):
@@ -192,7 +193,9 @@ class BaseExecutor:
         integration.validate(self, self.experiment_tracker)
         integration.configure_for_execution(self, self.experiment_tracker)
 
-    def _sync_catalog(self, node: BaseNode, step_log: StepLog, stage: str, synced_catalogs=None):
+    def _sync_catalog(
+        self, node: BaseNode, step_log: StepLog, stage: str, synced_catalogs=None
+    ) -> Optional[List[DataCatalog]]:
         """
         1). Identify the catalog settings by over-riding node settings with the global settings.
         2). For stage = get:
@@ -208,6 +211,9 @@ class BaseExecutor:
             step_log (StepLog): The step log corresponding to that node
             stage (str): One of get or put
 
+        Raises:
+            Exception: If the stage is not in one of get/put
+
         """
         if stage not in ["get", "put"]:
             msg = (
@@ -216,18 +222,18 @@ class BaseExecutor:
             )
             raise Exception(msg)
 
-        node_catalog_settings = node._get_catalog_settings()
+        node_catalog_settings = cast(BaseNode, self.context_node)._get_catalog_settings()
         if not (node_catalog_settings and stage in node_catalog_settings):
             # Nothing to get/put from the catalog
             return None
 
-        # Local compute data folder over rides the global one
-        compute_data_folder = self.catalog_handler.compute_data_folder
-        if "compute_data_folder" in node_catalog_settings and node_catalog_settings["compute_data_folder"]:
-            compute_data_folder = node_catalog_settings["compute_data_folder"]
+        compute_data_folder = self.get_effective_compute_data_folder()
+
+        if not compute_data_folder:
+            return None
 
         data_catalogs = []
-        for name_pattern in node_catalog_settings.get(stage) or []:  #  Assumes a list
+        for name_pattern in cast(dict, node_catalog_settings).get(stage) or []:  #  Assumes a list
             data_catalogs = getattr(self.catalog_handler, stage)(
                 name=name_pattern,
                 run_id=self.run_id,
@@ -239,6 +245,29 @@ class BaseExecutor:
             step_log.add_data_catalogs(data_catalogs)
 
         return data_catalogs
+
+    def get_effective_compute_data_folder(self) -> Optional[str]:
+        """
+        Get the effective compute data folder for the given stage.
+        If there is nothing to catalog, we return None.
+
+        The default is the compute data folder of the catalog but this can be over-ridden by the node.
+
+        Args:
+            stage (str): The stage we are in the process of cataloging
+
+
+        Returns:
+            Optional[str]: The compute data folder as defined by catalog handler or the node or None.
+        """
+
+        catalog_settings = cast(BaseNode, self.context_node)._get_catalog_settings()
+
+        compute_data_folder = cast(BaseCatalog, self.catalog_handler).compute_data_folder
+        if "compute_data_folder" in catalog_settings and catalog_settings["compute_data_folder"]:  # type: ignore
+            compute_data_folder = catalog_settings["compute_data_folder"]  # type: ignore
+
+        return compute_data_folder
 
     @property
     def step_attempt_number(self) -> int:
@@ -284,10 +313,13 @@ class BaseExecutor:
         max_attempts = max_attempts = node._get_max_attempts()
         logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}, max_attempts: {max_attempts}")
 
-        data_catalogs_get: List[DataCatalog] = self._sync_catalog(node, step_log, stage="get")
-        attempt_log = self.run_log_store.create_attempt_log()
         try:
             self.context_step_log = step_log
+            self.context_node = node
+
+            attempt_log = self.run_log_store.create_attempt_log()
+            data_catalogs_get: Optional[List[DataCatalog]] = self._sync_catalog(node, step_log, stage="get")
+
             attempt_log = node.execute(executor=self, mock=step_log.mock, map_variable=map_variable, **kwargs)
         except Exception as e:
             # Any exception here is a magnus exception as node suppresses exceptions.
@@ -311,8 +343,9 @@ class BaseExecutor:
                 diff_parameters = utils.diff_dict(parameters_in, parameters_out)
                 self.run_log_store.set_parameters(self.run_id, diff_parameters)
 
-            # Remove the step log context
+            # Remove the step context
             self.context_step_log = None
+            self.context_node = None
 
             self.run_log_store.add_step_log(step_log, self.run_id)
 
@@ -619,7 +652,6 @@ class BaseExecutor:
                 )
 
             effective_node_config[key] = value
-
         effective_node_config.pop("placeholders", None)
 
         return effective_node_config
@@ -810,7 +842,7 @@ class LocalContainerExecutor(BaseExecutor):
         Returns:
             str: The default docker image to use from the config.
         """
-        return self.config.docker_image
+        return self.config.docker_image  # type: ignore
 
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
         """
@@ -882,8 +914,15 @@ class LocalContainerExecutor(BaseExecutor):
         logger.debug("Here is the resolved executor config")
         logger.debug(executor_config)
 
-        if "run_in_local" in executor_config and executor_config["run_in_local"]:
+        from magnus.nodes import TaskNode
+        from magnus.tasks import ContainerTaskType
+
+        if executor_config.get("run_in_local", None) or (
+            cast(TaskNode, node).executable.task_type == ContainerTaskType.task_type
+        ):
             # Do not change config but only validate the configuration.
+            # Trigger the job on local system instead of a container
+            # Or if the task type is a container, just spin the container.
             integration.validate(self, self.run_log_store)
             integration.validate(self, self.catalog_handler)
             integration.validate(self, self.secrets_handler)
@@ -919,6 +958,7 @@ class LocalContainerExecutor(BaseExecutor):
 
         try:
             client = docker.from_env()
+            api_client = docker.APIClient()
         except Exception as ex:
             logger.exception("Could not get access to docker")
             raise Exception("Could not get the docker socket file, do you have docker installed?") from ex
@@ -939,13 +979,13 @@ class LocalContainerExecutor(BaseExecutor):
             container = client.containers.create(
                 image=docker_image,
                 command=command,
-                auto_remove=True,
+                auto_remove=False,
                 volumes=self.volumes,
                 network_mode="host",
                 environment=environment,
             )
             container.start()
-            stream = container.logs(stream=True, follow=True)
+            stream = api_client.logs(container=container.id, timestamps=True, stream=True, follow=True)
             while True:
                 try:
                     output = next(stream).decode("utf-8")
@@ -954,9 +994,14 @@ class LocalContainerExecutor(BaseExecutor):
                 except StopIteration:
                     logger.info("Docker Run completed")
                     break
+            exit_status = api_client.inspect_container(container.id)["State"]["ExitCode"]
+            container.remove(force=True)
+            if exit_status != 0:
+                msg = f"Docker command failed with exit code {exit_status}"
+                raise Exception(msg)
 
         except Exception as _e:
-            logger.exception("Problems with spinning up the container")
+            logger.exception("Problems with spinning/running the container")
             raise _e
 
 

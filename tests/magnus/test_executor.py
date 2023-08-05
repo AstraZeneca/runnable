@@ -105,13 +105,16 @@ def test_base_executor__sync_catalog_returns_nothing_if_no_syncing_for_node(mock
     mock_node._get_catalog_settings.return_value = None
 
     base_executor = executor.BaseExecutor(config=None)
+    base_executor.context_node = mock_node
 
     assert base_executor._sync_catalog(mock_node, None, stage="get") is None
 
 
 def test_base_executor__sync_catalog_raises_exception_if_stage_not_in_get_or_put(mocker, monkeypatch):
-    base_executor = executor.BaseExecutor(config=None)
+    mock_node = mocker.MagicMock()
 
+    base_executor = executor.BaseExecutor(config=None)
+    base_executor.context_node = mock_node
     with pytest.raises(Exception):
         base_executor._sync_catalog(node=None, step_log=None, stage="puts")
 
@@ -131,6 +134,7 @@ def test_base_executor__sync_catalog_uses_catalog_handler_compute_folder_by_defa
     base_executor = executor.BaseExecutor(config=None)
     base_executor.run_id = "run_id"
     base_executor.catalog_handler = mock_catalog
+    base_executor.context_node = mock_node
 
     base_executor._sync_catalog(mock_node, mock_step_log, stage="get")
 
@@ -152,6 +156,7 @@ def test_base_executor__sync_catalog_uses_compute_folder_if_provided_by_node(moc
     mock_step_log = mocker.MagicMock()
 
     base_executor = executor.BaseExecutor(config=None)
+    base_executor.context_node = mock_node
     base_executor.run_id = "run_id"
     base_executor.catalog_handler = mock_catalog
 
