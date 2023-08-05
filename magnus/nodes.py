@@ -38,8 +38,6 @@ class BaseNode:
     """
 
     node_type = ""
-    required_fields: List[str] = []
-    errors_on: List[str] = []
 
     class Config(BaseModel):
         class Config:
@@ -59,7 +57,7 @@ class BaseNode:
         # pylint: disable=R0914,R0913
         self.name = name
         self.internal_name = internal_name  #  Dot notation naming of the steps
-        self.config = self.Config(**config)  # Will hold the config as it comes in
+        self.config = self.Config(**config)
         self.internal_branch_name = internal_branch_name  # parallel, map, dag only have internal names
         self.is_composite = False
 
@@ -74,14 +72,6 @@ class BaseNode:
         if "%" in self.name:
             messages.append("Node names cannot have '%' in them")
 
-        for req in self.required_fields:
-            if req not in self.config.dict():
-                messages.append(f"{self.name} should have {req} field")
-                continue
-
-        for err in self.errors_on:
-            if err in self.config.dict():
-                messages.append(f"{self.name} should not have {err} field")
         return messages
 
     def _to_dict(self) -> dict:
@@ -394,29 +384,34 @@ class TaskNode(BaseNode):
     """
 
     node_type = "task"
-    required_fields = ["next_node"]
-    errors_on = ["branches"]
 
-    class Config(BaseNode.Config):
-        command: str = ""  # Command is optional for container task nodes while required for every other type
-        command_type: str = defaults.COMMAND_TYPE
-        image: str = ""
+    class Config(BaseNode.Config, extra=Extra.allow):  # type: ignore
         next_node: str
         catalog: dict = {}
         retry: int = 1
         on_failure: str = ""
-        command_config: dict = {}
+
+        @classmethod
+        def get_field_names(cls) -> List[str]:
+            field_names = []
+            for k, _ in cls.__fields__.items():
+                field_names.append(k)
+
+            return field_names
 
     def __init__(self, name, internal_name, config, internal_branch_name=None):
         super().__init__(name, internal_name, config, internal_branch_name)
 
-        self.executable = create_task(
-            node_name=self.name,
-            command=self.config.command,
-            image=self.config.image,
-            command_type=self.config.command_type,
-            command_config=self.config.command_config,
-        )
+        kwargs_for_command = {
+            "node_name": self.name,
+        }
+
+        for key, value in self.config.dict().items():
+            if key not in TaskNode.Config.get_field_names():
+                # Ignore all the fields that are used by node itself
+                kwargs_for_command[key] = value
+
+        self.executable = create_task(kwargs_for_command)
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
         """
@@ -468,8 +463,6 @@ class FailNode(BaseNode):
     """
 
     node_type = "fail"
-    required_fields: List[str] = []
-    errors_on: List[str] = ["next_node", "command", "branches", "on_failure", "catalog"]
 
     def _get_on_failure_node(self) -> Optional[str]:
         """
@@ -551,8 +544,6 @@ class SuccessNode(BaseNode):
     """
 
     node_type = "success"
-    required_fields: List[str] = []
-    errors_on: List[str] = ["next_node", "command", "branches", "on_failure", "catalog"]
 
     def _get_on_failure_node(self) -> Optional[str]:
         """
@@ -642,8 +633,6 @@ class ParallelNode(BaseNode):
     """
 
     node_type = "parallel"
-    required_fields = ["next_node", "branches"]
-    errors_on = ["command", "catalog", "retry"]
 
     class Config(BaseNode.Config):
         next_node: str
@@ -823,8 +812,6 @@ class MapNode(BaseNode):
     """
 
     node_type = "map"
-    required_fields = ["next_node", "iterate_on", "iterate_as", "branch"]
-    errors_on = ["command", "catalog", "retry"]
 
     class Config(BaseNode.Config):
         next_node: str
@@ -1049,8 +1036,6 @@ class DagNode(BaseNode):
     """
 
     node_type = "dag"
-    required_fields = ["next_node", "dag_definition"]
-    errors_on = ["command", "catalog", "retry"]
 
     class Config(BaseNode.Config):
         next_node: str

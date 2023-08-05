@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import ClassVar, Optional, cast
+from typing import ClassVar, List, cast
 
 from pydantic import BaseModel, Extra, validator
 from stevedore import driver
@@ -342,6 +342,7 @@ class ContainerTaskType(BaseTaskType):
     command: str = ""  # Would be defaulted to the entrypoint of the container
     data_folder: str = "data"  # Would be relative to the context_path
     output_parameters_file: str = "parameters.json"  # would be relative to the context_path
+    secrets: List[str] = []
 
     _temp_dir: str = ""
 
@@ -372,6 +373,10 @@ class ContainerTaskType(BaseTaskType):
 
         if map_variable:
             container_env_variables[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
+
+        for secret_name in self.secrets:
+            secret_value = context_executor.secrets_handler.get(secret_name)  # type: ignore
+            container_env_variables[secret_name] = secret_value
 
         mount_volumes = self.get_mount_volumes()
 
@@ -442,7 +447,7 @@ class ContainerTaskType(BaseTaskType):
             "bind": f"{str(Path(self.context_path).resolve())}/",
             "mode": "rw",
         }
-        logger.info(f"Mounting {str(Path(self._temp_dir).resolve())} to {str(str(Path(self.context_path).resolve()))}/")
+        logger.info(f"Mounting {str(Path(self._temp_dir).resolve())} to {str(Path(self.context_path).resolve())}/")
 
         # Map the data folder to context_path/data_folder
         if compute_data_folder:
@@ -456,44 +461,28 @@ class ContainerTaskType(BaseTaskType):
         return mount_volumes
 
 
-def create_task(
-    node_name: str,
-    command: str,
-    image: str = "",
-    command_type: str = defaults.COMMAND_TYPE,
-    command_config: Optional[dict] = None,
-) -> BaseTaskType:
+def create_task(kwargs_for_init) -> BaseTaskType:
     """
     Creates a task object from the command configuration.
 
     Args:
-        command (str): The command to run
-        image (str, optional): Only in case of a container based command. Defaults to "".
-        command_type (str, optional): The command type. Defaults to defaults.COMMAND_TYPE, python
-        command_config (Optional[dict], optional): Any optional command config. Defaults to None.
+        A dictionary of keyword arguments that are sent by the user to the task.
+        Check against the model class for the validity of it.
 
     Returns:
         tasks.BaseTaskType: The command object
     """
-    # If we want to run a container, we need to know which container.
-    if command_type == ContainerTaskType.task_type and not image:
-        msg = "Image is required when trying to run a container task type"
-        logger.exception(msg)
-        raise Exception(msg)
+    command_type = kwargs_for_init.pop("command_type", defaults.COMMAND_TYPE)
 
-    command_config = command_config or {}
-    command_config["command"] = command
-    command_config["node_name"] = node_name
-
-    if image:
-        command_config["image"] = image
+    command_config = kwargs_for_init.pop("command_config", {})
+    kwargs_for_init.update(command_config)
 
     try:
         task_mgr = driver.DriverManager(
             namespace="tasks",
             name=command_type,
             invoke_on_load=True,
-            invoke_kwds=command_config,
+            invoke_kwds=kwargs_for_init,
         )
         return task_mgr.driver
     except Exception as _e:
