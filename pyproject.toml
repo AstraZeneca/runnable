@@ -112,7 +112,7 @@ magnus= 'magnus.cli:cli'
 "parallel" = "magnus.nodes:ParallelNode"
 "map" = "magnus.nodes:MapNode"
 "dag" = "magnus.nodes:DagNode"
-"as-is" = "magnus.nodes:AsISNode"
+"as-is" = "magnus.nodes:AsIsNode"
 
 [tool.interrogate]
 ignore-init-method = true

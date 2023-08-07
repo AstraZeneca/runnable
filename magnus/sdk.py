@@ -1,11 +1,11 @@
 import logging
 from logging.config import fileConfig
-from types import FunctionType
-from typing import Dict, List, Optional, Union
+from typing import ForwardRef, List, Optional, Union
 
 from pkg_resources import resource_filename
+from pydantic import BaseModel, Extra, Field
 
-from magnus import defaults, graph, nodes, pipeline, utils
+from magnus import defaults, graph, pipeline, utils
 
 logger = logging.getLogger(defaults.NAME)
 
@@ -96,144 +96,125 @@ logger = logging.getLogger(defaults.NAME)
 #         return wrapped_f
 
 
-class Task:
-    """A exposed magnus task to be used in SDK."""
+# Forward reference for self referencing later
+BaseStep = ForwardRef("BaseStep")
 
-    def __init__(
-        self,
-        name: str,
-        command: Union[str, FunctionType],
-        command_type: str = defaults.COMMAND_TYPE,
-        command_config: Optional[dict] = None,
-        catalog: Optional[dict] = None,
-        executor_config: Optional[dict] = None,
-        retry: int = 1,
-        on_failure: str = "",
-        next_node: str = "",
-    ):
-        self.name = name
-        self.command = command
-        self.command_type = command_type
-        self.command_config = command_config or {}
-        self.catalog = catalog or {}
-        self.executor_config = executor_config or {}
-        self.retry = retry
-        self.on_failure = on_failure
-        self.next_node = next_node or "success"
-        self.node: Optional[nodes.BaseNode] = None
+
+class BaseStep(BaseModel):
+    name: str
+    next_node: str = ""
+    on_failure: Optional[str]
+    _node: Optional[BaseStep]
+    _is_frozen: bool = False  # Once the graph is constructed, it is frozen for any changes.
+    # Could be interesting to see this:
+    # https://stackoverflow.com/questions/67078207/is-it-possible-to-dynamically-change-the-mutability-of-a-pydantic-class
+
+    class Config:
+        extra = Extra.allow
+        underscore_attrs_are_private = True
 
     def _construct_node(self):
         """Construct a node of the graph."""
-        # TODO: The below has issues if the function and the pipeline are in the same module
-        # Something to do with __main__ being present
-        if isinstance(self.command, FunctionType):
-            self.command = utils.get_module_and_func_from_function(self.command)
-
-        node_config = {
-            "type": "task",
-            "next_node": self.next_node,
-            "command": self.command,
-            "command_type": self.command_type,
-            "command_config": self.command_config,
-            "catalog": self.catalog,
-            "executor_config": self.executor_config,
-            "retry": self.retry,
-            "on_failure": self.on_failure,
-        }
         # The node will temporarily have invalid branch names
-        self.node = graph.create_node(name=self.name, step_config=node_config, internal_branch_name="")
+        step_config = self.dict(by_alias=True)
+        step_config.pop("name")
+        self._node = graph.create_node(name=self.name, step_config=step_config, internal_branch_name="")
+
+    def set_on_failure(self, name: str):
+        if self._is_frozen:
+            raise Exception(f"Cannot modify a node: {self.name} after the graph has been constructed.")
+
+        self.on_failure = name
+
+    def set_next_node(self, next_node: str):
+        if self._is_frozen:
+            raise Exception(f"Cannot modify a node: {self.name} after the graph has been constructed.")
+
+        self.next_node = next_node
 
     def _fix_internal_name(self):
         """Should be done after the parallel's are implemented."""
         pass
 
 
-class AsIs:
-    """An exposed magnus as-is task to be used in SDK."""
-
-    def __init__(
-        self,
-        name: str,
-        mode_config: Optional[dict] = None,
-        retry: int = 1,
-        on_failure: str = "",
-        next_node: str = "",
-        **kwargs
-    ):
-        self.name = name
-        self.mode_config = mode_config or {}
-        self.retry = retry
-        self.on_failure = on_failure
-        self.next_node = next_node or "success"
-        self.additional_kwargs = kwargs or {}
-        self.node: Optional[nodes.BaseNode] = None
-
-    def _construct_node(self):
-        node_config = {
-            "type": "as-is",
-            "next_node": self.next_node,
-            "mode_config": self.mode_config,
-            "retry": self.retry,
-            "on_failure": self.on_failure,
-        }
-        node_config.update(self.additional_kwargs)
-        # The node will temporarily have invalid branch names
-        self.node = graph.create_node(name=self.name, step_config=node_config, internal_branch_name="")
-
-    def _fix_internal_name(self):
-        """Should be done after the parallel's are implemented."""
-        pass
+BaseStep.update_forward_refs()
 
 
-class Pipeline:
-    # A way for the user to define a pipeline
+class Task(BaseStep):
+    """A exposed magnus task to be used in SDK."""
+
+    ref_type: str = Field("task", alias="type")
+
+
+class AsIs(BaseStep):
+    """A exposed magnus as-is to be used in SDK."""
+
+    ref_type: str = Field("as-is", alias="type")
+
+
+class Pipeline(BaseModel):
     # TODO: Allow for nodes other than Task, AsIs
     """An exposed magnus pipeline to be used in SDK."""
 
-    def __init__(
-        self,
-        start_at: Union[Task, AsIs],
-        name: str = "",
-        description: str = "",
-        max_time: int = defaults.MAX_TIME,
-        internal_branch_name: str = "",
-    ):
-        self.start_at = start_at
-        self.name = name
-        self.description = description
-        self.max_time = max_time
-        self.internal_branch_name = internal_branch_name
-        self.dag: Optional[graph.Graph] = None
+    steps: List[Union[Task, AsIs]]
+    name: str = ""
+    description: str = ""
+    max_time: int = defaults.MAX_TIME
+    internal_branch_name: str = ""
+    _dag: Optional[graph.Graph] = None
+    _start_at: Optional[Union[Task, AsIs]] = None
 
-    def construct(self, steps: List[Task]):
+    class Config:
+        extra = Extra.forbid
+        underscore_attrs_are_private = True
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._construct()
+
+    def _construct(self):
         """Construct a pipeline from a list of tasks."""
-        graph_config: Dict[str, Union[str, int]] = {
-            "description": self.description,
-            "name": self.name,
-            "max_time": self.max_time,
-            "internal_branch_name": self.internal_branch_name,
-        }
-        messages: List[str] = []
-        for step in steps:
-            step._construct_node()
-            print(step.node.__dict__)
-            messages.extend(step.node.validate())  # type: ignore
 
-        if not steps:
-            raise Exception("A dag needs at least one step")
+        prev_step = None
+        messages: List[str] = []
+        for step in self.steps:
+            if not self._start_at:
+                # The first step is always the start_at
+                self._start_at = step
+
+            # Freeze the step from any alterations
+            step._is_frozen = True
+
+            # Construct the previous named step of the graph
+            if prev_step:
+                # Link to the next node only if it is asked to be done
+                if not prev_step.next_node:
+                    prev_step.next_node = step.name
+
+                prev_step._construct_node()
+
+                messages.extend(prev_step._node.validate())  # type: ignore
+
+            prev_step = step
+
+        # construct the last named step of the graph
+        if not step.next_node:
+            step.next_node = "success"
+        step._construct_node()
 
         if messages:
             raise Exception(", ".join(messages))
 
-        graph_config["start_at"] = self.start_at.node.name  # type: ignore
+        graph_config = self.dict()
+        graph_config["start_at"] = self._start_at.name
+        graph_config.pop("steps")
 
-        dag = graph.Graph(**graph_config)  # type: ignore
-        dag.nodes = [step.node for step in steps]  # type: ignore
+        self._dag = graph.Graph(**graph_config)  # type: ignore
+        self._dag.nodes = [step._node for step in self.steps]  # type: ignore
 
-        dag.add_terminal_nodes()
+        self._dag.add_terminal_nodes()
 
-        dag.validate()
-        self.dag = dag
+        self._dag.validate()
 
     def execute(
         self,
@@ -262,7 +243,7 @@ class Pipeline:
         mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
         utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-        mode_executor.dag = self.dag
+        mode_executor.dag = self._dag
         # Prepare for graph execution
         mode_executor.prepare_for_graph_execution()
 

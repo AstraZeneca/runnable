@@ -332,7 +332,7 @@ class ShellTaskType(BaseTaskType):
 
 class ContainerTaskType(BaseTaskType):
     """
-    TODO: This is not fully done
+    #TODO: Need to add tracking capabilities to this, something like parameters would be good.
     The task class for container based execution.
     """
 

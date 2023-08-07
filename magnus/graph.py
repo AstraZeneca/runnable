@@ -281,7 +281,7 @@ class Graph:
                 try:
                     self.get_node_by_name(neighbor)
                 except exceptions.NodeNotFoundError:
-                    logger.exception("Could not find the node")
+                    logger.exception(f"Could not find the node {neighbor}")
                     if neighbor not in missing_nodes:
                         missing_nodes.append(neighbor)
         return missing_nodes
@@ -401,7 +401,7 @@ def create_node(name: str, step_config: dict, internal_branch_name: str = None):
         raise Exception(msg)
     except Exception as _e:
         msg = (
-            f"Could not find the node type {step_config['type']}. Please ensure you have installed "
+            f"Could not find the node type {node_type}. Please ensure you have installed "
             "the extension that provides the node type."
             "\nCore supports: task, success, fail, parallel, dag, map, as-is"
         )

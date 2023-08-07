@@ -389,7 +389,7 @@ class TaskNode(BaseNode):
         next_node: str
         catalog: dict = {}
         retry: int = 1
-        on_failure: str = ""
+        on_failure: Optional[str]
 
         @classmethod
         def get_field_names(cls) -> List[str]:
@@ -1181,7 +1181,7 @@ class DagNode(BaseNode):
         executor.run_log_store.add_step_log(step_log, executor.run_id)
 
 
-class AsISNode(BaseNode):
+class AsIsNode(BaseNode):
     """
     AsIs is a convenience design node.
 
@@ -1199,7 +1199,7 @@ class AsISNode(BaseNode):
 
     class Config(BaseNode.Config, extra=Extra.allow):  # type: ignore
         next_node: str
-        on_failure: str = ""
+        on_failure: Optional[str]
         retry: int = 1
 
     def _get_catalog_settings(self) -> Optional[dict]:

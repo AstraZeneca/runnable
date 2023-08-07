@@ -81,10 +81,9 @@ def get_run_log(work_dir, run_id):
 def test_success_sdk():
     configs = get_configs()
     for config in configs:
-        first = Task(name="first", command="tests.scenarios.test_traversals.success_function", next_node="second")
+        first = Task(name="first", command="tests.scenarios.test_traversals.success_function")
         second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
-        pipeline = Pipeline(start_at=first, name="testing")
-        pipeline.construct([first, second])
+        pipeline = Pipeline(name="testing", steps=[first, second])
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
             write_dag_and_config(context_dir_path, dag=None, config=config)
@@ -104,10 +103,9 @@ def test_success_sdk():
 def test_success_sdk_asis():
     configs = get_configs()
     for config in configs:
-        first = AsIs(name="first", command="tests.scenarios.test_traversals.success_function", next_node="second")
+        first = AsIs(name="first", command="tests.scenarios.test_traversals.success_function")
         second = AsIs(name="second", command="tests.scenarios.test_traversals.success_function")
-        pipeline = Pipeline(start_at=first, name="testing")
-        pipeline.construct([first, second])
+        pipeline = Pipeline(name="testing", steps=[first, second])
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
             write_dag_and_config(context_dir_path, dag=None, config=config)
@@ -181,10 +179,9 @@ def test_success_executor_config(success_container_graph):
 def test_fail_sdk():
     configs = get_configs()
     for config in configs:
-        first = Task(name="first", command="tests.scenarios.test_traversals.error_function", next_node="second")
+        first = Task(name="first", command="tests.scenarios.test_traversals.error_function")
         second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
-        pipeline = Pipeline(start_at=first, name="testing")
-        pipeline.construct([first, second])
+        pipeline = Pipeline(name="testing", steps=[first, second])
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
             write_dag_and_config(context_dir_path, dag=None, config=config)
@@ -242,11 +239,10 @@ def test_on_fail_sdk():
             name="first",
             command="tests.scenarios.test_traversals.error_function",
             on_failure="third",
-            next_node="second",
         )
-        second = Task(name="second", command="tests.scenarios.test_traversals.success_function", next_node="third")
+        second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
         third = Task(name="third", command="tests.scenarios.test_traversals.success_function")
-        pipeline = Pipeline(start_at=first, name="testing")
+        pipeline = Pipeline(name="testing", steps=[first, second, third])
         pipeline.construct([first, second, third])
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
@@ -275,12 +271,13 @@ def test_on_fail_sdk_unchained():
             name="first",
             command="tests.scenarios.test_traversals.error_function",
             on_failure="third",
-            next_node="second",
         )
         second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
-        third = Task(name="third", command="tests.scenarios.test_traversals.success_function", next_node="fail")
-        pipeline = Pipeline(start_at=first, name="testing")
-        pipeline.construct([first, second, third])
+        third = Task(name="third", command="tests.scenarios.test_traversals.success_function")
+        third.set_next_node("fail")
+
+        pipeline = Pipeline(name="testing", steps=[first, second, third])
+
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
             write_dag_and_config(context_dir_path, dag=None, config=config)
