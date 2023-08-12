@@ -288,7 +288,10 @@ class NotebookTaskType(BaseTaskType):
 
 
 class ShellTaskType(BaseTaskType):
-    """The task class for shell based commands."""
+    """
+    The task class for shell based commands.
+    TODO: There is a way to read in parameters or tracking information from stdout and regex
+    """
 
     task_type: ClassVar[str] = "shell"
 
@@ -344,6 +347,7 @@ class ContainerTaskType(BaseTaskType):
     data_folder: str = "data"  # Would be relative to the context_path
     output_parameters_file: str = "parameters.json"  # would be relative to the context_path
     secrets: List[str] = []
+    experiment_tracking_file: str = ""
 
     _temp_dir: str = ""
 
@@ -352,6 +356,7 @@ class ContainerTaskType(BaseTaskType):
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         # Conditional import
+        from magnus import track_this
         from magnus.context import executor as context_executor
 
         try:
@@ -413,14 +418,22 @@ class ContainerTaskType(BaseTaskType):
                 msg = f"Docker command failed with exit code {exit_status}"
                 raise Exception(msg)
 
+            container_return_parameters = {}
+            experiment_tracking_variables = {}
             if self._temp_dir:
                 parameters_file = Path(self._temp_dir) / self.output_parameters_file
-                container_return_parameters = {}
                 if parameters_file.is_file():
                     with open(parameters_file, "r") as f:
                         container_return_parameters = json.load(f)
 
+                experiment_tracking_file = Path(self._temp_dir) / self.experiment_tracking_file
+                if experiment_tracking_file.is_file():
+                    with open(experiment_tracking_file, "r") as f:
+                        experiment_tracking_variables = json.load(f)
+
                 self._set_parameters(container_return_parameters)
+                track_this(**experiment_tracking_variables)
+
         except Exception as _e:
             logger.exception("Problems with spinning up the container")
             raise _e

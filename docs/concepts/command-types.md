@@ -139,6 +139,65 @@ function should be available via the notebook.
 
 The output notebook is automatically uploaded to the catalog for future reference.
 
+## Container
+
+You can execute a container as part of the task too. Please note that this is different from [```local-container```
+execution mode](../executor-implementations/local-container) as the container need not have magnus installed as part of
+it.
+
+
+---
+!!! Note
+
+    For ```command_type: container``` to work, you need to install optional packages by:
+
+    pip install magnus[docker]
+---
+
+The complete configuration of the container is:
+
+```yaml
+image: str
+context_path: str = "/opt/magnus"
+command: str = ""  # Would be defaulted to the entrypoint of the container
+data_folder: str = "data"  # Would be relative to the context_path
+output_parameters_file: str = "parameters.json"  # would be relative to the context_path
+secrets: List[str] = []
+experiment_tracking_file: str = ""
+
+```
+
+### image
+The name of the image that you want to execute as part of the pipeline. The image should be accessible to the docker
+client on the machine, so either a local docker image or a authenticated docker registry will work.
+
+
+### command
+The command that you want to execute in the container as part of the pipeline. Empty string defaults to the CMD of the
+image.
+
+### context_path
+Defaults to ```/opt/magnus```.
+
+The base path where magnus would populate the catalog and parameters and also retrieve it back when the execution is
+finished.
+
+### data_folder
+Defaults to ```data```.
+
+The directory relative to the ```context_path``` where the data is synced in and out by the catalog service.
+
+### output_parameters_file
+Defaults to ```parameters.json```.
+
+The JSON file containing the parameters that the container wants to return to the downstream steps.
+
+### secrets
+The list of secret key names that need to be exposed to the container.
+
+### experiment_tracking_file
+The JSON file containing the experiment tracking information that should be saved against the step.
+
 ## Extensions
 
 You can extend and implement your ```command_types``` by extending the base class of the command type.
