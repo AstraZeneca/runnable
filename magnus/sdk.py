@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 from logging.config import fileConfig
-from typing import ForwardRef, List, Optional, Union
+from typing import List, Optional, Union
 
 from pkg_resources import resource_filename
 from pydantic import BaseModel, Extra, Field
@@ -96,10 +98,6 @@ logger = logging.getLogger(defaults.NAME)
 #         return wrapped_f
 
 
-# Forward reference for self referencing later
-BaseStep = ForwardRef("BaseStep")
-
-
 class BaseStep(BaseModel):
     name: str
     next_node: str = ""
@@ -132,12 +130,24 @@ class BaseStep(BaseModel):
 
         self.next_node = next_node
 
+    def go_to_success(self):
+        if self._is_frozen:
+            raise Exception(f"Cannot modify a node: {self.name} after the graph has been constructed.")
+
+        self.next_node = "success"
+
+    def go_to_failure(self):
+        if self._is_frozen:
+            raise Exception(f"Cannot modify a node: {self.name} after the graph has been constructed.")
+
+        self.next_node = "fail"
+
     def _fix_internal_name(self):
         """Should be done after the parallel's are implemented."""
         pass
 
 
-BaseStep.update_forward_refs()
+# BaseStep.update_forward_refs()
 
 
 class Task(BaseStep):
@@ -157,6 +167,7 @@ class Pipeline(BaseModel):
     """An exposed magnus pipeline to be used in SDK."""
 
     steps: List[Union[Task, AsIs]]
+    additional_steps: List[Union[Task, AsIs]] = []
     name: str = ""
     description: str = ""
     max_time: int = defaults.MAX_TIME
@@ -202,12 +213,21 @@ class Pipeline(BaseModel):
             step.next_node = "success"
         step._construct_node()
 
+        # Add the additional steps of the graph
+        for step in self.additional_steps:
+            if not step.next_node:
+                messages.append(f"The step {step.name} has no next node. Additional nodes should have a next node.")
+            step._construct_node()
+            messages.extend(step._node.validate())  # type: ignore
+
         if messages:
             raise Exception(", ".join(messages))
 
         graph_config = self.dict()
         graph_config["start_at"] = self._start_at.name
+
         graph_config.pop("steps")
+        graph_config.pop("additional_steps")
 
         self._dag = graph.Graph(**graph_config)  # type: ignore
         self._dag.nodes = [step._node for step in self.steps]  # type: ignore

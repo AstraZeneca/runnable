@@ -387,7 +387,7 @@ def test_nodes_dag_node_execute_raises_exception(mocker, monkeypatch):
 
 
 def test_nodes_as_is_node_accepts_what_is_given():
-    node = nodes.AsISNode(
+    node = nodes.AsIsNode(
         name="test", internal_name="test", config={"command_config": {"render_string": "test"}, "next": "test"}
     )
 
@@ -395,7 +395,7 @@ def test_nodes_as_is_node_accepts_what_is_given():
 
 
 def test_as_is_node_execute_as_graph_raises_exception():
-    as_is_node = nodes.AsISNode(name="test", internal_name="test", config={"command": "nocommand", "next": "test"})
+    as_is_node = nodes.AsIsNode(name="test", internal_name="test", config={"command": "nocommand", "next": "test"})
 
     with pytest.raises(Exception):
         as_is_node.execute_as_graph(None)
@@ -407,7 +407,7 @@ def test_as_is_node_sets_attempt_log_success(mocker, monkeypatch):
     mock_executor = mocker.MagicMock()
     mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
 
-    node = nodes.AsISNode(name="test", internal_name="test", config={"next": "test"})
+    node = nodes.AsIsNode(name="test", internal_name="test", config={"next": "test"})
 
     node.execute(executor=mock_executor)
 
