@@ -243,7 +243,6 @@ def test_on_fail_sdk():
         second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
         third = Task(name="third", command="tests.scenarios.test_traversals.success_function")
         pipeline = Pipeline(name="testing", steps=[first, second, third])
-        pipeline.construct([first, second, third])
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
             write_dag_and_config(context_dir_path, dag=None, config=config)

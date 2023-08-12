@@ -32,8 +32,8 @@ class BaseExecutor:
     Look at the function docs to understand how to use them appropriately.
 
     For any implementation:
-    1). When should the run log being set up?
-    2). What should the step log being set up?
+    1). Who/when should the run log be set up?
+    2). Who/When should the step log be set up?
 
     """
 

@@ -45,7 +45,7 @@ step name:
   command:
   command_type: # Defaults to python
   on_failure:  # Defaults to None
-  mode_config: # Defaults to None
+  executor_config: # Defaults to None
   catalog: # Defaults to None
     compute_data_folder:
     get:
@@ -59,7 +59,7 @@ from magnus import Task
 
 first = Task(name: str, command: str, command_type: str = 'python',
             command_config: Optional[dict]=None, catalog: Optional[dict]=None,
-            mode_config: Optional[dict]=None, retry: int = 1, on_failure: str = '', next_node:str=None)
+            executor_config: Optional[dict]=None, retry: int = 1, on_failure: str = '', next:str=None)
 ```
 The name given to the task has the same behavior as the ```step name``` given in the yaml definition.
 
@@ -143,8 +143,7 @@ def pipeline():
   second = Task(name='Clean Up', command='clean_up.sh', command_type='shell',
             executor_config={'docker_image': 'ubunutu:latest'})
 
-  pipeline = pipeline(name='my pipeline')
-  pipeline.construct([first, second])
+  pipeline = pipeline(name='my pipeline', steps=[first, second])
   pipeline.execute(configuration_file='config.yaml')
 
 if __name__ == '__main__':
@@ -211,10 +210,6 @@ was successful, we skip it.
 5. Check the catalog-put list for any files that have to be synced back to catalog from the compute data folder.
 
 
-### next_node:
-
-In python SDK, you need to provide the next node of the execution using ```next_node``` unless the node ends in
-```success``` state. If you want to end the graph execution to fail state, you can use ```next_node='fail'```.
 
 
 ## Success

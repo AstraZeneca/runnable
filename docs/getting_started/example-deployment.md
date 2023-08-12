@@ -64,8 +64,7 @@ def pipeline():
     second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
                   command_type='shell', catalog={'put': '*'})
 
-    pipeline = Pipeline(start_at=first, name='getting_started')
-    pipeline.construct([first, second])
+    pipeline = Pipeline(name='getting_started', steps=[first, second])
     pipeline.execute(parameters_file='parameters.yaml', configuration_file='config.yaml')
 
 if __name__ == '__main__':
