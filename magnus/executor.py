@@ -68,7 +68,7 @@ class BaseExecutor:
         self.experiment_tracker: BaseExperimentTracker = None  # type: ignore
         self.run_log_store: BaseRunLogStore = None  # type: ignore
         self.previous_run_log = None
-
+        # Current execution node context variables
         self.context_step_log: Optional[StepLog] = None
         self.context_node: Optional[BaseNode] = None
 

@@ -24,7 +24,7 @@
 **Magnus** is a *thin* layer of abstraction over the underlying infrastructure to enable data scientist and
 machine learning engineers. It provides:
 
-- A way to execute Jupyter notebooks/python functions in local or remote platforms.
+- A way to execute Jupyter notebooks/python functions/containers in local or remote platforms.
 - A framework to define complex pipelines via YAML or Python SDK.
 - Robust and *automatic* logging to ensure maximum reproducibility of experiments.
 - A framework to interact with secret managers ranging from environment variables to other vendors.
@@ -32,7 +32,7 @@ machine learning engineers. It provides:
 
 ## What does **thin** mean?
 
-- We really have no say in what happens within your notebooks or python functions.
+- We really have no say in what happens within your notebooks or python functions or containers.
 - We do not dictate how the infrastructure should be configured as long as it satisfies some *basic* criteria.
     - The underlying infrastructure should support container execution and an orchestration framework.
     - Some way to handle secrets either via environment variables or secrets manager.

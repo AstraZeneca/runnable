@@ -32,6 +32,19 @@ class BaseTaskType(BaseModel):  # pylint: disable=too-few-public-methods
     class Config:
         extra = Extra.forbid
 
+    def get_cli_options(self) -> dict:
+        """
+        Key is the name of the cli option and value is the value of the cli option.
+        This should always be in sync with the cli options defined in execute_*.
+
+        Returns:
+            dict: The dict of cli options for the task.
+
+        Raises:
+            NotImplementedError: Base class, not implemented
+        """
+        raise NotImplementedError()
+
     def _get_parameters(self, map_variable: dict = None, **kwargs) -> dict:
         """Return the parameters in scope for the execution.
 
@@ -125,6 +138,14 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             raise Exception("Command cannot be empty for shell task")
 
         return command
+
+    def get_cli_options(self) -> dict:
+        """Return the cli options for the task.
+
+        Returns:
+            dict: The cli options for the task
+        """
+        return {"command": self.command}
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the notebook as defined by the command."""
@@ -235,6 +256,9 @@ class NotebookTaskType(BaseTaskType):
 
         return "".join(values["command"].command.split(".")[:-1]) + "_out.ipynb"
 
+    def get_cli_options(self) -> dict:
+        return {"command": self.command, "notebook-output-path": self.notebook_output_path}
+
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the python notebook as defined by the command.
 
@@ -261,7 +285,7 @@ class NotebookTaskType(BaseTaskType):
                 for _, value in map_variable.items():
                     notebook_output_path += "_" + str(value)
 
-            ploomber_optional_args = self.optional_ploomber_args  # type: ignore
+            ploomber_optional_args = self.optional_ploomber_args
 
             kwds = {
                 "input_path": self.command,
@@ -335,7 +359,6 @@ class ShellTaskType(BaseTaskType):
 
 class ContainerTaskType(BaseTaskType):
     """
-    #TODO: Need to add tracking capabilities to this, something like parameters would be good.
     The task class for container based execution.
     """
 
@@ -353,6 +376,17 @@ class ContainerTaskType(BaseTaskType):
 
     class Config:
         underscore_attrs_are_private = True
+
+    def get_cli_options(self) -> dict:
+        return {
+            "image": self.image,
+            "context-path": self.context_path,
+            "command": self.command,
+            "data-folder": self.data_folder,
+            "output-parameters_file": self.output_parameters_file,
+            "secrets": self.secrets,
+            "experiment-tracking-file": self.experiment_tracking_file,
+        }
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         # Conditional import

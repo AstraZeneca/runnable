@@ -267,7 +267,7 @@ class Graph:
         recstack[node.name] = False
         return False
 
-    def missing_neighbors(self) -> List["BaseNode"]:
+    def missing_neighbors(self) -> List[str]:
         """
         Iterates through nodes and gets their connecting neighbors and checks if they exist in the graph.
 

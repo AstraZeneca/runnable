@@ -129,7 +129,8 @@ class DotEnvSecrets(BaseSecrets):
         location: str = defaults.DOTENV_FILE_LOCATION
 
     def __init__(self, config, **kwargs):
-        super().__init__(config, **kwargs)
+        # super().__init__(config, **kwargs)
+        self.config = self.Config(**config)
         self.secrets = {}
 
     @property

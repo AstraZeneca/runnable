@@ -252,7 +252,7 @@ class BaseNode:
 
         return False
 
-    def _get_neighbors(self) -> List:
+    def _get_neighbors(self) -> List[str]:
         """
         Gets the connecting neighbor nodes, either the "next" node or "on_failure" node.
 

@@ -365,9 +365,11 @@ def execute_single_brach(
 
 
 def execute_notebook(
+    entrypoint: str,
     notebook_file: str,
     catalog_config: dict,
     configuration_file: str,
+    notebook_output_path: str = "",
     tag: str = None,
     run_id: str = None,
     parameters_file: str = None,
@@ -389,25 +391,44 @@ def execute_notebook(
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
+    command_config = {}
+    if notebook_output_path:
+        command_config["notebook_output_path"] = notebook_output_path
+
     step_config = {
         "command": notebook_file,
         "command_type": "notebook",
+        "command_config": command_config,
         "type": "task",
         "next": "success",
         "catalog": catalog_config,
     }
     node = graph.create_node(name="executing job", step_config=step_config)
 
-    # Prepare for graph execution
-    mode_executor.prepare_for_graph_execution()
+    if entrypoint == defaults.ENTRYPOINT.USER.value:
+        # Prepare for graph execution
+        mode_executor.prepare_for_graph_execution()
 
-    logger.info("Executing the job")
-    mode_executor.execute_job(node=node)
+        logger.info("Executing the job from the user. We are still in the caller's compute environment")
+        mode_executor.execute_job(node=node)
+
+    elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
+        mode_executor.prepare_for_node_execution()
+        logger.info("Executing the job from the system. We are in the config's compute environment")
+        mode_executor.execute_node(node=node)
+
+        # Update the status of the run log
+        step_log = mode_executor.run_log_store.get_step_log(node._get_step_log_name(), run_id)
+        mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
+
+    else:
+        raise ValueError(f"Invalid entrypoint {entrypoint}")
 
     mode_executor.send_return_code()
 
 
 def execute_function(
+    entrypoint: str,
     command: str,
     catalog_config: dict,
     configuration_file: str,
@@ -442,60 +463,24 @@ def execute_function(
     }
     node = graph.create_node(name="executing job", step_config=step_config)
 
-    # Prepare for graph execution
-    mode_executor.prepare_for_graph_execution()
+    if entrypoint == defaults.ENTRYPOINT.USER.value:
+        # Prepare for graph execution
+        mode_executor.prepare_for_graph_execution()
 
-    logger.info("Executing the job")
-    mode_executor.execute_job(node=node)
+        logger.info("Executing the job from the user. We are still in the caller's compute environment")
+        mode_executor.execute_job(node=node)
 
-    mode_executor.send_return_code()
+    elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
+        mode_executor.prepare_for_node_execution()
+        logger.info("Executing the job from the system. We are in the config's compute environment")
+        mode_executor.execute_node(node=node)
 
+        # Update the status of the run log
+        step_log = mode_executor.run_log_store.get_step_log(node._get_step_log_name(), run_id)
+        mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
 
-def execute_nb_or_func(
-    run_id,
-    command: str,
-    catalog_config: dict,
-    configuration_file: str,
-    parameters_file: str = "",
-    tag: str = "",
-):
-    """
-    Internal function to execute a notebook or function.
-    This function is called by executors who do not execute in the same environment as the traversal.
-
-    Examples include local-container or any transpilers or K8's job.
-    """
-    mode_executor = prepare_configurations(
-        configuration_file=configuration_file,
-        run_id=run_id,
-        tag=tag,
-        parameters_file=parameters_file,
-    )
-
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
-
-    command_type = "python"
-    if command.endswith(".ipynb"):
-        command_type = "notebook"
-
-    step_config = {
-        "command": command,
-        "command_type": command_type,
-        "type": "task",
-        "next": "success",
-        "catalog": catalog_config,
-    }
-    node = graph.create_node(name="executing job", step_config=step_config)
-
-    # Prepare for graph execution
-    mode_executor.prepare_for_node_execution()
-    logger.info("Executing the job")
-    mode_executor.execute_node(node=node)
-
-    # Update the status of the run log
-    step_log = mode_executor.run_log_store.get_step_log(node._get_step_log_name(), run_id)
-    mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
+    else:
+        raise ValueError(f"Invalid entrypoint {entrypoint}")
 
     mode_executor.send_return_code()
 

@@ -77,8 +77,6 @@ COMPUTE_DATA_FOLDER = "data"
 # Secrets settings
 DOTENV_FILE_LOCATION = ".env"
 
-# AWS settings
-AWS_REGION = "eu-west-1"
 
 # Docker settings
 DOCKERFILE_NAME = "Dockerfile"
@@ -104,3 +102,12 @@ ${INSTALL_REQUIREMENTS}
 """
 GIT_ARCHIVE_NAME = "git_tracked"
 LEN_SHA_FOR_TAG = 8
+
+
+class ENTRYPOINT(Enum):
+    """
+    The possible container entrypoint types.
+    """
+
+    USER = "user"
+    SYSTEM = "system"

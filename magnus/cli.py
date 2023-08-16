@@ -187,6 +187,7 @@ def execute_single_branch(run_id, branch_name, map_variable, file, config_file, 
 
 @cli.command("execute_notebook", short_help="Entry point to execute a notebook")
 @click.argument("filename")
+@click.argument("entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
 @click.option(
     "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
 )
@@ -206,9 +207,21 @@ def execute_single_branch(run_id, branch_name, map_variable, file, config_file, 
 )
 @click.option("--data-folder", "-d", default="data/", help="The catalog data folder")
 @click.option("--put-in-catalog", "-put", default=None, multiple=True, help="The data to put from the catalog")
+@click.option("--notebook-output-path", default="", help="The output path for the notebook")
 @click.option("--tag", help="A tag attached to the run")
 @click.option("--run-id", help="An optional run_id, one would be generated if not provided")
-def execute_notebook(filename, config_file, parameters_file, log_level, data_folder, put_in_catalog, tag, run_id):
+def execute_notebook(
+    filename,
+    entrypoint,
+    config_file,
+    parameters_file,
+    log_level,
+    data_folder,
+    put_in_catalog,
+    notebook_output_path,
+    tag,
+    run_id,
+):
     """
     External entry point to execute a Jupyter notebook in isolation.
 
@@ -221,10 +234,12 @@ def execute_notebook(filename, config_file, parameters_file, log_level, data_fol
         raise Exception("A notebook should always have ipynb as the extension")
 
     pipeline.execute_notebook(
+        entrypoint=entrypoint,
         notebook_file=filename,
         catalog_config=catalog_config,
         configuration_file=config_file,
         parameters_file=parameters_file,
+        notebook_output_path=notebook_output_path,
         tag=tag,
         run_id=run_id,
     )
@@ -232,6 +247,7 @@ def execute_notebook(filename, config_file, parameters_file, log_level, data_fol
 
 @cli.command("execute_function", short_help="Entry point to execute a python function")
 @click.argument("command")
+@click.argument("entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
 @click.option(
     "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
 )
@@ -253,13 +269,80 @@ def execute_notebook(filename, config_file, parameters_file, log_level, data_fol
 @click.option("--put-in-catalog", "-put", default=None, multiple=True, help="The data to put from the catalog")
 @click.option("--tag", help="A tag attached to the run")
 @click.option("--run-id", help="An optional run_id, one would be generated if not provided")
-def execute_function(command, config_file, parameters_file, log_level, data_folder, put_in_catalog, tag, run_id):
+def execute_function(
+    command, entrypoint, config_file, parameters_file, log_level, data_folder, put_in_catalog, tag, run_id
+):
     """
     External entry point to execute a python function in isolation.
 
     The function would be executed in the environment defined by the config file or default if none.
     The execution plan is unchained.
     """
+    logger.setLevel(log_level)
+    catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
+    pipeline.execute_function(
+        entrypoint=entrypoint,
+        command=command,
+        catalog_config=catalog_config,
+        configuration_file=config_file,
+        parameters_file=parameters_file,
+        tag=tag,
+        run_id=run_id,
+    )
+
+
+@cli.command("execute_container", short_help="Entry point to execute a container")
+@click.argument("image")
+@click.argument("entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
+@click.option("--command", default="", help="The command to execute. Defaults to CMD of image")
+@click.option(
+    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+)
+@click.option(
+    "-p",
+    "--parameters-file",
+    default=None,
+    help="Parameters, in yaml,  accessible by the application",
+    show_default=True,
+)
+@click.option(
+    "--log-level",
+    default=defaults.LOG_LEVEL,
+    help="The log level",
+    show_default=True,
+    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
+)
+@click.option("--context-path", default="/opt/magnus", help="The context path for data and parameter files")
+@click.option("--data-folder", "-d", default="data/", help="The catalog data folder relative to context")
+@click.option("--output-parameters-file", default="parameters.json", help="The output parameters file")
+@click.option("--experiment-tracking-file", default="", help="The output experiment tracking file")
+@click.option("--put-in-catalog", "-put", default=None, multiple=True, help="The data to put from the catalog")
+@click.option("--expose-secret", default=None, multiple=True, help="The secret to expose to the container")
+@click.option("--tag", help="A tag attached to the run")
+@click.option("--run-id", help="An optional run_id, one would be generated if not provided")
+def execute_container(
+    image,
+    entrypoint,
+    command,
+    config_file,
+    parameters_file,
+    log_level,
+    context_path,
+    data_folder,
+    output_parameters_file,
+    experiment_tracking_file,
+    put_in_catalog,
+    expose_secret,
+    tag,
+    run_id,
+):
+    """
+    External entry point to execute a container in isolation.
+
+    The container would be executed in the environment defined by the config file or default if none.
+    The execution plan is unchained.
+    """
+    # TODO: Prepare the step configuration
     logger.setLevel(log_level)
     catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
     pipeline.execute_function(
@@ -272,7 +355,8 @@ def execute_function(command, config_file, parameters_file, log_level, data_fold
     )
 
 
-@cli.command("execute_nb_or_func", short_help="Entry point to execute a notebook or function")
+# TODO: Remove this CLI and add hidden field to every function/notebook/container CLI entrypoint.
+@cli.command("execute_nb_or_func", short_help="Entry point to execute a notebook or function", hidden=True)
 @click.argument("run_id")
 @click.argument("nb_or_func")
 @click.option(

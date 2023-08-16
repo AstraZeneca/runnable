@@ -12,9 +12,9 @@ from inspect import signature
 from pathlib import Path
 from string import Template as str_template
 from types import FunctionType
-from typing import TYPE_CHECKING, Callable, List, Mapping, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Tuple, Union, cast
 
-from ruamel.yaml import YAML  # type: ignore
+from ruamel.yaml import YAML
 from stevedore import driver
 
 from magnus import defaults, names
@@ -84,7 +84,7 @@ def generate_run_id(run_id: str = None) -> str:
     return run_id
 
 
-def apply_variables(apply_to: dict, variables: dict) -> dict:
+def apply_variables(apply_to: Dict[str, str], variables: Dict[str, str]) -> Dict[str, str]:
     """Safely applies the variables to a config.
 
     For example: For config:
@@ -146,7 +146,7 @@ def get_module_and_func_from_function(command: FunctionType) -> str:
     return f"{module_name}.{func_name}"
 
 
-def get_dag_hash(dag: dict) -> str:
+def get_dag_hash(dag: Dict[str, Any]) -> str:
     """Generates the hash of the dag definition.
 
     Args:
@@ -159,7 +159,7 @@ def get_dag_hash(dag: dict) -> str:
     return hashlib.sha1(dag_str.encode("utf-8")).hexdigest()
 
 
-def load_yaml(file_path: str, load_type: str = "safe") -> dict:
+def load_yaml(file_path: str, load_type: str = "safe") -> Dict[str, Any]:
     """Loads an yaml and returns the dictionary.
 
     Args:
@@ -329,7 +329,7 @@ def remove_prefix(text: str, prefix: str) -> str:
     return text  # or whatever is given
 
 
-def get_tracked_data() -> dict:
+def get_tracked_data() -> Dict[str, str]:
     """Scans the environment variables to find any user tracked variables that have a prefix MAGNUS_TRACK_
     Removes the environment variable to prevent any clashes in the future steps.
 
@@ -345,7 +345,7 @@ def get_tracked_data() -> dict:
     return tracked_data
 
 
-def get_user_set_parameters(remove: bool = False) -> dict:
+def get_user_set_parameters(remove: bool = False) -> Dict[str, str]:
     """Scans the environment variables for any user returned parameters that have a prefix MAGNUS_PRM_.
 
     Args:
@@ -369,7 +369,7 @@ def get_user_set_parameters(remove: bool = False) -> dict:
     return parameters
 
 
-def diff_dict(d1: dict, d2: dict) -> dict:
+def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
     """Given two dicts d1 and d2, return a new dict that has upsert items from d1.
 
     Args:
@@ -422,7 +422,9 @@ def get_data_hash(file_name: str):
     return hash_bytestr_iter(file_as_blockiter(open(file_name, "rb")), hashlib.sha256())  # pragma: no cover
 
 
-def filter_arguments_for_func(func: Callable, parameters: dict, map_variable: dict = None) -> dict:
+def filter_arguments_for_func(
+    func: Callable[[Any], Dict[str, Any]], parameters: Dict[str, Any], map_variable: Dict[str, str] = None
+) -> Dict[str, Any]:
     """Inspects the function to be called as part of the pipeline to find the arguments of the function.
     Matches the function arguments to the parameters available either by command line or by up stream steps.
 
@@ -442,7 +444,7 @@ def filter_arguments_for_func(func: Callable, parameters: dict, map_variable: di
 
 
 def filter_arguments_from_parameters(
-    parameters: dict,
+    parameters: Dict[str, Any],
     signature_parameters: Union[List, Mapping],
     map_variable: dict = None,
 ) -> dict:
@@ -579,6 +581,8 @@ def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write
     action = f"magnus execute_nb_or_func {run_id} " f" --log-level {log_level}"
 
     action = action + f" {node.config.command}"
+
+    action = action + f" --entrypoint {defaults.ENTRYPOINT.SYSTEM.value}"
 
     if executor.configuration_file:
         action = action + f" --config-file {executor.configuration_file}"
