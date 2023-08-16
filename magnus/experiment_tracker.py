@@ -19,11 +19,7 @@ class BaseExperimentTracker:
     service_name = ""
 
     class Config(BaseModel):
-        pass
-
-    def __init__(self, config: dict = None, **kwargs):  # pylint: disable=unused-argument
-        config = config or {}
-        self.config = self.Config(**config)
+        ...
 
     @property
     def client_context(self) -> Any:
@@ -69,6 +65,14 @@ class DoNothingTracker(BaseExperimentTracker):
     """
 
     service_name = "do-nothing"
+
+    class ContextConfig(BaseExperimentTracker.Config):
+        ...
+
+    def __init__(self, config) -> None:
+        super().__init__()
+
+        self.config = self.ContextConfig(**{config or {}})
 
     def set_metric(self, key: str, value: float, step: int = 0):
         """

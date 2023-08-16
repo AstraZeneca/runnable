@@ -84,7 +84,7 @@ def generate_run_id(run_id: str = None) -> str:
     return run_id
 
 
-def apply_variables(apply_to: Dict[str, str], variables: Dict[str, str]) -> Dict[str, str]:
+def apply_variables(apply_to: Dict[str, Any], variables: Dict[str, str]) -> Dict[str, Any]:
     """Safely applies the variables to a config.
 
     For example: For config:
@@ -669,28 +669,28 @@ def get_run_config(executor: BaseExecutor) -> dict:
 
     run_config = {}
 
-    run_config["executor"] = {"type": executor.service_name, "config": executor.config}
+    run_config["executor"] = {"type": executor.service_name, "config": executor.config}  # type: ignore
 
     run_config["run_log_store"] = {
         "type": executor.run_log_store.service_name,
-        "config": executor.run_log_store.config,
+        "config": executor.run_log_store.config,  # type: ignore
     }
 
     run_config["catalog"] = {
         "type": cast(BaseCatalog, executor.catalog_handler).service_name,
-        "config": cast(BaseCatalog, executor.catalog_handler).config,
+        "config": cast(BaseCatalog, executor.catalog_handler).config,  # type: ignore
     }
 
     run_config["secrets"] = {
         "type": executor.secrets_handler.service_name,
-        "config": executor.secrets_handler.config,
+        "config": executor.secrets_handler.config,  # type: ignore
     }
 
     run_config["experiment_tracker"] = {
         "type": executor.experiment_tracker.service_name,
-        "config": executor.experiment_tracker.config,
+        "config": executor.experiment_tracker.config,  # type: ignore
     }
-    run_config["variables"] = executor.variables  # type: ignore
+    run_config["variables"] = executor.variables
 
     if executor.dag:
         # Some executions do not define a dag

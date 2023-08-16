@@ -1,10 +1,25 @@
 import json
 import logging
-from typing import Union
+from typing import Any, Mapping, Union, cast
 
-from magnus import context, defaults, exceptions, graph, utils
+try:
+    from typing import TypedDict  # type: ignore
+except ImportError:
+    from typing_extensions import TypedDict
+
+
+from magnus import defaults, exceptions, graph, utils
 
 logger = logging.getLogger(defaults.NAME)
+
+
+class ServiceConfig(TypedDict):
+    type: str
+    config: Mapping[str, Any]
+
+
+class MagnusConfig(TypedDict):
+    services: Mapping[str, ServiceConfig]
 
 
 def get_default_configs() -> dict:
@@ -54,41 +69,41 @@ def prepare_configurations(
 
     variables = utils.gather_variables()
 
-    configuration = {}
+    templated_configuration = {}
     if configuration_file:
-        configuration = utils.load_yaml(configuration_file) or {}
+        templated_configuration = utils.load_yaml(configuration_file) or {}
 
     # apply variables
-    configuration = utils.apply_variables(configuration, variables)
+    configuration: MagnusConfig = cast(MagnusConfig, utils.apply_variables(templated_configuration, variables))
 
     # Run log settings, configuration over-rides everything
-    run_log_config = configuration.get("run_log_store", {})
+    run_log_config: ServiceConfig = configuration.get("run_log_store", {})
     if not run_log_config:
         run_log_config = magnus_defaults.get("run_log_store", defaults.DEFAULT_RUN_LOG_STORE)
     run_log_store = utils.get_provider_by_name_and_type("run_log_store", run_log_config)
 
     # Catalog handler settings, configuration over-rides everything
-    catalog_config = configuration.get("catalog", {})
+    catalog_config: ServiceConfig = configuration.get("catalog", {})
     if not catalog_config:
         catalog_config = magnus_defaults.get("catalog", defaults.DEFAULT_CATALOG)
     catalog_handler = utils.get_provider_by_name_and_type("catalog", catalog_config)
 
     # Secret handler settings, configuration over-rides everything
-    secrets_config = configuration.get("secrets", {})
+    secrets_config: ServiceConfig = configuration.get("secrets", {})
     if not secrets_config:
         secrets_config = magnus_defaults.get("secrets", defaults.DEFAULT_SECRETS)
     secrets_handler = utils.get_provider_by_name_and_type("secrets", secrets_config)
 
     # experiment tracker settings, configuration over-rides everything
-    tracker_config = configuration.get("experiment_tracker", {})
+    tracker_config: ServiceConfig = configuration.get("experiment_tracker", {})
     if not tracker_config:
         tracker_config = magnus_defaults.get("experiment_tracker", defaults.DEFAULT_EXPERIMENT_TRACKER)
     tracker_handler = utils.get_provider_by_name_and_type("experiment_tracker", tracker_config)
 
     # executor configurations, configuration over rides everything
-    executor_config = configuration.get("executor", {})
+    executor_config: ServiceConfig = configuration.get("executor", {})
     if force_local_executor:
-        executor_config = {"type": "local"}
+        executor_config = ServiceConfig(type="local", config={})
 
     if not executor_config:
         executor_config = magnus_defaults.get("executor", defaults.DEFAULT_EXECUTOR)
@@ -117,6 +132,8 @@ def prepare_configurations(
     configured_executor.use_cached = use_cached
 
     # Set a global executor for inter-module access later
+    from magnus import context
+
     context.executor = configured_executor
 
     configured_executor.run_log_store = run_log_store

@@ -22,7 +22,8 @@ def get_run_log_store():
     """
     from magnus import context
 
-    return context.executor.run_log_store
+    # Its a dynamic import only available during run time
+    return context.executor.run_log_store  # type: ignore
 
 
 def is_catalog_out_of_sync(catalog, synced_catalogs=None) -> bool:
@@ -62,10 +63,6 @@ class BaseCatalog:
     class Config(BaseModel):
         compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
 
-    def __init__(self, config: dict, **kwargs):  # pylint: disable=unused-argument
-        config = config or {}
-        self.config = self.Config(**config)
-
     @property
     def compute_data_folder(self) -> str:
         """
@@ -74,7 +71,8 @@ class BaseCatalog:
         Returns:
             [str]: The compute data folder as defined or defaults to magnus default 'data/'
         """
-        return self.config.compute_data_folder
+        # Purpose of ignoring is config does not exist in the base class but makes it easier to extend
+        return self.config.compute_data_folder  # type: ignore
 
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         # pylint: disable=unused-argument
@@ -154,6 +152,12 @@ class DoNothingCatalog(BaseCatalog):
 
     service_name = "do-nothing"
 
+    class ContextConfig(BaseCatalog.Config):
+        ...
+
+    def __init__(self, config: dict, **kwargs):  # pylint: disable=unused-argument
+        self.config = self.ContextConfig(**(config or {}))
+
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         """
         Does nothing
@@ -201,8 +205,11 @@ class FileSystemCatalog(BaseCatalog):
 
     service_name = "file-system"
 
-    class Config(BaseCatalog.Config):
+    class ContextConfig(BaseCatalog.Config):
         catalog_location: str = defaults.CATALOG_LOCATION_FOLDER
+
+    def __init__(self, config: dict, **kwargs):  # pylint: disable=unused-argument
+        self.config = self.ContextConfig(**(config or {}))
 
     @property
     def catalog_location(self) -> str:
@@ -213,7 +220,7 @@ class FileSystemCatalog(BaseCatalog):
         Returns:
             str: The catalog location as defined by the config or magnus default '.catalog'
         """
-        return self.config.catalog_location  # type: ignore
+        return self.config.catalog_location
 
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         """

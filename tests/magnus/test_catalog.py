@@ -5,12 +5,13 @@ import pytest
 
 from magnus import (
     catalog,  # pylint: disable=import-error
-    context,  # pylint: disable=import-error
     defaults,  # pylint: disable=import-error
 )
 
 
 def test_get_run_log_store_returns_context_executor_run_log_store(mocker, monkeypatch):
+    from magnus import context
+
     mock_context_executor = mocker.MagicMock()
     mock_context_executor.run_log_store = "RunLogStore"
 

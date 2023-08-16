@@ -28,10 +28,6 @@ class BaseSecrets:
     class Config(BaseModel):
         pass
 
-    def __init__(self, config: dict, **kwargs):  # pylint: disable=unused-argument
-        config = config or {}
-        self.config = self.Config(**config)
-
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:
         """
         Return the secret by name.
@@ -56,8 +52,12 @@ class DoNothingSecretManager(BaseSecrets):
 
     service_name = "do-nothing"
 
+    class ContextConfig(BaseSecrets.Config):
+        ...
+
     def __init__(self, config, **kwargs):
-        super().__init__(config, **kwargs)
+        super().__init__()
+        self.config = self.ContextConfig(**(config or {}))
         self.secrets = {}
 
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:
@@ -87,8 +87,13 @@ class EnvSecretsManager(BaseSecrets):
 
     service_name = "env-secrets-manager"
 
+    class ContextConfig(BaseSecrets.Config):
+        prefix: str = ""
+        suffix: str = ""
+
     def __init__(self, config, **kwargs):
-        super().__init__(config, **kwargs)
+        super().__init__()
+        self.config = self.ContextConfig(**(config or {}))
 
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:
         """
@@ -108,11 +113,17 @@ class EnvSecretsManager(BaseSecrets):
         """
         if name:
             try:
-                return os.environ[name]
-            except KeyError:
-                raise exceptions.SecretNotFoundError(secret_name=name, secret_setting="environment")
+                return os.environ[f"{self.config.prefix}{name}{self.config.suffix}"]
+            except KeyError as _e:
+                logger.exception(f"Secret {self.config.prefix}{name}{self.config.suffix} not found in environment")
+                raise exceptions.SecretNotFoundError(secret_name=name, secret_setting="environment") from _e
 
-        return {}
+        matched_secrets = {}
+        for key in os.environ:
+            if key.startswith(self.config.prefix) and key.endswith(self.config.suffix):
+                matched_secrets[key[len(self.config.prefix) : -len(self.config.suffix)]] = os.environ[key]
+
+        return matched_secrets
 
 
 class DotEnvSecrets(BaseSecrets):
@@ -125,12 +136,11 @@ class DotEnvSecrets(BaseSecrets):
 
     service_name = "dotenv"
 
-    class Config(BaseModel):
+    class ContextConfig(BaseSecrets.Config):
         location: str = defaults.DOTENV_FILE_LOCATION
 
     def __init__(self, config, **kwargs):
-        # super().__init__(config, **kwargs)
-        self.config = self.Config(**config)
+        self.config = self.ContextConfig(**(config or {}))
         self.secrets = {}
 
     @property
@@ -157,6 +167,10 @@ class DotEnvSecrets(BaseSecrets):
             Exception: If the file at secrets_location is not found.
             Exception: If the secrets are not formatted correctly.
         """
+        # It was loaded in the previous call and need to be reloaded
+        if self.secrets:
+            return
+
         secrets_location = self.secrets_location
         if not utils.does_file_exist(secrets_location):
             raise Exception(f"Did not find the secrets file in {secrets_location}")

@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Union, cast
+from typing import Any, Dict, Union, cast
 
 from magnus import defaults, exceptions, pickler, pipeline, utils
 
@@ -90,7 +90,7 @@ def get_parameter(key=None) -> Union[str, dict]:
     return parameters[key]
 
 
-def get_secret(secret_name: str = None) -> str:
+def get_secret(secret_name: str = None) -> str | Dict[str, str]:
     """
     Get a secret by the name from the secrets manager
 
@@ -113,9 +113,9 @@ def get_secret(secret_name: str = None) -> str:
         )
         raise Exception(msg)
 
-    secrets_handler = context.executor.secrets_handler  # type: ignore
+    secrets_handler = context.executor.secrets_handler
     try:
-        return secrets_handler.get(name=secret_name)  # type: ignore
+        return secrets_handler.get(name=secret_name)
     except exceptions.SecretNotFoundError:
         logger.exception(f"No secret by the name {secret_name} found in the store")
         raise
@@ -146,14 +146,14 @@ def get_from_catalog(name: str, destination_folder: str = None):
 
     data_catalog = cast(BaseCatalog, context.executor.catalog_handler).get(
         name,
-        run_id=context.executor.run_id,  # type: ignore
+        run_id=context.executor.run_id,
         compute_data_folder=destination_folder,
     )
 
     if not data_catalog:
         logger.warn(f"No catalog was obtained by the {name}")
 
-    if context.executor.context_step_log:  # type: ignore
+    if context.executor.context_step_log:
         context.executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
@@ -182,13 +182,13 @@ def put_in_catalog(filepath: str):
 
     data_catalog = cast(BaseCatalog, context.executor.catalog_handler).put(
         file_path.name,
-        run_id=context.executor.run_id,  # type: ignore
+        run_id=context.executor.run_id,
         compute_data_folder=file_path.parent,
     )
     if not data_catalog:
         logger.warn(f"No catalog was done by the {filepath}")
 
-    if context.executor.context_step_log:  # type: ignore
+    if context.executor.context_step_log:
         context.executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
@@ -338,6 +338,7 @@ def end_interactive_session():
     Does nothing if the executor is not interactive.
     """
     from magnus import context  # pylint: disable=import-outside-toplevel
+    from magnus.datastore import StepLog  # pylint: disable=import-outside-toplevel
 
     if not context.executor:
         logger.warn("There is no active session in play, doing nothing!")
@@ -350,7 +351,7 @@ def end_interactive_session():
     tracked_data = utils.get_tracked_data()
     parameters = utils.get_user_set_parameters(remove=True)
 
-    step_log = context.executor.context_step_log
+    step_log = cast(StepLog, context.executor.context_step_log)
     step_log.user_defined_metrics = tracked_data
     context.executor.run_log_store.add_step_log(step_log, context.executor.run_id)
 

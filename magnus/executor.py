@@ -5,14 +5,14 @@ import json
 import logging
 import os
 import re
-from typing import TYPE_CHECKING, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
 
 from pydantic import BaseModel
 
-from magnus import defaults, exceptions, integration, interaction, utils
+from magnus import defaults, exceptions, interaction, utils
 from magnus.catalog import BaseCatalog
 from magnus.graph import Graph
-from magnus.nodes import BaseNode
+from magnus.nodes import AsIsNode, BaseNode
 
 if TYPE_CHECKING:
     from magnus.datastore import BaseRunLogStore, DataCatalog, StepLog
@@ -45,9 +45,6 @@ class BaseExecutor:
 
     def __init__(self, config: dict = None):
         # pylint: disable=R0914,R0913
-        config = config or {}
-        self.config = self.Config(**config)
-        # The remaining would be attached later
         # The definition files
         self.pipeline_file = None
         self.variables_file = None
@@ -97,7 +94,7 @@ class BaseExecutor:
         Returns:
             bool: True if the execution allows parallel execution of branches.
         """
-        return self.config.enable_parallel
+        return self.config.enable_parallel  # type: ignore
 
     def _set_up_run_log(self, exists_ok=False):
         """
@@ -118,7 +115,7 @@ class BaseExecutor:
                 return
             raise
 
-        run_log = {}
+        run_log: Dict[str, Union[str, Any]] = {}
         run_log["run_id"] = self.run_id
         run_log["tag"] = self.tag
         run_log["use_cached"] = False
@@ -139,7 +136,7 @@ class BaseExecutor:
             run_log["use_cached"] = True
             parameters.update(self.previous_run_log.parameters)
 
-        run_log = self.run_log_store.create_run_log(**run_log)
+        run_log = self.run_log_store.create_run_log(**run_log)  # type: ignore
         # Any interaction with run log store attributes should happen via API if available.
         self.run_log_store.set_parameters(run_id=self.run_id, parameters=parameters)
 
@@ -233,7 +230,7 @@ class BaseExecutor:
             return None
 
         data_catalogs = []
-        for name_pattern in cast(dict, node_catalog_settings).get(stage) or []:  #  Assumes a list
+        for name_pattern in node_catalog_settings.get(stage) or []:  #  Assumes a list
             data_catalogs = getattr(self.catalog_handler, stage)(
                 name=name_pattern,
                 run_id=self.run_id,
@@ -633,10 +630,10 @@ class BaseExecutor:
             node (BaseNode): The current node being processed.
 
         """
-        effective_node_config = copy.deepcopy(self.config.dict())
+        effective_node_config = copy.deepcopy(self.config.dict())  # type: ignore
         ctx_node_config = node._get_executor_config(self.service_name)
 
-        placeholders = self.config.placeholders
+        placeholders = self.config.placeholders  # type: ignore
 
         for key, value in ctx_node_config.items():
             if not value:
@@ -748,6 +745,14 @@ class LocalExecutor(BaseExecutor):
 
     service_name = "local"
 
+    class ContextConfig(BaseExecutor.Config):
+        ...
+
+    def __init__(self, config: dict = None):
+        super().__init__()
+
+        self.config = self.ContextConfig(**(config or {}))
+
     def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
         In this mode of execution, we prepare for the node execution and execute the node
@@ -825,12 +830,14 @@ class LocalContainerExecutor(BaseExecutor):
 
     service_name = "local-container"
 
-    class Config(BaseExecutor.Config):
+    class ContextConfig(BaseExecutor.Config):
         docker_image: str
 
     def __init__(self, config):
         # pylint: disable=R0914,R0913
-        super().__init__(config=config)
+        super().__init__()
+        self.config = self.ContextConfig(**(config or {}))
+
         self.container_log_location = "/tmp/run_logs/"
         self.container_catalog_location = "/tmp/catalog/"
         self.container_secrets_location = "/tmp/dotenv"
@@ -842,7 +849,7 @@ class LocalContainerExecutor(BaseExecutor):
         Returns:
             str: The default docker image to use from the config.
         """
-        return self.config.docker_image  # type: ignore
+        return self.config.docker_image
 
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
         """
@@ -1020,6 +1027,13 @@ class DemoRenderer(BaseExecutor):
 
     service_name = "demo-renderer"
 
+    class ContextConfig(BaseExecutor.Config):
+        ...
+
+    def __init__(self, config: dict = None):
+        super().__init__()
+        self.config = self.ContextConfig(**(config or {}))
+
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
         This method does the actual execution of a task, as-is, success or fail node.
@@ -1074,6 +1088,9 @@ class DemoRenderer(BaseExecutor):
             if working_on.is_composite:
                 raise NotImplementedError("In this demo version, composite nodes are not implemented")
 
+            if working_on.node_type == AsIsNode.node_type:
+                raise NotImplementedError("In this demo version, AsIs nodes are not implemented")
+
             if previous_node == current_node:
                 raise Exception("Potentially running in a infinite loop")
 
@@ -1086,12 +1103,7 @@ class DemoRenderer(BaseExecutor):
             fail_node_command = utils.get_node_execution_command(self, dag.get_fail_node(), over_write_run_id="$1")
 
             if working_on.node_type not in ["success", "fail"]:
-                if working_on.node_type == "as-is":
-                    command_config = working_on.config.get("command_config", {})
-                    if "render_string" in command_config:
-                        bash_script_lines.append(command_config["render_string"] + "\n")
-                else:
-                    bash_script_lines.append(f"{_execute_node_command}\n")
+                bash_script_lines.append(f"{_execute_node_command}\n")
 
                 bash_script_lines.append("exit_code=$?\necho $exit_code\n")
                 # Write failure node
@@ -1119,3 +1131,7 @@ class DemoRenderer(BaseExecutor):
             "\t The first argument to the script is the run id you want for the run."
         )
         logger.info(msg)
+
+
+# Avoids circular imports
+from magnus import integration  # noqa: E402

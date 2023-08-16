@@ -1,17 +1,15 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-from magnus import defaults
-from magnus.catalog import BaseCatalog
-from magnus.datastore import BaseRunLogStore
-from magnus.experiment_tracker import BaseExperimentTracker
-from magnus.secrets import BaseSecrets
-
-if TYPE_CHECKING:
-    from magnus.executor import BaseExecutor
+from typing import cast
 
 from stevedore import extension
+
+from magnus import defaults
+from magnus.catalog import BaseCatalog, FileSystemCatalog
+from magnus.datastore import BaseRunLogStore, FileSystemRunLogstore
+from magnus.executor import BaseExecutor, LocalContainerExecutor
+from magnus.experiment_tracker import BaseExperimentTracker
+from magnus.secrets import BaseSecrets, DotEnvSecrets
 
 logger = logging.getLogger(defaults.NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
@@ -110,8 +108,8 @@ def get_integration_handler(executor: "BaseExecutor", service: object) -> BaseIn
     for _, kls in mgr.items():
         if (
             kls.obj.service_type == service_type
-            and kls.obj.executor_type == executor.service_name  # type: ignore
-            and kls.obj.service_provider == service_name  # type: ignore
+            and kls.obj.executor_type == executor.service_name
+            and kls.obj.service_provider == service_name
         ):
             logger.info(f"Identified an integration pattern {kls.obj}")
             integrations.append(kls.obj)
@@ -127,7 +125,7 @@ def get_integration_handler(executor: "BaseExecutor", service: object) -> BaseIn
     if not integrations:
         logger.warning(
             f"Could not find an integration pattern for {executor.service_name} and {service_name} for {service_type}"
-        )  # type: ignore
+        )
         return BaseIntegration(executor, service)
 
     return integrations[0]
@@ -237,6 +235,9 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
             logger.warning(msg)
 
     def configure_for_traversal(self, **kwargs):
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(FileSystemRunLogstore, self.service)
+
         write_to = self.service.log_folder_name
         self.executor.volumes[str(Path(write_to).resolve())] = {
             "bind": f"{self.executor.container_log_location}",
@@ -244,6 +245,9 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
         }
 
     def configure_for_execution(self, **kwargs):
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(FileSystemRunLogstore, self.service)
+
         self.service.config.log_folder = self.executor.container_log_location
 
 
@@ -260,6 +264,9 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
         logger.warning("Using dot env for non local deployments is not ideal, consider options")
 
     def configure_for_traversal(self, **kwargs):
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(DotEnvSecrets, self.service)
+
         secrets_location = self.service.secrets_location
         self.executor.volumes[str(Path(secrets_location).resolve())] = {
             "bind": f"{self.executor.container_secrets_location}",
@@ -267,6 +274,9 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
         }
 
     def configure_for_execution(self, **kwargs):
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(DotEnvSecrets, self.service)
+
         self.service.config.location = self.executor.container_secrets_location
 
 
@@ -326,6 +336,9 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
     service_provider = "file-system"  # The actual implementation of the service
 
     def configure_for_traversal(self, **kwargs):
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(FileSystemCatalog, self.service)
+
         catalog_location = self.service.catalog_location
         self.executor.volumes[str(Path(catalog_location).resolve())] = {
             "bind": f"{self.executor.container_catalog_location}",
@@ -333,6 +346,9 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
         }
 
     def configure_for_execution(self, **kwargs):
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(FileSystemCatalog, self.service)
+
         self.service.config.catalog_location = self.executor.container_catalog_location
 
 

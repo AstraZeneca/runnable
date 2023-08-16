@@ -18,7 +18,7 @@ logger = logging.getLogger(defaults.NAME)
 # Breaking this rule might make magnus backwardly incompatible
 
 
-class DataCatalog(BaseModel, extra=Extra.allow):  # type: ignore
+class DataCatalog(BaseModel, extra=Extra.allow):
     """
     The captured attributes of a catalog item.
     """
@@ -59,7 +59,7 @@ class StepAttempt(BaseModel):
     parameters: dict = {}
 
 
-class CodeIdentity(BaseModel, extra=Extra.allow):  # type: ignore
+class CodeIdentity(BaseModel, extra=Extra.allow):
     """
     The captured attributes of a code identity of a step.
     """
@@ -301,11 +301,7 @@ class BaseRunLogStore:
     service_name = ""
 
     class Config(BaseModel):
-        pass
-
-    def __init__(self, config):
-        config = config or {}
-        self.config = self.Config(**config)
+        ...
 
     def create_run_log(
         self,
@@ -648,8 +644,12 @@ class BufferRunLogstore(BaseRunLogStore):
 
     service_name = "buffered"
 
+    class ContextConfig(BaseRunLogStore.Config):
+        ...
+
     def __init__(self, config):
-        super().__init__(config)
+        super().__init__()
+        self.config = self.ContextConfig(**config)
         self.run_log = None  # For a buffered Run Log, this is the database
 
     def create_run_log(
@@ -725,8 +725,12 @@ class FileSystemRunLogstore(BaseRunLogStore):
 
     service_name = "file-system"
 
-    class Config(BaseModel):
+    class ContextConfig(BaseRunLogStore.Config):
         log_folder: str = defaults.LOG_LOCATION_FOLDER
+
+    def __init__(self, config):
+        super().__init__()
+        self.config = self.ContextConfig(**config)
 
     @property
     def log_folder_name(self) -> str:
@@ -843,8 +847,12 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
 
     service_name = "chunked-fs"
 
-    class Config(BaseModel):
+    class ContextConfig(BaseModel):
         log_folder: str = defaults.LOG_LOCATION_FOLDER
+
+    def __init__(self, config):
+        super().__init__()
+        self.config = self.ContextConfig(**config)
 
     class LogTypes(Enum):
         RUN_LOG: str = "RunLog"
@@ -1141,7 +1149,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             if not current_branch:
                 current_branch = run_log
             else:
-                current_branch = ordered_branches[current_branch]  # type: ignore
+                current_branch = ordered_branches[current_branch]
                 step_to_add_branch = ordered_steps[step_to_add_branch]  # type: ignore
                 step_to_add_branch.branches[current_branch.internal_name] = current_branch  # type: ignore
 
@@ -1401,7 +1409,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             run_id (str): The run id to which the branch/run log is added
         """
         if not isinstance(branch_log, BranchLog):
-            self.put_run_log(branch_log)  # type: ignore # We are dealing with base dag here
+            self.put_run_log(branch_log)
             return
 
         internal_branch_name = branch_log.internal_name

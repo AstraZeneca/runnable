@@ -45,21 +45,21 @@ class BaseNode:
 
         executor_config: dict = {}
 
-        def __init__(self, *args, **kwargs):
-            next_node = kwargs.get("next", "")
-            if next_node:
-                del kwargs["next"]
-                kwargs["next_node"] = next_node
+    @classmethod
+    def remove_next_keyword_from_config(cls, config: dict):
+        next_node = config.get("next", "")
+        if next_node:
+            del config["next"]
+            config["next_node"] = next_node
 
-            super().__init__(*args, **kwargs)
-
-    def __init__(self, name, internal_name, config, internal_branch_name=None):
+    def __init__(self, name, internal_name, internal_branch_name=None):
         # pylint: disable=R0914,R0913
         self.name = name
         self.internal_name = internal_name  #  Dot notation naming of the steps
-        self.config = self.Config(**config)
         self.internal_branch_name = internal_branch_name  # parallel, map, dag only have internal names
         self.is_composite = False
+
+        # self.config = self.Config()
 
     def validate(self) -> List[str]:
         """
@@ -78,7 +78,8 @@ class BaseNode:
         """
         Return a dict representation of the node.
         """
-        config_dict = dict(self.config.dict())
+        # Purpose to ignore is that the config is not defined at this level but helps with extensions
+        config_dict = dict(self.config.dict())  # type: ignore
         config_dict["type"] = self.node_type
         return config_dict
 
@@ -210,8 +211,8 @@ class BaseNode:
             str: The on_failure node defined by the dag or ''
         This is a base implementation which the BaseNode does not satisfy
         """
-
-        return self.config.on_failure
+        # Purpose to ignore is that the on_failure is not defined in the config but helps with extensions
+        return self.config.on_failure  # type: ignore
 
     def _get_catalog_settings(self) -> Optional[dict]:
         """
@@ -221,7 +222,8 @@ class BaseNode:
             dict: catalog settings defined as per the node or None
         This is a base implementation which the BaseNode does not satisfy
         """
-        return self.config.catalog
+        # Purpose to ignore is that the catalog node is not defined in the config but helps with extensions
+        return self.config.catalog  # type: ignore
 
     def _get_branch_by_name(self, branch_name: str):
         """
@@ -279,7 +281,8 @@ class BaseNode:
         This is a base implementation which the BaseNode does not satisfy
         """
         if not self._is_terminal_node():
-            return self.config.next_node
+            # Purpose to ignore is that the next node is not defined in the config but helps with extensions
+            return self.config.next_node  # type: ignore
         return None
 
     def _get_executor_config(self, executor_type) -> dict:
@@ -293,7 +296,8 @@ class BaseNode:
             dict: The executor config, if defined or an empty dict
         This is a base implementation which the BaseNode does not satisfy
         """
-        return self.config.executor_config.get(executor_type, {})
+        # Purpose to ignore is that the config is not defined at this level but helps with extensions
+        return self.config.executor_config.get(executor_type, {})  # type: ignore
 
     def _get_max_attempts(self) -> int:
         """
@@ -303,7 +307,8 @@ class BaseNode:
             int: The number of maximum retries as defined by the config or 1.
         This is a base implementation which the BaseNode does not satisfy
         """
-        return self.config.retry
+        # Purpose to ignore is that the max_attempts is not defined in the config but helps with extensions
+        return self.config.retry  # type: ignore
 
     def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
         """
@@ -385,7 +390,7 @@ class TaskNode(BaseNode):
 
     node_type = "task"
 
-    class Config(BaseNode.Config, extra=Extra.allow):  # type: ignore
+    class ContextConfig(BaseNode.Config, extra=Extra.allow):
         next_node: str
         catalog: dict = {}
         retry: int = 1
@@ -400,14 +405,17 @@ class TaskNode(BaseNode):
             return field_names
 
     def __init__(self, name, internal_name, config, internal_branch_name=None):
-        super().__init__(name, internal_name, config, internal_branch_name)
+        super().__init__(name, internal_name, internal_branch_name)
+
+        config = self.remove_next_keyword_from_config(config)
+        self.config = self.ContextConfig(**config)
 
         kwargs_for_command = {
             "node_name": self.name,
         }
 
         for key, value in self.config.dict().items():
-            if key not in TaskNode.Config.get_field_names():
+            if key not in TaskNode.ContextConfig.get_field_names():
                 # Ignore all the fields that are used by node itself
                 kwargs_for_command[key] = value
 
@@ -463,6 +471,15 @@ class FailNode(BaseNode):
     """
 
     node_type = "fail"
+
+    class ContextConfig(BaseNode.Config):
+        pass
+
+    def __init__(self, name, internal_name, config, internal_branch_name=None):
+        super().__init__(name, internal_name, internal_branch_name)
+
+        config = self.remove_next_keyword_from_config(config)
+        self.config = self.ContextConfig(**config)
 
     def _get_on_failure_node(self) -> Optional[str]:
         """
@@ -544,6 +561,15 @@ class SuccessNode(BaseNode):
     """
 
     node_type = "success"
+
+    class ContextConfig(BaseNode.Config):
+        pass
+
+    def __init__(self, name, internal_name, config, internal_branch_name=None):
+        super().__init__(name, internal_name, internal_branch_name)
+
+        config = self.remove_next_keyword_from_config(config)
+        self.config = self.ContextConfig(**config)
 
     def _get_on_failure_node(self) -> Optional[str]:
         """
@@ -634,14 +660,18 @@ class ParallelNode(BaseNode):
 
     node_type = "parallel"
 
-    class Config(BaseNode.Config):
+    class ContextConfig(BaseNode.Config):
         next_node: str
         branches: dict
         on_failure: str = ""
 
     def __init__(self, name, internal_name, config, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, internal_branch_name=internal_branch_name)
+        super().__init__(name, internal_name, internal_branch_name)
+
+        config = self.remove_next_keyword_from_config(config)
+        self.config = self.ContextConfig(**config)
+
         self.branches = self.get_sub_graphs()
         self.is_composite = True
 
@@ -813,7 +843,7 @@ class MapNode(BaseNode):
 
     node_type = "map"
 
-    class Config(BaseNode.Config):
+    class ContextConfig(BaseNode.Config):
         next_node: str
         branch: dict
         iterate_on: str
@@ -822,7 +852,11 @@ class MapNode(BaseNode):
 
     def __init__(self, name, internal_name, config, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, internal_branch_name=internal_branch_name)
+        super().__init__(name, internal_name, internal_branch_name)
+
+        config = self.remove_next_keyword_from_config(config)
+        self.config = self.ContextConfig(**config)
+
         self.is_composite = True
         self.branch_placeholder_name = defaults.MAP_PLACEHOLDER
         self.branch = self.get_sub_graph()
@@ -1037,14 +1071,18 @@ class DagNode(BaseNode):
 
     node_type = "dag"
 
-    class Config(BaseNode.Config):
+    class ContextConfig(BaseNode.Config):
         next_node: str
         dag_definition: str
         on_failure: str = ""
 
     def __init__(self, name, internal_name, config, internal_branch_name=None):
         # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, config, internal_branch_name=internal_branch_name)
+        super().__init__(name, internal_name, internal_branch_name)
+
+        config = self.remove_next_keyword_from_config(config)
+        self.config = self.ContextConfig(**config)
+
         self.sub_dag_file = self.config.dag_definition
         self.is_composite = True
         self.branch = self.get_sub_graph()
@@ -1197,10 +1235,16 @@ class AsIsNode(BaseNode):
 
     node_type = "as-is"
 
-    class Config(BaseNode.Config, extra=Extra.allow):  # type: ignore
+    class ContextConfig(BaseNode.Config, extra=Extra.allow):
         next_node: str
         on_failure: Optional[str]
         retry: int = 1
+
+    def __init__(self, name, internal_name, config, internal_branch_name=None):
+        super().__init__(name, internal_name, internal_branch_name)
+
+        config = self.remove_next_keyword_from_config(config)
+        self.config = self.ContextConfig(**config)
 
     def _get_catalog_settings(self) -> Optional[dict]:
         """
