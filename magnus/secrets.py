@@ -1,5 +1,6 @@
 import logging
 import os
+from abc import ABC, abstractmethod
 from typing import Union
 
 from pydantic import BaseModel
@@ -10,7 +11,7 @@ logger = logging.getLogger(defaults.NAME)
 
 
 # --8<-- [start:docs]
-class BaseSecrets:
+class BaseSecrets(ABC):
     """
     A base class for Secrets Handler.
     All implementations should extend this class.
@@ -28,6 +29,7 @@ class BaseSecrets:
     class Config(BaseModel):
         pass
 
+    @abstractmethod
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:
         """
         Return the secret by name.
@@ -56,7 +58,6 @@ class DoNothingSecretManager(BaseSecrets):
         ...
 
     def __init__(self, config, **kwargs):
-        super().__init__()
         self.config = self.ContextConfig(**(config or {}))
         self.secrets = {}
 
@@ -92,7 +93,6 @@ class EnvSecretsManager(BaseSecrets):
         suffix: str = ""
 
     def __init__(self, config, **kwargs):
-        super().__init__()
         self.config = self.ContextConfig(**(config or {}))
 
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:

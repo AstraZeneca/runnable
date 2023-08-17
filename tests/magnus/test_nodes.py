@@ -6,8 +6,14 @@ from magnus import (
 )
 
 
+@pytest.fixture(autouse=True)
+def instantiable_base_class(monkeypatch):
+    monkeypatch.setattr(nodes.BaseNode, "__abstractmethods__", set())
+    yield
+
+
 def test_base_node__command_friendly_name_replaces_whitespace_with_character():
-    node = nodes.BaseNode(name="test", internal_name="test", config={})
+    node = nodes.BaseNode(name="test", internal_name="test")
 
     assert node._command_friendly_name() == "test"
 
@@ -22,41 +28,39 @@ def test_base_node__get_internal_name_from_command_name_replaces_character_with_
 
 
 def test_base_node__get_step_log_name_returns_internal_name_if_no_map_variable():
-    node = nodes.BaseNode(name="test", internal_name="test", config={})
+    node = nodes.BaseNode(name="test", internal_name="test")
 
     assert node._get_step_log_name() == "test"
 
 
 def test_base_node__get_step_log_name_returns_map_modified_internal_name_if_map_variable():
-    node = nodes.BaseNode(name="test", internal_name="test." + defaults.MAP_PLACEHOLDER, config={})
+    node = nodes.BaseNode(name="test", internal_name="test." + defaults.MAP_PLACEHOLDER)
 
     assert node._get_step_log_name(map_variable={"map_key": "a"}) == "test.a"
 
 
 def test_base_node__get_step_log_name_returns_map_modified_internal_name_if_map_variable_multiple():
     node = nodes.BaseNode(
-        name="test", internal_name="test." + defaults.MAP_PLACEHOLDER + ".step." + defaults.MAP_PLACEHOLDER, config={}
+        name="test", internal_name="test." + defaults.MAP_PLACEHOLDER + ".step." + defaults.MAP_PLACEHOLDER
     )
 
     assert node._get_step_log_name(map_variable={"map_key": "a", "map_key1": "b"}) == "test.a.step.b"
 
 
 def test_base_node__get_branch_log_name_returns_null_if_not_set():
-    node = nodes.BaseNode(name="test", internal_name="test", config={})
+    node = nodes.BaseNode(name="test", internal_name="test")
 
     assert node._get_branch_log_name() is None
 
 
 def test_base_node__get_branch_log_name_returns_internal_name_if_set():
-    node = nodes.BaseNode(name="test", internal_name="test", config={}, internal_branch_name="test_internal")
+    node = nodes.BaseNode(name="test", internal_name="test", internal_branch_name="test_internal")
 
     assert node._get_branch_log_name() == "test_internal"
 
 
 def test_base_node__get_branch_log_name_returns_map_modified_internal_name_if_map_variable():
-    node = nodes.BaseNode(
-        name="test", internal_name="test_", config={}, internal_branch_name="test." + defaults.MAP_PLACEHOLDER
-    )
+    node = nodes.BaseNode(name="test", internal_name="test_", internal_branch_name="test." + defaults.MAP_PLACEHOLDER)
 
     assert node._get_branch_log_name(map_variable={"map_key": "a"}) == "test.a"
 
@@ -65,7 +69,6 @@ def test_base_node__get_branch_log_name_returns_map_modified_internal_name_if_ma
     node = nodes.BaseNode(
         name="test",
         internal_name="test_",
-        config={},
         internal_branch_name="test." + defaults.MAP_PLACEHOLDER + ".step." + defaults.MAP_PLACEHOLDER,
     )
 
@@ -73,21 +76,21 @@ def test_base_node__get_branch_log_name_returns_map_modified_internal_name_if_ma
 
 
 def test_base_node__get_branch_by_name_raises_exception():
-    node = nodes.BaseNode(name="test", internal_name="test", config={})
+    node = nodes.BaseNode(name="test", internal_name="test")
 
     with pytest.raises(Exception):
         node._get_branch_by_name("fail")
 
 
 def test_base_node_execute_raises_not_implemented_error():
-    node = nodes.BaseNode(name="test", internal_name="test", config={})
+    node = nodes.BaseNode(name="test", internal_name="test")
 
     with pytest.raises(NotImplementedError):
         node.execute(executor="test")
 
 
 def test_base_node_execute_as_graph_raises_not_implemented_error():
-    node = nodes.BaseNode(name="test", internal_name="test", config={})
+    node = nodes.BaseNode(name="test", internal_name="test")
 
     with pytest.raises(NotImplementedError):
         node.execute_as_graph(executor="test")
@@ -99,7 +102,7 @@ def test_task_node_mocks_if_mock_is_true(mocker, monkeypatch):
     mock_executor = mocker.MagicMock()
     mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
 
-    configuration = {"command": "test", "next": "next_node"}
+    configuration = {"command": "test", "next_node": "next_node"}
     task_node = nodes.TaskNode(name="test", internal_name="test", config=configuration)
 
     task_node.execute(executor=mock_executor, mock=True)
@@ -113,7 +116,7 @@ def test_task_node_sets_attempt_log_fail_in_exception_of_execution(mocker, monke
     mock_executor = mocker.MagicMock()
     mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
 
-    configuration = {"command": "test", "next": "next_node"}
+    configuration = {"command": "test", "next_node": "next_node"}
     task_node = nodes.TaskNode(name="test", internal_name="test", config=configuration)
 
     mock_execution_type = mocker.MagicMock()
@@ -130,7 +133,7 @@ def test_task_node_sets_attempt_log_success_in_no_exception_of_execution(mocker,
     mock_executor = mocker.MagicMock()
     mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
 
-    configuration = {"command": "test", "next": "next_node"}
+    configuration = {"command": "test", "next_node": "next_node"}
     task_node = nodes.TaskNode(name="test", internal_name="test", config=configuration)
 
     task_node.executable = mocker.MagicMock()
@@ -141,7 +144,7 @@ def test_task_node_sets_attempt_log_success_in_no_exception_of_execution(mocker,
 
 
 def test_task_node_execute_as_graph_raises_exception():
-    configuration = {"command": "test", "next": "next_node"}
+    configuration = {"command": "test", "next_node": "next_node"}
     task_node = nodes.TaskNode(name="test", internal_name="test", config=configuration)
 
     with pytest.raises(Exception):

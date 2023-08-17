@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
 
 from pydantic import BaseModel
@@ -23,7 +24,7 @@ logger = logging.getLogger(defaults.NAME)
 
 
 # --8<-- [start:docs]
-class BaseExecutor:
+class BaseExecutor(ABC):
     """
     The skeleton of an executor class.
     Any implementation of an executor should inherit this class and over-ride accordingly.
@@ -43,7 +44,7 @@ class BaseExecutor:
         enable_parallel: bool = defaults.ENABLE_PARALLEL
         placeholders: dict = {}
 
-    def __init__(self, config: dict = None):
+    def __init__(self):
         # pylint: disable=R0914,R0913
         # The definition files
         self.pipeline_file = None
@@ -132,7 +133,7 @@ class BaseExecutor:
         if self.previous_run_log:
             run_log["original_run_id"] = self.previous_run_log.run_id
             # Sync the previous run log catalog to this one.
-            self.catalog_handler.sync_between_runs(previous_run_id=self.previous_run_log.run_id, run_id=self.run_id)
+            self.catalog_handler.sync_between_runs(previous_run_id=self.previous_run_log.run_id, run_id=self.run_id)  # type: ignore # noqa: E501
             run_log["use_cached"] = True
             parameters.update(self.previous_run_log.parameters)
 
@@ -346,6 +347,7 @@ class BaseExecutor:
 
             self.run_log_store.add_step_log(step_log, self.run_id)
 
+    @abstractmethod
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
         The exposed method to executing a node.
@@ -653,6 +655,7 @@ class BaseExecutor:
 
         return effective_node_config
 
+    @abstractmethod
     def execute_job(self, node: BaseNode):
         """
         Executor specific way of executing a job (python function or a notebook).

@@ -1,5 +1,6 @@
 import contextlib
 import logging
+from abc import ABC, abstractmethod
 from typing import Any
 
 from pydantic import BaseModel
@@ -11,7 +12,7 @@ logger = logging.getLogger(defaults.NAME)
 # --8<-- [start:docs]
 
 
-class BaseExperimentTracker:
+class BaseExperimentTracker(ABC):
     """
     Base Experiment tracker class definition.
     """
@@ -28,6 +29,7 @@ class BaseExperimentTracker:
         """
         return contextlib.nullcontext()
 
+    @abstractmethod
     def log_metric(self, key: str, value: float, step: int = 0):
         """
         Sets the metric in the experiment tracking.
@@ -42,6 +44,7 @@ class BaseExperimentTracker:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def log_parameter(self, key: str, value: Any):
         """
         Logs a parameter in the experiment tracking.
@@ -69,12 +72,10 @@ class DoNothingTracker(BaseExperimentTracker):
     class ContextConfig(BaseExperimentTracker.Config):
         ...
 
-    def __init__(self, config) -> None:
-        super().__init__()
+    def __init__(self, config: dict) -> None:
+        self.config = self.ContextConfig(**(config or {}))
 
-        self.config = self.ContextConfig(**{config or {}})
-
-    def set_metric(self, key: str, value: float, step: int = 0):
+    def log_metric(self, key: str, value: float, step: int = 0):
         """
         Sets the metric in the experiment tracking.
 

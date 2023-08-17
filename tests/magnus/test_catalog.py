@@ -9,6 +9,12 @@ from magnus import (
 )
 
 
+@pytest.fixture
+def instantiable_base_class(monkeypatch):
+    monkeypatch.setattr(catalog.BaseCatalog, "__abstractmethods__", set())
+    yield
+
+
 def test_get_run_log_store_returns_context_executor_run_log_store(mocker, monkeypatch):
     from magnus import context
 
@@ -72,33 +78,26 @@ def test_is_catalog_out_of_sync_returns_true_for_different_paths():
     assert catalog.is_catalog_out_of_sync(catalog_item2, synced_catalog) is True
 
 
-def test_base_catalog_inits_empty_config_if_none_config():
-    base_catalog = catalog.BaseCatalog(config=None)
-    assert base_catalog.config == base_catalog.Config()
-
-
-def test_base_catalog_get_raises_exception():
-    base_catalog = catalog.BaseCatalog(config=None)
+def test_base_catalog_get_raises_exception(instantiable_base_class):
+    base_catalog = catalog.BaseCatalog()
     with pytest.raises(NotImplementedError):
         base_catalog.get(name="test", run_id="test")
 
 
-def test_base_catalog_put_raises_exception():
-    base_catalog = catalog.BaseCatalog(config=None)
+def test_base_catalog_put_raises_exception(instantiable_base_class):
+    base_catalog = catalog.BaseCatalog()
     with pytest.raises(NotImplementedError):
         base_catalog.put(name="test", run_id="test")
 
 
-def test_base_catalog_sync_between_runs_raises_exception():
-    base_catalog = catalog.BaseCatalog(config=None)
+def test_base_catalog_sync_between_runs_raises_exception(instantiable_base_class):
+    base_catalog = catalog.BaseCatalog()
     with pytest.raises(NotImplementedError):
         base_catalog.sync_between_runs(previous_run_id=1, run_id=2)
 
 
-def test_base_catalog_inits_default_compute_folder_if_none_config():
-    base_catalog = catalog.BaseCatalog(config=None)
-    assert base_catalog.compute_data_folder == defaults.COMPUTE_DATA_FOLDER
-    assert base_catalog.config.compute_data_folder == defaults.COMPUTE_DATA_FOLDER
+def test_base_catalog_config_default_compute_folder_if_none_config():
+    assert catalog.BaseCatalog.Config().compute_data_folder == defaults.COMPUTE_DATA_FOLDER
 
 
 def test_do_nothing_catalog_get_returns_empty_list(monkeypatch, mocker):

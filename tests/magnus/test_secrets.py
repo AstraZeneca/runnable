@@ -6,14 +6,20 @@ from magnus import (
 )
 
 
-def test_base_secrets_init_config_empty_dict():
-    base_secret = secrets.BaseSecrets(config=None)
+@pytest.fixture(autouse=True)
+def instantiable_base_class(monkeypatch):
+    monkeypatch.setattr(secrets.BaseSecrets, "__abstractmethods__", set())
+    yield
 
-    assert base_secret.config == {}
+
+def test_base_secrets_init_config_empty_dict():
+    base_secret_config = secrets.BaseSecrets.Config()
+
+    assert base_secret_config == {}
 
 
 def test_base_secrets_get_raises_not_implemented_error():
-    base_secret = secrets.BaseSecrets(config=None)
+    base_secret = secrets.BaseSecrets()
 
     with pytest.raises(NotImplementedError):
         base_secret.get()

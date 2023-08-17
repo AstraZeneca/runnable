@@ -1,6 +1,7 @@
 import logging
 import os
 import shutil
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
 
@@ -47,7 +48,7 @@ def is_catalog_out_of_sync(catalog, synced_catalogs=None) -> bool:
 # --8<-- [start:docs]
 
 
-class BaseCatalog:
+class BaseCatalog(ABC):
     """
     Base Catalog class definition.
 
@@ -74,6 +75,7 @@ class BaseCatalog:
         # Purpose of ignoring is config does not exist in the base class but makes it easier to extend
         return self.config.compute_data_folder  # type: ignore
 
+    @abstractmethod
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         # pylint: disable=unused-argument
         """
@@ -94,6 +96,7 @@ class BaseCatalog:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def put(
         self,
         name: str,
@@ -122,6 +125,7 @@ class BaseCatalog:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def sync_between_runs(self, previous_run_id: str, run_id: str):
         """
         Given run_id of a previous run, sync them to the catalog of the run given by run_id

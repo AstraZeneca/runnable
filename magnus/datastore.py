@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from string import Template
@@ -289,7 +290,7 @@ class RunLog(BaseModel):
 
 
 # --8<-- [start:docs]
-class BaseRunLogStore:
+class BaseRunLogStore(ABC):
     """
     The base class of a Run Log Store with many common methods implemented.
 
@@ -303,6 +304,7 @@ class BaseRunLogStore:
     class Config(BaseModel):
         ...
 
+    @abstractmethod
     def create_run_log(
         self,
         run_id: str,
@@ -326,6 +328,7 @@ class BaseRunLogStore:
 
         raise NotImplementedError
 
+    @abstractmethod
     def get_run_log_by_id(self, run_id: str, full: bool = False, **kwargs) -> RunLog:
         """
         Retrieves a Run log from the database using the config and the run_id
@@ -347,6 +350,7 @@ class BaseRunLogStore:
 
         raise NotImplementedError
 
+    @abstractmethod
     def put_run_log(self, run_log: RunLog, **kwargs):
         """
         Puts the Run Log in the database as defined by the config
@@ -648,8 +652,7 @@ class BufferRunLogstore(BaseRunLogStore):
         ...
 
     def __init__(self, config):
-        super().__init__()
-        self.config = self.ContextConfig(**config)
+        self.config = self.ContextConfig(**(config or {}))
         self.run_log = None  # For a buffered Run Log, this is the database
 
     def create_run_log(
@@ -729,8 +732,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
         log_folder: str = defaults.LOG_LOCATION_FOLDER
 
     def __init__(self, config):
-        super().__init__()
-        self.config = self.ContextConfig(**config)
+        self.config = self.ContextConfig(**(config or {}))
 
     @property
     def log_folder_name(self) -> str:
@@ -851,8 +853,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         log_folder: str = defaults.LOG_LOCATION_FOLDER
 
     def __init__(self, config):
-        super().__init__()
-        self.config = self.ContextConfig(**config)
+        self.config = self.ContextConfig(**(config or {}))
 
     class LogTypes(Enum):
         RUN_LOG: str = "RunLog"

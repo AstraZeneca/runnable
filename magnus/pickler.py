@@ -1,8 +1,11 @@
 import pickle
+from abc import ABC, abstractmethod
 from typing import Any
 
+from pydantic import BaseModel
 
-class BasePickler:
+
+class BasePickler(ABC):
     """
     The base class for all picklers.
 
@@ -13,6 +16,10 @@ class BasePickler:
     extension = ""
     service_name = ""
 
+    class Config(BaseModel):
+        ...
+
+    @abstractmethod
     def dump(self, data: Any, path: str):
         """
         Dump an object to the specified path.
@@ -30,6 +37,7 @@ class BasePickler:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def load(self, path: str) -> Any:
         """
         Load the object from the specified path.
@@ -53,6 +61,12 @@ class NativePickler(BasePickler):
 
     extension = ".pickle"
     service_name = "pickle"
+
+    class ContextConfig(BasePickler.Config):
+        ...
+
+    def __init__(self, config):
+        self.config = self.ContextConfig(**config)
 
     def dump(self, data: Any, path: str):
         """
