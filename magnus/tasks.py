@@ -4,6 +4,7 @@ import io
 import json
 import logging
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -254,7 +255,7 @@ class NotebookTaskType(BaseTaskType):
         if notebook_output_path:
             return notebook_output_path
 
-        return "".join(values["command"].command.split(".")[:-1]) + "_out.ipynb"
+        return "".join(values["command"].split(".")[:-1]) + "_out.ipynb"
 
     def get_cli_options(self) -> dict:
         return {"command": self.command, "notebook-output-path": self.notebook_output_path}
@@ -365,10 +366,10 @@ class ContainerTaskType(BaseTaskType):
     task_type: ClassVar[str] = "container"
 
     image: str
-    context_path: str = "/opt/magnus"
+    context_path: str = defaults.DEFAULT_CONTAINER_CONTEXT_PATH
     command: str = ""  # Would be defaulted to the entrypoint of the container
-    data_folder: str = "data"  # Would be relative to the context_path
-    output_parameters_file: str = "parameters.json"  # would be relative to the context_path
+    data_folder: str = defaults.DEFAULT_CONTAINER_DATA_PATH  # Would be relative to the context_path
+    output_parameters_file: str = defaults.DEFAULT_CONTAINER_OUTPUT_PARAMETERS  # would be relative to the context_path
     secrets: List[str] = []
     experiment_tracking_file: str = ""
 
@@ -426,7 +427,7 @@ class ContainerTaskType(BaseTaskType):
         try:
             container = client.containers.create(
                 self.image,
-                command=self.command,
+                command=shlex.split(self.command),
                 auto_remove=False,
                 network_mode="host",
                 environment=container_env_variables,
@@ -521,9 +522,6 @@ def create_task(kwargs_for_init) -> BaseTaskType:
         tasks.BaseTaskType: The command object
     """
     command_type = kwargs_for_init.pop("command_type", defaults.COMMAND_TYPE)
-
-    command_config = kwargs_for_init.pop("command_config", {})
-    kwargs_for_init.update(command_config)
 
     try:
         task_mgr = driver.DriverManager(

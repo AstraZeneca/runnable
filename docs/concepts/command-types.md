@@ -111,8 +111,7 @@ Internally, we use [ploomber](https://ploomber.io/) for inspection and execution
 of the notebook. Any ```parameters``` defined in the notebook would be introspected and dynamically provided at runtime
 from the parameter space.
 
-The path of the output of execution is obtained by post-fixing ```_out``` to the input notebook but can be configured
-by ```command_config``` as shown below.
+The path of the output of execution is obtained by post-fixing ```_out``` to the input notebook but can be configured by providing ```notebook_output_path```
 
 ```yaml
 dag:
@@ -120,8 +119,7 @@ dag:
     step1:
       command: notebooks/input.ipynb
       command_type: notebook
-      command_config:
-        notebook_output_path: notebooks/output.ipynb
+      notebook_output_path: notebooks/output.ipynb
     ...
 ```
 
@@ -131,7 +129,7 @@ Or via the python SDK:
 from magnus import Task
 
 first = Task(name='step1', command='notebooks/input.ipynb', command_type='notebook',
-        command_config={'notebook_output_path': 'notebooks/output.ipynb'})
+        notebook_output_path='notebooks/output.ipynb')
 ```
 
 Since the kernel used is the same as the execution environment via ploomber, anything that you can do via the python

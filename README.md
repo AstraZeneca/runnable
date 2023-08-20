@@ -333,7 +333,6 @@ You should see a list of warnings but your terminal output should look something
                     "next_node": "step shell",
                     "command": "lambda x: {'x': int(x) + 1}",
                     "command_type": "python-lambda",
-                    "command_config": {},
                     "catalog": {},
                     "retry": 1,
                     "on_failure": "",
@@ -344,7 +343,6 @@ You should see a list of warnings but your terminal output should look something
                     "next_node": "success",
                     "command": "mkdir data ; env >> data/data.txt",
                     "command_type": "shell",
-                    "command_config": {},
                     "catalog": {
                         "put": "*"
                     },

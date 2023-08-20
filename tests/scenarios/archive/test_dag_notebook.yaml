@@ -7,7 +7,6 @@ dag:
       next: step2
       command_type: notebook
       command: "tests/scenarios/input.ipynb"
-      command_config:
     step2:
       type: as-is
       next: success

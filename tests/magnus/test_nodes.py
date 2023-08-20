@@ -390,11 +390,9 @@ def test_nodes_dag_node_execute_raises_exception(mocker, monkeypatch):
 
 
 def test_nodes_as_is_node_accepts_what_is_given():
-    node = nodes.AsIsNode(
-        name="test", internal_name="test", config={"command_config": {"render_string": "test"}, "next": "test"}
-    )
+    node = nodes.AsIsNode(name="test", internal_name="test", config={"render_string": "test", "next": "test"})
 
-    assert node.config.command_config == {"render_string": "test"}
+    assert node.config.render_string == "test"
 
 
 def test_as_is_node_execute_as_graph_raises_exception():

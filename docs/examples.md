@@ -260,7 +260,7 @@ is available via notebook too.
 We use [ploomber](https://ploomber.io/) to inspect the parameters and send them dynamically from the parameter space.
 
 The command refers to the notebook that you want to use as a task and it should point to the notebook.
-The output notebook naming could be provided by using the ```command_config``` section or would be defaulted to the
+The output notebook naming could also be provided by using the ```notebook_output_path``` or would be defaulted to the
 notebook mentioned in ```command``` section post-fixed with ```_out```.
 
 
@@ -273,8 +273,7 @@ dag:
       command_type: notebook
       command: pre_processing.iypnb
       next: success
-      command_config:
-        notebook_output_path: notebooks/output.ipynb
+      notebook_output_path: notebooks/output.ipynb
     success:
       type: success
     failure:
@@ -289,10 +288,7 @@ or via python SDK:
 from magnus import Task, Pipeline
 
 def pipeline():
-    command_config = {
-      'notebook_output_path': 'notebooks/output.ipynb
-    }
-    first = Task(name='step 1', command='pre_processing.iypnb', command_type='notebook', command_config=command_config)
+    first = Task(name='step 1', command='pre_processing.iypnb', command_type='notebook', notebook_output_path="notebooks/output.ipynb")
     pipeline = Pipeline(start_at=first, name='my first pipeline')
     pipeline.construct([first])
     pipeline.execute()
@@ -1733,8 +1729,6 @@ dag:
     step echo:
       type: as-is
       command_type: shell
-      command_config:
-        render_string: echo hello
       next: success
     success:
       type: success

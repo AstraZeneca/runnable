@@ -1,28 +1,14 @@
 import json
 import logging
-from typing import Any, Mapping, Union, cast
-
-try:
-    from typing import TypedDict  # type: ignore
-except ImportError:
-    from typing_extensions import TypedDict
-
+from typing import List, Optional, Union, cast
 
 from magnus import defaults, exceptions, graph, utils
+from magnus.defaults import MagnusConfig, ServiceConfig
 
 logger = logging.getLogger(defaults.NAME)
 
 
-class ServiceConfig(TypedDict):
-    type: str
-    config: Mapping[str, Any]
-
-
-class MagnusConfig(TypedDict):
-    services: Mapping[str, ServiceConfig]
-
-
-def get_default_configs() -> dict:
+def get_default_configs() -> MagnusConfig:
     """
     User can provide extensions as part of their code base, magnus-config.yaml provides the place to put them.
     """
@@ -77,36 +63,38 @@ def prepare_configurations(
     configuration: MagnusConfig = cast(MagnusConfig, utils.apply_variables(templated_configuration, variables))
 
     # Run log settings, configuration over-rides everything
-    run_log_config: ServiceConfig = configuration.get("run_log_store", {})
+    run_log_config: Optional[ServiceConfig] = configuration.get("run_log_store", None)
     if not run_log_config:
-        run_log_config = magnus_defaults.get("run_log_store", defaults.DEFAULT_RUN_LOG_STORE)
+        run_log_config = cast(ServiceConfig, magnus_defaults.get("run_log_store", defaults.DEFAULT_RUN_LOG_STORE))
     run_log_store = utils.get_provider_by_name_and_type("run_log_store", run_log_config)
 
     # Catalog handler settings, configuration over-rides everything
-    catalog_config: ServiceConfig = configuration.get("catalog", {})
+    catalog_config: Optional[ServiceConfig] = configuration.get("catalog", None)
     if not catalog_config:
-        catalog_config = magnus_defaults.get("catalog", defaults.DEFAULT_CATALOG)
+        catalog_config = cast(ServiceConfig, magnus_defaults.get("catalog", defaults.DEFAULT_CATALOG))
     catalog_handler = utils.get_provider_by_name_and_type("catalog", catalog_config)
 
     # Secret handler settings, configuration over-rides everything
-    secrets_config: ServiceConfig = configuration.get("secrets", {})
+    secrets_config: Optional[ServiceConfig] = configuration.get("secrets", None)
     if not secrets_config:
-        secrets_config = magnus_defaults.get("secrets", defaults.DEFAULT_SECRETS)
+        secrets_config = cast(ServiceConfig, magnus_defaults.get("secrets", defaults.DEFAULT_SECRETS))
     secrets_handler = utils.get_provider_by_name_and_type("secrets", secrets_config)
 
     # experiment tracker settings, configuration over-rides everything
-    tracker_config: ServiceConfig = configuration.get("experiment_tracker", {})
+    tracker_config: Optional[ServiceConfig] = configuration.get("experiment_tracker", None)
     if not tracker_config:
-        tracker_config = magnus_defaults.get("experiment_tracker", defaults.DEFAULT_EXPERIMENT_TRACKER)
+        tracker_config = cast(
+            ServiceConfig, magnus_defaults.get("experiment_tracker", defaults.DEFAULT_EXPERIMENT_TRACKER)
+        )
     tracker_handler = utils.get_provider_by_name_and_type("experiment_tracker", tracker_config)
 
     # executor configurations, configuration over rides everything
-    executor_config: ServiceConfig = configuration.get("executor", {})
+    executor_config: Optional[ServiceConfig] = configuration.get("executor", None)
     if force_local_executor:
         executor_config = ServiceConfig(type="local", config={})
 
     if not executor_config:
-        executor_config = magnus_defaults.get("executor", defaults.DEFAULT_EXECUTOR)
+        executor_config = cast(ServiceConfig, magnus_defaults.get("executor", defaults.DEFAULT_EXECUTOR))
     configured_executor = utils.get_provider_by_name_and_type("executor", executor_config)
 
     if pipeline_file:
@@ -408,14 +396,10 @@ def execute_notebook(
     mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-    command_config = {}
-    if notebook_output_path:
-        command_config["notebook_output_path"] = notebook_output_path
-
     step_config = {
         "command": notebook_file,
         "command_type": "notebook",
-        "command_config": command_config,
+        "notebook_output_path": notebook_output_path,
         "type": "task",
         "next": "success",
         "catalog": catalog_config,
@@ -474,6 +458,83 @@ def execute_function(
     step_config = {
         "command": command,
         "command_type": "python",
+        "type": "task",
+        "next": "success",
+        "catalog": catalog_config,
+    }
+    node = graph.create_node(name="executing job", step_config=step_config)
+
+    if entrypoint == defaults.ENTRYPOINT.USER.value:
+        # Prepare for graph execution
+        mode_executor.prepare_for_graph_execution()
+
+        logger.info("Executing the job from the user. We are still in the caller's compute environment")
+        mode_executor.execute_job(node=node)
+
+    elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
+        mode_executor.prepare_for_node_execution()
+        logger.info("Executing the job from the system. We are in the config's compute environment")
+        mode_executor.execute_node(node=node)
+
+        # Update the status of the run log
+        step_log = mode_executor.run_log_store.get_step_log(node._get_step_log_name(), run_id)
+        mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
+
+    else:
+        raise ValueError(f"Invalid entrypoint {entrypoint}")
+
+    mode_executor.send_return_code()
+
+
+def execute_container(
+    image: str,
+    entrypoint: str,
+    command: str = "",
+    configuration_file="",
+    parameters_file: str = "",
+    context_path: str = defaults.DEFAULT_CONTAINER_CONTEXT_PATH,
+    catalog_config: Optional[dict] = None,
+    output_parameters_file: str = defaults.DEFAULT_CONTAINER_OUTPUT_PARAMETERS,
+    experiment_tracking_file: str = "",
+    expose_secrets: Optional[List[str]] = None,
+    tag: str = "",
+    run_id: str = "",
+):
+    """
+    The entry point to magnus execution of a container. This method would prepare the configurations and
+    delegates traversal to the executor
+    """
+    run_id = utils.generate_run_id(run_id=run_id)
+
+    mode_executor = prepare_configurations(
+        configuration_file=configuration_file,
+        run_id=run_id,
+        tag=tag,
+        parameters_file=parameters_file,
+    )
+
+    mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
+    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+
+    # Prepare the graph with a single node
+    """
+    image: str
+    context_path: str = defaults.DEFAULT_CONTAINER_CONTEXT_PATH
+    command: str = ""  # Would be defaulted to the entrypoint of the container
+    data_folder: str = defaults.DEFAULT_CONTAINER_DATA_PATH  # Would be relative to the context_path
+    output_parameters_file: str = defaults.DEFAULT_CONTAINER_OUTPUT_PARAMETERS  # would be relative to the context_path
+    secrets: List[str] = []
+    experiment_tracking_file: str = ""
+    """
+    step_config = {
+        "image": image,
+        "context_path": context_path,
+        "command": command,
+        "data_folder": defaults.DEFAULT_CONTAINER_DATA_PATH,
+        "output_parameters_file": output_parameters_file,
+        "secrets": expose_secrets,
+        "experiment_tracking_file": experiment_tracking_file,
+        "command_type": "container",
         "type": "task",
         "next": "success",
         "catalog": catalog_config,

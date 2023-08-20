@@ -204,7 +204,7 @@ class Pipeline(BaseModel):
 
                 prev_step._construct_node()
 
-                messages.extend(prev_step._node.validate())  # type: ignore
+                messages.extend(prev_step._node.validate())
 
             prev_step = step
 
@@ -224,12 +224,12 @@ class Pipeline(BaseModel):
             raise Exception(", ".join(messages))
 
         graph_config = self.dict()
-        graph_config["start_at"] = self._start_at.name
+        graph_config["start_at"] = self._start_at.name  # type: ignore
 
         graph_config.pop("steps")
         graph_config.pop("additional_steps")
 
-        self._dag = graph.Graph(**graph_config)  # type: ignore
+        self._dag = graph.Graph(**graph_config)
         self._dag.nodes = [step._node for step in self.steps]  # type: ignore
 
         self._dag.add_terminal_nodes()

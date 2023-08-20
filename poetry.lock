@@ -331,14 +331,14 @@ files = [
 
 [[package]]
 name = "click"
-version = "8.1.6"
+version = "8.1.7"
 description = "Composable command line interface toolkit"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "click-8.1.6-py3-none-any.whl", hash = "sha256:fa244bb30b3b5ee2cae3da8f55c9e5e0c0e86093306301fb418eb9dc40fbded5"},
-    {file = "click-8.1.6.tar.gz", hash = "sha256:48ee849951919527a045bfe3bf7baa8a959c423134e1a5b98c05c20ba75a1cbd"},
+    {file = "click-8.1.7-py3-none-any.whl", hash = "sha256:ae74fb96c20a0277a1d615f1e4d73c8414f5a98db8b799a7931d1582f3390c28"},
+    {file = "click-8.1.7.tar.gz", hash = "sha256:ca9853ad459e787e2192211578cc907e7594e294c7ccc834310722b41b9ca6de"},
 ]
 
 [package.dependencies]
@@ -392,14 +392,14 @@ files = [
 
 [[package]]
 name = "commit-linter"
-version = "1.0.2"
+version = "1.0.3"
 description = "simple git hooks scripts for a better git experience that enforces you to use the known commit messages conventions"
 category = "dev"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "commit-linter-1.0.2.tar.gz", hash = "sha256:ea3cb1f157ec77d20031c6aff7b91e2de64c5864f65045925dd0ab1eccd95256"},
-    {file = "commit_linter-1.0.2-py3-none-any.whl", hash = "sha256:b27fc0ff9a7deac6b1b33efff0a440348680e2af84d0bf54461937ae70cab2d8"},
+    {file = "commit-linter-1.0.3.tar.gz", hash = "sha256:e380cac6d9010dab4559380e8d153b71743526bf042d3828dacd6efe544d8aba"},
+    {file = "commit_linter-1.0.3-py3-none-any.whl", hash = "sha256:404fc2adb7ad49fddc27b1fa4424c17bf41556dbaed8dc4c274ca1e104825fbb"},
 ]
 
 [[package]]
@@ -1553,14 +1553,14 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "posthog"
-version = "3.0.1"
+version = "3.0.2"
 description = "Integrate PostHog into any python application."
 category = "main"
 optional = true
 python-versions = "*"
 files = [
-    {file = "posthog-3.0.1-py2.py3-none-any.whl", hash = "sha256:9c7f92fecc713257d4b2710d05b456569c9156fbdd3e85655ba7ba5ba6c7b3ae"},
-    {file = "posthog-3.0.1.tar.gz", hash = "sha256:57d2791ff5752ce56ba0f9bb8876faf3ca9208f1c2c6ceaeb5a2504c34493767"},
+    {file = "posthog-3.0.2-py2.py3-none-any.whl", hash = "sha256:a8c0af6f2401fbe50f90e68c4143d0824b54e872de036b1c2f23b5abb39d88ce"},
+    {file = "posthog-3.0.2.tar.gz", hash = "sha256:701fba6e446a4de687c6e861b587e7b7741955ad624bf34fe013c06a0fec6fb3"},
 ]
 
 [package.dependencies]

@@ -58,7 +58,7 @@ Or via the Python SDK:
 from magnus import Task
 
 first = Task(name: str, command: str, command_type: str = 'python',
-            command_config: Optional[dict]=None, catalog: Optional[dict]=None,
+            catalog: Optional[dict]=None,
             executor_config: Optional[dict]=None, retry: int = 1, on_failure: str = '', next:str=None)
 ```
 The name given to the task has the same behavior as the ```step name``` given in the yaml definition.

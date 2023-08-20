@@ -154,40 +154,9 @@ def execute_single_node(run_id, step_name, map_variable, file, config_file, para
     )
 
 
-@cli.command("execute_single_branch", short_help="Internal entry point to execute a single branch", hidden=True)
-@click.argument("run_id")
-@click.argument("branch_name")
-@click.option("--map-variable", default="", help="The map variable dictionary in str", show_default=True)
-@click.option("-f", "--file", default="pipeline.yaml", help="The pipeline definition file", show_default=True)
-@click.option(
-    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
-)
-@click.option(
-    "--log-level",
-    default=defaults.LOG_LEVEL,
-    help="The log level",
-    show_default=True,
-    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
-)
-def execute_single_branch(run_id, branch_name, map_variable, file, config_file, log_level):
-    """
-    Internal entrypoint for magnus to execute a single branch.
-    Currently it is only being used by local during parallel executions.
-    """
-    logger.setLevel(log_level)
-
-    pipeline.execute_single_brach(
-        configuration_file=config_file,
-        pipeline_file=file,
-        branch_name=branch_name,
-        map_variable=map_variable,
-        run_id=run_id,
-    )
-
-
 @cli.command("execute_notebook", short_help="Entry point to execute a notebook")
 @click.argument("filename")
-@click.argument("entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
+@click.option("--entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
 @click.option(
     "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
 )
@@ -247,7 +216,7 @@ def execute_notebook(
 
 @cli.command("execute_function", short_help="Entry point to execute a python function")
 @click.argument("command")
-@click.argument("entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
+@click.option("--entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
 @click.option(
     "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
 )
@@ -293,7 +262,7 @@ def execute_function(
 
 @cli.command("execute_container", short_help="Entry point to execute a container")
 @click.argument("image")
-@click.argument("entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
+@click.option("--entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
 @click.option("--command", default="", help="The command to execute. Defaults to CMD of image")
 @click.option(
     "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
@@ -312,9 +281,19 @@ def execute_function(
     show_default=True,
     type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
 )
-@click.option("--context-path", default="/opt/magnus", help="The context path for data and parameter files")
-@click.option("--data-folder", "-d", default="data/", help="The catalog data folder relative to context")
-@click.option("--output-parameters-file", default="parameters.json", help="The output parameters file")
+@click.option(
+    "--context-path",
+    default=defaults.DEFAULT_CONTAINER_CONTEXT_PATH,
+    help="The context path for data and parameter files",
+)
+@click.option(
+    "--data-folder",
+    default=defaults.DEFAULT_CONTAINER_DATA_PATH,
+    help="The catalog data folder relative to context",
+)
+@click.option(
+    "--output-parameters-file", default=defaults.DEFAULT_CONTAINER_OUTPUT_PARAMETERS, help="The output parameters file"
+)
 @click.option("--experiment-tracking-file", default="", help="The output experiment tracking file")
 @click.option("--put-in-catalog", "-put", default=None, multiple=True, help="The data to put from the catalog")
 @click.option("--expose-secret", default=None, multiple=True, help="The secret to expose to the container")
@@ -342,58 +321,20 @@ def execute_container(
     The container would be executed in the environment defined by the config file or default if none.
     The execution plan is unchained.
     """
-    # TODO: Prepare the step configuration
     logger.setLevel(log_level)
     catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
-    pipeline.execute_function(
+    expose_secrets = list(expose_secret) if expose_secret else []
+    pipeline.execute_container(
+        image=image,
+        entrypoint=entrypoint,
         command=command,
-        catalog_config=catalog_config,
         configuration_file=config_file,
         parameters_file=parameters_file,
-        tag=tag,
-        run_id=run_id,
-    )
-
-
-# TODO: Remove this CLI and add hidden field to every function/notebook/container CLI entrypoint.
-@cli.command("execute_nb_or_func", short_help="Entry point to execute a notebook or function", hidden=True)
-@click.argument("run_id")
-@click.argument("nb_or_func")
-@click.option(
-    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
-)
-@click.option(
-    "-p",
-    "--parameters-file",
-    default=None,
-    help="Parameters, in yaml,  accessible by the application",
-    show_default=True,
-)
-@click.option(
-    "--log-level",
-    default=defaults.LOG_LEVEL,
-    help="The log level",
-    show_default=True,
-    type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
-)
-@click.option("--data-folder", "-d", default="data/", help="The catalog data folder")
-@click.option("--put-in-catalog", "-put", default=None, multiple=True, help="The data to put from the catalog")
-@click.option("--tag", help="A tag attached to the run")
-def execute_nb_or_function(
-    run_id, nb_or_func, config_file, parameters_file, log_level, data_folder, put_in_catalog, tag
-):
-    """
-    Internal entry point to execute a notebook or function.
-    Executors other than local should use this entry point to execute the notebook or function in the requested
-    environment.
-    """
-    logger.setLevel(log_level)
-    catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
-    pipeline.execute_nb_or_func(
-        command=nb_or_func,
+        context_path=context_path,
         catalog_config=catalog_config,
-        configuration_file=config_file,
-        parameters_file=parameters_file,
+        output_parameters_file=output_parameters_file,
+        experiment_tracking_file=experiment_tracking_file,
+        expose_secrets=expose_secrets,
         tag=tag,
         run_id=run_id,
     )

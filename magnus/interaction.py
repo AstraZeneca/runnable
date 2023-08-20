@@ -41,7 +41,7 @@ def track_this(step: int = 0, **kwargs):
     for key, value in kwargs.items():
         logger.info(f"Tracking {key} with value: {value}")
         os.environ[prefix + key] = json.dumps(value)
-        context.executor.experiment_tracker.set_metric(key, value, step=step)  # type: ignore
+        context.executor.experiment_tracker.log_metric(key, value, step=step)
 
 
 def store_parameter(update: bool = True, **kwargs: dict):

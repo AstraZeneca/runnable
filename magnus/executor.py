@@ -889,6 +889,9 @@ class LocalContainerExecutor(BaseExecutor):
         Args:
             node (BaseNode): _description_
         """
+        from magnus.nodes import TaskNode
+        from magnus.tasks import ContainerTaskType
+
         step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable=None))
 
         self.add_code_identities(node=node, step_log=step_log)
@@ -898,7 +901,17 @@ class LocalContainerExecutor(BaseExecutor):
         self.run_log_store.add_step_log(step_log, self.run_id)
 
         command = utils.get_job_execution_command(self, node)
-        self._spin_container(node=node, command=command)
+        if cast(TaskNode, node).executable.task_type == ContainerTaskType.task_type:
+            # Do not change config but only validate the configuration.
+            # Trigger the job on local system instead of a container
+            # Or if the task type is a container, just spin the container.
+            integration.validate(self, self.run_log_store)
+            integration.validate(self, self.catalog_handler)
+            integration.validate(self, self.secrets_handler)
+
+            self.execute_node(node=node, map_variable={})
+        else:
+            self._spin_container(node=node, command=command)
 
         # Check the step log status and warn if necessary. Docker errors are generally suppressed.
         step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable=None), self.run_id)

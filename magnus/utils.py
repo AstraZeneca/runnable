@@ -606,7 +606,7 @@ def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write
     return action
 
 
-def get_provider_by_name_and_type(service_type: str, service_details: dict):
+def get_provider_by_name_and_type(service_type: str, service_details: defaults.ServiceConfig):
     """Given a service type, one of executor, run_log_store, catalog, secrets and the config
     return the exact child class implementing the service.
     We use stevedore to do the work for us.

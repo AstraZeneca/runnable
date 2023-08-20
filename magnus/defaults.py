@@ -1,4 +1,13 @@
+# mypy: ignore-errors
+# The above should be done until https://github.com/python/mypy/issues/8823
 from enum import Enum
+from typing import Any, Mapping, Optional
+
+try:
+    from typing import TypedDict  # type: ignore[unused-ignore]
+except ImportError:
+    from typing_extensions import TypedDict  # type: ignore[unused-ignore]
+
 
 NAME = "magnus"
 
@@ -14,6 +23,20 @@ class EXECUTION_PLAN(Enum):
     CHAINED = "chained"  #  121 relationship between run log and the dag.
     UNCHAINED = "unchained"  # Only captures execution of steps, no relation.
     INTERACTIVE = "interactive"  # used for interactive sessions
+
+
+# Type definitions
+class ServiceConfig(TypedDict):
+    type: str
+    config: Mapping[str, Any]
+
+
+class MagnusConfig(TypedDict, total=False):
+    run_log_store: Optional[ServiceConfig]
+    secrets: Optional[ServiceConfig]
+    catalog: Optional[ServiceConfig]
+    executor: Optional[ServiceConfig]
+    experiment_tracker: Optional[ServiceConfig]
 
 
 # Config file environment variable
@@ -40,13 +63,16 @@ TRIGGERED = "TRIGGERED"
 COMMAND_TYPE = "python"
 NODE_SPEC_FILE = "node_spec.yaml"
 COMMAND_FRIENDLY_CHARACTER = "%"
+DEFAULT_CONTAINER_CONTEXT_PATH = "/opt/magnus/"
+DEFAULT_CONTAINER_DATA_PATH = "data/"
+DEFAULT_CONTAINER_OUTPUT_PARAMETERS = "parameters.json"
 
 # Default services
-DEFAULT_EXECUTOR = {"type": "local"}
-DEFAULT_RUN_LOG_STORE = {"type": "buffered"}
-DEFAULT_CATALOG = {"type": "file-system"}
-DEFAULT_SECRETS = {"type": "do-nothing"}
-DEFAULT_EXPERIMENT_TRACKER = {"type": "do-nothing"}
+DEFAULT_EXECUTOR = ServiceConfig(type="local", config={})
+DEFAULT_RUN_LOG_STORE = ServiceConfig(type="buffered", config={})
+DEFAULT_CATALOG = ServiceConfig(type="file-system", config={})
+DEFAULT_SECRETS = ServiceConfig(type="do-nothing", config={})
+DEFAULT_EXPERIMENT_TRACKER = ServiceConfig(type="do-nothing", config={})
 
 # Map state
 MAP_PLACEHOLDER = "map_variable_placeholder"
