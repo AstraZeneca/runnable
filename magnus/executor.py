@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from magnus import defaults, exceptions, interaction, utils
 from magnus.catalog import BaseCatalog
 from magnus.graph import Graph
-from magnus.nodes import AsIsNode, BaseNode
+from magnus.nodes import AsIsNode, BaseNode, TaskNode
 
 if TYPE_CHECKING:
     from magnus.datastore import BaseRunLogStore, DataCatalog, StepLog
@@ -656,7 +656,7 @@ class BaseExecutor(ABC):
         return effective_node_config
 
     @abstractmethod
-    def execute_job(self, node: BaseNode):
+    def execute_job(self, node: TaskNode):
         """
         Executor specific way of executing a job (python function or a notebook).
 
@@ -777,7 +777,7 @@ class LocalExecutor(BaseExecutor):
         """
         self._execute_node(node=node, map_variable=map_variable, **kwargs)
 
-    def execute_job(self, node: BaseNode):
+    def execute_job(self, node: TaskNode):
         """
         Set up the step log and call the execute node
 
@@ -882,14 +882,13 @@ class LocalContainerExecutor(BaseExecutor):
         """
         return self._execute_node(node, map_variable, **kwargs)
 
-    def execute_job(self, node: BaseNode):
+    def execute_job(self, node: TaskNode):
         """
         Set up the step log and call the execute node
 
         Args:
             node (BaseNode): _description_
         """
-        from magnus.nodes import TaskNode
         from magnus.tasks import ContainerTaskType
 
         step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable=None))
@@ -900,8 +899,7 @@ class LocalContainerExecutor(BaseExecutor):
         step_log.status = defaults.PROCESSING
         self.run_log_store.add_step_log(step_log, self.run_id)
 
-        command = utils.get_job_execution_command(self, node)
-        if cast(TaskNode, node).executable.task_type == ContainerTaskType.task_type:
+        if node.executable.task_type == ContainerTaskType.task_type:
             # Do not change config but only validate the configuration.
             # Trigger the job on local system instead of a container
             # Or if the task type is a container, just spin the container.
@@ -911,6 +909,7 @@ class LocalContainerExecutor(BaseExecutor):
 
             self.execute_node(node=node, map_variable={})
         else:
+            command = utils.get_job_execution_command(self, node)
             self._spin_container(node=node, command=command)
 
         # Check the step log status and warn if necessary. Docker errors are generally suppressed.

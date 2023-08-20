@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import ClassVar, List, cast
+from typing import ClassVar, List, Tuple, cast
 
 from pydantic import BaseModel, Extra, validator
 from stevedore import driver
@@ -33,12 +33,13 @@ class BaseTaskType(BaseModel):  # pylint: disable=too-few-public-methods
     class Config:
         extra = Extra.forbid
 
-    def get_cli_options(self) -> dict:
+    def get_cli_options(self) -> Tuple[str, dict]:
         """
         Key is the name of the cli option and value is the value of the cli option.
         This should always be in sync with the cli options defined in execute_*.
 
         Returns:
+            str: The name of the cli option.
             dict: The dict of cli options for the task.
 
         Raises:
@@ -140,13 +141,13 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
         return command
 
-    def get_cli_options(self) -> dict:
+    def get_cli_options(self) -> Tuple[str, dict]:
         """Return the cli options for the task.
 
         Returns:
             dict: The cli options for the task
         """
-        return {"command": self.command}
+        return "function", {"command": self.command}
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the notebook as defined by the command."""
@@ -257,8 +258,8 @@ class NotebookTaskType(BaseTaskType):
 
         return "".join(values["command"].split(".")[:-1]) + "_out.ipynb"
 
-    def get_cli_options(self) -> dict:
-        return {"command": self.command, "notebook-output-path": self.notebook_output_path}
+    def get_cli_options(self) -> Tuple[str, dict]:
+        return "notebook", {"command": self.command, "notebook-output-path": self.notebook_output_path}
 
     def execute_command(self, map_variable: dict = None, **kwargs):
         """Execute the python notebook as defined by the command.
@@ -378,8 +379,8 @@ class ContainerTaskType(BaseTaskType):
     class Config:
         underscore_attrs_are_private = True
 
-    def get_cli_options(self) -> dict:
-        return {
+    def get_cli_options(self) -> Tuple[str, dict]:
+        return "container", {
             "image": self.image,
             "context-path": self.context_path,
             "command": self.command,
@@ -450,7 +451,10 @@ class ContainerTaskType(BaseTaskType):
             container.remove(force=True)
 
             if exit_status != 0:
-                msg = f"Docker command failed with exit code {exit_status}"
+                msg = (
+                    f"Docker command failed with exit code {exit_status}."
+                    "Hint: When chaining multiple commands, use sh -c"
+                )
                 raise Exception(msg)
 
             container_return_parameters = {}

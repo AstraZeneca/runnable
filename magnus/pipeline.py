@@ -517,15 +517,6 @@ def execute_container(
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     # Prepare the graph with a single node
-    """
-    image: str
-    context_path: str = defaults.DEFAULT_CONTAINER_CONTEXT_PATH
-    command: str = ""  # Would be defaulted to the entrypoint of the container
-    data_folder: str = defaults.DEFAULT_CONTAINER_DATA_PATH  # Would be relative to the context_path
-    output_parameters_file: str = defaults.DEFAULT_CONTAINER_OUTPUT_PARAMETERS  # would be relative to the context_path
-    secrets: List[str] = []
-    experiment_tracking_file: str = ""
-    """
     step_config = {
         "image": image,
         "context_path": context_path,
@@ -547,16 +538,6 @@ def execute_container(
 
         logger.info("Executing the job from the user. We are still in the caller's compute environment")
         mode_executor.execute_job(node=node)
-
-    elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
-        mode_executor.prepare_for_node_execution()
-        logger.info("Executing the job from the system. We are in the config's compute environment")
-        mode_executor.execute_node(node=node)
-
-        # Update the status of the run log
-        step_log = mode_executor.run_log_store.get_step_log(node._get_step_log_name(), run_id)
-        mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
-
     else:
         raise ValueError(f"Invalid entrypoint {entrypoint}")
 

@@ -21,7 +21,7 @@ from magnus import defaults, names
 
 if TYPE_CHECKING:
     from magnus.executor import BaseExecutor
-    from magnus.nodes import BaseNode
+    from magnus.nodes import BaseNode, TaskNode
 
 
 logger = logging.getLogger(defaults.NAME)
@@ -558,7 +558,7 @@ def get_fan_command(
     return action
 
 
-def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write_run_id: str = "") -> str:
+def get_job_execution_command(executor: BaseExecutor, node: TaskNode, over_write_run_id: str = "") -> str:
     """Get the execution command to run a job via command line.
 
     This function should be used by all executors to submit jobs in remote environment
@@ -571,6 +571,8 @@ def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write
     Returns:
         str: The execution command to run a job via command line.
     """
+    # node: TaskNode = cast(TaskNode, node)
+
     run_id = executor.run_id
 
     if over_write_run_id:
@@ -578,9 +580,9 @@ def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write
 
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
-    action = f"magnus execute_nb_or_func {run_id} " f" --log-level {log_level}"
+    cli_command, cli_options = node.executable.get_cli_options()
 
-    action = action + f" {node.config.command}"
+    action = f"magnus execute_{cli_command} {run_id} " f" --log-level {log_level}"
 
     action = action + f" --entrypoint {defaults.ENTRYPOINT.SYSTEM.value}"
 
@@ -593,15 +595,8 @@ def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write
     if executor.tag:
         action = action + f" --tag {executor.tag}"
 
-    catalog_config = node._get_catalog_settings() or {}
-
-    data_folder = catalog_config.get("compute_data_folder", None)
-    if data_folder:
-        action = action + f" --data-folder {data_folder}"
-
-    put_in_catalog = catalog_config.get("put", []) or []  # The put itself can be None
-    for every_put in put_in_catalog:
-        action = action + f" --put-in-catalog {every_put}"
+    for key, value in cli_options.items():
+        action = action + f" --{key} {value}"
 
     return action
 
@@ -624,7 +619,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: defaults.S
     namespace = service_type
 
     service_name = service_details["type"]
-    service_config = {}
+    service_config: Mapping[str, Any] = {}
     if "config" in service_details:
         service_config = service_details.get("config", {})
 
