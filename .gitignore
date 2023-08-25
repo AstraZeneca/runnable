@@ -141,3 +141,13 @@ cython_debug/
 
 # VSCode specific settings
 .vscode
+
+example/
+
+.run_log_store/
+
+.catalog/
+
+cov.xml
+
+.DS_Store
