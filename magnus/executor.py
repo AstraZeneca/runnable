@@ -310,8 +310,7 @@ class BaseExecutor:
         parameters_in = utils.get_user_set_parameters(remove=False)
 
         attempt = self.step_attempt_number
-        max_attempts = max_attempts = node._get_max_attempts()
-        logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}, max_attempts: {max_attempts}")
+        logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}")
 
         try:
             self.context_step_log = step_log
