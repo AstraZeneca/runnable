@@ -501,8 +501,8 @@ def execute_container(
     run_id: str = "",
 ):
     """
-    The entry point to magnus execution of a container. This method would prepare the configurations and
-    delegates traversal to the executor
+    The entry point to magnus execution of a container.
+    This method, as designed, should only be used by interactive computes.
     """
     run_id = utils.generate_run_id(run_id=run_id)
 
@@ -598,3 +598,23 @@ def fan(
         mode_executor.fan_out(node=node_to_execute, map_variable=map_variable_dict)
     else:
         raise ValueError(f"Invalid mode {mode}")
+
+
+def wrap_around_container(run_id: str, step_identifier: str, map_variable: str, mode: str):
+    """
+    This function provides a pre and post processing steps for magnus to execute a container in non-interactive mode.
+
+    Expectations:
+        It is expected that the config is available as a JSON string in the environment.
+        It is also expected that step_identifiers (key: step_identifier, value: step_config) is available as
+        a JSON string in the environment.
+
+    We prepare configurations with the config variable from the environment, the dag is empty.
+
+
+    Args:
+        run_id (str): _description_
+        step_identifier (str): _description_
+        map_variable (str): _description_
+        mode (str): _description_
+    """

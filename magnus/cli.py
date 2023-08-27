@@ -385,6 +385,36 @@ def fan(run_id, step_name, mode, map_variable, file, config_file, parameters_fil
     )
 
 
+@cli.command("wrap_around_container", short_help="Internal entry point to sync data/parameters in and out", hidden=True)
+@click.argument("run_id")
+@click.argument("step_identifier")
+@click.option("--map-variable", default="", help="The map variable dictionary in str", show_default=True)
+@click.option(
+    "-m", "--mode", help="pre or post execution of the container", required=True, type=click.Choice(["pre", "post"])
+)
+def wrap_around_container(run_id: str, step_identifier: str, map_variable: str, mode: str):
+    """
+    Internal entrypoint for magnus to sync data/parameters in and out.
+
+    Only 3rd party orchestrators using containers as command types should use this entry point.
+
+    mode:
+    pre would be called prior the execution of the container.
+        - Create the step log
+        - It should read the step config from environmental variables and resolve it with the executor config.
+        - sync catalog/parameters and send it in.
+    post would be called after the execution of the container.
+        - Update the step log
+        - Sync back the catalog/parameters and send it to central storage.
+
+
+    Args:
+        run_id (str): The run_id to identify parameters/run log/catalog information
+        step_identifier (str): A unique identifier to retrieve the step configuration
+        mode (str): Pre or post processing of the container execution
+    """
+
+
 @cli.command("build_docker", short_help="Utility tool to build docker images")
 @click.argument("image_name")
 @click.option("-f", "--docker-file", default=None, help="The dockerfile to be used. If None, we generate one")
