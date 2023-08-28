@@ -231,7 +231,7 @@ class BaseExecutor(ABC):
             return None
 
         data_catalogs = []
-        for name_pattern in cast(dict, node_catalog_settings).get(stage) or []:  #  Assumes a list
+        for name_pattern in node_catalog_settings.get(stage) or []:  #  Assumes a list
             data_catalogs = getattr(self.catalog_handler, stage)(
                 name=name_pattern,
                 run_id=self.run_id,
@@ -851,7 +851,7 @@ class LocalContainerExecutor(BaseExecutor):
         Returns:
             str: The default docker image to use from the config.
         """
-        return self.config.docker_image  # type: ignore
+        return self.config.docker_image
 
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
         """
