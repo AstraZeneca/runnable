@@ -118,7 +118,6 @@ def test_base_executor__sync_catalog_returns_nothing_if_no_syncing_for_node(mock
 
 def test_base_executor__sync_catalog_raises_exception_if_stage_not_in_get_or_put(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
-
     base_executor = executor.BaseExecutor()
     base_executor.context_node = mock_node
     with pytest.raises(Exception):

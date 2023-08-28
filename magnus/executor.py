@@ -231,7 +231,7 @@ class BaseExecutor(ABC):
             return None
 
         data_catalogs = []
-        for name_pattern in node_catalog_settings.get(stage) or []:  #  Assumes a list
+        for name_pattern in cast(dict, node_catalog_settings).get(stage) or []:  #  Assumes a list
             data_catalogs = getattr(self.catalog_handler, stage)(
                 name=name_pattern,
                 run_id=self.run_id,
@@ -308,8 +308,7 @@ class BaseExecutor(ABC):
         parameters_in = utils.get_user_set_parameters(remove=False)
 
         attempt = self.step_attempt_number
-        max_attempts = max_attempts = node._get_max_attempts()
-        logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}, max_attempts: {max_attempts}")
+        logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}")
 
         try:
             self.context_step_log = step_log
@@ -852,7 +851,7 @@ class LocalContainerExecutor(BaseExecutor):
         Returns:
             str: The default docker image to use from the config.
         """
-        return self.config.docker_image
+        return self.config.docker_image  # type: ignore
 
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
         """
