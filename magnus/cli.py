@@ -413,6 +413,8 @@ def wrap_around_container(run_id: str, step_identifier: str, map_variable: str, 
         step_identifier (str): A unique identifier to retrieve the step configuration
         mode (str): Pre or post processing of the container execution
     """
+    # TODO: Needs to be added but not prioritizing.
+    # Will be added after we merge magnus and magnus extensions
 
 
 @cli.command("build_docker", short_help="Utility tool to build docker images")
