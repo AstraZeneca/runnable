@@ -17,6 +17,7 @@ jobs:
       - run: |
           python -m poetry install
           poetry run tox
+
   Release:
     runs-on: ubuntu-latest
     needs: PRCheck
@@ -27,12 +28,12 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
-      - run: python -m pip install python-semantic-release==7.34.6
+      - run: python -m poetry install --only release
       - name: Figure version
         id: last_tag
         run: |
 
-          VERSION=$(semantic-release print-version --patch)
+          VERSION=$(poetry run semantic-release --noop --strict version --no-push --no-commit --print)
           echo $VERSION
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       - name: Apply new tag

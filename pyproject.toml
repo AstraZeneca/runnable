@@ -42,8 +42,11 @@ tox = "^3.24.5"
 pre-commit = "*"
 ruff = "^0.0.259"
 commit-linter = "^1.0.2"
-python-semantic-release = "^7.33.1"
 black = "^23.3.0"
+
+
+[tool.poetry.group.release.dependencies]
+python-semantic-release = "^8.0.7"
 
 
 [tool.poetry.scripts]
@@ -179,11 +182,16 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.semantic_release]
-branch = "main"
 tag_commit = false
-version_source = "tag_only"
 major_on_zero = true
 commit_version_number = false
 upload_to_pypi = false
 upload_to_repository = false
 upload_to_release = false
+tag_format = "{version}"
+
+[tool.semantic_release.branches.main]
+match = "main"
+
+[tool.semantic_release.remote]
+ignore_token_for_push = true
