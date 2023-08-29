@@ -13,8 +13,9 @@ class BasePickler(ABC):
     For now, we are just going to use pickle.
     """
 
-    extension = ""
-    service_name = ""
+    extension: str = ""
+    service_name: str = ""
+    service_type: str = "pickler"
 
     class Config(BaseModel):
         ...

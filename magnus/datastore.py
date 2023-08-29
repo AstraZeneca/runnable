@@ -299,7 +299,8 @@ class BaseRunLogStore(ABC):
           Access config properties using getters/property of the class.
     """
 
-    service_name = ""
+    service_name: str = ""
+    service_type: str = "run_log_store"
 
     class Config(BaseModel):
         ...

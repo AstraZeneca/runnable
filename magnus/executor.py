@@ -39,6 +39,7 @@ class BaseExecutor(ABC):
     """
 
     service_name = ""
+    service_type: str = "executor"
 
     class Config(BaseModel):
         enable_parallel: bool = defaults.ENABLE_PARALLEL

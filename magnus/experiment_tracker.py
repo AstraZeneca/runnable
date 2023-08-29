@@ -17,7 +17,8 @@ class BaseExperimentTracker(ABC):
     Base Experiment tracker class definition.
     """
 
-    service_name = ""
+    service_name: str = ""
+    service_type: str = "experiment_tracker"
 
     class Config(BaseModel):
         ...

@@ -59,7 +59,8 @@ class BaseCatalog(ABC):
           Access config properties using getters/property of the class.
     """
 
-    service_name = ""
+    service_name: str = ""
+    service_type: str = "catalog"
 
     class Config(BaseModel):
         compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER

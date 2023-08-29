@@ -24,7 +24,8 @@ class BaseSecrets(ABC):
         NotImplementedError: Base class and not implemented
     """
 
-    service_name = ""
+    service_name: str = ""
+    service_type: str = "secrets"
 
     class Config(BaseModel):
         pass

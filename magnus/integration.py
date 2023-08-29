@@ -5,11 +5,10 @@ from typing import cast
 from stevedore import extension
 
 from magnus import defaults
-from magnus.catalog import BaseCatalog, FileSystemCatalog
-from magnus.datastore import BaseRunLogStore, FileSystemRunLogstore
+from magnus.catalog import FileSystemCatalog
+from magnus.datastore import FileSystemRunLogstore
 from magnus.executor import BaseExecutor, LocalContainerExecutor
-from magnus.experiment_tracker import BaseExperimentTracker
-from magnus.secrets import BaseSecrets, DotEnvSecrets
+from magnus.secrets import DotEnvSecrets
 
 logger = logging.getLogger(defaults.NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
@@ -55,31 +54,6 @@ class BaseIntegration:
 # --8<-- [end:docs]
 
 
-def get_service_type(service_provider: object) -> str:
-    """
-    Given a service provider, identify the type of service.
-
-    Args:
-        service_provider (object): The service provider object
-
-    Raises:
-        Exception: If the service provider is not inherited from one of BaseSecret, BaseCatalog, BaseRunLogStore
-
-    Returns:
-        [str]: Returns either 'secret', 'catalog', 'run_log_store' according to the service provider.
-    """
-    if isinstance(service_provider, BaseSecrets):
-        return "secrets"
-    if isinstance(service_provider, BaseCatalog):
-        return "catalog"
-    if isinstance(service_provider, BaseRunLogStore):
-        return "run_log_store"
-    if isinstance(service_provider, BaseExperimentTracker):
-        return "experiment_tracker"
-
-    raise Exception("Service Provider is not a inherited from any of the Base Service providers")
-
-
 def get_integration_handler(executor: "BaseExecutor", service: object) -> BaseIntegration:
     """
     Return the integration handler between executor and the service.
@@ -96,7 +70,7 @@ def get_integration_handler(executor: "BaseExecutor", service: object) -> BaseIn
     Raises:
         Exception: If multiple integrations are found for the executor and service
     """
-    service_type = get_service_type(service)
+    service_type = service.service_type  # type: ignore
     service_name = getattr(service, "service_name")
     integrations = []
 
