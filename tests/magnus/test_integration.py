@@ -1,3 +1,5 @@
+import pytest
+
 from magnus import (
     integration,  # pylint: disable=import-error; pylint: disable=import-error
 )
@@ -57,9 +59,9 @@ def test_configure_for_execution_calls_validate_of_integration_handler(monkeypat
     assert mock_configure_for_execution.call_count == 1
 
 
-def test_get_integration_handler_returns_base_integration_if_subclass_not_found(monkeypatch, mocker):
+def test_get_integration_handler_gives_default_integration_if_no_match(monkeypatch, mocker):
     mock_service = mocker.MagicMock()
-    monkeypatch.setattr(integration, "get_service_type", lambda x: "DummyService")
+    mock_service.service_type = "DummyService"
 
     mock_executor = mocker.MagicMock()
     mock_executor.executor_type = "DummyExecutor"
