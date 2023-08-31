@@ -74,6 +74,7 @@ def get_integration_handler(executor: "BaseExecutor", service: object) -> BaseIn
     service_name = getattr(service, "service_name")
     integrations = []
 
+    # This should be this + subclasses of the BaseIntegration class
     mgr = extension.ExtensionManager(
         namespace="integration",
         invoke_on_load=True,
