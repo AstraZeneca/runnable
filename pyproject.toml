@@ -193,5 +193,10 @@ tag_format = "{version}"
 [tool.semantic_release.branches.main]
 match = "main"
 
+[tool.semantic_release.branches."rc"]
+match = "rc"
+prerelease = true
+prerelease_token = "rc"
+
 [tool.semantic_release.remote]
 ignore_token_for_push = true

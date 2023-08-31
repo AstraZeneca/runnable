@@ -4,6 +4,7 @@ on:
       - "magnus/**"
     branches:
       - "main"
+      - "rc"
 
 jobs:
   PRCheck:

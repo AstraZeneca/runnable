@@ -151,3 +151,5 @@ example/
 cov.xml
 
 .DS_Store
+
+data/
