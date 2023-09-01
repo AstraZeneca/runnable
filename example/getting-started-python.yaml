@@ -5,6 +5,8 @@ dag:
       1. First step: returns a "parameter" x
       2. Second step: Consumes that parameter and prints it
 
+    This pipeline demonstrates one way to pass small data from one step to another.
+
     You can run this pipeline by magnus execute -f example/getting-started-mock.yaml
   start_at: step 1
   steps:

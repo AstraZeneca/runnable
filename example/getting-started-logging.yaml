@@ -1,0 +1,28 @@
+dag:
+  description: |
+    This is a simple pipeline that does 3 steps in sequence.
+    We are using the same pipeline as getting-started-python.yaml but focussing on the logging levels.
+
+    Log levels:
+      magnus log level is different from your application log level. By default, it is set to WARNING but you can
+      control it by using --log-level whlie calling application.
+
+    To view only your application logs, you can execute this pipeline with:
+      magnus run getting-started-python.yaml --log-level ERROR
+
+  start_at: step 1
+  steps:
+    step 1:
+      type: task
+      command_type: python
+      command: example.functions.return_parameter
+      next: step 2
+    step 2:
+      type: task
+      command_type: python
+      command: example.functions.get_parameter
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail
