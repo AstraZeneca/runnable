@@ -61,10 +61,12 @@ def test_configure_for_execution_calls_validate_of_integration_handler(monkeypat
 
 def test_get_integration_handler_gives_default_integration_if_no_match(monkeypatch, mocker):
     mock_service = mocker.MagicMock()
-    mock_service.service_type = "DummyService"
+    mock_service.service_type = "I do not exist"
+    mock_service.service_name = "DummyService"
 
     mock_executor = mocker.MagicMock()
     mock_executor.executor_type = "DummyExecutor"
+    mock_executor.service_type = "executor"
 
     obj = integration.get_integration_handler(mock_executor, mock_service)
     assert isinstance(obj, integration.BaseIntegration)

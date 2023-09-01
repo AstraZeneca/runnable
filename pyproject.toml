@@ -81,24 +81,13 @@ magnus= 'magnus.cli:cli'
 "do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
 
 # Plugins for Pickler
-# TODO: Currently not being extended, need to get more use cases
 [tool.poetry.plugins."pickler"]
 "pickle" = "magnus.pickler:NativePickler"
 
 
 # Plugins for Integration
 [tool.poetry.plugins."integration"]
-# The name does not matter, the core would be labelled c
-"c1" = "magnus.integration:LocalComputeBufferedRunLogStore"
-"c2" = "magnus.integration:LocalComputeFileSystemRunLogStore"
-"c3" = "magnus.integration:LocalContainerComputeBufferedRunLogStore"
-"c4" = "magnus.integration:LocalContainerComputeFileSystemRunLogstore"
-"c5" = "magnus.integration:LocalContainerComputeDotEnvSecrets"
-"c6" = "magnus.integration:LocalContainerComputeEnvSecretsManager"
-"c7" = "magnus.integration:LocalContainerDoNothingCatalog"
-"c8" = "magnus.integration:LocalDoNothingCatalog"
-"c9" = "magnus.integration:LocalContainerComputeFileSystemCatalog"
-"c10" = "magnus.integration:DemoRenderBufferedRunLogStore"
+# Left empty for 3rd party integrations
 
 # Plugins for Tasks
 [tool.poetry.plugins."tasks"]

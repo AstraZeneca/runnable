@@ -22,6 +22,8 @@ from magnus.interaction import (
 )  # noqa
 from magnus.sdk import AsIs, Pipeline, Task  # noqa
 
+# TODO: Write cleaner and better examples to ship the code.
+
 
 class ColorFormatter(logging.Formatter):
     """
