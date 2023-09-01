@@ -1,11 +1,11 @@
 import logging
 
 logger = logging.getLogger("application")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def return_parameter() -> dict:
-    logger.info("In the app and returning something")
+    logger.info("#####################")
     return {"x": 1}
 
 
