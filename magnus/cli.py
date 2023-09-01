@@ -6,6 +6,9 @@ from pkg_resources import iter_entry_points
 
 from magnus import defaults, docker_utils, pipeline
 
+# fileConfig(resource_filename(__name__, "log_config.ini"))
+# logger = logging.getLogger(defaults.NAME)
+
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
