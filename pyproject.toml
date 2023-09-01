@@ -13,7 +13,6 @@ documentation = "https://astrazeneca.github.io/magnus-core/"
 python = "^3.7"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
-yachalk = "*"
 pydantic = "^1.9.0"
 stevedore = "^3.5.0"
 "click" = "*"
@@ -21,6 +20,7 @@ click-plugins = "^1.1.1"
 ploomber-engine ={ version= "^0.0.19", optional = true, python = ">=3.8,<4.0" }
 typing-extensions ={ version= "*", python = "<3.8" }
 docker ={ version = "*", optional = true }
+rich = "^13.5.2"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "*"

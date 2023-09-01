@@ -5,7 +5,7 @@ from typing import List, Optional, Union, cast
 from magnus import defaults, exceptions, graph, utils
 from magnus.defaults import MagnusConfig, ServiceConfig
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
 def get_default_configs() -> MagnusConfig:

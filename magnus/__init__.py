@@ -1,10 +1,10 @@
 # ruff: noqa
 
 import logging
+from rich.logging import RichHandler
 
-from yachalk import chalk
+logging.basicConfig(level="NOTSET", format="%(message)s", datefmt="[%X]", handlers=[RichHandler(rich_tracebacks=True)])
 
-chalk_colors = {"debug": chalk.grey, "info": chalk.green, "warning": chalk.yellow_bright, "error": chalk.bold.red}
 
 from magnus.interaction import (
     end_interactive_session,
@@ -23,22 +23,3 @@ from magnus.interaction import (
 from magnus.sdk import AsIs, Pipeline, Task  # noqa
 
 # TODO: Write cleaner and better examples to ship the code.
-
-
-class ColorFormatter(logging.Formatter):
-    """
-    Custom class to get colors to logs
-    """
-
-    def __init__(self, *args, **kwargs):
-        # can't do super(...) here because Formatter is an old school class
-        logging.Formatter.__init__(self, *args, **kwargs)  # pragma: no cover
-
-    def format(self, record):  # pragma: no cover
-        levelname = record.levelname
-        color = chalk_colors[levelname.lower()]
-        message = logging.Formatter.format(self, record)
-        return color(message)
-
-
-logging.ColorFormatter = ColorFormatter  # type: ignore

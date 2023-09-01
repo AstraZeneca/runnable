@@ -8,7 +8,7 @@ from typing import Any, Dict, Union, cast
 
 from magnus import defaults, exceptions, pickler, pipeline, utils
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
 def track_this(step: int = 0, **kwargs):

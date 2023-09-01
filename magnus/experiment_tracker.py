@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from magnus import defaults
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 # --8<-- [start:docs]
 

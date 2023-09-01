@@ -15,7 +15,7 @@ from magnus.datastore import StepAttempt
 from magnus.graph import create_graph
 from magnus.tasks import create_task
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 # --8<-- [start:docs]
 

@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
 
 from pydantic import BaseModel
+from rich import print
 
 from magnus import defaults, exceptions, interaction, utils
 from magnus.catalog import BaseCatalog
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
     from magnus.experiment_tracker import BaseExperimentTracker
     from magnus.secrets import BaseSecrets
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
 # --8<-- [start:docs]
@@ -503,6 +504,7 @@ class BaseExecutor(ABC):
         current_node = dag.start_at
         previous_node = None
         logger.info(f"Running the execution with {current_node}")
+
         while True:
             working_on = dag.get_node_by_name(current_node)
 

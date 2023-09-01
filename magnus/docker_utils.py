@@ -4,7 +4,7 @@ from typing import Union
 
 from magnus import defaults, utils
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 try:
     import docker
 except ImportError:

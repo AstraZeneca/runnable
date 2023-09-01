@@ -10,6 +10,7 @@ except ImportError:
 
 
 NAME = "magnus"
+LOGGER_NAME = "magnus"
 
 # CLI settings
 LOG_LEVEL = "WARNING"

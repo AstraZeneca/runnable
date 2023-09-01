@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from magnus import defaults, utils
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
 def get_run_log_store():

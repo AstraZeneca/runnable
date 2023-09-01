@@ -10,7 +10,7 @@ from magnus.datastore import FileSystemRunLogstore
 from magnus.executor import BaseExecutor, LocalContainerExecutor
 from magnus.secrets import DotEnvSecrets
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 # --8<-- [start:docs]

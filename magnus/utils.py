@@ -24,7 +24,8 @@ if TYPE_CHECKING:
     from magnus.nodes import BaseNode, TaskNode
 
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
+logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
 def does_file_exist(file_path: str) -> bool:

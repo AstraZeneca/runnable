@@ -9,7 +9,7 @@ from pydantic import BaseModel, Extra, Field
 
 from magnus import defaults, graph, pipeline, utils
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
 # class step(object):
@@ -249,7 +249,7 @@ class Pipeline(BaseModel):
         This method should be beefed up as the use cases grow.
         """
         fileConfig(resource_filename(__name__, "log_config.ini"))
-        logger = logging.getLogger(defaults.NAME)
+        logger = logging.getLogger(defaults.LOGGER_NAME)
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)

@@ -1050,7 +1050,7 @@ testing = ["coverage", "pyyaml"]
 name = "markdown-it-py"
 version = "2.2.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1168,7 +1168,7 @@ traitlets = "*"
 name = "mdurl"
 version = "0.1.2"
 description = "Markdown URL utilities"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2306,7 +2306,7 @@ requests = ">=2.0.1,<3.0.0"
 name = "rich"
 version = "13.5.2"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7.0"
 files = [
@@ -2525,7 +2525,7 @@ files = [
 name = "setuptools"
 version = "68.0.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2904,22 +2904,6 @@ optional = ["python-socks", "wsaccel"]
 test = ["websockets"]
 
 [[package]]
-name = "yachalk"
-version = "0.1.5"
-description = "🖍️ Terminal string styling done right"
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "yachalk-0.1.5-py3-none-any.whl", hash = "sha256:fe389be1d574a3be00e0b849f1c0767f81da5bdfed9b122da07e6861e27c1c62"},
-    {file = "yachalk-0.1.5.tar.gz", hash = "sha256:cac3b66a198a280f06adfde82f1604aecd9dd5ffc372a02b4f36d79ec499798a"},
-]
-
-[package.dependencies]
-importlib-resources = "*"
-setuptools = "*"
-
-[[package]]
 name = "zipp"
 version = "3.15.0"
 description = "Backport of pathlib-compatible object wrapper for zip files"
@@ -2942,4 +2926,4 @@ notebook = ["ploomber-engine"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "cf5be2db3053355fadb8e1f5aff229e0e1faee40595f4e7f4fa69462a9d2feea"
+content-hash = "84961f05f58e1f866172f277239622b1c2daacf2e7af396fe6defeb58f56ede2"

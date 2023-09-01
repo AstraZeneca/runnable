@@ -8,7 +8,8 @@ from magnus import defaults, exceptions
 if TYPE_CHECKING:
     from magnus.nodes import BaseNode
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
+logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
 class Graph:

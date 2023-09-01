@@ -13,7 +13,7 @@ from pydantic import BaseModel, Extra
 
 from magnus import defaults, exceptions, utils
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 # Once defined these classes are sealed to any additions unless a default is provided
 # Breaking this rule might make magnus backwardly incompatible
