@@ -1,3 +1,4 @@
+import importlib
 import logging
 from pathlib import Path
 from typing import cast
@@ -336,3 +337,14 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
         self.service = cast(FileSystemCatalog, self.service)
 
         self.service.config.catalog_location = self.executor.container_catalog_location
+
+
+# Load extension integrations
+services = ["catalog", "run_log_store", "executor", "secrets", "experiment_tracker"]
+
+for service in services:
+    module_path = f"magnus.extensions.{service}"
+
+    importlib.import_module(module_path)
+
+print(BaseIntegration.__subclasses__())

@@ -189,3 +189,26 @@ prerelease_token = "rc"
 
 [tool.semantic_release.remote]
 ignore_token_for_push = true
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_lines = [
+    "pragma: no cover"
+]
+
+include_namespace_packages = true
+show_missing = true
+
+exclude_also = [
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+    ]
+
+omit =[ "magnus/cli.py" ]
