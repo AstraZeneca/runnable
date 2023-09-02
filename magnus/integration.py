@@ -346,5 +346,3 @@ for service in services:
     module_path = f"magnus.extensions.{service}"
 
     importlib.import_module(module_path)
-
-print(BaseIntegration.__subclasses__())

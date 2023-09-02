@@ -31,7 +31,7 @@ class BaseExperimentTracker(ABC):
         return contextlib.nullcontext()
 
     @abstractmethod
-    def log_metric(self, key: str, value: float, step: int = 0):
+    def set_metric(self, key: str, value: float, step: int = 0):
         """
         Sets the metric in the experiment tracking.
 
@@ -46,7 +46,7 @@ class BaseExperimentTracker(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def log_parameter(self, key: str, value: Any):
+    def set_parameter(self, key: str, value: Any):
         """
         Logs a parameter in the experiment tracking.
 
@@ -58,6 +58,9 @@ class BaseExperimentTracker(ABC):
             NotImplementedError: Base class, hence not implemented
         """
         pass
+
+        # TODO: Consider log_artifact
+        # TODO: The syntax for mlflow is better
 
 
 # --8<-- [end:docs]
@@ -76,7 +79,7 @@ class DoNothingTracker(BaseExperimentTracker):
     def __init__(self, config: dict) -> None:
         self.config = self.ContextConfig(**(config or {}))
 
-    def log_metric(self, key: str, value: float, step: int = 0):
+    def set_metric(self, key: str, value: float, step: int = 0):
         """
         Sets the metric in the experiment tracking.
 
@@ -86,7 +89,7 @@ class DoNothingTracker(BaseExperimentTracker):
         """
         pass
 
-    def log_parameter(self, key: str, value: Any):
+    def set_parameter(self, key: str, value: Any):
         """
         Since this is a Do nothing tracker, we don't need to log anything.
         """
