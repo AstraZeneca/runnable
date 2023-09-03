@@ -7,7 +7,7 @@ dag:
 
     This pipeline demonstrates one way to pass small data from one step to another.
 
-    You can run this pipeline by magnus execute -f example/getting-started-mock.yaml
+    You can run this pipeline by: magnus execute -f example/python-tasks.yaml
   start_at: step 1
   steps:
     step 1:

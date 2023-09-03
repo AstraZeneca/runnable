@@ -3,7 +3,12 @@ dag:
     This is a simple pipeline that does 3 steps in sequence.
     All the steps are mocked and they will just pass through.
     Use this pattern to define the skeleton of your pipeline and flesh out the steps later.
-    You can run this pipeline by magnus execute -f example/getting-started-mock.yaml
+
+    Note that you can give any arbitrary keys to the steps (like step 2). This is handy
+    to mock steps within mature pipelines.
+
+    You can run this pipeline by:
+       magnus execute -f example/mocking.yaml
   start_at: step 1
   steps:
     step 1:
@@ -11,6 +16,8 @@ dag:
       next: step 2
     step 2:
       type: as-is
+      what: is this thing?
+      It: does not matter!!
       next: step 3
     step 3:
       type: as-is
