@@ -1,0 +1,23 @@
+dag:
+  description: |
+    This is a simple pipeline to demonstrate failure in a step.
+    The default behavior is to traverse to step type fail and mark the run as failed.
+
+    You can run this pipeline by magnus execute -f example/default-fail.yaml
+  start_at: step 1
+  steps:
+    step 1:
+      type: as-is
+      next: step 2
+    step 2:
+      type: task
+      command_type: shell
+      command: exit 1 # This will fail
+      next: step 3
+    step 3:
+      type: as-is
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail
