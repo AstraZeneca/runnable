@@ -10,7 +10,7 @@ repository = "https://github.com/AstraZeneca/magnus-core"
 documentation = "https://astrazeneca.github.io/magnus-core/"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = ">=3.7,<3.13"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 pydantic = "^1.9.0"
@@ -28,10 +28,13 @@ mkdocs-material = "*"
 mkdocs-section-index = "^0.3.5"
 
 
+
+[tool.poetry.group.binary.dependencies]
+pyinstaller = "^5.13.2"
+
 [tool.poetry.extras]
 docker = ['docker']
 notebook = ['ploomber-engine']
-
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

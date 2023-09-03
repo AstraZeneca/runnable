@@ -1,13 +1,13 @@
 import logging
-from logging.config import fileConfig
+from logging.config import dictConfig
 
 import click
 from click_plugins import with_plugins
-from pkg_resources import iter_entry_points, resource_filename
+from pkg_resources import iter_entry_points
 
 from magnus import defaults, docker_utils, pipeline
 
-fileConfig(resource_filename(__name__, "log_config.ini"))
+dictConfig(defaults.LOGGING_CONFIG)
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
@@ -462,3 +462,8 @@ def build_docker(image_name, docker_file, style, tag, commit_tag, dry_run, git_t
         dry_run=dry_run,
         git_tracked=git_tracked,
     )
+
+
+# Needed for the binary creation
+if __name__ == "__main__":
+    cli()

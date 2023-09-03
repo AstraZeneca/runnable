@@ -138,3 +138,33 @@ class ENTRYPOINT(Enum):
 
     USER = "user"
     SYSTEM = "system"
+
+
+## Logging settings
+
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": True,
+    "formatters": {
+        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
+        "magnus_formatter": {"format": "%(message)s", "datefmt": "[%X]"},
+    },
+    "handlers": {
+        "default": {
+            "level": "INFO",
+            "formatter": "standard",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",  # Default is stderr
+        },
+        "magnus_handler": {
+            "level": LOG_LEVEL,
+            "formatter": "magnus_formatter",
+            "class": "rich.logging.RichHandler",
+            "rich_tracebacks": True,
+        },
+    },
+    "loggers": {
+        "": {"handlers": ["default"], "level": "WARNING", "propagate": False},  # Root logger
+        LOGGER_NAME: {"handlers": ["magnus_handler"], "level": LOG_LEVEL, "propagate": False},
+    },
+}

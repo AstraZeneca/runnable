@@ -1,5 +1,7 @@
 # ruff: noqa
 
+from rich.logging import RichHandler
+
 from magnus.interaction import (
     end_interactive_session,
     get_experiment_tracker_context,
