@@ -3,6 +3,8 @@ dag:
     This is a simple pipeline to demonstrate failure in a step.
     The default behavior is to traverse to step type fail and mark the run as failed.
 
+    You can control the flow by using on_failure, please check example/on-failure.yaml
+
     You can run this pipeline by magnus execute -f example/default-fail.yaml
   start_at: step 1
   steps:

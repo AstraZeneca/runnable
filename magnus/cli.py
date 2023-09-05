@@ -5,7 +5,7 @@ import click
 from click_plugins import with_plugins
 from pkg_resources import iter_entry_points
 
-from magnus import defaults, docker_utils, pipeline
+from magnus import defaults, pipeline
 
 dictConfig(defaults.LOGGING_CONFIG)
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -415,53 +415,6 @@ def wrap_around_container(run_id: str, step_identifier: str, map_variable: str, 
     """
     # TODO: Needs to be added but not prioritizing.
     # Will be added after we merge magnus and magnus extensions
-
-
-@cli.command("build_docker", short_help="Utility tool to build docker images")
-@click.argument("image_name")
-@click.option("-f", "--docker-file", default=None, help="The dockerfile to be used. If None, we generate one")
-@click.option("-s", "--style", default="poetry", help="The method used to get requirements", show_default=True)
-@click.option("-t", "--tag", default="latest", help="The tag assigned to the image", show_default=True)
-@click.option(
-    "-c",
-    "--commit-tag",
-    is_flag=True,
-    default=False,
-    help="Use commit id as tag. Over-rides tag option",
-    show_default=True,
-)
-@click.option(
-    "-d", "--dry-run", is_flag=True, default=False, help="Generate the dockerfile, but NOT the image", show_default=True
-)
-@click.option(
-    "--git-tracked/--all",
-    default=True,
-    help="Controls what should be added to image. All vs git-tracked",
-    show_default=True,
-)
-def build_docker(image_name, docker_file, style, tag, commit_tag, dry_run, git_tracked):
-    """
-    A utility function to create docker images from the existing codebase.
-
-    It is advised to provide your own dockerfile as much as possible. If you do not have one handy, you can use
-    --dry-run functionality to see if the auto-generated one suits your needs.
-
-    If you are auto-generating the dockerfile:
-    BEWARE!! Over-riding the default options assumes you know what you are doing! BEWARE!!
-
-    1). By default, only git tracked files are added to the docker image.
-
-    2). The auto-generated dockerfile uses, python 3.8 as the default image and adds the current folder.
-    """
-    docker_utils.build_docker(
-        image_name=image_name,
-        docker_file=docker_file,
-        style=style,
-        tag=tag,
-        commit_tag=commit_tag,
-        dry_run=dry_run,
-        git_tracked=git_tracked,
-    )
 
 
 # Needed for the binary creation
