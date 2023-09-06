@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import ClassVar, List, Tuple, cast
+from typing import ClassVar, List, Tuple
 
 from pydantic import BaseModel, Extra, validator
 from stevedore import driver
@@ -418,7 +418,7 @@ class ContainerTaskType(BaseTaskType):
             container_env_variables[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
         for secret_name in self.secrets:
-            secret_value = context_executor.secrets_handler.get(secret_name)  # type: ignore
+            secret_value = context_executor.secrets_handler.get(secret_name)
             container_env_variables[secret_name] = secret_value
 
         mount_volumes = self.get_mount_volumes()
@@ -490,9 +490,8 @@ class ContainerTaskType(BaseTaskType):
             dict: The mount volumes in the format that docker expects.
         """
         from magnus.context import executor as context_executor
-        from magnus.executor import BaseExecutor
 
-        compute_data_folder = cast(BaseExecutor, context_executor).get_effective_compute_data_folder()
+        compute_data_folder = context_executor.get_effective_compute_data_folder()
         mount_volumes = {}
 
         # Create temporary directory for parameters.json and map it to context_path

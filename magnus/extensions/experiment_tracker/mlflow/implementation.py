@@ -2,6 +2,8 @@ import functools
 import logging
 from typing import Any
 
+from pydantic import Extra
+
 from magnus import defaults
 from magnus.experiment_tracker import BaseExperimentTracker
 
@@ -21,31 +23,32 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
     TODO: Need to set up credentials from secrets
     """
 
-    service_name = "mlflow"
+    service_name: str = "mlflow"
+    server_url: str
+    autolog: bool = False
+    _default_experiment_name: str = "Default"
+    _active_run_id: str = ""
 
-    class ContextConfig(BaseExperimentTracker.Config):
-        server_url: str
-        autolog: bool = False
+    class Config:
+        extra = Extra.forbid
+        underscore_attrs_are_private = True
 
-    def __init__(self, config, **kwargs):
-        self.config = self.ContextConfig(**(config or {}))
-        self.default_experiment_name = "Default"
-        self.active_run_id = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        mlflow.set_tracking_uri(self.server_url)
 
-        mlflow.set_tracking_uri(self.config.server_url)
-
-        if self.config.autolog:
+        if self.autolog:
             mlflow.autolog(log_models=False)
 
     @functools.cached_property
     def experiment_id(self):
-        from magnus.context import executor
+        from magnus import context
 
-        experiment_name = self.default_experiment_name
+        experiment_name = self._default_experiment_name
 
         # If a tag is provided, we should create that as our experiment
-        if executor.tag:
-            experiment_name = executor.tag
+        if context.tag:
+            experiment_name = context.executor.tag
 
         experiment = mlflow.get_experiment_by_name(experiment_name)
         if not experiment:
@@ -63,14 +66,16 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
 
     @property
     def client_context(self):
-        if self.active_run_id:
-            return mlflow.start_run(run_id=self.active_run_id, experiment_id=self.experiment_id, run_name=self.run_name)
+        if self._active_run_id:
+            return mlflow.start_run(
+                run_id=self._active_run_id, experiment_id=self.experiment_id, run_name=self.run_name
+            )
 
         active_run = mlflow.start_run(run_name=self.run_name, experiment_id=self.experiment_id)
-        self.active_run_id = active_run.info.run_id
+        self._active_run_id = active_run.info.run_id
         return active_run
 
-    def set_metric(self, key: str, value: float, step: int = 0):
+    def log_metric(self, key: str, value: float, step: int = 0):
         """
         Sets the metric in the experiment tracking.
 
@@ -87,23 +92,6 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
         with self.client_context as _:
             mlflow.log_metric(key, value, step=step or None)
 
-    def get_metric(self, key: str) -> Any:
-        """
-        Return the metric by the key
-
-        Args:
-            key (str): The metric you want to retrieve
-
-        Returns:
-            Any: The value of the key
-        """
-        with self.client_context as client:
-            metrics = client.data.metrics
-            return metrics.get(key)
-
     def log_parameter(self, key: str, value: Any):
         with self.client_context as _:
             mlflow.log_param(key, value)
-
-    def get_parameter(self, key: str) -> Any:
-        pass

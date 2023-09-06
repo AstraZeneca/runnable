@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 from magnus import defaults
 from magnus.integration import BaseIntegration
@@ -44,7 +45,13 @@ class ArgoCompute(BaseIntegration):
     service_provider = "k8s-pvc"  # The actual implementation of the service
 
     def configure_for_traversal(self, **kwargs):
+        from magnus.extensions.catalog.k8s_pvc.implementation import K8sPVCatalog
+        from magnus.extensions.executor.argo.implementation import ArgoExecutor
+
+        self.executor = cast(ArgoExecutor, self.executor)
+        self.service = cast(K8sPVCatalog, self.service)
+
         self.executor.persistent_volumes["catalog"] = (
-            self.service.config.persistent_volume_name,
-            self.service.config.mount_path,
+            self.service.persistent_volume_name,
+            self.service.mount_path,
         )

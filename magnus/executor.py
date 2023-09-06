@@ -25,7 +25,7 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
 # --8<-- [start:docs]
-class BaseExecutor(ABC):
+class BaseExecutor(ABC, BaseModel):
     """
     The skeleton of an executor class.
     Any implementation of an executor should inherit this class and over-ride accordingly.
@@ -39,14 +39,13 @@ class BaseExecutor(ABC):
 
     """
 
-    service_name = ""
+    service_name: str = ""
     service_type: str = "executor"
+    enable_parallel: bool = defaults.ENABLE_PARALLEL
+    placeholders: dict = {}
 
-    class Config(BaseModel):
-        enable_parallel: bool = defaults.ENABLE_PARALLEL
-        placeholders: dict = {}
-
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         # pylint: disable=R0914,R0913
         # The definition files
         self.pipeline_file = None
@@ -748,15 +747,7 @@ class LocalExecutor(BaseExecutor):
 
     """
 
-    service_name = "local"
-
-    class ContextConfig(BaseExecutor.Config):
-        ...
-
-    def __init__(self, config: dict = None):
-        super().__init__()
-
-        self.config = self.ContextConfig(**(config or {}))
+    service_name: str = "local"
 
     def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """
@@ -833,28 +824,15 @@ class LocalContainerExecutor(BaseExecutor):
         docker_image: The default docker image to use if the node does not provide one.
     """
 
-    service_name = "local-container"
+    service_name: str = "local-container"
+    docker_image: str
+    _container_log_location = "/tmp/run_logs/"
+    _container_catalog_location = "/tmp/catalog/"
+    _container_secrets_location = "/tmp/dotenv"
+    _volumes: Dict[str, Dict[str, str]] = {}
 
-    class ContextConfig(BaseExecutor.Config):
-        docker_image: str
-
-    def __init__(self, config):
-        # pylint: disable=R0914,R0913
-        super().__init__()
-        self.config = self.ContextConfig(**(config or {}))
-
-        self.container_log_location = "/tmp/run_logs/"
-        self.container_catalog_location = "/tmp/catalog/"
-        self.container_secrets_location = "/tmp/dotenv"
-        self.volumes = {}
-
-    @property
-    def docker_image(self) -> str:
-        """
-        Returns:
-            str: The default docker image to use from the config.
-        """
-        return self.config.docker_image
+    class Config:
+        underscore_attrs_are_private = True
 
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
         """
@@ -1004,7 +982,7 @@ class LocalContainerExecutor(BaseExecutor):
                 image=docker_image,
                 command=command,
                 auto_remove=False,
-                volumes=self.volumes,
+                volumes=self._volumes,
                 network_mode="host",
                 environment=environment,
             )
@@ -1042,14 +1020,7 @@ class DemoRenderer(BaseExecutor):
       type: demo-renderer
     """
 
-    service_name = "demo-renderer"
-
-    class ContextConfig(BaseExecutor.Config):
-        ...
-
-    def __init__(self, config: dict = None):
-        super().__init__()
-        self.config = self.ContextConfig(**(config or {}))
+    service_name: str = "demo-renderer"
 
     def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
         """

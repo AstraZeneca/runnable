@@ -1,5 +1,8 @@
-from typing import Optional
+# from typing import TypeVar
 
-from magnus.executor import BaseExecutor
+# ExecutorType = TypeVar("ExecutorType", bound=BaseExecutor)
 
-executor: Optional[BaseExecutor] = None
+tag: str = ""
+run_id: str = ""
+
+executor = None  # type: BaseExecutor # type: ignore

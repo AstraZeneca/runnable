@@ -290,20 +290,13 @@ class RunLog(BaseModel):
 
 
 # --8<-- [start:docs]
-class BaseRunLogStore(ABC):
+class BaseRunLogStore(ABC, BaseModel):
     """
     The base class of a Run Log Store with many common methods implemented.
-
-    Note: As a general guideline, do not extract anything from the config to set class level attributes.
-          Integration patterns modify the config after init to change behaviors.
-          Access config properties using getters/property of the class.
     """
 
     service_name: str = ""
     service_type: str = "run_log_store"
-
-    class Config(BaseModel):
-        ...
 
     @abstractmethod
     def create_run_log(
@@ -647,14 +640,10 @@ class BufferRunLogstore(BaseRunLogStore):
 
     """
 
-    service_name = "buffered"
+    service_name: str = "buffered"
 
-    class ContextConfig(BaseRunLogStore.Config):
-        ...
-
-    def __init__(self, config):
-        self.config = self.ContextConfig(**(config or {}))
-        self.run_log = None  # For a buffered Run Log, this is the database
+    def __init__(self):
+        self.run_log: Optional[RunLog] = None  # For a buffered Run Log, this is the database
 
     def create_run_log(
         self,
@@ -727,21 +716,12 @@ class FileSystemRunLogstore(BaseRunLogStore):
         log_folder: The folder to out the logs. Defaults to .run_log_store
     """
 
-    service_name = "file-system"
-
-    class ContextConfig(BaseRunLogStore.Config):
-        log_folder: str = defaults.LOG_LOCATION_FOLDER
-
-    def __init__(self, config):
-        self.config = self.ContextConfig(**(config or {}))
+    service_name: str = "file-system"
+    log_folder: str = defaults.LOG_LOCATION_FOLDER
 
     @property
-    def log_folder_name(self) -> str:
-        """
-        Returns:
-            str: The name of the log folder
-        """
-        return self.config.log_folder
+    def log_folder_name(self):
+        return self.log_folder
 
     def write_to_folder(self, run_log: RunLog):
         """
@@ -848,13 +828,12 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
     This enables executions to be parallel.
     """
 
-    service_name = "chunked-fs"
+    service_name: str = "chunked-fs"
+    log_folder: str = defaults.LOG_LOCATION_FOLDER
 
-    class ContextConfig(BaseModel):
-        log_folder: str = defaults.LOG_LOCATION_FOLDER
-
-    def __init__(self, config):
-        self.config = self.ContextConfig(**(config or {}))
+    @property
+    def log_folder_name(self):
+        return self.log_folder
 
     class LogTypes(Enum):
         RUN_LOG: str = "RunLog"
@@ -925,13 +904,6 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             return matches
 
         return None
-
-    @property
-    def log_folder_name(self) -> str:
-        """
-        Returns the log folder name
-        """
-        return self.config.log_folder
 
     def log_folder_with_run_id(self, run_id: str) -> Path:
         """

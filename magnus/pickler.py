@@ -2,10 +2,10 @@ import pickle
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 
 
-class BasePickler(ABC):
+class BasePickler(ABC, BaseModel):
     """
     The base class for all picklers.
 
@@ -17,8 +17,8 @@ class BasePickler(ABC):
     service_name: str = ""
     service_type: str = "pickler"
 
-    class Config(BaseModel):
-        ...
+    class Config:
+        extra = Extra.forbid
 
     @abstractmethod
     def dump(self, data: Any, path: str):
@@ -60,14 +60,8 @@ class NativePickler(BasePickler):
     Uses native python pickle to load and dump files
     """
 
-    extension = ".pickle"
-    service_name = "pickle"
-
-    class ContextConfig(BasePickler.Config):
-        ...
-
-    def __init__(self, config):
-        self.config = self.ContextConfig(**config)
+    extension: str = ".pickle"
+    service_name: str = "pickle"
 
     def dump(self, data: Any, path: str):
         """

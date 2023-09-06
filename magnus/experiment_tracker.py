@@ -3,7 +3,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 
 from magnus import defaults
 
@@ -12,7 +12,7 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 # --8<-- [start:docs]
 
 
-class BaseExperimentTracker(ABC):
+class BaseExperimentTracker(ABC, BaseModel):
     """
     Base Experiment tracker class definition.
     """
@@ -20,8 +20,8 @@ class BaseExperimentTracker(ABC):
     service_name: str = ""
     service_type: str = "experiment_tracker"
 
-    class Config(BaseModel):
-        ...
+    class Config:
+        extra = Extra.forbid
 
     @property
     def client_context(self) -> Any:
@@ -31,7 +31,7 @@ class BaseExperimentTracker(ABC):
         return contextlib.nullcontext()
 
     @abstractmethod
-    def set_metric(self, key: str, value: float, step: int = 0):
+    def log_metric(self, key: str, value: float, step: int = 0):
         """
         Sets the metric in the experiment tracking.
 
@@ -46,7 +46,7 @@ class BaseExperimentTracker(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_parameter(self, key: str, value: Any):
+    def log_parameter(self, key: str, value: Any):
         """
         Logs a parameter in the experiment tracking.
 
@@ -60,7 +60,6 @@ class BaseExperimentTracker(ABC):
         pass
 
         # TODO: Consider log_artifact
-        # TODO: The syntax for mlflow is better
 
 
 # --8<-- [end:docs]
@@ -71,15 +70,9 @@ class DoNothingTracker(BaseExperimentTracker):
     A Do nothing tracker
     """
 
-    service_name = "do-nothing"
+    service_name: str = "do-nothing"
 
-    class ContextConfig(BaseExperimentTracker.Config):
-        ...
-
-    def __init__(self, config: dict) -> None:
-        self.config = self.ContextConfig(**(config or {}))
-
-    def set_metric(self, key: str, value: float, step: int = 0):
+    def log_metric(self, key: str, value: float, step: int = 0):
         """
         Sets the metric in the experiment tracking.
 
@@ -89,7 +82,7 @@ class DoNothingTracker(BaseExperimentTracker):
         """
         pass
 
-    def set_parameter(self, key: str, value: Any):
+    def log_parameter(self, key: str, value: Any):
         """
         Since this is a Do nothing tracker, we don't need to log anything.
         """

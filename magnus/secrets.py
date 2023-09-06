@@ -3,7 +3,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 
 from magnus import defaults, exceptions, utils
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
 # --8<-- [start:docs]
-class BaseSecrets(ABC):
+class BaseSecrets(ABC, BaseModel):
     """
     A base class for Secrets Handler.
     All implementations should extend this class.
@@ -27,8 +27,8 @@ class BaseSecrets(ABC):
     service_name: str = ""
     service_type: str = "secrets"
 
-    class Config(BaseModel):
-        pass
+    class Config:
+        extra = Extra.forbid
 
     @abstractmethod
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:
@@ -53,14 +53,7 @@ class DoNothingSecretManager(BaseSecrets):
     Does nothing secret manager
     """
 
-    service_name = "do-nothing"
-
-    class ContextConfig(BaseSecrets.Config):
-        ...
-
-    def __init__(self, config, **kwargs):
-        self.config = self.ContextConfig(**(config or {}))
-        self.secrets = {}
+    service_name: str = "do-nothing"
 
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:
         """
@@ -87,14 +80,9 @@ class EnvSecretsManager(BaseSecrets):
     This secret manager returns nothing if the key does not match
     """
 
-    service_name = "env-secrets-manager"
-
-    class ContextConfig(BaseSecrets.Config):
-        prefix: str = ""
-        suffix: str = ""
-
-    def __init__(self, config, **kwargs):
-        self.config = self.ContextConfig(**(config or {}))
+    service_name: str = "env-secrets-manager"
+    prefix: str = ""
+    suffix: str = ""
 
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:
         """
@@ -114,15 +102,15 @@ class EnvSecretsManager(BaseSecrets):
         """
         if name:
             try:
-                return os.environ[f"{self.config.prefix}{name}{self.config.suffix}"]
+                return os.environ[f"{self.prefix}{name}{self.suffix}"]
             except KeyError as _e:
-                logger.exception(f"Secret {self.config.prefix}{name}{self.config.suffix} not found in environment")
+                logger.exception(f"Secret {self.prefix}{name}{self.suffix} not found in environment")
                 raise exceptions.SecretNotFoundError(secret_name=name, secret_setting="environment") from _e
 
         matched_secrets = {}
         for key in os.environ:
-            if key.startswith(self.config.prefix) and key.endswith(self.config.suffix):
-                matched_secrets[key[len(self.config.prefix) : -len(self.config.suffix)]] = os.environ[key]
+            if key.startswith(self.prefix) and key.endswith(self.suffix):
+                matched_secrets[key[len(self.prefix) : -len(self.suffix)]] = os.environ[key]
 
         return matched_secrets
 
@@ -135,14 +123,9 @@ class DotEnvSecrets(BaseSecrets):
     production.
     """
 
-    service_name = "dotenv"
-
-    class ContextConfig(BaseSecrets.Config):
-        location: str = defaults.DOTENV_FILE_LOCATION
-
-    def __init__(self, config, **kwargs):
-        self.config = self.ContextConfig(**(config or {}))
-        self.secrets = {}
+    service_name: str = "dotenv"
+    location: str = defaults.DOTENV_FILE_LOCATION
+    secrets: dict = {}
 
     @property
     def secrets_location(self):
@@ -153,7 +136,7 @@ class DotEnvSecrets(BaseSecrets):
         Returns:
             str: The location of the secrets file
         """
-        return self.config.location
+        return self.location
 
     def _load_secrets(self):
         """

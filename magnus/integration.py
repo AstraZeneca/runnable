@@ -88,7 +88,6 @@ def get_integration_handler(executor: "BaseExecutor", service: object) -> BaseIn
             and kls.obj.service_provider == service_name
         ):
             logger.info(f"Identified an integration pattern {kls.obj}")
-            print(kls.obj)
             integrations.append(kls.obj)
 
     # Get all the implementations defined by the magnus package
@@ -254,8 +253,8 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
         self.service = cast(FileSystemRunLogstore, self.service)
 
         write_to = self.service.log_folder_name
-        self.executor.volumes[str(Path(write_to).resolve())] = {
-            "bind": f"{self.executor.container_log_location}",
+        self.executor._volumes[str(Path(write_to).resolve())] = {
+            "bind": f"{self.executor._container_log_location}",
             "mode": "rw",
         }
 
@@ -263,7 +262,7 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(FileSystemRunLogstore, self.service)
 
-        self.service.config.log_folder = self.executor.container_log_location
+        self.service.log_folder = self.executor._container_log_location
 
 
 class LocalContainerComputeDotEnvSecrets(BaseIntegration):
@@ -283,8 +282,8 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
         self.service = cast(DotEnvSecrets, self.service)
 
         secrets_location = self.service.secrets_location
-        self.executor.volumes[str(Path(secrets_location).resolve())] = {
-            "bind": f"{self.executor.container_secrets_location}",
+        self.executor._volumes[str(Path(secrets_location).resolve())] = {
+            "bind": f"{self.executor._container_secrets_location}",
             "mode": "ro",
         }
 
@@ -292,7 +291,7 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(DotEnvSecrets, self.service)
 
-        self.service.config.location = self.executor.container_secrets_location
+        self.service.location = self.executor._container_secrets_location
 
 
 class LocalContainerComputeEnvSecretsManager(BaseIntegration):
@@ -327,8 +326,8 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
         self.service = cast(FileSystemCatalog, self.service)
 
         catalog_location = self.service.catalog_location
-        self.executor.volumes[str(Path(catalog_location).resolve())] = {
-            "bind": f"{self.executor.container_catalog_location}",
+        self.executor._volumes[str(Path(catalog_location).resolve())] = {
+            "bind": f"{self.executor._container_catalog_location}",
             "mode": "rw",
         }
 
@@ -336,7 +335,7 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(FileSystemCatalog, self.service)
 
-        self.service.config.catalog_location = self.executor.container_catalog_location
+        self.service.catalog_location = self.executor._container_catalog_location
 
 
 # Load extension integrations

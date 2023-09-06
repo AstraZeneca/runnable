@@ -202,7 +202,7 @@ def put_object(data: Any, name: str):
         data (Any): The data object to add to catalog
         name (str): The name to give to the object
     """
-    native_pickler = pickler.NativePickler(config={})
+    native_pickler = pickler.NativePickler()
 
     native_pickler.dump(data=data, path=name)
     put_in_catalog(f"{name}{native_pickler.extension}")
@@ -221,7 +221,7 @@ def get_object(name: str) -> Any:
     Returns:
         Any : The object
     """
-    native_pickler = pickler.NativePickler(config={})
+    native_pickler = pickler.NativePickler()
 
     get_from_catalog(name=f"{name}{native_pickler.extension}", destination_folder=".")
 
@@ -359,4 +359,4 @@ def end_interactive_session():
 
     context.executor.context_step_log = None
     context.executor.execution_plan = ""
-    context.executor = None
+    context.executor = None  # type: ignore

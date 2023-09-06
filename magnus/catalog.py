@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 
 from magnus import defaults, utils
 
@@ -24,7 +24,7 @@ def get_run_log_store():
     from magnus import context
 
     # Its a dynamic import only available during run time
-    return context.executor.run_log_store  # type: ignore
+    return context.executor.run_log_store
 
 
 def is_catalog_out_of_sync(catalog, synced_catalogs=None) -> bool:
@@ -48,33 +48,19 @@ def is_catalog_out_of_sync(catalog, synced_catalogs=None) -> bool:
 # --8<-- [start:docs]
 
 
-class BaseCatalog(ABC):
+class BaseCatalog(ABC, BaseModel):
     """
     Base Catalog class definition.
 
     All implementations of the catalog handler should inherit and extend this class.
-
-    Note: As a general guideline, do not extract anything from the config to set class level attributes.
-          Integration patterns modify the config after init to change behaviors.
-          Access config properties using getters/property of the class.
     """
 
     service_name: str = ""
     service_type: str = "catalog"
+    compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
 
-    class Config(BaseModel):
-        compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
-
-    @property
-    def compute_data_folder(self) -> str:
-        """
-        Returns the compute data folder defined as per the config of the catalog.
-
-        Returns:
-            [str]: The compute data folder as defined or defaults to magnus default 'data/'
-        """
-        # Purpose of ignoring is config does not exist in the base class but makes it easier to extend
-        return self.config.compute_data_folder  # type: ignore
+    class Config:
+        extra = Extra.forbid
 
     @abstractmethod
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
@@ -155,13 +141,7 @@ class DoNothingCatalog(BaseCatalog):
 
     """
 
-    service_name = "do-nothing"
-
-    class ContextConfig(BaseCatalog.Config):
-        ...
-
-    def __init__(self, config: dict, **kwargs):  # pylint: disable=unused-argument
-        self.config = self.ContextConfig(**(config or {}))
+    service_name: str = "do-nothing"
 
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         """
@@ -208,24 +188,11 @@ class FileSystemCatalog(BaseCatalog):
 
     """
 
-    service_name = "file-system"
+    service_name: str = "file-system"
+    catalog_location: str = defaults.CATALOG_LOCATION_FOLDER
 
-    class ContextConfig(BaseCatalog.Config):
-        catalog_location: str = defaults.CATALOG_LOCATION_FOLDER
-
-    def __init__(self, config: dict, **kwargs):  # pylint: disable=unused-argument
-        self.config = self.ContextConfig(**(config or {}))
-
-    @property
-    def catalog_location(self) -> str:
-        """
-        Get the catalog location from the config.
-        If its not defined, use the magnus default
-
-        Returns:
-            str: The catalog location as defined by the config or magnus default '.catalog'
-        """
-        return self.config.catalog_location
+    def get_catalog_location(self):
+        return self.catalog_location
 
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
         """
@@ -249,7 +216,7 @@ class FileSystemCatalog(BaseCatalog):
 
         copy_to = Path(copy_to)  # type: ignore
 
-        catalog_location = self.catalog_location
+        catalog_location = self.get_catalog_location()
         run_catalog = Path(catalog_location) / run_id / copy_to
 
         logger.debug(f"Copying objects to {copy_to} from the run catalog location of {run_catalog}")
@@ -322,7 +289,7 @@ class FileSystemCatalog(BaseCatalog):
             copy_from = compute_data_folder
         copy_from = Path(copy_from)  # type: ignore
 
-        catalog_location = self.catalog_location
+        catalog_location = self.get_catalog_location()
         run_catalog = Path(catalog_location) / run_id
         utils.safe_make_dir(run_catalog)
 
@@ -384,7 +351,7 @@ class FileSystemCatalog(BaseCatalog):
             "between old: {previous_run_id} to new: {run_id}"
         )
 
-        catalog_location = Path(self.catalog_location)
+        catalog_location = Path(self.get_catalog_location())
         run_catalog = catalog_location / run_id
         utils.safe_make_dir(run_catalog)
 
