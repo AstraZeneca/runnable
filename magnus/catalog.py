@@ -8,6 +8,8 @@ from typing import List
 from pydantic import BaseModel, Extra
 
 from magnus import defaults, utils
+from magnus.context import run_context
+from magnus.datastore import DataCatalog
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -21,10 +23,9 @@ def get_run_log_store():
     Returns:
         object: The run log store
     """
-    from magnus import context
 
     # Its a dynamic import only available during run time
-    return context.executor.run_log_store
+    return run_context.run_log_store
 
 
 def is_catalog_out_of_sync(catalog, synced_catalogs=None) -> bool:
@@ -63,7 +64,7 @@ class BaseCatalog(ABC, BaseModel):
         extra = Extra.forbid
 
     @abstractmethod
-    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
+    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[DataCatalog]:
         # pylint: disable=unused-argument
         """
         Get the catalog item by 'name' for the 'run id' and store it in compute data folder.
@@ -91,7 +92,7 @@ class BaseCatalog(ABC, BaseModel):
         compute_data_folder=None,
         synced_catalogs=None,
         **kwargs,
-    ) -> List[object]:
+    ) -> List[DataCatalog]:
         # pylint: disable=unused-argument
         """
         Put the file by 'name' from the 'compute_data_folder' in the catalog for the run_id.
@@ -143,7 +144,7 @@ class DoNothingCatalog(BaseCatalog):
 
     service_name: str = "do-nothing"
 
-    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
+    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[DataCatalog]:
         """
         Does nothing
         """
@@ -157,7 +158,7 @@ class DoNothingCatalog(BaseCatalog):
         compute_data_folder=None,
         synced_catalogs=None,
         **kwargs,
-    ) -> List[object]:
+    ) -> List[DataCatalog]:
         """
         Does nothing
         """
@@ -194,7 +195,7 @@ class FileSystemCatalog(BaseCatalog):
     def get_catalog_location(self):
         return self.catalog_location
 
-    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[object]:
+    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[DataCatalog]:
         """
         Get the file by matching glob pattern to the name
 
@@ -264,7 +265,7 @@ class FileSystemCatalog(BaseCatalog):
         compute_data_folder=None,
         synced_catalogs=None,
         **kwargs,
-    ) -> List[object]:
+    ) -> List[DataCatalog]:
         """
         Put the files matching the glob pattern into the catalog.
 

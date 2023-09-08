@@ -394,7 +394,7 @@ class ContainerTaskType(BaseTaskType):
     def execute_command(self, map_variable: dict = None, **kwargs):
         # Conditional import
         from magnus import track_this
-        from magnus.context import executor as context_executor
+        from magnus.context import run_context
 
         try:
             import docker  # pylint: disable=C0415
@@ -418,12 +418,12 @@ class ContainerTaskType(BaseTaskType):
             container_env_variables[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
         for secret_name in self.secrets:
-            secret_value = context_executor.secrets_handler.get(secret_name)
+            secret_value = run_context.secrets_handler.get(secret_name)
             container_env_variables[secret_name] = secret_value
 
         mount_volumes = self.get_mount_volumes()
 
-        executor_config = context_executor._resolve_executor_config(context_executor.context_node)  # type: ignore
+        executor_config = run_context.executor._resolve_executor_config(run_context.executor._context_node)
         optional_docker_args = executor_config.get("optional_docker_args", {})
 
         try:
@@ -489,9 +489,9 @@ class ContainerTaskType(BaseTaskType):
         Returns:
             dict: The mount volumes in the format that docker expects.
         """
-        from magnus.context import executor as context_executor
+        from magnus.context import run_context
 
-        compute_data_folder = context_executor.get_effective_compute_data_folder()
+        compute_data_folder = run_context.executor.get_effective_compute_data_folder()
         mount_volumes = {}
 
         # Create temporary directory for parameters.json and map it to context_path

@@ -2,7 +2,7 @@ import json
 import logging
 from typing import List, Optional, Union, cast
 
-from magnus import defaults, exceptions, graph, utils
+from magnus import context, defaults, exceptions, graph, utils
 from magnus.defaults import MagnusConfig, ServiceConfig
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -27,14 +27,14 @@ def get_default_configs() -> MagnusConfig:
 
 
 def prepare_configurations(
+    run_id: str,
     configuration_file: str = None,
     pipeline_file: str = None,
-    run_id: str = None,
     tag: Union[str, None] = None,
     use_cached: Union[str, None] = "",
     parameters_file: str = None,
     force_local_executor: bool = False,
-):
+) -> context.Context:
     # pylint: disable=R0914
     """
     Replace the placeholders in the dag/config against the variables file.
@@ -97,6 +97,23 @@ def prepare_configurations(
         executor_config = cast(ServiceConfig, magnus_defaults.get("executor", defaults.DEFAULT_EXECUTOR))
     configured_executor = utils.get_provider_by_name_and_type("executor", executor_config)
 
+    """
+    execution_plan: str = ""
+    """
+
+    # Construct the context
+    run_context = context.Context(
+        executor=configured_executor,
+        run_log_store=run_log_store,
+        catalog_handler=catalog_handler,
+        secrets_handler=secrets_handler,
+        experiment_tracker=tracker_handler,
+        variables=variables,
+        tag=tag,
+        run_id=run_id,
+        configuration_file=configuration_file,
+    )
+
     if pipeline_file:
         # There are use cases where we are only preparing the executor
         pipeline_config = utils.load_yaml(pipeline_file)
@@ -111,28 +128,16 @@ def prepare_configurations(
         # TODO: Dag nodes should not self refer themselves
         dag = graph.create_graph(dag_config)
 
-        configured_executor.pipeline_file = pipeline_file
-        configured_executor.dag = dag
-        configured_executor.dag_hash = dag_hash
+        run_context.pipeline_file = pipeline_file
+        run_context.dag = dag
+        run_context.dag_hash = dag_hash
 
-    configured_executor.run_id = run_id
-    configured_executor.tag = tag
-    configured_executor.use_cached = use_cached
+    run_context.use_cached = use_cached
+    run_context.parameters_file = parameters_file
 
-    # Set a global executor for inter-module access later
-    from magnus import context
+    context.run_context = run_context
 
-    context.executor = configured_executor
-
-    configured_executor.run_log_store = run_log_store
-    configured_executor.catalog_handler = catalog_handler
-    configured_executor.secrets_handler = secrets_handler
-    configured_executor.experiment_tracker = tracker_handler
-    configured_executor.configuration_file = configuration_file
-    configured_executor.parameters_file = parameters_file
-    configured_executor.variables = variables
-
-    return configured_executor
+    return run_context
 
 
 def execute(
@@ -158,7 +163,7 @@ def execute(
     # Re run settings
     run_id = utils.generate_run_id(run_id=run_id)
 
-    mode_executor = prepare_configurations(
+    run_context = prepare_configurations(
         configuration_file=configuration_file,
         pipeline_file=pipeline_file,
         run_id=run_id,
@@ -166,35 +171,37 @@ def execute(
         use_cached=use_cached,
         parameters_file=parameters_file,
     )
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
+    executor = run_context.executor
+
+    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
 
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     previous_run_log = None
     if use_cached:
         try:
-            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
+            previous_run_log = run_context.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
         except exceptions.RunLogNotFoundError as _e:
             msg = (
                 f"There is no run by {use_cached} in the current run log store "
-                f"{mode_executor.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n"
+                f"{run_context.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n"
                 "Note: Even if the previous run used a different run log store, provide the run log store in the format"
                 " accepted by the current run log store."
             )
             raise Exception(msg) from _e
 
-        if previous_run_log.dag_hash != mode_executor.dag_hash:
+        if previous_run_log.dag_hash != run_context.dag_hash:
             logger.warning("The previous dag does not match to the current one!")
-        mode_executor.previous_run_log = previous_run_log
+        executor._previous_run_log = previous_run_log
         logger.info("Found a previous run log and using it as cache")
 
     # Prepare for graph execution
-    mode_executor.prepare_for_graph_execution()
+    executor.prepare_for_graph_execution()
 
     logger.info("Executing the graph")
-    mode_executor.execute_graph(dag=mode_executor.dag)
+    executor.execute_graph(dag=run_context.dag)  # type: ignore
 
-    mode_executor.send_return_code()
+    executor.send_return_code()
 
 
 def execute_single_step(
@@ -223,7 +230,7 @@ def execute_single_step(
     """
     run_id = utils.generate_run_id(run_id=run_id)
 
-    mode_executor = prepare_configurations(
+    run_context = prepare_configurations(
         configuration_file=configuration_file,
         pipeline_file=pipeline_file,
         run_id=run_id,
@@ -231,10 +238,12 @@ def execute_single_step(
         use_cached="",
         parameters_file=parameters_file,
     )
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
+
+    executor = run_context.executor
+    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
     try:
-        _ = mode_executor.dag.get_node_by_name(step_name)
+        _ = run_context.dag.get_node_by_name(step_name)  # type: ignore
     except exceptions.NodeNotFoundError as e:
         msg = f"The node by name {step_name} is not found in the graph. Please provide a valid node name"
         raise Exception(msg) from e
@@ -242,28 +251,28 @@ def execute_single_step(
     previous_run_log = None
     if use_cached:
         try:
-            previous_run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
+            previous_run_log = run_context.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
         except exceptions.RunLogNotFoundError as _e:
             msg = (
                 f"There is no run by {use_cached} in the current run log store "
-                f"{mode_executor.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n"
+                f"{run_context.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n"
                 "Note: Even if the previous run used a different run log store, provide the run log store in the format"
                 " accepted by the current run log store."
             )
             raise Exception(msg) from _e
 
-        if previous_run_log.dag_hash != mode_executor.dag_hash:
+        if previous_run_log.dag_hash != run_context.dag_hash:
             logger.warning("The previous dag does not match to the current one!")
-        mode_executor.previous_run_log = previous_run_log
+        executor._previous_run_log = previous_run_log
         logger.info("Found a previous run log and using it as cache")
 
-    mode_executor.single_step = step_name
-    mode_executor.prepare_for_graph_execution()
+    executor._single_step = step_name
+    executor.prepare_for_graph_execution()
 
     logger.info("Executing the graph")
-    mode_executor.execute_graph(dag=mode_executor.dag)
+    executor.execute_graph(dag=run_context.dag)  # type: ignore
 
-    mode_executor.send_return_code()
+    executor.send_return_code()
 
 
 def execute_single_node(
@@ -293,7 +302,7 @@ def execute_single_node(
     """
     from magnus import nodes
 
-    mode_executor = prepare_configurations(
+    run_context = prepare_configurations(
         configuration_file=configuration_file,
         pipeline_file=pipeline_file,
         run_id=run_id,
@@ -301,26 +310,28 @@ def execute_single_node(
         use_cached="",
         parameters_file=parameters_file,
     )
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
+
+    executor = run_context.executor
+    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-    mode_executor.prepare_for_node_execution()
+    executor.prepare_for_node_execution()
 
-    if not mode_executor.dag:
+    if not run_context.dag:
         # There are a few entry points that make graph dynamically and do not have a dag defined statically.
-        run_log = mode_executor.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
-        mode_executor.dag = graph.create_graph(run_log.run_config["pipeline"])
+        run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
+        run_context.dag = graph.create_graph(run_log.run_config["pipeline"])
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    node_to_execute, _ = graph.search_node_by_internal_name(mode_executor.dag, step_internal_name)
+    node_to_execute, _ = graph.search_node_by_internal_name(run_context.dag, step_internal_name)
 
     logger.info("Executing the single node of : %s", node_to_execute)
-    mode_executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
+    executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
 
-    mode_executor.send_return_code(stage="execution")
+    executor.send_return_code(stage="execution")
 
 
 def execute_single_brach(
@@ -347,26 +358,27 @@ def execute_single_brach(
     """
     from magnus import nodes
 
-    mode_executor = prepare_configurations(
+    run_context = prepare_configurations(
         configuration_file=configuration_file,
         pipeline_file=pipeline_file,
         run_id=run_id,
         tag=tag,
         use_cached="",
     )
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
+    executor = run_context.executor
+    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     branch_internal_name = nodes.BaseNode._get_internal_name_from_command_name(branch_name)
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    branch_to_execute = graph.search_branch_by_internal_name(mode_executor.dag, branch_internal_name)
+    branch_to_execute = graph.search_branch_by_internal_name(run_context.dag, branch_internal_name)  # type: ignore
 
     logger.info("Executing the single branch of %s", branch_to_execute)
-    mode_executor.execute_graph(dag=branch_to_execute, map_variable=map_variable_dict)
+    executor.execute_graph(dag=branch_to_execute, map_variable=map_variable_dict)
 
-    mode_executor.send_return_code()
+    executor.send_return_code()
 
 
 def execute_notebook(
@@ -386,14 +398,15 @@ def execute_notebook(
     """
     run_id = utils.generate_run_id(run_id=run_id)
 
-    mode_executor = prepare_configurations(
+    run_context = prepare_configurations(
         configuration_file=configuration_file,
         run_id=run_id,
         tag=tag,
         parameters_file=parameters_file,
     )
 
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
+    executor = run_context.executor
+    run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     step_config = {
@@ -408,24 +421,24 @@ def execute_notebook(
 
     if entrypoint == defaults.ENTRYPOINT.USER.value:
         # Prepare for graph execution
-        mode_executor.prepare_for_graph_execution()
+        executor.prepare_for_graph_execution()
 
         logger.info("Executing the job from the user. We are still in the caller's compute environment")
-        mode_executor.execute_job(node=node)
+        executor.execute_job(node=node)
 
     elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
-        mode_executor.prepare_for_node_execution()
+        executor.prepare_for_node_execution()
         logger.info("Executing the job from the system. We are in the config's compute environment")
-        mode_executor.execute_node(node=node)
+        executor.execute_node(node=node)
 
         # Update the status of the run log
-        step_log = mode_executor.run_log_store.get_step_log(node._get_step_log_name(), run_id)
-        mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
+        step_log = run_context.run_log_store.get_step_log(node._get_step_log_name(), run_id)
+        run_context.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
 
     else:
         raise ValueError(f"Invalid entrypoint {entrypoint}")
 
-    mode_executor.send_return_code()
+    executor.send_return_code()
 
 
 def execute_function(
@@ -444,14 +457,16 @@ def execute_function(
     """
     run_id = utils.generate_run_id(run_id=run_id)
 
-    mode_executor = prepare_configurations(
+    run_context = prepare_configurations(
         configuration_file=configuration_file,
         run_id=run_id,
         tag=tag,
         parameters_file=parameters_file,
     )
 
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
+    executor = run_context.executor
+
+    run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     # Prepare the graph with a single node
@@ -466,24 +481,24 @@ def execute_function(
 
     if entrypoint == defaults.ENTRYPOINT.USER.value:
         # Prepare for graph execution
-        mode_executor.prepare_for_graph_execution()
+        executor.prepare_for_graph_execution()
 
         logger.info("Executing the job from the user. We are still in the caller's compute environment")
-        mode_executor.execute_job(node=node)
+        executor.execute_job(node=node)
 
     elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
-        mode_executor.prepare_for_node_execution()
+        executor.prepare_for_node_execution()
         logger.info("Executing the job from the system. We are in the config's compute environment")
-        mode_executor.execute_node(node=node)
+        executor.execute_node(node=node)
 
         # Update the status of the run log
-        step_log = mode_executor.run_log_store.get_step_log(node._get_step_log_name(), run_id)
-        mode_executor.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
+        step_log = run_context.run_log_store.get_step_log(node._get_step_log_name(), run_id)
+        run_context.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
 
     else:
         raise ValueError(f"Invalid entrypoint {entrypoint}")
 
-    mode_executor.send_return_code()
+    executor.send_return_code()
 
 
 def execute_container(
@@ -506,14 +521,15 @@ def execute_container(
     """
     run_id = utils.generate_run_id(run_id=run_id)
 
-    mode_executor = prepare_configurations(
+    run_context = prepare_configurations(
         configuration_file=configuration_file,
         run_id=run_id,
         tag=tag,
         parameters_file=parameters_file,
     )
+    executor = run_context.executor
 
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
+    run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     # Prepare the graph with a single node
@@ -534,14 +550,14 @@ def execute_container(
 
     if entrypoint == defaults.ENTRYPOINT.USER.value:
         # Prepare for graph execution
-        mode_executor.prepare_for_graph_execution()
+        executor.prepare_for_graph_execution()
 
         logger.info("Executing the job from the user. We are still in the caller's compute environment")
-        mode_executor.execute_job(node=node)
+        executor.execute_job(node=node)
     else:
         raise ValueError(f"Invalid entrypoint {entrypoint}")
 
-    mode_executor.send_return_code()
+    executor.send_return_code()
 
 
 def fan(
@@ -572,7 +588,7 @@ def fan(
     """
     from magnus import nodes
 
-    mode_executor = prepare_configurations(
+    run_context = prepare_configurations(
         configuration_file=configuration_file,
         pipeline_file=pipeline_file,
         run_id=run_id,
@@ -580,22 +596,23 @@ def fan(
         use_cached="",
         parameters_file=parameters_file,
     )
-    mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
+    executor = run_context.executor
+    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-    mode_executor.prepare_for_node_execution()
+    executor.prepare_for_node_execution()
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
-    node_to_execute, _ = graph.search_node_by_internal_name(mode_executor.dag, step_internal_name)
+    node_to_execute, _ = graph.search_node_by_internal_name(run_context.dag, step_internal_name)  # type: ignore
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
     if mode == "in":
         logger.info("Fanning in for : %s", node_to_execute)
-        mode_executor.fan_in(node=node_to_execute, map_variable=map_variable_dict)
+        executor.fan_in(node=node_to_execute, map_variable=map_variable_dict)
     elif mode == "out":
         logger.info("Fanning out for : %s", node_to_execute)
-        mode_executor.fan_out(node=node_to_execute, map_variable=map_variable_dict)
+        executor.fan_out(node=node_to_execute, map_variable=map_variable_dict)
     else:
         raise ValueError(f"Invalid mode {mode}")
 

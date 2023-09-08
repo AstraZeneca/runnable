@@ -8,18 +8,17 @@ import re
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 from rich import print
 
 from magnus import defaults, exceptions, interaction, utils
 from magnus.catalog import BaseCatalog
+from magnus.datastore import DataCatalog, RunLog, StepLog
 from magnus.graph import Graph
 from magnus.nodes import AsIsNode, BaseNode, TaskNode
 
 if TYPE_CHECKING:
-    from magnus.datastore import BaseRunLogStore, DataCatalog, StepLog
-    from magnus.experiment_tracker import BaseExperimentTracker
-    from magnus.secrets import BaseSecrets
+    from magnus.context import Context
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -41,35 +40,20 @@ class BaseExecutor(ABC, BaseModel):
 
     service_name: str = ""
     service_type: str = "executor"
+
     enable_parallel: bool = defaults.ENABLE_PARALLEL
     placeholders: dict = {}
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # pylint: disable=R0914,R0913
-        # The definition files
-        self.pipeline_file = None
-        self.variables_file = None
-        self.parameters_file = None
-        self.configuration_file = None
-        # run descriptors
-        self.tag: str = ""
-        self.run_id: str = ""
-        self.single_step: bool = False
-        self.variables: Dict[str, str] = {}
-        self.use_cached: bool = False
-        self.dag: Graph = None  # type: ignore
-        self.dag_hash: str = ""
-        self.execution_plan: str = ""  # Chained or unchained
-        # Services
-        self.catalog_handler: Optional[BaseCatalog] = None
-        self.secrets_handler: BaseSecrets = None  # type: ignore
-        self.experiment_tracker: BaseExperimentTracker = None  # type: ignore
-        self.run_log_store: BaseRunLogStore = None  # type: ignore
-        self.previous_run_log = None
-        # Current execution node context variables
-        self.context_step_log: Optional[StepLog] = None
-        self.context_node: Optional[BaseNode] = None
+    _previous_run_log: RunLog = None
+    _single_step: str = ""
+
+    _context: Context = None
+    _context_step_log = None  # type: StepLog
+    _context_node = None  # type: BaseNode
+
+    class Config:
+        extra = Extra.forbid
+        underscore_attrs_are_private = True
 
     @property
     def step_decorator_run_id(self):
@@ -96,7 +80,7 @@ class BaseExecutor(ABC, BaseModel):
         Returns:
             bool: True if the execution allows parallel execution of branches.
         """
-        return self.config.enable_parallel  # type: ignore
+        return self.enable_parallel
 
     def _set_up_run_log(self, exists_ok=False):
         """
@@ -156,6 +140,7 @@ class BaseExecutor(ABC, BaseModel):
         But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we check if the services are OK.
         We do not set up a run log as its not relevant.
         """
+        from magnus import integration
 
         integration.validate(self, self.run_log_store)
         integration.configure_for_traversal(self, self.run_log_store)
@@ -179,6 +164,7 @@ class BaseExecutor(ABC, BaseModel):
             node (Node): [description]
             map_variable (dict, optional): [description]. Defaults to None.
         """
+        from magnus import integration
 
         integration.validate(self, self.run_log_store)
         integration.configure_for_execution(self, self.run_log_store)
@@ -633,10 +619,10 @@ class BaseExecutor(ABC, BaseModel):
             node (BaseNode): The current node being processed.
 
         """
-        effective_node_config = copy.deepcopy(self.config.dict())  # type: ignore
+        effective_node_config = copy.deepcopy(self.dict())
         ctx_node_config = node._get_executor_config(self.service_name)
 
-        placeholders = self.config.placeholders  # type: ignore
+        placeholders = self.placeholders
 
         for key, value in ctx_node_config.items():
             if not value:
@@ -831,9 +817,6 @@ class LocalContainerExecutor(BaseExecutor):
     _container_secrets_location = "/tmp/dotenv"
     _volumes: Dict[str, Dict[str, str]] = {}
 
-    class Config:
-        underscore_attrs_are_private = True
-
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
         """
         Call the Base class to add the git code identity and add docker identity
@@ -869,6 +852,7 @@ class LocalContainerExecutor(BaseExecutor):
         Args:
             node (BaseNode): _description_
         """
+        from magnus import integration
         from magnus.tasks import ContainerTaskType
 
         step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable=None))
@@ -916,6 +900,7 @@ class LocalContainerExecutor(BaseExecutor):
         logger.debug("Here is the resolved executor config")
         logger.debug(executor_config)
 
+        from magnus import integration
         from magnus.nodes import TaskNode
         from magnus.tasks import ContainerTaskType
 
@@ -1119,7 +1104,3 @@ class DemoRenderer(BaseExecutor):
             "\t The first argument to the script is the run id you want for the run."
         )
         logger.info(msg)
-
-
-# Avoids circular imports
-from magnus import integration  # noqa: E402

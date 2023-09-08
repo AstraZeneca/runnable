@@ -7,7 +7,7 @@ from typing import List, Optional, Union
 from pkg_resources import resource_filename
 from pydantic import BaseModel, Extra, Field
 
-from magnus import defaults, graph, pipeline, utils
+from magnus import defaults, entrypoints, graph, utils
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -253,7 +253,7 @@ class Pipeline(BaseModel):
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)
-        mode_executor = pipeline.prepare_configurations(
+        mode_executor = entrypoints.prepare_configurations(
             configuration_file=configuration_file,
             run_id=run_id,
             tag=tag,

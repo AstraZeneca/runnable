@@ -270,8 +270,8 @@ def test_base_run_log_store_get_step_log_raises_step_log_not_found_error_if_sear
     mock_run_log = mocker.MagicMock()
     mock_run_log.search_step_by_internal_name.side_effect = exceptions.StepLogNotFoundError("test", "test")
 
+    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mocker.MagicMock(return_value=mock_run_log))
     run_log_store = datastore.BaseRunLogStore()
-    run_log_store.get_run_log_by_id = mocker.MagicMock(return_value=mock_run_log)
 
     with pytest.raises(exceptions.StepLogNotFoundError):
         run_log_store.get_step_log(internal_name="test", run_id="test")
@@ -282,8 +282,8 @@ def test_base_run_log_store_get_step_log_returns_from_log_search(monkeypatch, mo
     mock_step_log = mocker.MagicMock()
     mock_run_log.search_step_by_internal_name.return_value = mock_step_log, None
 
+    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mocker.MagicMock(return_value=mock_run_log))
     run_log_store = datastore.BaseRunLogStore()
-    run_log_store.get_run_log_by_id = mocker.MagicMock(return_value=mock_run_log)
 
     assert mock_step_log == run_log_store.get_step_log(internal_name="test", run_id="test")
 
@@ -408,13 +408,13 @@ def test_base_run_log_add_branch_log_adds_branch_to_the_right_step(mocker, monke
 
 
 def test_buffered_run_log_store_inits_run_log_as_none():
-    run_log_store = datastore.BufferRunLogstore(config=None)
+    run_log_store = datastore.BufferRunLogstore()
 
     assert run_log_store.run_log is None
 
 
 def test_buffered_run_log_store_create_run_log_creates_a_run_log_object():
-    run_log_store = datastore.BufferRunLogstore(config=None)
+    run_log_store = datastore.BufferRunLogstore()
 
     run_log = run_log_store.create_run_log(run_id="test")
 
@@ -423,7 +423,7 @@ def test_buffered_run_log_store_create_run_log_creates_a_run_log_object():
 
 
 def test_buffered_run_log_store_get_run_log_returns_the_run_log():
-    run_log_store = datastore.BufferRunLogstore(config=None)
+    run_log_store = datastore.BufferRunLogstore()
 
     run_log = datastore.RunLog(run_id="test")
     run_log.status = defaults.PROCESSING
@@ -434,7 +434,7 @@ def test_buffered_run_log_store_get_run_log_returns_the_run_log():
 
 
 def test_buffered_run_log_store_put_run_log_updates_the_run_log():
-    run_log_store = datastore.BufferRunLogstore(config=None)
+    run_log_store = datastore.BufferRunLogstore()
 
     run_log = datastore.RunLog(run_id="test")
     run_log_store.put_run_log(run_log=run_log)
@@ -446,13 +446,13 @@ def test_buffered_run_log_store_put_run_log_updates_the_run_log():
 
 
 def test_file_system_run_log_store_log_folder_name_defaults_if_not_provided():
-    run_log_store = datastore.FileSystemRunLogstore(config=None)
+    run_log_store = datastore.FileSystemRunLogstore()
 
     assert run_log_store.log_folder_name == defaults.LOG_LOCATION_FOLDER
 
 
 def test_file_system_run_log_store_log_folder_name_if__provided():
-    run_log_store = datastore.FileSystemRunLogstore(config={"log_folder": "test"})
+    run_log_store = datastore.FileSystemRunLogstore(log_folder="test")
 
     assert run_log_store.log_folder_name == "test"
 
@@ -470,7 +470,7 @@ def test_file_system_run_log_store_write_to_folder_makes_dir_if_not_present(mock
     mock_dict = mocker.MagicMock()
     mock_run_log.dict = mock_dict
 
-    run_log_store = datastore.FileSystemRunLogstore(config=None)
+    run_log_store = datastore.FileSystemRunLogstore()
     run_log_store.write_to_folder(run_log=mock_run_log)
 
     mock_safe_make_dir.assert_called_once_with(run_log_store.log_folder_name)
@@ -485,7 +485,7 @@ def test_file_system_run_log_store_get_from_folder_raises_exception_if_folder_no
 
     mock_path.exists.return_value = False
 
-    run_log_store = datastore.FileSystemRunLogstore(config=None)
+    run_log_store = datastore.FileSystemRunLogstore()
 
     with pytest.raises(FileNotFoundError):
         run_log_store.get_from_folder(run_id="test")
@@ -502,7 +502,7 @@ def test_file_system_run_log_store_get_from_folder_returns_run_log_from_file_con
     monkeypatch.setattr(datastore, "json", mock_json)
     mock_json.load.return_value = {"run_id": "test"}
 
-    run_log_store = datastore.FileSystemRunLogstore(config=None)
+    run_log_store = datastore.FileSystemRunLogstore()
     run_log = run_log_store.get_from_folder(run_id="does not matter")
 
     assert run_log.run_id == "test"
@@ -513,7 +513,7 @@ def test_file_system_run_log_store_create_run_log_writes_to_folder(mocker, monke
 
     monkeypatch.setattr(datastore.FileSystemRunLogstore, "write_to_folder", mock_write_to_folder)
 
-    run_log_store = datastore.FileSystemRunLogstore(config=None)
+    run_log_store = datastore.FileSystemRunLogstore()
     run_log = run_log_store.create_run_log(run_id="test random")
 
     mock_write_to_folder.assert_called_once_with(run_log)
@@ -528,7 +528,7 @@ def test_file_system_run_log_store_create_run_log_raises_exception_if_present(mo
     monkeypatch.setattr(datastore.FileSystemRunLogstore, "write_to_folder", mock_write_to_folder)
     monkeypatch.setattr(datastore.FileSystemRunLogstore, "get_run_log_by_id", mock_get_run_log_by_id)
 
-    run_log_store = datastore.FileSystemRunLogstore(config=None)
+    run_log_store = datastore.FileSystemRunLogstore()
     with pytest.raises(exceptions.RunLogExistsError):
         run_log_store.create_run_log(run_id="test random")
 
@@ -539,7 +539,7 @@ def test_file_system_run_log_store_get_run_log_by_id_raises_exception_if_get_fro
 
     monkeypatch.setattr(datastore.FileSystemRunLogstore, "get_from_folder", mock_get_from_folder)
 
-    run_log_store = datastore.FileSystemRunLogstore(config=None)
+    run_log_store = datastore.FileSystemRunLogstore()
     with pytest.raises(exceptions.RunLogNotFoundError):
         run_log_store.get_run_log_by_id(run_id="should fail")
 
@@ -550,7 +550,7 @@ def test_file_system_run_log_store_get_run_log_by_id_returns_run_log_from_get_fr
 
     monkeypatch.setattr(datastore.FileSystemRunLogstore, "get_from_folder", mock_get_from_folder)
 
-    run_log_store = datastore.FileSystemRunLogstore(config=None)
+    run_log_store = datastore.FileSystemRunLogstore()
 
     run_log = run_log_store.get_run_log_by_id(run_id="test")
 
@@ -562,7 +562,7 @@ def test_file_system_run_log_store_put_run_log_writes_to_folder(mocker, monkeypa
 
     monkeypatch.setattr(datastore.FileSystemRunLogstore, "write_to_folder", mock_write_to_folder)
 
-    run_log_store = datastore.FileSystemRunLogstore(config=None)
+    run_log_store = datastore.FileSystemRunLogstore()
     mock_run_log = mocker.MagicMock()
     run_log_store.put_run_log(run_log=mock_run_log)
 

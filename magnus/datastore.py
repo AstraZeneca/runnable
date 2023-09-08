@@ -641,9 +641,7 @@ class BufferRunLogstore(BaseRunLogStore):
     """
 
     service_name: str = "buffered"
-
-    def __init__(self):
-        self.run_log: Optional[RunLog] = None  # For a buffered Run Log, this is the database
+    run_log: Optional[RunLog] = None  # For a buffered Run Log, this is the database
 
     def create_run_log(
         self,

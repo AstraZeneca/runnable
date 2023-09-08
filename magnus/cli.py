@@ -5,7 +5,7 @@ import click
 from click_plugins import with_plugins
 from pkg_resources import iter_entry_points
 
-from magnus import defaults, pipeline
+from magnus import defaults, entrypoints
 
 dictConfig(defaults.LOGGING_CONFIG)
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -53,7 +53,7 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cach
     Ensure that the catalogs and run logs are accessible by the present configuration.
     """
     logger.setLevel(log_level)
-    pipeline.execute(
+    entrypoints.execute(
         configuration_file=config_file,
         pipeline_file=file,
         tag=tag,
@@ -99,7 +99,7 @@ def execute_step(step_name, file, config_file, parameters_file, log_level, tag, 
     When running map states, ensure that the parameter to iterate on is available in parameter space.
     """
     logger.setLevel(log_level)
-    pipeline.execute_single_step(
+    entrypoints.execute_single_step(
         configuration_file=config_file,
         pipeline_file=file,
         step_name=step_name,
@@ -143,7 +143,7 @@ def execute_single_node(run_id, step_name, map_variable, file, config_file, para
     logger.setLevel(log_level)
 
     # Execute the node as part of the graph execution.
-    pipeline.execute_single_node(
+    entrypoints.execute_single_node(
         configuration_file=config_file,
         pipeline_file=file,
         step_name=step_name,
@@ -202,7 +202,7 @@ def execute_notebook(
     if not filename.endswith(".ipynb"):
         raise Exception("A notebook should always have ipynb as the extension")
 
-    pipeline.execute_notebook(
+    entrypoints.execute_notebook(
         entrypoint=entrypoint,
         notebook_file=filename,
         catalog_config=catalog_config,
@@ -249,7 +249,7 @@ def execute_function(
     """
     logger.setLevel(log_level)
     catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
-    pipeline.execute_function(
+    entrypoints.execute_function(
         entrypoint=entrypoint,
         command=command,
         catalog_config=catalog_config,
@@ -324,7 +324,7 @@ def execute_container(
     logger.setLevel(log_level)
     catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
     expose_secrets = list(expose_secret) if expose_secret else []
-    pipeline.execute_container(
+    entrypoints.execute_container(
         image=image,
         entrypoint=entrypoint,
         command=command,
@@ -373,7 +373,7 @@ def fan(run_id, step_name, mode, map_variable, file, config_file, parameters_fil
     logger.setLevel(log_level)
 
     # Fan in or out
-    pipeline.fan(
+    entrypoints.fan(
         configuration_file=config_file,
         pipeline_file=file,
         step_name=step_name,

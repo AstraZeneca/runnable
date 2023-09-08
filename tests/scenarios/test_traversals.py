@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import ruamel.yaml
 
-from magnus import AsIs, Pipeline, Task, defaults, pipeline, utils
+from magnus import AsIs, Pipeline, Task, defaults, entrypoints, utils
 
 yaml = ruamel.yaml.YAML()
 
@@ -72,7 +72,7 @@ def get_run_log(work_dir, run_id):
     config_file = work_dir / "config.yaml"
 
     if utils.does_file_exist(config_file):
-        mode_executor = pipeline.prepare_configurations(configuration_file=config_file, run_id=run_id)
+        mode_executor = entrypoints.prepare_configurations(configuration_file=config_file, run_id=run_id)
         return mode_executor.run_log_store.get_run_log_by_id(run_id=run_id, full=True).dict()
     raise Exception
 
@@ -134,7 +134,7 @@ def test_success(success_graph):
 
             run_id = "testing_success"
 
-            pipeline.execute(
+            entrypoints.execute(
                 configuration_file=str(context_dir_path / "config.yaml"),
                 pipeline_file=str(context_dir_path / "dag.yaml"),
                 run_id=run_id,
@@ -161,7 +161,7 @@ def test_success_executor_config(success_container_graph):
 
             run_id = "testing_success"
 
-            pipeline.execute(
+            entrypoints.execute(
                 configuration_file=str(context_dir_path / "config.yaml"),
                 pipeline_file=str(context_dir_path / "dag.yaml"),
                 run_id=run_id,
@@ -214,7 +214,7 @@ def test_failure(fail_graph):
             run_id = "testing_failure"
 
             try:
-                pipeline.execute(
+                entrypoints.execute(
                     configuration_file=str(context_dir_path / "config.yaml"),
                     pipeline_file=str(context_dir_path / "dag.yaml"),
                     run_id=run_id,
@@ -308,7 +308,7 @@ def test_on_failure(on_fail_graph):
             run_id = "testing_failure"
 
             try:
-                pipeline.execute(
+                entrypoints.execute(
                     configuration_file=str(context_dir_path / "config.yaml"),
                     pipeline_file=str(context_dir_path / "dag.yaml"),
                     run_id=run_id,
@@ -335,7 +335,7 @@ def test_parallel(parallel_success_graph):
             write_dag_and_config(context_dir_path, dag, config)
             run_id = "testing_parallel"
 
-            pipeline.execute(
+            entrypoints.execute(
                 configuration_file=str(context_dir_path / "config.yaml"),
                 pipeline_file=str(context_dir_path / "dag.yaml"),
                 run_id=run_id,
@@ -371,7 +371,7 @@ def test_parallel_fail(parallel_fail_graph):
             run_id = "testing_parallel"
 
             try:
-                pipeline.execute(
+                entrypoints.execute(
                     configuration_file=str(context_dir_path / "config.yaml"),
                     pipeline_file=str(context_dir_path / "dag.yaml"),
                     run_id=run_id,

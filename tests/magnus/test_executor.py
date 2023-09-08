@@ -11,7 +11,7 @@ def instantiable_base_class(monkeypatch):
 
 
 def test_base_executor__is_parallel_execution_uses_default():
-    base_executor = executor.BaseExecutor.Config()
+    base_executor = executor.BaseExecutor()
 
     assert base_executor.enable_parallel == defaults.ENABLE_PARALLEL
 
@@ -552,14 +552,9 @@ def test_base_executor_execute_graph_breaks_if_node_status_is_terminal(mocker, m
 
 def test_base_executor__resolve_node_config_gives_global_config_if_node_does_not_override(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
-    mock_node._get_mode_config.return_value = {}
-
-    class MockConfig(BaseModel, extra=Extra.allow):
-        placeholders: dict = {}
-        a: int = 1
+    mock_node._get_executor_config.return_value = {}
 
     base_executor = executor.BaseExecutor()
-    base_executor.config = MockConfig()
 
     assert base_executor._resolve_executor_config(mock_node) == {"a": 1}
 

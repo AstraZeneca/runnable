@@ -12,15 +12,15 @@ from inspect import signature
 from pathlib import Path
 from string import Template as str_template
 from types import FunctionType
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Tuple, Union
 
 from ruamel.yaml import YAML
 from stevedore import driver
 
 from magnus import defaults, names
+from magnus.context import run_context
 
 if TYPE_CHECKING:
-    from magnus.executor import BaseExecutor
     from magnus.nodes import BaseNode, TaskNode
 
 
@@ -474,7 +474,6 @@ def filter_arguments_from_parameters(
 
 
 def get_node_execution_command(
-    executor: BaseExecutor,
     node: BaseNode,
     map_variable: dict = None,
     over_write_run_id: str = "",
@@ -489,7 +488,7 @@ def get_node_execution_command(
     Returns:
         str: The execution command to run a node via command line.
     """
-    run_id = executor.run_id
+    run_id = run_context.run_id
 
     if over_write_run_id:
         run_id = over_write_run_id
@@ -498,26 +497,25 @@ def get_node_execution_command(
 
     action = f"magnus execute_single_node {run_id} " f"{node._command_friendly_name()}" f" --log-level {log_level}"
 
-    if executor.pipeline_file:
-        action = action + f" --file {executor.pipeline_file}"
+    if run_context.pipeline_file:
+        action = action + f" --file {run_context.pipeline_file}"
 
     if map_variable:
         action = action + f" --map-variable '{json.dumps(map_variable)}'"
 
-    if executor.configuration_file:
-        action = action + f" --config-file {executor.configuration_file}"
+    if run_context.configuration_file:
+        action = action + f" --config-file {run_context.configuration_file}"
 
-    if executor.parameters_file:
-        action = action + f" --parameters-file {executor.parameters_file}"
+    if run_context.parameters_file:
+        action = action + f" --parameters-file {run_context.parameters_file}"
 
-    if executor.tag:
-        action = action + f" --tag {executor.tag}"
+    if run_context.tag:
+        action = action + f" --tag {run_context.tag}"
 
     return action
 
 
 def get_fan_command(
-    executor: BaseExecutor,
     mode: str,
     node: BaseNode,
     run_id: str,
@@ -541,25 +539,25 @@ def get_fan_command(
         f"magnus fan {run_id} "
         f"{node._command_friendly_name()} "
         f"--mode {mode} "
-        f"--file {executor.pipeline_file} "
+        f"--file {run_context.pipeline_file} "
         f"--log-level {log_level} "
     )
-    if executor.configuration_file:
-        action = action + f" --config-file {executor.configuration_file} "
+    if run_context.configuration_file:
+        action = action + f" --config-file {run_context.configuration_file} "
 
-    if executor.parameters_file:
-        action = action + f" --parameters-file {executor.parameters_file}"
+    if run_context.parameters_file:
+        action = action + f" --parameters-file {run_context.parameters_file}"
 
     if map_variable:
         action = action + f" --map-variable '{json.dumps(map_variable)}'"
 
-    if executor.tag:
-        action = action + f" --tag {executor.tag}"
+    if run_context.tag:
+        action = action + f" --tag {run_context.tag}"
 
     return action
 
 
-def get_job_execution_command(executor: BaseExecutor, node: TaskNode, over_write_run_id: str = "") -> str:
+def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> str:
     """Get the execution command to run a job via command line.
 
     This function should be used by all executors to submit jobs in remote environment
@@ -572,9 +570,8 @@ def get_job_execution_command(executor: BaseExecutor, node: TaskNode, over_write
     Returns:
         str: The execution command to run a job via command line.
     """
-    # node: TaskNode = cast(TaskNode, node)
 
-    run_id = executor.run_id
+    run_id = run_context.run_id
 
     if over_write_run_id:
         run_id = over_write_run_id
@@ -587,14 +584,14 @@ def get_job_execution_command(executor: BaseExecutor, node: TaskNode, over_write
 
     action = action + f" --entrypoint {defaults.ENTRYPOINT.SYSTEM.value}"
 
-    if executor.configuration_file:
-        action = action + f" --config-file {executor.configuration_file}"
+    if run_context.configuration_file:
+        action = action + f" --config-file {run_context.configuration_file}"
 
-    if executor.parameters_file:
-        action = action + f" --parameters-file {executor.parameters_file}"
+    if run_context.parameters_file:
+        action = action + f" --parameters-file {run_context.parameters_file}"
 
-    if executor.tag:
-        action = action + f" --tag {executor.tag}"
+    if run_context.tag:
+        action = action + f" --tag {run_context.tag}"
 
     for key, value in cli_options.items():
         action = action + f" --{key} {value}"
@@ -652,7 +649,7 @@ def get_duration_between_datetime_strings(start_time: str, end_time: str) -> str
     return str(end - start)
 
 
-def get_run_config(executor: BaseExecutor) -> dict:
+def get_run_config() -> dict:
     """Given an executor with assigned services, return the run_config.
 
     Args:
@@ -661,38 +658,38 @@ def get_run_config(executor: BaseExecutor) -> dict:
     Returns:
         dict: The run_config.
     """
-    from magnus.catalog import BaseCatalog
 
-    run_config = {}
-
-    run_config["executor"] = {"type": executor.service_name, "config": executor.config}  # type: ignore
-
-    run_config["run_log_store"] = {
-        "type": executor.run_log_store.service_name,
-        "config": executor.run_log_store.config,  # type: ignore
-    }
-
-    run_config["catalog"] = {
-        "type": cast(BaseCatalog, executor.catalog_handler).service_name,
-        "config": cast(BaseCatalog, executor.catalog_handler).config,  # type: ignore
-    }
-
-    run_config["secrets"] = {
-        "type": executor.secrets_handler.service_name,
-        "config": executor.secrets_handler.config,  # type: ignore
-    }
-
-    run_config["experiment_tracker"] = {
-        "type": executor.experiment_tracker.service_name,
-        "config": executor.experiment_tracker.config,  # type: ignore
-    }
-    run_config["variables"] = executor.variables
-
-    if executor.dag:
-        # Some executions do not define a dag
-        run_config["pipeline"] = executor.dag._to_dict()
-
+    run_config = run_context.dict()
     return run_config
+
+    # run_config["executor"] = {"type": run_context.executor.service_name, "config": run_context.executor.dict()}
+
+    # run_config["run_log_store"] = {
+    #     "type": run_context.run_log_store.service_name,
+    #     "config": run_context.run_log_store.dict(),
+    # }
+
+    # run_config["catalog"] = {
+    #     "type": run_context.catalog_handler.service_name,
+    #     "config": run_context.catalog_handler.dict(),
+    # }
+
+    # run_config["secrets"] = {
+    #     "type": run_context.secrets_handler.service_name,
+    #     "config": run_context.secrets_handler.dict(),
+    # }
+
+    # run_config["experiment_tracker"] = {
+    #     "type": run_context.experiment_tracker.service_name,
+    #     "config": run_context.experiment_tracker.dict(),
+    # }
+    # run_config["variables"] = run_context.variables
+
+    # if run_context.dag:
+    #     # Some executions do not define a dag
+    #     run_config["pipeline"] = run_context.dag._to_dict()
+
+    # return run_config
 
 
 def json_to_ordered_dict(json_str: str) -> OrderedDict:
