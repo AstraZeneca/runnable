@@ -253,21 +253,21 @@ class Pipeline(BaseModel):
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)
-        mode_executor = entrypoints.prepare_configurations(
+        context = entrypoints.prepare_configurations(
             configuration_file=configuration_file,
             run_id=run_id,
             tag=tag,
             parameters_file=parameters_file,
         )
 
-        mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
+        context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
         utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-        mode_executor.dag = self._dag
+        context.dag = self._dag
         # Prepare for graph execution
-        mode_executor.prepare_for_graph_execution()
+        context.executor.prepare_for_graph_execution()
 
         logger.info("Executing the graph")
-        mode_executor.execute_graph(dag=mode_executor.dag)
+        context.executor.execute_graph(dag=context.dag)  # type: ignore
 
-        mode_executor.send_return_code()
+        context.executor.send_return_code()

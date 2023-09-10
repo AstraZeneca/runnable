@@ -1,26 +1,19 @@
-import json
 import logging
-import multiprocessing
 from abc import ABC, abstractmethod
-from collections import OrderedDict
-from copy import deepcopy
-from datetime import datetime
-from typing import List, Optional, Union
+from typing import Any, Dict, List
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, Extra, validator
 
-import magnus
-from magnus import defaults, utils
+from magnus import defaults, exceptions
 from magnus.datastore import StepAttempt
-from magnus.graph import create_graph
-from magnus.tasks import create_task
+from magnus.graph import Graph
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 # --8<-- [start:docs]
 
 
-class BaseNode(ABC):
+class BaseNode(ABC, BaseModel):
     """
     Base class with common functionality provided for a Node of a graph.
 
@@ -38,13 +31,21 @@ class BaseNode(ABC):
     The internal branch name should always be even when split against dot.
     """
 
-    node_type = ""
+    node_type: str
+    name: str
+    internal_name: str
+    internal_branch_name: str = ""
+    is_composite: bool = False
 
-    class Config(BaseModel):
-        class Config:
-            extra = Extra.forbid
+    class Config:
+        extra = Extra.forbid
+        arbitrary_types_allowed = True
 
-        executor_config: dict = {}
+    @validator("name")
+    def validate_name(cls, name: str):
+        if "." in name or "%" in name:
+            raise Exception("Node names cannot have . or '%' in them")
+        return name
 
     @classmethod
     def remove_next_keyword_from_config(cls, config: dict):
@@ -52,35 +53,6 @@ class BaseNode(ABC):
         if next_node:
             del config["next"]
             config["next_node"] = next_node
-
-    def __init__(self, name, internal_name, internal_branch_name=None):
-        # pylint: disable=R0914,R0913
-        self.name = name
-        self.internal_name = internal_name  #  Dot notation naming of the steps
-        self.internal_branch_name = internal_branch_name  # parallel, map, dag only have internal names
-        self.is_composite = False
-
-    def validate(self) -> List[str]:
-        """
-        Return a list of validation errors.
-        """
-        messages = []
-        if "." in self.name:
-            messages.append("Node names cannot have . in them")
-
-        if "%" in self.name:
-            messages.append("Node names cannot have '%' in them")
-
-        return messages
-
-    def _to_dict(self) -> dict:
-        """
-        Return a dict representation of the node.
-        """
-        # Purpose to ignore is that the config is not defined at this level but helps with extensions
-        config_dict = dict(self.config.dict())  # type: ignore
-        config_dict["type"] = self.node_type
-        return config_dict
 
     def _command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
         """
@@ -200,7 +172,8 @@ class BaseNode(ABC):
         """
         return f"Node of type {self.node_type} and name {self.internal_name}"
 
-    def _get_on_failure_node(self) -> Optional[str]:
+    @abstractmethod
+    def _get_on_failure_node(self) -> str:
         """
         If the node defines a on_failure node in the config, return this or None.
 
@@ -210,37 +183,19 @@ class BaseNode(ABC):
             str: The on_failure node defined by the dag or ''
         This is a base implementation which the BaseNode does not satisfy
         """
-        # Purpose to ignore is that the on_failure is not defined in the config but helps with extensions
-        return self.config.on_failure  # type: ignore
+        ...
 
-    def _get_catalog_settings(self) -> Optional[dict]:
+    @abstractmethod
+    def _get_next_node(self) -> str:
         """
-        If the node defines a catalog settings, return it or None
+        Return the next node as defined by the config.
 
         Returns:
-            dict: catalog settings defined as per the node or None
-        This is a base implementation which the BaseNode does not satisfy
+            str: The node name, relative to the dag, as defined by the config
         """
-        # Purpose to ignore is that the catalog node is not defined in the config but helps with extensions
-        return self.config.catalog  # type: ignore
+        ...
 
-    def _get_branch_by_name(self, branch_name: str):
-        """
-        Retrieve a branch by name.
-
-        The name is expected to follow a dot path convention.
-
-        This method will raise an exception if the node does not have any branches.
-        i.e: task, success, fail and as-is would raise an exception
-
-        Args:
-            branch_name (str): [description]
-
-        Raises:
-            Exception: [description]
-        """
-        raise Exception(f"Node of type {self.node_type} does not have any branches")
-
+    @abstractmethod
     def _is_terminal_node(self) -> bool:
         """
         Returns whether a node has a next node
@@ -248,10 +203,32 @@ class BaseNode(ABC):
         Returns:
             bool: True or False of whether there is next node.
         """
-        if self.node_type in ["success", "fail"]:
-            return True
+        ...
 
-        return False
+    @abstractmethod
+    def _get_catalog_settings(self) -> Dict[str, Any]:
+        """
+        If the node defines a catalog settings, return it or None
+
+        Returns:
+            dict: catalog settings defined as per the node or None
+        """
+        ...
+
+    @abstractmethod
+    def _get_branch_by_name(self, branch_name: str):
+        """
+        Retrieve a branch by name.
+
+        The name is expected to follow a dot path convention.
+
+        Args:
+            branch_name (str): [description]
+
+        Raises:
+            Exception: [description]
+        """
+        ...
 
     def _get_neighbors(self) -> List[str]:
         """
@@ -261,30 +238,23 @@ class BaseNode(ABC):
             list: List of connected neighbors for a given node. Empty if terminal node.
         """
         neighbors = []
-        next_node = self._get_next_node()
-        if next_node:
+        try:
+            next_node = self._get_next_node()
             neighbors += [next_node]
+        except exceptions.NoNextNodeError:
+            pass
 
-        fail_node = self._get_on_failure_node()
-        if fail_node:
-            neighbors += [fail_node]
+        try:
+            fail_node = self._get_on_failure_node()
+            if fail_node:
+                neighbors += [fail_node]
+        except exceptions.NoNextNodeError:
+            pass
 
         return neighbors
 
-    def _get_next_node(self) -> Union[str, None]:
-        """
-        Return the next node as defined by the config.
-
-        Returns:
-            str: The node name, relative to the dag, as defined by the config
-        This is a base implementation which the BaseNode does not satisfy
-        """
-        if not self._is_terminal_node():
-            # Purpose to ignore is that the next node is not defined in the config but helps with extensions
-            return self.config.next_node  # type: ignore
-        return None
-
-    def _get_executor_config(self, executor_type) -> dict:
+    @abstractmethod
+    def _get_executor_config(self, executor_type: str) -> dict:
         """
         Return the executor config of the node, if defined, or empty dict
 
@@ -293,24 +263,21 @@ class BaseNode(ABC):
 
         Returns:
             dict: The executor config, if defined or an empty dict
-        This is a base implementation which the BaseNode does not satisfy
         """
-        # Purpose to ignore is that the config is not defined at this level but helps with extensions
-        return self.config.executor_config.get(executor_type, {})  # type: ignore
+        ...
 
+    @abstractmethod
     def _get_max_attempts(self) -> int:
         """
         The number of max attempts as defined by the config or 1.
 
         Returns:
             int: The number of maximum retries as defined by the config or 1.
-        This is a base implementation which the BaseNode does not satisfy
         """
-        # Purpose to ignore is that the max_attempts is not defined in the config but helps with extensions
-        return self.config.retry  # type: ignore
+        ...
 
     @abstractmethod
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
         """
         The actual function that does the execution of the command in the config.
 
@@ -326,10 +293,10 @@ class BaseNode(ABC):
         Raises:
             NotImplementedError: Base class, hence not implemented.
         """
-        raise NotImplementedError
+        ...
 
     @abstractmethod
-    def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
+    def execute_as_graph(self, map_variable: dict = None, **kwargs):
         """
         This function would be called to set up the execution of the individual
         branches of a composite node.
@@ -342,9 +309,10 @@ class BaseNode(ABC):
         Raises:
             NotImplementedError: Base class, hence not implemented.
         """
-        raise NotImplementedError
+        ...
 
-    def fan_out(self, executor, map_variable: dict = None, **kwargs):
+    @abstractmethod
+    def fan_out(self, map_variable: dict = None, **kwargs):
         """
         This function would be called to set up the execution of the individual
         branches of a composite node.
@@ -358,10 +326,10 @@ class BaseNode(ABC):
         Raises:
             Exception: If the node is not a composite node.
         """
-        if not self.is_composite:
-            raise Exception(f"Node of type {self.node_type} is not a composite node. This is a bug.")
+        ...
 
-    def fan_in(self, executor, map_variable: dict = None, **kwargs):
+    @abstractmethod
+    def fan_in(self, map_variable: dict = None, **kwargs):
         """
         This function would be called to tear down the execution of the individual
         branches of a composite node.
@@ -375,919 +343,150 @@ class BaseNode(ABC):
         Raises:
             Exception: If the node is not a composite node.
         """
-        if not self.is_composite:
-            raise Exception(f"Node of type {self.node_type} is not a composite node. This is a bug.")
+        ...
+
+    @classmethod
+    @abstractmethod
+    def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "BaseNode":
+        """
+        Parse the config from the user and create the corresponding node.
+
+        Args:
+            config (Dict[str, Any]): The config of the node from the yaml or from the sdk.
+
+        Returns:
+            BaseNode: The corresponding node.
+        """
+        ...
 
 
 # --8<-- [end:docs]
+class TraversalNode(BaseNode):
+    next_node: str
+    on_failure: str = ""
+    executor_config: Dict[str, Any] = {}
 
-
-class TaskNode(BaseNode):
-    """
-    A node of type Task.
-
-    This node does the actual function execution of the graph in all cases.
-    """
-
-    node_type = "task"
-
-    class ContextConfig(BaseNode.Config, extra=Extra.allow):
-        next_node: str
-        catalog: dict = {}
-        retry: int = 1
-        on_failure: Optional[str]
-
-        @classmethod
-        def get_field_names(cls) -> List[str]:
-            field_names = []
-            for k, _ in cls.__fields__.items():
-                field_names.append(k)
-
-            return field_names
-
-    def __init__(self, name, internal_name, config, internal_branch_name=None):
-        super().__init__(name, internal_name, internal_branch_name)
-
-        self.remove_next_keyword_from_config(config)
-        self.config = self.ContextConfig(**(config or {}))
-
-        kwargs_for_command = {
-            "node_name": self.name,
-        }
-
-        for key, value in self.config.dict().items():
-            if key not in TaskNode.ContextConfig.get_field_names():
-                # Ignore all the fields that are used by node itself
-                kwargs_for_command[key] = value
-
-        self.executable = create_task(kwargs_for_command)
-
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def _get_on_failure_node(self) -> str:
         """
-        All that we do in magnus is to come to this point where we actually execute the command.
+        If the node defines a on_failure node in the config, return this or None.
 
-        Args:
-            executor (_type_): The executor class
-            mock (bool, optional): If we should just mock and not execute. Defaults to False.
-            map_variable (dict, optional): If the node is part of internal branch. Defaults to None.
+        The naming is relative to the dag, the caller is supposed to resolve it to the correct graph
 
         Returns:
-            StepAttempt: The attempt object
+            str: The on_failure node defined by the dag or ''
+        This is a base implementation which the BaseNode does not satisfy
         """
-        # Here is where the juice is
-        attempt_log = executor.run_log_store.create_attempt_log()
-        try:
-            attempt_log.start_time = str(datetime.now())
-            attempt_log.status = defaults.SUCCESS
-            if not mock:
-                # Do not run if we are mocking the execution, could be useful for caching and dry runs
-                self.executable.execute_command(map_variable=map_variable)
-        except Exception as _e:  # pylint: disable=W0703
-            logger.exception("Task failed")
-            attempt_log.status = defaults.FAIL
-            attempt_log.message = str(_e)
-        finally:
-            attempt_log.end_time = str(datetime.now())
-            attempt_log.duration = utils.get_duration_between_datetime_strings(
-                attempt_log.start_time, attempt_log.end_time
-            )
-        return attempt_log
+        return self.on_failure
 
-    def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
+    def _get_next_node(self) -> str:
         """
-        Should not be implemented for a single node.
-
-        Args:
-            executor ([type]): [description]
-
-        Raises:
-            Exception: Not a composite node, always raises an exception
-        """
-        raise Exception("Node is not a composite node, invalid traversal rule")
-
-
-class FailNode(BaseNode):
-    """
-    A leaf node of the graph that represents a failure node
-    """
-
-    node_type = "fail"
-
-    class ContextConfig(BaseNode.Config):
-        pass
-
-    def __init__(self, name, internal_name, config, internal_branch_name=None):
-        super().__init__(name, internal_name, internal_branch_name)
-
-        self.remove_next_keyword_from_config(config)
-        self.config = self.ContextConfig(**(config or {}))
-
-    def _get_on_failure_node(self) -> Optional[str]:
-        """
-        The on_failure node as defined by the config.
-        Which is nothing as failure nodes do not have an on_failure node.
+        Return the next node as defined by the config.
 
         Returns:
-            Optional[str]: Returns an empty string.
+            str: The node name, relative to the dag, as defined by the config
         """
-        return ""
+
+        return self.next_node
+
+    def _is_terminal_node(self) -> bool:
+        """
+        Returns whether a node has a next node
+
+        Returns:
+            bool: True or False of whether there is next node.
+        """
+        return False
+
+    def _get_executor_config(self, executor_type) -> Dict[str, Any]:
+        return self.executor_config.get(executor_type, {})
+
+
+class ExecutableNode(TraversalNode):
+    catalog: Dict[str, Any] = {}
+    executor_config: Dict[str, Any] = {}
+    max_attempts: int = 1
+
+    def _get_catalog_settings(self) -> Dict[str, Any]:
+        """
+        If the node defines a catalog settings, return it or None
+
+        Returns:
+            dict: catalog settings defined as per the node or None
+        """
+        return self.catalog
 
     def _get_max_attempts(self) -> int:
+        return self.max_attempts
+
+    def _get_branch_by_name(self, branch_name: str):
+        raise Exception("This is an executable node and does not have branches")
+
+    def execute_as_graph(self, map_variable: dict = None, **kwargs):
+        raise Exception("This is an executable node and does not have a graph")
+
+    def fan_in(self, map_variable: dict = None, **kwargs):
+        raise Exception("This is an executable node and does not have a fan in")
+
+    def fan_out(self, map_variable: dict = None, **kwargs):
+        raise Exception("This is an executable node and does not have a fan out")
+
+
+class CompositeNode(TraversalNode):
+    _branches: Dict[str, Graph]
+
+    def _get_catalog_settings(self) -> Dict[str, Any]:
         """
-        The number of max attempts as defined by the config or 1.
+        If the node defines a catalog settings, return it or None
 
         Returns:
-            int: The number of maximum retries as defined by the config or 1.
+            dict: catalog settings defined as per the node or None
         """
-        return 1
+        raise Exception("This is a composite node and does not have a catalog settings")
 
-    def _get_catalog_settings(self) -> Optional[dict]:
-        """
-        There are no catalog settings for failure nodes.
+    def _get_branch_by_name(self, branch_name: str) -> Graph:
+        if branch_name in self._branches:
+            return self._branches[branch_name]
 
-        Returns:
-            Optional[dict]: Any empty dict
-        """
-        return {}
-
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
-        """
-        Execute the failure node.
-        Set the run or branch log status to failure.
-
-        Args:
-            executor (_type_): the executor class
-            mock (bool, optional): If we should just mock and not do the actual execution. Defaults to False.
-            map_variable (dict, optional): If the node belongs to internal branches. Defaults to None.
-
-        Returns:
-            StepAttempt: The step attempt object
-        """
-        attempt_log = executor.run_log_store.create_attempt_log()
-        try:
-            attempt_log.start_time = str(datetime.now())
-            attempt_log.status = defaults.SUCCESS
-            #  could be a branch or run log
-            run_or_branch_log = executor.run_log_store.get_branch_log(
-                self._get_branch_log_name(map_variable), executor.run_id
-            )
-            run_or_branch_log.status = defaults.FAIL
-            executor.run_log_store.add_branch_log(run_or_branch_log, executor.run_id)
-        except BaseException:  # pylint: disable=W0703
-            logger.exception("Fail node execution failed")
-        finally:
-            attempt_log.status = defaults.SUCCESS  # This is a dummy node, so we ignore errors and mark SUCCESS
-            attempt_log.end_time = str(datetime.now())
-            attempt_log.duration = utils.get_duration_between_datetime_strings(
-                attempt_log.start_time, attempt_log.end_time
-            )
-        return attempt_log
-
-    def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
-        """
-        Should not be implemented for a single node.
-
-        Args:
-            executor ([type]): [description]
-
-        Raises:
-            Exception: Not a composite node, always raises an exception
-        """
-        raise Exception("Node is not a composite node, invalid traversal rule")
-
-
-class SuccessNode(BaseNode):
-    """
-    A leaf node of the graph that represents a success node
-    """
-
-    node_type = "success"
-
-    class ContextConfig(BaseNode.Config):
-        pass
-
-    def __init__(self, name, internal_name, config, internal_branch_name=None):
-        super().__init__(name, internal_name, internal_branch_name)
-
-        self.remove_next_keyword_from_config(config)
-        self.config = self.ContextConfig(**(config or {}))
-
-    def _get_on_failure_node(self) -> Optional[str]:
-        """
-        The on_failure node as defined by the config.
-        Which is nothing as success nodes do not have an on_failure node.
-
-        Returns:
-            Optional[str]: Returns an empty string.
-        """
-        return ""
+        raise Exception(f"Branch {branch_name} does not exist")
 
     def _get_max_attempts(self) -> int:
-        """
-        The number of max attempts as defined by the config or 1.
+        raise Exception("This is a composite node and does not have a max_attempts")
 
-        Returns:
-            int: The number of maximum retries as defined by the config or 1.
-        """
+    def execute(self, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+        raise Exception("This is a composite node and does not have an execute function")
+
+
+class TerminalNode(BaseNode):
+    def _get_on_failure_node(self) -> str:
+        raise Exception("This is a terminal node and does not have an on_failure node")
+
+    def _get_next_node(self) -> str:
+        raise exceptions.NoNextNodeError()
+
+    def _is_terminal_node(self) -> bool:
+        return True
+
+    def _get_catalog_settings(self) -> Dict[str, Any]:
+        raise Exception("This is a terminal node and does not have a catalog settings")
+
+    def _get_branch_by_name(self, branch_name: str):
+        raise Exception("This is a terminal node and does not have branches")
+
+    def _get_executor_config(self, executor_type) -> dict:
+        raise Exception("This is a terminal node and does not have an executor config")
+
+    def _get_max_attempts(self) -> int:
         return 1
 
-    def _get_catalog_settings(self) -> Optional[dict]:
-        """
-        There are no catalog settings for success nodes.
+    def execute_as_graph(self, map_variable: dict = None, **kwargs):
+        raise Exception("This is a terminal node and does not have a graph")
 
-        Returns an empty dict.
-        """
-        return {}
+    def fan_in(self, map_variable: dict = None, **kwargs):
+        raise Exception("This is a terminal node and does not have a fan in")
 
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
-        """
-        Execute the success node.
-        Set the run or branch log status to success.
+    def fan_out(self, map_variable: dict = None, **kwargs):
+        raise Exception("This is a terminal node and does not have a fan out")
 
-        Args:
-            executor (_type_): The executor class
-            mock (bool, optional): If we should just mock and not perform anything. Defaults to False.
-            map_variable (dict, optional): If the node belongs to an internal branch. Defaults to None.
-
-        Returns:
-            StepAttempt: The step attempt object
-        """
-        attempt_log = executor.run_log_store.create_attempt_log()
-        try:
-            attempt_log.start_time = str(datetime.now())
-            attempt_log.status = defaults.SUCCESS
-            #  could be a branch or run log
-            run_or_branch_log = executor.run_log_store.get_branch_log(
-                self._get_branch_log_name(map_variable), executor.run_id
-            )
-            run_or_branch_log.status = defaults.SUCCESS
-            executor.run_log_store.add_branch_log(run_or_branch_log, executor.run_id)
-        except BaseException:  # pylint: disable=W0703
-            logger.exception("Success node execution failed")
-        finally:
-            attempt_log.status = defaults.SUCCESS  # This is a dummy node and we make sure we mark it as success
-            attempt_log.end_time = str(datetime.now())
-            attempt_log.duration = utils.get_duration_between_datetime_strings(
-                attempt_log.start_time, attempt_log.end_time
-            )
-        return attempt_log
-
-    def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
-        """
-        Should not be implemented for a single node.
-
-        Args:
-            executor ([type]): [description]
-
-        Raises:
-            Exception: Not a composite node, always raises an exception
-        """
-        raise Exception("Node is not a composite node, invalid traversal rule")
-
-
-class ParallelNode(BaseNode):
-    """
-    A composite node containing many graph objects within itself.
-
-    The structure is generally:
-        ParallelNode:
-            Branch A:
-                Sub graph definition
-            Branch B:
-                Sub graph definition
-            . . .
-
-    """
-
-    node_type = "parallel"
-
-    class ContextConfig(BaseNode.Config):
-        next_node: str
-        branches: dict
-        on_failure: str = ""
-
-    def __init__(self, name, internal_name, config, internal_branch_name=None):
-        # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, internal_branch_name)
-
-        self.remove_next_keyword_from_config(config)
-        self.config = self.ContextConfig(**(config or {}))
-
-        self.branches = self.get_sub_graphs()
-        self.is_composite = True
-
-    def get_sub_graphs(self):
-        """
-        For the branches mentioned in the config['branches'], create a graph object.
-        The graph object is also given an internal naming convention following a dot path convention
-
-        Returns:
-            dict: A branch_name: dag for every branch mentioned in the branches
-        """
-
-        branches = {}
-        for branch_name, branch_config in self.config.branches.items():
-            sub_graph = create_graph(
-                deepcopy(branch_config),
-                internal_branch_name=self.internal_name + "." + branch_name,
-            )
-            branches[self.internal_name + "." + branch_name] = sub_graph
-
-        if not branches:
-            raise Exception("A parallel node should have branches")
-        return branches
-
-    def _get_branch_by_name(self, branch_name: str):
-        """
-        Retrieve a branch by name.
-        The name is expected to follow a dot path convention.
-
-        Returns a Graph Object
-
-        Args:
-            branch_name (str): The name of the branch to retrieve
-
-        Raises:
-            Exception: If the branch by that name does not exist
-        """
-        if branch_name in self.branches:
-            return self.branches[branch_name]
-
-        raise Exception(f"No branch by name: {branch_name} is present in {self.name}")
-
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
-        """
-        This method should never be called for a node of type Parallel
-
-        Args:
-            executor (BaseExecutor): The Executor class as defined by the config
-            mock (bool, optional): If the operation is just a mock. Defaults to False.
-
-        Raises:
-            NotImplementedError: This method should never be called for a node of type Parallel
-        """
-        raise Exception("Node is of type composite, error in traversal rules")
-
-    def fan_out(self, executor, map_variable: dict = None, **kwargs):
-        """
-        The general fan out method for a node of type Parallel.
-        This method assumes that the step log has already been created.
-
-        3rd party orchestrators should create the step log and use this method to create the branch logs.
-
-        Args:
-            executor (BaseExecutor): The executor class as defined by the config
-            map_variable (dict, optional): If the node is part of a map node. Defaults to None.
-        """
-        # Prepare the branch logs
-        for internal_branch_name, _ in self.branches.items():
-            effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
-
-            branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
-            branch_log.status = defaults.PROCESSING
-            executor.run_log_store.add_branch_log(branch_log, executor.run_id)
-
-    def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
-        """
-        This function does the actual execution of the sub-branches of the parallel node.
-
-        From a design perspective, this function should not be called if the execution is 3rd party orchestrated.
-
-        The modes that render the job specifications, do not need to interact with this node at all as they have their
-        own internal mechanisms of handing parallel states.
-        If they do not, you can find a way using as-is nodes as hack nodes.
-
-        The execution of a dag, could result in
-            * The dag being completely executed with a definite (fail, success) state in case of
-                local or local-container execution
-            * The dag being in a processing state with PROCESSING status in case of local-aws-batch
-
-        Only fail state is considered failure during this phase of execution.
-
-        Args:
-            executor (Executor): The Executor as per the use config
-            **kwargs: Optional kwargs passed around
-        """
-        self.fan_out(executor, map_variable=map_variable, **kwargs)
-
-        jobs = []
-        # Given that we can have nesting and complex graphs, controlling the number of processes is hard.
-        # A better way is to actually submit the job to some process scheduler which does resource management
-        for internal_branch_name, branch in self.branches.items():
-            if executor._is_parallel_execution():
-                # Trigger parallel jobs
-                action = magnus.pipeline.execute_single_brach
-                kwargs = {
-                    "configuration_file": executor.configuration_file,
-                    "pipeline_file": executor.pipeline_file,
-                    "branch_name": internal_branch_name.replace(" ", defaults.COMMAND_FRIENDLY_CHARACTER),
-                    "run_id": executor.run_id,
-                    "map_variable": json.dumps(map_variable),
-                    "tag": executor.tag,
-                }
-                process = multiprocessing.Process(target=action, kwargs=kwargs)
-                jobs.append(process)
-                process.start()
-
-            else:
-                # If parallel is not enabled, execute them sequentially
-                executor.execute_graph(branch, map_variable=map_variable, **kwargs)
-
-        for job in jobs:
-            job.join()  # Find status of the branches
-
-        self.fan_in(executor, map_variable=map_variable, **kwargs)
-
-    def fan_in(self, executor, map_variable: dict = None, **kwargs):
-        """
-        The general fan in method for a node of type Parallel.
-
-        3rd party orchestrators should use this method to find the status of the composite step.
-
-        Args:
-            executor (BaseExecutor): The executor class as defined by the config
-            map_variable (dict, optional): If the node is part of a map. Defaults to None.
-        """
-        step_success_bool = True
-        for internal_branch_name, _ in self.branches.items():
-            effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
-            branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
-            if branch_log.status != defaults.SUCCESS:
-                step_success_bool = False
-
-        # Collate all the results and update the status of the step
-        effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
-        step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
-
-        if step_success_bool:  #  If none failed
-            step_log.status = defaults.SUCCESS
-        else:
-            step_log.status = defaults.FAIL
-
-        executor.run_log_store.add_step_log(step_log, executor.run_id)
-
-
-class MapNode(BaseNode):
-    """
-    A composite node that contains ONE graph object within itself that has to be executed with an iterable.
-
-    The structure is generally:
-        MapNode:
-            branch
-
-        The config is expected to have a variable 'iterate_on' and iterate_as which are looked for in the parameters.
-        for iter_variable in parameters['iterate_on']:
-            Execute the Branch by sending {'iterate_as': iter_variable}
-
-    The internal naming convention creates branches dynamically based on the iteration value
-    """
-
-    node_type = "map"
-
-    class ContextConfig(BaseNode.Config):
-        next_node: str
-        branch: dict
-        iterate_on: str
-        iterate_as: str
-        on_failure: str = ""
-
-    def __init__(self, name, internal_name, config, internal_branch_name=None):
-        # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, internal_branch_name)
-
-        self.remove_next_keyword_from_config(config)
-        self.config = self.ContextConfig(**(config or {}))
-
-        self.is_composite = True
-        self.branch_placeholder_name = defaults.MAP_PLACEHOLDER
-        self.branch = self.get_sub_graph()
-
-    @property
-    def iterate_as(self) -> str:
-        """
-        The name to give the variable in the iteration.
-
-        For example: for i in range(10):
-        Here "i" is the iterate_as
-
-        Returns:
-            str: The name to give the variable in the iteration
-        """
-        return self.config.iterate_as
-
-    @property
-    def iterate_on(self) -> str:
-        """
-        The parameter to be iterated on.
-
-        Returns:
-            str: The name of the parameter to be iterated on
-        """
-        return self.config.iterate_on
-
-    def get_sub_graph(self):
-        """
-        Create a sub-dag from the config['branch']
-
-        The graph object has an internal branch name, that is equal to the name of the step.
-        And the sub-dag nodes follow an dot path naming convention
-
-        Returns:
-            Graph: A graph object
-        """
-
-        branch_config = self.config.branch
-        branch = create_graph(
-            deepcopy(branch_config),
-            internal_branch_name=self.internal_name + "." + self.branch_placeholder_name,
-        )
-        return branch
-
-    def _get_branch_by_name(self, branch_name: str):
-        """
-        Retrieve a branch by name.
-
-        In the case of a Map Object, the branch naming is dynamic as it is parameterized on iterable.
-        This method takes no responsibility in checking the validity of the naming.
-
-        Returns a Graph Object
-
-        Args:
-            branch_name (str): The name of the branch to retrieve
-
-        Raises:
-            Exception: If the branch by that name does not exist
-        """
-        return self.branch
-
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
-        """
-        This method should never be called for a node of type map
-
-        Args:
-            executor (BaseExecutor): The Executor class as defined by the config
-            mock (bool, optional): If the operation is just a mock. Defaults to False.
-
-        Raises:
-            NotImplementedError: This method should never be called for a node of type map.
-        """
-        raise Exception("Node is of type composite, error in traversal rules")
-
-    def fan_out(self, executor, map_variable: dict = None, **kwargs):
-        """
-        The general method to fan out for a node of type map.
-        This method assumes that the step log has already been created.
-
-        3rd party orchestrators should call this method to create the individual branch logs.
-
-        Args:
-            executor (BaseExecutor): The executor class as defined by the config
-            map_variable (dict, optional): If the node is part of map. Defaults to None.
-        """
-        iterate_on = executor.run_log_store.get_parameters(executor.run_id)[self.iterate_on]
-
-        # Prepare the branch logs
-        for iter_variable in iterate_on:
-            effective_branch_name = self._resolve_map_placeholders(
-                self.internal_name + "." + str(iter_variable), map_variable=map_variable
-            )
-            branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
-            branch_log.status = defaults.PROCESSING
-            executor.run_log_store.add_branch_log(branch_log, executor.run_id)
-
-    def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
-        """
-        This function does the actual execution of the branch of the map node.
-
-        From a design perspective, this function should not be called if the execution is 3rd party orchestrated.
-
-        The modes that render the job specifications, do not need to interact with this node at all as
-        they have their own internal mechanisms of handing map states or dynamic parallel states.
-        If they do not, you can find a way using as-is nodes as hack nodes.
-
-        The actual logic is :
-            * We iterate over the iterable as mentioned in the config
-            * For every value in the iterable we call the executor.execute_graph(branch, iterate_as: iter_variable)
-
-        The execution of a dag, could result in
-            * The dag being completely executed with a definite (fail, success) state in case of local
-                or local-container execution
-            * The dag being in a processing state with PROCESSING status in case of local-aws-batch
-
-        Only fail state is considered failure during this phase of execution.
-
-        Args:
-            executor (Executor): The Executor as per the use config
-            map_variable (dict): The map variables the graph belongs to
-            **kwargs: Optional kwargs passed around
-        """
-        iterate_on = None
-        try:
-            iterate_on = executor.run_log_store.get_parameters(executor.run_id)[self.iterate_on]
-        except KeyError:
-            raise Exception(
-                f"Expected parameter {self.iterate_on} not present in Run Log parameters, was it ever set before?"
-            )
-
-        if not isinstance(iterate_on, list):
-            raise Exception("Only list is allowed as a valid iterator type")
-
-        self.fan_out(executor, map_variable=map_variable, **kwargs)
-
-        jobs = []
-        # Given that we can have nesting and complex graphs, controlling the number of processess is hard.
-        # A better way is to actually submit the job to some process scheduler which does resource management
-        for iter_variable in iterate_on:
-            effective_map_variable = map_variable or OrderedDict()
-            effective_map_variable[self.iterate_as] = iter_variable
-
-            if executor._is_parallel_execution():
-                # Trigger parallel jobs
-                action = magnus.pipeline.execute_single_brach
-                kwargs = {
-                    "configuration_file": executor.configuration_file,
-                    "pipeline_file": executor.pipeline_file,
-                    "branch_name": self.branch.internal_branch_name.replace(" ", defaults.COMMAND_FRIENDLY_CHARACTER),
-                    "run_id": executor.run_id,
-                    "map_variable": json.dumps(effective_map_variable),
-                    "tag": executor.tag,
-                }
-                process = multiprocessing.Process(target=action, kwargs=kwargs)
-                jobs.append(process)
-                process.start()
-
-            else:
-                # If parallel is not enabled, execute them sequentially
-                executor.execute_graph(self.branch, map_variable=effective_map_variable, **kwargs)
-
-        for job in jobs:
-            job.join()
-
-        self.fan_in(executor, map_variable=map_variable, **kwargs)
-
-    def fan_in(self, executor, map_variable: dict = None, **kwargs):
-        """
-        The general method to fan in for a node of type map.
-
-        3rd  party orchestrators should call this method to find the status of the step log.
-
-        Args:
-            executor (BaseExecutor): The executor class as defined by the config
-            map_variable (dict, optional): If the node is part of map node. Defaults to None.
-        """
-        iterate_on = executor.run_log_store.get_parameters(executor.run_id)[self.iterate_on]
-        # # Find status of the branches
-        step_success_bool = True
-
-        for iter_variable in iterate_on:
-            effective_branch_name = self._resolve_map_placeholders(
-                self.internal_name + "." + str(iter_variable), map_variable=map_variable
-            )
-            branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
-            if branch_log.status != defaults.SUCCESS:
-                step_success_bool = False
-
-        # Collate all the results and update the status of the step
-        effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
-        step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
-
-        if step_success_bool:  #  If none failed and nothing is waiting
-            step_log.status = defaults.SUCCESS
-        else:
-            step_log.status = defaults.FAIL
-
-        executor.run_log_store.add_step_log(step_log, executor.run_id)
-
-
-class DagNode(BaseNode):
-    """
-    A composite node that internally holds a dag.
-
-    The structure is genrally:
-        DagNode:
-            dag_definition: A YAML file that holds the dag in 'dag' block
-
-        The config is expected to have a variable 'dag_definition'.
-    """
-
-    node_type = "dag"
-
-    class ContextConfig(BaseNode.Config):
-        next_node: str
-        dag_definition: str
-        on_failure: str = ""
-
-    def __init__(self, name, internal_name, config, internal_branch_name=None):
-        # pylint: disable=R0914,R0913
-        super().__init__(name, internal_name, internal_branch_name)
-
-        self.remove_next_keyword_from_config(config)
-        self.config = self.ContextConfig(**(config or {}))
-
-        self.sub_dag_file = self.config.dag_definition
-        self.is_composite = True
-        self.branch = self.get_sub_graph()
-
-    @property
-    def _internal_branch_name(self):
-        """
-        THe internal branch name in dot path convention
-
-        Returns:
-            [type]: [description]
-        """
-        return self.internal_name + "." + defaults.DAG_BRANCH_NAME
-
-    def get_sub_graph(self):
-        """
-        Create a sub-dag from the config['dag_definition']
-
-        The graph object has an internal branch name, that is equal to the name of the step.
-        And the sub-dag nodes follow an dot path naming convention
-
-        Returns:
-            Graph: A graph object
-        """
-
-        dag_config = utils.load_yaml(self.sub_dag_file)
-        if "dag" not in dag_config:
-            raise Exception(f"No DAG found in {self.sub_dag_file}, please provide it in dag block")
-
-        branch = create_graph(dag_config["dag"], internal_branch_name=self._internal_branch_name)
-        return branch
-
-    def _get_branch_by_name(self, branch_name: str):
-        """
-        Retrieve a branch by name.
-        The name is expected to follow a dot path convention.
-
-        Returns a Graph Object
-
-        Args:
-            branch_name (str): The name of the branch to retrieve
-
-        Raises:
-            Exception: If the branch_name is not 'dag'
-        """
-        if branch_name != self._internal_branch_name:
-            raise Exception(f"Node of type {self.node_type} only allows a branch of name {defaults.DAG_BRANCH_NAME}")
-
-        return self.branch
-
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs):
-        """
-        This method should never be called for a node of type dag
-
-        Args:
-            executor (BaseExecutor): The Executor class as defined by the config
-            mock (bool, optional): If the operation is just a mock. Defaults to False.
-
-        Raises:
-            NotImplementedError: This method should never be called for a node of type Parallel
-        """
-        raise Exception("Node is of type composite, error in traversal rules")
-
-    def fan_out(self, executor, map_variable: dict = None, **kwargs):
-        """
-        The general method to fan out for a node of type dag.
-        The method assumes that the step log has already been created.
-
-        Args:
-            executor (BaseExecutor): The executor class as defined by the config
-            map_variable (dict, optional): _description_. Defaults to None.
-        """
-        effective_branch_name = self._resolve_map_placeholders(self._internal_branch_name, map_variable=map_variable)
-
-        branch_log = executor.run_log_store.create_branch_log(effective_branch_name)
-        branch_log.status = defaults.PROCESSING
-        executor.run_log_store.add_branch_log(branch_log, executor.run_id)
-
-    def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
-        """
-        This function does the actual execution of the branch of the dag node.
-
-        From a design perspective, this function should not be called if the execution is 3rd party orchestrated.
-
-        The modes that render the job specifications, do not need to interact with this node at all
-        as they have their own internal mechanisms of handling sub dags.
-        If they do not, you can find a way using as-is nodes as hack nodes.
-
-        The actual logic is :
-            * We just execute the branch as with any other composite nodes
-            * The branch name is called 'dag'
-
-        The execution of a dag, could result in
-            * The dag being completely executed with a definite (fail, success) state in case of
-                local or local-container execution
-            * The dag being in a processing state with PROCESSING status in case of local-aws-batch
-
-        Only fail state is considered failure during this phase of execution.
-
-        Args:
-            executor (Executor): The Executor as per the use config
-            **kwargs: Optional kwargs passed around
-        """
-        self.fan_out(executor, map_variable=map_variable, **kwargs)
-        executor.execute_graph(self.branch, map_variable=map_variable, **kwargs)
-        self.fan_in(executor, map_variable=map_variable, **kwargs)
-
-    def fan_in(self, executor, map_variable: dict = None, **kwargs):
-        """
-        The general method to fan in for a node of type dag.
-
-        3rd party orchestrators should call this method to find the status of the step log.
-
-        Args:
-            executor (BaseExecutor): The executor class as defined by the config
-            map_variable (dict, optional): If the node is part of type dag. Defaults to None.
-        """
-        step_success_bool = True
-        effective_branch_name = self._resolve_map_placeholders(self._internal_branch_name, map_variable=map_variable)
-        effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
-
-        branch_log = executor.run_log_store.get_branch_log(effective_branch_name, executor.run_id)
-        if branch_log.status != defaults.SUCCESS:
-            step_success_bool = False
-
-        step_log = executor.run_log_store.get_step_log(effective_internal_name, executor.run_id)
-        step_log.status = defaults.PROCESSING
-
-        if step_success_bool:  #  If none failed and nothing is waiting
-            step_log.status = defaults.SUCCESS
-        else:
-            step_log.status = defaults.FAIL
-
-        executor.run_log_store.add_step_log(step_log, executor.run_id)
-
-
-class AsIsNode(BaseNode):
-    """
-    AsIs is a convenience design node.
-
-    It always returns success in the attempt log and does nothing during interactive compute.
-
-    The command given to execute is ignored but it does do the syncing of the catalog.
-    This node is very akin to pass state in Step functions.
-
-    This node type could be handy when designing the pipeline and stubbing functions
-
-    But in render mode for job specification of a 3rd party orchestrator, this node comes handy.
-    """
-
-    node_type = "as-is"
-
-    class ContextConfig(BaseNode.Config, extra=Extra.allow):
-        next_node: str
-        on_failure: Optional[str]
-        retry: int = 1
-
-    def __init__(self, name, internal_name, config, internal_branch_name=None):
-        super().__init__(name, internal_name, internal_branch_name)
-
-        self.remove_next_keyword_from_config(config)
-        self.config = self.ContextConfig(**(config or {}))
-
-    def _get_catalog_settings(self) -> Optional[dict]:
-        """
-        Get the catalog settings from the config.
-
-        As it is as-is node, we do not need to sync the catalog.
-
-        Returns:
-            dict: The catalog settings
-        """
-        return {}
-
-    def execute(self, executor, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
-        """
-        Do Nothing node.
-        We just send an success attempt log back to the caller
-
-        Args:
-            executor ([type]): [description]
-            mock (bool, optional): [description]. Defaults to False.
-            map_variable (str, optional): [description]. Defaults to ''.
-
-        Returns:
-            [type]: [description]
-        """
-        attempt_log = executor.run_log_store.create_attempt_log()
-
-        attempt_log.start_time = str(datetime.now())
-        attempt_log.status = defaults.SUCCESS  # This is a dummy node and always will be success
-
-        attempt_log.end_time = str(datetime.now())
-        attempt_log.duration = utils.get_duration_between_datetime_strings(attempt_log.start_time, attempt_log.end_time)
-        return attempt_log
-
-    def execute_as_graph(self, executor, map_variable: dict = None, **kwargs):
-        """
-        Should not be implemented for a single node.
-
-        Args:
-            executor ([type]): [description]
-
-        Raises:
-            Exception: Not a composite node, always raises an exception
-        """
-        raise Exception("Node is not a composite node, invalid traversal rule")
+    @classmethod
+    def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "BaseNode":
+        return cls(**config)

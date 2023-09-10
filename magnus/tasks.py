@@ -24,7 +24,7 @@ logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 # --8<-- [start:docs]
 
 
-class BaseTaskType(BaseModel):  # pylint: disable=too-few-public-methods
+class BaseTaskType(BaseModel):
     """A base task class which does the execution of command defined by the user."""
 
     task_type: ClassVar[str] = ""

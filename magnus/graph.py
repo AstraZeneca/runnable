@@ -1,12 +1,10 @@
 import logging
-from typing import TYPE_CHECKING, Dict, List
+from typing import Dict, List
 
 from stevedore import driver
 
 from magnus import defaults, exceptions
-
-if TYPE_CHECKING:
-    from magnus.nodes import BaseNode
+from magnus.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
@@ -46,7 +44,7 @@ class Graph:
         dag["max_time"] = self.max_time
         dag["steps"] = {}
         for node in self.nodes:
-            dag["steps"][node.name] = node._to_dict()
+            dag["steps"][node.name] = node.dict()
 
         return dag
 
@@ -317,7 +315,6 @@ class Graph:
 
 
 def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
-    # pylint: disable=R0914,R0913
     """
     Creates a dag object from the dag definition.
 
@@ -346,17 +343,12 @@ def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
     )
 
     logger.info(f"Initialized a graph object that starts at {start_at} and runs for maximum of {max_time} secs")
-    messages = []
     for step in dag_config.get("steps", []):
         step_config = dag_config["steps"][step]
         logger.info(f"Adding node {step} with :{step_config}")
 
         node = create_node(step, step_config=step_config, internal_branch_name=internal_branch_name)
-        messages.extend(node.validate())
         graph.add_node(node)
-
-    if messages:
-        raise Exception(", ".join(messages))
 
     graph.validate()
 
@@ -384,21 +376,23 @@ def create_node(name: str, step_config: dict, internal_branch_name: str = None):
 
     try:
         node_type = step_config.pop("type")  # Remove the type as it is not used in node creation.
-        node_mgr = driver.DriverManager(
-            namespace="nodes",
-            name=node_type,
-            invoke_on_load=True,
-            invoke_kwds={
-                "name": name,
-                "internal_name": internal_name,
-                "config": step_config,
-                "internal_branch_name": internal_branch_name,
-            },
-        )
-        return node_mgr.driver
+        node_mgr: BaseNode = driver.DriverManager(namespace="nodes", name=node_type).driver
+
+        next_node = step_config.pop("next", None)
+        if next_node:
+            step_config["next_node"] = next_node
+
+        invoke_kwds = {
+            "name": name,
+            "internal_name": internal_name,
+            "internal_branch_name": internal_branch_name,
+            **step_config,
+        }
+        node = node_mgr.parse_from_config(config=invoke_kwds, internal_name=internal_name)
+        return node
     except KeyError:
         msg = "The node configuration does not contain the required key 'type'."
-        logger.exception(step_config)
+        logger.exception(invoke_kwds)
         raise Exception(msg)
     except Exception as _e:
         msg = (

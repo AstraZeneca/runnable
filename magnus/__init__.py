@@ -1,5 +1,6 @@
 # ruff: noqa
 
+# Since RichHandler is dynamically loaded ly logging framework, we have to import it here for it to be recognized.
 from rich.logging import RichHandler
 
 from magnus.interaction import (

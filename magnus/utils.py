@@ -21,7 +21,8 @@ from magnus import defaults, names
 from magnus.context import run_context
 
 if TYPE_CHECKING:
-    from magnus.nodes import BaseNode, TaskNode
+    from magnus.extensions.nodes import TaskNode
+    from magnus.nodes import BaseNode
 
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -627,7 +628,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: defaults.S
             namespace=namespace,
             name=service_name,
             invoke_on_load=True,
-            invoke_kwds={"config": service_config},
+            invoke_kwds={**service_config},
         )
         return mgr.driver
     except Exception as _e:

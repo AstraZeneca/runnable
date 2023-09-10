@@ -34,3 +34,10 @@ class Context(BaseModel):
 
 
 run_context = None  # type: Context # type: ignore
+
+
+def get_run_context() -> Context:
+    global run_context
+    if run_context is None:
+        raise RuntimeError("Run context is not initialized")
+    return run_context

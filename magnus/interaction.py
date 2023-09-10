@@ -4,10 +4,11 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, cast
 
-from magnus import defaults, entrypoints, exceptions, pickler, utils
-from magnus.context import run_context
+from magnus import defaults, exceptions, pickler, utils
+from magnus.context import get_run_context
+from magnus.datastore import StepLog
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -26,7 +27,7 @@ def track_this(step: int = 0, **kwargs):
         kwargs (dict): The dictionary of key value pairs to track.
     """
 
-    if not run_context.executor:
+    if not get_run_context().executor:
         msg = (
             "There are no active executor and services. This should not have happened and is a bug."
             " Please raise a bug report."
@@ -41,7 +42,7 @@ def track_this(step: int = 0, **kwargs):
     for key, value in kwargs.items():
         logger.info(f"Tracking {key} with value: {value}")
         os.environ[prefix + key] = json.dumps(value)
-        run_context.experiment_tracker.log_metric(key, value, step=step)
+        get_run_context().experiment_tracker.log_metric(key, value, step=step)
 
 
 def store_parameter(update: bool = True, **kwargs: dict):
@@ -105,14 +106,14 @@ def get_secret(secret_name: str = None) -> str | Dict[str, str]:
         exceptions.SecretNotFoundError: Secret not found in the secrets manager.
     """
 
-    if not run_context.executor:
+    if not get_run_context().executor:
         msg = (
             "There are no active executor and services. This should not have happened and is a bug."
             " Please raise a bug report."
         )
         raise Exception(msg)
 
-    secrets_handler = run_context.secrets_handler
+    secrets_handler = get_run_context().secrets_handler
     try:
         return secrets_handler.get(name=secret_name)
     except exceptions.SecretNotFoundError:
@@ -131,7 +132,7 @@ def get_from_catalog(name: str, destination_folder: str = None):
 
     """
 
-    if not run_context.executor:
+    if not get_run_context().executor:
         msg = (
             "There are no active executor and services. This should not have happened and is a bug."
             " Please raise a bug report."
@@ -139,19 +140,19 @@ def get_from_catalog(name: str, destination_folder: str = None):
         raise Exception(msg)
 
     if not destination_folder:
-        destination_folder = run_context.catalog_handler.compute_data_folder
+        destination_folder = get_run_context().catalog_handler.compute_data_folder
 
-    data_catalog = run_context.catalog_handler.get(
+    data_catalog = get_run_context().catalog_handler.get(
         name,
-        run_id=run_context.run_id,
+        run_id=get_run_context().run_id,
         compute_data_folder=destination_folder,
     )
 
     if not data_catalog:
         logger.warn(f"No catalog was obtained by the {name}")
 
-    if run_context.executor._context_step_log:
-        run_context.executor._context_step_log.add_data_catalogs(data_catalog)
+    if get_run_context().executor._context_step_log:
+        get_run_context().executor._context_step_log.add_data_catalogs(data_catalog)
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
@@ -166,7 +167,7 @@ def put_in_catalog(filepath: str):
         filepath (str): The path of the file to put in the catalog
     """
 
-    if not run_context.executor:
+    if not get_run_context().executor:
         msg = (
             "There are no active executor and services. This should not have happened and is a bug."
             " Please raise a bug report."
@@ -175,16 +176,16 @@ def put_in_catalog(filepath: str):
 
     file_path = Path(filepath)
 
-    data_catalog = run_context.catalog_handler.put(
+    data_catalog = get_run_context().catalog_handler.put(
         file_path.name,
-        run_id=run_context.run_id,
+        run_id=get_run_context().run_id,
         compute_data_folder=file_path.parent,
     )
     if not data_catalog:
         logger.warn(f"No catalog was done by the {filepath}")
 
-    if run_context.executor._context_step_log:
-        run_context.executor._context_step_log.add_data_catalogs(data_catalog)
+    if get_run_context().executor._context_step_log:
+        get_run_context().executor._context_step_log.add_data_catalogs(data_catalog)
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
@@ -262,14 +263,14 @@ def get_experiment_tracker_context():
     Returns:
         _type_: _description_
     """
-    if not run_context.executor:
+    if not get_run_context().executor:
         msg = (
             "There are no active executor and services. This should not have happened and is a bug."
             " Please raise a bug report."
         )
         raise Exception(msg)
 
-    experiment_tracker = run_context.experiment_tracker
+    experiment_tracker = get_run_context().experiment_tracker
     return experiment_tracker.client_context
 
 
@@ -286,11 +287,10 @@ def start_interactive_session(run_id: str = "", config_file: str = "", tag: str 
         tag (str, optional): The tag to attach to the run. Defaults to "".
         parameters_file (str, optional): The parameters file to use. Defaults to "".
     """
-    from context import run_context  # pylint: disable=import-outside-toplevel
 
-    from magnus import graph  # pylint: disable=import-outside-toplevel
+    from magnus import entrypoints, graph  # pylint: disable=import-outside-toplevel
 
-    if run_context.executor:
+    if get_run_context().executor:
         logger.warn("This is not an interactive session or a session has already been activated.")
         return
 
@@ -332,23 +332,23 @@ def end_interactive_session():
     Does nothing if the executor is not interactive.
     """
 
-    if not run_context.executor:
+    if not get_run_context().executor:
         logger.warn("There is no active session in play, doing nothing!")
         return
 
-    if run_context.execution_plan != defaults.EXECUTION_PLAN.INTERACTIVE.value:
+    if get_run_context().execution_plan != defaults.EXECUTION_PLAN.INTERACTIVE.value:
         logger.warn("There is not an interactive session, doing nothing!")
         return
 
     tracked_data = utils.get_tracked_data()
     parameters = utils.get_user_set_parameters(remove=True)
 
-    step_log = run_context.executor._context_step_log
+    step_log = cast(StepLog, get_run_context().executor._context_step_log)
     step_log.user_defined_metrics = tracked_data
-    run_context.run_log_store.add_step_log(step_log, run_context.run_id)
+    get_run_context().run_log_store.add_step_log(step_log, get_run_context().run_id)
 
-    run_context.run_log_store.set_parameters(run_context.run_id, parameters)
+    get_run_context().run_log_store.set_parameters(get_run_context().run_id, parameters)
 
-    run_context.executor._context_step_log = None  # type: ignore
-    run_context.execution_plan = ""
-    run_context.executor = None  # type: ignore
+    get_run_context().executor._context_step_log = None
+    get_run_context().execution_plan = ""
+    get_run_context().executor = None  # type: ignore
