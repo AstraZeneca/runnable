@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from magnus import defaults
-from magnus.datastore import FileSystemRunLogstore
+from magnus.extensions.run_log_store.file_system.implementation import FileSystemRunLogstore
 
 logger = logging.getLogger(defaults.NAME)
 

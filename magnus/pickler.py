@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, Extra
 
+import magnus.context as context
+
 
 class BasePickler(ABC, BaseModel):
     """
@@ -19,6 +21,10 @@ class BasePickler(ABC, BaseModel):
 
     class Config:
         extra = Extra.forbid
+
+    @property
+    def _context(self):
+        return context.run_context
 
     @abstractmethod
     def dump(self, data: Any, path: str):

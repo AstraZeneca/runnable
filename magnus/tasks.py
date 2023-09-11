@@ -15,6 +15,7 @@ from typing import ClassVar, List, Tuple
 from pydantic import BaseModel, Extra, validator
 from stevedore import driver
 
+import magnus.context as context
 from magnus import defaults, utils
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -33,6 +34,10 @@ class BaseTaskType(BaseModel):
 
     class Config:
         extra = Extra.forbid
+
+    @property
+    def _context(self):
+        return context.run_context
 
     def get_cli_options(self) -> Tuple[str, dict]:
         """

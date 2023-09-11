@@ -21,23 +21,21 @@ class Context(BaseModel):
     parameters_file: Optional[str] = ""
     configuration_file: Optional[str] = ""
 
-    tag: Optional[str] = ""
+    tag: str = ""
     run_id: str = ""
     variables: Dict[str, str] = {}
-    use_cached: Optional[str] = ""
+    use_cached: bool = False
+    original_run_id: str = ""
     dag: Optional[Graph] = None  # TODO: Check how the dict() will work
-    dag_hash: Optional[str] = ""
+    dag_hash: str = ""
     execution_plan: str = ""
 
     class Config:
         arbitrary_types_allowed = True
+        # fields = {"dag": {"exclude": True}}
+        # json_encoders = {
+        #     Graph: lambda obj: obj.to_dict(),
+        # }
 
 
 run_context = None  # type: Context # type: ignore
-
-
-def get_run_context() -> Context:
-    global run_context
-    if run_context is None:
-        raise RuntimeError("Run context is not initialized")
-    return run_context

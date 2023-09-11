@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 from pydantic import BaseModel, Extra
 
+import magnus.context as context
 from magnus import defaults, exceptions
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -292,6 +293,10 @@ class BaseRunLogStore(ABC, BaseModel):
 
     service_name: str = ""
     service_type: str = "run_log_store"
+
+    @property
+    def _context(self):
+        return context.run_context
 
     @abstractmethod
     def create_run_log(

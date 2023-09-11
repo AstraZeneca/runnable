@@ -10,7 +10,6 @@ from pydantic import Extra, validator
 
 import magnus
 from magnus import defaults, utils
-from magnus.context import run_context
 from magnus.datastore import StepAttempt
 from magnus.graph import Graph, create_graph
 from magnus.nodes import CompositeNode, ExecutableNode, TerminalNode
@@ -50,7 +49,7 @@ class TaskNode(ExecutableNode):
             StepAttempt: The attempt object
         """
         # Here is where the juice is
-        attempt_log = run_context.run_log_store.create_attempt_log()
+        attempt_log = self._context.run_log_store.create_attempt_log()
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
@@ -89,16 +88,16 @@ class FailNode(TerminalNode):
         Returns:
             StepAttempt: The step attempt object
         """
-        attempt_log = run_context.run_log_store.create_attempt_log()
+        attempt_log = self._context.run_log_store.create_attempt_log()
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
             #  could be a branch or run log
-            run_or_branch_log = run_context.run_log_store.get_branch_log(
-                self._get_branch_log_name(map_variable), run_context.run_id
+            run_or_branch_log = self._context.run_log_store.get_branch_log(
+                self._get_branch_log_name(map_variable), self._context.run_id
             )
             run_or_branch_log.status = defaults.FAIL
-            run_context.run_log_store.add_branch_log(run_or_branch_log, run_context.run_id)
+            self._context.run_log_store.add_branch_log(run_or_branch_log, self._context.run_id)
         except BaseException:  # pylint: disable=W0703
             logger.exception("Fail node execution failed")
         finally:
@@ -130,16 +129,16 @@ class SuccessNode(TerminalNode):
         Returns:
             StepAttempt: The step attempt object
         """
-        attempt_log = run_context.run_log_store.create_attempt_log()
+        attempt_log = self._context.run_log_store.create_attempt_log()
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
             #  could be a branch or run log
-            run_or_branch_log = run_context.run_log_store.get_branch_log(
-                self._get_branch_log_name(map_variable), run_context.run_id
+            run_or_branch_log = self._context.run_log_store.get_branch_log(
+                self._get_branch_log_name(map_variable), self._context.run_id
             )
             run_or_branch_log.status = defaults.SUCCESS
-            run_context.run_log_store.add_branch_log(run_or_branch_log, run_context.run_id)
+            self._context.run_log_store.add_branch_log(run_or_branch_log, self._context.run_id)
         except BaseException:  # pylint: disable=W0703
             logger.exception("Success node execution failed")
         finally:
@@ -199,9 +198,9 @@ class ParallelNode(CompositeNode):
         for internal_branch_name, _ in self.branches.items():
             effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
 
-            branch_log = run_context.run_log_store.create_branch_log(effective_branch_name)
+            branch_log = self._context.run_log_store.create_branch_log(effective_branch_name)
             branch_log.status = defaults.PROCESSING
-            run_context.run_log_store.add_branch_log(branch_log, run_context.run_id)
+            self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
     def execute_as_graph(self, map_variable: dict = None, **kwargs):
         """
@@ -230,16 +229,16 @@ class ParallelNode(CompositeNode):
         # Given that we can have nesting and complex graphs, controlling the number of processes is hard.
         # A better way is to actually submit the job to some process scheduler which does resource management
         for internal_branch_name, branch in self.branches.items():
-            if run_context.executor._is_parallel_execution():
+            if self._context.executor._is_parallel_execution():
                 # Trigger parallel jobs
                 action = magnus.entrypoints.execute_single_brach
                 kwargs = {
-                    "configuration_file": run_context.configuration_file,
-                    "pipeline_file": run_context.pipeline_file,
+                    "configuration_file": self._context.configuration_file,
+                    "pipeline_file": self._context.pipeline_file,
                     "branch_name": internal_branch_name.replace(" ", defaults.COMMAND_FRIENDLY_CHARACTER),
-                    "run_id": run_context.run_id,
+                    "run_id": self._context.run_id,
                     "map_variable": json.dumps(map_variable),
-                    "tag": run_context.tag,
+                    "tag": self._context.tag,
                 }
                 process = multiprocessing.Process(target=action, kwargs=kwargs)
                 jobs.append(process)
@@ -247,7 +246,7 @@ class ParallelNode(CompositeNode):
 
             else:
                 # If parallel is not enabled, execute them sequentially
-                run_context.executor.execute_graph(branch, map_variable=map_variable, **kwargs)
+                self._context.executor.execute_graph(branch, map_variable=map_variable, **kwargs)
 
         for job in jobs:
             job.join()  # Find status of the branches
@@ -267,20 +266,20 @@ class ParallelNode(CompositeNode):
         step_success_bool = True
         for internal_branch_name, _ in self.branches.items():
             effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
-            branch_log = run_context.run_log_store.get_branch_log(effective_branch_name, run_context.run_id)
+            branch_log = self._context.run_log_store.get_branch_log(effective_branch_name, self._context.run_id)
             if branch_log.status != defaults.SUCCESS:
                 step_success_bool = False
 
         # Collate all the results and update the status of the step
         effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
-        step_log = run_context.run_log_store.get_step_log(effective_internal_name, run_context.run_id)
+        step_log = self._context.run_log_store.get_step_log(effective_internal_name, self._context.run_id)
 
         if step_success_bool:  #  If none failed
             step_log.status = defaults.SUCCESS
         else:
             step_log.status = defaults.FAIL
 
-        run_context.run_log_store.add_step_log(step_log, run_context.run_id)
+        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
 
 class MapNode(CompositeNode):
@@ -344,16 +343,16 @@ class MapNode(CompositeNode):
             executor (BaseExecutor): The executor class as defined by the config
             map_variable (dict, optional): If the node is part of map. Defaults to None.
         """
-        iterate_on = run_context.run_log_store.get_parameters(run_context.run_id)[self.iterate_on]
+        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on]
 
         # Prepare the branch logs
         for iter_variable in iterate_on:
             effective_branch_name = self._resolve_map_placeholders(
                 self.internal_name + "." + str(iter_variable), map_variable=map_variable
             )
-            branch_log = run_context.run_log_store.create_branch_log(effective_branch_name)
+            branch_log = self._context.run_log_store.create_branch_log(effective_branch_name)
             branch_log.status = defaults.PROCESSING
-            run_context.run_log_store.add_branch_log(branch_log, run_context.run_id)
+            self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
     def execute_as_graph(self, map_variable: dict = None, **kwargs):
         """
@@ -383,7 +382,7 @@ class MapNode(CompositeNode):
         """
         iterate_on = None
         try:
-            iterate_on = run_context.run_log_store.get_parameters(run_context.run_id)[self.iterate_on]
+            iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on]
         except KeyError:
             raise Exception(
                 f"Expected parameter {self.iterate_on} not present in Run Log parameters, was it ever set before?"
@@ -401,16 +400,16 @@ class MapNode(CompositeNode):
             effective_map_variable = map_variable or OrderedDict()
             effective_map_variable[self.iterate_as] = iter_variable
 
-            if run_context.executor._is_parallel_execution():
+            if self._context.executor._is_parallel_execution():
                 # Trigger parallel jobs
                 action = magnus.entrypoints.execute_single_brach
                 kwargs = {
-                    "configuration_file": run_context.configuration_file,
-                    "pipeline_file": run_context.pipeline_file,
+                    "configuration_file": self._context.configuration_file,
+                    "pipeline_file": self._context.pipeline_file,
                     "branch_name": self.branch.internal_branch_name.replace(" ", defaults.COMMAND_FRIENDLY_CHARACTER),
-                    "run_id": run_context.run_id,
+                    "run_id": self._context.run_id,
                     "map_variable": json.dumps(effective_map_variable),
-                    "tag": run_context.tag,
+                    "tag": self._context.tag,
                 }
                 process = multiprocessing.Process(target=action, kwargs=kwargs)
                 jobs.append(process)
@@ -418,7 +417,7 @@ class MapNode(CompositeNode):
 
             else:
                 # If parallel is not enabled, execute them sequentially
-                run_context.executor.execute_graph(self.branch, map_variable=effective_map_variable, **kwargs)
+                self._context.executor.execute_graph(self.branch, map_variable=effective_map_variable, **kwargs)
 
         for job in jobs:
             job.join()
@@ -435,7 +434,7 @@ class MapNode(CompositeNode):
             executor (BaseExecutor): The executor class as defined by the config
             map_variable (dict, optional): If the node is part of map node. Defaults to None.
         """
-        iterate_on = run_context.run_log_store.get_parameters(run_context.run_id)[self.iterate_on]
+        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on]
         # # Find status of the branches
         step_success_bool = True
 
@@ -443,20 +442,20 @@ class MapNode(CompositeNode):
             effective_branch_name = self._resolve_map_placeholders(
                 self.internal_name + "." + str(iter_variable), map_variable=map_variable
             )
-            branch_log = run_context.run_log_store.get_branch_log(effective_branch_name, run_context.run_id)
+            branch_log = self._context.run_log_store.get_branch_log(effective_branch_name, self._context.run_id)
             if branch_log.status != defaults.SUCCESS:
                 step_success_bool = False
 
         # Collate all the results and update the status of the step
         effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
-        step_log = run_context.run_log_store.get_step_log(effective_internal_name, run_context.run_id)
+        step_log = self._context.run_log_store.get_step_log(effective_internal_name, self._context.run_id)
 
         if step_success_bool:  #  If none failed and nothing is waiting
             step_log.status = defaults.SUCCESS
         else:
             step_log.status = defaults.FAIL
 
-        run_context.run_log_store.add_step_log(step_log, run_context.run_id)
+        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
 
 class DagNode(CompositeNode):
@@ -531,9 +530,9 @@ class DagNode(CompositeNode):
         """
         effective_branch_name = self._resolve_map_placeholders(self.internal_branch_name, map_variable=map_variable)
 
-        branch_log = run_context.run_log_store.create_branch_log(effective_branch_name)
+        branch_log = self._context.run_log_store.create_branch_log(effective_branch_name)
         branch_log.status = defaults.PROCESSING
-        run_context.run_log_store.add_branch_log(branch_log, run_context.run_id)
+        self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
     def execute_as_graph(self, map_variable: dict = None, **kwargs):
         """
@@ -561,7 +560,7 @@ class DagNode(CompositeNode):
             **kwargs: Optional kwargs passed around
         """
         self.fan_out(map_variable=map_variable, **kwargs)
-        run_context.executor.execute_graph(self.branch, map_variable=map_variable, **kwargs)
+        self._context.executor.execute_graph(self.branch, map_variable=map_variable, **kwargs)
         self.fan_in(map_variable=map_variable, **kwargs)
 
     def fan_in(self, map_variable: dict = None, **kwargs):
@@ -578,11 +577,11 @@ class DagNode(CompositeNode):
         effective_branch_name = self._resolve_map_placeholders(self.internal_branch_name, map_variable=map_variable)
         effective_internal_name = self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
 
-        branch_log = run_context.run_log_store.get_branch_log(effective_branch_name, run_context.run_id)
+        branch_log = self._context.run_log_store.get_branch_log(effective_branch_name, self._context.run_id)
         if branch_log.status != defaults.SUCCESS:
             step_success_bool = False
 
-        step_log = run_context.run_log_store.get_step_log(effective_internal_name, run_context.run_id)
+        step_log = self._context.run_log_store.get_step_log(effective_internal_name, self._context.run_id)
         step_log.status = defaults.PROCESSING
 
         if step_success_bool:  #  If none failed and nothing is waiting
@@ -590,7 +589,7 @@ class DagNode(CompositeNode):
         else:
             step_log.status = defaults.FAIL
 
-        run_context.run_log_store.add_step_log(step_log, run_context.run_id)
+        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
 
 class AsIsNode(ExecutableNode):
@@ -629,7 +628,7 @@ class AsIsNode(ExecutableNode):
         Returns:
             [type]: [description]
         """
-        attempt_log = run_context.run_log_store.create_attempt_log()
+        attempt_log = self._context.run_log_store.create_attempt_log()
 
         attempt_log.start_time = str(datetime.now())
         attempt_log.status = defaults.SUCCESS  # This is a dummy node and always will be success

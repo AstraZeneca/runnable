@@ -3,12 +3,12 @@ import json
 import logging
 import os
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional
 
 from pydantic import Extra
 from rich import print
 
-from magnus import defaults, exceptions, interaction, utils
+from magnus import defaults, exceptions, integration, interaction, utils
 from magnus.datastore import DataCatalog, RunLog, StepLog
 from magnus.executor import BaseExecutor
 from magnus.extensions.nodes import TaskNode
@@ -41,7 +41,6 @@ class DefaultExecutor(BaseExecutor):
     _previous_run_log: Optional[RunLog] = None
     _single_step: str = ""
 
-    _context = None  # type: Context
     _context_step_log = None  # type : StepLog
     _context_node = None  # type: BaseNode
 
@@ -97,29 +96,32 @@ class DefaultExecutor(BaseExecutor):
                 return
             raise
 
-        run_log: Dict[str, Union[str, Any]] = {}
-        run_log["run_id"] = self._context.run_id
-        run_log["tag"] = self._context.tag
-        run_log["status"] = defaults.PROCESSING
-        run_log["dag_hash"] = self._context.dag_hash
-
         parameters = {}
         if self._context.parameters_file:
             parameters.update(utils.load_yaml(self._context.parameters_file))
 
         # Update these with some from the environment variables
         parameters.update(utils.get_user_set_parameters())
-
+        original_run_id = ""
+        use_cached = False
         if self._previous_run_log:
-            run_log["original_run_id"] = self._previous_run_log.run_id
+            original_run_id = self._previous_run_log.run_id
             # Sync the previous run log catalog to this one.
             self._context.catalog_handler.sync_between_runs(
                 previous_run_id=self._previous_run_log.run_id, run_id=self._context.run_id
             )
-            run_log["use_cached"] = True
+            use_cached = True
+
             parameters.update(self._previous_run_log.parameters)
 
-        run_log = self._context.run_log_store.create_run_log(**run_log)  # type: ignore
+        self._context.run_log_store.create_run_log(
+            run_id=self._context.run_id,
+            tag=self._context.tag,
+            status=defaults.PROCESSING,
+            dag_hash=self._context.dag_hash,
+            use_cached=use_cached,
+            original_run_id=original_run_id,
+        )
         # Any interaction with run log store attributes should happen via API if available.
         self._context.run_log_store.set_parameters(run_id=self._context.run_id, parameters=parameters)
 
@@ -137,7 +139,6 @@ class DefaultExecutor(BaseExecutor):
         But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we check if the services are OK.
         We do not set up a run log as its not relevant.
         """
-        from magnus import integration
 
         integration.validate(self, self._context.run_log_store)
         integration.configure_for_traversal(self, self._context.run_log_store)
@@ -161,7 +162,6 @@ class DefaultExecutor(BaseExecutor):
             node (Node): [description]
             map_variable (dict, optional): [description]. Defaults to None.
         """
-        from magnus import integration
 
         integration.validate(self, self._context.run_log_store)
         integration.configure_for_execution(self, self._context.run_log_store)
@@ -202,7 +202,11 @@ class DefaultExecutor(BaseExecutor):
             )
             raise Exception(msg)
 
-        node_catalog_settings = self._context_node._get_catalog_settings()
+        try:
+            node_catalog_settings = self._context_node._get_catalog_settings()
+        except exceptions.TerminalNodeError:
+            return None
+
         if not (node_catalog_settings and stage in node_catalog_settings):
             # Nothing to get/put from the catalog
             return None
@@ -449,6 +453,7 @@ class DefaultExecutor(BaseExecutor):
             current_node (BaseNode): The current node.
             dag (Graph): The dag we are traversing.
             map_variable (dict): If the node belongs to a map branch.
+
         """
 
         step_log = self._context.run_log_store.get_step_log(
@@ -456,7 +461,10 @@ class DefaultExecutor(BaseExecutor):
         )
         logger.info(f"Finished executing the node {current_node} with status {step_log.status}")
 
-        next_node_name = current_node._get_next_node()
+        try:
+            next_node_name = current_node._get_next_node()
+        except exceptions.TerminalNodeError:
+            next_node_name = ""
 
         if step_log.status == defaults.FAIL:
             next_node_name = dag.get_fail_node().name

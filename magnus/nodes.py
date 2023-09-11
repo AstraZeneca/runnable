@@ -4,9 +4,9 @@ from typing import Any, Dict, List
 
 from pydantic import BaseModel, Extra, validator
 
-from magnus import defaults, exceptions
+import magnus.context as context
+from magnus import defaults, exceptions, graph
 from magnus.datastore import StepAttempt
-from magnus.graph import Graph
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -36,6 +36,10 @@ class BaseNode(ABC, BaseModel):
     internal_name: str
     internal_branch_name: str = ""
     is_composite: bool = False
+
+    @property
+    def _context(self):
+        return context.run_context
 
     class Config:
         extra = Extra.forbid
@@ -241,14 +245,14 @@ class BaseNode(ABC, BaseModel):
         try:
             next_node = self._get_next_node()
             neighbors += [next_node]
-        except exceptions.NoNextNodeError:
+        except exceptions.TerminalNodeError:
             pass
 
         try:
             fail_node = self._get_on_failure_node()
             if fail_node:
                 neighbors += [fail_node]
-        except exceptions.NoNextNodeError:
+        except exceptions.TerminalNodeError:
             pass
 
         return neighbors
@@ -432,7 +436,7 @@ class ExecutableNode(TraversalNode):
 
 
 class CompositeNode(TraversalNode):
-    _branches: Dict[str, Graph]
+    _branches: Dict[str, graph.Graph]
 
     def _get_catalog_settings(self) -> Dict[str, Any]:
         """
@@ -443,7 +447,7 @@ class CompositeNode(TraversalNode):
         """
         raise Exception("This is a composite node and does not have a catalog settings")
 
-    def _get_branch_by_name(self, branch_name: str) -> Graph:
+    def _get_branch_by_name(self, branch_name: str) -> graph.Graph:
         if branch_name in self._branches:
             return self._branches[branch_name]
 
@@ -458,34 +462,34 @@ class CompositeNode(TraversalNode):
 
 class TerminalNode(BaseNode):
     def _get_on_failure_node(self) -> str:
-        raise Exception("This is a terminal node and does not have an on_failure node")
+        raise exceptions.TerminalNodeError()
 
     def _get_next_node(self) -> str:
-        raise exceptions.NoNextNodeError()
+        raise exceptions.TerminalNodeError()
 
     def _is_terminal_node(self) -> bool:
         return True
 
     def _get_catalog_settings(self) -> Dict[str, Any]:
-        raise Exception("This is a terminal node and does not have a catalog settings")
+        raise exceptions.TerminalNodeError()
 
     def _get_branch_by_name(self, branch_name: str):
-        raise Exception("This is a terminal node and does not have branches")
+        raise exceptions.TerminalNodeError()
 
     def _get_executor_config(self, executor_type) -> dict:
-        raise Exception("This is a terminal node and does not have an executor config")
+        raise exceptions.TerminalNodeError()
 
     def _get_max_attempts(self) -> int:
         return 1
 
     def execute_as_graph(self, map_variable: dict = None, **kwargs):
-        raise Exception("This is a terminal node and does not have a graph")
+        raise exceptions.TerminalNodeError()
 
     def fan_in(self, map_variable: dict = None, **kwargs):
-        raise Exception("This is a terminal node and does not have a fan in")
+        raise exceptions.TerminalNodeError()
 
     def fan_out(self, map_variable: dict = None, **kwargs):
-        raise Exception("This is a terminal node and does not have a fan out")
+        raise exceptions.TerminalNodeError()
 
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "BaseNode":

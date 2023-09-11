@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 from pydantic import BaseModel, Extra
 
+import magnus.context as context
 from magnus import defaults
 from magnus.datastore import DataCatalog, RunLog, StepLog
 from magnus.graph import Graph
@@ -48,6 +49,10 @@ class BaseExecutor(ABC, BaseModel):
     class Config:
         extra = Extra.forbid
         underscore_attrs_are_private = True
+
+    @property
+    def _context(self):
+        return context.run_context
 
     @property
     def step_decorator_run_id(self):

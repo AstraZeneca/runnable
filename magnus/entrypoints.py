@@ -1,8 +1,9 @@
 import json
 import logging
-from typing import List, Optional, Union, cast
+from typing import List, Optional, cast
 
-from magnus import context, defaults, exceptions, graph, utils
+import magnus.context as context
+from magnus import defaults, exceptions, graph, utils
 from magnus.defaults import MagnusConfig, ServiceConfig
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -30,12 +31,11 @@ def prepare_configurations(
     run_id: str,
     configuration_file: str = None,
     pipeline_file: str = None,
-    tag: Union[str, None] = None,
-    use_cached: Union[str, None] = "",
+    tag: str = "",
+    use_cached: str = "",
     parameters_file: str = None,
     force_local_executor: bool = False,
 ) -> context.Context:
-    # pylint: disable=R0914
     """
     Replace the placeholders in the dag/config against the variables file.
 
@@ -97,10 +97,6 @@ def prepare_configurations(
         executor_config = cast(ServiceConfig, magnus_defaults.get("executor", defaults.DEFAULT_EXECUTOR))
     configured_executor = utils.get_provider_by_name_and_type("executor", executor_config)
 
-    """
-    execution_plan: str = ""
-    """
-
     # Construct the context
     run_context = context.Context(
         executor=configured_executor,
@@ -112,6 +108,7 @@ def prepare_configurations(
         tag=tag,
         run_id=run_id,
         configuration_file=configuration_file,
+        parameters_file=parameters_file,
     )
 
     if pipeline_file:
@@ -132,8 +129,10 @@ def prepare_configurations(
         run_context.dag = dag
         run_context.dag_hash = dag_hash
 
-    run_context.use_cached = use_cached
-    run_context.parameters_file = parameters_file
+    run_context.use_cached = False
+    if use_cached:
+        run_context.use_cached = True
+        run_context.original_run_id = use_cached
 
     context.run_context = run_context
 
@@ -143,9 +142,9 @@ def prepare_configurations(
 def execute(
     configuration_file: str,
     pipeline_file: str,
-    tag: str = None,
-    run_id: str = None,
-    use_cached: str = None,
+    tag: str = "",
+    run_id: str = "",
+    use_cached: str = "",
     parameters_file: str = None,
 ):
     # pylint: disable=R0914,R0913
@@ -209,11 +208,10 @@ def execute_single_step(
     pipeline_file: str,
     step_name: str,
     run_id: str,
-    tag: str = None,
+    tag: str = "",
     parameters_file: str = None,
-    use_cached: str = None,
+    use_cached: str = "",
 ):
-    # pylint: disable=R0914,R0913
     """
     The entry point into executing a single step of magnus.
 
@@ -281,10 +279,9 @@ def execute_single_node(
     step_name: str,
     map_variable: str,
     run_id: str,
-    tag: str = None,
+    tag: str = "",
     parameters_file: str = None,
 ):
-    # pylint: disable=R0914,R0913
     """
     The entry point into executing a single node of magnus. Orchestration modes should extensively use this
     entry point.
@@ -342,7 +339,6 @@ def execute_single_brach(
     run_id: str,
     tag: str,
 ):
-    # pylint: disable=R0914,R0913
     """
     The entry point into executing a branch of the graph. Interactive modes in parallel runs use this to execute
     branches in parallel.
@@ -387,11 +383,10 @@ def execute_notebook(
     catalog_config: dict,
     configuration_file: str,
     notebook_output_path: str = "",
-    tag: str = None,
+    tag: str = "",
     run_id: str = None,
     parameters_file: str = None,
 ):
-    # pylint: disable=R0914,R0913
     """
     The entry point to magnus execution of a notebook. This method would prepare the configurations and
     delegates traversal to the executor
@@ -446,11 +441,10 @@ def execute_function(
     command: str,
     catalog_config: dict,
     configuration_file: str,
-    tag: str = None,
+    tag: str = "",
     run_id: str = None,
     parameters_file: str = None,
 ):
-    # pylint: disable=R0914,R0913
     """
     The entry point to magnus execution of a function. This method would prepare the configurations and
     delegates traversal to the executor
@@ -567,10 +561,9 @@ def fan(
     mode: str,
     map_variable: str,
     run_id: str,
-    tag: str = None,
+    tag: str = "",
     parameters_file: str = None,
 ):
-    # pylint: disable=R0914,R0913
     """
     The entry point to either fan in or out for a composite node. Only 3rd party orchestrators should use this.
 

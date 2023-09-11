@@ -17,8 +17,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Tuple, Uni
 from ruamel.yaml import YAML
 from stevedore import driver
 
+import magnus.context as context
 from magnus import defaults, names
-from magnus.context import run_context
 
 if TYPE_CHECKING:
     from magnus.extensions.nodes import TaskNode
@@ -489,7 +489,7 @@ def get_node_execution_command(
     Returns:
         str: The execution command to run a node via command line.
     """
-    run_id = run_context.run_id
+    run_id = context.run_context.run_id
 
     if over_write_run_id:
         run_id = over_write_run_id
@@ -498,20 +498,20 @@ def get_node_execution_command(
 
     action = f"magnus execute_single_node {run_id} " f"{node._command_friendly_name()}" f" --log-level {log_level}"
 
-    if run_context.pipeline_file:
-        action = action + f" --file {run_context.pipeline_file}"
+    if context.run_context.pipeline_file:
+        action = action + f" --file {context.run_context.pipeline_file}"
 
     if map_variable:
         action = action + f" --map-variable '{json.dumps(map_variable)}'"
 
-    if run_context.configuration_file:
-        action = action + f" --config-file {run_context.configuration_file}"
+    if context.run_context.configuration_file:
+        action = action + f" --config-file {context.run_context.configuration_file}"
 
-    if run_context.parameters_file:
-        action = action + f" --parameters-file {run_context.parameters_file}"
+    if context.run_context.parameters_file:
+        action = action + f" --parameters-file {context.run_context.parameters_file}"
 
-    if run_context.tag:
-        action = action + f" --tag {run_context.tag}"
+    if context.run_context.tag:
+        action = action + f" --tag {context.run_context.tag}"
 
     return action
 
@@ -540,20 +540,20 @@ def get_fan_command(
         f"magnus fan {run_id} "
         f"{node._command_friendly_name()} "
         f"--mode {mode} "
-        f"--file {run_context.pipeline_file} "
+        f"--file {context.run_context.pipeline_file} "
         f"--log-level {log_level} "
     )
-    if run_context.configuration_file:
-        action = action + f" --config-file {run_context.configuration_file} "
+    if context.run_context.configuration_file:
+        action = action + f" --config-file {context.run_context.configuration_file} "
 
-    if run_context.parameters_file:
-        action = action + f" --parameters-file {run_context.parameters_file}"
+    if context.run_context.parameters_file:
+        action = action + f" --parameters-file {context.run_context.parameters_file}"
 
     if map_variable:
         action = action + f" --map-variable '{json.dumps(map_variable)}'"
 
-    if run_context.tag:
-        action = action + f" --tag {run_context.tag}"
+    if context.run_context.tag:
+        action = action + f" --tag {context.run_context.tag}"
 
     return action
 
@@ -572,7 +572,7 @@ def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> st
         str: The execution command to run a job via command line.
     """
 
-    run_id = run_context.run_id
+    run_id = context.run_context.run_id
 
     if over_write_run_id:
         run_id = over_write_run_id
@@ -585,14 +585,14 @@ def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> st
 
     action = action + f" --entrypoint {defaults.ENTRYPOINT.SYSTEM.value}"
 
-    if run_context.configuration_file:
-        action = action + f" --config-file {run_context.configuration_file}"
+    if context.run_context.configuration_file:
+        action = action + f" --config-file {context.run_context.configuration_file}"
 
-    if run_context.parameters_file:
-        action = action + f" --parameters-file {run_context.parameters_file}"
+    if context.run_context.parameters_file:
+        action = action + f" --parameters-file {context.run_context.parameters_file}"
 
-    if run_context.tag:
-        action = action + f" --tag {run_context.tag}"
+    if context.run_context.tag:
+        action = action + f" --tag {context.run_context.tag}"
 
     for key, value in cli_options.items():
         action = action + f" --{key} {value}"
@@ -660,7 +660,7 @@ def get_run_config() -> dict:
         dict: The run_config.
     """
 
-    run_config = run_context.dict()
+    run_config = context.run_context.dict()
     return run_config
 
     # run_config["executor"] = {"type": run_context.executor.service_name, "config": run_context.executor.dict()}

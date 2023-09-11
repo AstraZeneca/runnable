@@ -1,16 +1,18 @@
+from __future__ import annotations
+
 import logging
 from typing import Dict, List
 
+from pydantic import BaseModel
 from stevedore import driver
 
 from magnus import defaults, exceptions
-from magnus.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
-class Graph:
+class Graph(BaseModel):
     """
     A class representing a graph.
 
@@ -18,20 +20,12 @@ class Graph:
     We have nodes and traversal is based on start_at and on_failure definition of individual nodes of the graph
     """
 
-    def __init__(
-        self,
-        start_at,
-        name: str = "",
-        description: str = "",
-        max_time: int = 86400,
-        internal_branch_name: str = "",
-    ):
-        self.start_at = start_at
-        self.name = name
-        self.description = description
-        self.max_time = max_time
-        self.internal_branch_name = internal_branch_name
-        self.nodes: List[BaseNode] = []
+    start_at: str
+    name: str = ""
+    description: str = ""
+    max_time: int = 86400
+    internal_branch_name: str = ""
+    nodes: List["BaseNode"] = []
 
     def _to_dict(self) -> dict:
         """
@@ -103,7 +97,7 @@ class Graph:
         """
         self.nodes.append(node)
 
-    def validate(self):
+    def _validate(self):
         """
         Validate the graph to make sure,
         1). All the neighbors of nodes are present.
@@ -314,6 +308,11 @@ class Graph:
         self.add_node(fail_node)
 
 
+from magnus.nodes import BaseNode  # noqa: E402
+
+Graph.update_forward_refs()
+
+
 def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
     """
     Creates a dag object from the dag definition.
@@ -350,7 +349,7 @@ def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
         node = create_node(step, step_config=step_config, internal_branch_name=internal_branch_name)
         graph.add_node(node)
 
-    graph.validate()
+    graph._validate()
 
     return graph
 

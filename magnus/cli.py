@@ -41,7 +41,7 @@ def cli():
     show_default=True,
     type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
 )
-@click.option("--tag", help="A tag attached to the run")
+@click.option("--tag", default="", help="A tag attached to the run")
 @click.option("--run-id", help="An optional run_id, one would be generated if not provided")
 @click.option("--use-cached", help="Provide the previous run_id to re-run.", show_default=True)
 def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cached):  # pragma: no cover

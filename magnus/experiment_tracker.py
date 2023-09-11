@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Extra
 
+import magnus.context as context
 from magnus import defaults
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -19,6 +20,10 @@ class BaseExperimentTracker(ABC, BaseModel):
 
     service_name: str = ""
     service_type: str = "experiment_tracker"
+
+    @property
+    def _context(self):
+        return context.run_context
 
     class Config:
         extra = Extra.forbid

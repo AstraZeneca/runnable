@@ -4,6 +4,7 @@ from typing import Union
 
 from pydantic import BaseModel, Extra
 
+import magnus.context as context
 from magnus import defaults
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -28,6 +29,10 @@ class BaseSecrets(ABC, BaseModel):
 
     class Config:
         extra = Extra.forbid
+
+    @property
+    def _context(self):
+        return context.run_context
 
     @abstractmethod
     def get(self, name: str = None, **kwargs) -> Union[str, dict]:

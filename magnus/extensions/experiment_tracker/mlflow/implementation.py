@@ -42,13 +42,11 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
 
     @functools.cached_property
     def experiment_id(self):
-        from magnus import context
-
         experiment_name = self._default_experiment_name
 
         # If a tag is provided, we should create that as our experiment
-        if context.tag:
-            experiment_name = context.executor.tag
+        if self._context.tag:
+            experiment_name = self._context.tag
 
         experiment = mlflow.get_experiment_by_name(experiment_name)
         if not experiment:
@@ -60,9 +58,7 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
 
     @functools.cached_property
     def run_name(self):
-        from magnus import context
-
-        return context.executor.run_id
+        return self._context.run_id
 
     @property
     def client_context(self):

@@ -2,7 +2,8 @@ import logging
 import os
 from typing import Union
 
-from magnus import BaseSecrets, defaults, exceptions
+from magnus import defaults, exceptions
+from magnus.secrets import BaseSecrets
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 

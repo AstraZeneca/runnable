@@ -6,13 +6,10 @@ from typing import List
 
 from magnus import defaults, utils
 from magnus.catalog import BaseCatalog
-from magnus.context import get_run_context
 from magnus.datastore import DataCatalog
 from magnus.extensions.catalog import is_catalog_out_of_sync
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
-
-run_context = get_run_context()
 
 
 class FileSystemCatalog(BaseCatalog):
@@ -77,7 +74,7 @@ class FileSystemCatalog(BaseCatalog):
         logger.debug(f"Glob identified {glob_files} as matches to from the catalog location: {run_catalog}")
 
         data_catalogs = []
-        run_log_store = run_context.run_log_store
+        run_log_store = self._context.run_log_store
         for file in glob_files:
             if file.is_dir():
                 # Need not add a data catalog for the folder
@@ -152,7 +149,7 @@ class FileSystemCatalog(BaseCatalog):
         logger.debug(f"Glob identified {glob_files} as matches to from the compute data folder: {copy_from}")
 
         data_catalogs = []
-        run_log_store = run_context.run_log_store
+        run_log_store = self._context.run_log_store
         for file in glob_files:
             if file.is_dir():
                 # Need not add a data catalog for the folder

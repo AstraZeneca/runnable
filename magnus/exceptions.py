@@ -70,7 +70,7 @@ class BranchNotFoundError(Exception):  # pragma: no cover
         self.message = f"Branch of name {name} is not found the graph"
 
 
-class NoNextNodeError(Exception):  # pragma: no cover
+class TerminalNodeError(Exception):  # pragma: no cover
     def __init__(self):
         super().__init__()
         self.message = "Terminal Nodes do not have next node"

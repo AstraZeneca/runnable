@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from magnus import defaults
-from magnus.datastore import ChunkedFileSystemRunLogStore
+from magnus.extensions.run_log_store.chunked_file_system.implementation import ChunkedFileSystemRunLogStore
 
 logger = logging.getLogger(defaults.NAME)
 

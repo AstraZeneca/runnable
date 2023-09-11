@@ -4,6 +4,7 @@ from typing import List
 
 from pydantic import BaseModel, Extra
 
+import magnus.context as context
 from magnus import defaults
 from magnus.datastore import DataCatalog
 
@@ -26,6 +27,10 @@ class BaseCatalog(ABC, BaseModel):
 
     class Config:
         extra = Extra.forbid
+
+    @property
+    def _context(self):
+        return context.run_context
 
     @abstractmethod
     def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[DataCatalog]:

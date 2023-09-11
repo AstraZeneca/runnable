@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from magnus import defaults
-from magnus.catalog import FileSystemCatalog
+from magnus.extensions.catalog.file_system_catalog.implementation import FileSystemCatalog
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 

@@ -1,8 +1,10 @@
 import logging
+from typing import Dict
 
 from magnus import defaults
 from magnus.extensions.executor import DefaultExecutor
-from magnus.nodes import BaseNode, TaskNode
+from magnus.extensions.nodes import TaskNode
+from magnus.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -35,7 +37,7 @@ class LocalExecutor(DefaultExecutor):
         self.prepare_for_node_execution()
         self.execute_node(node=node, map_variable=map_variable, **kwargs)
 
-    def execute_node(self, node: BaseNode, map_variable: dict[str, str] = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: Dict[str, str] = None, **kwargs):
         """
         For local execution, we just execute the node.
 
@@ -52,6 +54,7 @@ class LocalExecutor(DefaultExecutor):
         Args:
             node (BaseNode): _description_
         """
+
         step_log = self._context.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable=None))
 
         self.add_code_identities(node=node, step_log=step_log)
