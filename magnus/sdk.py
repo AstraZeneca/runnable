@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from logging.config import fileConfig
+from logging.config import dictConfig
 from typing import List, Optional, Union
 
-from pkg_resources import resource_filename
 from pydantic import BaseModel, Extra, Field
 
 from magnus import defaults, entrypoints, graph, utils
@@ -147,9 +146,6 @@ class BaseStep(BaseModel):
         pass
 
 
-# BaseStep.update_forward_refs()
-
-
 class Task(BaseStep):
     """A exposed magnus task to be used in SDK."""
 
@@ -248,7 +244,7 @@ class Pipeline(BaseModel):
 
         This method should be beefed up as the use cases grow.
         """
-        fileConfig(resource_filename(__name__, "log_config.ini"))
+        dictConfig(defaults.LOGGING_CONFIG)
         logger = logging.getLogger(defaults.LOGGER_NAME)
         logger.setLevel(log_level)
 

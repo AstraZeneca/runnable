@@ -663,35 +663,6 @@ def get_run_config() -> dict:
     run_config = context.run_context.dict()
     return run_config
 
-    # run_config["executor"] = {"type": run_context.executor.service_name, "config": run_context.executor.dict()}
-
-    # run_config["run_log_store"] = {
-    #     "type": run_context.run_log_store.service_name,
-    #     "config": run_context.run_log_store.dict(),
-    # }
-
-    # run_config["catalog"] = {
-    #     "type": run_context.catalog_handler.service_name,
-    #     "config": run_context.catalog_handler.dict(),
-    # }
-
-    # run_config["secrets"] = {
-    #     "type": run_context.secrets_handler.service_name,
-    #     "config": run_context.secrets_handler.dict(),
-    # }
-
-    # run_config["experiment_tracker"] = {
-    #     "type": run_context.experiment_tracker.service_name,
-    #     "config": run_context.experiment_tracker.dict(),
-    # }
-    # run_config["variables"] = run_context.variables
-
-    # if run_context.dag:
-    #     # Some executions do not define a dag
-    #     run_config["pipeline"] = run_context.dag._to_dict()
-
-    # return run_config
-
 
 def json_to_ordered_dict(json_str: str) -> OrderedDict:
     """Decode a JSON str into OrderedDict.

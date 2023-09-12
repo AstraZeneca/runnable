@@ -628,3 +628,8 @@ def wrap_around_container(run_id: str, step_identifier: str, map_variable: str, 
         map_variable (str): _description_
         mode (str): _description_
     """
+
+
+if __name__ == "__main__":
+    # This is only for perf testing purposes.
+    prepare_configurations(run_id="abc", pipeline_file="example/mocking.yaml")

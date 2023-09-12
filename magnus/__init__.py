@@ -1,7 +1,6 @@
 # ruff: noqa
 
-# Since RichHandler is dynamically loaded ly logging framework, we have to import it here for it to be recognized.
-from rich.logging import RichHandler
+# TODO: Might need to add Rich to pyinstaller part
 
 from magnus.interaction import (
     end_interactive_session,

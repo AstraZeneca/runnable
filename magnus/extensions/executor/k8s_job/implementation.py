@@ -13,7 +13,6 @@ logger = logging.getLogger(defaults.NAME)
 
 try:
     from kubernetes import client
-    from kubernetes import config as k8s_config
     from kubernetes.client import V1EnvVar, V1EnvVarSource, V1PersistentVolumeClaimVolumeSource, V1SecretKeySelector
 except ImportError as _e:
     msg = "Kubernetes Dependencies have not been installed!!"
@@ -104,6 +103,8 @@ class K8sJobExecutor(BaseExecutor):
 
     @property
     def _client(self):
+        from kubernetes import config as k8s_config
+
         if self.config.config_path:
             k8s_config.load_kube_config(kube_config_path=self.config.config_path)
         else:

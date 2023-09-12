@@ -32,6 +32,10 @@ mkdocs-section-index = "^0.3.5"
 [tool.poetry.group.binary.dependencies]
 pyinstaller = "^5.13.2"
 
+[tool.poetry.group.perf.dependencies]
+# Run the performace tests poetry run python -m pyflame -p ./flamegraph.pl magnus/entrypoints.py
+pyflame = "^0.3.1"
+
 [tool.poetry.extras]
 docker = ['docker']
 notebook = ['ploomber-engine']
