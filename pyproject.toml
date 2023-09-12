@@ -69,7 +69,7 @@ magnus= 'magnus.cli:cli'
 # Plugins for Catalog
 [tool.poetry.plugins."catalog"]
 "do-nothing" = "magnus.catalog:DoNothingCatalog"
-"file-system" = "magnus.extensions.catalog.file_system_catalog.implementation:FileSystemCatalog"
+"file-system" = "magnus.extensions.catalog.file_system.implementation:FileSystemCatalog"
 
 # Plugins for Secrets
 [tool.poetry.plugins."secrets"]
