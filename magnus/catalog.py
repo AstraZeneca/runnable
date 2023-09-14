@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import List
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 
 import magnus.context as context
 from magnus import defaults
@@ -24,9 +24,7 @@ class BaseCatalog(ABC, BaseModel):
     service_name: str = ""
     service_type: str = "catalog"
     compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
-
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
     @property
     def _context(self):

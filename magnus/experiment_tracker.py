@@ -3,7 +3,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 
 import magnus.context as context
 from magnus import defaults
@@ -25,8 +25,7 @@ class BaseExperimentTracker(ABC, BaseModel):
     def _context(self):
         return context.run_context
 
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
     @property
     def client_context(self) -> Any:
@@ -85,10 +84,10 @@ class DoNothingTracker(BaseExperimentTracker):
             key (str): The key against you want to store the value
             value (float): The value of the metric
         """
-        pass
+        ...
 
     def log_parameter(self, key: str, value: Any):
         """
         Since this is a Do nothing tracker, we don't need to log anything.
         """
-        pass
+        ...

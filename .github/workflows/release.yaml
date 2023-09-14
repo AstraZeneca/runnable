@@ -29,13 +29,13 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
-      - run: python -m pip install poetry
-      - run: python -m poetry install --only release
+      - run: python -m pip install python-semantic-release==8.0.7
+      # - run: python -m poetry install --only release
       - name: Figure version
         id: last_tag
         run: |
 
-          VERSION=$(poetry run semantic-release --noop --strict version --no-push --no-commit --print)
+          VERSION=$(python -m semantic-release --noop --strict version --no-push --no-commit --print)
           echo $VERSION
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       - name: Apply new tag

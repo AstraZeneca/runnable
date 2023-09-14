@@ -6,7 +6,7 @@ import string
 from collections import OrderedDict
 from typing import Any, List, Optional, Union
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, ConfigDict, Field
 from ruamel.yaml import YAML
 
 from magnus import defaults, integration, utils
@@ -48,7 +48,7 @@ class EnvVar(BaseModel):
     """
 
     name: str
-    value: Any
+    value: Any = None
 
     def dict(self, *args, **kwargs):
         return_value = {"name": self.name}
@@ -128,9 +128,7 @@ class Container(BaseModel):
     Container over-rides from the template defaults
     """
 
-    class Config:
-        # Needed for executor_config overrides
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
     command: List[str]
     image: str

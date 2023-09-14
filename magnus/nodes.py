@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 import magnus.context as context
 from magnus import defaults, exceptions, graph
@@ -41,11 +41,10 @@ class BaseNode(ABC, BaseModel):
     def _context(self):
         return context.run_context
 
-    class Config:
-        extra = Extra.forbid
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_name(cls, name: str):
         if "." in name or "%" in name:
             raise Exception("Node names cannot have . or '%' in them")

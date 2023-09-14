@@ -5,7 +5,7 @@ from magnus import (
     exceptions,  # pylint: disable=import-error
     graph,  # pylint: disable=import-error
 )
-from magnus.nodes import AsIsNode, FailNode, SuccessNode
+from magnus.extensions.nodes import AsIsNode, FailNode, SuccessNode
 
 
 def get_new_graph(start_at="this", internal_branch_name="i_name"):

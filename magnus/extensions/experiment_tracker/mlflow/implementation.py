@@ -2,7 +2,7 @@ import functools
 import logging
 from typing import Any
 
-from pydantic import Extra
+from pydantic import ConfigDict
 
 from magnus import defaults
 from magnus.experiment_tracker import BaseExperimentTracker
@@ -28,10 +28,7 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
     autolog: bool = False
     _default_experiment_name: str = "Default"
     _active_run_id: str = ""
-
-    class Config:
-        extra = Extra.forbid
-        underscore_attrs_are_private = True
+    model_config = ConfigDict(extra="forbid")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

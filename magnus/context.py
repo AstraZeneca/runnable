@@ -26,16 +26,9 @@ class Context(BaseModel):
     variables: Dict[str, str] = {}
     use_cached: bool = False
     original_run_id: str = ""
-    dag: Optional[Graph] = None  # TODO: Check how the dict() will work
+    dag: Optional[Graph] = None
     dag_hash: str = ""
     execution_plan: str = ""
-
-    class Config:
-        arbitrary_types_allowed = True
-        # fields = {"dag": {"exclude": True}}
-        # json_encoders = {
-        #     Graph: lambda obj: obj.to_dict(),
-        # }
 
 
 run_context = None  # type: Context # type: ignore

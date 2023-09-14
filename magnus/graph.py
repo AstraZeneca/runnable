@@ -27,21 +27,6 @@ class Graph(BaseModel):
     internal_branch_name: str = ""
     nodes: List["BaseNode"] = []
 
-    def _to_dict(self) -> dict:
-        """
-        Return a dict representation of the graph
-        """
-        dag = {}
-        dag["start_at"] = self.start_at
-        dag["name"] = self.name
-        dag["description"] = self.description
-        dag["max_time"] = self.max_time
-        dag["steps"] = {}
-        for node in self.nodes:
-            dag["steps"][node.name] = node.dict()
-
-        return dag
-
     def get_node_by_name(self, name: str) -> "BaseNode":
         """
         Return the Node object by the name
@@ -283,7 +268,7 @@ class Graph(BaseModel):
         self,
         success_node_name: str = "success",
         failure_node_name: str = "fail",
-        internal_branch_name: str = None,
+        internal_branch_name: str = "",
     ):
         """
         Add the success and fail nodes to the graph

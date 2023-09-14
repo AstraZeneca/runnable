@@ -202,7 +202,7 @@ class DoNothingExperimentTracker(BaseIntegration):
     service_provider = "do-nothing"  # The actual implementation of the service
 
     def validate(self, **kwargs):
-        msg = "A do-nothing secrets does not hold any secrets and therefore cannot return you any secrets."
+        msg = "A do-nothing experiment tracker does nothing and therefore cannot track anything."
         logger.warning(msg)
 
 

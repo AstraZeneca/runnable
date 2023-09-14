@@ -2,7 +2,7 @@ import pickle
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 
 import magnus.context as context
 
@@ -18,9 +18,7 @@ class BasePickler(ABC, BaseModel):
     extension: str = ""
     service_name: str = ""
     service_type: str = "pickler"
-
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
     @property
     def _context(self):

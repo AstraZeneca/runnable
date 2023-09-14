@@ -6,7 +6,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict
 
-from pydantic import Extra, validator
+from pydantic import ConfigDict, FieldValidationInfo, field_validator
 
 import magnus
 from magnus import defaults, utils
@@ -475,11 +475,14 @@ class DagNode(CompositeNode):
     is_composite: bool = True
     internal_branch_name: str = ""
 
-    @validator("internal_branch_name")
-    def validate_internal_branch_name(cls, internal_branch_name: str, values: dict):
-        return values["internal_name"] + "." + defaults.DAG_BRANCH_NAME
+    @field_validator("internal_branch_name")
+    @classmethod
+    def validate_internal_branch_name(cls, internal_branch_name: str, info: FieldValidationInfo):
+        internal_name = info.data["internal_name"]
+        return internal_name + "." + defaults.DAG_BRANCH_NAME
 
-    @validator("dag_definition")
+    @field_validator("dag_definition")
+    @classmethod
     def validate_dag_definition(cls, value):
         if not isinstance(value, str):
             raise ValueError("dag_definition must be a string")
@@ -607,9 +610,7 @@ class AsIsNode(ExecutableNode):
     """
 
     node_type: str = "as-is"
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "AsIsNode":

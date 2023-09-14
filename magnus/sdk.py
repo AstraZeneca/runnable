@@ -4,7 +4,7 @@ import logging
 from logging.config import dictConfig
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from magnus import defaults, entrypoints, graph, utils
 
@@ -100,15 +100,11 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 class BaseStep(BaseModel):
     name: str
     next_node: str = ""
-    on_failure: Optional[str]
-    _node: Optional[BaseStep]
+    on_failure: Optional[str] = None
+    _node: Optional[BaseStep] = None
     _is_frozen: bool = False  # Once the graph is constructed, it is frozen for any changes.
-    # Could be interesting to see this:
-    # https://stackoverflow.com/questions/67078207/is-it-possible-to-dynamically-change-the-mutability-of-a-pydantic-class
 
-    class Config:
-        extra = Extra.allow
-        underscore_attrs_are_private = True
+    model_config = ConfigDict(extra="allow")
 
     def _construct_node(self):
         """Construct a node of the graph."""
@@ -170,10 +166,7 @@ class Pipeline(BaseModel):
     internal_branch_name: str = ""
     _dag: Optional[graph.Graph] = None
     _start_at: Optional[Union[Task, AsIs]] = None
-
-    class Config:
-        extra = Extra.forbid
-        underscore_attrs_are_private = True
+    model_config = ConfigDict(extra="forbid")
 
     def __init__(self, **data):
         super().__init__(**data)

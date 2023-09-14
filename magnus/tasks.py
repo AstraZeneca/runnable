@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 from typing import ClassVar, List, Tuple
 
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, ConfigDict, FieldValidationInfo, field_validator
 from stevedore import driver
 
 import magnus.context as context
@@ -31,9 +31,7 @@ class BaseTaskType(BaseModel):
     task_type: ClassVar[str] = ""
 
     node_name: str
-
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
     @property
     def _context(self):
@@ -140,7 +138,8 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     command: str
 
-    @validator("command")
+    @field_validator("command")
+    @classmethod
     def validate_command(cls, command: str):
         if not command:
             raise Exception("Command cannot be empty for shell task")
@@ -192,7 +191,8 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 
     command: str
 
-    @validator("command")
+    @field_validator("command")
+    @classmethod
     def validate_command(cls, command: str):
         if not command:
             raise Exception("Command cannot be empty for shell task")
@@ -247,7 +247,8 @@ class NotebookTaskType(BaseTaskType):
     notebook_output_path: str = ""
     optional_ploomber_args: dict = {}
 
-    @validator("command")
+    @field_validator("command")
+    @classmethod
     def notebook_should_end_with_ipynb(cls, command: str):
         if not command:
             raise Exception("Command should point to the ipynb file")
@@ -257,12 +258,14 @@ class NotebookTaskType(BaseTaskType):
 
         return command
 
-    @validator("notebook_output_path")
-    def correct_notebook_output_path(cls, notebook_output_path: str, values: dict):
+    @field_validator("notebook_output_path")
+    @classmethod
+    def correct_notebook_output_path(cls, notebook_output_path: str, info: FieldValidationInfo):
         if notebook_output_path:
             return notebook_output_path
 
-        return "".join(values["command"].split(".")[:-1]) + "_out.ipynb"
+        command = info.data["command"]
+        return "".join(command.split(".")[:-1]) + "_out.ipynb"
 
     def get_cli_options(self) -> Tuple[str, dict]:
         return "notebook", {"command": self.command, "notebook-output-path": self.notebook_output_path}
@@ -329,7 +332,8 @@ class ShellTaskType(BaseTaskType):
 
     command: str
 
-    @validator("command")
+    @field_validator("command")
+    @classmethod
     def validate_command(cls, command: str):
         if not command:
             raise Exception("Command cannot be empty for shell task")
@@ -381,9 +385,6 @@ class ContainerTaskType(BaseTaskType):
     experiment_tracking_file: str = ""
 
     _temp_dir: str = ""
-
-    class Config:
-        underscore_attrs_are_private = True
 
     def get_cli_options(self) -> Tuple[str, dict]:
         return "container", {

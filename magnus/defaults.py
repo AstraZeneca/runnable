@@ -3,9 +3,9 @@
 from enum import Enum
 from typing import Any, Mapping, Optional
 
-try:
+try:  # pragma: no cover
     from typing import TypedDict  # type: ignore[unused-ignore]
-except ImportError:
+except ImportError:  # pragma: no cover
     from typing_extensions import TypedDict  # type: ignore[unused-ignore]
 
 

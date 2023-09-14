@@ -5,7 +5,7 @@ import os
 from abc import abstractmethod
 from typing import List, Optional
 
-from pydantic import Extra
+from pydantic import ConfigDict
 from rich import print
 
 from magnus import defaults, exceptions, integration, interaction, utils
@@ -43,10 +43,7 @@ class DefaultExecutor(BaseExecutor):
 
     _context_step_log = None  # type : StepLog
     _context_node = None  # type: BaseNode
-
-    class Config:
-        extra = Extra.forbid
-        underscore_attrs_are_private = True
+    model_config = ConfigDict(extra="forbid")
 
     @property
     def step_decorator_run_id(self):

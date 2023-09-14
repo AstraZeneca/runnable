@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Union
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 
 import magnus.context as context
 from magnus import defaults
@@ -26,9 +26,7 @@ class BaseSecrets(ABC, BaseModel):
 
     service_name: str = ""
     service_type: str = "secrets"
-
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
     @property
     def _context(self):
