@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, cast
+from typing import Dict, Optional, cast
 
 from magnus import defaults, integration, utils
 from magnus.datastore import StepLog
@@ -73,7 +73,7 @@ class LocalContainerExecutor(DefaultExecutor):
             code_id.code_identifier_url = "local docker host"
             step_log.code_identities.append(code_id)
 
-    def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
         """
         We are already in the container, we just execute the node.
         """
@@ -122,7 +122,7 @@ class LocalContainerExecutor(DefaultExecutor):
             )
             logger.warning(msg)
 
-    def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def trigger_job(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
         """
         If the config has "run_in_local: True", we compute it on local system instead of container.
         In local container execution, we just spin the container to execute magnus execute_single_node.
@@ -165,7 +165,7 @@ class LocalContainerExecutor(DefaultExecutor):
             step_log.status = defaults.FAIL
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    def _spin_container(self, node: BaseNode, command: str, map_variable: dict = None, **kwargs):
+    def _spin_container(self, node: BaseNode, command: str, map_variable: Optional[dict] = None, **kwargs):
         """
         During the flow run, we have to spin up a container with the docker image mentioned
         and the right log locations

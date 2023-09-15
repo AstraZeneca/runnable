@@ -12,7 +12,7 @@ from inspect import signature
 from pathlib import Path
 from string import Template as str_template
 from types import FunctionType
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 from ruamel.yaml import YAML
 from stevedore import driver
@@ -67,7 +67,7 @@ def safe_make_dir(directory: Union[str, Path]):
     Path(directory).mkdir(parents=True, exist_ok=True)
 
 
-def generate_run_id(run_id: str = None) -> str:
+def generate_run_id(run_id: str = "") -> str:
     """Generate a new run_id.
 
     If the input run_id is none, we create one based on time stamp.
@@ -425,7 +425,7 @@ def get_data_hash(file_name: str):
 
 
 def filter_arguments_for_func(
-    func: Callable[[Any], Dict[str, Any]], parameters: Dict[str, Any], map_variable: Dict[str, str] = None
+    func: Callable[[Any], Dict[str, Any]], parameters: Dict[str, Any], map_variable: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     """Inspects the function to be called as part of the pipeline to find the arguments of the function.
     Matches the function arguments to the parameters available either by command line or by up stream steps.
@@ -448,7 +448,7 @@ def filter_arguments_for_func(
 def filter_arguments_from_parameters(
     parameters: Dict[str, Any],
     signature_parameters: Union[List, Mapping],
-    map_variable: dict = None,
+    map_variable: Optional[Dict[str, str]] = None,
 ) -> dict:
     """Filters the given parameters based on the signature of the function.
 
@@ -476,7 +476,7 @@ def filter_arguments_from_parameters(
 
 def get_node_execution_command(
     node: BaseNode,
-    map_variable: dict = None,
+    map_variable: Optional[Dict[str, str]] = None,
     over_write_run_id: str = "",
 ) -> str:
     """A utility function to standardize execution call to a node via command line.
@@ -520,7 +520,7 @@ def get_fan_command(
     mode: str,
     node: BaseNode,
     run_id: str,
-    map_variable: dict = None,
+    map_variable: Optional[Dict[str, str]] = None,
 ) -> str:
     """
     An utility function to return the fan "in or out" command
@@ -679,7 +679,7 @@ def json_to_ordered_dict(json_str: str) -> OrderedDict:
     return OrderedDict()
 
 
-def set_magnus_environment_variables(run_id: str = None, configuration_file: str = None, tag: str = None):
+def set_magnus_environment_variables(run_id: str = "", configuration_file: str = "", tag: str = "") -> None:
     """Set the environment variables used by magnus. This function should be called during the prepare configurations
     by all executors.
 

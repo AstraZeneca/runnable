@@ -4,7 +4,7 @@ import multiprocessing
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from pydantic import ConfigDict, FieldValidationInfo, field_validator
 
@@ -31,12 +31,12 @@ class TaskNode(ExecutableNode):
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "TaskNode":
         # separate task config from node config
-        task_config = {k: v for k, v in config.items() if k not in TaskNode.__fields__.keys()}
-        node_config = {k: v for k, v in config.items() if k in TaskNode.__fields__.keys()}
+        task_config = {k: v for k, v in config.items() if k not in TaskNode.__fields__.keys()}  # type: ignore
+        node_config = {k: v for k, v in config.items() if k in TaskNode.__fields__.keys()}  # type: ignore
         executable = create_task(task_config)
         return cls(executable=executable, **node_config)
 
-    def execute(self, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
         All that we do in magnus is to come to this point where we actually execute the command.
 
@@ -75,7 +75,7 @@ class FailNode(TerminalNode):
 
     node_type: str = "fail"
 
-    def execute(self, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
         Execute the failure node.
         Set the run or branch log status to failure.
@@ -116,7 +116,7 @@ class SuccessNode(TerminalNode):
 
     node_type: str = "success"
 
-    def execute(self, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
         Execute the success node.
         Set the run or branch log status to success.
@@ -183,7 +183,7 @@ class ParallelNode(CompositeNode):
             raise Exception("A parallel node should have branches")
         return cls(branches=branches, **config)
 
-    def fan_out(self, map_variable: dict = None, **kwargs):
+    def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         The general fan out method for a node of type Parallel.
         This method assumes that the step log has already been created.
@@ -202,7 +202,7 @@ class ParallelNode(CompositeNode):
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
-    def execute_as_graph(self, map_variable: dict = None, **kwargs):
+    def execute_as_graph(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         This function does the actual execution of the sub-branches of the parallel node.
 
@@ -253,7 +253,7 @@ class ParallelNode(CompositeNode):
 
         self.fan_in(map_variable=map_variable, **kwargs)
 
-    def fan_in(self, map_variable: dict = None, **kwargs):
+    def fan_in(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         The general fan in method for a node of type Parallel.
 
@@ -332,7 +332,7 @@ class MapNode(CompositeNode):
         """
         return self.branch
 
-    def fan_out(self, map_variable: dict = None, **kwargs):
+    def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         The general method to fan out for a node of type map.
         This method assumes that the step log has already been created.
@@ -354,7 +354,7 @@ class MapNode(CompositeNode):
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
-    def execute_as_graph(self, map_variable: dict = None, **kwargs):
+    def execute_as_graph(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         This function does the actual execution of the branch of the map node.
 
@@ -424,7 +424,7 @@ class MapNode(CompositeNode):
 
         self.fan_in(map_variable=map_variable, **kwargs)
 
-    def fan_in(self, map_variable: dict = None, **kwargs):
+    def fan_in(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         The general method to fan in for a node of type map.
 
@@ -522,7 +522,7 @@ class DagNode(CompositeNode):
 
         return self.branch
 
-    def fan_out(self, map_variable: dict = None, **kwargs):
+    def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         The general method to fan out for a node of type dag.
         The method assumes that the step log has already been created.
@@ -537,7 +537,7 @@ class DagNode(CompositeNode):
         branch_log.status = defaults.PROCESSING
         self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
-    def execute_as_graph(self, map_variable: dict = None, **kwargs):
+    def execute_as_graph(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         This function does the actual execution of the branch of the dag node.
 
@@ -566,7 +566,7 @@ class DagNode(CompositeNode):
         self._context.executor.execute_graph(self.branch, map_variable=map_variable, **kwargs)
         self.fan_in(map_variable=map_variable, **kwargs)
 
-    def fan_in(self, map_variable: dict = None, **kwargs):
+    def fan_in(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         The general method to fan in for a node of type dag.
 
@@ -616,7 +616,7 @@ class AsIsNode(ExecutableNode):
     def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "AsIsNode":
         return cls(**config)
 
-    def execute(self, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
         Do Nothing node.
         We just send an success attempt log back to the caller

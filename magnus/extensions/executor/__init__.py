@@ -261,7 +261,7 @@ class DefaultExecutor(BaseExecutor):
         """
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
-    def _execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def _execute_node(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
         """
         This is the entry point when we do the actual execution of the function.
         DO NOT Over-ride this function.
@@ -330,7 +330,7 @@ class DefaultExecutor(BaseExecutor):
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
     @abstractmethod
-    def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
         """
         The exposed method to executing a node.
         All implementations should implement this method.
@@ -356,7 +356,7 @@ class DefaultExecutor(BaseExecutor):
         """
         step_log.code_identities.append(utils.get_git_code_identity(self._context.run_log_store))
 
-    def execute_from_graph(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def execute_from_graph(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
         """
         This is the entry point to from the graph execution.
 
@@ -421,7 +421,7 @@ class DefaultExecutor(BaseExecutor):
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
         self.trigger_job(node=node, map_variable=map_variable, **kwargs)
 
-    def trigger_job(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def trigger_job(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
         """
         Executor specific way of triggering jobs when magnus does both traversal and execution
 
@@ -437,7 +437,7 @@ class DefaultExecutor(BaseExecutor):
         """
         pass
 
-    def _get_status_and_next_node_name(self, current_node: BaseNode, dag: Graph, map_variable: dict = None):
+    def _get_status_and_next_node_name(self, current_node: BaseNode, dag: Graph, map_variable: Optional[dict] = None):
         """
         Given the current node and the graph, returns the name of the next node to execute.
 
@@ -470,7 +470,7 @@ class DefaultExecutor(BaseExecutor):
 
         return step_log.status, next_node_name
 
-    def execute_graph(self, dag: Graph, map_variable: dict = None, **kwargs):
+    def execute_graph(self, dag: Graph, map_variable: Optional[dict] = None, **kwargs):
         """
         The parallelization is controlled by the nodes and not by this function.
 
@@ -532,7 +532,7 @@ class DefaultExecutor(BaseExecutor):
             run_log = self._context.run_log_store.get_run_log_by_id(run_id=self._context.run_id, full=True)
         print(json.dumps(run_log.dict(), indent=4))
 
-    def _is_eligible_for_rerun(self, node: BaseNode, map_variable: dict = None):
+    def _is_eligible_for_rerun(self, node: BaseNode, map_variable: Optional[dict] = None):
         """
         In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
         necessary.
@@ -664,7 +664,7 @@ class DefaultExecutor(BaseExecutor):
         """
         raise NotImplementedError
 
-    def fan_out(self, node: BaseNode, map_variable: dict = None):
+    def fan_out(self, node: BaseNode, map_variable: Optional[dict] = None):
         """
         This method is used to appropriately fan-out the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
@@ -696,7 +696,7 @@ class DefaultExecutor(BaseExecutor):
 
         node.fan_out(executor=self, map_variable=map_variable)
 
-    def fan_in(self, node: BaseNode, map_variable: dict = None):
+    def fan_in(self, node: BaseNode, map_variable: Optional[dict] = None):
         """
         This method is used to appropriately fan-in after the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.

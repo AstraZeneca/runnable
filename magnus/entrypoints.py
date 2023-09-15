@@ -29,11 +29,11 @@ def get_default_configs() -> MagnusConfig:
 
 def prepare_configurations(
     run_id: str,
-    configuration_file: str = None,
-    pipeline_file: str = None,
+    configuration_file: str = "",
+    pipeline_file: str = "",
     tag: str = "",
     use_cached: str = "",
-    parameters_file: str = None,
+    parameters_file: str = "",
     force_local_executor: bool = False,
 ) -> context.Context:
     """
@@ -145,7 +145,7 @@ def execute(
     tag: str = "",
     run_id: str = "",
     use_cached: str = "",
-    parameters_file: str = None,
+    parameters_file: str = "",
 ):
     # pylint: disable=R0914,R0913
     """
@@ -209,7 +209,7 @@ def execute_single_step(
     step_name: str,
     run_id: str,
     tag: str = "",
-    parameters_file: str = None,
+    parameters_file: str = "",
     use_cached: str = "",
 ):
     """
@@ -280,7 +280,7 @@ def execute_single_node(
     map_variable: str,
     run_id: str,
     tag: str = "",
-    parameters_file: str = None,
+    parameters_file: str = "",
 ):
     """
     The entry point into executing a single node of magnus. Orchestration modes should extensively use this
@@ -384,8 +384,8 @@ def execute_notebook(
     configuration_file: str,
     notebook_output_path: str = "",
     tag: str = "",
-    run_id: str = None,
-    parameters_file: str = None,
+    run_id: str = "",
+    parameters_file: str = "",
 ):
     """
     The entry point to magnus execution of a notebook. This method would prepare the configurations and
@@ -442,8 +442,8 @@ def execute_function(
     catalog_config: dict,
     configuration_file: str,
     tag: str = "",
-    run_id: str = None,
-    parameters_file: str = None,
+    run_id: str = "",
+    parameters_file: str = "",
 ):
     """
     The entry point to magnus execution of a function. This method would prepare the configurations and
@@ -562,7 +562,7 @@ def fan(
     map_variable: str,
     run_id: str,
     tag: str = "",
-    parameters_file: str = None,
+    parameters_file: str = "",
 ):
     """
     The entry point to either fan in or out for a composite node. Only 3rd party orchestrators should use this.

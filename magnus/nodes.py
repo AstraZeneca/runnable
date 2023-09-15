@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -82,7 +82,7 @@ class BaseNode(ABC, BaseModel):
         return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, " ")
 
     @classmethod
-    def _resolve_map_placeholders(cls, name: str, map_variable: dict = None) -> str:
+    def _resolve_map_placeholders(cls, name: str, map_variable: Optional[Dict[str, str]] = None) -> str:
         """
         If there is no map step used, then we just return the name as we find it.
 
@@ -132,7 +132,7 @@ class BaseNode(ABC, BaseModel):
 
         return name
 
-    def _get_step_log_name(self, map_variable: dict = None) -> str:
+    def _get_step_log_name(self, map_variable: Optional[Dict[str, str]] = None) -> str:
         """
         For every step in the dag, there is a corresponding step log name.
         This method returns the step log name in dot path convention.
@@ -149,7 +149,7 @@ class BaseNode(ABC, BaseModel):
         """
         return self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
 
-    def _get_branch_log_name(self, map_variable: dict = None) -> str:
+    def _get_branch_log_name(self, map_variable: Optional[Dict[str, str]] = None) -> str:
         """
         For nodes that are internally branches, this method returns the branch log name.
         The branch log name is in dot path convention.
@@ -280,7 +280,7 @@ class BaseNode(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def execute(self, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
         The actual function that does the execution of the command in the config.
 
@@ -299,7 +299,7 @@ class BaseNode(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def execute_as_graph(self, map_variable: dict = None, **kwargs):
+    def execute_as_graph(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         This function would be called to set up the execution of the individual
         branches of a composite node.
@@ -315,7 +315,7 @@ class BaseNode(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def fan_out(self, map_variable: dict = None, **kwargs):
+    def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         This function would be called to set up the execution of the individual
         branches of a composite node.
@@ -332,7 +332,7 @@ class BaseNode(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def fan_in(self, map_variable: dict = None, **kwargs):
+    def fan_in(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
         This function would be called to tear down the execution of the individual
         branches of a composite node.
@@ -424,13 +424,13 @@ class ExecutableNode(TraversalNode):
     def _get_branch_by_name(self, branch_name: str):
         raise Exception("This is an executable node and does not have branches")
 
-    def execute_as_graph(self, map_variable: dict = None, **kwargs):
+    def execute_as_graph(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         raise Exception("This is an executable node and does not have a graph")
 
-    def fan_in(self, map_variable: dict = None, **kwargs):
+    def fan_in(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         raise Exception("This is an executable node and does not have a fan in")
 
-    def fan_out(self, map_variable: dict = None, **kwargs):
+    def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         raise Exception("This is an executable node and does not have a fan out")
 
 
@@ -455,7 +455,7 @@ class CompositeNode(TraversalNode):
     def _get_max_attempts(self) -> int:
         raise Exception("This is a composite node and does not have a max_attempts")
 
-    def execute(self, mock=False, map_variable: dict = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         raise Exception("This is a composite node and does not have an execute function")
 
 
@@ -481,13 +481,13 @@ class TerminalNode(BaseNode):
     def _get_max_attempts(self) -> int:
         return 1
 
-    def execute_as_graph(self, map_variable: dict = None, **kwargs):
+    def execute_as_graph(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         raise exceptions.TerminalNodeError()
 
-    def fan_in(self, map_variable: dict = None, **kwargs):
+    def fan_in(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         raise exceptions.TerminalNodeError()
 
-    def fan_out(self, map_variable: dict = None, **kwargs):
+    def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         raise exceptions.TerminalNodeError()
 
     @classmethod

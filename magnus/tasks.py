@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import ClassVar, List, Tuple
+from typing import ClassVar, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, FieldValidationInfo, field_validator
 from stevedore import driver
@@ -51,7 +51,7 @@ class BaseTaskType(BaseModel):
         """
         raise NotImplementedError()
 
-    def _get_parameters(self, map_variable: dict = None, **kwargs) -> dict:
+    def _get_parameters(self, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> dict:
         """Return the parameters in scope for the execution.
 
         Args:
@@ -62,7 +62,7 @@ class BaseTaskType(BaseModel):
         """
         return utils.get_user_set_parameters(remove=False)
 
-    def execute_command(self, map_variable: dict = None, **kwargs):
+    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """The function to execute the command.
 
         And map_variable is sent in as an argument into the function.
@@ -75,7 +75,7 @@ class BaseTaskType(BaseModel):
         """
         raise NotImplementedError()
 
-    def _set_parameters(self, parameters: dict = None, **kwargs):
+    def _set_parameters(self, parameters: Optional[Dict[str, str]] = None, **kwargs):
         """Set the parameters back to the environment variables.
 
         Args:
@@ -98,7 +98,7 @@ class BaseTaskType(BaseModel):
             os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
 
     @contextlib.contextmanager
-    def output_to_file(self, map_variable: dict = None):
+    def output_to_file(self, map_variable: Optional[Dict[str, str]] = None):
         """Context manager to put the output of a function execution to catalog.
 
         Args:
@@ -154,7 +154,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         """
         return "function", {"command": self.command}
 
-    def execute_command(self, map_variable: dict = None, **kwargs):
+    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """Execute the notebook as defined by the command."""
         module, func = utils.get_module_and_func_names(self.command)
         sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
@@ -199,7 +199,7 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 
         return command
 
-    def execute_command(self, map_variable: dict = None, **kwargs):
+    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """Execute the lambda function as defined by the command.
 
         Args:
@@ -270,7 +270,7 @@ class NotebookTaskType(BaseTaskType):
     def get_cli_options(self) -> Tuple[str, dict]:
         return "notebook", {"command": self.command, "notebook-output-path": self.notebook_output_path}
 
-    def execute_command(self, map_variable: dict = None, **kwargs):
+    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """Execute the python notebook as defined by the command.
 
         Args:
@@ -340,7 +340,7 @@ class ShellTaskType(BaseTaskType):
 
         return command
 
-    def execute_command(self, map_variable: dict = None, **kwargs):
+    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         # Using shell=True as we want to have chained commands to be executed in the same shell.
         """Execute the shell command as defined by the command.
 
@@ -397,7 +397,7 @@ class ContainerTaskType(BaseTaskType):
             "experiment-tracking-file": self.experiment_tracking_file,
         }
 
-    def execute_command(self, map_variable: dict = None, **kwargs):
+    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         # Conditional import
         from magnus import track_this
         from magnus.context import run_context

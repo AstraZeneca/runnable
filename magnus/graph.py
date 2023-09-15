@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List
+from typing import Any, Dict, List, Optional, cast
 
 from pydantic import BaseModel
 from stevedore import driver
@@ -295,10 +295,10 @@ class Graph(BaseModel):
 
 from magnus.nodes import BaseNode  # noqa: E402
 
-Graph.update_forward_refs()
+Graph.model_rebuild()
 
 
-def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
+def create_graph(dag_config: Dict[str, Any], internal_branch_name: str = "") -> Graph:
     """
     Creates a dag object from the dag definition.
 
@@ -315,9 +315,9 @@ def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
     Returns:
         Graph: The created graph object
     """
-    description = dag_config.get("description", None)
-    max_time = dag_config.get("max_time", defaults.MAX_TIME)
-    start_at = dag_config.get("start_at")  # Let the start_at be relative to the graph
+    description: str = dag_config.get("description", None)
+    max_time: int = dag_config.get("max_time", defaults.MAX_TIME)
+    start_at: str = cast(str, dag_config.get("start_at"))  # Let the start_at be relative to the graph
 
     graph = Graph(
         start_at=start_at,
@@ -339,7 +339,7 @@ def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
     return graph
 
 
-def create_node(name: str, step_config: dict, internal_branch_name: str = None):
+def create_node(name: str, step_config: dict, internal_branch_name: Optional[str] = None):
     """
     Creates a node object from the step configuration.
 

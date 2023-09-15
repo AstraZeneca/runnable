@@ -1,6 +1,6 @@
 import logging
 import shlex
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -49,7 +49,7 @@ class K8sJobExecutor(BaseExecutor):
         tolerations: List[Toleration] = []
         labels: Dict[str, str] = {}
 
-    def __init__(self, config: dict = None):
+    def __init__(self, config: Optional[dict] = None):
         self.config = self.ContextConfig(**(config or {}))
         self.persistent_volumes = {}
 
@@ -225,7 +225,7 @@ class K8sJobExecutor(BaseExecutor):
             logger.exception(e)
             raise
 
-    def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
         step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
 
         self.add_code_identities(node=node, step_log=step_log)
@@ -240,7 +240,7 @@ class K8sJobExecutor(BaseExecutor):
         if step_log.status == defaults.FAIL:
             raise Exception(f"Step {node.name} failed")
 
-    def execute_graph(self, dag: Graph, map_variable: dict = None, **kwargs):
+    def execute_graph(self, dag: Graph, map_variable: Optional[dict] = None, **kwargs):
         msg = "This executor is not supported to execute any graphs but only jobs (functions or notebooks)"
         raise NotImplementedError(msg)
 

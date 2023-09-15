@@ -91,7 +91,7 @@ def get_parameter(key=None) -> Union[str, dict]:
     return parameters[key]
 
 
-def get_secret(secret_name: str = None) -> str | Dict[str, str]:
+def get_secret(secret_name: str = "") -> str | Dict[str, str]:
     """
     Get a secret by the name from the secrets manager
 
@@ -121,7 +121,7 @@ def get_secret(secret_name: str = None) -> str | Dict[str, str]:
         raise
 
 
-def get_from_catalog(name: str, destination_folder: str = None):
+def get_from_catalog(name: str, destination_folder: str = ""):
     """
     A convenience interaction function to get file from the catalog and place it in the destination folder
 

@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Optional
 
 from magnus import defaults, utils
 from magnus.extensions.executor import DefaultExecutor
@@ -25,7 +26,7 @@ class DemoRenderer(DefaultExecutor):
 
     service_name: str = "demo-renderer"
 
-    def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
         """
         This method does the actual execution of a task, as-is, success or fail node.
         """
@@ -59,7 +60,7 @@ class DemoRenderer(DefaultExecutor):
             if run_log.status == defaults.FAIL:
                 raise Exception("Pipeline execution failed")
 
-    def execute_graph(self, dag: Graph, map_variable: dict = None, **kwargs):
+    def execute_graph(self, dag: Graph, map_variable: Optional[dict] = None, **kwargs):
         """
         Iterate through the graph and frame the bash script.
 

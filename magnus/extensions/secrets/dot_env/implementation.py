@@ -60,7 +60,7 @@ class DotEnvSecrets(BaseSecrets):
                 key, value = data
                 self.secrets[key] = value.strip("\n")
 
-    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
+    def get(self, name: str = "", **kwargs) -> Union[str, dict]:
         """
         Get a secret of name from the secrets file.
 

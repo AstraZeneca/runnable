@@ -19,7 +19,7 @@ class EnvSecretsManager(BaseSecrets):
     prefix: str = ""
     suffix: str = ""
 
-    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
+    def get(self, name: str = "", **kwargs) -> Union[str, dict]:
         """
         If a name is provided, we look for that in the environment.
         If a environment variable by that name is not found, we raise an Exception.

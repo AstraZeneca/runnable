@@ -33,7 +33,7 @@ class BaseSecrets(ABC, BaseModel):
         return context.run_context
 
     @abstractmethod
-    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
+    def get(self, name: str = "", **kwargs) -> Union[str, dict]:
         """
         Return the secret by name.
         If no name is give, return all the secrets.
@@ -57,7 +57,7 @@ class DoNothingSecretManager(BaseSecrets):
 
     service_name: str = "do-nothing"
 
-    def get(self, name: str = None, **kwargs) -> Union[str, dict]:
+    def get(self, name: str = "", **kwargs) -> Union[str, dict]:
         """
         If a name is provided, return None else return empty dict.
 

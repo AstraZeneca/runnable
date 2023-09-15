@@ -298,14 +298,14 @@ class NodeRenderer:
         self.executor = executor
         self.node = node
 
-    def render(self, list_of_iter_values: List = None):
+    def render(self, list_of_iter_values: Optional[List] = None):
         pass
 
 
 class ExecutionNode(NodeRenderer):
     allowed_node_types = ["task", "as-is", "success", "fail"]
 
-    def render(self, list_of_iter_values: List = None):
+    def render(self, list_of_iter_values: Optional[List] = None):
         """
         Compose the map variable and create the execution command.
         Create an input to the command.
@@ -337,7 +337,7 @@ class ExecutionNode(NodeRenderer):
 class DagNode(NodeRenderer):
     allowed_node_types = ["dag"]
 
-    def render(self, list_of_iter_values: List = None):
+    def render(self, list_of_iter_values: Optional[List] = None):
         task_template_arguments = []
         dag_inputs = []
         if list_of_iter_values:
@@ -383,7 +383,7 @@ class DagNode(NodeRenderer):
 class ParallelNode(NodeRenderer):
     allowed_node_types = ["parallel"]
 
-    def render(self, list_of_iter_values: List = None):
+    def render(self, list_of_iter_values: Optional[List] = None):
         task_template_arguments = []
         dag_inputs = []
         if list_of_iter_values:
@@ -432,7 +432,7 @@ class ParallelNode(NodeRenderer):
 class MapNode(NodeRenderer):
     allowed_node_types = ["map"]
 
-    def render(self, list_of_iter_values: List = None):
+    def render(self, list_of_iter_values: Optional[List] = None):
         task_template_arguments = []
         dag_inputs = []
         if list_of_iter_values:
@@ -510,7 +510,7 @@ class ArgoExecutor(BaseExecutor):
         persistent_volumes: dict = {}
         failFast: bool = Field(True, alias="failFast")  # Only applies to withItems or map state
 
-    def __init__(self, config: dict = None):
+    def __init__(self, config: Optional[dict] = None):
         self.config = self.ContextConfig(**(config or {}))
 
         self.persistent_volumes = {}
@@ -568,7 +568,7 @@ class ArgoExecutor(BaseExecutor):
 
         self._set_up_run_log(exists_ok=True)
 
-    def execute_node(self, node: BaseNode, map_variable: dict = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
         step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
 
         self.add_code_identities(node=node, step_log=step_log)
@@ -653,8 +653,8 @@ class ArgoExecutor(BaseExecutor):
         self,
         working_on: BaseNode,
         command: str,
-        inputs: List = None,
-        outputs: List = None,
+        inputs: Optional[List] = None,
+        outputs: Optional[List] = None,
         overwrite_name: str = "",
     ):
         mode_config = self._resolve_executor_config(working_on)
@@ -707,7 +707,7 @@ class ArgoExecutor(BaseExecutor):
 
         return container_template
 
-    def _create_fan_out_template(self, composite_node, list_of_iter_values: List = None):
+    def _create_fan_out_template(self, composite_node, list_of_iter_values: Optional[List] = None):
         clean_name = self.get_clean_name(composite_node)
         inputs = []
         # If we are fanning out already map state, we need to send the map variable inside
@@ -749,7 +749,7 @@ class ArgoExecutor(BaseExecutor):
         self.container_templates.append(container_template)
         return TaskTemplate(name=f"{clean_name}-fan-out", template=f"{clean_name}-fan-out")
 
-    def _create_fan_in_template(self, composite_node, list_of_iter_values: List = None):
+    def _create_fan_in_template(self, composite_node, list_of_iter_values: Optional[List] = None):
         clean_name = self.get_clean_name(composite_node)
         inputs = []
         # If we are fanning in already map state, we need to send the map variable inside
@@ -781,7 +781,9 @@ class ArgoExecutor(BaseExecutor):
         clean_name = self.get_clean_name(composite_node)
         return TaskTemplate(name=f"{clean_name}-fan-in", template=f"{clean_name}-fan-in")
 
-    def _gather_task_templates_of_dag(self, dag: Graph, dag_name="magnus-dag", list_of_iter_values: List = None):
+    def _gather_task_templates_of_dag(
+        self, dag: Graph, dag_name="magnus-dag", list_of_iter_values: Optional[List] = None
+    ):
         current_node = dag.start_at
         previous_node = None
         previous_node_template_name = None
@@ -868,7 +870,7 @@ class ArgoExecutor(BaseExecutor):
 
         return TemplateDefaults(**template_default_json)
 
-    def execute_graph(self, dag: Graph, map_variable: dict = None, **kwargs):
+    def execute_graph(self, dag: Graph, map_variable: Optional[dict] = None, **kwargs):
         workspec = WorkSpec()
         specification = workspec.spec
 

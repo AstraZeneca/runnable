@@ -4,7 +4,7 @@ import time
 from enum import Enum
 from pathlib import Path
 from string import Template
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from magnus import defaults, exceptions, utils
 from magnus.datastore import BaseRunLogStore, BranchLog, RunLog, StepLog
@@ -222,7 +222,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
 
         raise FileNotFoundError()
 
-    def orderly_retrieve(self, run_id: str, log_type: LogTypes) -> dict[str, Union[StepLog, BranchLog]]:
+    def orderly_retrieve(self, run_id: str, log_type: LogTypes) -> Dict[str, Union[StepLog, BranchLog]]:
         """Should only be used by prepare full run log.
 
         Retrieves the StepLog or BranchLog sorted according to creation time.
@@ -247,7 +247,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         # sort matches by epoch created
         epoch_created, matches = zip(*sorted(zip(epoch_created, matches)))  # type: ignore
 
-        logs: dict[str, Union[StepLog, BranchLog]] = {}
+        logs: Dict[str, Union[StepLog, BranchLog]] = {}
 
         for match in matches:  # type: ignore
             model = self.ModelTypes[log_type.name].value

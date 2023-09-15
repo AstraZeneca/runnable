@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 
 import magnus.context as context
 from magnus import defaults, exceptions
@@ -15,7 +15,7 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 # Breaking this rule might make magnus backwardly incompatible
 
 
-class DataCatalog(BaseModel, extra=Extra.allow):
+class DataCatalog(BaseModel, extra="allow"):
     """
     The captured attributes of a catalog item.
     """
@@ -56,7 +56,7 @@ class StepAttempt(BaseModel):
     parameters: dict = {}
 
 
-class CodeIdentity(BaseModel, extra=Extra.allow):
+class CodeIdentity(BaseModel, extra="allow"):
     """
     The captured attributes of a code identity of a step.
     """
@@ -157,7 +157,7 @@ class BranchLog(BaseModel):
 
 
 # Needed for BranchLog of StepLog to be referenced
-StepLog.update_forward_refs()
+StepLog.model_rebuild()
 
 
 class RunLog(BaseModel):
