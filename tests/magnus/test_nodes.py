@@ -1,9 +1,6 @@
 import pytest
 
-from magnus import (
-    defaults,  # pylint: disable=import-error
-    nodes,  # pylint: disable=import-error
-)
+from magnus import defaults, nodes, exceptions  # pylint: disable=import-error  # pylint: disable=import-error
 
 
 @pytest.fixture(autouse=True)
@@ -12,8 +9,66 @@ def instantiable_base_class(monkeypatch):
     yield
 
 
+@pytest.fixture()
+def instantiable_traversal_node(monkeypatch):
+    monkeypatch.setattr(nodes.TraversalNode, "__abstractmethods__", set())
+    yield
+
+
+@pytest.fixture()
+def instantiable_executable_node(monkeypatch):
+    monkeypatch.setattr(nodes.ExecutableNode, "__abstractmethods__", set())
+    yield
+
+
+@pytest.fixture()
+def instantiable_composite_node(monkeypatch):
+    monkeypatch.setattr(nodes.CompositeNode, "__abstractmethods__", set())
+    yield
+
+
+@pytest.fixture()
+def instantiable_terminal_node(monkeypatch):
+    monkeypatch.setattr(nodes.TerminalNode, "__abstractmethods__", set())
+    yield
+
+
+def test_base_run_log_store_context_property(mocker, monkeypatch, instantiable_base_class):
+    mock_run_context = mocker.Mock()
+
+    monkeypatch.setattr(nodes.context, "run_context", mock_run_context)
+
+    assert nodes.BaseNode(node_type="dummy", name="test", internal_name="")._context == mock_run_context
+
+
+def test_validate_name_for_dot(instantiable_base_class):
+    with pytest.raises(ValueError):
+        nodes.BaseNode(name="test.", internal_name="test", node_type="dummy")
+
+
+def test_validate_name_for_percent(instantiable_base_class):
+    with pytest.raises(ValueError):
+        nodes.BaseNode(name="test%", internal_name="test", node_type="dummy")
+
+
+def test_next_is_changed_to_next_node():
+    config = {"next": "I would be changed to next node"}
+    nodes.BaseNode.remove_next_keyword_from_config(config)
+
+    assert "next" not in config
+    assert config["next_node"] == "I would be changed to next node"
+
+
+def test_config_is_untouched_if_not_present():
+    config = {"next_node": "I would stay the same"}
+    nodes.BaseNode.remove_next_keyword_from_config(config)
+
+    assert "next" not in config
+    assert config["next_node"] == "I would stay the same"
+
+
 def test_base_node__command_friendly_name_replaces_whitespace_with_character():
-    node = nodes.BaseNode(name="test", internal_name="test")
+    node = nodes.BaseNode(name="test", internal_name="test", node_type="dummy")
 
     assert node._command_friendly_name() == "test"
 
@@ -28,39 +83,43 @@ def test_base_node__get_internal_name_from_command_name_replaces_character_with_
 
 
 def test_base_node__get_step_log_name_returns_internal_name_if_no_map_variable():
-    node = nodes.BaseNode(name="test", internal_name="test")
+    node = nodes.BaseNode(name="test", internal_name="test", node_type="dummy")
 
     assert node._get_step_log_name() == "test"
 
 
 def test_base_node__get_step_log_name_returns_map_modified_internal_name_if_map_variable():
-    node = nodes.BaseNode(name="test", internal_name="test." + defaults.MAP_PLACEHOLDER)
+    node = nodes.BaseNode(name="test", internal_name="test." + defaults.MAP_PLACEHOLDER, node_type="dummy")
 
     assert node._get_step_log_name(map_variable={"map_key": "a"}) == "test.a"
 
 
 def test_base_node__get_step_log_name_returns_map_modified_internal_name_if_map_variable_multiple():
     node = nodes.BaseNode(
-        name="test", internal_name="test." + defaults.MAP_PLACEHOLDER + ".step." + defaults.MAP_PLACEHOLDER
+        name="test",
+        internal_name="test." + defaults.MAP_PLACEHOLDER + ".step." + defaults.MAP_PLACEHOLDER,
+        node_type="dummy",
     )
 
     assert node._get_step_log_name(map_variable={"map_key": "a", "map_key1": "b"}) == "test.a.step.b"
 
 
 def test_base_node__get_branch_log_name_returns_null_if_not_set():
-    node = nodes.BaseNode(name="test", internal_name="test")
+    node = nodes.BaseNode(name="test", internal_name="test", node_type="dummy")
 
-    assert node._get_branch_log_name() is None
+    assert node._get_branch_log_name() is ""
 
 
 def test_base_node__get_branch_log_name_returns_internal_name_if_set():
-    node = nodes.BaseNode(name="test", internal_name="test", internal_branch_name="test_internal")
+    node = nodes.BaseNode(name="test", internal_name="test", internal_branch_name="test_internal", node_type="dummy")
 
     assert node._get_branch_log_name() == "test_internal"
 
 
 def test_base_node__get_branch_log_name_returns_map_modified_internal_name_if_map_variable():
-    node = nodes.BaseNode(name="test", internal_name="test_", internal_branch_name="test." + defaults.MAP_PLACEHOLDER)
+    node = nodes.BaseNode(
+        name="test", internal_name="test_", internal_branch_name="test." + defaults.MAP_PLACEHOLDER, node_type="dummy"
+    )
 
     assert node._get_branch_log_name(map_variable={"map_key": "a"}) == "test.a"
 
@@ -70,346 +129,279 @@ def test_base_node__get_branch_log_name_returns_map_modified_internal_name_if_ma
         name="test",
         internal_name="test_",
         internal_branch_name="test." + defaults.MAP_PLACEHOLDER + ".step." + defaults.MAP_PLACEHOLDER,
+        node_type="dummy",
     )
 
     assert node._get_branch_log_name(map_variable={"map_key": "a", "map_key1": "b"}) == "test.a.step.b"
 
 
-def test_base_node__get_branch_by_name_raises_exception():
-    node = nodes.BaseNode(name="test", internal_name="test")
+def test_traversal_node_get_on_failure_node_returns_from_config(instantiable_traversal_node):
+    traversal_class = nodes.TraversalNode(
+        name="test", internal_name="test", node_type="test", next_node="next", on_failure="on_failure"
+    )
 
-    with pytest.raises(Exception):
-        node._get_branch_by_name("fail")
+    assert traversal_class._get_on_failure_node() == "on_failure"
 
 
-def test_base_node_execute_raises_not_implemented_error():
-    node = nodes.BaseNode(name="test", internal_name="test")
+def test_traversal_node_get_next_node_returns_from_config(instantiable_traversal_node):
+    traversal_class = nodes.TraversalNode(
+        name="test", internal_name="test", node_type="test", next_node="next", on_failure="on_failure"
+    )
 
-    with pytest.raises(NotImplementedError):
-        node.execute(executor="test")
+    assert traversal_class._get_next_node() == "next"
 
 
-def test_base_node_execute_as_graph_raises_not_implemented_error():
-    node = nodes.BaseNode(name="test", internal_name="test")
+def test_traversal_node_is_terminal_node_is_false(instantiable_traversal_node):
+    traversal_class = nodes.TraversalNode(
+        name="test", internal_name="test", node_type="test", next_node="next", on_failure="on_failure"
+    )
 
-    with pytest.raises(NotImplementedError):
-        node.execute_as_graph(executor="test")
+    assert traversal_class._is_terminal_node() is False
 
 
-def test_task_node_mocks_if_mock_is_true(mocker, monkeypatch):
-    mock_attempt_log = mocker.MagicMock()
+def test_traversal_node_get_executor_config_defaults_to_empty_dict(instantiable_traversal_node):
+    traversal_class = nodes.TraversalNode(
+        name="test", internal_name="test", node_type="test", next_node="next", on_failure="on_failure"
+    )
 
-    mock_executor = mocker.MagicMock()
-    mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
+    assert traversal_class._get_executor_config("I do not exist") == {}
 
-    configuration = {"command": "test", "next_node": "next_node"}
-    task_node = nodes.TaskNode(name="test", internal_name="test", config=configuration)
 
-    task_node.execute(executor=mock_executor, mock=True)
+def test_traversal_node_get_executor_returns_configured_config(instantiable_traversal_node):
+    traversal_class = nodes.TraversalNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+        on_failure="on_failure",
+        executor_config={"test": {"key": "value"}},
+    )
 
-    assert mock_attempt_log.status == defaults.SUCCESS
+    assert traversal_class._get_executor_config("test") == {"key": "value"}
 
 
-def test_task_node_sets_attempt_log_fail_in_exception_of_execution(mocker, monkeypatch):
-    mock_attempt_log = mocker.MagicMock()
+def test_executable_node_get_catalog_returns_from_config(instantiable_executable_node):
+    traversal_class = nodes.ExecutableNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+        on_failure="on_failure",
+        catalog={"test": {"key": "value"}},
+    )
 
-    mock_executor = mocker.MagicMock()
-    mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
+    assert traversal_class._get_catalog_settings() == {"test": {"key": "value"}}
 
-    configuration = {"command": "test", "next_node": "next_node"}
-    task_node = nodes.TaskNode(name="test", internal_name="test", config=configuration)
 
-    mock_execution_type = mocker.MagicMock()
-    task_node.execution_type = mocker.MagicMock(return_value=mock_execution_type)
-    mock_execution_type.execute_command = mocker.MagicMock(side_effect=Exception())
-    task_node.execute(executor=mock_executor)
+def test_executable_node_get_catalog_detaults_to_empty(instantiable_executable_node):
+    traversal_class = nodes.ExecutableNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+        on_failure="on_failure",
+    )
 
-    assert mock_attempt_log.status == defaults.FAIL
+    assert traversal_class._get_catalog_settings() == {}
 
 
-def test_task_node_sets_attempt_log_success_in_no_exception_of_execution(mocker, monkeypatch):
-    mock_attempt_log = mocker.MagicMock()
+def test_executable_node_get_max_attempts_from_config(instantiable_executable_node):
+    traversal_class = nodes.ExecutableNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+        on_failure="on_failure",
+        max_attempts=10,
+    )
 
-    mock_executor = mocker.MagicMock()
-    mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
+    assert traversal_class._get_max_attempts() == 10
 
-    configuration = {"command": "test", "next_node": "next_node"}
-    task_node = nodes.TaskNode(name="test", internal_name="test", config=configuration)
 
-    task_node.executable = mocker.MagicMock()
+def test_executable_node_get_catalog_detaults_to_1(instantiable_executable_node):
+    traversal_class = nodes.ExecutableNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+        on_failure="on_failure",
+    )
 
-    task_node.execute(executor=mock_executor)
+    assert traversal_class._get_max_attempts() == 1
 
-    assert mock_attempt_log.status == defaults.SUCCESS
 
+def test_executable_node_get_branch_by_name_raises_exception(instantiable_executable_node):
+    traversal_class = nodes.ExecutableNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+    )
+
+    with pytest.raises(Exception, match="This is an executable node and"):
+        traversal_class._get_branch_by_name("test")
 
-def test_task_node_execute_as_graph_raises_exception():
-    configuration = {"command": "test", "next_node": "next_node"}
-    task_node = nodes.TaskNode(name="test", internal_name="test", config=configuration)
 
-    with pytest.raises(Exception):
-        task_node.execute_as_graph(None)
+def test_executable_node_execute_as_graph_raises_exception(instantiable_executable_node):
+    traversal_class = nodes.ExecutableNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+    )
 
+    with pytest.raises(Exception, match="This is an executable node and"):
+        traversal_class.execute_as_graph()
 
-def test_fail_node_sets_branch_log_fail(mocker, monkeypatch):
-    mock_attempt_log = mocker.MagicMock()
-    mock_branch_log = mocker.MagicMock()
 
-    mock_executor = mocker.MagicMock()
-    mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
-    mock_executor.run_log_store.get_branch_log = mocker.MagicMock(return_value=mock_branch_log)
+def test_executable_node_fan_in_raises_exception(instantiable_executable_node):
+    traversal_class = nodes.ExecutableNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+    )
 
-    node = nodes.FailNode(name="test", internal_name="test", config={})
+    with pytest.raises(Exception, match="This is an executable node and"):
+        traversal_class.fan_in()
 
-    node.execute(executor=mock_executor)
 
-    assert mock_attempt_log.status == defaults.SUCCESS
-    assert mock_branch_log.status == defaults.FAIL
+def test_executable_node_fan_out_raises_exception(instantiable_executable_node):
+    traversal_class = nodes.ExecutableNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+    )
 
+    with pytest.raises(Exception, match="This is an executable node and"):
+        traversal_class.fan_out()
 
-def test_fail_node_sets_attempt_log_success_even_in_exception(mocker, monkeypatch):
-    mock_attempt_log = mocker.MagicMock()
 
-    mock_executor = mocker.MagicMock()
-    mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
-    mock_executor.run_log_store.get_branch_log = mocker.MagicMock(side_effect=Exception())
+def test_composite_node_get_catalog_settings_raises_exception(instantiable_composite_node):
+    traversal_class = nodes.CompositeNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+    )
 
-    node = nodes.FailNode(name="test", internal_name="test", config={})
+    with pytest.raises(Exception, match="This is a composite node and"):
+        traversal_class._get_catalog_settings()
 
-    node.execute(executor=mock_executor)
 
-    assert mock_attempt_log.status == defaults.SUCCESS
+def test_composite_node_get_max_attempts_raises_exception(instantiable_composite_node):
+    traversal_class = nodes.CompositeNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+    )
 
+    with pytest.raises(Exception, match="This is a composite node and"):
+        traversal_class._get_max_attempts()
 
-def test_fail_node_execute_as_graph_raises_exception():
-    fail_node = nodes.FailNode(name="test", internal_name="test", config={})
 
-    with pytest.raises(Exception):
-        fail_node.execute_as_graph(None)
+def test_composite_node_execute_raises_exception(instantiable_composite_node):
+    traversal_class = nodes.CompositeNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+    )
 
+    with pytest.raises(Exception, match="This is a composite node and"):
+        traversal_class.execute()
 
-def test_success_node_sets_branch_log_success(mocker, monkeypatch):
-    mock_attempt_log = mocker.MagicMock()
-    mock_branch_log = mocker.MagicMock()
 
-    mock_executor = mocker.MagicMock()
-    mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
-    mock_executor.run_log_store.get_branch_log = mocker.MagicMock(return_value=mock_branch_log)
+def test_composite_node_get_branch_by_name_raises_exception_if_not_found(instantiable_composite_node):
+    traversal_class = nodes.CompositeNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+    )
+    traversal_class._branches = {"test": {"key": "value"}}
 
-    node = nodes.SuccessNode(name="test", internal_name="test", config={})
+    with pytest.raises(Exception, match="does not exist"):
+        traversal_class._get_branch_by_name("I do not exist")
 
-    node.execute(executor=mock_executor)
 
-    assert mock_attempt_log.status == defaults.SUCCESS
-    assert mock_branch_log.status == defaults.SUCCESS
+def test_composite_node_get_branch_by_name_returns_if_found(instantiable_composite_node):
+    traversal_class = nodes.CompositeNode(
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+    )
+    traversal_class._branches = {"test": {"key": "value"}}
 
+    assert traversal_class._get_branch_by_name("test") == {"key": "value"}
 
-def test_success_node_sets_attempt_log_success_even_in_exception(mocker, monkeypatch):
-    mock_attempt_log = mocker.MagicMock()
 
-    mock_executor = mocker.MagicMock()
-    mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
-    mock_executor.run_log_store.get_branch_log = mocker.MagicMock(side_effect=Exception())
+def test_terminal_node_get_on_failure_node_raises_exception(instantiable_terminal_node):
+    node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
-    node = nodes.SuccessNode(name="test", internal_name="test", config={})
+    with pytest.raises(exceptions.TerminalNodeError):
+        node._get_on_failure_node()
 
-    node.execute(executor=mock_executor)
 
-    assert mock_attempt_log.status == defaults.SUCCESS
+def test_terminal_node__get_next_node_raises_exception(instantiable_terminal_node):
+    node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
+    with pytest.raises(exceptions.TerminalNodeError):
+        node._get_next_node()
 
-def test_success_node_execute_as_graph_raises_exception():
-    success_node = nodes.SuccessNode(name="test", internal_name="test", config={})
 
-    with pytest.raises(Exception):
-        success_node.execute_as_graph(None)
+def test_terminal_node__get_catalog_settings_raises_exception(instantiable_terminal_node):
+    node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
+    with pytest.raises(exceptions.TerminalNodeError):
+        node._get_catalog_settings()
 
-def test_parallel_node_raises_exception_for_empty_branches():
-    with pytest.raises(Exception):
-        nodes.ParallelNode(name="test", internal_name="test", config={"branches": {}}, execution_type="python")
 
+def test_terminal_node__get_branch_by_name_raises_exception(instantiable_terminal_node):
+    node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
-def test_parallel_node_get_sub_graphs_creates_graphs(mocker, monkeypatch):
-    mock_create_graph = mocker.MagicMock(return_value="agraphobject")
+    with pytest.raises(exceptions.TerminalNodeError):
+        node._get_branch_by_name("does not matter")
 
-    monkeypatch.setattr(nodes, "create_graph", mock_create_graph)
 
-    parallel_config = {"branches": {"a": {}, "b": {}}, "next": "next_node"}
-    node = nodes.ParallelNode(name="test", internal_name="test", config=parallel_config)
-    assert mock_create_graph.call_count == 2
-    assert len(node.branches.items()) == 2
+def test_terminal_node__get_executor_config_raises_exception(instantiable_terminal_node):
+    node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
+    with pytest.raises(exceptions.TerminalNodeError):
+        node._get_executor_config("does not matter")
 
-def test_parallel_node__get_branch_by_name_raises_exception_if_branch_not_found(mocker, monkeypatch):
-    monkeypatch.setattr(nodes.ParallelNode, "get_sub_graphs", mocker.MagicMock())
 
-    parallel_config = {"branches": {"a": {}, "b": {}}, "next": "next_node"}
+def test_terminal_node_execute_as_graph_raises_exception(instantiable_terminal_node):
+    node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
-    node = nodes.ParallelNode(name="test", internal_name="test", config=parallel_config)
+    with pytest.raises(exceptions.TerminalNodeError):
+        node.execute_as_graph()
 
-    with pytest.raises(Exception):
-        node._get_branch_by_name("a1")
 
+def test_terminal_node_fan_out_raises_exception(instantiable_terminal_node):
+    node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
-def test_parallel_node__get_branch_by_name_returns_branch_if_found(mocker, monkeypatch):
-    monkeypatch.setattr(nodes.ParallelNode, "get_sub_graphs", mocker.MagicMock())
+    with pytest.raises(exceptions.TerminalNodeError):
+        node.fan_out()
 
-    parallel_config = {"branches": {"a": {}, "b": {}}, "next": "next_node"}
 
-    node = nodes.ParallelNode(name="test", internal_name="test", config=parallel_config)
-    node.branches = {"a": "somegraph"}
+def test_terminal_node_fan_in_raises_exception(instantiable_terminal_node):
+    node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
-    assert node._get_branch_by_name("a") == "somegraph"
+    with pytest.raises(exceptions.TerminalNodeError):
+        node.fan_in()
 
 
-def test_parallel_node_execute_raises_exception(mocker, monkeypatch):
-    monkeypatch.setattr(nodes.ParallelNode, "get_sub_graphs", mocker.MagicMock())
+def test_terminal_node_max_attempts_returns_1(instantiable_terminal_node):
+    node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
-    parallel_config = {"branches": {"a": {}, "b": {}}, "next": "next_node"}
+    assert node._get_max_attempts() == 1
 
-    node = nodes.ParallelNode(name="test", internal_name="test", config=parallel_config)
 
-    with pytest.raises(Exception):
-        node.execute(executor="test")
+def test_terminal_node_is_terminal_node_returns_true(instantiable_terminal_node):
+    node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
-
-def test_nodes_map_node_raises_exception_if_config_not_have_iterate_on():
-    map_config = {"branch": {}, "next": "next_node", "iterate_as": "test"}
-    with pytest.raises(Exception):
-        nodes.MapNode(name="test", internal_name="test", config=map_config)
-
-
-def test_nodes_map_node_raises_exception_if_config_not_have_iterate_as():
-    map_config = {"branch": {}, "next": "next_node", "iterate_on": "test"}
-    with pytest.raises(Exception):
-        nodes.MapNode(name="test", internal_name="test", config=map_config)
-
-
-def test_nodes_map_node_names_the_branch_as_defaults_place_holder(monkeypatch, mocker):
-    monkeypatch.setattr(nodes.MapNode, "get_sub_graph", mocker.MagicMock())
-
-    map_config = {"branch": {}, "next": "next_node", "iterate_on": "test", "iterate_as": "test"}
-
-    node = nodes.MapNode(name="test", internal_name="test", config=map_config)
-
-    assert node.branch_placeholder_name == defaults.MAP_PLACEHOLDER
-
-
-def test_nodes_map_get_sub_graph_calls_create_graph_with_correct_naming(mocker, monkeypatch):
-    mock_create_graph = mocker.MagicMock()
-    monkeypatch.setattr(nodes, "create_graph", mock_create_graph)
-
-    map_config = {"branch": {}, "next": "next_node", "iterate_on": "test", "iterate_as": "test"}
-
-    _ = nodes.MapNode(name="test", internal_name="test", config=map_config)
-
-    mock_create_graph.assert_called_once_with({}, internal_branch_name="test." + defaults.MAP_PLACEHOLDER)
-
-
-def test_nodes_map__get_branch_by_name_returns_a_sub_graph(mocker, monkeypatch):
-    mock_create_graph = mocker.MagicMock(return_value="a")
-    monkeypatch.setattr(nodes, "create_graph", mock_create_graph)
-
-    map_config = {"branch": {}, "next": "next_node", "iterate_on": "test", "iterate_as": "test"}
-    node = nodes.MapNode(name="test", internal_name="test", config=map_config)
-
-    assert node._get_branch_by_name("anyname") == "a"
-
-
-def test_nodes_map_node_execute_raises_exception(mocker, monkeypatch):
-    monkeypatch.setattr(nodes.MapNode, "get_sub_graph", mocker.MagicMock())
-
-    map_config = {"branch": {}, "next": "next_node", "iterate_on": "test", "iterate_as": "test"}
-
-    node = nodes.MapNode(name="test", internal_name="test", config=map_config)
-
-    with pytest.raises(Exception):
-        node.execute("dummy")
-
-
-def test_nodes_dag_node_raises_exception_if_dag_definition_is_not_present():
-    dag_config = {"next": "test"}
-    with pytest.raises(Exception):
-        nodes.DagNode(name="test", internal_name="test", config=dag_config)
-
-
-def test_node_dag_node_get_sub_graph_raises_exception_if_dag_block_not_present(mocker, monkeypatch):
-    mock_load_yaml = mocker.MagicMock(return_value={})
-    monkeypatch.setattr(nodes.utils, "load_yaml", mock_load_yaml)
-
-    dag_config = {"next": "test", "dag_definition": "test"}
-
-    with pytest.raises(Exception):
-        nodes.DagNode(name="test", internal_name="test", config=dag_config)
-
-
-def test_nodes_dag_node_get_sub_graph_calls_create_graph_with_correct_parameters(mocker, monkeypatch):
-    mock_load_yaml = mocker.MagicMock(return_value={"dag": "a"})
-    mock_create_graph = mocker.MagicMock(return_value="branch")
-
-    monkeypatch.setattr(nodes.utils, "load_yaml", mock_load_yaml)
-    monkeypatch.setattr(nodes, "create_graph", mock_create_graph)
-
-    dag_config = {"next": "test", "dag_definition": "test"}
-
-    _ = nodes.DagNode(name="test", internal_name="test", config=dag_config)
-
-    mock_create_graph.assert_called_once_with("a", internal_branch_name="test." + defaults.DAG_BRANCH_NAME)
-
-
-def test_nodes_dag_node__get_branch_by_name_raises_exception_if_branch_name_is_invalid(mocker, monkeypatch):
-    monkeypatch.setattr(nodes.DagNode, "get_sub_graph", mocker.MagicMock(return_value="branch"))
-
-    dag_config = {"next": "test", "dag_definition": "test"}
-    node = nodes.DagNode(name="test", internal_name="test", config=dag_config)
-
-    with pytest.raises(Exception):
-        node._get_branch_by_name("test")
-
-
-def test_nodes_dag_node_get_branch_by_name_returns_if_branch_name_is_valid(mocker, monkeypatch):
-    monkeypatch.setattr(nodes.DagNode, "get_sub_graph", mocker.MagicMock(return_value="branch"))
-
-    dag_config = {"next": "test", "dag_definition": "test"}
-
-    node = nodes.DagNode(name="test", internal_name="test", config=dag_config)
-
-    assert node._get_branch_by_name("test." + defaults.DAG_BRANCH_NAME) == "branch"
-
-
-def test_nodes_dag_node_execute_raises_exception(mocker, monkeypatch):
-    monkeypatch.setattr(nodes.DagNode, "get_sub_graph", mocker.MagicMock(return_value="branch"))
-
-    dag_config = {"next": "test", "dag_definition": "test"}
-
-    node = nodes.DagNode(name="test", internal_name="test", config=dag_config)
-
-    with pytest.raises(Exception):
-        node.execute("dummy")
-
-
-def test_nodes_as_is_node_accepts_what_is_given():
-    node = nodes.AsIsNode(name="test", internal_name="test", config={"render_string": "test", "next": "test"})
-
-    assert node.config.render_string == "test"
-
-
-def test_as_is_node_execute_as_graph_raises_exception():
-    as_is_node = nodes.AsIsNode(name="test", internal_name="test", config={"command": "nocommand", "next": "test"})
-
-    with pytest.raises(Exception):
-        as_is_node.execute_as_graph(None)
-
-
-def test_as_is_node_sets_attempt_log_success(mocker, monkeypatch):
-    mock_attempt_log = mocker.MagicMock()
-
-    mock_executor = mocker.MagicMock()
-    mock_executor.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
-
-    node = nodes.AsIsNode(name="test", internal_name="test", config={"next": "test"})
-
-    node.execute(executor=mock_executor)
-
-    assert mock_attempt_log.status == defaults.SUCCESS
+    assert node._is_terminal_node()

@@ -10,5 +10,5 @@ def return_parameter() -> dict:
 
 
 def get_parameter(x):
-    logger.info(f"I got a parameter from {x}")
+    logger.info(f"I got a parameter: {x}")
     print(x)

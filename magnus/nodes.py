@@ -47,7 +47,7 @@ class BaseNode(ABC, BaseModel):
     @classmethod
     def validate_name(cls, name: str):
         if "." in name or "%" in name:
-            raise Exception("Node names cannot have . or '%' in them")
+            raise ValueError("Node names cannot have . or '%' in them")
         return name
 
     @classmethod

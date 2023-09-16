@@ -149,7 +149,7 @@ def get_from_catalog(name: str, destination_folder: str = ""):
     )
 
     if not data_catalog:
-        logger.warn(f"No catalog was obtained by the {name}")
+        logger.warning(f"No catalog was obtained by the {name}")
 
     if context.run_context.executor._context_step_log:
         context.run_context.executor._context_step_log.add_data_catalogs(data_catalog)
@@ -182,7 +182,7 @@ def put_in_catalog(filepath: str):
         compute_data_folder=file_path.parent,
     )
     if not data_catalog:
-        logger.warn(f"No catalog was done by the {filepath}")
+        logger.warning(f"No catalog was done by the {filepath}")
 
     if context.run_context.executor._context_step_log:
         context.run_context.executor._context_step_log.add_data_catalogs(data_catalog)
@@ -237,7 +237,14 @@ def get_run_id() -> str:
     """
     Returns the run_id of the current run
     """
-    return os.environ.get(defaults.ENV_RUN_ID, "")
+    if not context.run_context.executor:
+        msg = (
+            "There are no active executor and services. This should not have happened and is a bug."
+            " Please raise a bug report."
+        )
+        raise Exception(msg)
+
+    return context.run_context.run_id
 
 
 def get_tag() -> str:
@@ -247,7 +254,14 @@ def get_tag() -> str:
     Returns:
         str: The tag if provided for the run, otherwise None
     """
-    return os.environ.get(defaults.MAGNUS_RUN_TAG, "")
+    if not context.run_context.executor:
+        msg = (
+            "There are no active executor and services. This should not have happened and is a bug."
+            " Please raise a bug report."
+        )
+        raise Exception(msg)
+
+    return context.run_context.tag
 
 
 def get_experiment_tracker_context():

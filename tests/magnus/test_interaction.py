@@ -1,8 +1,9 @@
 import os
+import json
+import logging
 
 import pytest
 
-import magnus
 from magnus import (
     defaults,  # pylint: disable=import-error
     exceptions,  # pylint: disable=import-error
@@ -10,22 +11,55 @@ from magnus import (
 )
 
 
+def test_track_raises_exception_if_no_executor(monkeypatch, mocker):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.executor = None
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    with pytest.raises(Exception, match="Please raise a bug report"):
+        interaction.track_this(a="b")
+
+
 def test_track_this_adds_values_to_environ(monkeypatch, mocker):
-    mock_executor = mocker.MagicMock()
-    monkeypatch.setattr(magnus.context, "executor", mock_executor)
+    mock_context = mocker.MagicMock()
+    monkeypatch.setattr(interaction, "context", mock_context)
+
     interaction.track_this(a="b")
     assert defaults.TRACK_PREFIX + "a" in os.environ
     del os.environ[defaults.TRACK_PREFIX + "a"]
 
 
 def test_track_this_adds_multiple_values_to_environ(mocker, monkeypatch):
-    mock_executor = mocker.MagicMock()
-    monkeypatch.setattr(magnus.context, "executor", mock_executor)
+    mock_context = mocker.MagicMock()
+    monkeypatch.setattr(interaction, "context", mock_context)
+
     interaction.track_this(a="b", b="a")
     assert defaults.TRACK_PREFIX + "a" in os.environ
     assert defaults.TRACK_PREFIX + "b" in os.environ
     del os.environ[defaults.TRACK_PREFIX + "a"]
     del os.environ[defaults.TRACK_PREFIX + "b"]
+
+
+def test_track_this_ignores_step_if_zero(mocker, monkeypatch):
+    mock_context = mocker.MagicMock()
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    interaction.track_this(a="b", b="a")
+    assert defaults.TRACK_PREFIX + "a" in os.environ
+    assert defaults.TRACK_PREFIX + "b" in os.environ
+    del os.environ[defaults.TRACK_PREFIX + "a"]
+    del os.environ[defaults.TRACK_PREFIX + "b"]
+
+
+def test_track_this_adds_step_if_non_zero(mocker, monkeypatch):
+    mock_context = mocker.MagicMock()
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    interaction.track_this(a="b", b="a", step=1)
+    assert defaults.TRACK_PREFIX + "1_" + "a" in os.environ
+    assert defaults.TRACK_PREFIX + "1_" + "b" in os.environ
+    del os.environ[defaults.TRACK_PREFIX + "1_" + "a"]
+    del os.environ[defaults.TRACK_PREFIX + "1_" + "b"]
 
 
 def test_store_paramenter_adds_values_to_environ():
@@ -38,6 +72,28 @@ def test_store_parameter_adds_multiple_values_to_environ():
     interaction.store_parameter(a="b", b="a")
     assert defaults.PARAMETER_PREFIX + "a" in os.environ
     assert defaults.PARAMETER_PREFIX + "b" in os.environ
+    del os.environ[defaults.PARAMETER_PREFIX + "a"]
+    del os.environ[defaults.PARAMETER_PREFIX + "b"]
+
+
+def test_store_parameter_does_not_update_if_present_and_asked():
+    os.environ[defaults.PARAMETER_PREFIX + "a"] = "b"
+    os.environ[defaults.PARAMETER_PREFIX + "b"] = "a"
+    interaction.store_parameter(a="b", b="a", update=False)
+    assert os.environ[defaults.PARAMETER_PREFIX + "a"] == "b"
+    assert os.environ[defaults.PARAMETER_PREFIX + "b"] == "a"
+
+    del os.environ[defaults.PARAMETER_PREFIX + "a"]
+    del os.environ[defaults.PARAMETER_PREFIX + "b"]
+
+
+def test_store_parameter_updates_if_present_and_asked():
+    os.environ[defaults.PARAMETER_PREFIX + "a"] = "b"
+    os.environ[defaults.PARAMETER_PREFIX + "b"] = "a"
+    interaction.store_parameter(a="c", b="d", update=True)
+    assert json.loads(os.environ[defaults.PARAMETER_PREFIX + "a"]) == "c"
+    assert json.loads(os.environ[defaults.PARAMETER_PREFIX + "b"]) == "d"
+
     del os.environ[defaults.PARAMETER_PREFIX + "a"]
     del os.environ[defaults.PARAMETER_PREFIX + "b"]
 
@@ -62,13 +118,12 @@ def test_get_parameter_returns_parameters_raises_exception_if_key_not_found(mock
 
 
 def test_get_secret_delegates_to_secrets_handler_get(mocker, monkeypatch):
-    mock_global_exec = mocker.MagicMock()
-    from magnus import context
-
-    context.executor = mock_global_exec
-
+    mock_context = mocker.MagicMock()
     mock_secrets_handler = mocker.MagicMock()
-    mock_global_exec.secrets_handler = mock_secrets_handler
+
+    mock_context.run_context.secrets_handler = mock_secrets_handler
+
+    monkeypatch.setattr(interaction, "context", mock_context)
 
     mock_secrets_handler.get.return_value = "test"
 
@@ -76,13 +131,12 @@ def test_get_secret_delegates_to_secrets_handler_get(mocker, monkeypatch):
 
 
 def test_get_secret_raises_exception_if_secrets_handler_raises(mocker, monkeypatch):
-    mock_global_exec = mocker.MagicMock()
-    from magnus import context
-
-    context.executor = mock_global_exec
-
+    mock_context = mocker.MagicMock()
     mock_secrets_handler = mocker.MagicMock()
-    mock_global_exec.secrets_handler = mock_secrets_handler
+
+    mock_context.run_context.secrets_handler = mock_secrets_handler
+
+    monkeypatch.setattr(interaction, "context", mock_context)
 
     mock_secrets_handler.get.side_effect = exceptions.SecretNotFoundError("test", "test")
     with pytest.raises(exceptions.SecretNotFoundError):
@@ -90,16 +144,17 @@ def test_get_secret_raises_exception_if_secrets_handler_raises(mocker, monkeypat
 
 
 def test_get_from_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
-    from magnus import context
+    mock_context = mocker.MagicMock()
+    mock_catalog_handler = mocker.MagicMock()
 
-    mock_global_exec = mocker.MagicMock()
-    context.executor = mock_global_exec
+    mock_context.run_context.catalog_handler = mock_catalog_handler
 
     mock_catalog_handler_get = mocker.MagicMock()
-    mock_global_exec.catalog_handler.get = mock_catalog_handler_get
-    mock_global_exec.run_id = "RUN_ID"
+    mock_catalog_handler.get = mock_catalog_handler_get
+    mock_context.run_context.run_id = "RUN_ID"
 
-    mock_global_exec.catalog_handler.compute_data_folder = "compute_folder"
+    mock_catalog_handler.compute_data_folder = "compute_folder"
+    monkeypatch.setattr(interaction, "context", mock_context)
 
     interaction.get_from_catalog("this")
 
@@ -107,38 +162,271 @@ def test_get_from_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
 
 
 def test_get_from_catalog_uses_destination_folder(mocker, monkeypatch):
-    from magnus import context
+    mock_context = mocker.MagicMock()
+    mock_catalog_handler = mocker.MagicMock()
 
-    mock_global_exec = mocker.MagicMock()
-    context.executor = mock_global_exec
+    mock_context.run_context.catalog_handler = mock_catalog_handler
 
     mock_catalog_handler_get = mocker.MagicMock()
-    mock_global_exec.catalog_handler.get = mock_catalog_handler_get
-    mock_global_exec.run_id = "RUN_ID"
+    mock_catalog_handler.get = mock_catalog_handler_get
+    mock_context.run_context.run_id = "RUN_ID"
 
-    mock_global_exec.catalog_handler.compute_data_folder = "compute_folder_not_used"
+    mock_catalog_handler.compute_data_folder = "compute_folder"
+    monkeypatch.setattr(interaction, "context", mock_context)
 
     interaction.get_from_catalog("this", destination_folder="use_this_folder")
 
     mock_catalog_handler_get.assert_called_once_with("this", compute_data_folder="use_this_folder", run_id="RUN_ID")
 
 
-def test_put_in_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
-    from magnus import context
+def test_get_from_catalog_raises_warning_if_no_catalog_was_obtained(mocker, monkeypatch, caplog):
+    mock_context = mocker.MagicMock()
+    mock_catalog_handler = mocker.MagicMock()
 
-    mock_global_exec = mocker.MagicMock()
-    context.executor = mock_global_exec
+    mock_context.run_context.catalog_handler = mock_catalog_handler
+
+    mock_catalog_handler_get = mocker.MagicMock()
+    mock_catalog_handler.get = mock_catalog_handler_get
+    mock_catalog_handler_get.return_value = None
+    mock_context.run_context.run_id = "RUN_ID"
+
+    mock_catalog_handler.compute_data_folder = "compute_folder"
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    with caplog.at_level(logging.WARNING):
+        interaction.get_from_catalog("this")
+
+    assert "No catalog was obtained by the" in caplog.text
+
+    mock_catalog_handler_get.assert_called_once_with("this", compute_data_folder="compute_folder", run_id="RUN_ID")
+
+
+def test_get_from_catalog_raises_warning_if_no_context_step_log(mocker, monkeypatch, caplog):
+    mock_context = mocker.MagicMock()
+    mock_catalog_handler = mocker.MagicMock()
+
+    mock_context.run_context.catalog_handler = mock_catalog_handler
+    mock_context.run_context.executor._context_step_log = None
+
+    mock_catalog_handler_get = mocker.MagicMock()
+    mock_catalog_handler.get = mock_catalog_handler_get
+    mock_context.run_context.run_id = "RUN_ID"
+
+    mock_catalog_handler.compute_data_folder = "compute_folder"
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    with caplog.at_level(logging.WARNING):
+        interaction.get_from_catalog("this")
+
+    assert "Step log context was not found during interaction" in caplog.text
+
+    mock_catalog_handler_get.assert_called_once_with("this", compute_data_folder="compute_folder", run_id="RUN_ID")
+
+
+def test_put_in_catalog_raises_warning_if_no_catalog_was_obtained(mocker, monkeypatch, caplog):
+    mock_context = mocker.MagicMock()
+    mock_catalog_handler = mocker.MagicMock()
+
+    mock_context.run_context.catalog_handler = mock_catalog_handler
 
     mock_catalog_handler_put = mocker.MagicMock()
-    mock_global_exec.catalog_handler.put = mock_catalog_handler_put
-    mock_global_exec.run_id = "RUN_ID"
+    mock_catalog_handler_put.return_value = None
+    mock_catalog_handler.put = mock_catalog_handler_put
+    mock_context.run_context.run_id = "RUN_ID"
+
+    mock_catalog_handler.compute_data_folder = "compute_folder"
+    monkeypatch.setattr(interaction, "context", mock_context)
 
     mock_file_path = mocker.MagicMock()
     mock_path = mocker.MagicMock(return_value=mock_file_path)
     mock_file_path.name = "file_name"
     mock_file_path.parent = "in_this_folder"
-    monkeypatch.setattr(magnus.interaction, "Path", mock_path)
+    monkeypatch.setattr(interaction, "Path", mock_path)
+
+    with caplog.at_level(logging.WARNING):
+        interaction.put_in_catalog("this_file")
+
+    assert "No catalog was done by the this_file" in caplog.text
+
+    mock_catalog_handler_put.assert_called_once_with("file_name", compute_data_folder="in_this_folder", run_id="RUN_ID")
+
+
+def test_put_in_catalog_raises_warning_if_no_context_step_log(mocker, monkeypatch, caplog):
+    mock_context = mocker.MagicMock()
+    mock_catalog_handler = mocker.MagicMock()
+
+    mock_context.run_context.catalog_handler = mock_catalog_handler
+    mock_context.run_context.executor._context_step_log = None
+
+    mock_catalog_handler_put = mocker.MagicMock()
+    mock_catalog_handler_put.return_value = None
+    mock_catalog_handler.put = mock_catalog_handler_put
+    mock_context.run_context.run_id = "RUN_ID"
+
+    mock_catalog_handler.compute_data_folder = "compute_folder"
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    mock_file_path = mocker.MagicMock()
+    mock_path = mocker.MagicMock(return_value=mock_file_path)
+    mock_file_path.name = "file_name"
+    mock_file_path.parent = "in_this_folder"
+    monkeypatch.setattr(interaction, "Path", mock_path)
+
+    with caplog.at_level(logging.WARNING):
+        interaction.put_in_catalog("this_file")
+
+    assert "Step log context was not found during interaction" in caplog.text
+
+    mock_catalog_handler_put.assert_called_once_with("file_name", compute_data_folder="in_this_folder", run_id="RUN_ID")
+
+
+def test_put_in_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
+    mock_context = mocker.MagicMock()
+    mock_catalog_handler = mocker.MagicMock()
+
+    mock_context.run_context.catalog_handler = mock_catalog_handler
+
+    mock_catalog_handler_put = mocker.MagicMock()
+    mock_catalog_handler.put = mock_catalog_handler_put
+    mock_context.run_context.run_id = "RUN_ID"
+
+    mock_catalog_handler.compute_data_folder = "compute_folder"
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    mock_file_path = mocker.MagicMock()
+    mock_path = mocker.MagicMock(return_value=mock_file_path)
+    mock_file_path.name = "file_name"
+    mock_file_path.parent = "in_this_folder"
+    monkeypatch.setattr(interaction, "Path", mock_path)
 
     interaction.put_in_catalog("this_file")
 
     mock_catalog_handler_put.assert_called_once_with("file_name", compute_data_folder="in_this_folder", run_id="RUN_ID")
+
+
+def test_get_secret_raises_exception_if_no_executor(monkeypatch, mocker):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.executor = None
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    with pytest.raises(Exception, match="Please raise a bug report"):
+        interaction.get_secret("a")
+
+
+def test_get_from_catalog_raises_exception_if_no_executor(monkeypatch, mocker):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.executor = None
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    with pytest.raises(Exception, match="Please raise a bug report"):
+        interaction.get_from_catalog("a")
+
+
+def test_put_in_catalog_raises_exception_if_no_executor(monkeypatch, mocker):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.executor = None
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    with pytest.raises(Exception, match="Please raise a bug report"):
+        interaction.put_in_catalog("a")
+
+
+def test_get_run_id_raises_exception_if_no_executor(monkeypatch, mocker):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.executor = None
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    with pytest.raises(Exception, match="Please raise a bug report"):
+        interaction.get_run_id()
+
+
+def test_get_run_id_returns_from_context(monkeypatch, mocker):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.run_id = "1234"
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    assert interaction.get_run_id() == "1234"
+
+
+def test_get_tag_raises_exception_if_no_executor(monkeypatch, mocker):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.executor = None
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    with pytest.raises(Exception, match="Please raise a bug report"):
+        assert interaction.get_tag() == "1234"
+
+
+def test_get_tag_gets_tag_from_context(monkeypatch, mocker):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.tag = "1234"
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    assert interaction.get_tag() == "1234"
+
+
+def test_get_experiment_context_raises_exception_if_no_executor(monkeypatch, mocker):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.executor = None
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    with pytest.raises(Exception, match="Please raise a bug report"):
+        interaction.get_experiment_tracker_context()
+
+
+def test_get_experiment_context_returns_client_context(monkeypatch, mocker):
+    mock_context = mocker.MagicMock()
+    mock_experiment_tracker = mocker.MagicMock()
+    mock_client_context = mocker.MagicMock()
+
+    mock_experiment_tracker.client_context = mock_client_context
+
+    mock_context.run_context.experiment_tracker = mock_experiment_tracker
+    monkeypatch.setattr(interaction, "context", mock_context)
+
+    assert interaction.get_experiment_tracker_context() == mock_client_context
+
+
+def test_put_object_calls_put_in_catalog(monkeypatch, mocker):
+    mock_dump = mocker.MagicMock()
+    mock_put_in_catalog = mocker.MagicMock()
+    mock_os_remove = mocker.MagicMock()
+
+    monkeypatch.setattr(interaction, "put_in_catalog", mock_put_in_catalog)
+    monkeypatch.setattr(interaction.pickler.NativePickler, "dump", mock_dump)
+    monkeypatch.setattr(interaction.os, "remove", mock_os_remove)
+
+    interaction.put_object("imdata", "iamsam")
+
+    mock_dump.assert_called_once_with(data="imdata", path="iamsam")
+    mock_put_in_catalog.assert_called_once_with(f"iamsam.pickle")
+    mock_os_remove.assert_called_once_with(f"iamsam.pickle")
+
+
+def test_get_object_calls_get_from_catalog(monkeypatch, mocker):
+    mock_load = mocker.MagicMock()
+    mock_get_from_catalog = mocker.MagicMock()
+    mock_os_remove = mocker.MagicMock()
+
+    monkeypatch.setattr(interaction, "get_from_catalog", mock_get_from_catalog)
+    monkeypatch.setattr(interaction.pickler.NativePickler, "load", mock_load)
+    monkeypatch.setattr(interaction.os, "remove", mock_os_remove)
+
+    interaction.get_object("iamsam")
+
+    mock_load.assert_called_once_with("iamsam")
+    mock_get_from_catalog.assert_called_once_with(name="iamsam.pickle", destination_folder=".")
+    mock_os_remove.assert_called_once_with("iamsam.pickle")
+
+
+def test_get_object_raises_exception_if_file_not_found(monkeypatch, mocker):
+    mock_load = mocker.MagicMock(side_effect=FileNotFoundError())
+    mock_get_from_catalog = mocker.MagicMock()
+    mock_os_remove = mocker.MagicMock()
+
+    monkeypatch.setattr(interaction, "get_from_catalog", mock_get_from_catalog)
+    monkeypatch.setattr(interaction.pickler.NativePickler, "load", mock_load)
+    monkeypatch.setattr(interaction.os, "remove", mock_os_remove)
+
+    with pytest.raises(FileNotFoundError):
+        interaction.get_object("iamsam")

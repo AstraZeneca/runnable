@@ -82,7 +82,7 @@ class Graph(BaseModel):
         """
         self.nodes.append(node)
 
-    def _validate(self):
+    def check_graph(self):
         """
         Validate the graph to make sure,
         1). All the neighbors of nodes are present.
@@ -334,7 +334,7 @@ def create_graph(dag_config: Dict[str, Any], internal_branch_name: str = "") -> 
         node = create_node(step, step_config=step_config, internal_branch_name=internal_branch_name)
         graph.add_node(node)
 
-    graph._validate()
+    graph.check_graph()
 
     return graph
 

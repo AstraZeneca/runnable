@@ -421,14 +421,15 @@ def test_filter_arguments_for_func_identifies_args_from_map_variables():
     )
 
 
-def test_get_node_execution_command_returns_magnus_execute():
-    class MockExecutor:
-        run_id = "test_run_id"
-        pipeline_file = "test_pipeline_file"
-        variables_file = None
-        configuration_file = None
-        parameters_file = None
-        tag = None
+def test_get_node_execution_command_returns_magnus_execute(mocker, monkeypatch):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.run_id = "test_run_id"
+    mock_context.run_context.pipeline_file = "test_pipeline_file"
+    mock_context.run_context.configuration_file = "test_configuration_file"
+    mock_context.run_context.parameters_file = "test_parameters_file"
+    mock_context.run_context.tag = "test_tag"
+
+    monkeypatch.setattr(utils, "context", mock_context)
 
     class MockNode:
         internal_name = "test_node_id"
@@ -436,20 +437,23 @@ def test_get_node_execution_command_returns_magnus_execute():
         def _command_friendly_name(self):
             return "test_node_id"
 
-    assert (
-        utils.get_node_execution_command(MockExecutor(), MockNode())
-        == "magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file"
+    test_map_variable = {"a": "b"}
+    assert utils.get_node_execution_command(MockNode(), map_variable=test_map_variable) == (
+        "magnus execute_single_node test_run_id test_node_id "
+        f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
+        "--parameters-file test_parameters_file --tag test_tag"
     )
 
 
-def test_get_node_execution_command_overwrites_run_id_if_asked():
-    class MockExecutor:
-        run_id = "test_run_id"
-        pipeline_file = "test_pipeline_file"
-        variables_file = None
-        configuration_file = None
-        parameters_file = None
-        tag = None
+def test_get_node_execution_command_overwrites_run_id_if_asked(mocker, monkeypatch):
+    mock_context = mocker.MagicMock()
+    mock_context.run_context.run_id = "test_run_id"
+    mock_context.run_context.pipeline_file = "test_pipeline_file"
+    mock_context.run_context.configuration_file = "test_configuration_file"
+    mock_context.run_context.parameters_file = "test_parameters_file"
+    mock_context.run_context.tag = "test_tag"
+
+    monkeypatch.setattr(utils, "context", mock_context)
 
     class MockNode:
         internal_name = "test_node_id"
@@ -457,74 +461,11 @@ def test_get_node_execution_command_overwrites_run_id_if_asked():
         def _command_friendly_name(self):
             return "test_node_id"
 
-    assert (
-        utils.get_node_execution_command(MockExecutor(), MockNode(), over_write_run_id="override")
-        == "magnus execute_single_node override test_node_id --log-level WARNING --file test_pipeline_file"
-    )
-
-
-def test_get_node_execution_command_returns_magnus_execute_appends_variables_file():
-    class MockExecutor:
-        run_id = "test_run_id"
-        pipeline_file = "test_pipeline_file"
-        configuration_file = None
-        parameters_file = None
-        tag = None
-
-    class MockNode:
-        internal_name = "test_node_id"
-
-        def _command_friendly_name(self):
-            return "test_node_id"
-
-    assert (
-        utils.get_node_execution_command(MockExecutor(), MockNode())
-        == "magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file"
-    )
-
-
-def test_get_node_execution_command_returns_magnus_execute_appends_parameters_file():
-    class MockExecutor:
-        run_id = "test_run_id"
-        pipeline_file = "test_pipeline_file"
-        variables_file = None
-        configuration_file = None
-        parameters_file = "test_parameters_file"
-        tag = None
-
-    class MockNode:
-        internal_name = "test_node_id"
-
-        def _command_friendly_name(self):
-            return "test_node_id"
-
-    assert (
-        utils.get_node_execution_command(MockExecutor(), MockNode())
-        == "magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file"
-        " --parameters-file test_parameters_file"
-    )
-
-
-def test_get_node_execution_command_returns_magnus_execute_appends_map_variable():
-    class MockExecutor:
-        run_id = "test_run_id"
-        pipeline_file = "test_pipeline_file"
-        variables_file = None
-        configuration_file = None
-        parameters_file = None
-        tag = None
-
-    class MockNode:
-        internal_name = "test_node_id"
-
-        def _command_friendly_name(self):
-            return "test_node_id"
-
-    map_variable = {"test_map": "map_value"}
-    json_dump = json.dumps(map_variable)
-    assert (
-        utils.get_node_execution_command(MockExecutor(), MockNode(), map_variable=map_variable)
-        == f"magnus execute_single_node test_run_id test_node_id --log-level WARNING --file test_pipeline_file --map-variable '{json_dump}'"  # noqa    )
+    test_map_variable = {"a": "b"}
+    assert utils.get_node_execution_command(MockNode(), map_variable=test_map_variable, over_write_run_id="this") == (
+        "magnus execute_single_node this test_node_id "
+        f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
+        "--parameters-file test_parameters_file --tag test_tag"
     )
 
 

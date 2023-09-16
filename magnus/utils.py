@@ -5,13 +5,11 @@ import json
 import logging
 import os
 import subprocess
-import sys
 from collections import OrderedDict
 from datetime import datetime
 from inspect import signature
 from pathlib import Path
 from string import Template as str_template
-from types import FunctionType
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 from ruamel.yaml import YAML
@@ -20,7 +18,7 @@ from stevedore import driver
 import magnus.context as context
 from magnus import defaults, names
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from magnus.extensions.nodes import TaskNode
     from magnus.nodes import BaseNode
 
@@ -132,20 +130,6 @@ def get_module_and_func_names(command: str) -> Tuple[str, str]:
     func = mods[-1]
     module = ".".join(mods[:-1])
     return module, func
-
-
-def get_module_and_func_from_function(command: FunctionType) -> str:
-    """Given a function, this function returns the module name and func names.
-
-    Args:
-        command (FunctionType): The function to extract the module and func names from
-
-    Returns:
-        str: the module and function in module.func format.
-    """
-    module_name = sys.modules[command.__module__]
-    func_name = command.__name__
-    return f"{module_name}.{func_name}"
 
 
 def get_dag_hash(dag: Dict[str, Any]) -> str:

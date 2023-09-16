@@ -44,7 +44,7 @@ def test_step_attempt_number_defaults_to_1():
 
 
 def test_step_attempt_number_looks_up_environment(monkeypatch):
-    monkeypatch.setenv(defaults.ATTEMPT_NUMBER, 12345)
+    monkeypatch.setenv(defaults.ATTEMPT_NUMBER, "12345")
     base_executor = executor.BaseExecutor()
 
     assert base_executor.step_attempt_number == 12345

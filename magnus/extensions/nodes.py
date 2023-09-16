@@ -31,8 +31,11 @@ class TaskNode(ExecutableNode):
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "TaskNode":
         # separate task config from node config
-        task_config = {k: v for k, v in config.items() if k not in TaskNode.__fields__.keys()}  # type: ignore
-        node_config = {k: v for k, v in config.items() if k in TaskNode.__fields__.keys()}  # type: ignore
+        task_config = {k: v for k, v in config.items() if k not in TaskNode.model_fields.keys()}  # type: ignore
+        node_config = {k: v for k, v in config.items() if k in TaskNode.model_fields.keys()}  # type: ignore
+
+        task_config["node_name"] = config.get("name")
+
         executable = create_task(task_config)
         return cls(executable=executable, **node_config)
 
