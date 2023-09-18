@@ -644,7 +644,7 @@ def get_run_config() -> dict:
         dict: The run_config.
     """
 
-    run_config = context.run_context.dict()
+    run_config = context.run_context.model_dump(by_alias=True)
     return run_config
 
 

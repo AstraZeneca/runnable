@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional, cast
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, SerializeAsAny
 from stevedore import driver
 
 from magnus import defaults, exceptions
@@ -25,7 +25,7 @@ class Graph(BaseModel):
     description: str = ""
     max_time: int = 86400
     internal_branch_name: str = ""
-    nodes: List["BaseNode"] = []
+    nodes: SerializeAsAny[Dict[str, "BaseNode"]] = Field(default_factory=dict, serialization_alias="steps")
 
     def get_node_by_name(self, name: str) -> "BaseNode":
         """
@@ -41,9 +41,9 @@ class Graph(BaseModel):
         Returns:
             Node: The Node object by name
         """
-        for node in self.nodes:
-            if node.name == name:
-                return node
+        for key, value in self.nodes.items():
+            if key == name:
+                return value
         raise exceptions.NodeNotFoundError(name)
 
     def get_node_by_internal_name(self, internal_name: str) -> "BaseNode":
@@ -61,16 +61,16 @@ class Graph(BaseModel):
         Returns:
             Node: The Node object by the name
         """
-        for node in self.nodes:
-            if node.internal_name == internal_name:
-                return node
+        for _, value in self.nodes.items():
+            if value.internal_name == internal_name:
+                return value
         raise exceptions.NodeNotFoundError(internal_name)
 
     def __str__(self):  # pragma: no cover
         """
         Return a string representation of the graph
         """
-        node_str = ", ".join([x.name for x in self.nodes])
+        node_str = ", ".join([x.name for x in list(self.nodes.values())])
         return f"Starts at: {self.start_at} and has a max run time of {self.max_time} and {node_str}"
 
     def add_node(self, node: "BaseNode"):
@@ -80,7 +80,7 @@ class Graph(BaseModel):
         Args:
             node (object): The node to add
         """
-        self.nodes.append(node)
+        self.nodes[node.name] = node
 
     def check_graph(self):
         """
@@ -138,9 +138,9 @@ class Graph(BaseModel):
         Returns:
             object: The success node
         """
-        for node in self.nodes:
-            if node.node_type == "success":
-                return node
+        for _, value in self.nodes.items():
+            if value.node_type == "success":
+                return value
         raise Exception("No success node defined")
 
     def get_fail_node(self) -> "BaseNode":
@@ -153,9 +153,9 @@ class Graph(BaseModel):
         Returns:
             object: The fail node of the graph
         """
-        for node in self.nodes:
-            if node.node_type == "fail":
-                return node
+        for _, value in self.nodes.items():
+            if value.node_type == "fail":
+                return value
         raise Exception("No fail node defined")
 
     def is_start_node_present(self) -> bool:
@@ -180,8 +180,8 @@ class Graph(BaseModel):
             bool: True if there is only one, false otherwise
         """
         node_count = 0
-        for node in self.nodes:
-            if node.node_type == "success":
+        for _, value in self.nodes.items():
+            if value.node_type == "success":
                 node_count += 1
         if node_count == 1:
             return True
@@ -195,8 +195,8 @@ class Graph(BaseModel):
             bool: true if there is one and only one fail node, false otherwise
         """
         node_count = 0
-        for node in self.nodes:
-            if node.node_type == "fail":
+        for _, value in self.nodes.items():
+            if value.node_type == "fail":
                 node_count += 1
         if node_count == 1:
             return True
@@ -209,11 +209,11 @@ class Graph(BaseModel):
         Returns:
             bool: Returns True if it is directed and acyclic.
         """
-        visited = {n.name: False for n in self.nodes}
-        recstack = {n.name: False for n in self.nodes}
+        visited = {n: False for n in self.nodes.keys()}
+        recstack = {n: False for n in self.nodes.keys()}
 
-        for node in self.nodes:
-            if not visited[node.name]:
+        for name, node in self.nodes.items():
+            if not visited[name]:
                 if self.is_cyclic_util(node, visited, recstack):
                     return False
         return True
@@ -253,7 +253,7 @@ class Graph(BaseModel):
             list: List of the missing nodes. Empty list if all neighbors are in the graph.
         """
         missing_nodes = []
-        for node in self.nodes:
+        for _, node in self.nodes.items():
             neighbors = node._get_neighbors()
             for neighbor in neighbors:
                 try:
@@ -327,11 +327,10 @@ def create_graph(dag_config: Dict[str, Any], internal_branch_name: str = "") -> 
     )
 
     logger.info(f"Initialized a graph object that starts at {start_at} and runs for maximum of {max_time} secs")
-    for step in dag_config.get("steps", []):
-        step_config = dag_config["steps"][step]
-        logger.info(f"Adding node {step} with :{step_config}")
+    for name, step_config in dag_config.get("steps", {}).items():
+        logger.info(f"Adding node {name} with :{step_config}")
 
-        node = create_node(step, step_config=step_config, internal_branch_name=internal_branch_name)
+        node = create_node(name, step_config=step_config, internal_branch_name=internal_branch_name)
         graph.add_node(node)
 
     graph.check_graph()
@@ -339,7 +338,7 @@ def create_graph(dag_config: Dict[str, Any], internal_branch_name: str = "") -> 
     return graph
 
 
-def create_node(name: str, step_config: dict, internal_branch_name: Optional[str] = None):
+def create_node(name: str, step_config: dict, internal_branch_name: Optional[str] = ""):
     """
     Creates a node object from the step configuration.
 
@@ -373,6 +372,8 @@ def create_node(name: str, step_config: dict, internal_branch_name: Optional[str
             **step_config,
         }
         node = node_mgr.parse_from_config(config=invoke_kwds, internal_name=internal_name)
+        print("************")
+        print(node.model_dump(by_alias=True))
         return node
     except KeyError:
         msg = "The node configuration does not contain the required key 'type'."

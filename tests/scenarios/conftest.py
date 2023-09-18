@@ -57,7 +57,7 @@ def parallel_node():
         step_config = {
             "type": "parallel",
             "next": next_node,
-            "branches": {"a": branch()._to_dict(), "b": branch()._to_dict()},
+            "branches": {"a": branch().dict(), "b": branch().dict()},
         }
         return graph.create_node(name=name, step_config=step_config)
 

@@ -6,7 +6,8 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import ConfigDict, FieldValidationInfo, field_validator
+from pydantic import ConfigDict, Field, FieldValidationInfo, SerializeAsAny, field_validator
+from typing_extensions import Annotated
 
 import magnus
 from magnus import defaults, utils
@@ -25,8 +26,8 @@ class TaskNode(ExecutableNode):
     This node does the actual function execution of the graph in all cases.
     """
 
-    executable: BaseTaskType
-    node_type: str = "task"
+    executable: SerializeAsAny[BaseTaskType]
+    node_type: str = Field(default="task", serialization_alias="type")
 
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "TaskNode":
@@ -76,7 +77,7 @@ class FailNode(TerminalNode):
     A leaf node of the graph that represents a failure node
     """
 
-    node_type: str = "fail"
+    node_type: str = Field(default="fail", serialization_alias="type")
 
     def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
@@ -117,7 +118,7 @@ class SuccessNode(TerminalNode):
     A leaf node of the graph that represents a success node
     """
 
-    node_type: str = "success"
+    node_type: str = Field(default="success", serialization_alias="type")
 
     def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
@@ -167,7 +168,7 @@ class ParallelNode(CompositeNode):
 
     """
 
-    node_type: str = "parallel"
+    node_type: str = Field(default="parallel", serialization_alias="type")
     branches: Dict[str, Graph]
     is_composite: bool = True
 
@@ -300,7 +301,7 @@ class MapNode(CompositeNode):
     The internal naming convention creates branches dynamically based on the iteration value
     """
 
-    node_type: str = "map"
+    node_type: str = Field(default="map", serialization_alias="type")
     iterate_on: str
     iterate_as: str
     branch: Graph
@@ -472,11 +473,11 @@ class DagNode(CompositeNode):
         The config is expected to have a variable 'dag_definition'.
     """
 
-    node_type: str = "dag"
+    node_type: str = Field(default="dag", serialization_alias="type")
     dag_definition: str
     branch: Graph
     is_composite: bool = True
-    internal_branch_name: str = ""
+    internal_branch_name: Annotated[str, Field(validate_default=True)] = ""
 
     @field_validator("internal_branch_name")
     @classmethod
@@ -487,9 +488,6 @@ class DagNode(CompositeNode):
     @field_validator("dag_definition")
     @classmethod
     def validate_dag_definition(cls, value):
-        if not isinstance(value, str):
-            raise ValueError("dag_definition must be a string")
-
         if not value.endswith(".yaml"):  # TODO: Might have a problem with the SDK
             raise ValueError("dag_definition must be a YAML file")
         return value
@@ -605,14 +603,14 @@ class AsIsNode(ExecutableNode):
     It always returns success in the attempt log and does nothing during interactive compute.
 
     The command given to execute is ignored but it does do the syncing of the catalog.
-    This node is very akin to pass state in Step functions.
+    This node is very similar to pass state in Step functions.
 
     This node type could be handy when designing the pipeline and stubbing functions
 
     But in render mode for job specification of a 3rd party orchestrator, this node comes handy.
     """
 
-    node_type: str = "as-is"
+    node_type: str = Field(default="as-is", serialization_alias="type")
     model_config = ConfigDict(extra="allow")
 
     @classmethod

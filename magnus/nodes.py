@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny, field_validator
 
 import magnus.context as context
 from magnus import defaults, exceptions, graph
@@ -31,7 +31,7 @@ class BaseNode(ABC, BaseModel):
     The internal branch name should always be even when split against dot.
     """
 
-    node_type: str
+    node_type: str = Field(str, serialization_alias="type")
     name: str
     internal_name: str
     internal_branch_name: str = ""
@@ -41,7 +41,7 @@ class BaseNode(ABC, BaseModel):
     def _context(self):
         return context.run_context
 
-    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=False)
 
     @field_validator("name")
     @classmethod
@@ -49,13 +49,6 @@ class BaseNode(ABC, BaseModel):
         if "." in name or "%" in name:
             raise ValueError("Node names cannot have . or '%' in them")
         return name
-
-    @classmethod
-    def remove_next_keyword_from_config(cls, config: dict):
-        next_node = config.get("next", "")
-        if next_node:
-            del config["next"]
-            config["next_node"] = next_node
 
     def _command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
         """
@@ -365,7 +358,7 @@ class BaseNode(ABC, BaseModel):
 
 # --8<-- [end:docs]
 class TraversalNode(BaseNode):
-    next_node: str
+    next_node: str = Field(str, serialization_alias="next")
     on_failure: str = ""
     executor_config: Dict[str, Any] = {}
 
@@ -435,7 +428,7 @@ class ExecutableNode(TraversalNode):
 
 
 class CompositeNode(TraversalNode):
-    _branches: Dict[str, graph.Graph]
+    _branches: SerializeAsAny[Dict[str, graph.Graph]]
 
     def _get_catalog_settings(self) -> Dict[str, Any]:
         """

@@ -51,22 +51,6 @@ def test_validate_name_for_percent(instantiable_base_class):
         nodes.BaseNode(name="test%", internal_name="test", node_type="dummy")
 
 
-def test_next_is_changed_to_next_node():
-    config = {"next": "I would be changed to next node"}
-    nodes.BaseNode.remove_next_keyword_from_config(config)
-
-    assert "next" not in config
-    assert config["next_node"] == "I would be changed to next node"
-
-
-def test_config_is_untouched_if_not_present():
-    config = {"next_node": "I would stay the same"}
-    nodes.BaseNode.remove_next_keyword_from_config(config)
-
-    assert "next" not in config
-    assert config["next_node"] == "I would stay the same"
-
-
 def test_base_node__command_friendly_name_replaces_whitespace_with_character():
     node = nodes.BaseNode(name="test", internal_name="test", node_type="dummy")
 
@@ -405,3 +389,16 @@ def test_terminal_node_is_terminal_node_returns_true(instantiable_terminal_node)
     node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
     assert node._is_terminal_node()
+
+
+def test_terminal_node_parse_from_config_sends_the_config_for_instantiation(instantiable_terminal_node):
+    config = {
+        "node_type": "dummy",
+        "name": "test",
+        "internal_name": "test",
+    }
+
+    node = nodes.TerminalNode.parse_from_config(config, internal_name="test")
+    assert node.node_type == "dummy"
+    assert node.name == "test"
+    assert node.internal_name == "test"

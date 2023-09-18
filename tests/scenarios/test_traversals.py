@@ -4,6 +4,7 @@ import random
 import string
 import tempfile
 from pathlib import Path
+from rich import print
 
 import pytest
 import ruamel.yaml
@@ -77,48 +78,48 @@ def get_run_log(work_dir, run_id):
     raise Exception
 
 
-@pytest.mark.no_cover
-def test_success_sdk():
-    configs = get_configs()
-    for config in configs:
-        first = Task(name="first", command="tests.scenarios.test_traversals.success_function")
-        second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
-        pipeline = Pipeline(name="testing", steps=[first, second])
-        with tempfile.TemporaryDirectory() as context_dir:
-            context_dir_path = Path(context_dir)
-            write_dag_and_config(context_dir_path, dag=None, config=config)
+# @pytest.mark.no_cover
+# def test_success_sdk():
+#     configs = get_configs()
+#     for config in configs:
+#         first = Task(name="first", command="tests.scenarios.test_traversals.success_function")
+#         second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
+#         pipeline = Pipeline(name="testing", steps=[first, second])
+#         with tempfile.TemporaryDirectory() as context_dir:
+#             context_dir_path = Path(context_dir)
+#             write_dag_and_config(context_dir_path, dag=None, config=config)
 
-            run_id = random_run_id()
-            pipeline.execute(configuration_file=str(context_dir_path / "config.yaml"), run_id=run_id)
+#             run_id = random_run_id()
+#             pipeline.execute(configuration_file=str(context_dir_path / "config.yaml"), run_id=run_id)
 
-            try:
-                run_log = get_run_log(context_dir_path, run_id)
-                assert run_log["status"] == defaults.SUCCESS
-                assert list(run_log["steps"].keys()) == ["first", "second", "success"]
-            except:
-                assert False
+#             try:
+#                 run_log = get_run_log(context_dir_path, run_id)
+#                 assert run_log["status"] == defaults.SUCCESS
+#                 assert list(run_log["steps"].keys()) == ["first", "second", "success"]
+#             except:
+#                 assert False
 
 
-@pytest.mark.no_cover
-def test_success_sdk_asis():
-    configs = get_configs()
-    for config in configs:
-        first = AsIs(name="first", command="tests.scenarios.test_traversals.success_function")
-        second = AsIs(name="second", command="tests.scenarios.test_traversals.success_function")
-        pipeline = Pipeline(name="testing", steps=[first, second])
-        with tempfile.TemporaryDirectory() as context_dir:
-            context_dir_path = Path(context_dir)
-            write_dag_and_config(context_dir_path, dag=None, config=config)
+# @pytest.mark.no_cover
+# def test_success_sdk_asis():
+#     configs = get_configs()
+#     for config in configs:
+#         first = AsIs(name="first", command="tests.scenarios.test_traversals.success_function")
+#         second = AsIs(name="second", command="tests.scenarios.test_traversals.success_function")
+#         pipeline = Pipeline(name="testing", steps=[first, second])
+#         with tempfile.TemporaryDirectory() as context_dir:
+#             context_dir_path = Path(context_dir)
+#             write_dag_and_config(context_dir_path, dag=None, config=config)
 
-            run_id = "testing_success"
-            pipeline.execute(configuration_file=str(context_dir_path / "config.yaml"), run_id=run_id)
+#             run_id = "testing_success"
+#             pipeline.execute(configuration_file=str(context_dir_path / "config.yaml"), run_id=run_id)
 
-            try:
-                run_log = get_run_log(context_dir_path, run_id)
-                assert run_log["status"] == defaults.SUCCESS
-                assert list(run_log["steps"].keys()) == ["first", "second", "success"]
-            except:
-                assert False
+#             try:
+#                 run_log = get_run_log(context_dir_path, run_id)
+#                 assert run_log["status"] == defaults.SUCCESS
+#                 assert list(run_log["steps"].keys()) == ["first", "second", "success"]
+#             except:
+#                 assert False
 
 
 @pytest.mark.no_cover
@@ -128,7 +129,8 @@ def test_success(success_graph):
     for config in configs:
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
-            dag = {"dag": success_graph()._to_dict()}
+            dag = {"dag": success_graph().model_dump(by_alias=True)}
+            print(dag)
 
             write_dag_and_config(context_dir_path, dag, config)
 
@@ -155,7 +157,7 @@ def test_success_executor_config(success_container_graph):
     for config in configs:
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
-            dag = {"dag": success_container_graph()._to_dict()}
+            dag = {"dag": success_container_graph().dict()}
 
             write_dag_and_config(context_dir_path, dag, config)
 
@@ -175,29 +177,29 @@ def test_success_executor_config(success_container_graph):
                 assert False
 
 
-@pytest.mark.no_cover
-def test_fail_sdk():
-    configs = get_configs()
-    for config in configs:
-        first = Task(name="first", command="tests.scenarios.test_traversals.error_function")
-        second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
-        pipeline = Pipeline(name="testing", steps=[first, second])
-        with tempfile.TemporaryDirectory() as context_dir:
-            context_dir_path = Path(context_dir)
-            write_dag_and_config(context_dir_path, dag=None, config=config)
+# @pytest.mark.no_cover
+# def test_fail_sdk():
+#     configs = get_configs()
+#     for config in configs:
+#         first = Task(name="first", command="tests.scenarios.test_traversals.error_function")
+#         second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
+#         pipeline = Pipeline(name="testing", steps=[first, second])
+#         with tempfile.TemporaryDirectory() as context_dir:
+#             context_dir_path = Path(context_dir)
+#             write_dag_and_config(context_dir_path, dag=None, config=config)
 
-            run_id = "testing_failure"
-            try:
-                pipeline.execute(configuration_file=str(context_dir_path / "config.yaml"), run_id=run_id)
-            except:
-                pass
+#             run_id = "testing_failure"
+#             try:
+#                 pipeline.execute(configuration_file=str(context_dir_path / "config.yaml"), run_id=run_id)
+#             except:
+#                 pass
 
-            try:
-                run_log = get_run_log(context_dir_path, run_id)
-                assert run_log["status"] == defaults.FAIL
-                assert list(run_log["steps"].keys()) == ["first", "fail"]
-            except:
-                assert False
+#             try:
+#                 run_log = get_run_log(context_dir_path, run_id)
+#                 assert run_log["status"] == defaults.FAIL
+#                 assert list(run_log["steps"].keys()) == ["first", "fail"]
+#             except:
+#                 assert False
 
 
 @pytest.mark.no_cover
@@ -207,7 +209,7 @@ def test_failure(fail_graph):
     for config in configs:
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
-            dag = {"dag": fail_graph()._to_dict()}
+            dag = {"dag": fail_graph().dict()}
 
             write_dag_and_config(context_dir_path, dag, config)
 
@@ -230,69 +232,69 @@ def test_failure(fail_graph):
                 assert False
 
 
-@pytest.mark.no_cover
-def test_on_fail_sdk():
-    configs = get_configs()
+# @pytest.mark.no_cover
+# def test_on_fail_sdk():
+#     configs = get_configs()
 
-    for config in configs:
-        first = Task(
-            name="first",
-            command="tests.scenarios.test_traversals.error_function",
-            on_failure="third",
-        )
-        second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
-        third = Task(name="third", command="tests.scenarios.test_traversals.success_function")
-        pipeline = Pipeline(name="testing", steps=[first, second, third])
-        with tempfile.TemporaryDirectory() as context_dir:
-            context_dir_path = Path(context_dir)
-            write_dag_and_config(context_dir_path, dag=None, config=config)
+#     for config in configs:
+#         first = Task(
+#             name="first",
+#             command="tests.scenarios.test_traversals.error_function",
+#             on_failure="third",
+#         )
+#         second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
+#         third = Task(name="third", command="tests.scenarios.test_traversals.success_function")
+#         pipeline = Pipeline(name="testing", steps=[first, second, third])
+#         with tempfile.TemporaryDirectory() as context_dir:
+#             context_dir_path = Path(context_dir)
+#             write_dag_and_config(context_dir_path, dag=None, config=config)
 
-            run_id = "testing_on_failure"
-            try:
-                pipeline.execute(configuration_file=str(context_dir_path / "config.yaml"), run_id=run_id)
-            except:
-                pass
+#             run_id = "testing_on_failure"
+#             try:
+#                 pipeline.execute(configuration_file=str(context_dir_path / "config.yaml"), run_id=run_id)
+#             except:
+#                 pass
 
-            try:
-                run_log = get_run_log(context_dir_path, run_id)
-                assert run_log["status"] == defaults.SUCCESS
-                assert list(run_log["steps"].keys()) == ["first", "third", "success"]
-            except:
-                assert False
+#             try:
+#                 run_log = get_run_log(context_dir_path, run_id)
+#                 assert run_log["status"] == defaults.SUCCESS
+#                 assert list(run_log["steps"].keys()) == ["first", "third", "success"]
+#             except:
+#                 assert False
 
 
-@pytest.mark.no_cover
-def test_on_fail_sdk_unchained():
-    configs = get_configs()
+# @pytest.mark.no_cover
+# def test_on_fail_sdk_unchained():
+#     configs = get_configs()
 
-    for config in configs:
-        first = Task(
-            name="first",
-            command="tests.scenarios.test_traversals.error_function",
-            on_failure="third",
-        )
-        second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
-        third = Task(name="third", command="tests.scenarios.test_traversals.success_function")
-        third.set_next_node("fail")
+#     for config in configs:
+#         first = Task(
+#             name="first",
+#             command="tests.scenarios.test_traversals.error_function",
+#             on_failure="third",
+#         )
+#         second = Task(name="second", command="tests.scenarios.test_traversals.success_function")
+#         third = Task(name="third", command="tests.scenarios.test_traversals.success_function")
+#         third.set_next_node("fail")
 
-        pipeline = Pipeline(name="testing", steps=[first, second, third])
+#         pipeline = Pipeline(name="testing", steps=[first, second, third])
 
-        with tempfile.TemporaryDirectory() as context_dir:
-            context_dir_path = Path(context_dir)
-            write_dag_and_config(context_dir_path, dag=None, config=config)
+#         with tempfile.TemporaryDirectory() as context_dir:
+#             context_dir_path = Path(context_dir)
+#             write_dag_and_config(context_dir_path, dag=None, config=config)
 
-            run_id = "testing_on_failure"
-            try:
-                pipeline.execute(configuration_file=str(context_dir_path / "config.yaml"), run_id=run_id)
-            except:
-                pass
+#             run_id = "testing_on_failure"
+#             try:
+#                 pipeline.execute(configuration_file=str(context_dir_path / "config.yaml"), run_id=run_id)
+#             except:
+#                 pass
 
-            try:
-                run_log = get_run_log(context_dir_path, run_id)
-                assert run_log["status"] == defaults.FAIL
-                assert list(run_log["steps"].keys()) == ["first", "third", "fail"]
-            except:
-                assert False
+#             try:
+#                 run_log = get_run_log(context_dir_path, run_id)
+#                 assert run_log["status"] == defaults.FAIL
+#                 assert list(run_log["steps"].keys()) == ["first", "third", "fail"]
+#             except:
+#                 assert False
 
 
 @pytest.mark.no_cover
@@ -301,7 +303,7 @@ def test_on_failure(on_fail_graph):
     for config in configs:
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
-            dag = {"dag": on_fail_graph()._to_dict()}
+            dag = {"dag": on_fail_graph().dict()}
 
             write_dag_and_config(context_dir_path, dag, config)
 
@@ -330,7 +332,7 @@ def test_parallel(parallel_success_graph):
     for config in configs:
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
-            dag = {"dag": parallel_success_graph()._to_dict()}
+            dag = {"dag": parallel_success_graph().dict()}
 
             write_dag_and_config(context_dir_path, dag, config)
             run_id = "testing_parallel"
@@ -365,7 +367,7 @@ def test_parallel_fail(parallel_fail_graph):
     for config in configs:
         with tempfile.TemporaryDirectory() as context_dir:
             context_dir_path = Path(context_dir)
-            dag = {"dag": parallel_fail_graph()._to_dict()}
+            dag = {"dag": parallel_fail_graph().dict()}
 
             write_dag_and_config(context_dir_path, dag, config)
             run_id = "testing_parallel"

@@ -10,9 +10,9 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import ClassVar, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
-from pydantic import BaseModel, ConfigDict, FieldValidationInfo, field_validator
+from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, field_validator
 from stevedore import driver
 
 import magnus.context as context
@@ -28,9 +28,8 @@ logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 class BaseTaskType(BaseModel):
     """A base task class which does the execution of command defined by the user."""
 
-    task_type: ClassVar[str] = ""
-
-    node_name: str
+    task_type: str = Field(str, serialization_alias="command_type")
+    node_name: str = Field(exclude=True)
     model_config = ConfigDict(extra="forbid")
 
     @property
@@ -134,8 +133,7 @@ class BaseTaskType(BaseModel):
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """The task class for python command."""
 
-    task_type: ClassVar[str] = "python"
-
+    task_type: str = Field(default="python", serialization_alias="command_type")
     command: str
 
     @field_validator("command")
@@ -187,8 +185,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """The task class for python-lambda command."""
 
-    task_type: ClassVar[str] = "python-lambda"
-
+    task_type: str = Field(default="python-lambda", serialization_alias="command_type")
     command: str
 
     @field_validator("command")
@@ -241,8 +238,7 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 class NotebookTaskType(BaseTaskType):
     """The task class for Notebook based execution."""
 
-    task_type: ClassVar[str] = "notebook"
-
+    task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
     notebook_output_path: str = ""
     optional_ploomber_args: dict = {}
@@ -328,8 +324,7 @@ class ShellTaskType(BaseTaskType):
     TODO: There is a way to read in parameters or tracking information from stdout and regex
     """
 
-    task_type: ClassVar[str] = "shell"
-
+    task_type: str = Field(default="shell", serialization_alias="command_type")
     command: str
 
     @field_validator("command")
@@ -374,8 +369,7 @@ class ContainerTaskType(BaseTaskType):
     The task class for container based execution.
     """
 
-    task_type: ClassVar[str] = "container"
-
+    task_type: str = Field(default="container", serialization_alias="command_type")
     image: str
     context_path: str = defaults.DEFAULT_CONTAINER_CONTEXT_PATH
     command: str = ""  # Would be defaulted to the entrypoint of the container
