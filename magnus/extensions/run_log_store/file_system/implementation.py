@@ -27,6 +27,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
       type: file-system
       config:
         log_folder: The folder to out the logs. Defaults to .run_log_store
+
     """
 
     service_name: str = "file-system"
