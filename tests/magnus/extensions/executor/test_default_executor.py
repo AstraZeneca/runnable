@@ -1,23 +1,19 @@
 import pytest
 from pydantic import BaseModel, Extra
 
-from magnus import defaults, exceptions, executor
+from magnus import defaults, exceptions
+from magnus.extensions.executor import DefaultExecutor
+import magnus.extensions.executor as executor
 
 
 @pytest.fixture(autouse=True)
 def instantiable_base_class(monkeypatch):
-    monkeypatch.setattr(executor.BaseExecutor, "__abstractmethods__", set())
+    monkeypatch.setattr(DefaultExecutor, "__abstractmethods__", set())
     yield
 
 
-def test_base_executor__is_parallel_execution_uses_default():
-    base_executor = executor.BaseExecutor()
-
-    assert base_executor.enable_parallel == defaults.ENABLE_PARALLEL
-
-
 def test_base_executor__set_up_run_log_with_no_previous_run_log(mocker, monkeypatch):
-    base_executor = executor.BaseExecutor()
+    base_executor = DefaultExecutor()
 
     mock_run_log_store = mocker.MagicMock()
     mock_create_run_log = mocker.MagicMock()
@@ -39,7 +35,7 @@ def test_base_executor__set_up_run_log_with_no_previous_run_log(mocker, monkeypa
 
 
 def test_base_executor__set_up_run_log_with_previous_run_log(mocker, monkeypatch):
-    base_executor = executor.BaseExecutor()
+    base_executor = DefaultExecutor()
 
     mock_run_log_store = mocker.MagicMock()
     mock_create_run_log = mocker.MagicMock()
@@ -79,7 +75,7 @@ def test_base_executor_prepare_for_graph_execution_calls(mocker, monkeypatch):
     monkeypatch.setattr(executor, "integration", mock_integration)
     monkeypatch.setattr(executor.BaseExecutor, "_set_up_run_log", mocker.MagicMock())
 
-    base_executor = executor.BaseExecutor()
+    base_executor = DefaultExecutor()
 
     base_executor.prepare_for_graph_execution()
 
@@ -97,7 +93,7 @@ def test_base_execution_prepare_for_node_calls(mocker, monkeypatch):
 
     monkeypatch.setattr(executor, "integration", mock_integration)
 
-    base_executor = executor.BaseExecutor()
+    base_executor = DefaultExecutor()
 
     base_executor.prepare_for_node_execution()
 
@@ -110,7 +106,7 @@ def test_base_executor__sync_catalog_returns_nothing_if_no_syncing_for_node(mock
 
     mock_node._get_catalog_settings.return_value = None
 
-    base_executor = executor.BaseExecutor()
+    base_executor = DefaultExecutor()
     base_executor.context_node = mock_node
 
     assert base_executor._sync_catalog(mock_node, None, stage="get") is None
@@ -118,10 +114,10 @@ def test_base_executor__sync_catalog_returns_nothing_if_no_syncing_for_node(mock
 
 def test_base_executor__sync_catalog_raises_exception_if_stage_not_in_get_or_put(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
-    base_executor = executor.BaseExecutor()
+    base_executor = DefaultExecutor()
     base_executor.context_node = mock_node
     with pytest.raises(Exception):
-        base_executor._sync_catalog(node=None, step_log=None, stage="puts")
+        base_executor._sync_catalog(step_log=None, stage="puts")
 
 
 def test_base_executor__sync_catalog_uses_catalog_handler_compute_folder_by_default(mocker, monkeypatch):

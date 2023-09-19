@@ -8,7 +8,7 @@ from typing import List, Optional
 from pydantic import ConfigDict
 from rich import print
 
-from magnus import defaults, exceptions, integration, interaction, utils
+from magnus import context, defaults, exceptions, integration, interaction, utils
 from magnus.datastore import DataCatalog, RunLog, StepLog
 from magnus.executor import BaseExecutor
 from magnus.extensions.nodes import TaskNode
@@ -46,6 +46,10 @@ class DefaultExecutor(BaseExecutor):
     model_config = ConfigDict(extra="forbid")
 
     @property
+    def _context(self):
+        return context.run_context
+
+    @property
     def step_decorator_run_id(self):
         """
         TODO: Experimental feature, design is not mature yet.
@@ -58,19 +62,6 @@ class DefaultExecutor(BaseExecutor):
             _type_: _description_
         """
         return os.environ.get("MAGNUS_RUN_ID", None)
-
-    def _is_parallel_execution(self) -> bool:
-        """
-        Controls the parallelization of branches in map and parallel state.
-        Defaults to False and left for the compute modes to decide.
-
-        Interactive executors like local and local-container need decisions.
-        For most transpilers it is inconsequential as its always True and supported by platforms.
-
-        Returns:
-            bool: True if the execution allows parallel execution of branches.
-        """
-        return self.enable_parallel
 
     def _set_up_run_log(self, exists_ok=False):
         """

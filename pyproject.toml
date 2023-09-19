@@ -213,4 +213,4 @@ exclude_also = [
     "@(abc\\.)?abstractmethod",
     ]
 
-omit =[ "magnus/cli.py" ]
+omit =[ "magnus/cli.py", "magnus/extensions/executor/demo_renderer/*" ]

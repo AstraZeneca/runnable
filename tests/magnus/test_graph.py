@@ -48,7 +48,7 @@ def test_get_node_by_name_raises_exception_if_no_match(new_graph):
 
 
 def test_get_node_by_name_returns_node_if_match(new_graph, dummy_node):
-    new_graph.nodes.append(dummy_node)
+    new_graph.nodes["a"] = dummy_node
     assert dummy_node == new_graph.get_node_by_name("a")
 
 
@@ -58,14 +58,14 @@ def test_get_node_by_internal_name_raises_exception_if_no_match(new_graph):
 
 
 def test_get_node_by_internal_name_returns_node_if_match(new_graph, dummy_node):
-    new_graph.nodes.append(dummy_node)
+    new_graph.nodes["a.b"] = dummy_node
     assert dummy_node == new_graph.get_node_by_internal_name("a.b")
 
 
 def test_add_node_adds_to_nodes(new_graph, dummy_node):
     new_graph.add_node(dummy_node)
     assert len(new_graph.nodes) == 1
-    assert new_graph.nodes[0] == dummy_node
+    assert new_graph.nodes["a"] == dummy_node
 
 
 def test_get_success_node_fails_if_none_present(new_graph):
@@ -74,8 +74,8 @@ def test_get_success_node_fails_if_none_present(new_graph):
 
 
 def test_get_success_node_returns_success_node_if_present(new_graph):
-    new_node = Node(node_type="success")
-    new_graph.nodes.append(new_node)
+    new_node = Node(node_type="success", name="a")
+    new_graph.nodes["a"] = new_node
 
     assert new_graph.get_success_node() == new_node
 
@@ -86,8 +86,8 @@ def test_get_fail_node_fails_if_none_present(new_graph):
 
 
 def test_get_fail_node_returns_success_node_if_present(new_graph):
-    new_node = Node(node_type="fail")
-    new_graph.nodes.append(new_node)
+    new_node = Node(node_type="fail", name="a")
+    new_graph.nodes["a"] = new_node
 
     assert new_graph.get_fail_node() == new_node
 
@@ -111,15 +111,15 @@ def test_success_node_validation_returns_false_if_neq_1(new_graph):
 
 
 def test_success_node_validation_returns_false_if_gr_1(new_graph):
-    node = Node(node_type="success")
-    new_graph.nodes.append(node)
-    new_graph.nodes.append(node)
+    node = Node(node_type="success", name="a")
+    new_graph.nodes["a"] = node
+    new_graph.nodes["b"] = node
     assert new_graph.success_node_validation() is False
 
 
 def test_success_node_validation_returns_true_if_eq_1(new_graph):
-    node = Node(node_type="success")
-    new_graph.nodes.append(node)
+    node = Node(node_type="success", name="a")
+    new_graph.nodes["a"] = node
     assert new_graph.success_node_validation() is True
 
 
@@ -128,15 +128,15 @@ def test_fail_node_validation_returns_false_if_neq_1(new_graph):
 
 
 def test_fail_node_validation_returns_false_if_gr_1(new_graph):
-    node = Node(node_type="fail")
-    new_graph.nodes.append(node)
-    new_graph.nodes.append(node)
+    node = Node(node_type="fail", name="a")
+    new_graph.nodes["a"] = node
+    new_graph.nodes["b"] = node
     assert new_graph.fail_node_validation() is False
 
 
 def test_fail_node_validation_returns_true_if_eq_1(new_graph):
-    node = Node(node_type="fail")
-    new_graph.nodes.append(node)
+    node = Node(node_type="fail", name="a")
+    new_graph.nodes["a"] = node
     assert new_graph.fail_node_validation() is True
 
 

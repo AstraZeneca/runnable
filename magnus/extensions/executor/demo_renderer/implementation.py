@@ -1,3 +1,4 @@
+# pragma: no cover
 import logging
 import re
 from typing import Optional
