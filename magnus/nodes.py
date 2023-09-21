@@ -31,7 +31,7 @@ class BaseNode(ABC, BaseModel):
     The internal branch name should always be even when split against dot.
     """
 
-    node_type: str = Field(str, serialization_alias="type")
+    node_type: str = Field(serialization_alias="type")
     name: str
     internal_name: str
     internal_branch_name: str = ""
@@ -358,7 +358,7 @@ class BaseNode(ABC, BaseModel):
 
 # --8<-- [end:docs]
 class TraversalNode(BaseNode):
-    next_node: str = Field(str, serialization_alias="next")
+    next_node: str = Field(serialization_alias="next")
     on_failure: str = ""
     executor_config: Dict[str, Any] = {}
 

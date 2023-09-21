@@ -1,4 +1,3 @@
-import pytest
 from pathlib import Path
 
 from magnus.extensions.catalog.file_system import integration

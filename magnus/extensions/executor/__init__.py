@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from abc import abstractmethod
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from pydantic import ConfigDict
 from rich import print
@@ -63,6 +63,38 @@ class DefaultExecutor(BaseExecutor):
         """
         return os.environ.get("MAGNUS_RUN_ID", None)
 
+    def _get_parameters(self):
+        parameters: Dict[str, Any] = {}
+        if self._context.parameters_file:
+            parameters.update(utils.load_yaml(self._context.parameters_file))
+
+        # Update these with some from the environment variables
+        parameters.update(utils.get_user_set_parameters())
+        return parameters
+
+    def _set_up_for_re_run(self, parameters: Dict[str, Any]) -> None:
+        try:
+            attempt_run_log = self._context.run_log_store.get_run_log_by_id(
+                run_id=self._context.original_run_id, full=False
+            )
+            self._previous_run_log = attempt_run_log
+        except exceptions.RunLogNotFoundError as e:
+            msg = (
+                f"Expected a run log with id: {self._context.original_run_id} "
+                "but it does not exist in the run log store. "
+                "If the original execution was in a different environment, ensure that it is available in the current "
+                "environment."
+            )
+            logger.exception(msg)
+            raise Exception(msg) from e
+
+        # Sync the previous run log catalog to this one.
+        self._context.catalog_handler.sync_between_runs(
+            previous_run_id=self._context.original_run_id, run_id=self._context.run_id
+        )
+
+        parameters.update(cast(RunLog, self._previous_run_log).parameters)
+
     def _set_up_run_log(self, exists_ok=False):
         """
         Create a run log and put that in the run log store
@@ -71,12 +103,11 @@ class DefaultExecutor(BaseExecutor):
         """
         try:
             attempt_run_log = self._context.run_log_store.get_run_log_by_id(run_id=self._context.run_id, full=False)
-            if attempt_run_log.status in [defaults.FAIL, defaults.SUCCESS]:
-                raise Exception(
-                    f"The run log by id: {self._context.run_id} already exists and is {attempt_run_log.status}"
-                )
 
-            raise exceptions.RunLogExistsError(self._context.run_id)
+            logger.warning(f"The run log by id: {self._context.run_id} already exists")
+            raise exceptions.RunLogExistsError(
+                f"The run log by id: {self._context.run_id} already exists and is {attempt_run_log.status}"
+            )
         except exceptions.RunLogNotFoundError:
             pass
         except exceptions.RunLogExistsError:
@@ -84,31 +115,18 @@ class DefaultExecutor(BaseExecutor):
                 return
             raise
 
-        parameters = {}
-        if self._context.parameters_file:
-            parameters.update(utils.load_yaml(self._context.parameters_file))
+        parameters = self._get_parameters()
 
-        # Update these with some from the environment variables
-        parameters.update(utils.get_user_set_parameters())
-        original_run_id = ""
-        use_cached = False
-        if self._previous_run_log:
-            original_run_id = self._previous_run_log.run_id
-            # Sync the previous run log catalog to this one.
-            self._context.catalog_handler.sync_between_runs(
-                previous_run_id=self._previous_run_log.run_id, run_id=self._context.run_id
-            )
-            use_cached = True
-
-            parameters.update(self._previous_run_log.parameters)
+        if self._context.use_cached:
+            self._set_up_for_re_run(parameters=parameters)
 
         self._context.run_log_store.create_run_log(
             run_id=self._context.run_id,
             tag=self._context.tag,
             status=defaults.PROCESSING,
             dag_hash=self._context.dag_hash,
-            use_cached=use_cached,
-            original_run_id=original_run_id,
+            use_cached=self._context.use_cached,
+            original_run_id=self._context.original_run_id,
         )
         # Any interaction with run log store attributes should happen via API if available.
         self._context.run_log_store.set_parameters(run_id=self._context.run_id, parameters=parameters)
@@ -201,9 +219,6 @@ class DefaultExecutor(BaseExecutor):
 
         compute_data_folder = self.get_effective_compute_data_folder()
 
-        if not compute_data_folder:
-            return None
-
         data_catalogs = []
         for name_pattern in node_catalog_settings.get(stage) or []:  #  Assumes a list
             data_catalogs = getattr(self._context.catalog_handler, stage)(
@@ -218,7 +233,7 @@ class DefaultExecutor(BaseExecutor):
 
         return data_catalogs
 
-    def get_effective_compute_data_folder(self) -> Optional[str]:
+    def get_effective_compute_data_folder(self) -> str:
         """
         Get the effective compute data folder for the given stage.
         If there is nothing to catalog, we return None.
@@ -230,16 +245,14 @@ class DefaultExecutor(BaseExecutor):
 
 
         Returns:
-            Optional[str]: The compute data folder as defined by catalog handler or the node or None.
+            str: The compute data folder as defined by the node defaulting to catalog handler
         """
+        compute_data_folder = self._context.catalog_handler.compute_data_folder
 
         catalog_settings = self._context_node._get_catalog_settings()
+        effective_compute_data_folder = catalog_settings.get("compute_data_folder", "") or compute_data_folder
 
-        compute_data_folder = self._context.catalog_handler.compute_data_folder
-        if "compute_data_folder" in catalog_settings and catalog_settings["compute_data_folder"]:
-            compute_data_folder = catalog_settings["compute_data_folder"]
-
-        return compute_data_folder
+        return effective_compute_data_folder
 
     @property
     def step_attempt_number(self) -> int:
@@ -284,13 +297,12 @@ class DefaultExecutor(BaseExecutor):
         attempt = self.step_attempt_number
         logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}")
 
+        attempt_log = self._context.run_log_store.create_attempt_log()
         try:
             self._context_step_log = step_log
             self._context_node = node
 
-            attempt_log = self._context.run_log_store.create_attempt_log()
             data_catalogs_get: Optional[List[DataCatalog]] = self._sync_catalog(step_log, stage="get")
-
             attempt_log = node.execute(executor=self, mock=step_log.mock, map_variable=map_variable, **kwargs)
         except Exception as e:
             # Any exception here is a magnus exception as node suppresses exceptions.
@@ -396,7 +408,7 @@ class DefaultExecutor(BaseExecutor):
                 return
         else:  # We are not in single step mode
             # If previous run was successful, move on to the next step
-            if not self._is_eligible_for_rerun(node, map_variable=map_variable):
+            if not self._is_step_eligible_for_rerun(node, map_variable=map_variable):
                 step_log.mock = True
                 step_log.status = defaults.SUCCESS
                 self._context.run_log_store.add_step_log(step_log, self._context.run_id)
@@ -523,7 +535,7 @@ class DefaultExecutor(BaseExecutor):
             run_log = self._context.run_log_store.get_run_log_by_id(run_id=self._context.run_id, full=True)
         print(json.dumps(run_log.dict(), indent=4))
 
-    def _is_eligible_for_rerun(self, node: BaseNode, map_variable: Optional[dict] = None):
+    def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: Optional[dict] = None):
         """
         In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
         necessary.
@@ -541,6 +553,7 @@ class DefaultExecutor(BaseExecutor):
         Returns:
             bool: Eligibility for re-run. True means re-run, False means skip to the next step.
         """
+        # TODO: Since this happens in conditional branches, retrieve the step log from run log store
         if self._previous_run_log:
             node_step_log_name = node._get_step_log_name(map_variable=map_variable)
             logger.info(f"Scanning previous run logs for node logs of: {node_step_log_name}")

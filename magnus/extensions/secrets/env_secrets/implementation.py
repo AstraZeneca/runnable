@@ -45,6 +45,7 @@ class EnvSecretsManager(BaseSecrets):
         matched_secrets = {}
         for key in os.environ:
             if key.startswith(self.prefix) and key.endswith(self.suffix):
-                matched_secrets[key[len(self.prefix) : -len(self.suffix)]] = os.environ[key]
+                up_to = len(key) - len(self.suffix) if self.suffix else len(key)
+                matched_secrets[key[len(self.prefix) : up_to]] = os.environ[key]
 
         return matched_secrets

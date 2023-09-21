@@ -179,7 +179,7 @@ def put_in_catalog(filepath: str):
     data_catalog = context.run_context.catalog_handler.put(
         file_path.name,
         run_id=context.run_context.run_id,
-        compute_data_folder=file_path.parent,
+        compute_data_folder=str(file_path.parent),
     )
     if not data_catalog:
         logger.warning(f"No catalog was done by the {filepath}")

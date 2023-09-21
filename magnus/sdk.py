@@ -223,7 +223,7 @@ class Pipeline(BaseModel):
 
         self._dag.add_terminal_nodes()
 
-        self._dag._validate()
+        self._dag.check_graph()
 
     def execute(
         self,

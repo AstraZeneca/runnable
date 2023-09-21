@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -77,6 +77,31 @@ class BaseExecutor(ABC, BaseModel):
             bool: True if the execution allows parallel execution of branches.
         """
         return self.enable_parallel
+
+    @abstractmethod
+    def _get_parameters(self) -> Dict[str, Any]:
+        """
+        Get the parameters for the execution.
+        The parameters can be defined in parameters file and can be overridden by environment variables.
+
+        Returns:
+            Dict[str, Any]: The parameters for the execution.
+        """
+        ...
+
+    @abstractmethod
+    def _set_up_for_re_run(self, parameters: Dict[str, Any]) -> None:
+        """
+        Set up the executor for using a previous execution.
+
+        Retrieve the older run log, error out if it does not exist.
+        Sync the catalogs from the previous run log with the current one.
+
+        Update the parameters of this execution with the previous one. The previous one take precedence.
+
+        Args:
+            parameters (Dict[str, Any]): The parameters for the current execution.
+        """
 
     @abstractmethod
     def _set_up_run_log(self, exists_ok=False):
@@ -299,7 +324,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def _is_eligible_for_rerun(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None):
+    def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None):
         """
         In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
         necessary.

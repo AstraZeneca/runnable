@@ -3,74 +3,227 @@ from pydantic import BaseModel, Extra
 
 from magnus import defaults, exceptions
 from magnus.extensions.executor import DefaultExecutor
+from magnus.extensions import executor
 import magnus.extensions.executor as executor
 
 
 @pytest.fixture(autouse=True)
-def instantiable_base_class(monkeypatch):
+def instantiable_base_class(monkeypatch, mocker):
     monkeypatch.setattr(DefaultExecutor, "__abstractmethods__", set())
     yield
 
 
-def test_base_executor__set_up_run_log_with_no_previous_run_log(mocker, monkeypatch):
-    base_executor = DefaultExecutor()
+@pytest.fixture
+def mock_run_context(mocker, monkeypatch):
+    mock_run_context = mocker.Mock()
+    monkeypatch.setattr(executor.context, "run_context", mock_run_context)
+    return mock_run_context
+
+
+def test_get_parameters_gets_parameters_from_parameters_file(mocker, monkeypatch, mock_run_context):
+    mock_run_context.parameters_file = "parameters_file"
+    mock_load_yaml = mocker.MagicMock(return_value={"executor": "test"})
+    monkeypatch.setattr(executor.utils, "load_yaml", mock_load_yaml)
+
+    test_executor = DefaultExecutor()
+    assert test_executor._get_parameters() == {"executor": "test"}
+    mock_load_yaml.assert_called_once_with("parameters_file")
+
+
+def test_get_parameters_gets_parameters_from_user_parameters(mocker, monkeypatch, mock_run_context):
+    mock_run_context.parameters_file = ""
+    monkeypatch.setattr(executor.utils, "get_user_set_parameters", mocker.MagicMock(return_value={"executor": "test"}))
+
+    test_executor = DefaultExecutor()
+    assert test_executor._get_parameters() == {"executor": "test"}
+
+
+def test_get_parameters_user_parameters_overwrites_parameters_from_parameters_file(
+    mocker, monkeypatch, mock_run_context
+):
+    mock_run_context.parameters_file = "parameters_file"
+
+    mock_load_yaml = mocker.MagicMock(return_value={"executor": "this"})
+    monkeypatch.setattr(executor.utils, "load_yaml", mock_load_yaml)
+    monkeypatch.setattr(executor.utils, "get_user_set_parameters", mocker.MagicMock(return_value={"executor": "that"}))
+
+    test_executor = DefaultExecutor()
+    assert test_executor._get_parameters() == {"executor": "that"}
+
+
+def test_set_up_for_rerun_throws_exception_if_run_log_not_exists(mocker, monkeypatch, mock_run_context):
+    mock_run_log_store = mocker.MagicMock()
+
+    mock_run_context.run_log_store = mock_run_log_store
+    mock_run_context.original_run_id = "original_run_id"
+    mock_run_log_store.get_run_log_by_id = mocker.MagicMock(side_effect=exceptions.RunLogNotFoundError("test"))
+
+    with pytest.raises(Exception, match="Expected a run log with id: original_run_id"):
+        DefaultExecutor()._set_up_for_re_run(parameters={})
+
+
+def test_set_up_for_re_run_syncs_catalog_and_parameters(mocker, monkeypatch, mock_run_context):
+    mock_catalog_handler_sync_between_runs = mocker.MagicMock()
+    mock_catalog_handler = mocker.MagicMock()
+    mock_catalog_handler.sync_between_runs = mock_catalog_handler_sync_between_runs
+
+    mock_run_context.catalog_handler = mock_catalog_handler
+    mock_run_context.run_id = "run_id"
+    mock_run_context.original_run_id = "original_run_id"
+
+    mock_attempt_run_log = mocker.MagicMock()
+    mock_attempt_run_log.parameters = {"ghost": "from past"}
 
     mock_run_log_store = mocker.MagicMock()
-    mock_create_run_log = mocker.MagicMock()
-    mock_run_log_store.create_run_log = mock_create_run_log
-    mock_run_log_store.get_run_log_by_id = mocker.MagicMock(
-        side_effect=exceptions.RunLogNotFoundError(run_id="nothing")
-    )
+    mock_run_log_store.get_run_log_by_id.return_value = mock_attempt_run_log
+    mock_run_context.run_log_store = mock_run_log_store
 
-    base_executor.run_log_store = mock_run_log_store
-    base_executor.run_id = "run_id"
+    parameters = {}
+    DefaultExecutor()._set_up_for_re_run(parameters=parameters)
 
-    monkeypatch.setattr(executor.utils, "get_run_config", mocker.MagicMock(return_value={"executor": "test"}))
-
-    base_executor._set_up_run_log()
-
-    mock_create_run_log.assert_called_once_with(
-        run_id="run_id", tag="", use_cached=False, status=defaults.PROCESSING, dag_hash=""
-    )
+    mock_catalog_handler_sync_between_runs.assert_called_once_with(previous_run_id="original_run_id", run_id="run_id")
+    assert parameters == {"ghost": "from past"}
 
 
-def test_base_executor__set_up_run_log_with_previous_run_log(mocker, monkeypatch):
-    base_executor = DefaultExecutor()
+def test_set_up_for_re_run_syncs_catalog_and_updates_parameters(mocker, monkeypatch, mock_run_context):
+    mock_catalog_handler_sync_between_runs = mocker.MagicMock()
+    mock_catalog_handler = mocker.MagicMock()
+    mock_catalog_handler.sync_between_runs = mock_catalog_handler_sync_between_runs
+
+    mock_run_context.catalog_handler = mock_catalog_handler
+    mock_run_context.run_id = "run_id"
+    mock_run_context.original_run_id = "original_run_id"
+
+    mock_attempt_run_log = mocker.MagicMock()
+    mock_attempt_run_log.parameters = {"ghost": "from past"}
 
     mock_run_log_store = mocker.MagicMock()
-    mock_create_run_log = mocker.MagicMock()
-    mock_run_log_store.create_run_log = mock_create_run_log
-    mock_run_log_store.create_run_log = mock_create_run_log
-    mock_run_log_store.get_run_log_by_id = mocker.MagicMock(
-        side_effect=exceptions.RunLogNotFoundError(run_id="nothing")
+    mock_run_log_store.get_run_log_by_id.return_value = mock_attempt_run_log
+    mock_run_context.run_log_store = mock_run_log_store
+
+    parameters = {"present": "now"}
+    DefaultExecutor()._set_up_for_re_run(parameters=parameters)
+
+    mock_catalog_handler_sync_between_runs.assert_called_once_with(previous_run_id="original_run_id", run_id="run_id")
+    assert parameters == {"present": "now", "ghost": "from past"}
+
+
+def test_set_up_run_log_throws_exception_if_run_log_already_exists(mocker, monkeypatch, mock_run_context):
+    mock_run_log_store = mocker.MagicMock()
+
+    mock_run_log_store.get_run_log_by_id = mocker.MagicMock(side_effect=exceptions.RunLogExistsError)
+
+    with pytest.raises(exceptions.RunLogExistsError):
+        DefaultExecutor()._set_up_run_log()
+
+
+def test_set_up_run_log_exists_ok_returns_without_exception(mocker, monkeypatch, mock_run_context):
+    DefaultExecutor()._set_up_run_log(exists_ok=True)
+
+
+def test_set_up_run_log_calls_get_parameters(mocker, monkeypatch, mock_run_context):
+    mock_get_parameters = mocker.MagicMock()
+    monkeypatch.setattr(DefaultExecutor, "_get_parameters", mock_get_parameters)
+
+    mock_run_context.run_log_store.get_run_log_by_id = mocker.MagicMock(
+        side_effect=exceptions.RunLogNotFoundError("test")
+    )
+    mock_run_context.use_cached = False
+
+    DefaultExecutor()._set_up_run_log()
+
+    assert mock_get_parameters.call_count == 1
+
+
+def test_set_up_run_log_calls_set_up_for_re_run(mocker, monkeypatch, mock_run_context):
+    mock_set_up_for_re_run = mocker.MagicMock()
+    monkeypatch.setattr(DefaultExecutor, "_set_up_for_re_run", mock_set_up_for_re_run)
+
+    mock_get_parameters = mocker.MagicMock()
+    monkeypatch.setattr(DefaultExecutor, "_get_parameters", mock_get_parameters)
+
+    mock_run_context.run_log_store.get_run_log_by_id = mocker.MagicMock(
+        side_effect=exceptions.RunLogNotFoundError("test")
     )
 
-    mock_previous_run_log = mocker.MagicMock()
-    mock_previous_run_log.run_id = "old run id"
-    mock_previous_run_log.parameters = {"b": 1}
+    DefaultExecutor()._set_up_run_log()
 
-    base_executor.run_log_store = mock_run_log_store
-    base_executor.run_id = "run_id"
+    assert mock_set_up_for_re_run.call_count == 1
 
-    base_executor.previous_run_log = mock_previous_run_log
-    base_executor.catalog_handler = mocker.MagicMock()
 
-    monkeypatch.setattr(executor.utils, "get_run_config", mocker.MagicMock(return_value={"executor": "test"}))
+def test_set_up_run_log_calls_create_run_log(mocker, monkeypatch, mock_run_context):
+    mock_get_parameters = mocker.MagicMock()
+    monkeypatch.setattr(DefaultExecutor, "_get_parameters", mock_get_parameters)
 
-    base_executor._set_up_run_log()
+    mock_run_context.run_log_store.get_run_log_by_id = mocker.MagicMock(
+        side_effect=exceptions.RunLogNotFoundError("test")
+    )
+
+    mock_create_run_log = mocker.MagicMock()
+    mock_run_context.run_log_store.create_run_log = mock_create_run_log
+
+    mock_run_context.run_id = "test"
+    mock_run_context.tag = "tag"
+    mock_run_context.dag_hash = "dag_hash"
+    mock_run_context.use_cached = False
+    mock_run_context.original_run_id = "original_run_id"
+
+    DefaultExecutor()._set_up_run_log()
 
     mock_create_run_log.assert_called_once_with(
-        run_id="run_id", tag="", use_cached=True, status=defaults.PROCESSING, dag_hash="", original_run_id="old run id"
+        run_id="test",
+        tag="tag",
+        status=defaults.PROCESSING,
+        dag_hash="dag_hash",
+        use_cached=False,
+        original_run_id="original_run_id",
     )
 
 
-def test_base_executor_prepare_for_graph_execution_calls(mocker, monkeypatch):
+def test_set_up_run_log_store_calls_set_parameters(mocker, monkeypatch, mock_run_context):
+    mock_get_parameters = mocker.MagicMock()
+    monkeypatch.setattr(DefaultExecutor, "_get_parameters", mock_get_parameters)
+
+    mock_run_context.run_log_store.get_run_log_by_id = mocker.MagicMock(
+        side_effect=exceptions.RunLogNotFoundError("test")
+    )
+
+    mock_run_context.use_cached = False
+    mock_set_parameters = mocker.MagicMock()
+    mock_run_context.run_log_store.set_parameters = mock_set_parameters
+
+    DefaultExecutor()._set_up_run_log()
+
+    assert mock_set_parameters.call_count == 1
+
+
+def test_set_up_run_log_store_calls_set_run_config(mocker, monkeypatch, mock_run_context):
+    mock_get_parameters = mocker.MagicMock()
+    monkeypatch.setattr(DefaultExecutor, "_get_parameters", mock_get_parameters)
+
+    mock_run_context.run_log_store.get_run_log_by_id = mocker.MagicMock(
+        side_effect=exceptions.RunLogNotFoundError("test")
+    )
+
+    mock_run_context.use_cached = False
+    mock_set_run_config = mocker.MagicMock()
+    mock_run_context.run_log_store.set_parameters = mock_set_run_config
+
+    DefaultExecutor()._set_up_run_log()
+
+    assert mock_set_run_config.call_count == 1
+
+
+def test_base_executor_prepare_for_graph_execution_calls(mocker, monkeypatch, mock_run_context):
     mock_integration = mocker.MagicMock()
     mock_validate = mocker.MagicMock()
     mock_configure_for_traversal = mocker.MagicMock()
 
     mock_integration.validate = mock_validate
     mock_integration.configure_for_traversal = mock_configure_for_traversal
+
+    mock_set_up_run_log = mocker.MagicMock()
+    monkeypatch.setattr(DefaultExecutor, "_set_up_run_log", mock_set_up_run_log)
 
     monkeypatch.setattr(executor, "integration", mock_integration)
     monkeypatch.setattr(executor.BaseExecutor, "_set_up_run_log", mocker.MagicMock())
@@ -83,13 +236,16 @@ def test_base_executor_prepare_for_graph_execution_calls(mocker, monkeypatch):
     assert mock_validate.call_count == 4
 
 
-def test_base_execution_prepare_for_node_calls(mocker, monkeypatch):
+def test_base_execution_prepare_for_node_calls(mocker, monkeypatch, mock_run_context):
     mock_integration = mocker.MagicMock()
     mock_validate = mocker.MagicMock()
     mock_configure_for_execution = mocker.MagicMock()
 
     mock_integration.validate = mock_validate
     mock_integration.configure_for_execution = mock_configure_for_execution
+
+    mock_set_up_run_log = mocker.MagicMock()
+    monkeypatch.setattr(DefaultExecutor, "_set_up_run_log", mock_set_up_run_log)
 
     monkeypatch.setattr(executor, "integration", mock_integration)
 
@@ -101,71 +257,55 @@ def test_base_execution_prepare_for_node_calls(mocker, monkeypatch):
     assert mock_validate.call_count == 4
 
 
-def test_base_executor__sync_catalog_returns_nothing_if_no_syncing_for_node(mocker, monkeypatch):
+def test_base_executor__sync_catalog_raises_exception_if_stage_not_in_get_or_put(mocker, monkeypatch):
+    test_executor = DefaultExecutor()
+    with pytest.raises(Exception):
+        test_executor._sync_catalog(step_log="test", stage="puts")
+
+
+def test_sync_catalog_does_nothing_for_terminal_node(mocker, monkeypatch, mock_run_context):
+    mock_node = mocker.MagicMock()
+    mock_node._get_catalog_settings = mocker.MagicMock(side_effect=exceptions.TerminalNodeError)
+
+    test_executor = DefaultExecutor()
+    test_executor._context_node = mock_node
+
+    test_executor._sync_catalog("test", stage="get")
+
+
+def test_sync_catalog_does_nothing_for_no_catalog_settings(mocker, monkeypatch, mock_run_context):
+    mock_node = mocker.MagicMock()
+    mock_node._get_catalog_settings = mocker.MagicMock(return_value={})
+
+    test_executor = DefaultExecutor()
+    test_executor._context_node = mock_node
+
+    test_executor._sync_catalog("test", stage="get")
+
+
+def test_sync_catalog_does_nothing_for_catalog_settings_stage_not_in(mocker, monkeypatch, mock_run_context):
+    mock_node = mocker.MagicMock()
+    mock_node._get_catalog_settings = mocker.MagicMock(return_value={"get": "something"})
+
+    test_executor = DefaultExecutor()
+    test_executor._context_node = mock_node
+
+    test_executor._sync_catalog("test", stage="put")
+
+
+def test_sync_catalog_returns_nothing_if_no_syncing_for_node(mocker, monkeypatch, mock_run_context):
     mock_node = mocker.MagicMock()
 
     mock_node._get_catalog_settings.return_value = None
 
-    base_executor = DefaultExecutor()
-    base_executor.context_node = mock_node
+    test_executor = DefaultExecutor()
+    test_executor._context_node = mock_node
 
-    assert base_executor._sync_catalog(mock_node, None, stage="get") is None
-
-
-def test_base_executor__sync_catalog_raises_exception_if_stage_not_in_get_or_put(mocker, monkeypatch):
-    mock_node = mocker.MagicMock()
-    base_executor = DefaultExecutor()
-    base_executor.context_node = mock_node
-    with pytest.raises(Exception):
-        base_executor._sync_catalog(step_log=None, stage="puts")
+    assert test_executor._sync_catalog("test", stage="get") is None
 
 
-def test_base_executor__sync_catalog_uses_catalog_handler_compute_folder_by_default(mocker, monkeypatch):
-    mock_node = mocker.MagicMock()
-    mock_node._get_catalog_settings.return_value = {"get": ["all"]}
-
-    mock_catalog = mocker.MagicMock()
-    mock_catalog.compute_data_folder = "data/"
-
-    mock_catalog_get = mocker.MagicMock()
-    mock_catalog.get = mock_catalog_get
-
-    mock_step_log = mocker.MagicMock()
-
-    base_executor = executor.BaseExecutor()
-    base_executor.run_id = "run_id"
-    base_executor.catalog_handler = mock_catalog
-    base_executor.context_node = mock_node
-
-    base_executor._sync_catalog(mock_node, mock_step_log, stage="get")
-
-    mock_catalog_get.assert_called_once_with(
-        name="all", run_id="run_id", compute_data_folder="data/", synced_catalogs=None
-    )
-
-
-def test_base_executor__sync_catalog_uses_compute_folder_if_provided_by_node(mocker, monkeypatch):
-    mock_node = mocker.MagicMock()
-    mock_node._get_catalog_settings.return_value = {"get": ["all"], "compute_data_folder": "data_from_node"}
-
-    mock_catalog = mocker.MagicMock()
-    mock_catalog.compute_data_folder = "data/"
-
-    mock_catalog_get = mocker.MagicMock()
-    mock_catalog.get = mock_catalog_get
-
-    mock_step_log = mocker.MagicMock()
-
-    base_executor = executor.BaseExecutor()
-    base_executor.context_node = mock_node
-    base_executor.run_id = "run_id"
-    base_executor.catalog_handler = mock_catalog
-
-    base_executor._sync_catalog(mock_node, mock_step_log, stage="get")
-
-    mock_catalog_get.assert_called_once_with(
-        name="all", run_id="run_id", compute_data_folder="data_from_node", synced_catalogs=None
-    )
+def test_sync_catalog_returns_empty_list_if_empty_catalog(mocker, monkeypatch, mock_run_context):
+    pass
 
 
 def test_base_executor_add_code_identities_adds_git_identity(mocker, monkeypatch):

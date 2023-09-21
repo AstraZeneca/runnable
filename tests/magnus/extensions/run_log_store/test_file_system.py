@@ -48,7 +48,7 @@ def test_file_system_run_log_store_get_from_folder_raises_exception_if_folder_no
 
     run_log_store = implementation.FileSystemRunLogstore()
 
-    with raises(FileNotFoundError):
+    with pytest.raises(FileNotFoundError):
         run_log_store.get_from_folder(run_id="test")
 
 

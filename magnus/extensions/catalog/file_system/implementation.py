@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from magnus import defaults, utils
 from magnus.catalog import BaseCatalog
@@ -34,7 +34,7 @@ class FileSystemCatalog(BaseCatalog):
     def get_catalog_location(self):
         return self.catalog_location
 
-    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[DataCatalog]:
+    def get(self, name: str, run_id: str, compute_data_folder: str = "", **kwargs) -> List[DataCatalog]:
         """
         Get the file by matching glob pattern to the name
 
@@ -101,8 +101,8 @@ class FileSystemCatalog(BaseCatalog):
         self,
         name: str,
         run_id: str,
-        compute_data_folder=None,
-        synced_catalogs=None,
+        compute_data_folder: str = "",
+        synced_catalogs: Optional[List[DataCatalog]] = None,
         **kwargs,
     ) -> List[DataCatalog]:
         """

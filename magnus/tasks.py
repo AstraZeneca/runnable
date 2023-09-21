@@ -28,7 +28,7 @@ logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 class BaseTaskType(BaseModel):
     """A base task class which does the execution of command defined by the user."""
 
-    task_type: str = Field(str, serialization_alias="command_type")
+    task_type: str = Field(serialization_alias="command_type")
     node_name: str = Field(exclude=True)
     model_config = ConfigDict(extra="forbid")
 

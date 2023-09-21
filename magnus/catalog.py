@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -31,7 +31,7 @@ class BaseCatalog(ABC, BaseModel):
         return context.run_context
 
     @abstractmethod
-    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[DataCatalog]:
+    def get(self, name: str, run_id: str, compute_data_folder: str = "", **kwargs) -> List[DataCatalog]:
         """
         Get the catalog item by 'name' for the 'run id' and store it in compute data folder.
 
@@ -55,8 +55,8 @@ class BaseCatalog(ABC, BaseModel):
         self,
         name: str,
         run_id: str,
-        compute_data_folder=None,
-        synced_catalogs=None,
+        compute_data_folder: str = "",
+        synced_catalogs: Optional[List[DataCatalog]] = None,
         **kwargs,
     ) -> List[DataCatalog]:
         """
@@ -109,7 +109,7 @@ class DoNothingCatalog(BaseCatalog):
 
     service_name: str = "do-nothing"
 
-    def get(self, name: str, run_id: str, compute_data_folder=None, **kwargs) -> List[DataCatalog]:
+    def get(self, name: str, run_id: str, compute_data_folder: str = "", **kwargs) -> List[DataCatalog]:
         """
         Does nothing
         """
@@ -120,8 +120,8 @@ class DoNothingCatalog(BaseCatalog):
         self,
         name: str,
         run_id: str,
-        compute_data_folder=None,
-        synced_catalogs=None,
+        compute_data_folder: str = "",
+        synced_catalogs: Optional[List[DataCatalog]] = None,
         **kwargs,
     ) -> List[DataCatalog]:
         """
