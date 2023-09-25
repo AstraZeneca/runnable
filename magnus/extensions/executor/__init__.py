@@ -18,7 +18,7 @@ from magnus.nodes import BaseNode
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class DefaultExecutor(BaseExecutor):
+class GenericExecutor(BaseExecutor):
     """
     The skeleton of an executor class.
     Any implementation of an executor should inherit this class and over-ride accordingly.
@@ -214,19 +214,29 @@ class DefaultExecutor(BaseExecutor):
             return None
 
         if not (node_catalog_settings and stage in node_catalog_settings):
+            logger.info("No catalog settings found for stage: %s", stage)
             # Nothing to get/put from the catalog
             return None
 
         compute_data_folder = self.get_effective_compute_data_folder()
 
         data_catalogs = []
-        for name_pattern in node_catalog_settings.get(stage) or []:  #  Assumes a list
-            data_catalogs = getattr(self._context.catalog_handler, stage)(
-                name=name_pattern,
-                run_id=self._context.run_id,
-                compute_data_folder=compute_data_folder,
-                synced_catalogs=synced_catalogs,
-            )
+        for name_pattern in node_catalog_settings.get(stage) or []:
+            if stage == "get":
+                data_catalog = self._context.catalog_handler.get(
+                    name=name_pattern, run_id=self._context.run_id, compute_data_folder=compute_data_folder
+                )
+            elif stage == "put":
+                data_catalog = self._context.catalog_handler.put(
+                    name=name_pattern,
+                    run_id=self._context.run_id,
+                    compute_data_folder=compute_data_folder,
+                    synced_catalogs=synced_catalogs,
+                )
+            else:
+                raise Exception(f"Invalid stage: {stage}")
+            logger.info(f"Added data catalog: {data_catalog} to step log")
+            data_catalogs.append(data_catalog)
 
         if data_catalogs:
             step_log.add_data_catalogs(data_catalogs)
@@ -298,15 +308,16 @@ class DefaultExecutor(BaseExecutor):
         logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}")
 
         attempt_log = self._context.run_log_store.create_attempt_log()
+        data_catalogs_get: Optional[List[DataCatalog]] = self._sync_catalog(step_log, stage="get")
         try:
             self._context_step_log = step_log
             self._context_node = node
 
-            data_catalogs_get: Optional[List[DataCatalog]] = self._sync_catalog(step_log, stage="get")
             attempt_log = node.execute(executor=self, mock=step_log.mock, map_variable=map_variable, **kwargs)
         except Exception as e:
             # Any exception here is a magnus exception as node suppresses exceptions.
             msg = "This is clearly magnus fault, please report a bug and the logs"
+            logger.exception(msg)
             raise Exception(msg) from e
         finally:
             attempt_log.attempt_number = attempt
@@ -448,6 +459,8 @@ class DefaultExecutor(BaseExecutor):
 
         If the current node succeeded, we return the next node as per the graph.
         If the current node failed, we return the on failure node of the node (if provided) or the global one.
+
+        This method is only used by interactive executors i.e local and local-container
 
         Args:
             current_node (BaseNode): The current node.
@@ -629,7 +642,7 @@ class DefaultExecutor(BaseExecutor):
             node (BaseNode): The current node being processed.
 
         """
-        effective_node_config = copy.deepcopy(self.dict())
+        effective_node_config = copy.deepcopy(self.model_dump())
         ctx_node_config = node._get_executor_config(self.service_name)
 
         placeholders = self.placeholders
@@ -648,7 +661,7 @@ class DefaultExecutor(BaseExecutor):
                 )
 
             effective_node_config[key] = value
-        effective_node_config.pop("placeholders", None)
+        # effective_node_config.pop("placeholders", None)
 
         return effective_node_config
 

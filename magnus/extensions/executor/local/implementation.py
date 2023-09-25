@@ -2,14 +2,14 @@ import logging
 from typing import Dict, Optional
 
 from magnus import defaults
-from magnus.extensions.executor import DefaultExecutor
+from magnus.extensions.executor import GenericExecutor
 from magnus.extensions.nodes import TaskNode
 from magnus.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class LocalExecutor(DefaultExecutor):
+class LocalExecutor(GenericExecutor):
     """
     In the mode of local execution, we run everything on the local computer.
 

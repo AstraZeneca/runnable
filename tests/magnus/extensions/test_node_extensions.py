@@ -13,7 +13,7 @@ def instantiable_base_class(monkeypatch):
 
 
 def test_task_node_parse_from_config_seperates_task_from_node_confifg(mocker, monkeypatch):
-    base_task = BaseTaskType(node_name="test")
+    base_task = BaseTaskType(node_name="test", task_type="dummy")
     mock_create_task = mocker.MagicMock(return_value=base_task)
 
     command_config = {"to_be_sent_to_task": "yes"}
@@ -39,7 +39,7 @@ def test_task_node_mocks_if_mock_is_true(mocker, monkeypatch):
     monkeypatch.setattr(nodes.TaskNode, "_context", mock_context)
     mock_context.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
 
-    base_task = BaseTaskType(node_name="test")
+    base_task = BaseTaskType(node_name="test", task_type="dummy")
     task_node = nodes.TaskNode(name="test", internal_name="test", next_node="next_node", executable=base_task)
 
     attempt_log = task_node.execute(mock=True)
@@ -55,7 +55,7 @@ def test_task_node_sets_attempt_log_fail_in_exception_of_execution(mocker, monke
     mock_context.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
 
     monkeypatch.setattr(BaseTaskType, "execute_command", mocker.MagicMock(side_effect=Exception()))
-    base_task = BaseTaskType(node_name="test")
+    base_task = BaseTaskType(node_name="test", task_type="dummy")
 
     task_node = nodes.TaskNode(name="test", internal_name="test", next_node="next_node", executable=base_task)
 
@@ -72,7 +72,7 @@ def test_task_node_sets_attempt_log_success_in_no_exception_of_execution(mocker,
     mock_context.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
 
     monkeypatch.setattr(BaseTaskType, "execute_command", mocker.MagicMock())
-    base_task = BaseTaskType(node_name="test")
+    base_task = BaseTaskType(node_name="test", task_type="dummy")
     task_node = nodes.TaskNode(name="test", internal_name="test", next_node="next_node", executable=base_task)
 
     task_node.execute()
@@ -327,17 +327,17 @@ def test__as_is_node_takes_anything_as_input(mocker, monkeypatch):
         "wheres": "them",
     }
 
-    _ = nodes.AsIsNode.parse_from_config(config=config, internal_name="test")
+    _ = nodes.StubNode.parse_from_config(config=config, internal_name="test")
 
 
 def test_as_is_node_execute_returns_success(mocker, monkeypatch):
     mock_attempt_log = mocker.MagicMock()
 
     mock_context = mocker.MagicMock()
-    monkeypatch.setattr(nodes.AsIsNode, "_context", mock_context)
+    monkeypatch.setattr(nodes.StubNode, "_context", mock_context)
     mock_context.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
 
-    node = nodes.AsIsNode(name="test", internal_name="test", next_node="next_node")
+    node = nodes.StubNode(name="test", internal_name="test", next_node="next_node")
 
     node.execute()
 

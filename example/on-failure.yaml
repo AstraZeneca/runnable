@@ -18,10 +18,10 @@ dag:
       next: step 2
       on_failure: step 3
     step 2:
-      type: as-is # This step will never reach
+      type: stub # This step will never reach
       next: step 3
     step 3:
-      type: as-is
+      type: stub
       next: success
     success:
       type: success

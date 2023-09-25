@@ -596,9 +596,9 @@ class DagNode(CompositeNode):
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
 
-class AsIsNode(ExecutableNode):
+class StubNode(ExecutableNode):
     """
-    AsIs is a convenience design node.
+    Stub is a convenience design node.
 
     It always returns success in the attempt log and does nothing during interactive compute.
 
@@ -610,11 +610,11 @@ class AsIsNode(ExecutableNode):
     But in render mode for job specification of a 3rd party orchestrator, this node comes handy.
     """
 
-    node_type: str = Field(default="as-is", serialization_alias="type")
+    node_type: str = Field(default="stub", serialization_alias="type")
     model_config = ConfigDict(extra="allow")
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "AsIsNode":
+    def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "StubNode":
         return cls(**config)
 
     def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:

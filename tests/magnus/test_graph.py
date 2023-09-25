@@ -5,7 +5,7 @@ from magnus import (
     exceptions,  # pylint: disable=import-error
     graph,  # pylint: disable=import-error
 )
-from magnus.extensions.nodes import AsIsNode, FailNode, SuccessNode
+from magnus.extensions.nodes import StubNode, FailNode, SuccessNode
 
 
 def get_new_graph(start_at="this", internal_branch_name="i_name"):
@@ -214,9 +214,9 @@ def create_mocked_graph(mocker):
 
 
 def test_is_dag_returns_true_when_acyclic(mocked_graph):
-    start_node = AsIsNode(name="start", internal_name="start", next_node="middle")
+    start_node = StubNode(name="start", internal_name="start", next_node="middle")
 
-    middle_node = AsIsNode(name="middle", internal_name="middle", next_node="success")
+    middle_node = StubNode(name="middle", internal_name="middle", next_node="success")
 
     success_node = SuccessNode(name="success", internal_name="success")
 
@@ -233,10 +233,10 @@ def test_is_dag_returns_true_when_on_failure_points_to_non_terminal_node_and_lat
     test_graph = mocked_graph
 
     start_node_config = {"next_node": "middle", "on_failure": ""}
-    start_node = AsIsNode(name="start", internal_name="start", next_node="middle", on_failure="")
+    start_node = StubNode(name="start", internal_name="start", next_node="middle", on_failure="")
 
     middle_node_config = {"next_node": "success", "on_failure": "fail"}
-    middle_node = AsIsNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
+    middle_node = StubNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
 
     success_node = SuccessNode(name="success", internal_name="success")
 
@@ -253,13 +253,13 @@ def test_is_dag_returns_false_when_cyclic_in_next_nodes(mocked_graph):
     test_graph = mocked_graph
 
     start_node_config = {"next_node": "b", "on_failure": "fail"}
-    start_node = AsIsNode(name="start", internal_name="start", next_node="b", on_failure="fail")
+    start_node = StubNode(name="start", internal_name="start", next_node="b", on_failure="fail")
 
-    bnode = AsIsNode(name="b", internal_name="b", next_node="c", on_failure="fail")
+    bnode = StubNode(name="b", internal_name="b", next_node="c", on_failure="fail")
 
-    cnode = AsIsNode(name="c", internal_name="c", next_node="d", on_failure="fail")
+    cnode = StubNode(name="c", internal_name="c", next_node="d", on_failure="fail")
 
-    dnode = AsIsNode(name="d", internal_name="d", next_node="b", on_failure="fail")
+    dnode = StubNode(name="d", internal_name="d", next_node="b", on_failure="fail")
 
     fail_node = FailNode(name="fail", internal_name="fail")
 
@@ -274,10 +274,10 @@ def test_is_dag_returns_false_when_cyclic_in_next_nodes(mocked_graph):
 def test_is_dag_returns_false_when_fail_points_to_previous_node(mocked_graph):
     test_graph = mocked_graph
 
-    start_node = AsIsNode(name="start", internal_name="start", next_node="b", on_failure="fail")
-    bnode = AsIsNode(name="b", internal_name="b", next_node="c", on_failure="fail")
+    start_node = StubNode(name="start", internal_name="start", next_node="b", on_failure="fail")
+    bnode = StubNode(name="b", internal_name="b", next_node="c", on_failure="fail")
 
-    cnode = AsIsNode(name="c", internal_name="c", next_node="c", on_failure="fail")
+    cnode = StubNode(name="c", internal_name="c", next_node="c", on_failure="fail")
 
     fail_node = FailNode(name="fail", internal_name="fail")
     nodes = [start_node, bnode, cnode, fail_node]
@@ -291,9 +291,9 @@ def test_is_dag_returns_false_when_fail_points_to_previous_node(mocked_graph):
 def test_missing_neighbors_empty_list_no_neigbors_missing(mocked_graph):
     test_graph = mocked_graph
 
-    start_node = AsIsNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
+    start_node = StubNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
 
-    middle_node = AsIsNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
+    middle_node = StubNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
 
     success_node = SuccessNode(name="success", internal_name="success")
 
@@ -312,10 +312,10 @@ def test_missing_neighbors_list_of_missing_neighbor_one_missing_next(mocked_grap
     test_graph = mocked_graph
 
     start_config = {"next_node": "middle", "on_failure": "fail"}
-    start_node = AsIsNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
+    start_node = StubNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
 
     middle_config = {"next_node": "success", "on_failure": "fail"}
-    middle_node = AsIsNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
+    middle_node = StubNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
 
     fail_node = FailNode(name="fail", internal_name="fail")
 
@@ -332,9 +332,9 @@ def test_missing_neighbors_list_of_missing_neighbor_one_missing_next(mocked_grap
 def test_missing_list_of_missing_neighbor_one_missing_on_failure(mocked_graph):
     test_graph = mocked_graph
 
-    start_node = AsIsNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
+    start_node = StubNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
 
-    middle_node = AsIsNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
+    middle_node = StubNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
 
     success_node = SuccessNode(name="success", internal_name="success")
 
@@ -352,9 +352,9 @@ def test_missing_list_of_missing_neighbor_one_missing_on_failure(mocked_graph):
 
 def test_missing_list_of_missing_neighbor_two_missing(mocked_graph):
     test_graph = mocked_graph
-    start_node = AsIsNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
+    start_node = StubNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
 
-    AsIsNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
+    StubNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
 
     success_node = SuccessNode(name="success", internal_name="success")
 

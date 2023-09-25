@@ -4,15 +4,15 @@ import re
 from typing import Optional
 
 from magnus import defaults, utils
-from magnus.extensions.executor import DefaultExecutor
-from magnus.extensions.nodes import AsIsNode
+from magnus.extensions.executor import GenericExecutor
+from magnus.extensions.nodes import StubNode
 from magnus.graph import Graph
 from magnus.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class DemoRenderer(DefaultExecutor):
+class DemoRenderer(GenericExecutor):
     """
     This renderer is an example of how you can render required job specifications as per your orchestration tool.
 
@@ -81,7 +81,7 @@ class DemoRenderer(DefaultExecutor):
             if working_on.is_composite:
                 raise NotImplementedError("In this demo version, composite nodes are not implemented")
 
-            if working_on.node_type == AsIsNode.node_type:
+            if working_on.node_type == StubNode.node_type:
                 raise NotImplementedError("In this demo version, AsIs nodes are not implemented")
 
             if previous_node == current_node:

@@ -107,7 +107,7 @@ magnus= 'magnus.cli:cli'
 "parallel" = "magnus.extensions.nodes:ParallelNode"
 "map" = "magnus.extensions.nodes:MapNode"
 "dag" = "magnus.extensions.nodes:DagNode"
-"as-is" = "magnus.extensions.nodes:AsIsNode"
+"stub" = "magnus.extensions.nodes:StubNode"
 
 
 [tool.black]

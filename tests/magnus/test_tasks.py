@@ -8,7 +8,7 @@ from magnus import defaults, tasks
 
 @pytest.fixture
 def configuration():
-    return {"node_name": "dummy"}
+    return {"node_name": "dummy", "task_type": "dummy"}
 
 
 def test_base_task_execute_command_raises_not_implemented_error(configuration):

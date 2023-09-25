@@ -3,7 +3,7 @@ from typing import Dict, Optional, cast
 
 from magnus import defaults, integration, utils
 from magnus.datastore import StepLog
-from magnus.extensions.executor import DefaultExecutor
+from magnus.extensions.executor import GenericExecutor
 from magnus.extensions.nodes import TaskNode
 from magnus.nodes import BaseNode
 from magnus.tasks import ContainerTaskType
@@ -11,7 +11,7 @@ from magnus.tasks import ContainerTaskType
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class LocalContainerExecutor(DefaultExecutor):
+class LocalContainerExecutor(GenericExecutor):
     """
     In the mode of local-container, we execute all the commands in a container.
 

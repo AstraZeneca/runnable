@@ -12,15 +12,15 @@ dag:
   start_at: step 1
   steps:
     step 1:
-      type: as-is
+      type: stub
       next: step 2
     step 2:
-      type: as-is
+      type: stub
       what: is this thing?
       It: does not matter!!
       next: step 3
     step 3:
-      type: as-is
+      type: stub
       next: success
     success:
       type: success

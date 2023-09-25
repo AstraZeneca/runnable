@@ -9,7 +9,7 @@ dag:
   start_at: step 1
   steps:
     step 1:
-      type: as-is
+      type: stub
       next: step 2
     step 2:
       type: task
@@ -17,7 +17,7 @@ dag:
       command: exit 1 # This will fail
       next: step 3
     step 3:
-      type: as-is
+      type: stub
       next: success
     success:
       type: success
