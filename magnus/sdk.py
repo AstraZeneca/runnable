@@ -148,24 +148,24 @@ class Task(BaseStep):
     ref_type: str = Field("task", alias="type")
 
 
-class AsIs(BaseStep):
+class Stub(BaseStep):
     """A exposed magnus as-is to be used in SDK."""
 
-    ref_type: str = Field("as-is", alias="type")
+    ref_type: str = Field("stub", alias="type")
 
 
 class Pipeline(BaseModel):
     # TODO: Allow for nodes other than Task, AsIs
     """An exposed magnus pipeline to be used in SDK."""
 
-    steps: List[Union[Task, AsIs]]
-    additional_steps: List[Union[Task, AsIs]] = []
+    steps: List[Union[Task, Stub]]
+    additional_steps: List[Union[Task, Stub]] = []
     name: str = ""
     description: str = ""
     max_time: int = defaults.MAX_TIME
     internal_branch_name: str = ""
     _dag: Optional[graph.Graph] = None
-    _start_at: Optional[Union[Task, AsIs]] = None
+    _start_at: Optional[Union[Task, Stub]] = None
     model_config = ConfigDict(extra="forbid")
 
     def __init__(self, **data):

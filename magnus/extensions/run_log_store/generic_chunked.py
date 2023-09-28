@@ -1,29 +1,30 @@
-import json
 import logging
 import time
+from abc import abstractmethod
 from enum import Enum
 from pathlib import Path
 from string import Template
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
-from magnus import defaults, exceptions, utils
+from magnus import defaults, exceptions
 from magnus.datastore import BaseRunLogStore, BranchLog, RunLog, StepLog
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
+T = TypeVar("T", str, Path)  # Holds str, path
+
+
+class EntityNotFoundError(Exception):
+    pass
+
+
 class ChunkedFileSystemRunLogStore(BaseRunLogStore):
     """
-    File system run log store but chunks the run log into thread safe chunks.
-    This enables executions to be parallel.
+    A generic implementation of a RunLogStore that stores RunLogs in chunks.
     """
 
-    service_name: str = "chunked-fs"
-    log_folder: str = defaults.LOG_LOCATION_FOLDER
-
-    @property
-    def log_folder_name(self):
-        return self.log_folder
+    service_name: str = ""
 
     class LogTypes(Enum):
         RUN_LOG = "RunLog"
@@ -70,75 +71,34 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         if log_type == self.LogTypes.BRANCH_LOG:
             return "-".join([self.LogTypes.BRANCH_LOG.value, name, "${creation_time}"])
 
-        raise Exception("Unexpected log type sent")
+        raise Exception("Unexpected log type")
 
-    def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[List[Path], Path]]:
+    @abstractmethod
+    def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[List[T], T]]:
         """
-        Get contents of files matching the pattern name*
+        Get contents of persistence layer matching the pattern name*
 
         Args:
             run_id (str): The run id
-            name (str): The suffix of the file name to check in the run log store.
+            name (str): The suffix of the entity name to check in the run log store.
         """
-        log_folder = self.log_folder_with_run_id(run_id=run_id)
+        ...
 
-        sub_name = Template(name).safe_substitute({"creation_time": ""})
-
-        matches = list(log_folder.glob(f"{sub_name}*"))
-        if matches:
-            if not multiple_allowed:
-                if len(matches) > 1:
-                    msg = f"Multiple matches found for {name} while multiple is not allowed"
-                    raise Exception(msg)
-                return matches[0]
-            return matches
-
-        return None
-
-    def log_folder_with_run_id(self, run_id: str) -> Path:
+    @abstractmethod
+    def _store(self, run_id: str, contents: dict, name: T):
         """
-        Utility function to get the log folder for a run id.
-
-        Args:
-            run_id (str): The run id
-
-        Returns:
-            Path: The path to the log folder with the run id
-        """
-        return Path(self.log_folder_name) / run_id
-
-    def safe_suffix_json(self, name: Path) -> str:
-        """
-        Safely attach a suffix to a json file.
-
-        Args:
-            name (Path): The name of the file with or without suffix of json
-
-        Returns:
-            str : The name of the file with .json
-        """
-        if str(name).endswith("json"):
-            return str(name)
-
-        return str(name) + ".json"
-
-    def _store(self, run_id: str, contents: dict, name: Path):
-        """
-        Store the contents against the name in the folder.
+        Store the contents against the name in the persistence layer.
 
         Args:
             run_id (str): The run id
             contents (dict): The dict to store
             name (str): The name to store as
         """
-        utils.safe_make_dir(self.log_folder_with_run_id(run_id=run_id))
+        ...
 
-        with open(self.safe_suffix_json(name), "w") as fw:
-            json.dump(contents, fw, ensure_ascii=True, indent=4)
-
-    def _retrieve(self, name: Path) -> dict:
+    def _retrieve(self, name: T) -> dict:
         """
-        Does the job of retrieving from the folder.
+        Does the job of retrieving from the persistent layer.
 
         Args:
             name (str): the name of the file to retrieve
@@ -146,12 +106,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         Returns:
             dict: The contents
         """
-        contents: dict = {}
-
-        with open(self.safe_suffix_json(name), "r") as fr:
-            contents = json.load(fr)
-
-        return contents
+        ...
 
     def store(self, run_id: str, log_type: LogTypes, contents: dict, name: str = ""):
         """Store a SINGLE log type in the file system
@@ -165,7 +120,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         naming_pattern = self.naming_pattern(log_type=log_type, name=name)
         match = self.get_matches(run_id=run_id, name=naming_pattern, multiple_allowed=False)
         # The boolean multiple allowed confuses mypy a lot!
-        name_to_give: Path = None  # type: ignore
+        name_to_give = ""
         if match:
             existing_contents = self._retrieve(name=match)  # type: ignore
             contents = dict(existing_contents, **contents)
@@ -220,7 +175,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
                 models.append(model(**contents))
             return models
 
-        raise FileNotFoundError()
+        raise EntityNotFoundError()
 
     def orderly_retrieve(self, run_id: str, log_type: LogTypes) -> Dict[str, Union[StepLog, BranchLog]]:
         """Should only be used by prepare full run log.
@@ -379,7 +334,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
                 self._prepare_full_run_log(run_log=run_log)
 
             return run_log
-        except FileNotFoundError as e:
+        except EntityNotFoundError as e:
             raise exceptions.RunLogNotFoundError(run_id) from e
 
     def put_run_log(self, run_log: RunLog, **kwargs):
@@ -418,7 +373,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         try:
             parameters_list = self.retrieve(run_id=run_id, log_type=self.LogTypes.PARAMETER, multiple_allowed=True)
             parameters = {key: value for param in parameters_list for key, value in param.items()}
-        except FileNotFoundError:
+        except EntityNotFoundError:
             # No parameters are set
             pass
 

@@ -277,7 +277,7 @@ def get_local_docker_image_id(image_name: str) -> str:
     return ""
 
 
-def get_git_code_identity(run_log_store):
+def get_git_code_identity():
     """Returns a code identity object for version controlled code.
 
     Args:
@@ -286,7 +286,7 @@ def get_git_code_identity(run_log_store):
     Returns:
         magnus.datastore.CodeIdentity: The code identity used by the run log store.
     """
-    code_identity = run_log_store.create_code_identity()
+    code_identity = context.run_context.run_log_store.create_code_identity()
     try:
         code_identity.code_identifier = get_current_code_commit()
         code_identity.code_identifier_type = "git"

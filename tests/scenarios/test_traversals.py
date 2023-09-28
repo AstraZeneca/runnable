@@ -9,7 +9,7 @@ from rich import print
 import pytest
 import ruamel.yaml
 
-from magnus import AsIs, Pipeline, Task, defaults, entrypoints, utils
+from magnus import Stub, Pipeline, Task, defaults, entrypoints, utils
 
 yaml = ruamel.yaml.YAML()
 

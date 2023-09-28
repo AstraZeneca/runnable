@@ -86,3 +86,9 @@ class SecretNotFoundError(Exception):  # pragma: no cover
     def __init__(self, secret_name, secret_setting):
         super().__init__()
         self.message = f"No secret found by name:{secret_name} in {secret_setting}"
+
+
+class ExecutionFailedError(Exception):  # pragma: no cover
+    def __init__(self, run_id: str):
+        super().__init__()
+        self.message = f"Execution failed for run id: {run_id}"

@@ -258,13 +258,13 @@ def test_get_git_code_identity_returns_default_in_case_of_exception(mocker, monk
 
     monkeypatch.setattr(utils, "get_current_code_commit", mock_get_current_code_commit)
 
-    class MockCodeIdentity:
-        pass
+    mock_code_identity = mocker.MagicMock()
+    mock_run_context = mocker.MagicMock()
+    mock_run_context.run_log_store.create_code_identity.return_value = mock_code_identity
 
-    run_log_store = mocker.MagicMock()
-    run_log_store.create_code_identity.return_value = MockCodeIdentity()
+    monkeypatch.setattr(utils.context, "run_context", mock_run_context)
 
-    assert isinstance(utils.get_git_code_identity(run_log_store), MockCodeIdentity)
+    assert utils.get_git_code_identity() == mock_code_identity
 
 
 def test_get_git_code_identity_returns_entities_from_other_functions(monkeypatch, mocker):
@@ -276,16 +276,17 @@ def test_get_git_code_identity_returns_entities_from_other_functions(monkeypatch
     monkeypatch.setattr(utils, "is_git_clean", mock_is_git_clean)
     monkeypatch.setattr(utils, "get_git_remote", mock_get_git_remote)
 
-    mock_code_id = mocker.MagicMock()
+    mock_code_identity = mocker.MagicMock()
+    mock_run_context = mocker.MagicMock()
+    mock_run_context.run_log_store.create_code_identity.return_value = mock_code_identity
 
-    run_log_store = mocker.MagicMock()
-    run_log_store.create_code_identity.return_value = mock_code_id
+    monkeypatch.setattr(utils.context, "run_context", mock_run_context)
 
-    utils.get_git_code_identity(run_log_store)
+    utils.get_git_code_identity()
 
-    assert mock_code_id.code_identifier == "code commit"
-    assert mock_code_id.code_identifier_dependable is False
-    assert mock_code_id.code_identifier_url == "git remote"
+    assert mock_code_identity.code_identifier == "code commit"
+    assert mock_code_identity.code_identifier_dependable is False
+    assert mock_code_identity.code_identifier_url == "git remote"
 
 
 def test_remove_prefix_returns_text_as_found_if_prefix_not_found():

@@ -470,117 +470,53 @@ def test_step_attempt_returns_from_env(monkeypatch):
     assert test_executor.step_attempt_number == 2
 
 
-def test_base_executor__is_step_eligible_for_rerun_returns_true_if_no_previous_run_log(mock_run_context):
+def test_base_executor__is_step_eligible_for_rerun_returns_true_if_not_use_cached(mock_run_context):
     test_executor = GenericExecutor()
 
-    test_executor._previous_run_log = None
+    mock_run_context.use_cached = False
 
     assert test_executor._is_step_eligible_for_rerun(node=None)
 
 
-# def test_base_executor__is_eligible_for_rerun_returns_true_if_step_log_not_found(mocker, monkeypatch):
-#     mock_node = mocker.MagicMock()
-#     mock_previous_run_log = mocker.MagicMock()
-#     mock_search_step_by_internal_name = mocker.MagicMock(
-#         side_effect=exceptions.StepLogNotFoundError(run_id="id", name="hi")
-#     )
+def test_base_executor__is_step_eligible_for_rerun_returns_true_if_step_log_not_found(mocker, mock_run_context):
+    mock_run_context.use_cached = True
 
-#     mock_previous_run_log.search_step_by_internal_name = mock_search_step_by_internal_name
-#     mock_node._get_step_log_name.return_value = "step_log"
+    mock_node = mocker.MagicMock()
+    mock_node._get_step_log_name.return_value = "IdontExist"
 
-#     base_executor = executor.BaseExecutor()
-#     base_executor.previous_run_log = mock_previous_run_log
+    mock_run_context.run_log_store.get_step_log.side_effect = exceptions.StepLogNotFoundError(
+        run_id="test", name="test"
+    )
 
-#     assert base_executor._is_eligible_for_rerun(node=mock_node)
-#     mock_search_step_by_internal_name.assert_called_once_with("step_log")
+    test_executor = GenericExecutor()
+
+    assert test_executor._is_step_eligible_for_rerun(node=mock_node)
 
 
-# def test_base_executor__is_eligible_for_rerun_returns_false_if_previous_was_success(mocker, monkeypatch):
-#     mock_node = mocker.MagicMock()
-#     mock_step_log = mocker.MagicMock()
-#     mock_previous_node_log = mocker.MagicMock()
-#     mock_previous_run_log = mocker.MagicMock()
-#     mock_run_log_store = mocker.MagicMock()
+def test_base_executor__is_step_eligible_for_rerun_returns_true_if_step_failed(mocker, mock_run_context):
+    mock_run_context.use_cached = True
 
-#     mock_search_step_by_internal_name = mocker.MagicMock(return_value=(mock_previous_node_log, None))
-#     mock_run_log_store.get_step_log.return_value = mock_step_log
+    mock_node = mocker.MagicMock()
+    mock_node._get_step_log_name.return_value = "IExist"
 
-#     mock_previous_node_log.status = defaults.SUCCESS
+    mock_run_context.run_log_store.get_step_log.return_value.status = defaults.FAIL
 
-#     mock_previous_run_log.search_step_by_internal_name = mock_search_step_by_internal_name
-#     mock_node._get_step_log_name.return_value = "step_log"
+    test_executor = GenericExecutor()
 
-#     base_executor = executor.BaseExecutor()
-#     base_executor.previous_run_log = mock_previous_run_log
-#     base_executor.run_log_store = mock_run_log_store
-
-#     assert base_executor._is_eligible_for_rerun(node=mock_node) is False
-#     assert mock_step_log.status == defaults.SUCCESS
+    assert test_executor._is_step_eligible_for_rerun(node=mock_node) is True
 
 
-# def test_base_executor__is_eligible_for_rerun_returns_true_if_previous_was_not_success(mocker, monkeypatch):
-#     mock_node = mocker.MagicMock()
-#     mock_step_log = mocker.MagicMock()
-#     mock_previous_node_log = mocker.MagicMock()
-#     mock_previous_run_log = mocker.MagicMock()
-#     mock_run_log_store = mocker.MagicMock()
+def test_base_executor__is_step_eligible_for_rerun_returns_false_if_step_succeeded(mocker, mock_run_context):
+    mock_run_context.use_cached = True
 
-#     mock_search_step_by_internal_name = mocker.MagicMock(return_value=(mock_previous_node_log, None))
-#     mock_run_log_store.get_step_log.return_value = mock_step_log
+    mock_node = mocker.MagicMock()
+    mock_node._get_step_log_name.return_value = "IExist"
 
-#     mock_previous_node_log.status = defaults.FAIL
+    mock_run_context.run_log_store.get_step_log.return_value.status = defaults.SUCCESS
 
-#     mock_previous_run_log.search_step_by_internal_name = mock_search_step_by_internal_name
-#     mock_node._get_step_log_name.return_value = "step_log"
+    test_executor = GenericExecutor()
 
-#     base_executor = executor.BaseExecutor()
-#     base_executor.previous_run_log = mock_previous_run_log
-#     base_executor.run_log_store = mock_run_log_store
-
-#     assert base_executor._is_eligible_for_rerun(node=mock_node)
-#     assert base_executor.previous_run_log is None
-
-
-# def test_base_executor_execute_graph_breaks_if_node_status_is_triggered(mocker, monkeypatch):
-#     mock_dag = mocker.MagicMock()
-#     mock_execute_from_graph = mocker.MagicMock()
-#     mock__get_status_and_next_node_name = mocker.MagicMock()
-#     mock_run_log_store = mocker.MagicMock()
-
-#     mock__get_status_and_next_node_name.return_value = defaults.TRIGGERED, None
-
-#     monkeypatch.setattr(executor.BaseExecutor, "execute_from_graph", mock_execute_from_graph)
-#     monkeypatch.setattr(executor.BaseExecutor, "_get_status_and_next_node_name", mock__get_status_and_next_node_name)
-#     monkeypatch.setattr(executor, "json", mocker.MagicMock())
-#     base_executor = executor.BaseExecutor()
-#     base_executor.run_log_store = mock_run_log_store
-
-#     base_executor.execute_graph(dag=mock_dag)
-
-#     assert mock_execute_from_graph.call_count == 1
-
-
-# def test_base_executor_execute_graph_breaks_if_node_status_is_terminal(mocker, monkeypatch):
-#     mock_dag = mocker.MagicMock()
-#     mock_execute_from_graph = mocker.MagicMock()
-#     mock__get_status_and_next_node_name = mocker.MagicMock()
-#     mock_run_log_store = mocker.MagicMock()
-#     mock_node = mocker.MagicMock()
-
-#     mock_dag.get_node_by_name.return_value = mock_node
-#     mock_node.node_type = "success"
-
-#     mock__get_status_and_next_node_name.return_value = defaults.SUCCESS, None
-
-#     monkeypatch.setattr(executor.BaseExecutor, "execute_from_graph", mock_execute_from_graph)
-#     monkeypatch.setattr(executor.BaseExecutor, "_get_status_and_next_node_name", mock__get_status_and_next_node_name)
-#     monkeypatch.setattr(executor, "json", mocker.MagicMock())
-#     base_executor = executor.BaseExecutor()
-#     base_executor.run_log_store = mock_run_log_store
-
-#     base_executor.execute_graph(dag=mock_dag)
-
-#     assert mock_execute_from_graph.call_count == 1
+    assert test_executor._is_step_eligible_for_rerun(node=mock_node) is False
 
 
 def test_base_executor_resolve_executor_config_gives_global_config_if_node_does_not_override(mocker, mock_run_context):
@@ -784,3 +720,19 @@ def test_execute_node_step_log_gets_tracked_data(mocker, monkeypatch, mock_run_c
 
     test_executor._execute_node(mock_node)
     assert mock_step_log.user_defined_metrics == {"a": 2}
+
+
+def test_send_return_code_raises_exception_if_pipeline_execution_failed(mocker, mock_run_context):
+    mock_run_context.run_log_store.get_run_log_by_id.return_value.status = defaults.FAIL
+
+    test_executor = GenericExecutor()
+
+    with pytest.raises(exceptions.ExecutionFailedError):
+        test_executor.send_return_code()
+
+
+def test_send_return_code_does_not_raise_exception_if_pipeline_execution_succeeded(mocker, mock_run_context):
+    mock_run_context.run_log_store.get_run_log_by_id.return_value.status = defaults.SUCCESS
+
+    test_executor = GenericExecutor()
+    test_executor.send_return_code()

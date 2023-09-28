@@ -176,24 +176,6 @@ def execute(
 
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-    previous_run_log = None
-    if use_cached:
-        try:
-            previous_run_log = run_context.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
-        except exceptions.RunLogNotFoundError as _e:
-            msg = (
-                f"There is no run by {use_cached} in the current run log store "
-                f"{run_context.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n"
-                "Note: Even if the previous run used a different run log store, provide the run log store in the format"
-                " accepted by the current run log store."
-            )
-            raise Exception(msg) from _e
-
-        if previous_run_log.dag_hash != run_context.dag_hash:
-            logger.warning("The previous dag does not match to the current one!")
-        executor._previous_run_log = previous_run_log
-        logger.info("Found a previous run log and using it as cache")
-
     # Prepare for graph execution
     executor.prepare_for_graph_execution()
 
@@ -245,24 +227,6 @@ def execute_single_step(
     except exceptions.NodeNotFoundError as e:
         msg = f"The node by name {step_name} is not found in the graph. Please provide a valid node name"
         raise Exception(msg) from e
-
-    previous_run_log = None
-    if use_cached:
-        try:
-            previous_run_log = run_context.run_log_store.get_run_log_by_id(run_id=use_cached, full=True)
-        except exceptions.RunLogNotFoundError as _e:
-            msg = (
-                f"There is no run by {use_cached} in the current run log store "
-                f"{run_context.run_log_store.service_name}. Please ensure that that run log exists to re-run.\n"
-                "Note: Even if the previous run used a different run log store, provide the run log store in the format"
-                " accepted by the current run log store."
-            )
-            raise Exception(msg) from _e
-
-        if previous_run_log.dag_hash != run_context.dag_hash:
-            logger.warning("The previous dag does not match to the current one!")
-        executor._previous_run_log = previous_run_log
-        logger.info("Found a previous run log and using it as cache")
 
     executor._single_step = step_name
     executor.prepare_for_graph_execution()

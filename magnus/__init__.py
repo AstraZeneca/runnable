@@ -16,6 +16,6 @@ from magnus.interaction import (
     store_parameter,
     track_this,
 )  # noqa
-from magnus.sdk import AsIs, Pipeline, Task  # noqa
+from magnus.sdk import Stub, Pipeline, Task  # noqa
 
 # TODO: Write cleaner and better examples to ship the code.

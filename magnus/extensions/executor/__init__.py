@@ -38,7 +38,6 @@ class GenericExecutor(BaseExecutor):
     enable_parallel: bool = defaults.ENABLE_PARALLEL
     placeholders: dict = {}
 
-    _previous_run_log: Optional[RunLog] = None
     _single_step: str = ""
 
     _context_step_log = None  # type : StepLog
@@ -77,7 +76,6 @@ class GenericExecutor(BaseExecutor):
             attempt_run_log = self._context.run_log_store.get_run_log_by_id(
                 run_id=self._context.original_run_id, full=False
             )
-            self._previous_run_log = attempt_run_log
         except exceptions.RunLogNotFoundError as e:
             msg = (
                 f"Expected a run log with id: {self._context.original_run_id} "
@@ -93,7 +91,7 @@ class GenericExecutor(BaseExecutor):
             previous_run_id=self._context.original_run_id, run_id=self._context.run_id
         )
 
-        parameters.update(cast(RunLog, self._previous_run_log).parameters)
+        parameters.update(cast(RunLog, attempt_run_log).parameters)
 
     def _set_up_run_log(self, exists_ok=False):
         """
@@ -308,11 +306,12 @@ class GenericExecutor(BaseExecutor):
         logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}")
 
         attempt_log = self._context.run_log_store.create_attempt_log()
+
+        self._context_step_log = step_log
+        self._context_node = node
+
         data_catalogs_get: Optional[List[DataCatalog]] = self._sync_catalog(step_log, stage="get")
         try:
-            self._context_step_log = step_log
-            self._context_node = node
-
             attempt_log = node.execute(executor=self, mock=step_log.mock, map_variable=map_variable, **kwargs)
         except Exception as e:
             # Any exception here is a magnus exception as node suppresses exceptions.
@@ -368,7 +367,7 @@ class GenericExecutor(BaseExecutor):
             step_log (object): The step log object
             node (BaseNode): The node we are adding the step log for
         """
-        step_log.code_identities.append(utils.get_git_code_identity(self._context.run_log_store))
+        step_log.code_identities.append(utils.get_git_code_identity())
 
     def execute_from_graph(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
         """
@@ -410,21 +409,15 @@ class GenericExecutor(BaseExecutor):
             return
 
         # In single step
-        if self._single_step:
+        if (self._single_step and not node.name == self._single_step) or not self._is_step_eligible_for_rerun(
+            node, map_variable=map_variable
+        ):
             # If the node name does not match, we move on to the next node.
-            if not node.name == self._single_step:
-                step_log.mock = True
-                step_log.status = defaults.SUCCESS
-                self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-                return
-        else:  # We are not in single step mode
             # If previous run was successful, move on to the next step
-            if not self._is_step_eligible_for_rerun(node, map_variable=map_variable):
-                step_log.mock = True
-                step_log.status = defaults.SUCCESS
-                self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-                return
-
+            step_log.mock = True
+            step_log.status = defaults.SUCCESS
+            self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+            return
         # We call an internal function to iterate the sub graphs and execute them
         if node.is_composite:
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
@@ -546,7 +539,7 @@ class GenericExecutor(BaseExecutor):
         # get the final run log
         if branch == "graph":
             run_log = self._context.run_log_store.get_run_log_by_id(run_id=self._context.run_id, full=True)
-        print(json.dumps(run_log.dict(), indent=4))
+        print(json.dumps(run_log.model_dump(), indent=4))
 
     def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: Optional[dict] = None):
         """
@@ -566,36 +559,26 @@ class GenericExecutor(BaseExecutor):
         Returns:
             bool: Eligibility for re-run. True means re-run, False means skip to the next step.
         """
-        # TODO: Since this happens in conditional branches, retrieve the step log from run log store
-        if self._previous_run_log:
+        if self._context.use_cached:
             node_step_log_name = node._get_step_log_name(map_variable=map_variable)
             logger.info(f"Scanning previous run logs for node logs of: {node_step_log_name}")
 
-            previous_node_log = None
             try:
-                (
-                    previous_node_log,
-                    _,
-                ) = self._previous_run_log.search_step_by_internal_name(node_step_log_name)
+                previous_node_log = self._context.run_log_store.get_step_log(
+                    internal_name=node_step_log_name, run_id=self._context.original_run_id
+                )
             except exceptions.StepLogNotFoundError:
                 logger.warning(f"Did not find the node {node.name} in previous run log")
                 return True  # We should re-run the node.
 
-            step_log = self._context.run_log_store.get_step_log(
-                node._get_step_log_name(map_variable), self._context.run_id
-            )
             logger.info(f"The original step status: {previous_node_log.status}")
 
             if previous_node_log.status == defaults.SUCCESS:
-                logger.info(f"The step {node.name} is marked success, not executing it")
-                step_log.status = defaults.SUCCESS
-                step_log.message = "Node execution successful in previous run, skipping it"
-                self._context.run_log_store.add_step_log(step_log, self._context.run_id)
                 return False  # We need not run the node
 
-            #  Remove previous run log to start execution from this step
             logger.info(f"The new execution should start executing graph from this node {node.name}")
-            self.previous_run_log = None
+            return True
+
         return True
 
     def send_return_code(self, stage="traversal"):
@@ -609,7 +592,7 @@ class GenericExecutor(BaseExecutor):
 
         run_log = self._context.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
         if run_log.status == defaults.FAIL:
-            raise Exception("Pipeline execution failed")
+            raise exceptions.ExecutionFailedError(run_id=run_id)
 
     def _resolve_executor_config(self, node: BaseNode):
         """
