@@ -70,7 +70,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         if log_type == self.LogTypes.BRANCH_LOG:
             return "-".join([self.LogTypes.BRANCH_LOG.value, name, "${creation_time}"])
 
-        raise Exception("Unexpected log type sent")
+        raise Exception("Unexpected log type")
 
     def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[List[Path], Path]]:
         """
@@ -122,7 +122,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
 
         return str(name) + ".json"
 
-    def _store(self, run_id: str, contents: dict, name: Path):
+    def _store(self, run_id: str, contents: dict, name: Path, new=False):
         """
         Store the contents against the name in the folder.
 
@@ -131,6 +131,9 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             contents (dict): The dict to store
             name (str): The name to store as
         """
+        if new:
+            name = self.log_folder_with_run_id(run_id=run_id) / name
+
         utils.safe_make_dir(self.log_folder_with_run_id(run_id=run_id))
 
         with open(self.safe_suffix_json(name), "w") as fw:

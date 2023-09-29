@@ -85,7 +85,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         ...
 
     @abstractmethod
-    def _store(self, run_id: str, contents: dict, name: T):
+    def _store(self, run_id: str, contents: dict, name: T, new: bool = False):
         """
         Store the contents against the name in the persistence layer.
 
@@ -120,16 +120,18 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         naming_pattern = self.naming_pattern(log_type=log_type, name=name)
         match = self.get_matches(run_id=run_id, name=naming_pattern, multiple_allowed=False)
         # The boolean multiple allowed confuses mypy a lot!
-        name_to_give = ""
+        name_to_give: str = ""
+        new = False
+
         if match:
             existing_contents = self._retrieve(name=match)  # type: ignore
             contents = dict(existing_contents, **contents)
             name_to_give = match  # type: ignore
         else:
-            _name = Template(naming_pattern).safe_substitute({"creation_time": str(int(time.time_ns()))})
-            name_to_give = self.log_folder_with_run_id(run_id=run_id) / _name
+            name_to_give = Template(naming_pattern).safe_substitute({"creation_time": str(int(time.time_ns()))})
+            new = True
 
-        self._store(run_id=run_id, contents=contents, name=name_to_give)
+        self._store(run_id=run_id, contents=contents, name=name_to_give, new=new)
 
     def retrieve(self, run_id: str, log_type: LogTypes, name: str = "", multiple_allowed=False) -> Any:
         """
@@ -308,7 +310,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             status=status,
         )
 
-        self.store(run_id=run_id, contents=run_log.dict(), log_type=self.LogTypes.RUN_LOG)
+        self.store(run_id=run_id, contents=run_log.model_dump(by_alias=True), log_type=self.LogTypes.RUN_LOG)
         return run_log
 
     def get_run_log_by_id(self, run_id: str, full: bool = False, **kwargs) -> RunLog:
@@ -350,8 +352,9 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         Raises:
             NotImplementedError: This is a base class and therefore has no default implementation
         """
+        # TODO: By alias setting
         run_id = run_log.run_id
-        self.store(run_id=run_id, contents=run_log.dict(), log_type=self.LogTypes.RUN_LOG)
+        self.store(run_id=run_id, contents=run_log.model_dump(), log_type=self.LogTypes.RUN_LOG)
 
     def get_parameters(self, run_id: str, **kwargs) -> dict:
         """
@@ -533,6 +536,6 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         self.store(
             run_id=run_id,
             log_type=self.LogTypes.BRANCH_LOG,
-            contents=branch_log.dict(),
+            contents=branch_log.model_dump(),
             name=internal_branch_name,
         )
