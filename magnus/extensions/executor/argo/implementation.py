@@ -4,13 +4,15 @@ import random
 import shlex
 import string
 from collections import OrderedDict
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer
+from pydantic.functional_serializers import PlainSerializer
 from ruamel.yaml import YAML
+from typing_extensions import Annotated
 
 from magnus import defaults, integration, utils
-from magnus.executor import BaseExecutor
+from magnus.extensions.executor import GenericExecutor
 from magnus.graph import Graph, create_node, search_node_by_internal_name
 from magnus.nodes import BaseNode
 
@@ -28,14 +30,18 @@ class SecretEnvVar(BaseModel):
             key: mypassword
     """
 
-    environment_variable: str
-    secret_name: str
-    secret_key: str
+    environment_variable: str = Field(serialization_alias="name")
+    secret_name: str = Field(exclude=True)
+    secret_key: str = Field(exclude=True)
 
-    def dict(self, *args, **kwargs):
+    @computed_field
+    @property
+    def valueFrom(self) -> Dict[str, Dict[str, str]]:
         return {
-            "name": self.environment_variable,
-            "valueFrom": {"secretKeyRef": {"name": self.secret_name, "key": self.secret_key}},
+            "secretKeyRef": {
+                "name": self.secret_name,
+                "key": self.secret_key,
+            }
         }
 
 
@@ -45,18 +51,11 @@ class EnvVar(BaseModel):
     parameters: # in arguments
       - name: x
         value: 3 # This is optional for workflow parameters
+
     """
 
     name: str
-    value: Any = None
-
-    def dict(self, *args, **kwargs):
-        return_value = {"name": self.name}
-
-        if self.value:
-            return_value["value"] = self.value
-
-        return return_value
+    value: Union[str, int, float] = ""
 
 
 class Request(BaseModel):
@@ -70,10 +69,17 @@ class Request(BaseModel):
 
 class Retry(BaseModel):
     limit: int = 0
-    retryPolicy: str = "Always"
+    retry_policy: str = Field(default="Always", serialization_alias="retryPolicy")
 
-    def dict(self, *args, **kwargs) -> dict:
-        return {"limit": str(self.limit), "retryPolicy": self.retryPolicy}
+    @field_serializer("limit")
+    def cast_limit_as_str(self, limit: int, _info) -> str:
+        return str(limit)
+
+
+VendorGPU = Annotated[
+    Optional[int],
+    PlainSerializer(lambda x: str(x), return_type=str, when_used="unless-none"),
+]
 
 
 class Limit(Request):
@@ -81,15 +87,7 @@ class Limit(Request):
     The default limits
     """
 
-    gpu: int = 0
-
-    def dict(self, *args, **kwargs) -> dict:
-        resource = {"cpu": self.cpu, "memory": self.memory}
-        if self.gpu:
-            # TODO: This should be via config to allow users to specify the vendor
-            resource["nvidia.com/gpu"] = self.gpu
-
-        return resource
+    gpu: VendorGPU = Field(default=None, serialization_alias="nvidia.com/gpu")
 
 
 class VolumeMount(BaseModel):
@@ -99,7 +97,7 @@ class VolumeMount(BaseModel):
         name: executor-0
     """
 
-    mountPath: str
+    mount_path: str = Field(serialization_alias="mountPath")
     name: str
 
 
@@ -110,17 +108,22 @@ class Toleration(BaseModel):
     value: str
 
 
-class TemplateDefaults(BaseModel):
-    limits: Limit = Limit()
-    requests: Request = Request()
-    imagePullPolicy: str = Field("", alias="imagePullPolicy")  # "Always", "IfNotPresent", "Never"
+class ContainerSpec(BaseModel):
+    image: str
+    limits: Limit = Field(default=Limit(), serialization_alias="limits")
+    requests: Request = Field(default=Request(), serialization_alias="requests")
+    image_pull_policy: str = Field(default="", serialization_alias="imagePullPolicy")
+    # Better to leave it empty, as it is a sensible default
     # https://argoproj.github.io/argo-workflows/fields/#container
-    nodeSelector: dict = Field({}, alias="nodeSelector")
-    tolerations: List[Toleration] = []
-    # retry seems to mess with the graph viz but works well with gant chart.
-    retryStrategy: Retry = Field(Retry(), alias="retryStrategy")
-    activeDeadlineSeconds: int = Field(60 * 60 * 2, alias="activeDeadlineSeconds", gt=0)
-    # Volume mounts cannot be defined here
+    node_selector: dict = Field(default={}, serialization_alias="nodeSelector")
+    tolerations: Optional[List[Toleration]] = None
+    # Note: retry seems to mess with the graph viz but works well with gant chart.
+    retry_strategy: Retry = Field(default=Retry(), serialization_alias="retryStrategy")
+    active_deadline_seconds: int = Field(default=60 * 60 * 2, serialization_alias="activeDeadlineSeconds", gt=0)
+    # Note: Volume mounts cannot be defined here
+
+    # Extra's are allowed here but ignored while rendering!!
+    model_config = ConfigDict(extra="allow")
 
 
 class Container(BaseModel):
@@ -133,20 +136,12 @@ class Container(BaseModel):
     command: List[str]
     image: str
     env: List[Union[SecretEnvVar, EnvVar]] = []
-    volumeMounts: List[VolumeMount] = []
+    volume_mounts: List[VolumeMount] = Field(default=[], serialization_alias="volumeMounts")
 
 
 class Parameter(BaseModel):
     name: str
     value: Optional[str] = None
-
-    def dict(self, *args, **kwargs) -> dict:
-        rv = {}
-        rv["name"] = self.name
-        if self.value:
-            rv["value"] = self.value
-
-        return rv
 
 
 class OutputParameter(Parameter):
@@ -157,10 +152,12 @@ class OutputParameter(Parameter):
         path: /tmp/output.txt
     """
 
-    path: str = "/tmp/output.txt"
+    path: str = Field(default="/tmp/output.txt", exclude=True)
 
-    def dict(self, *args, **kwargs) -> dict:
-        return {"name": self.name, "valueFrom": {"path": self.path}}
+    @computed_field
+    @property
+    def valueFrom(self) -> str:
+        return self.path
 
 
 class Argument(BaseModel):
@@ -190,45 +187,17 @@ class TaskTemplate(BaseModel):
     name: str
     template: str
     depends: List[str] = []
-    inputs: List[Parameter] = []
-    arguments: List[Argument] = []
-    with_param: Optional[str] = None  # If its part of a map node
-
-    def dict(self, *args, **kwargs) -> dict:
-        rv = {
-            "name": self.name,
-            "template": self.template,
-            "depends": " || ".join(self.depends),
-        }
-        if self.arguments:
-            rv["arguments"] = {"parameters": [arg.dict() for arg in self.arguments]}
-
-        if self.with_param:
-            rv["withParam"] = self.with_param
-
-        if self.inputs:
-            rv["inputs"] = {"inputs": [param.dict() for param in self.inputs]}
-
-        return rv
+    inputs: Optional[List[Parameter]] = Field(default=None, serialization_alias="inputs")
+    arguments: Optional[List[Argument]] = None
+    with_param: Optional[str] = Field(default=None, serialization_alias="withParam")
 
 
 class ContainerTemplate(BaseModel):
     # These templates are used for actual execution nodes.
     name: str
     container: Container
-    outputs: List[OutputParameter] = []
-    inputs: List[Parameter] = []
-
-    def dict(self, *args, **kwargs) -> dict:
-        rv = {"name": self.name, "container": self.container.dict()}
-
-        if self.outputs:
-            rv["outputs"] = {"parameters": [param.dict() for param in self.outputs]}
-
-        if self.inputs:
-            rv["inputs"] = {"parameters": [param.dict() for param in self.inputs]}
-
-        return rv
+    outputs: Optional[List[OutputParameter]] = Field(default=None, serialization_alias="outputs")
+    inputs: Optional[List[Parameter]] = Field(default=None, serialization_alias="inputs")
 
     def __hash__(self):
         return hash(self.name)
@@ -236,56 +205,44 @@ class ContainerTemplate(BaseModel):
 
 class DagTemplate(BaseModel):
     name: str = "magnus-dag"
-    tasks: List[TaskTemplate] = []
-    inputs: List[Parameter] = []
-    parallelism: int = 0
-    failFast: bool = True
+    tasks: List[TaskTemplate] = Field(default=[], exclude=True)
+    inputs: Optional[List[Parameter]] = None
+    parallelism: Optional[int] = None
+    fail_fast: bool = Field(default=True, serialization_alias="failFast")
 
-    def dict(self, *args, **kwargs):
-        rv = {
-            "name": self.name,
-            "dag": {"tasks": [task.dict() for task in self.tasks]},
-        }
-        if self.inputs:
-            rv["inputs"] = {"parameters": [param.dict() for param in self.inputs]}
-
-        if self.parallelism:
-            rv["parallelism"] = self.parallelism
-
-        return rv
+    @computed_field
+    @property
+    def dag(self) -> Dict[str, List[TaskTemplate]]:
+        return {"tasks": self.tasks}
 
 
 class Volume(BaseModel):
     name: str
-    claim: str
+    claim: str = Field(exclude=True)
+    mount_path: str = Field(exclude=True)
 
-    def dict(self, *args, **kwargs) -> dict:
-        return {"name": self.name, "persistentVolumeClaim": {"claimName": self.claim}}
+    @computed_field
+    @property
+    def persistentVolumeClaim(self) -> Dict[str, str]:
+        return {"claimName": self.claim}
 
 
 class Spec(BaseModel):
     entrypoint: str = "magnus-dag"
-    templates: Optional[DagTemplate] = []
-    serviceAccountName: str = "pipeline-runner"
+    templates: List[Union[DagTemplate, ContainerTemplate]] = Field(default=[])
+    service_account_name: str = Field(default="pipeline-runner", serialization_alias="serviceAccountName")
     arguments: List[EnvVar] = []
     volumes: List[Volume] = []
-    templateDefaults: Optional[TemplateDefaults] = None
-    parallelism: int = 0
+    template_defaults: Optional[ContainerSpec] = Field(default=None, serialization_alias="templateDefaults")
+    parallelism: Optional[int] = None
 
-    def dict(self, *args, **kwargs):
-        return_value = super().dict(*args, **kwargs)
-
-        arguments = return_value.pop("arguments", [])
-        return_value["arguments"] = {"parameters": arguments}
-
-        if not self.parallelism:
-            del return_value["parallelism"]
-
-        return return_value
+    @field_serializer("arguments")
+    def reshape_arguments(self, arguments: List[EnvVar], _info) -> Dict[str, List[EnvVar]]:
+        return {"parameters": arguments}
 
 
-class WorkSpec(BaseModel):
-    apiVersion: str = "argoproj.io/v1alpha1"
+class Workflow(BaseModel):
+    api_version: str = Field(default="argoproj.io/v1alpha1", serialization_alias="apiVersion")
     kind: str = "Workflow"
     metadata: dict = {"generateName": "magnus-dag-"}
     spec: Spec = Spec()
@@ -294,7 +251,7 @@ class WorkSpec(BaseModel):
 class NodeRenderer:
     allowed_node_types: List[str] = []
 
-    def __init__(self, executor: BaseExecutor, node: BaseNode) -> None:
+    def __init__(self, executor: "ArgoExecutor", node: BaseNode) -> None:
         self.executor = executor
         self.node = node
 
@@ -498,30 +455,70 @@ def get_renderer(node):
     raise Exception("This node type is not render-able")
 
 
-class ArgoExecutor(BaseExecutor):
-    service_name = "argo"
-    run_id_placeholder = "{{workflow.parameters.run_id}}"
+class UserVolumeMounts(BaseModel):
+    name: str
+    mount_path: str
 
-    class ContextConfig(BaseExecutor.Config, TemplateDefaults):
-        image: str = Field(alias="image")
-        parallelism: int = 0
-        output_file: str = "argo-pipeline.yaml"
-        secrets_from_k8s: dict = {}  # EnvVar=SecretName:Key
-        persistent_volumes: dict = {}
-        failFast: bool = Field(True, alias="failFast")  # Only applies to withItems or map state
 
-    def __init__(self, config: Optional[dict] = None):
-        self.config = self.ContextConfig(**(config or {}))
+class ArgoExecutor(GenericExecutor, ContainerSpec):
+    service_name: str = "argo"
 
-        self.persistent_volumes = {}
-        self.volume_mounts: List[VolumeMount] = []
+    run_id_placeholder: str = "{{workflow.parameters.run_id}}"
+    parallelism: Optional[int] = Field(default=None)
+    service_account_name: str = "pipeline-runner"
 
-        for i, (volume_name, mount_path) in enumerate(self.config.persistent_volumes.items()):
-            self.persistent_volumes[f"executor-{i}"] = (volume_name, mount_path)
+    secrets_from_k8s: List[SecretEnvVar] = []
+    persistent_volumes: List[UserVolumeMounts] = []
+    fail_fast: bool = True
 
-        self.container_templates: List[ContainerTemplate] = []
-        self.templates: List[DagTemplate] = []
-        self.clean_names: dict = {}
+    output_file: str = "argo-pipeline.yaml"
+    model_config = ConfigDict(extra="forbid")
+
+    _container_templates: List[ContainerTemplate] = []
+    _dag_templates: List[DagTemplate] = []
+    _clean_names: Dict[str, str] = {}
+    _workflow: Workflow = Workflow()
+
+    def model_post_init(self, _context):
+        """
+        Populate the workflow spec as much as possible here
+        """
+        arguments = []
+        # Expose "simple" parameters as workflow arguments for dynamic behavior
+        for key, value in self._get_parameters().items():
+            env_var = EnvVar(name=key, value=value)
+            if isinstance(value, dict) or isinstance(value, list):
+                continue
+            arguments.append(env_var)
+
+        run_id_var = EnvVar(name="run_id", value="{{workflow.uid}}")
+        arguments.append(run_id_var)
+
+        # TODO: Experimental feature
+        original_run_id_var = EnvVar(name="original_run_id")
+        arguments.append(original_run_id_var)
+
+        template_defaults = self._get_template_defaults()
+
+        volumes: List[Volume] = []
+        claim_names = {}
+        for i, user_volume in enumerate(self.persistent_volumes):
+            if user_volume.name in claim_names:
+                raise Exception(f"Duplicate claim name {user_volume.name}")
+            claim_names[user_volume.name] = user_volume.name
+
+            volume = Volume(name=f"executor-{i}", claim=user_volume.name, mount_path=user_volume.mount_path)
+            volumes.append(volume)
+
+        specification = Spec(
+            service_account_name=self.service_account_name,
+            parallelism=self.parallelism,
+            arguments=arguments,
+            volumes=volumes,
+            template_defaults=template_defaults,
+        )
+
+        self._workflow.spec = specification
 
     def prepare_for_graph_execution(self):
         """
@@ -608,10 +605,14 @@ class ArgoExecutor(BaseExecutor):
     def fan_in(self, node: BaseNode, map_variable: dict):
         super().fan_in(node, map_variable)
 
-    def get_parameters(self):
-        parameters = utils.get_user_set_parameters()
-        if self.parameters_file:
-            parameters.update(utils.load_yaml(self.parameters_file))
+    def _get_parameters(self) -> Dict[str, Any]:
+        parameters = {}
+        if self._context.parameters_file:
+            # Parameters from the parameters file if defined
+            parameters.update(utils.load_yaml(self._context.parameters_file))
+        # parameters from environment variables supersede file based
+        parameters.update(utils.get_user_set_parameters())
+
         return parameters
 
     def sanitize_name(self, name):
@@ -845,63 +846,29 @@ class ArgoExecutor(BaseExecutor):
         # Add the dag template to the list of templates
         self.templates.append(dag_template)
 
-    def _add_volumes_to_specification(self, specification: Spec):
-        visited_claims = {}
+    def _get_template_defaults(self) -> ContainerSpec:
+        # TODO: Need to check this functionality of check against
+        template_defaults_keys = list(ContainerSpec.__fields__.keys())
 
-        for volume_name, claim in self.persistent_volumes.items():
-            claim_name, mount_path = claim
-
-            # If the volume is already mounted, we cannot mount it again.
-            if claim_name in visited_claims:
-                msg = "The same persistent volume claim has already been used in the pipeline by another service"
-                raise Exception(msg)
-            visited_claims[claim_name] = claim_name
-            specification.volumes.append(Volume(name=volume_name, claim=claim_name))
-            self.volume_mounts.append(VolumeMount(name=volume_name, mountPath=mount_path))
-
-    def _get_template_defaults(self, check_against: dict = {}) -> TemplateDefaults:
-        template_defaults_keys = list(TemplateDefaults.__fields__.keys())
-
-        user_provided_config = self.config.dict()
-        if check_against:
-            user_provided_config = check_against
-
+        user_provided_config = self.model_dump(by_alias=True, exclude_none=True)
+        # if check_against:
+        #     user_provided_config = check_against
         template_default_json = {key: user_provided_config[key] for key in template_defaults_keys}
 
-        return TemplateDefaults(**template_default_json)
+        return ContainerSpec(**template_default_json)
 
     def execute_graph(self, dag: Graph, map_variable: Optional[dict] = None, **kwargs):
-        workspec = WorkSpec()
-        specification = workspec.spec
-
-        for key, value in self.get_parameters().items():
-            # Get the value from work flow parameters for dynamic behavior
-            env_var = EnvVar(name=key, value=value)
-            if isinstance(value, dict) or isinstance(value, list):
-                continue
-            specification.arguments.append(env_var)
-
-        run_id_var = EnvVar(name="run_id", value="{{workflow.uid}}")
-        specification.arguments.append(run_id_var)
-
-        if self.config.parallelism:
-            specification.parallelism = self.config.parallelism
-
-        # Add volumes to specification
-        self._add_volumes_to_specification(specification)
-
-        # Fill in the template defaults
-        specification.templateDefaults = self._get_template_defaults()
+        specification = self._workflow.spec
 
         # Container specifications are globally collected and added at the end.
         # Dag specifications are added as part of the dag traversal.
         self._gather_task_templates_of_dag(dag=dag, list_of_iter_values=[])
-        specification.templates.extend(self.templates)
-        specification.templates.extend(self.container_templates)
+        specification.templates.extend(self._dag_templates)
+        specification.templates.extend(self._container_templates)
 
         yaml = YAML()
-        with open(self.config.output_file, "w") as f:
-            yaml.dump(workspec.dict(), f)
+        with open(self.output_file, "w") as f:
+            yaml.dump(self._workflow.model_dump(by_alias=True, exclude_none=True), f)
 
     def execute_job(self, node: BaseNode):
         """

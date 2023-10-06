@@ -19,7 +19,7 @@ class EntityNotFoundError(Exception):
     pass
 
 
-class ChunkedFileSystemRunLogStore(BaseRunLogStore):
+class ChunkedRunLogStore(BaseRunLogStore):
     """
     A generic implementation of a RunLogStore that stores RunLogs in chunks.
     """
@@ -85,7 +85,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         ...
 
     @abstractmethod
-    def _store(self, run_id: str, contents: dict, name: T, new: bool = False):
+    def _store(self, run_id: str, contents: dict, name: T, insert: bool = False):
         """
         Store the contents against the name in the persistence layer.
 
@@ -121,7 +121,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         match = self.get_matches(run_id=run_id, name=naming_pattern, multiple_allowed=False)
         # The boolean multiple allowed confuses mypy a lot!
         name_to_give: str = ""
-        new = False
+        insert = False
 
         if match:
             existing_contents = self._retrieve(name=match)  # type: ignore
@@ -129,9 +129,9 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             name_to_give = match  # type: ignore
         else:
             name_to_give = Template(naming_pattern).safe_substitute({"creation_time": str(int(time.time_ns()))})
-            new = True
+            insert = True
 
-        self._store(run_id=run_id, contents=contents, name=name_to_give, new=new)
+        self._store(run_id=run_id, contents=contents, name=name_to_give, insert=insert)
 
     def retrieve(self, run_id: str, log_type: LogTypes, name: str = "", multiple_allowed=False) -> Any:
         """
@@ -310,7 +310,7 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
             status=status,
         )
 
-        self.store(run_id=run_id, contents=run_log.model_dump(by_alias=True), log_type=self.LogTypes.RUN_LOG)
+        self.store(run_id=run_id, contents=run_log.model_dump(), log_type=self.LogTypes.RUN_LOG)
         return run_log
 
     def get_run_log_by_id(self, run_id: str, full: bool = False, **kwargs) -> RunLog:
@@ -352,7 +352,6 @@ class ChunkedFileSystemRunLogStore(BaseRunLogStore):
         Raises:
             NotImplementedError: This is a base class and therefore has no default implementation
         """
-        # TODO: By alias setting
         run_id = run_log.run_id
         self.store(run_id=run_id, contents=run_log.model_dump(), log_type=self.LogTypes.RUN_LOG)
 

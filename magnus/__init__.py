@@ -24,3 +24,5 @@ from magnus.sdk import Stub, Pipeline, Task  # noqa
 # TODO: Think of model registry as a central place to store models.
 # TODO: Implement Sagemaker pipelines as a executor.
 # TODO: Think of model deployments
+
+# TODO: Think of way of generating dag hash without executor configuration

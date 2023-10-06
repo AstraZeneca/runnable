@@ -537,6 +537,15 @@ def test_base_executor__resolve_node_config_updates_global_config_if_node_overri
     assert test_executor._resolve_executor_config(mock_node)["enable_parallel"] is True
 
 
+def test_resolve_node_config_updates_config_with_nested_config(mocker):
+    mock_node = mocker.MagicMock()
+    mock_node._get_executor_config.return_value = {"first": {"second": {"third": {"a": 1}}}}
+
+    test_executor = GenericExecutor()
+
+    assert test_executor._resolve_executor_config(mock_node)["first"] == {"second": {"third": {"a": 1}}}
+
+
 def test_base_executor__resolve_node_config_updates_global_config_if_node_adds(mocker, monkeypatch):
     mock_node = mocker.MagicMock()
     mock_node._get_executor_config.return_value = {"b": 2}

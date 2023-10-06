@@ -1,8 +1,9 @@
+import datetime
 import json
 import logging
 from pathlib import Path
 from string import Template
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from magnus import defaults, utils
 from magnus.extensions.run_log_store.generic_chunked import ChunkedRunLogStore
@@ -10,14 +11,66 @@ from magnus.extensions.run_log_store.generic_chunked import ChunkedRunLogStore
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
+class DBRunLogStore(ChunkedRunLogStore):
     """
     File system run log store but chunks the run log into thread safe chunks.
     This enables executions to be parallel.
     """
 
     service_name: str = "chunked-fs"
-    log_folder: str = defaults.LOG_LOCATION_FOLDER
+    connection_string: str
+    db_name: str
+
+    _DB_LOG: Any = None
+    _engine: Any = None
+    _session: Any = None
+    _connection_string: str = ""
+    _base: Any = None
+
+    def model_post_init(self, _: Any) -> None:
+        run_context = self._context
+
+        secrets = cast(Dict[str, str], run_context.secrets_handler.get())
+        connection_string = Template(self.connection_string).safe_substitute(**secrets)
+
+        try:
+            import sqlalchemy
+            from sqlalchemy import Column, DateTime, Integer, Sequence, Text
+            from sqlalchemy.orm import declarative_base, sessionmaker
+
+            Base = declarative_base()
+
+            class DBLog(Base):
+                """
+                Base table for storing run logs in database.
+
+                In this model, we fragment the run log into logical units that are concurrent safe.
+                """
+
+                __tablename__ = self.db_name
+                pk = Column(Integer, Sequence("id_seq"), primary_key=True)
+                run_id = Column(Text, index=True)
+                attribute_key = Column(Text)  # run_log, step_internal_name, parameter_key etc
+                attribute_type = Column(Text)  # RunLog, Step, Branch, Parameter
+                attribute_value = Column(Text)  # The JSON string
+                created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+            self._engine = sqlalchemy.create_engine(connection_string, pool_pre_ping=True)
+            self._session = sessionmaker(bind=self._engine)
+            self._DB_LOG = DBLog
+            self._connection_string = connection_string
+            self._base = Base
+
+        except ImportError as _e:
+            logger.exception("Unable to import SQLalchemy, is it installed?")
+            msg = "SQLAlchemy is required for this extension. Please install it"
+            raise Exception(msg) from _e
+
+    def create_tables(self):
+        import sqlalchemy
+
+        engine = sqlalchemy.create_engine(self._connection_string)
+        self._base.metadata.create_all(engine)
 
     def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[List[Path], Path]]:
         """

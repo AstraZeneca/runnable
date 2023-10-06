@@ -20,6 +20,7 @@ click-plugins = "^1.1.1"
 ploomber-engine ={ version= "^0.0.19", optional = true, python = ">=3.8,<4.0" }
 typing-extensions ={ version= "*", python = "<3.8" }
 docker ={ version = "*", optional = true }
+sqlalchemy ={ version = "*", optional = true }
 rich = "^13.5.2"
 
 [tool.poetry.group.docs.dependencies]
@@ -37,6 +38,7 @@ pyflame = "^0.3.1"
 [tool.poetry.extras]
 docker = ['docker']
 notebook = ['ploomber-engine']
+database = ["sqlalchemy"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
