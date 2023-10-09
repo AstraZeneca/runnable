@@ -3,13 +3,6 @@ import pytest
 from magnus.extensions.executor.argo import implementation
 
 
-@pytest.fixture
-def mock_run_context(mocker, monkeypatch):
-    mock_run_context = mocker.Mock()
-    monkeypatch.setattr(implementation.context, "run_context", mock_run_context)
-    return mock_run_context
-
-
 def test_secret_env_var_has_value_from_field():
     secret_env = implementation.SecretEnvVar(
         environment_variable="test_env", secret_name="secret_name", secret_key="secret_key"
@@ -50,10 +43,10 @@ def test_limit_ignores_gpu_when_none():
     assert limit.model_dump(by_alias=True, exclude_none=True) == {**request.model_dump()}
 
 
-def test_template_defaults_with_defaults():
-    template_defaults = implementation.ContainerSpec(image="test")
+def test_user_controls_with_defaults():
+    user_controls = implementation.UserControls(image="test")
 
-    assert template_defaults.model_dump(by_alias=True, exclude_none=True) == {
+    assert user_controls.model_dump(by_alias=True, exclude_none=True) == {
         "image": "test",
         "activeDeadlineSeconds": 7200,
         "imagePullPolicy": "",
@@ -106,48 +99,40 @@ def test_spec_reshapes_arguments():
     }
 
 
-def test_template_defaults_defaults_limit_and_request():
-    test_template_defaults = implementation.ContainerSpec(image="test")
+def test_user_controls_defaults_limit_and_request():
+    test_user_controls = implementation.UserControls(image="test")
 
     default_limit = implementation.Limit()
     default_requests = implementation.Request()
 
-    model_dump = test_template_defaults.model_dump(by_alias=True, exclude_none=True)
+    model_dump = test_user_controls.model_dump(by_alias=True, exclude_none=True)
 
     assert model_dump["limits"] == default_limit.model_dump(by_alias=True, exclude_none=True)
     assert model_dump["requests"] == default_requests.model_dump(by_alias=True, exclude_none=True)
 
 
-def test_template_defaults_overrides_defaults_if_provided():
+def test_user_controls_overrides_defaults_if_provided():
     from_config = {
         "image": "test",
         "limits": {"cpu": "1000m", "memory": "1Gi"},
         "requests": {"cpu": "500m", "memory": "1Gi"},
     }
-    test_template_defaults = implementation.ContainerSpec(**from_config)
+    test_user_controls = implementation.UserControls(**from_config)
 
-    model_dump = test_template_defaults.model_dump(by_alias=True, exclude_none=True)
+    model_dump = test_user_controls.model_dump(by_alias=True, exclude_none=True)
 
     assert model_dump["limits"] == {"cpu": "1000m", "memory": "1Gi"}
     assert model_dump["requests"] == {"cpu": "500m", "memory": "1Gi"}
 
 
-def test_template_defaults_takes_extra_fields():
-    from_config = {
-        "image": "test",
-        "limits": {"cpu": "1000m", "memory": "1Gi"},
-        "requests": {"cpu": "500m", "memory": "1Gi"},
-        "foo": "bar",
-    }
+def test_user_controls_can_be_asked_to_give_only_non_default_fields():
+    test_user_controls = implementation.UserControls(image="test")
 
-    test_template_defaults = implementation.ContainerSpec(**from_config)
-    model_dump = test_template_defaults.model_dump(by_alias=True, exclude_none=True)
-
-    assert "foo" in model_dump.keys()
+    assert test_user_controls.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True) == {"image": "test"}
 
 
-def test_init_of_argo_executor(mocker, monkeypatch, mock_run_context):
-    template_defaults = implementation.ContainerSpec(image="test")
+def test_init_of_argo_executor(mocker, monkeypatch):
+    template_defaults = implementation.UserControls(image="test")
 
     monkeypatch.setattr(implementation.ArgoExecutor, "_get_parameters", mocker.MagicMock(return_value={}))
     monkeypatch.setattr(
@@ -161,8 +146,8 @@ def test_init_of_argo_executor(mocker, monkeypatch, mock_run_context):
     assert len(test_executor._workflow.spec.arguments) == 2
 
 
-def test_init_of_argo_executor_adds_parameters_from_get_parameters(mocker, monkeypatch, mock_run_context):
-    template_defaults = implementation.ContainerSpec(image="test")
+def test_init_of_argo_executor_adds_parameters_from_get_parameters(mocker, monkeypatch):
+    template_defaults = implementation.UserControls(image="test")
 
     monkeypatch.setattr(implementation.ArgoExecutor, "_get_parameters", mocker.MagicMock(return_value={"a": 2}))
     monkeypatch.setattr(
@@ -176,8 +161,8 @@ def test_init_of_argo_executor_adds_parameters_from_get_parameters(mocker, monke
     assert len(test_executor._workflow.spec.arguments) == 3
 
 
-def test_init_of_argo_executor_adds_pvcs_from_user_config(mocker, monkeypatch, mock_run_context):
-    template_defaults = implementation.ContainerSpec(image="test")
+def test_init_of_argo_executor_adds_pvcs_from_user_config(mocker, monkeypatch):
+    template_defaults = implementation.UserControls(image="test")
 
     monkeypatch.setattr(implementation.ArgoExecutor, "_get_parameters", mocker.MagicMock(return_value={}))
     monkeypatch.setattr(
