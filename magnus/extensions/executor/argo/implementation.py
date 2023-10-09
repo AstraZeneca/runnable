@@ -6,12 +6,12 @@ import string
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_serializer
 from pydantic.functional_serializers import PlainSerializer
 from ruamel.yaml import YAML
 from typing_extensions import Annotated
 
-from magnus import defaults, integration, utils
+from magnus import defaults, exceptions, integration, utils
 from magnus.extensions.executor import GenericExecutor
 from magnus.graph import Graph, create_node, search_node_by_internal_name
 from magnus.nodes import BaseNode
@@ -108,11 +108,16 @@ class Toleration(BaseModel):
     value: str
 
 
-class ContainerSpec(BaseModel):
+class UserControls(BaseModel):
+    """
+    These are all the controls given to the user at the config level
+    """
+
     image: str
     limits: Limit = Field(default=Limit(), serialization_alias="limits")
     requests: Request = Field(default=Request(), serialization_alias="requests")
     image_pull_policy: str = Field(default="", serialization_alias="imagePullPolicy")
+    secrets_from_k8s: List[SecretEnvVar] = Field(default=[], exclude=True)
     # Better to leave it empty, as it is a sensible default
     # https://argoproj.github.io/argo-workflows/fields/#container
     node_selector: dict = Field(default={}, serialization_alias="nodeSelector")
@@ -122,20 +127,24 @@ class ContainerSpec(BaseModel):
     active_deadline_seconds: int = Field(default=60 * 60 * 2, serialization_alias="activeDeadlineSeconds", gt=0)
     # Note: Volume mounts cannot be defined here
 
-    # Extra's are allowed here but ignored while rendering!!
-    model_config = ConfigDict(extra="allow")
+    # Should not be populated by user!!
+    _env_vars: List[EnvVar] = PrivateAttr(default=[])
+
+    @computed_field
+    @property
+    def env(self) -> Optional[List[Union[EnvVar, SecretEnvVar]]]:
+        if not self._env_vars and not self.secrets_from_k8s:
+            return None
+
+        return self._env_vars + self.secrets_from_k8s
 
 
-class Container(BaseModel):
+class Container(UserControls):
     """
-    Container over-rides from the template defaults
+    The non-defaulted config + these variables make per step configuration.
     """
-
-    model_config = ConfigDict(extra="allow")
 
     command: List[str]
-    image: str
-    env: List[Union[SecretEnvVar, EnvVar]] = []
     volume_mounts: List[VolumeMount] = Field(default=[], serialization_alias="volumeMounts")
 
 
@@ -233,7 +242,7 @@ class Spec(BaseModel):
     service_account_name: str = Field(default="pipeline-runner", serialization_alias="serviceAccountName")
     arguments: List[EnvVar] = []
     volumes: List[Volume] = []
-    template_defaults: Optional[ContainerSpec] = Field(default=None, serialization_alias="templateDefaults")
+    template_defaults: Optional[UserControls] = Field(default=None, serialization_alias="templateDefaults")
     parallelism: Optional[int] = None
 
     @field_serializer("arguments")
@@ -460,14 +469,13 @@ class UserVolumeMounts(BaseModel):
     mount_path: str
 
 
-class ArgoExecutor(GenericExecutor, ContainerSpec):
+class ArgoExecutor(GenericExecutor, UserControls):
     service_name: str = "argo"
 
     run_id_placeholder: str = "{{workflow.parameters.run_id}}"
     parallelism: Optional[int] = Field(default=None)
     service_account_name: str = "pipeline-runner"
 
-    secrets_from_k8s: List[SecretEnvVar] = []
     persistent_volumes: List[UserVolumeMounts] = []
     fail_fast: bool = True
 
@@ -530,17 +538,17 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
         But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we need not do anything.
         """
 
-        integration.validate(self, self.run_log_store)
-        integration.configure_for_traversal(self, self.run_log_store)
+        integration.validate(self, self._context.run_log_store)
+        integration.configure_for_traversal(self, self._context.run_log_store)
 
-        integration.validate(self, self.catalog_handler)
-        integration.configure_for_traversal(self, self.catalog_handler)
+        integration.validate(self, self._context.catalog_handler)
+        integration.configure_for_traversal(self, self._context.catalog_handler)
 
-        integration.validate(self, self.secrets_handler)
-        integration.configure_for_traversal(self, self.secrets_handler)
+        integration.validate(self, self._context.secrets_handler)
+        integration.configure_for_traversal(self, self._context.secrets_handler)
 
-        integration.validate(self, self.experiment_tracker)
-        integration.configure_for_traversal(self, self.experiment_tracker)
+        integration.validate(self, self._context.experiment_tracker)
+        integration.configure_for_traversal(self, self._context.experiment_tracker)
 
     def prepare_for_node_execution(self):
         """
@@ -551,35 +559,35 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
             map_variable (dict, optional): [description]. Defaults to None.
         """
 
-        integration.validate(self, self.run_log_store)
-        integration.configure_for_execution(self, self.run_log_store)
+        integration.validate(self, self._context.run_log_store)
+        integration.configure_for_execution(self, self._context.run_log_store)
 
-        integration.validate(self, self.catalog_handler)
-        integration.configure_for_execution(self, self.catalog_handler)
+        integration.validate(self, self._context.catalog_handler)
+        integration.configure_for_execution(self, self._context.catalog_handler)
 
-        integration.validate(self, self.secrets_handler)
-        integration.configure_for_execution(self, self.secrets_handler)
+        integration.validate(self, self._context.secrets_handler)
+        integration.configure_for_execution(self, self._context.secrets_handler)
 
-        integration.validate(self, self.experiment_tracker)
-        integration.configure_for_execution(self, self.experiment_tracker)
+        integration.validate(self, self._context.experiment_tracker)
+        integration.configure_for_execution(self, self._context.experiment_tracker)
 
         self._set_up_run_log(exists_ok=True)
 
     def execute_node(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
-        step_log = self.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
+        step_log = self._context.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
 
         self.add_code_identities(node=node, step_log=step_log)
 
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING
-        self.run_log_store.add_step_log(step_log, self.run_id)
+        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
         super()._execute_node(node, map_variable=map_variable, **kwargs)
 
         # Implicit fail
-        if self.dag:
+        if self._context.dag:
             # functions and notebooks do not have dags
-            _, current_branch = search_node_by_internal_name(dag=self.dag, internal_name=node.internal_name)
+            _, current_branch = search_node_by_internal_name(dag=self._context.dag, internal_name=node.internal_name)
             _, next_node_name = self._get_status_and_next_node_name(node, current_branch, map_variable=map_variable)
             if next_node_name:
                 # Terminal nodes do not have next node name
@@ -588,7 +596,7 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
                 if next_node.node_type == defaults.FAIL:
                     self.execute_node(next_node, map_variable=map_variable)
 
-        step_log = self.run_log_store.get_step_log(node._get_step_log_name(map_variable), self.run_id)
+        step_log = self._context.run_log_store.get_step_log(node._get_step_log_name(map_variable), self._context.run_id)
         if step_log.status == defaults.FAIL:
             raise Exception(f"Step {node.name} failed")
 
@@ -597,7 +605,7 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
 
         # If its a map node, write the list values to "/tmp/magnus/output.txt"
         if node.node_type == "map":
-            iterate_on = self.run_log_store.get_parameters(self.run_id)[node.iterate_on]
+            iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[node.iterate_on]
 
             with open("/tmp/output.txt", mode="w", encoding="utf-8") as myfile:
                 json.dump(iterate_on, myfile, indent=4)
@@ -620,12 +628,12 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
 
     def get_clean_name(self, node: BaseNode):
         # Cache names for the node
-        if node.internal_name not in self.clean_names:
+        if node.internal_name not in self._clean_names:
             sanitized = self.sanitize_name(node.name)
             tag = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
-            self.clean_names[node.internal_name] = f"{sanitized}-{node.node_type}-{tag}"
+            self._clean_names[node.internal_name] = f"{sanitized}-{node.node_type}-{tag}"
 
-        return self.clean_names[node.internal_name]
+        return self._clean_names[node.internal_name]
 
     def compose_map_variable(self, list_of_iter_values: Optional[List] = None) -> OrderedDict:
         map_variable = OrderedDict()
@@ -638,18 +646,6 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
 
         return map_variable
 
-    def _fill_container_overrides(self, mode_config: dict, container: Container) -> dict:
-        executor_config = self._get_template_defaults()
-        # mode_config has executor config + container over-rides
-        container_config = self._get_template_defaults(check_against=mode_config)
-
-        for key in list(container_config.__fields__.keys()):
-            container_value = container_config.__getattribute__(key)
-            executor_value = executor_config.__getattribute__(key)
-
-            if container_value != executor_value:
-                container.__setattr__(key, container_value)
-
     def create_container_template(
         self,
         working_on: BaseNode,
@@ -658,17 +654,19 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
         outputs: Optional[List] = None,
         overwrite_name: str = "",
     ):
-        mode_config = self._resolve_executor_config(working_on)
+        effective_node_config = self._resolve_executor_config(working_on)
+        # Remove placeholders from effective node config, if present
+        effective_node_config.pop("placeholder", None)
 
-        image = mode_config["image"]
+        image = effective_node_config["image"]
         command = shlex.split(command)
 
         container_init_kwargs = {"image": image, "command": command}
         container = Container(**container_init_kwargs)
 
-        self._fill_container_overrides(mode_config=mode_config, container=container)
+        self._fill_container_overrides(mode_config=effective_node_config, container=container)
 
-        secrets = mode_config.get("secrets_from_k8s", {})
+        secrets = effective_node_config.get("secrets_from_k8s", {})
         for secret_env, k8_secret in secrets.items():
             try:
                 secret_name, key = k8_secret.split(":")
@@ -721,7 +719,6 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
                 inputs.append(Parameter(name=val))
 
         command = utils.get_fan_command(
-            executor=self,
             mode="out",
             node=composite_node,
             run_id=self.run_id_placeholder,
@@ -747,7 +744,7 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
             overwrite_name=f"{clean_name}-fan-out",
         )
 
-        self.container_templates.append(container_template)
+        self._container_templates.append(container_template)
         return TaskTemplate(name=f"{clean_name}-fan-out", template=f"{clean_name}-fan-out")
 
     def _create_fan_in_template(self, composite_node, list_of_iter_values: Optional[List] = None):
@@ -763,7 +760,6 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
                 inputs.append(Parameter(name=val))
 
         command = utils.get_fan_command(
-            executor=self,
             mode="in",
             node=composite_node,
             run_id=self.run_id_placeholder,
@@ -778,7 +774,7 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
             inputs=inputs,
             overwrite_name=f"{clean_name}-fan-in",
         )
-        self.container_templates.append(container_template)
+        self._container_templates.append(container_template)
         clean_name = self.get_clean_name(composite_node)
         return TaskTemplate(name=f"{clean_name}-fan-in", template=f"{clean_name}-fan-in")
 
@@ -844,18 +840,15 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
             dag_template.inputs.extend([Parameter(name=val) for val in list_of_iter_values])
 
         # Add the dag template to the list of templates
-        self.templates.append(dag_template)
+        self._dag_templates.append(dag_template)
 
-    def _get_template_defaults(self) -> ContainerSpec:
-        # TODO: Need to check this functionality of check against
-        template_defaults_keys = list(ContainerSpec.__fields__.keys())
+    def _get_template_defaults(self) -> UserControls:
+        template_defaults_keys = list(UserControls.__fields__.keys())
 
         user_provided_config = self.model_dump(by_alias=True, exclude_none=True)
-        # if check_against:
-        #     user_provided_config = check_against
-        template_default_json = {key: user_provided_config[key] for key in template_defaults_keys}
+        template_defaults_dict = {key: user_provided_config[key] for key in template_defaults_keys}
 
-        return ContainerSpec(**template_default_json)
+        return UserControls(**template_defaults_dict)
 
     def execute_graph(self, dag: Graph, map_variable: Optional[dict] = None, **kwargs):
         specification = self._workflow.spec
@@ -884,8 +877,8 @@ class ArgoExecutor(GenericExecutor, ContainerSpec):
             Exception: If the pipeline execution failed
         """
         if stage != "traversal":  # traversal does no actual execution, so return code is pointless
-            run_id = self.run_id
+            run_id = self._context.run_id
 
-            run_log = self.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
+            run_log = self._context.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
             if run_log.status == defaults.FAIL:
-                raise Exception("Pipeline execution failed")
+                raise exceptions.ExecutionFailedError(run_id)
