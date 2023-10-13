@@ -44,10 +44,9 @@ def test_limit_ignores_gpu_when_none():
 
 
 def test_user_controls_with_defaults():
-    user_controls = implementation.UserControls(image="test")
+    user_controls = implementation.UserControls()
 
     assert user_controls.model_dump(by_alias=True, exclude_none=True) == {
-        "image": "test",
         "activeDeadlineSeconds": 7200,
         "imagePullPolicy": "",
         "limits": {"cpu": "250m", "memory": "1Gi"},
@@ -63,7 +62,7 @@ def test_out_put_parameter_renders_properly():
     assert output_parameter.model_dump(by_alias=True) == {
         "name": "test_name",
         "value": "test_value",
-        "valueFrom": "/tmp/output.txt",
+        "valueFrom": {"path": "/tmp/output.txt"},
     }
 
 
@@ -99,8 +98,22 @@ def test_spec_reshapes_arguments():
     }
 
 
+def test_spec_populates_container_volumes_and_persistent_volumes():
+    volume1 = implementation.UserVolumeMounts(name="test_name1", mount_path="test_mount_path1")
+    volume2 = implementation.UserVolumeMounts(name="test_name2", mount_path="test_mount_path2")
+
+    spec = implementation.Spec(persistent_volumes=[volume1, volume2])
+
+    model_dump = spec.model_dump(by_alias=True, exclude_none=True)
+
+    assert model_dump["volumes"] == [
+        {"name": "executor-0", "persistentVolumeClaim": {"claimName": "test_name1"}},
+        {"name": "executor-1", "persistentVolumeClaim": {"claimName": "test_name2"}},
+    ]
+
+
 def test_user_controls_defaults_limit_and_request():
-    test_user_controls = implementation.UserControls(image="test")
+    test_user_controls = implementation.UserControls()
 
     default_limit = implementation.Limit()
     default_requests = implementation.Request()
@@ -125,58 +138,11 @@ def test_user_controls_overrides_defaults_if_provided():
     assert model_dump["requests"] == {"cpu": "500m", "memory": "1Gi"}
 
 
-def test_user_controls_can_be_asked_to_give_only_non_default_fields():
-    test_user_controls = implementation.UserControls(image="test")
+def test_container_command_gets_split():
+    test_container = implementation.Container(image="test_image", command="am I splitting?")
 
-    assert test_user_controls.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True) == {"image": "test"}
-
-
-def test_init_of_argo_executor(mocker, monkeypatch):
-    template_defaults = implementation.UserControls(image="test")
-
-    monkeypatch.setattr(implementation.ArgoExecutor, "_get_parameters", mocker.MagicMock(return_value={}))
-    monkeypatch.setattr(
-        implementation.ArgoExecutor, "_get_template_defaults", mocker.MagicMock(return_value=template_defaults)
-    )
-
-    test_executor = implementation.ArgoExecutor(image="test_image")
-
-    assert test_executor.image == "test_image"
-    assert test_executor._workflow.spec.template_defaults == template_defaults
-    assert len(test_executor._workflow.spec.arguments) == 2
-
-
-def test_init_of_argo_executor_adds_parameters_from_get_parameters(mocker, monkeypatch):
-    template_defaults = implementation.UserControls(image="test")
-
-    monkeypatch.setattr(implementation.ArgoExecutor, "_get_parameters", mocker.MagicMock(return_value={"a": 2}))
-    monkeypatch.setattr(
-        implementation.ArgoExecutor, "_get_template_defaults", mocker.MagicMock(return_value=template_defaults)
-    )
-
-    test_executor = implementation.ArgoExecutor(image="test_image")
-
-    assert test_executor.image == "test_image"
-    assert test_executor._workflow.spec.template_defaults == template_defaults
-    assert len(test_executor._workflow.spec.arguments) == 3
-
-
-def test_init_of_argo_executor_adds_pvcs_from_user_config(mocker, monkeypatch):
-    template_defaults = implementation.UserControls(image="test")
-
-    monkeypatch.setattr(implementation.ArgoExecutor, "_get_parameters", mocker.MagicMock(return_value={}))
-    monkeypatch.setattr(
-        implementation.ArgoExecutor, "_get_template_defaults", mocker.MagicMock(return_value=template_defaults)
-    )
-
-    user_config = {
-        "image": "test_image",
-        "persistent_volumes": [{"name": "test_volume", "mount_path": "/tmp/test_volume"}],
-    }
-
-    test_executor = implementation.ArgoExecutor(**user_config)
-
-    assert test_executor._workflow.spec.volumes[0].model_dump(by_alias=True, exclude_none=True) == {
-        "name": "executor-0",
-        "persistentVolumeClaim": {"claimName": "test_volume"},
-    }
+    assert test_container.model_dump(by_alias=True, exclude_none=True, exclude_unset=True)["command"] == [
+        "am",
+        "I",
+        "splitting?",
+    ]

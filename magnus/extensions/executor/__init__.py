@@ -330,6 +330,7 @@ class GenericExecutor(BaseExecutor):
                 logger.exception(f"Node: {node} failed")
                 step_log.status = defaults.FAIL
             else:
+                # TODO: Stub nodes should not sync back data
                 step_log.status = defaults.SUCCESS
                 self._sync_catalog(step_log, stage="put", synced_catalogs=data_catalogs_get)
                 step_log.user_defined_metrics = tracked_data
@@ -626,7 +627,11 @@ class GenericExecutor(BaseExecutor):
 
         """
         effective_node_config = copy.deepcopy(self.model_dump())
-        ctx_node_config = node._get_executor_config(self.service_name)
+        try:
+            ctx_node_config = node._get_executor_config(self.service_name)
+        except exceptions.TerminalNodeError:
+            # Some modes request for effective node config even for success or fail nodes
+            return effective_node_config
 
         placeholders = self.placeholders
 

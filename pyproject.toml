@@ -60,8 +60,9 @@ magnus= 'magnus.cli:cli'
 # Plugins for Executors
 [tool.poetry.plugins."executor"]
 "local" = "magnus.extensions.executor.local.implementation:LocalExecutor"
-"local-container" = "magnus.extensions.local_container.implementation:LocalContainerExecutor"
-"demo-renderer" = "magnus.extensions.demo_renderer.implementation:DemoRenderer"
+"local-container" = "magnus.extensions.executor.local_container.implementation:LocalContainerExecutor"
+"demo-renderer" = "magnus.extensions.executor.demo_renderer.implementation:DemoRenderer"
+"argo" = "magnus.extensions.executor.argo.implementation:ArgoExecutor"
 
 # Plugins for Catalog
 [tool.poetry.plugins."catalog"]

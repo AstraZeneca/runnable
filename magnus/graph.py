@@ -22,7 +22,7 @@ class Graph(BaseModel):
 
     start_at: str
     name: str = ""
-    description: str = ""
+    description: Optional[str] = ""
     max_time: int = 86400
     internal_branch_name: str = ""
     nodes: SerializeAsAny[Dict[str, "BaseNode"]] = Field(default_factory=dict, serialization_alias="steps")
@@ -381,7 +381,7 @@ def create_node(name: str, step_config: dict, internal_branch_name: Optional[str
         msg = (
             f"Could not find the node type {node_type}. Please ensure you have installed "
             "the extension that provides the node type."
-            "\nCore supports: task, success, fail, parallel, dag, map, as-is"
+            "\nCore supports: task, success, fail, parallel, dag, map, stub"
         )
         raise Exception(msg) from _e
 
