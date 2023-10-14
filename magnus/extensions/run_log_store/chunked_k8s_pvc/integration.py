@@ -45,13 +45,15 @@ class ArgoCompute(BaseIntegration):
     service_provider = "chunked-k8s-pvc"  # The actual implementation of the service
 
     def configure_for_traversal(self, **kwargs):
-        from magnus.extensions.executor.argo.implementation import ArgoExecutor
+        from magnus.extensions.executor.argo.implementation import ArgoExecutor, UserVolumeMounts
         from magnus.extensions.run_log_store.chunked_k8s_pvc.implementation import ChunkedK8PersistentVolumeRunLogstore
 
         self.executor = cast(ArgoExecutor, self.executor)
         self.service = cast(ChunkedK8PersistentVolumeRunLogstore, self.service)
 
-        self.executor.persistent_volumes["run-log-store"] = (
-            self.service.persistent_volume_name,
-            self.service.mount_path,
+        volume_mount = UserVolumeMounts(
+            name=self.service.persistent_volume_name,
+            mount_path=self.service.mount_path,
         )
+
+        self.executor.persistent_volumes.append(volume_mount)

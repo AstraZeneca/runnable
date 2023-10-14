@@ -4,7 +4,7 @@ from abc import abstractmethod
 from enum import Enum
 from pathlib import Path
 from string import Template
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, Union
 
 from magnus import defaults, exceptions
 from magnus.datastore import BaseRunLogStore, BranchLog, RunLog, StepLog
@@ -12,7 +12,7 @@ from magnus.datastore import BaseRunLogStore, BranchLog, RunLog, StepLog
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-T = TypeVar("T", str, Path)  # Holds str, path
+T = Union[str, Path]  # Holds str, path
 
 
 class EntityNotFoundError(Exception):
@@ -96,6 +96,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         """
         ...
 
+    @abstractmethod
     def _retrieve(self, name: T) -> dict:
         """
         Does the job of retrieving from the persistent layer.

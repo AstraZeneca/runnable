@@ -669,7 +669,7 @@ class GenericExecutor(BaseExecutor):
         """
         raise NotImplementedError
 
-    def fan_out(self, node: BaseNode, map_variable: Optional[dict] = None):
+    def fan_out(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None):
         """
         This method is used to appropriately fan-out the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.

@@ -46,12 +46,14 @@ class ArgoCompute(BaseIntegration):
 
     def configure_for_traversal(self, **kwargs):
         from magnus.extensions.catalog.k8s_pvc.implementation import K8sPVCatalog
-        from magnus.extensions.executor.argo.implementation import ArgoExecutor
+        from magnus.extensions.executor.argo.implementation import ArgoExecutor, UserVolumeMounts
 
         self.executor = cast(ArgoExecutor, self.executor)
         self.service = cast(K8sPVCatalog, self.service)
 
-        self.executor.persistent_volumes["catalog"] = (
-            self.service.persistent_volume_name,
-            self.service.mount_path,
+        volume_mount = UserVolumeMounts(
+            name=self.service.persistent_volume_name,
+            mount_path=self.service.mount_path,
         )
+
+        self.executor.persistent_volumes.append(volume_mount)

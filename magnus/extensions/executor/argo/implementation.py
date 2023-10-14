@@ -36,7 +36,7 @@ class SecretEnvVar(BaseModel):
     secret_name: str = Field(exclude=True)
     secret_key: str = Field(exclude=True)
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def valueFrom(self) -> Dict[str, Dict[str, str]]:
         return {
@@ -120,7 +120,7 @@ class UserControls(BaseModel):
     _env_vars: List[EnvVar] = PrivateAttr(default=[])
     _secrets_from_k8s: List[SecretEnvVar] = PrivateAttr(default=[])
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def env(self) -> Optional[List[Union[EnvVar, SecretEnvVar]]]:
         if not self._env_vars and not self._secrets_from_k8s:
@@ -139,12 +139,12 @@ class DefaultContainer(BaseModel):
 
     image: str
     command: ShlexCommand
-    volume_mounts: List["ContainerVolume"] = Field(default=None, serialization_alias="volumeMounts")
+    volume_mounts: Optional[List["ContainerVolume"]] = Field(default=None, serialization_alias="volumeMounts")
 
     _env_vars: List[EnvVar] = PrivateAttr(default=[])
     _secrets_from_k8s: List[SecretEnvVar] = PrivateAttr(default=[])
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def env(self) -> Optional[List[Union[EnvVar, SecretEnvVar]]]:
         if not self._env_vars and not self._secrets_from_k8s:
@@ -172,7 +172,7 @@ class OutputParameter(Parameter):
 
     path: str = Field(default="/tmp/output.txt", exclude=True)
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def valueFrom(self) -> Dict[str, str]:
         return {"path": self.path}
@@ -221,8 +221,8 @@ class ContainerTemplate(BaseModel):
     # These templates are used for actual execution nodes.
     name: str
     container: Union[Container, DefaultContainer]
-    outputs: List[OutputParameter] = Field(default=None, serialization_alias="outputs")
-    inputs: List[Parameter] = Field(default=None, serialization_alias="inputs")
+    outputs: Optional[List[OutputParameter]] = Field(default=None, serialization_alias="outputs")
+    inputs: Optional[List[Parameter]] = Field(default=None, serialization_alias="inputs")
 
     def __hash__(self):
         return hash(self.name)
@@ -243,7 +243,7 @@ class DagTemplate(BaseModel):
     parallelism: Optional[int] = None
     fail_fast: bool = Field(default=True, serialization_alias="failFast")
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def dag(self) -> Dict[str, List[TaskTemplate]]:
         return {"tasks": self.tasks}
@@ -263,7 +263,7 @@ class Volume(BaseModel):
     claim: str = Field(exclude=True)
     mount_path: str = Field(serialization_alias="mountPath", exclude=True)
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def persistentVolumeClaim(self) -> Dict[str, str]:
         return {"claimName": self.claim}
@@ -287,12 +287,12 @@ class Spec(BaseModel):
     entrypoint: str = "magnus-dag"
     templates: List[Union[DagTemplate, ContainerTemplate]] = Field(default=[])
     service_account_name: Optional[str] = Field(default=None, serialization_alias="serviceAccountName")
-    arguments: List[EnvVar] = Field(default=None)
+    arguments: Optional[List[EnvVar]] = Field(default=None)
     persistent_volumes: List[UserVolumeMounts] = Field(default=[], exclude=True)
     template_defaults: Optional[UserControls] = Field(default=None, serialization_alias="templateDefaults")
     parallelism: Optional[int] = None
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def volumes(self) -> List[Volume]:
         volumes: List[Volume] = []
@@ -370,7 +370,7 @@ class DagNodeRenderer(NodeRenderer):
         dag_inputs = []
         if list_of_iter_values:
             for value in list_of_iter_values:
-                task_template_arguments.append(Parameter(name=value, value="{{inputs.parameters." + value + "}}"))
+                task_template_arguments.append(Argument(name=value, value="{{inputs.parameters." + value + "}}"))
                 dag_inputs.append(Parameter(name=value))
 
         clean_name = self.executor.get_clean_name(self.node)
@@ -417,7 +417,7 @@ class ParallelNodeRender(NodeRenderer):
         dag_inputs = []
         if list_of_iter_values:
             for value in list_of_iter_values:
-                task_template_arguments.append(Parameter(name=value, value="{{inputs.parameters." + value + "}}"))
+                task_template_arguments.append(Argument(name=value, value="{{inputs.parameters." + value + "}}"))
                 dag_inputs.append(Parameter(name=value))
 
         clean_name = self.executor.get_clean_name(self.node)
@@ -614,11 +614,12 @@ class ArgoExecutor(GenericExecutor, UserControls):
         if step_log.status == defaults.FAIL:
             raise Exception(f"Step {node.name} failed")
 
-    def fan_out(self, node: BaseNode, map_variable: dict):
+    def fan_out(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None):
         super().fan_out(node, map_variable)
 
         # If its a map node, write the list values to "/tmp/output.txt"
         if node.node_type == "map":
+            node = cast(MapNode, node)
             iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[node.iterate_on]
 
             with open("/tmp/output.txt", mode="w", encoding="utf-8") as myfile:
@@ -787,7 +788,11 @@ class ArgoExecutor(GenericExecutor, UserControls):
         previous_node = None
         previous_node_template_name = None
 
-        templates: dict[str, TaskTemplate] = {}
+        templates: Dict[str, TaskTemplate] = {}
+
+        if not list_of_iter_values:
+            list_of_iter_values = []
+
         while True:
             working_on = dag.get_node_by_name(current_node)
             if previous_node == current_node:
@@ -827,7 +832,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
                 if not template.arguments:
                     template.arguments = []
                 for value in list_of_iter_values:
-                    template.arguments.append(Parameter(name=value, value="{{inputs.parameters." + value + "}}"))
+                    template.arguments.append(Argument(name=value, value="{{inputs.parameters." + value + "}}"))
 
             # Move ahead to the next node
             previous_node = current_node
@@ -849,7 +854,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
         self._dag_templates.append(dag_template)
 
     def _get_template_defaults(self) -> UserControls:
-        template_defaults_keys = list(UserControls.__fields__.keys())
+        template_defaults_keys = list(UserControls.__fields__.keys())  # type: ignore
 
         user_provided_config = self.model_dump(by_alias=False)
         template_defaults_dict = {key: user_provided_config[key] for key in template_defaults_keys}
@@ -888,7 +893,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
 
         # Container specifications are globally collected and added at the end.
         # Dag specifications are added as part of the dag traversal.
-        templates = []
+        templates: List[Union[DagTemplate, ContainerTemplate]] = []
         self._gather_task_templates_of_dag(dag=dag, list_of_iter_values=[])
         templates.extend(self._dag_templates)
         templates.extend(self._container_templates)

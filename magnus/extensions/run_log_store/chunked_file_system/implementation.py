@@ -9,6 +9,8 @@ from magnus.extensions.run_log_store.generic_chunked import ChunkedRunLogStore
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
+T = Union[str, Path]
+
 
 class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
     """
@@ -19,7 +21,7 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
     service_name: str = "chunked-fs"
     log_folder: str = defaults.LOG_LOCATION_FOLDER
 
-    def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[List[Path], Path]]:
+    def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[List[T], T]]:
         """
         Get contents of files matching the pattern name*
 
