@@ -343,7 +343,7 @@ class BaseNode(ABC, BaseModel):
 
     @classmethod
     @abstractmethod
-    def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "BaseNode":
+    def parse_from_config(cls, config: Dict[str, Any], internal_name: Optional[str]) -> "BaseNode":
         """
         Parse the config from the user and create the corresponding node.
 
@@ -484,5 +484,5 @@ class TerminalNode(BaseNode):
         raise exceptions.TerminalNodeError()
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "BaseNode":
+    def parse_from_config(cls, config: Dict[str, Any], internal_name: Optional[str]) -> "TerminalNode":
         return cls(**config)

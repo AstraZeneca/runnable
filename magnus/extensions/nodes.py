@@ -4,7 +4,7 @@ import multiprocessing
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 from pydantic import ConfigDict, Field, FieldValidationInfo, SerializeAsAny, field_validator
 from typing_extensions import Annotated
@@ -30,7 +30,7 @@ class TaskNode(ExecutableNode):
     node_type: str = Field(default="task", serialization_alias="type")
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "TaskNode":
+    def parse_from_config(cls, config: Dict[str, Any], internal_name: Optional[str]) -> "TaskNode":
         # separate task config from node config
         task_config = {k: v for k, v in config.items() if k not in TaskNode.model_fields.keys()}
         node_config = {k: v for k, v in config.items() if k in TaskNode.model_fields.keys()}
@@ -120,6 +120,10 @@ class SuccessNode(TerminalNode):
 
     node_type: str = Field(default="success", serialization_alias="type")
 
+    @classmethod
+    def parse_from_config(cls, config: Dict[str, Any], internal_name: Optional[str]) -> "SuccessNode":
+        return cast("SuccessNode", super().parse_from_config(config, internal_name))
+
     def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
         Execute the success node.
@@ -173,7 +177,10 @@ class ParallelNode(CompositeNode):
     is_composite: bool = True
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "ParallelNode":
+    def parse_from_config(cls, config: Dict[str, Any], internal_name: Optional[str]) -> "ParallelNode":
+        if not internal_name:
+            raise Exception("A parallel node should have an internal name during parsing")
+
         config_branches = config.pop("branches", {})
         branches = {}
         for branch_name, branch_config in config_branches.items():
@@ -308,7 +315,10 @@ class MapNode(CompositeNode):
     is_composite: bool = True
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "MapNode":
+    def parse_from_config(cls, config: Dict[str, Any], internal_name: Optional[str]) -> "MapNode":
+        if not internal_name:
+            raise Exception("A parallel node should have an internal name during parsing")
+
         config_branch = config.pop("branch", {})
         if not config_branch:
             raise Exception("A map node should have a branch")
@@ -494,6 +504,9 @@ class DagNode(CompositeNode):
 
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "DagNode":
+        if not internal_name:
+            raise Exception("A parallel node should have an internal name during parsing")
+
         if "dag_definition" not in config:
             raise Exception(f"No dag definition found in {config}")
 
@@ -614,7 +627,7 @@ class StubNode(ExecutableNode):
     model_config = ConfigDict(extra="allow")
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], internal_name: str) -> "StubNode":
+    def parse_from_config(cls, config: Dict[str, Any], internal_name: Optional[str]) -> "StubNode":
         return cls(**config)
 
     def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:

@@ -138,6 +138,57 @@ def test_user_controls_overrides_defaults_if_provided():
     assert model_dump["requests"] == {"cpu": "500m", "memory": "1Gi"}
 
 
+def test_default_container_env_is_none_if_secrets_or_env_vars_are_empty():
+    test_default_container = implementation.DefaultContainer(image="test", command="test_command")
+
+    assert test_default_container.model_dump(by_alias=True)["env"] is None
+
+
+def test_default_container_env_is_sum_of_k8s_secrets_and_env_vars():
+    test_default_container = implementation.DefaultContainer(image="test", command="test_command")
+
+    env_var = implementation.EnvVar(name="test_env", value="test_value")
+    secret_var = implementation.SecretEnvVar(environment_variable="env", secret_name="name", secret_key="key")
+
+    test_default_container._env_vars = [env_var]
+    test_default_container._secrets_from_k8s = [secret_var]
+
+    assert test_default_container.model_dump(by_alias=True, exclude_none=True)["env"] == [
+        {**env_var.model_dump(by_alias=True, exclude_none=True)},
+        {**secret_var.model_dump(by_alias=True, exclude_none=True)},
+    ]
+
+
+def test_user_controls_env_is_none_if_secrets_or_env_vars_are_empty():
+    test_user_controls = implementation.UserControls()
+
+    assert test_user_controls.model_dump(by_alias=True)["env"] is None
+
+
+def test_user_controls_env_is_sum_of_k8s_secrets_and_env_vars():
+    test_user_controls = implementation.UserControls()
+
+    env_var = implementation.EnvVar(name="test_env", value="test_value")
+    secret_var = implementation.SecretEnvVar(environment_variable="env", secret_name="name", secret_key="key")
+
+    test_user_controls._env_vars = [env_var]
+    test_user_controls._secrets_from_k8s = [secret_var]
+
+    assert test_user_controls.model_dump(by_alias=True, exclude_none=True)["env"] == [
+        {**env_var.model_dump(by_alias=True, exclude_none=True)},
+        {**secret_var.model_dump(by_alias=True, exclude_none=True)},
+    ]
+
+
+def test_output_parameter_valuefrom_includes_path():
+    test_out_put_parameter = implementation.OutputParameter(name="test_name", path="test_path")
+
+    assert test_out_put_parameter.model_dump(by_alias=True, exclude_none=True) == {
+        "name": "test_name",
+        "valueFrom": {"path": "test_path"},
+    }
+
+
 def test_container_command_gets_split():
     test_container = implementation.Container(image="test_image", command="am I splitting?")
 
