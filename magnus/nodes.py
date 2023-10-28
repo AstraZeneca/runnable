@@ -2,10 +2,10 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 import magnus.context as context
-from magnus import defaults, exceptions, graph
+from magnus import defaults, exceptions
 from magnus.datastore import StepAttempt
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -343,7 +343,7 @@ class BaseNode(ABC, BaseModel):
 
     @classmethod
     @abstractmethod
-    def parse_from_config(cls, config: Dict[str, Any], internal_name: Optional[str]) -> "BaseNode":
+    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str]) -> "BaseNode":
         """
         Parse the config from the user and create the corresponding node.
 
@@ -352,6 +352,17 @@ class BaseNode(ABC, BaseModel):
 
         Returns:
             BaseNode: The corresponding node.
+        """
+        ...
+
+    @abstractmethod
+    def add_parent(self, parent: str):
+        """
+        attach the node to a parent.
+        Mostly used by the SDK to dynamically construct the graph as user defines it.
+
+        Args:
+            parent (str): The step to be added to.
         """
         ...
 
@@ -426,10 +437,11 @@ class ExecutableNode(TraversalNode):
     def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         raise Exception("This is an executable node and does not have a fan out")
 
+    def add_parent(self, parent: str):
+        self.internal_name = parent + "." + self.internal_name
+
 
 class CompositeNode(TraversalNode):
-    _branches: SerializeAsAny[Dict[str, graph.Graph]]
-
     def _get_catalog_settings(self) -> Dict[str, Any]:
         """
         If the node defines a catalog settings, return it or None
@@ -438,12 +450,6 @@ class CompositeNode(TraversalNode):
             dict: catalog settings defined as per the node or None
         """
         raise Exception("This is a composite node and does not have a catalog settings")
-
-    def _get_branch_by_name(self, branch_name: str) -> graph.Graph:
-        if branch_name in self._branches:
-            return self._branches[branch_name]
-
-        raise Exception(f"Branch {branch_name} does not exist")
 
     def _get_max_attempts(self) -> int:
         raise Exception("This is a composite node and does not have a max_attempts")
@@ -484,5 +490,8 @@ class TerminalNode(BaseNode):
         raise exceptions.TerminalNodeError()
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], internal_name: Optional[str]) -> "TerminalNode":
+    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str]) -> "TerminalNode":
         return cls(**config)
+
+    def add_parent(self, parent: str):
+        self.internal_name = parent + "." + self.internal_name

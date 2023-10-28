@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import logging
 from logging.config import dictConfig
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, PrivateAttr, computed_field, field_validator
 
 from magnus import defaults, entrypoints, graph, utils
-from magnus.extensions.nodes import FailNode, StubNode, SuccessNode, TaskNode
+from magnus.extensions.nodes import FailNode, ParallelNode, StubNode, SuccessNode, TaskNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -23,7 +23,7 @@ class Success(BaseModel):
         return self.name
 
     def model_post_init(self, __context: Any) -> None:
-        self._node = SuccessNode.parse_from_config(self.model_dump(by_alias=True))
+        self._node = SuccessNode.parse_from_config(self.model_dump())
 
 
 class Fail(BaseModel):
@@ -37,7 +37,7 @@ class Fail(BaseModel):
         return self.name
 
     def model_post_init(self, __context: Any) -> None:
-        self._node = FailNode.parse_from_config(self.model_dump(by_alias=True))
+        self._node = FailNode.parse_from_config(self.model_dump())
 
 
 class Task(BaseModel):
@@ -47,7 +47,7 @@ class Task(BaseModel):
     next_node: str = Field(alias="next")
     terminate_with_success: bool = Field(default=False, exclude=True)
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # Need to be for command, would be validated later
 
     _node: TaskNode = PrivateAttr()
 
@@ -57,13 +57,13 @@ class Task(BaseModel):
         return self.name
 
     def model_post_init(self, __context: Any) -> None:
-        self._node = TaskNode.parse_from_config(config=self.model_dump(), internal_name="")
+        self._node = TaskNode.parse_from_config(config=self.model_dump())
 
 
 class Stub(BaseModel):
     name: str
-    next_node: Optional[str] = Field(default=None, alias="next")  # Need to check if termainate_with_success is needed
     terminate_with_success: bool = Field(default=False, exclude=True)
+    next_node: Optional[str] = Field(default="", alias="next", validate_default=True)
 
     model_config = ConfigDict(extra="allow")
 
@@ -74,26 +74,48 @@ class Stub(BaseModel):
     def internal_name(self) -> str:
         return self.name
 
-    @model_validator(mode="after")
-    def next_node_validator(self) -> "Stub":
-        if self.next_node:
-            return self
+    @field_validator("next_node", mode="before")
+    @classmethod
+    def next_node_validator(cls, next_node: Optional[str], info: FieldValidationInfo) -> str:
+        if next_node:
+            return next_node
 
-        if self.terminate_with_success:
-            self.next_node = "success"
-            return self
+        if info.data["terminate_with_success"]:
+            return "success"
 
         raise ValueError("Next node is required or can be terminated with success")
 
     def model_post_init(self, __context: Any) -> None:
-        print(self)
-        self._node = StubNode.parse_from_config(config=self.model_dump(), internal_name="")
+        self._node = StubNode.parse_from_config(self.model_dump())
 
 
 class Parallel(BaseModel):
     name: str
+    branches: Dict[str, "Pipeline"]
     next_node: str = Field(alias="next")
     terminate_with_success: bool = Field(default=False, exclude=True)
+
+    @computed_field  # type: ignore
+    @property
+    def internal_name(self) -> str:
+        return self.name
+
+    @field_validator("next_node", mode="before")
+    @classmethod
+    def next_node_validator(cls, next_node: Optional[str], info: FieldValidationInfo) -> str:
+        if next_node:
+            return next_node
+
+        if info.data["terminate_with_success"]:
+            return "success"
+
+        raise ValueError("Next node is required or can be terminated with success")
+
+    def model_post_init(self, __context: Any) -> None:
+        node_branches = {name: pipeline._dag for name, pipeline in self.branches.items()}
+        node_config = {**self.model_dump(), **{"branches": node_branches}}
+
+        self._node = ParallelNode.parse_from_config(config=node_config, internal_name=self.name)
 
 
 class Pipeline(BaseModel):
@@ -249,168 +271,3 @@ class Pipeline(BaseModel):
 #             # TODO: If the previous step succeeded, make the status of the run log step_success
 #             print(json.dumps(run_log.dict(), indent=4))
 #         return wrapped_f
-
-
-# class BaseStep(BaseModel):
-#     name: str
-#     next_node: str = ""
-#     on_failure: Optional[str] = None
-#     _node: Optional[BaseStep] = None
-#     _is_frozen: bool = False  # Once the graph is constructed, it is frozen for any changes.
-
-#     model_config = ConfigDict(extra="allow")
-
-#     def _construct_node(self):
-#         """Construct a node of the graph."""
-#         # The node will temporarily have invalid branch names
-#         step_config = self.dict(by_alias=True)
-#         step_config.pop("name")
-#         self._node = graph.create_node(name=self.name, step_config=step_config, internal_branch_name="")
-
-#     def set_on_failure(self, name: str):
-#         if self._is_frozen:
-#             raise Exception(f"Cannot modify a node: {self.name} after the graph has been constructed.")
-
-#         self.on_failure = name
-
-#     def set_next_node(self, next_node: str):
-#         if self._is_frozen:
-#             raise Exception(f"Cannot modify a node: {self.name} after the graph has been constructed.")
-
-#         self.next_node = next_node
-
-#     def go_to_success(self):
-#         if self._is_frozen:
-#             raise Exception(f"Cannot modify a node: {self.name} after the graph has been constructed.")
-
-#         self.next_node = "success"
-
-#     def go_to_failure(self):
-#         if self._is_frozen:
-#             raise Exception(f"Cannot modify a node: {self.name} after the graph has been constructed.")
-
-#         self.next_node = "fail"
-
-#     def _fix_internal_name(self):
-#         """Should be done after the parallel's are implemented."""
-#         pass
-
-
-# class Task(BaseStep):
-#     """A exposed magnus task to be used in SDK."""
-
-#     ref_type: str = Field("task", alias="type")
-
-
-# class Stub(BaseStep):
-#     """A exposed magnus as-is to be used in SDK."""
-
-#     ref_type: str = Field("stub", alias="type")
-
-
-# class Pipeline(BaseModel):
-#     # TODO: Allow for nodes other than Task, AsIs
-#     """An exposed magnus pipeline to be used in SDK."""
-
-#     steps: List[Union[Task, Stub]]
-#     additional_steps: List[Union[Task, Stub]] = []
-#     name: str = ""
-#     description: str = ""
-#     max_time: int = defaults.MAX_TIME
-#     internal_branch_name: str = ""
-#     _dag: Optional[graph.Graph] = None
-#     _start_at: Optional[Union[Task, Stub]] = None
-#     model_config = ConfigDict(extra="forbid")
-
-#     def __init__(self, **data):
-#         super().__init__(**data)
-#         self._construct()
-
-#     def _construct(self):
-#         """Construct a pipeline from a list of tasks."""
-
-#         prev_step = None
-#         messages: List[str] = []
-#         for step in self.steps:
-#             if not self._start_at:
-#                 # The first step is always the start_at
-#                 self._start_at = step
-
-#             # Freeze the step from any alterations
-#             step._is_frozen = True
-
-#             # Construct the previous named step of the graph
-#             if prev_step:
-#                 # Link to the next node only if it is asked to be done
-#                 if not prev_step.next_node:
-#                     prev_step.next_node = step.name
-
-#                 prev_step._construct_node()
-
-#                 messages.extend(prev_step._node.validate())
-
-#             prev_step = step
-
-#         # construct the last named step of the graph
-#         if not step.next_node:
-#             step.next_node = "success"
-#         step._construct_node()
-
-#         # Add the additional steps of the graph
-#         for step in self.additional_steps:
-#             if not step.next_node:
-#                 messages.append(f"The step {step.name} has no next node. Additional nodes should have a next node.")
-#             step._construct_node()
-#             messages.extend(step._node.validate())  # type: ignore
-
-#         if messages:
-#             raise Exception(", ".join(messages))
-
-#         graph_config = self.dict()
-#         graph_config["start_at"] = self._start_at.name  # type: ignore
-
-#         graph_config.pop("steps")
-#         graph_config.pop("additional_steps")
-
-#         self._dag = graph.Graph(**graph_config)
-#         self._dag.nodes = [step._node for step in self.steps]  # type: ignore
-
-#         self._dag.add_terminal_nodes()
-
-#         self._dag.check_graph()
-
-#     def execute(
-#         self,
-#         configuration_file: str = "",
-#         run_id: str = "",
-#         tag: str = "",
-#         parameters_file: str = "",
-#         log_level: str = defaults.LOG_LEVEL,
-#     ):
-#         """Execute the pipeline.
-
-#         This method should be beefed up as the use cases grow.
-#         """
-#         dictConfig(defaults.LOGGING_CONFIG)
-#         logger = logging.getLogger(defaults.LOGGER_NAME)
-#         logger.setLevel(log_level)
-
-#         run_id = utils.generate_run_id(run_id=run_id)
-#         context = entrypoints.prepare_configurations(
-#             configuration_file=configuration_file,
-#             run_id=run_id,
-#             tag=tag,
-#             parameters_file=parameters_file,
-#         )
-
-#         context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-#         utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
-
-#         context.dag = self._dag
-#         # Prepare for graph execution
-#         context.executor.prepare_for_graph_execution()
-
-#         logger.info("Executing the graph")
-#         context.executor.execute_graph(dag=context.dag)  # type: ignore
-
-#         context.executor.send_return_code()

@@ -298,31 +298,6 @@ def test_composite_node_execute_raises_exception(instantiable_composite_node):
         traversal_class.execute()
 
 
-def test_composite_node_get_branch_by_name_raises_exception_if_not_found(instantiable_composite_node):
-    traversal_class = nodes.CompositeNode(
-        name="test",
-        internal_name="test",
-        node_type="test",
-        next_node="next",
-    )
-    traversal_class._branches = {"test": {"key": "value"}}
-
-    with pytest.raises(Exception, match="does not exist"):
-        traversal_class._get_branch_by_name("I do not exist")
-
-
-def test_composite_node_get_branch_by_name_returns_if_found(instantiable_composite_node):
-    traversal_class = nodes.CompositeNode(
-        name="test",
-        internal_name="test",
-        node_type="test",
-        next_node="next",
-    )
-    traversal_class._branches = {"test": {"key": "value"}}
-
-    assert traversal_class._get_branch_by_name("test") == {"key": "value"}
-
-
 def test_terminal_node_get_on_failure_node_raises_exception(instantiable_terminal_node):
     node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
@@ -398,7 +373,7 @@ def test_terminal_node_parse_from_config_sends_the_config_for_instantiation(inst
         "internal_name": "test",
     }
 
-    node = nodes.TerminalNode.parse_from_config(config, internal_name="test")
+    node = nodes.TerminalNode.parse_from_config(config, parent_step="test")
     assert node.node_type == "dummy"
     assert node.name == "test"
     assert node.internal_name == "test"

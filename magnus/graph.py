@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional, cast
 
-from pydantic import BaseModel, Field, SerializeAsAny
+from pydantic import BaseModel, Field
 from stevedore import driver
 
 from magnus import defaults, exceptions
@@ -25,7 +25,7 @@ class Graph(BaseModel):
     description: Optional[str] = ""
     max_time: int = 86400
     internal_branch_name: str = ""
-    nodes: SerializeAsAny[Dict[str, "BaseNode"]] = Field(default_factory=dict, serialization_alias="steps")
+    nodes: Dict[str, "BaseNode"] = Field(default_factory=dict, serialization_alias="steps")
 
     def get_node_by_name(self, name: str) -> "BaseNode":
         """
@@ -371,7 +371,7 @@ def create_node(name: str, step_config: dict, internal_branch_name: Optional[str
             "internal_branch_name": internal_branch_name,
             **step_config,
         }
-        node = node_mgr.parse_from_config(config=invoke_kwds, internal_name=internal_name)
+        node = node_mgr.parse_from_config(config=invoke_kwds, parent_step=internal_name)
         return node
     except KeyError:
         msg = "The node configuration does not contain the required key 'type'."
