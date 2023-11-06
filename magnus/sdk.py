@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import logging
 from logging.config import dictConfig
-from typing import Any, Callable, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Union, cast
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, model_validator
-from rich import print
+from typing_extensions import Self
 
 from magnus import defaults, entrypoints, graph, utils
-from magnus.extensions.nodes import FailNode, ParallelNode, StubNode, SuccessNode
+from magnus.extensions.nodes import FailNode, ParallelNode, StubNode, SuccessNode, TaskNode
+from magnus.nodes import TraversalNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -16,46 +17,46 @@ StepType = Union["Stub", "Success", "Fail", "Parallel"]
 TraversalTypes = Union["Stub", "Parallel"]
 
 
-class Task(BaseModel):
-    name: str
-    command: Union[str, Callable]
-    command_type: str = Field(default="python")
-    next_node: str = Field(alias="next")
-    terminate_with_success: bool = Field(default=False, exclude=True)
-
-    model_config = ConfigDict(extra="allow")  # Need to be for command, would be validated later
-
-    _node: Optional[StubNode] = PrivateAttr()
-    _depends: Union[Task, Stub, "Parallel"] = PrivateAttr()
-    _next: str = PrivateAttr()
-    _name: str = PrivateAttr()
-
-
-class Stub(BaseModel):
+class BaseTraversal(BaseModel):
     name: str
     next_node: str = Field(default="", alias="next")
     terminate_with_success: bool = Field(default=False, exclude=True)
     terminate_with_fail: bool = Field(default=False, exclude=True)
     on_failure: str = Field(default="", alias="on_failure")
 
-    model_config = ConfigDict(extra="allow")
-
     @computed_field  # type: ignore
     @property
     def internal_name(self) -> str:
         return self.name
 
+    def __rshift__(self, other) -> None:
+        if self.next_node:
+            raise Exception(f"The node {self} already has a next node: {self.next_node}")
+        self.next_node = other.name
+
+    def __lshift__(self, other) -> None:
+        if other.next_node:
+            raise Exception(f"The {other} node already has a next node: {other.next_node}")
+        other.next_node = self.name
+
+    def depends_on(self, node: StepType) -> Self:
+        assert not isinstance(node, Success)
+        assert not isinstance(node, Fail)
+
+        if node.next_node:
+            raise Exception(f"The {node} node already has a next node: {node.next_node}")
+
+        node.next_node = self.name
+        return self
+
     @model_validator(mode="after")
-    def validate_terminations(self) -> "Stub":
+    def validate_terminations(self) -> Self:
         if self.terminate_with_fail and self.terminate_with_success:
             raise AssertionError("A node cannot terminate with success and failure")
 
         if self.terminate_with_fail or self.terminate_with_success:
             if self.next_node and self.next_node not in ["success", "fail"]:
                 raise AssertionError("A node being terminated cannot have a user defined next node")
-        else:
-            if self.next_node is None:
-                raise AssertionError("A node not being terminated must have a user defined next node")
 
         if self.terminate_with_fail:
             self.next_node = "fail"
@@ -65,19 +66,27 @@ class Stub(BaseModel):
 
         return self
 
-    def _get_next_node(self) -> Optional[str]:
-        return self.next_node
+    def create_node(self) -> TraversalNode:
+        if not self.next_node:
+            if not (self.terminate_with_fail or self.terminate_with_success):
+                raise AssertionError("A node not being terminated must have a user defined next node")
 
-    def create_node(self) -> StubNode:
         return StubNode.parse_from_config(self.model_dump())
 
 
-class Parallel(BaseModel):
-    name: str
-    next_node: str = Field(default="", alias="next")
-    terminate_with_success: bool = Field(default=False, exclude=True)
-    terminate_with_fail: bool = Field(default=False, exclude=True)
-    on_failure: str = Field(default="", alias="on_failure")
+class Task(BaseTraversal):
+    model_config = ConfigDict(extra="allow")  # Need to be for command, would be validated later
+
+    def create_node(self) -> TaskNode:
+        return cast(TaskNode, super().create_node())
+
+
+class Stub(BaseTraversal):
+    def create_node(self) -> StubNode:
+        return cast(StubNode, super().create_node())
+
+
+class Parallel(BaseTraversal):
     branches: Dict[str, "Pipeline"]
 
     depends: StepType = Field(default=None)
@@ -95,9 +104,6 @@ class Parallel(BaseModel):
         if self.terminate_with_fail or self.terminate_with_success:
             if self.next_node and self.next_node not in ["success", "fail"]:
                 raise AssertionError("A node being terminated cannot have a user defined next node")
-        else:
-            if self.next_node is None:
-                raise AssertionError("A node not being terminated must have a user defined next node")
 
         if self.terminate_with_fail:
             self.next_node = "fail"
@@ -113,6 +119,10 @@ class Parallel(BaseModel):
         return {name: cast(graph.Graph, pipeline._dag.model_copy()) for name, pipeline in self.branches.items()}
 
     def create_node(self) -> ParallelNode:
+        if not self.next_node:
+            if not (self.terminate_with_fail or self.terminate_with_success):
+                raise AssertionError("A node not being terminated must have a user defined next node")
+
         node = ParallelNode(name=self.name, branches=self.graph_branches, internal_name="", next_node=self.next_node)
 
         node.add_parent(self.name)
@@ -181,8 +191,6 @@ class Pipeline(BaseModel):
 
         if self.add_terminal_nodes:
             self._dag.add_terminal_nodes()
-
-        print(self._dag)
 
         self._dag.check_graph()
 
