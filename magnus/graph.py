@@ -371,7 +371,7 @@ def create_node(name: str, step_config: dict, internal_branch_name: Optional[str
             "internal_branch_name": internal_branch_name,
             **step_config,
         }
-        node = node_mgr.parse_from_config(config=invoke_kwds, parent_step=internal_name)
+        node = node_mgr.parse_from_config(config=invoke_kwds)
         return node
     except KeyError:
         msg = "The node configuration does not contain the required key 'type'."

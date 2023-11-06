@@ -343,7 +343,7 @@ class BaseNode(ABC, BaseModel):
 
     @classmethod
     @abstractmethod
-    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str]) -> "BaseNode":
+    def parse_from_config(cls, config: Dict[str, Any]) -> "BaseNode":
         """
         Parse the config from the user and create the corresponding node.
 
@@ -358,11 +358,33 @@ class BaseNode(ABC, BaseModel):
     @abstractmethod
     def add_parent(self, parent: str):
         """
-        attach the node to a parent.
-        Mostly used by the SDK to dynamically construct the graph as user defines it.
+        S1 = Task()
+        S2 = Task()
 
-        Args:
-            parent (str): The step to be added to.
+        pipeline1 = Pipeline(steps = [foo, bar])
+        The steps internal names are valid as of now.
+
+        Need not fix the internal names when the pipeline is created!!
+
+        P1 = Parallel(branches: {"B1": pipeline1})
+        P1's internal name is valid.
+
+        B1 name should be P1.B1
+        S1 and S2 names have to be changed to P1.B1.S1 and P1.B1.S2
+
+
+        M1 = Map(branch: P1)
+        M1's internal name is valid
+
+        P1's name should be: M1.branch.P1.B1
+        S1 and S2 should be: M1.branch.P1.B1.S1 and M1.branch.P1.B1.S2
+
+        When creating the pipeline, just add the branches without any parent.
+        After creation of the step, add_parent should be called with the name of the step.
+
+        For a composite node, the parent step should be the step name.
+        For nodes belonging to composite node, the parent step should be branch name.
+
         """
         ...
 
@@ -437,9 +459,6 @@ class ExecutableNode(TraversalNode):
     def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         raise Exception("This is an executable node and does not have a fan out")
 
-    def add_parent(self, parent: str):
-        self.internal_name = parent + "." + self.internal_name
-
 
 class CompositeNode(TraversalNode):
     def _get_catalog_settings(self) -> Dict[str, Any]:
@@ -490,8 +509,15 @@ class TerminalNode(BaseNode):
         raise exceptions.TerminalNodeError()
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str]) -> "TerminalNode":
+    def parse_from_config(cls, config: Dict[str, Any]) -> "TerminalNode":
         return cls(**config)
 
     def add_parent(self, parent: str):
+        if not parent:
+            return
+
+        if len(parent.split(".")) % 2 == 1:
+            raise ValueError("Terminal node should always be added to a branch, not step")
+
+        self.internal_branch_name = parent
         self.internal_name = parent + "." + self.internal_name

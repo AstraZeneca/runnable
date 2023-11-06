@@ -30,7 +30,7 @@ class TaskNode(ExecutableNode):
     node_type: str = Field(default="task", serialization_alias="type")
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str] = None) -> "TaskNode":
+    def parse_from_config(cls, config: Dict[str, Any]) -> "TaskNode":
         # separate task config from node config
         task_config = {k: v for k, v in config.items() if k not in TaskNode.model_fields.keys()}
         node_config = {k: v for k, v in config.items() if k in TaskNode.model_fields.keys()}
@@ -39,6 +39,15 @@ class TaskNode(ExecutableNode):
 
         executable = create_task(task_config)
         return cls(executable=executable, **node_config)
+
+    def add_parent(self, parent: str):
+        if not parent:
+            return
+
+        if len(parent.split(".")) % 2 == 1:
+            raise ValueError("Task node should always be added to a branch, not step")
+
+        self.internal_name = parent + "." + self.internal_name
 
     def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
@@ -80,8 +89,8 @@ class FailNode(TerminalNode):
     node_type: str = Field(default="fail", serialization_alias="type")
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str] = None) -> "FailNode":
-        return cast("FailNode", super().parse_from_config(config, parent_step))
+    def parse_from_config(cls, config: Dict[str, Any]) -> "FailNode":
+        return cast("FailNode", super().parse_from_config(config))
 
     def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
@@ -125,8 +134,8 @@ class SuccessNode(TerminalNode):
     node_type: str = Field(default="success", serialization_alias="type")
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str] = None) -> "SuccessNode":
-        return cast("SuccessNode", super().parse_from_config(config, parent_step))
+    def parse_from_config(cls, config: Dict[str, Any]) -> "SuccessNode":
+        return cast("SuccessNode", super().parse_from_config(config))
 
     def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """
@@ -181,18 +190,17 @@ class ParallelNode(CompositeNode):
     is_composite: bool = True
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str]) -> "ParallelNode":
-        if not parent_step:
-            raise Exception("A parallel node should have a parent step during parsing")
+    def parse_from_config(cls, config: Dict[str, Any]) -> "ParallelNode":
+        internal_name = cast(str, config.get("internal_name"))
 
         config_branches = config.pop("branches", {})
         branches = {}
         for branch_name, branch_config in config_branches.items():
             sub_graph = create_graph(
                 deepcopy(branch_config),
-                internal_branch_name=parent_step + "." + branch_name,
+                internal_branch_name=internal_name + "." + branch_name,
             )
-            branches[parent_step + "." + branch_name] = sub_graph
+            branches[internal_name + "." + branch_name] = sub_graph
 
         if not branches:
             raise Exception("A parallel node should have branches")
@@ -205,11 +213,20 @@ class ParallelNode(CompositeNode):
         raise Exception(f"Branch {branch_name} does not exist")
 
     def add_parent(self, parent: str):
-        self.internal_name = parent + "." + self.internal_name
+        if not parent:
+            raise ValueError("Add parent of composite nodes should be sent with parent step names")
 
-        for branch in self.branches.values():
+        if len(parent.split(".")) % 2 == 0:
+            raise ValueError("Parallel node should always be added to a step, not a branch")
+
+        self.internal_name = parent
+
+        for name, branch in self.branches.items():
+            branch.internal_branch_name = parent + "." + name
             for node in branch.nodes.values():
-                node.add_parent(parent)
+                node.add_parent(parent + "." + name)
+
+        self.branches = {branch.internal_branch_name: branch for _, branch in self.branches.items()}
 
     def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """
@@ -332,9 +349,8 @@ class MapNode(CompositeNode):
     is_composite: bool = True
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str]) -> "MapNode":
-        if not parent_step:
-            raise Exception("A map node should have an parent step during parsing")
+    def parse_from_config(cls, config: Dict[str, Any]) -> "MapNode":
+        internal_name = cast(str, config.get("internal_name"))
 
         config_branch = config.pop("branch", {})
         if not config_branch:
@@ -342,7 +358,7 @@ class MapNode(CompositeNode):
 
         branch = create_graph(
             deepcopy(config_branch),
-            internal_branch_name=parent_step + "." + defaults.MAP_PLACEHOLDER,
+            internal_branch_name=internal_name + "." + defaults.MAP_PLACEHOLDER,
         )
         return cls(branch=branch, **config)
 
@@ -526,9 +542,8 @@ class DagNode(CompositeNode):
         return value
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str] = None) -> "DagNode":
-        if not parent_step:
-            raise Exception("A dag node should have a parent step during parsing")
+    def parse_from_config(cls, config: Dict[str, Any]) -> "DagNode":
+        internal_name = cast(str, config.get("internal_name"))
 
         if "dag_definition" not in config:
             raise Exception(f"No dag definition found in {config}")
@@ -537,7 +552,7 @@ class DagNode(CompositeNode):
         if "dag" not in dag_config:
             raise Exception("No DAG found in dag_definition, please provide it in dag block")
 
-        branch = create_graph(dag_config["dag"], internal_branch_name=parent_step + "." + defaults.DAG_BRANCH_NAME)
+        branch = create_graph(dag_config["dag"], internal_branch_name=internal_name + "." + defaults.DAG_BRANCH_NAME)
 
         return cls(branch=branch, **config)
 
@@ -656,8 +671,18 @@ class StubNode(ExecutableNode):
     model_config = ConfigDict(extra="allow")
 
     @classmethod
-    def parse_from_config(cls, config: Dict[str, Any], parent_step: Optional[str] = None) -> "StubNode":
+    def parse_from_config(cls, config: Dict[str, Any]) -> "StubNode":
         return cls(**config)
+
+    def add_parent(self, parent: str):
+        if not parent:
+            return
+
+        if len(parent.split(".")) % 2 == 1:
+            raise ValueError("Task node should always be added to a branch, not step")
+
+        self.internal_branch_name = parent
+        self.internal_name = parent + "." + self.internal_name
 
     def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
         """

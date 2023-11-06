@@ -2,14 +2,121 @@ from __future__ import annotations
 
 import logging
 from logging.config import dictConfig
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
-from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, PrivateAttr, computed_field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, model_validator
+from rich import print
 
 from magnus import defaults, entrypoints, graph, utils
-from magnus.extensions.nodes import FailNode, ParallelNode, StubNode, SuccessNode, TaskNode
+from magnus.extensions.nodes import FailNode, ParallelNode, StubNode, SuccessNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
+
+StepType = Union["Stub", "Success", "Fail", "Parallel"]
+TraversalTypes = Union["Stub", "Parallel"]
+
+
+class Task(BaseModel):
+    name: str
+    command: Union[str, Callable]
+    command_type: str = Field(default="python")
+    next_node: str = Field(alias="next")
+    terminate_with_success: bool = Field(default=False, exclude=True)
+
+    model_config = ConfigDict(extra="allow")  # Need to be for command, would be validated later
+
+    _node: Optional[StubNode] = PrivateAttr()
+    _depends: Union[Task, Stub, "Parallel"] = PrivateAttr()
+    _next: str = PrivateAttr()
+    _name: str = PrivateAttr()
+
+
+class Stub(BaseModel):
+    name: str
+    next_node: str = Field(default="", alias="next")
+    terminate_with_success: bool = Field(default=False, exclude=True)
+    terminate_with_fail: bool = Field(default=False, exclude=True)
+    on_failure: str = Field(default="", alias="on_failure")
+
+    model_config = ConfigDict(extra="allow")
+
+    @computed_field  # type: ignore
+    @property
+    def internal_name(self) -> str:
+        return self.name
+
+    @model_validator(mode="after")
+    def validate_terminations(self) -> "Stub":
+        if self.terminate_with_fail and self.terminate_with_success:
+            raise AssertionError("A node cannot terminate with success and failure")
+
+        if self.terminate_with_fail or self.terminate_with_success:
+            if self.next_node and self.next_node not in ["success", "fail"]:
+                raise AssertionError("A node being terminated cannot have a user defined next node")
+        else:
+            if self.next_node is None:
+                raise AssertionError("A node not being terminated must have a user defined next node")
+
+        if self.terminate_with_fail:
+            self.next_node = "fail"
+
+        if self.terminate_with_success:
+            self.next_node = "success"
+
+        return self
+
+    def _get_next_node(self) -> Optional[str]:
+        return self.next_node
+
+    def create_node(self) -> StubNode:
+        return StubNode.parse_from_config(self.model_dump())
+
+
+class Parallel(BaseModel):
+    name: str
+    next_node: str = Field(default="", alias="next")
+    terminate_with_success: bool = Field(default=False, exclude=True)
+    terminate_with_fail: bool = Field(default=False, exclude=True)
+    on_failure: str = Field(default="", alias="on_failure")
+    branches: Dict[str, "Pipeline"]
+
+    depends: StepType = Field(default=None)
+
+    @computed_field  # type: ignore
+    @property
+    def internal_name(self) -> str:
+        return self.name
+
+    @model_validator(mode="after")
+    def validate_terminations(self) -> "Parallel":
+        if self.terminate_with_fail and self.terminate_with_success:
+            raise AssertionError("A node cannot terminate with success and failure")
+
+        if self.terminate_with_fail or self.terminate_with_success:
+            if self.next_node and self.next_node not in ["success", "fail"]:
+                raise AssertionError("A node being terminated cannot have a user defined next node")
+        else:
+            if self.next_node is None:
+                raise AssertionError("A node not being terminated must have a user defined next node")
+
+        if self.terminate_with_fail:
+            self.next_node = "fail"
+
+        if self.terminate_with_success:
+            self.next_node = "success"
+
+        return self
+
+    @computed_field
+    @property
+    def graph_branches(self) -> Dict[str, graph.Graph]:
+        return {name: cast(graph.Graph, pipeline._dag.model_copy()) for name, pipeline in self.branches.items()}
+
+    def create_node(self) -> ParallelNode:
+        node = ParallelNode(name=self.name, branches=self.graph_branches, internal_name="", next_node=self.next_node)
+
+        node.add_parent(self.name)
+        return node
 
 
 class Success(BaseModel):
@@ -22,8 +129,8 @@ class Success(BaseModel):
     def internal_name(self) -> str:
         return self.name
 
-    def model_post_init(self, __context: Any) -> None:
-        self._node = SuccessNode.parse_from_config(self.model_dump())
+    def create_node(self) -> SuccessNode:
+        return SuccessNode.parse_from_config(self.model_dump())
 
 
 class Fail(BaseModel):
@@ -36,117 +143,46 @@ class Fail(BaseModel):
     def internal_name(self) -> str:
         return self.name
 
-    def model_post_init(self, __context: Any) -> None:
-        self._node = FailNode.parse_from_config(self.model_dump())
-
-
-class Task(BaseModel):
-    name: str
-    command: Union[str, Callable]
-    command_type: str = Field(default="python")
-    next_node: str = Field(alias="next")
-    terminate_with_success: bool = Field(default=False, exclude=True)
-
-    model_config = ConfigDict(extra="allow")  # Need to be for command, would be validated later
-
-    _node: TaskNode = PrivateAttr()
-
-    @computed_field  # type: ignore
-    @property
-    def internal_name(self) -> str:
-        return self.name
-
-    def model_post_init(self, __context: Any) -> None:
-        self._node = TaskNode.parse_from_config(config=self.model_dump())
-
-
-class Stub(BaseModel):
-    name: str
-    terminate_with_success: bool = Field(default=False, exclude=True)
-    next_node: Optional[str] = Field(default="", alias="next", validate_default=True)
-
-    model_config = ConfigDict(extra="allow")
-
-    _node: StubNode = PrivateAttr()
-
-    @computed_field  # type: ignore
-    @property
-    def internal_name(self) -> str:
-        return self.name
-
-    @field_validator("next_node", mode="before")
-    @classmethod
-    def next_node_validator(cls, next_node: Optional[str], info: FieldValidationInfo) -> str:
-        if next_node:
-            return next_node
-
-        if info.data["terminate_with_success"]:
-            return "success"
-
-        raise ValueError("Next node is required or can be terminated with success")
-
-    def model_post_init(self, __context: Any) -> None:
-        self._node = StubNode.parse_from_config(self.model_dump())
-
-
-class Parallel(BaseModel):
-    name: str
-    branches: Dict[str, "Pipeline"]
-    next_node: str = Field(alias="next")
-    terminate_with_success: bool = Field(default=False, exclude=True)
-
-    @computed_field  # type: ignore
-    @property
-    def internal_name(self) -> str:
-        return self.name
-
-    @field_validator("next_node", mode="before")
-    @classmethod
-    def next_node_validator(cls, next_node: Optional[str], info: FieldValidationInfo) -> str:
-        if next_node:
-            return next_node
-
-        if info.data["terminate_with_success"]:
-            return "success"
-
-        raise ValueError("Next node is required or can be terminated with success")
-
-    def model_post_init(self, __context: Any) -> None:
-        node_branches = {name: pipeline._dag for name, pipeline in self.branches.items()}
-        node_config = {**self.model_dump(), **{"branches": node_branches}}
-
-        self._node = ParallelNode.parse_from_config(config=node_config, internal_name=self.name)
+    def create_node(self) -> FailNode:
+        return FailNode.parse_from_config(self.model_dump())
 
 
 class Pipeline(BaseModel):
-    # TODO: Allow for nodes other than Task, AsIs
     """An exposed magnus pipeline to be used in SDK."""
 
-    steps: List[Union[Task, Stub]]
-    start_at: str  # TODO would be nicer to refer to nodes here
+    steps: List[StepType]
+    start_at: TraversalTypes
     name: str = ""
     description: str = ""
     max_time: int = defaults.MAX_TIME
-    add_terminal_nodes: bool = True
+    add_terminal_nodes: bool = True  # Adds "success" and "fail" nodes
 
     internal_branch_name: str = ""
 
-    _dag: Optional[graph.Graph] = PrivateAttr()
+    _dag: graph.Graph = PrivateAttr()
     model_config = ConfigDict(extra="forbid")
 
     def model_post_init(self, __context: Any) -> None:
+        self.steps = [model.model_copy(deep=True) for model in self.steps]
+
         self._dag = graph.Graph(
-            start_at=self.start_at,
+            start_at=self.start_at.name,
             description=self.description,
             max_time=self.max_time,
             internal_branch_name=self.internal_branch_name,
         )
 
         for step in self.steps:
-            self._dag.add_node(step._node)
+            if step.name == self.start_at.name:
+                if isinstance(step, Success) or isinstance(step, Fail):
+                    raise Exception("A success or fail node cannot be the start_at of the graph")
+                assert step.next_node
+            self._dag.add_node(step.create_node())
 
         if self.add_terminal_nodes:
             self._dag.add_terminal_nodes()
+
+        print(self._dag)
 
         self._dag.check_graph()
 
