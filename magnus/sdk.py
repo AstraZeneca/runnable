@@ -75,6 +75,7 @@ class BaseTraversal(BaseModel):
 
 
 class Task(BaseTraversal):
+    # TODO: Add a Catalog object
     model_config = ConfigDict(extra="allow")  # Need to be for command, would be validated later
 
     def create_node(self) -> TaskNode:
@@ -88,8 +89,6 @@ class Stub(BaseTraversal):
 
 class Parallel(BaseTraversal):
     branches: Dict[str, "Pipeline"]
-
-    depends: StepType = Field(default=None)
 
     @computed_field  # type: ignore
     @property
@@ -113,10 +112,10 @@ class Parallel(BaseTraversal):
 
         return self
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def graph_branches(self) -> Dict[str, graph.Graph]:
-        return {name: cast(graph.Graph, pipeline._dag.model_copy()) for name, pipeline in self.branches.items()}
+        return {name: pipeline._dag.model_copy() for name, pipeline in self.branches.items()}
 
     def create_node(self) -> ParallelNode:
         if not self.next_node:
@@ -226,7 +225,7 @@ class Pipeline(BaseModel):
         run_context.executor.prepare_for_graph_execution()
 
         logger.info("Executing the graph")
-        run_context.executor.execute_graph(dag=run_context.dag)  # type: ignore
+        run_context.executor.execute_graph(dag=run_context.dag)
 
         return run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id)
 
