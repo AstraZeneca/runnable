@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from logging.config import dictConfig
-from typing import Any, Dict, List, Union, cast
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union, cast
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, model_validator
 from typing_extensions import Self
@@ -15,6 +16,12 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 
 StepType = Union["Stub", "Success", "Fail", "Parallel"]
 TraversalTypes = Union["Stub", "Parallel"]
+
+
+class Catalog(BaseModel):
+    compute_folder_name: str = Field(default="data", alias="compute_folder_name")
+    get: List[Union[str, Path]] = Field(default=["*"], alias="get")
+    put: List[Union[str, Path]] = Field(default=["*"], alias="put")
 
 
 class BaseTraversal(BaseModel):
@@ -71,46 +78,27 @@ class BaseTraversal(BaseModel):
             if not (self.terminate_with_fail or self.terminate_with_success):
                 raise AssertionError("A node not being terminated must have a user defined next node")
 
-        return StubNode.parse_from_config(self.model_dump())
+        return StubNode.parse_from_config(self.model_dump(exclude_none=True))
 
 
 class Task(BaseTraversal):
-    # TODO: Add a Catalog object
     model_config = ConfigDict(extra="allow")  # Need to be for command, would be validated later
+    catalog: Optional[Catalog] = Field(default=None, alias="catalog")
 
     def create_node(self) -> TaskNode:
         return cast(TaskNode, super().create_node())
 
 
 class Stub(BaseTraversal):
+    model_config = ConfigDict(extra="allow")
+    catalog: Optional[Catalog] = Field(default=None, alias="catalog")
+
     def create_node(self) -> StubNode:
         return cast(StubNode, super().create_node())
 
 
 class Parallel(BaseTraversal):
     branches: Dict[str, "Pipeline"]
-
-    @computed_field  # type: ignore
-    @property
-    def internal_name(self) -> str:
-        return self.name
-
-    @model_validator(mode="after")
-    def validate_terminations(self) -> "Parallel":
-        if self.terminate_with_fail and self.terminate_with_success:
-            raise AssertionError("A node cannot terminate with success and failure")
-
-        if self.terminate_with_fail or self.terminate_with_success:
-            if self.next_node and self.next_node not in ["success", "fail"]:
-                raise AssertionError("A node being terminated cannot have a user defined next node")
-
-        if self.terminate_with_fail:
-            self.next_node = "fail"
-
-        if self.terminate_with_success:
-            self.next_node = "success"
-
-        return self
 
     @computed_field  # type: ignore
     @property
@@ -131,8 +119,6 @@ class Parallel(BaseTraversal):
 class Success(BaseModel):
     name: str = "success"
 
-    _node: SuccessNode = PrivateAttr()
-
     @computed_field  # type: ignore
     @property
     def internal_name(self) -> str:
@@ -144,8 +130,6 @@ class Success(BaseModel):
 
 class Fail(BaseModel):
     name: str = "fail"
-
-    _node: FailNode = PrivateAttr()
 
     @computed_field  # type: ignore
     @property
@@ -159,7 +143,7 @@ class Fail(BaseModel):
 class Pipeline(BaseModel):
     """An exposed magnus pipeline to be used in SDK."""
 
-    steps: List[StepType]
+    steps: List[StepType]  # TODO: Add map and dag nodes
     start_at: TraversalTypes
     name: str = ""
     description: str = ""

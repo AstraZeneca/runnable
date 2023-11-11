@@ -362,6 +362,7 @@ def create_node(name: str, step_config: dict, internal_branch_name: Optional[str
         node_mgr: BaseNode = driver.DriverManager(namespace="nodes", name=node_type).driver
 
         next_node = step_config.pop("next", None)
+
         if next_node:
             step_config["next_node"] = next_node
 

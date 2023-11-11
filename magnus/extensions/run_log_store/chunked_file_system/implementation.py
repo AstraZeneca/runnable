@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 from string import Template
-from typing import List, Optional, Union
+from typing import Optional, Sequence, Union
 
 from magnus import defaults, utils
 from magnus.extensions.run_log_store.generic_chunked import ChunkedRunLogStore
@@ -21,7 +21,7 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
     service_name: str = "chunked-fs"
     log_folder: str = defaults.LOG_LOCATION_FOLDER
 
-    def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[List[T], T]]:
+    def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[Sequence[T], T]]:
         """
         Get contents of files matching the pattern name*
 
@@ -88,7 +88,7 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
         with open(self.safe_suffix_json(name), "w") as fw:
             json.dump(contents, fw, ensure_ascii=True, indent=4)
 
-    def _retrieve(self, name: Path) -> dict:
+    def _retrieve(self, name: Union[str, Path]) -> dict:
         """
         Does the job of retrieving from the folder.
 

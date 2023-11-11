@@ -4,7 +4,7 @@ from abc import abstractmethod
 from enum import Enum
 from pathlib import Path
 from string import Template
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 from magnus import defaults, exceptions
 from magnus.datastore import BaseRunLogStore, BranchLog, RunLog, StepLog
@@ -74,7 +74,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         raise Exception("Unexpected log type")
 
     @abstractmethod
-    def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[List[T], T]]:
+    def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[Sequence[T], T]]:
         """
         Get contents of persistence layer matching the pattern name*
 
@@ -207,7 +207,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
         logs: Dict[str, Union[StepLog, BranchLog]] = {}
 
-        for match in matches:  # type: ignore
+        for match in matches:
             model = self.ModelTypes[log_type.name].value
             log_model = model(**self._retrieve(match))
             logs[log_model.internal_name] = log_model  # type: ignore
@@ -490,7 +490,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         self.store(
             run_id=run_id,
             log_type=self.LogTypes.STEP_LOG,
-            contents=step_log.dict(),
+            contents=step_log.model_dump(),
             name=step_log.internal_name,
         )
 

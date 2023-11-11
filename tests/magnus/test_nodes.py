@@ -373,7 +373,7 @@ def test_terminal_node_parse_from_config_sends_the_config_for_instantiation(inst
         "internal_name": "test",
     }
 
-    node = nodes.TerminalNode.parse_from_config(config, parent_step="test")
+    node = nodes.TerminalNode.parse_from_config(config)
     assert node.node_type == "dummy"
     assert node.name == "test"
     assert node.internal_name == "test"

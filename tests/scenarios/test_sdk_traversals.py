@@ -1,8 +1,10 @@
+import pytest
 from rich import print
 
 from magnus import Stub, Pipeline, Parallel
 
 
+@pytest.mark.no_cover
 def test_sequence_next_node():
     first = Stub(name="first", next="second")
     second = Stub(name="second", terminate_with_success=True)
@@ -14,6 +16,7 @@ def test_sequence_next_node():
     assert len(run_log.steps) == 3
 
 
+@pytest.mark.no_cover
 def test_sequence_depends_on():
     first = Stub(name="first")
     second = Stub(name="second", terminate_with_success=True).depends_on(first)
@@ -25,6 +28,7 @@ def test_sequence_depends_on():
     assert len(run_log.steps) == 3
 
 
+@pytest.mark.no_cover
 def test_sequence_rshift():
     first = Stub(name="first")
     second = Stub(name="second", terminate_with_success=True)
@@ -38,6 +42,7 @@ def test_sequence_rshift():
     assert len(run_log.steps) == 3
 
 
+@pytest.mark.no_cover
 def test_sequence_lshift():
     first = Stub(name="first")
     second = Stub(name="second", terminate_with_success=True)
@@ -51,6 +56,7 @@ def test_sequence_lshift():
     assert len(run_log.steps) == 3
 
 
+@pytest.mark.no_cover
 def test_parallel():
     first = Stub(name="first")
     second = Stub(name="second").depends_on(first)

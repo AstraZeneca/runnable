@@ -11,9 +11,9 @@ logger = logging.getLogger(defaults.NAME)
 
 try:
     import mlflow
-except ImportError as _e:
+except ImportError:
     msg = "You need to install mlflow to use MLFlowExperimentTracker. " "Try `pip install mlflow-skinny`."
-    raise Exception(msg) from _e
+    # raise Exception(msg) from _e
 
 
 class MLFlowExperimentTracker(BaseExperimentTracker):

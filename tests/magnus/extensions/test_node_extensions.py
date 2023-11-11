@@ -24,7 +24,7 @@ def test_task_node_parse_from_config_seperates_task_from_node_confifg(mocker, mo
         "next_node": "next_node",
     }
     monkeypatch.setattr(nodes, "create_task", mock_create_task)
-    task_node = nodes.TaskNode.parse_from_config({**node_config, **command_config}, parent_step="test")
+    task_node = nodes.TaskNode.parse_from_config({**node_config, **command_config})
 
     command_config["node_name"] = "test"
 
@@ -161,7 +161,7 @@ def test_parallel_node_parse_from_config_creates_sub_graph(mocker, monkeypatch):
     }
     monkeypatch.setattr(nodes, "create_graph", mock_create_graph)
 
-    parallel_node = nodes.ParallelNode.parse_from_config(config=config, parent_step="parent")
+    parallel_node = nodes.ParallelNode.parse_from_config(config=config)
     assert mock_create_graph.call_count == 2
     assert len(parallel_node.branches.items()) == 2
 
@@ -178,13 +178,13 @@ def test_parallel_node_parse_from_config_raises_exception_if_no_branches(mocker,
         "internal_name": "parent",
     }
     with pytest.raises(Exception, match="A parallel node should have branches"):
-        _ = nodes.ParallelNode.parse_from_config(config=config, parent_step="parent")
+        _ = nodes.ParallelNode.parse_from_config(config=config)
 
 
 def test_map_node_parse_from_config_raises_exception_if_no_branch(mocker, monkeypatch):
     config = {}
     with pytest.raises(Exception, match="A map node should have a branch"):
-        _ = nodes.MapNode.parse_from_config(config=config, parent_step="parent")
+        _ = nodes.MapNode.parse_from_config(config=config)
 
 
 def test_map_node_parse_from_config_calls_create_graph(mocker, monkeypatch):
@@ -200,7 +200,7 @@ def test_map_node_parse_from_config_calls_create_graph(mocker, monkeypatch):
         "iterate_as": "you",
     }
     monkeypatch.setattr(nodes, "create_graph", mock_create_graph)
-    map_node = nodes.MapNode.parse_from_config(config=config, parent_step="parent")
+    map_node = nodes.MapNode.parse_from_config(config=config)
 
     assert mock_create_graph.call_count == 1
     mock_create_graph.assert_called_once_with(
@@ -223,7 +223,7 @@ def test_map_node_get_branch_by_name_returns_branch(mocker, monkeypatch):
         "iterate_as": "you",
     }
     monkeypatch.setattr(nodes, "create_graph", mock_create_graph)
-    map_node = nodes.MapNode.parse_from_config(config=config, parent_step="parent")
+    map_node = nodes.MapNode.parse_from_config(config=config)
 
     assert map_node._get_branch_by_name("test") == graph
 
@@ -247,16 +247,16 @@ def test_dag_node_parse_config_raises_exception_if_dag_definition_is_not_part_of
     config = {}
 
     with pytest.raises(Exception, match="No dag definition found in"):
-        _ = nodes.DagNode.parse_from_config(config=config, parent_step="parent")
+        _ = nodes.DagNode.parse_from_config(config=config)
 
 
-def test_dag_node_parse_config_raises_exception_if_dag_definition_is_not_part_of_config(mocker, monkeypatch):
+def test_dag_node_parse_config_raises_exception_if_dag_definition_is_not_yaml(mocker, monkeypatch):
     monkeypatch.setattr(nodes.utils, "load_yaml", mocker.MagicMock(return_value={}))
 
     config = {"dag_definition": "notanyaml"}
 
     with pytest.raises(Exception, match="please provide it in dag block"):
-        _ = nodes.DagNode.parse_from_config(config=config, parent_step="parent")
+        _ = nodes.DagNode.parse_from_config(config=config)
 
 
 def test_parse_config_calls_create_graph(mocker, monkeypatch):
@@ -273,7 +273,7 @@ def test_parse_config_calls_create_graph(mocker, monkeypatch):
         "dag_definition": "a.yaml",
     }
 
-    dag_node = nodes.DagNode.parse_from_config(config=config, parent_step="parent")
+    dag_node = nodes.DagNode.parse_from_config(config=config)
 
     assert mock_create_graph.call_count == 1
     assert dag_node.branch == graph
@@ -293,7 +293,7 @@ def test_dag_node_get_branch_by_name_returns_branch(mocker, monkeypatch):
         "dag_definition": "a.yaml",
     }
 
-    dag_node = nodes.DagNode.parse_from_config(config=config, parent_step="parent")
+    dag_node = nodes.DagNode.parse_from_config(config=config)
 
     assert dag_node._get_branch_by_name(f"parent.{defaults.DAG_BRANCH_NAME}") == graph
 
@@ -312,7 +312,7 @@ def test_dag_node_get_branch_by_name_raises_exception_if_incorrect_name(mocker, 
         "dag_definition": "a.yaml",
     }
 
-    dag_node = nodes.DagNode.parse_from_config(config=config, parent_step="parent")
+    dag_node = nodes.DagNode.parse_from_config(config=config)
 
     with pytest.raises(Exception, match="only allows a branch of name"):
         assert dag_node._get_branch_by_name(f"parent") == graph
@@ -327,7 +327,7 @@ def test__as_is_node_takes_anything_as_input(mocker, monkeypatch):
         "wheres": "them",
     }
 
-    _ = nodes.StubNode.parse_from_config(config=config, parent_step="test")
+    _ = nodes.StubNode.parse_from_config(config=config)
 
 
 def test_as_is_node_execute_returns_success(mocker, monkeypatch):

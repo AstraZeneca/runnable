@@ -1,0 +1,52 @@
+dag:
+  description: |
+    This is a simple pipeline that does 2 parallel branches at step 2.
+    Note that the branches schema is same as dag schema.
+
+    All the steps are mocked and they will just pass through.
+    Use this pattern to define the skeleton of your pipeline and flesh out the steps later.
+
+    You can run this pipeline by:
+       magnus execute -f example/parallel.yaml
+  start_at: step 1
+  steps:
+    step 1:
+      type: stub
+      next: step 2
+    step 2:
+      type: parallel
+      next: step 3
+      branches:
+        branch_a:
+          start_at: step 1
+          steps:
+            step 1:
+              type: stub
+              next: step 2
+            step 2:
+              type: stub
+              next: success
+            success:
+              type: success
+            fail:
+              type: fail
+        branch_b:
+          start_at: step 1
+          steps:
+            step 1:
+              type: stub
+              next: step 2
+            step 2:
+              type: stub
+              next: success
+            success:
+              type: success
+            fail:
+              type: fail
+    step 3:
+      type: stub
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail
