@@ -1,0 +1,24 @@
+dag:
+  description: |
+    This is a stubbed pipeline that does 4 steps in sequence.
+    All the steps are mocked and they will just pass through.
+    Use this pattern to define the skeleton of your pipeline and flesh out the steps later.
+
+  start_at: Acquire data
+  steps:
+    Acquire data:
+      type: stub
+      next: Prepare data
+    Prepare data:
+      type: stub
+      next: Extract features
+    Extract features:
+      type: stub
+      next: Model
+    Model:
+      type: stub
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail

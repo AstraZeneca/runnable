@@ -23,6 +23,8 @@ from magnus.sdk import Stub, Pipeline, Task, Parallel  # noqa
 
 # TODO: Think of model registry as a central place to store models.
 # TODO: Implement Sagemaker pipelines as a executor.
-# TODO: Think of model deployments
+# TODO: Enable a noop mode
+# Enable pydantic as return and input argument types
+# May be dynamic generation of models is the way for input types.
 
 # TODO: Think of way of generating dag hash without executor configuration

@@ -32,15 +32,16 @@ machine learning engineers. It provides:
 
 ## What does **thin** mean?
 
-- We really have no say in what happens within your notebooks or python functions or containers.
+- We have no opinion of how your structure your project.
+- We really have no say in what happens within your notebooks or python functions or containers. Most often you
+    do not even have to ```import magnus``` in your code.
 - We do not dictate how the infrastructure should be configured as long as it satisfies some *basic* criteria.
     - The underlying infrastructure should support container execution and an orchestration framework.
     - Some way to handle secrets either via environment variables or secrets manager.
     - A blob storage or some way to store your intermediate artifacts.
     - A database or blob storage to store logs.
-- We have no opinion of how your structure your project.
 - We do not creep into your CI/CD practices but it is your responsibility to provide the same environment where ever
-the execution happens. This is usually via git, virtual environment manager and docker.
+    the execution happens. This is usually via git, virtual environment manager and docker.
 - We transpile to the orchestration framework that is used by your teams to do the heavy lifting.
 
 ## What does it do?
@@ -66,8 +67,8 @@ Magnus provides patterns typically used in production environments even in the d
 
 ## Extensions
 
-All the services of magnus are extendable by design, please refer to
-[magnus extensions](https://github.com/AstraZeneca/magnus-extensions)
+All the services of magnus are extendable by design. Please refer to corresponding services to understand how to
+extend them to match your needs.
 
 ## Installation
 

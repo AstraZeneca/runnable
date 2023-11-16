@@ -6,7 +6,7 @@ from magnus import exceptions
 
 
 def list_examples():
-    example_dir = "example"
+    example_dir = "examples"
 
     for example in Path(example_dir).iterdir():
         if not example.name.endswith(".yaml"):
@@ -23,4 +23,6 @@ def test_yaml_examples(example):
         execute(configuration_file="", pipeline_file=str(example.resolve()))
     except exceptions.ExecutionFailedError:
         # There are some examples where the pipeline fails intentionally
+        if not "fail" in str(example):
+            raise
         pass

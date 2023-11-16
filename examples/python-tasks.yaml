@@ -13,12 +13,12 @@ dag:
     step 1:
       type: task
       command_type: python
-      command: example.functions.return_parameter
+      command: examples.functions.return_parameter
       next: step 2
     step 2:
       type: task
       command_type: python
-      command: example.functions.get_parameter
+      command: examples.functions.get_parameter
       next: success
     success:
       type: success

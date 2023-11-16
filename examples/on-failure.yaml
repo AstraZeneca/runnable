@@ -8,6 +8,8 @@ dag:
     In this example: step 1 fails and moves to step 3 skipping step 2. The pipeline status
     is considered to be success.
 
+    step 1 X >> step 3 >> success
+
     You can run this pipeline by magnus execute -f example/on-failure.yaml
   start_at: step 1
   steps:

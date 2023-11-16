@@ -29,7 +29,7 @@ def test_file_system_run_log_store_write_to_folder_makes_dir_if_not_present(mock
 
     mock_run_log = mocker.MagicMock()
     mock_dict = mocker.MagicMock()
-    mock_run_log.dict = mock_dict
+    mock_run_log.model_dump = mock_dict
 
     run_log_store = FileSystemRunLogstore()
     run_log_store.write_to_folder(run_log=mock_run_log)

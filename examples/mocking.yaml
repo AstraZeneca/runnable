@@ -1,6 +1,9 @@
 dag:
   description: |
     This is a simple pipeline that does 3 steps in sequence.
+
+    step 1 >> step 2 >> step 3 >> success
+
     All the steps are mocked and they will just pass through.
     Use this pattern to define the skeleton of your pipeline and flesh out the steps later.
 
