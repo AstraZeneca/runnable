@@ -1,0 +1,14 @@
+executor:
+  type: local # (1)
+
+run_log_store:
+  type: buffered # (2)
+
+catalog:
+  type: do-nothing # (3)
+
+secrets:
+  type: do-nothing # (4)
+
+experiment_tracker: # (5)
+  type: do-nothing

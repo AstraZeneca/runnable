@@ -90,6 +90,7 @@ plugins:
 nav:
     - "Magnus":
           - "Introduction": "index.md"
+          - "Example": "example.md"
           - "Why magnus": "getting_started/why-magnus.md"
     - "Getting started":
           - "getting_started/installation.md"

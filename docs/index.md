@@ -16,7 +16,7 @@ maintain, test, reproduce or run at scale.
 
 We build __**Magnus**__ to separate those concerns and create a clear boundary of the personas.
 
-## Design principles:
+## Design principles
 
 `Code should not be mixed with implementation details of underlying platform.`
 
@@ -66,56 +66,5 @@ of the provider, it exposes a consistent interface to those services, **this hol
   <figcaption></figcaption>
 </figure>
 
-The scope of magnus is intentionally limited. It does not boast of end to end development. It acts only as a companion
-during the development phase of data science projects.
-
-## Example
-
-A contrived example of data science workflow without any implementation.
-
-!!! info annotate inline "Simple pipeline"
-
-    In this extremely reduced example, we acquire data from different sources, clean it and shape it for analysis.
-    Features are then engineered from the clean data to run data science modelling.
-
-    We are intentionally hiding highly nuanced parts (1) of the pipeline to give you a flavor, please refer to the
-    docs for more details.
-
-1. Tolerating failures, data passing between steps, experiment tracking, logging and much more.
-
-``` mermaid
-%%{ init: { 'flowchart': { 'curve': 'linear' } } }%%
-flowchart
-    direction LR
-    step1:::green
-    step1([Acquire data]) --> step2:::green
-    step2([Prepare data]) --> step3:::green
-    step3([Extract features]) --> step4:::green
-    step4([Model]) --> suc([success]):::green
-
-    classDef green stroke:#0f0
-
-```
-
-
-This pipeline can be represented in **magnus** as below:
-
-
-=== "YAML"
-
-    ``` yaml
-    --8<-- "examples/contrived.yaml"
-    ```
-
-=== "Python"
-
-    ``` python
-    --8<-- "examples/contrived.py"
-    ```
-
-    1. You can specify dependencies by using the ```next``` while creating the node or defer it for later.
-    2. ```terminate_with_success``` indicates the pipeline to be successfully run.
-    3. Alternative ways to define dependencies, ```>>>```, ```<<<```, ```depends_on```. Choose the style that you
-    prefer.
-    4. ```add_terminal_nodes``` adds success and end states to the pipeline.
-    5. A very rich run log that captures different properties of the run for maximum reproducibility.
+The scope of magnus is intentionally limited. It does not boast of end to end development. The heavy lifting is always
+done by the providers.

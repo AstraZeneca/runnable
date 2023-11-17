@@ -17,7 +17,7 @@ def workflow():
     )  # (4)
 
     run_log = pipeline.execute()  # (5)
-    print(run_log)  # (6)
+    print(run_log)
 
 
 if __name__ == "__main__":
