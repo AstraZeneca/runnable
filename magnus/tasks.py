@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, field_va
 from stevedore import driver
 
 import magnus.context as context
-from magnus import defaults, utils
+from magnus import defaults, parameters, utils
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
@@ -59,7 +59,7 @@ class BaseTaskType(BaseModel):
         Returns:
             dict: The parameters dictionary in-scope for the task execution
         """
-        return utils.get_user_set_parameters(remove=False)
+        return parameters.get_user_set_parameters(remove=False)
 
     def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
         """The function to execute the command.
@@ -86,7 +86,7 @@ class BaseTaskType(BaseModel):
 
         if not isinstance(parameters, dict):
             msg = (
-                f"call to function {self.command} returns of type: {type(parameters)}. "
+                f"call to function returns of type: {type(parameters)}. "
                 "Only dictionaries are supported as return values for functions as part part of magnus pipeline."
             )
             logger.warn(msg)

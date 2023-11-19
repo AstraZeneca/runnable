@@ -21,7 +21,7 @@ def test_base_task_execute_command_raises_not_implemented_error(configuration):
 def test_base_task_get_parameters_gets_from_utils(mocker, monkeypatch, configuration):
     mock_get_user_set_parameters = mocker.MagicMock(configuration)
 
-    monkeypatch.setattr(tasks.utils, "get_user_set_parameters", mock_get_user_set_parameters)
+    monkeypatch.setattr(tasks.parameters, "get_user_set_parameters", mock_get_user_set_parameters)
 
     base_execution_type = tasks.BaseTaskType(**configuration)
 

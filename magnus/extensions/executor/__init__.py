@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, cast
 from pydantic import ConfigDict
 from rich import print
 
-from magnus import context, defaults, exceptions, integration, interaction, utils
+from magnus import context, defaults, exceptions, integration, interaction, parameters, utils
 from magnus.datastore import DataCatalog, RunLog, StepLog
 from magnus.executor import BaseExecutor
 from magnus.extensions.nodes import TaskNode
@@ -63,13 +63,13 @@ class GenericExecutor(BaseExecutor):
         return os.environ.get("MAGNUS_RUN_ID", None)
 
     def _get_parameters(self):
-        parameters: Dict[str, Any] = {}
+        params: Dict[str, Any] = {}
         if self._context.parameters_file:
-            parameters.update(utils.load_yaml(self._context.parameters_file))
+            params.update(utils.load_yaml(self._context.parameters_file))
 
         # Update these with some from the environment variables
-        parameters.update(utils.get_user_set_parameters())
-        return parameters
+        params.update(parameters.get_user_set_parameters())
+        return params
 
     def _set_up_for_re_run(self, parameters: Dict[str, Any]) -> None:
         try:
@@ -295,12 +295,12 @@ class GenericExecutor(BaseExecutor):
         """
         step_log = self._context.run_log_store.get_step_log(node._get_step_log_name(map_variable), self._context.run_id)
 
-        parameters = self._context.run_log_store.get_parameters(run_id=self._context.run_id)
+        params = self._context.run_log_store.get_parameters(run_id=self._context.run_id)
         # Set up environment variables for the execution
         # If the key already exists, do not update it to give priority to parameters set by environment variables
-        interaction.store_parameter(update=False, **parameters)
+        interaction.store_parameter(**params)
 
-        parameters_in = utils.get_user_set_parameters(remove=False)
+        parameters_in = parameters.get_user_set_parameters(remove=False)
 
         attempt = self.step_attempt_number
         logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}")
@@ -324,7 +324,7 @@ class GenericExecutor(BaseExecutor):
             step_log.attempts.append(attempt_log)
 
             tracked_data = utils.get_tracked_data()
-            parameters_out = utils.get_user_set_parameters(remove=True)
+            parameters_out = parameters.get_user_set_parameters(remove=True)
 
             if attempt_log.status == defaults.FAIL:
                 logger.exception(f"Node: {node} failed")

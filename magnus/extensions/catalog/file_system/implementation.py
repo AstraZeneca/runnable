@@ -95,6 +95,9 @@ class FileSystemCatalog(BaseCatalog):
 
             logger.info(f"Copied {file} from {run_catalog} to {copy_to}")
 
+        if not data_catalogs:
+            raise Exception(f"Did not find any files matching {name} in {run_catalog}")
+
         return data_catalogs
 
     def put(

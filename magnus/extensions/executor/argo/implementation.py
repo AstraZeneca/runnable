@@ -12,7 +12,7 @@ from pydantic.functional_serializers import PlainSerializer
 from ruamel.yaml import YAML
 from typing_extensions import Annotated
 
-from magnus import defaults, exceptions, integration, utils
+from magnus import defaults, exceptions, integration, parameters, utils
 from magnus.extensions.executor import GenericExecutor
 from magnus.extensions.nodes import DagNode, MapNode, ParallelNode
 from magnus.graph import Graph, create_node, search_node_by_internal_name
@@ -626,14 +626,14 @@ class ArgoExecutor(GenericExecutor, UserControls):
                 json.dump(iterate_on, myfile, indent=4)
 
     def _get_parameters(self) -> Dict[str, Any]:
-        parameters = {}
+        params = {}
         if self._context.parameters_file:
             # Parameters from the parameters file if defined
-            parameters.update(utils.load_yaml(self._context.parameters_file))
+            params.update(utils.load_yaml(self._context.parameters_file))
         # parameters from environment variables supersede file based
-        parameters.update(utils.get_user_set_parameters())
+        params.update(parameters.get_user_set_parameters())
 
-        return parameters
+        return params
 
     def sanitize_name(self, name):
         return name.replace(" ", "-").replace(".", "-").replace("_", "-")

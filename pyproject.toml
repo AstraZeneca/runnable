@@ -27,6 +27,7 @@ rich = "^13.5.2"
 mkdocs = "*"
 mkdocs-material = "*"
 mkdocs-section-index = "^0.3.5"
+mkdocstrings = {extras = ["python"], version = "^0.24.0"}
 
 [tool.poetry.group.binary.dependencies]
 pyinstaller = "^5.13.2"

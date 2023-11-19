@@ -307,34 +307,6 @@ def test_remove_prefix_returns_text_removes_prefix_if_found_full():
     assert utils.remove_prefix(text, "hi") == ""
 
 
-def test_get_user_set_parameters_does_nothing_if_prefix_does_not_match(monkeypatch):
-    monkeypatch.setenv("random", "value")
-
-    assert utils.get_user_set_parameters() == {}
-
-
-def test_get_user_set_parameters_returns_the_parameter_if_prefix_match_int(monkeypatch):
-    monkeypatch.setenv(defaults.PARAMETER_PREFIX + "key", "1")
-
-    assert utils.get_user_set_parameters() == {"key": 1}
-
-
-def test_get_user_set_parameters_returns_the_parameter_if_prefix_match_string(monkeypatch):
-    monkeypatch.setenv(defaults.PARAMETER_PREFIX + "key", '"value"')
-
-    assert utils.get_user_set_parameters() == {"key": "value"}
-
-
-def test_get_user_set_parameters_removes_the_parameter_if_prefix_match_remove(monkeypatch):
-    monkeypatch.setenv(defaults.PARAMETER_PREFIX + "key", "1")
-
-    assert defaults.PARAMETER_PREFIX + "key" in os.environ
-
-    utils.get_user_set_parameters(remove=True)
-
-    assert defaults.PARAMETER_PREFIX + "key" not in os.environ
-
-
 def test_get_tracked_data_does_nothing_if_prefix_does_not_match(monkeypatch):
     monkeypatch.setenv("random", "value")
 

@@ -1,7 +1,7 @@
 import contextlib
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, ContextManager
 
 from pydantic import BaseModel, ConfigDict
 
@@ -28,7 +28,7 @@ class BaseExperimentTracker(ABC, BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     @property
-    def client_context(self) -> Any:
+    def client_context(self) -> ContextManager:
         """
         Returns the client context.
         """

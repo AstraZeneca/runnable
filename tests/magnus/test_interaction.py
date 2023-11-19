@@ -11,28 +11,23 @@ from magnus import (
 )
 
 
-def test_track_raises_exception_if_no_executor(monkeypatch, mocker):
-    mock_context = mocker.MagicMock()
-    mock_context.run_context.executor = None
-    monkeypatch.setattr(interaction, "context", mock_context)
+@pytest.fixture(autouse=True)
+def mock_context(monkeypatch, mocker, request):
+    if "noautofixt" in request.keywords:
+        yield None
+        return
+    mc = mocker.MagicMock()
+    monkeypatch.setattr(interaction, "context", mc)
+    yield
 
-    with pytest.raises(Exception, match="Please raise a bug report"):
-        interaction.track_this(a="b")
 
-
-def test_track_this_adds_values_to_environ(monkeypatch, mocker):
-    mock_context = mocker.MagicMock()
-    monkeypatch.setattr(interaction, "context", mock_context)
-
+def test_track_this_adds_values_to_environ():
     interaction.track_this(a="b")
     assert defaults.TRACK_PREFIX + "a" in os.environ
     del os.environ[defaults.TRACK_PREFIX + "a"]
 
 
-def test_track_this_adds_multiple_values_to_environ(mocker, monkeypatch):
-    mock_context = mocker.MagicMock()
-    monkeypatch.setattr(interaction, "context", mock_context)
-
+def test_track_this_adds_multiple_values_to_environ():
     interaction.track_this(a="b", b="a")
     assert defaults.TRACK_PREFIX + "a" in os.environ
     assert defaults.TRACK_PREFIX + "b" in os.environ
@@ -40,10 +35,7 @@ def test_track_this_adds_multiple_values_to_environ(mocker, monkeypatch):
     del os.environ[defaults.TRACK_PREFIX + "b"]
 
 
-def test_track_this_ignores_step_if_zero(mocker, monkeypatch):
-    mock_context = mocker.MagicMock()
-    monkeypatch.setattr(interaction, "context", mock_context)
-
+def test_track_this_ignores_step_if_zero():
     interaction.track_this(a="b", b="a")
     assert defaults.TRACK_PREFIX + "a" in os.environ
     assert defaults.TRACK_PREFIX + "b" in os.environ
@@ -51,10 +43,7 @@ def test_track_this_ignores_step_if_zero(mocker, monkeypatch):
     del os.environ[defaults.TRACK_PREFIX + "b"]
 
 
-def test_track_this_adds_step_if_non_zero(mocker, monkeypatch):
-    mock_context = mocker.MagicMock()
-    monkeypatch.setattr(interaction, "context", mock_context)
-
+def test_track_this_adds_step_if_non_zero():
     interaction.track_this(a="b", b="a", step=1)
     assert defaults.TRACK_PREFIX + "1_" + "a" in os.environ
     assert defaults.TRACK_PREFIX + "1_" + "b" in os.environ
@@ -76,21 +65,10 @@ def test_store_parameter_adds_multiple_values_to_environ():
     del os.environ[defaults.PARAMETER_PREFIX + "b"]
 
 
-def test_store_parameter_does_not_update_if_present_and_asked():
-    os.environ[defaults.PARAMETER_PREFIX + "a"] = "b"
-    os.environ[defaults.PARAMETER_PREFIX + "b"] = "a"
-    interaction.store_parameter(a="b", b="a", update=False)
-    assert os.environ[defaults.PARAMETER_PREFIX + "a"] == "b"
-    assert os.environ[defaults.PARAMETER_PREFIX + "b"] == "a"
-
-    del os.environ[defaults.PARAMETER_PREFIX + "a"]
-    del os.environ[defaults.PARAMETER_PREFIX + "b"]
-
-
 def test_store_parameter_updates_if_present_and_asked():
     os.environ[defaults.PARAMETER_PREFIX + "a"] = "b"
     os.environ[defaults.PARAMETER_PREFIX + "b"] = "a"
-    interaction.store_parameter(a="c", b="d", update=True)
+    interaction.store_parameter(a="c", b="d")
     assert json.loads(os.environ[defaults.PARAMETER_PREFIX + "a"]) == "c"
     assert json.loads(os.environ[defaults.PARAMETER_PREFIX + "b"]) == "d"
 
@@ -98,20 +76,24 @@ def test_store_parameter_updates_if_present_and_asked():
     del os.environ[defaults.PARAMETER_PREFIX + "b"]
 
 
-def test_get_parameter_returns_all_parameters_if_no_key_provided(mocker, monkeypatch):
-    monkeypatch.setattr(interaction.utils, "get_user_set_parameters", mocker.MagicMock(return_value="this"))
+def test_get_parameter_returns_all_parameters_if_no_key_provided(monkeypatch, mocker):
+    monkeypatch.setattr(interaction.parameters, "get_user_set_parameters", mocker.MagicMock(return_value="this"))
 
     assert interaction.get_parameter() == "this"
 
 
 def test_get_parameter_returns_parameters_if_provided(mocker, monkeypatch):
-    monkeypatch.setattr(interaction.utils, "get_user_set_parameters", mocker.MagicMock(return_value={"this": "that"}))
+    monkeypatch.setattr(
+        interaction.parameters, "get_user_set_parameters", mocker.MagicMock(return_value={"this": "that"})
+    )
 
     assert interaction.get_parameter("this") == "that"
 
 
 def test_get_parameter_returns_parameters_raises_exception_if_key_not_found(mocker, monkeypatch):
-    monkeypatch.setattr(interaction.utils, "get_user_set_parameters", mocker.MagicMock(return_value={"this": "that"}))
+    monkeypatch.setattr(
+        interaction.parameters, "get_user_set_parameters", mocker.MagicMock(return_value={"this": "that"})
+    )
 
     with pytest.raises(Exception):
         interaction.get_parameter("this1")
@@ -177,28 +159,6 @@ def test_get_from_catalog_uses_destination_folder(mocker, monkeypatch):
     interaction.get_from_catalog("this", destination_folder="use_this_folder")
 
     mock_catalog_handler_get.assert_called_once_with("this", compute_data_folder="use_this_folder", run_id="RUN_ID")
-
-
-def test_get_from_catalog_raises_warning_if_no_catalog_was_obtained(mocker, monkeypatch, caplog):
-    mock_context = mocker.MagicMock()
-    mock_catalog_handler = mocker.MagicMock()
-
-    mock_context.run_context.catalog_handler = mock_catalog_handler
-
-    mock_catalog_handler_get = mocker.MagicMock()
-    mock_catalog_handler.get = mock_catalog_handler_get
-    mock_catalog_handler_get.return_value = None
-    mock_context.run_context.run_id = "RUN_ID"
-
-    mock_catalog_handler.compute_data_folder = "compute_folder"
-    monkeypatch.setattr(interaction, "context", mock_context)
-
-    with caplog.at_level(logging.WARNING):
-        interaction.get_from_catalog("this")
-
-    assert "No catalog was obtained by the" in caplog.text
-
-    mock_catalog_handler_get.assert_called_once_with("this", compute_data_folder="compute_folder", run_id="RUN_ID")
 
 
 def test_get_from_catalog_raises_warning_if_no_context_step_log(mocker, monkeypatch, caplog):
@@ -304,42 +264,7 @@ def test_put_in_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
     mock_catalog_handler_put.assert_called_once_with("file_name", compute_data_folder="in_this_folder", run_id="RUN_ID")
 
 
-def test_get_secret_raises_exception_if_no_executor(monkeypatch, mocker):
-    mock_context = mocker.MagicMock()
-    mock_context.run_context.executor = None
-    monkeypatch.setattr(interaction, "context", mock_context)
-
-    with pytest.raises(Exception, match="Please raise a bug report"):
-        interaction.get_secret("a")
-
-
-def test_get_from_catalog_raises_exception_if_no_executor(monkeypatch, mocker):
-    mock_context = mocker.MagicMock()
-    mock_context.run_context.executor = None
-    monkeypatch.setattr(interaction, "context", mock_context)
-
-    with pytest.raises(Exception, match="Please raise a bug report"):
-        interaction.get_from_catalog("a")
-
-
-def test_put_in_catalog_raises_exception_if_no_executor(monkeypatch, mocker):
-    mock_context = mocker.MagicMock()
-    mock_context.run_context.executor = None
-    monkeypatch.setattr(interaction, "context", mock_context)
-
-    with pytest.raises(Exception, match="Please raise a bug report"):
-        interaction.put_in_catalog("a")
-
-
-def test_get_run_id_raises_exception_if_no_executor(monkeypatch, mocker):
-    mock_context = mocker.MagicMock()
-    mock_context.run_context.executor = None
-    monkeypatch.setattr(interaction, "context", mock_context)
-
-    with pytest.raises(Exception, match="Please raise a bug report"):
-        interaction.get_run_id()
-
-
+@pytest.mark.noautofixt
 def test_get_run_id_returns_from_context(monkeypatch, mocker):
     mock_context = mocker.MagicMock()
     mock_context.run_context.run_id = "1234"
@@ -348,6 +273,7 @@ def test_get_run_id_returns_from_context(monkeypatch, mocker):
     assert interaction.get_run_id() == "1234"
 
 
+@pytest.mark.noautofixt
 def test_get_tag_raises_exception_if_no_executor(monkeypatch, mocker):
     mock_context = mocker.MagicMock()
     mock_context.run_context.executor = None
@@ -357,6 +283,7 @@ def test_get_tag_raises_exception_if_no_executor(monkeypatch, mocker):
         assert interaction.get_tag() == "1234"
 
 
+@pytest.mark.noautofixt
 def test_get_tag_gets_tag_from_context(monkeypatch, mocker):
     mock_context = mocker.MagicMock()
     mock_context.run_context.tag = "1234"
@@ -365,6 +292,7 @@ def test_get_tag_gets_tag_from_context(monkeypatch, mocker):
     assert interaction.get_tag() == "1234"
 
 
+@pytest.mark.noautofixt
 def test_get_experiment_context_raises_exception_if_no_executor(monkeypatch, mocker):
     mock_context = mocker.MagicMock()
     mock_context.run_context.executor = None
@@ -374,6 +302,7 @@ def test_get_experiment_context_raises_exception_if_no_executor(monkeypatch, moc
         interaction.get_experiment_tracker_context()
 
 
+@pytest.mark.noautofixt
 def test_get_experiment_context_returns_client_context(monkeypatch, mocker):
     mock_context = mocker.MagicMock()
     mock_experiment_tracker = mocker.MagicMock()

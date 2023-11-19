@@ -331,30 +331,6 @@ def get_tracked_data() -> Dict[str, str]:
     return tracked_data
 
 
-def get_user_set_parameters(remove: bool = False) -> Dict[str, str]:
-    """Scans the environment variables for any user returned parameters that have a prefix MAGNUS_PRM_.
-
-    Args:
-        remove (bool, optional): Flag to remove the parameter if needed. Defaults to False.
-
-    Returns:
-        dict: The dictionary of found user returned parameters
-    """
-    parameters = {}
-    for env_var, value in os.environ.items():
-        if env_var.startswith(defaults.PARAMETER_PREFIX):
-            key = remove_prefix(env_var, defaults.PARAMETER_PREFIX)
-            try:
-                parameters[key.lower()] = json.loads(value)
-            except json.decoder.JSONDecodeError:
-                logger.error(f"Parameter {key} could not be JSON decoded, adding the literal value")
-                parameters[key.lower()] = value
-
-            if remove:
-                del os.environ[env_var]
-    return parameters
-
-
 def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
     """Given two dicts d1 and d2, return a new dict that has upsert items from d1.
 

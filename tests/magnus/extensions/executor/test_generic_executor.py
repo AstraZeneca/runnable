@@ -32,7 +32,9 @@ def test_get_parameters_gets_parameters_from_parameters_file(mocker, monkeypatch
 
 def test_get_parameters_gets_parameters_from_user_parameters(mocker, monkeypatch, mock_run_context):
     mock_run_context.parameters_file = ""
-    monkeypatch.setattr(executor.utils, "get_user_set_parameters", mocker.MagicMock(return_value={"executor": "test"}))
+    monkeypatch.setattr(
+        executor.parameters, "get_user_set_parameters", mocker.MagicMock(return_value={"executor": "test"})
+    )
 
     test_executor = GenericExecutor()
     assert test_executor._get_parameters() == {"executor": "test"}
@@ -45,7 +47,9 @@ def test_get_parameters_user_parameters_overwrites_parameters_from_parameters_fi
 
     mock_load_yaml = mocker.MagicMock(return_value={"executor": "this"})
     monkeypatch.setattr(executor.utils, "load_yaml", mock_load_yaml)
-    monkeypatch.setattr(executor.utils, "get_user_set_parameters", mocker.MagicMock(return_value={"executor": "that"}))
+    monkeypatch.setattr(
+        executor.parameters, "get_user_set_parameters", mocker.MagicMock(return_value={"executor": "that"})
+    )
 
     test_executor = GenericExecutor()
     assert test_executor._get_parameters() == {"executor": "that"}
@@ -693,8 +697,10 @@ def test_execute_node_updates_parameters_for_downstream_if_success(mocker, monke
     mock_run_context.run_log_store.set_parameters = mock_set_parameters
 
     mock_utils = mocker.MagicMock()
+    mock_parameters = mocker.MagicMock()
     monkeypatch.setattr(executor, "utils", mock_utils)
-    mock_utils.get_user_set_parameters.side_effect = [{"a": 2}, {"a": 5, "b": 3}]
+    monkeypatch.setattr(executor, "parameters", mock_parameters)
+    mock_parameters.get_user_set_parameters.side_effect = [{"a": 2}, {"a": 5, "b": 3}]
     mock_utils.diff_dict.return_value = {"a": 5, "b": 3}
 
     mock_node = mocker.MagicMock()

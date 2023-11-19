@@ -4,16 +4,39 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Union, cast
+from typing import Any, ContextManager, Dict, Optional, Type, Union, cast
+
+from pydantic import BaseModel
+from typing_extensions import TypeAlias
 
 import magnus.context as context
-from magnus import defaults, exceptions, pickler, utils
+from magnus import defaults, exceptions, parameters, pickler, utils
 from magnus.datastore import StepLog
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
+cast_typeT: TypeAlias = Union[Type[Any], Dict[str, Any], BaseModel]
+
+
+class CheckContext:
+    def __init__(self, fn):
+        self.fn = fn
+
+    def __call__(self, *args, **kwargs):
+        if not context.run_context.executor:
+            msg = (
+                "There are no active executor and services. This should not have happened and is a bug."
+                " Please raise a bug report."
+            )
+            raise Exception(msg)
+        result = self.fn(*args, **kwargs)
+        return result
+
+
+@CheckContext
 def track_this(step: int = 0, **kwargs):
+    # TODO: Even this should be able to accept pydantic and dataclasses
     """
     Set up the keyword args as environment variables for tracking purposes as
     part of the run.
@@ -26,14 +49,6 @@ def track_this(step: int = 0, **kwargs):
     Args:
         kwargs (dict): The dictionary of key value pairs to track.
     """
-
-    if not context.run_context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
     prefix = defaults.TRACK_PREFIX
 
     if step:
@@ -45,52 +60,99 @@ def track_this(step: int = 0, **kwargs):
         context.run_context.experiment_tracker.log_metric(key, value, step=step)
 
 
-def store_parameter(update: bool = True, **kwargs: dict):
+@CheckContext
+def store_parameter(**kwargs: dict) -> None:
     """
-    Set up the keyword args as environment variables for parameters tracking
-    purposes as part pf the run.
+    Store a set of parameters.
+    Note: The parameters are not stored in run log at this point in time.
+    They are collected after the completion of the function.
 
-    If update_existing is True, we override the current value if the parameter already exists.
-
-    For every key-value pair found in kwargs, we set up an environmental variable of
-    MAGNUS_PRM_key = json.dumps(value)
-    """
-    for key, value in kwargs.items():
-        logger.info(f"Storing parameter {key} with value: {value}")
-        environ_key = defaults.PARAMETER_PREFIX + key
-
-        if environ_key in os.environ and not update:
-            continue
-
-        os.environ[environ_key] = json.dumps(value)
-
-
-def get_parameter(key=None) -> Union[str, dict]:
-    """
-    Get the parameter set as part of the user convenience function.
-
-    We do not remove the parameter from the environment in this phase as
-    as the function execution has not been completed.
-
-    Returns all the parameters, if no key was provided.
-
-    Args:
-        key (str, optional): The parameter key to retrieve. Defaults to None.
-
-    Raises:
-        Exception: If the mentioned key was not part of the paramters
+    Parameters:
+        **kwargs (dict): A dictionary of key-value pairs to store as parameters.
 
     Returns:
-        Union[str, dict]: A single value of str or a dictionary if no key was specified
+        None
+
+    Examples:
+        >>> store_parameter(my_int_param=123, my_float_param=123.45, my_bool_param=True, my_str_param='hello world')
+        >>> get_parameter('my_int_param', int)
+        123
+        >>> get_parameter('my_float_param', float)
+        123.45
+        >>> get_parameter('my_bool_param', bool)
+        True
+        >>> get_parameter('my_str_param', str)
+        'hello world'
+
+        >>> # Example of using Pydantic models
+        >>> class MyModel(BaseModel):
+        ...     field1: str
+        ...     field2: int
+        >>> store_parameter(my_model_param=MyModel(field1='value1', field2=2))
+        >>> get_parameter('my_model_param', MyModel)
+        MyModel(field1='value1', field2=2)
+
+        >>> # Example of using dataclasses
+        >>> from dataclasses import dataclass
+        >>> @dataclass
+        ... class MyDataclass:
+        ...     field1: str
+        ...     field2: int
+        >>> store_parameter(my_dataclass_param=MyDataclass(field1='value1', field2=2))
+        >>> get_parameter('my_dataclass_param', MyDataclass)
+        MyDataclass(field1='value1', field2=2)
     """
-    parameters = utils.get_user_set_parameters(remove=False)
+    parameters.set_user_defined_params_as_environment_variables(kwargs)
+
+
+@CheckContext
+def get_parameter(key=None, cast_as: Optional[Type] = None) -> cast_typeT:
+    """
+    Get a parameter by its key.
+    If the key is not provided, all parameters will be returned but no casting will be performed.
+
+    cast_as is not required if its JSON supported type (int, float, bool, str).
+    Note that the cast_as for dataclass or pydantic model is the class, not an instance.
+
+    Args:
+        key (str, optional): The key of the parameter to retrieve. If not provided, all parameters will be returned.
+        cast_as (Type, optional): The type to cast the parameter to. If not provided, the type will remain as it is.
+
+    Returns:
+        cast_typeT: The parameter value.
+
+    Raises:
+        Exception: If the parameter does not exist and key is not provided.
+        ValidationError: If the parameter is pydantic cannot instantiate a object.
+
+    Examples:
+        >>> get_parameter('my_int_param', int)
+        123
+        >>> get_parameter('my_float_param', float)
+        123.45
+        >>> get_parameter('my_bool_param', bool)
+        True
+        >>> get_parameter('my_str_param', str)
+        'hello world'
+        >>> get_parameter('my_model_param', MyModel)
+        MyModel(field1='value1', field2=2)
+        >>> get_parameter('my_dataclass_param', MyDataclass)
+        MyDataclass(field1='value1', field2=2)
+    """
+    params = parameters.get_user_set_parameters(remove=False)
+
     if not key:
-        return parameters
-    if key not in parameters:
+        # Return all parameters, we do not cast anything as we do not know what the individual types are
+        return params
+
+    if key not in params:
         raise Exception(f"Parameter {key} is not set before")
-    return parameters[key]
+
+    # Return the parameter value, casted as asked.
+    return parameters.cast_parameters_as_type(params[key], cast_as)
 
 
+@CheckContext
 def get_secret(secret_name: str = "") -> str | Dict[str, str]:
     """
     Get a secret by the name from the secrets manager
@@ -105,14 +167,6 @@ def get_secret(secret_name: str = "") -> str | Dict[str, str]:
     Raises:
         exceptions.SecretNotFoundError: Secret not found in the secrets manager.
     """
-
-    if not context.run_context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
     secrets_handler = context.run_context.secrets_handler
     try:
         return secrets_handler.get(name=secret_name)
@@ -121,23 +175,15 @@ def get_secret(secret_name: str = "") -> str | Dict[str, str]:
         raise
 
 
+@CheckContext
 def get_from_catalog(name: str, destination_folder: str = ""):
     """
-    A convenience interaction function to get file from the catalog and place it in the destination folder
+    A convenience interaction function to place file from the catalog to the compute data folder or given location.
 
-    Note: We do not perform any kind of serialization/deserialization in this way.
     Args:
         name (str): The name of the file to get from the catalog
         destination_folder (None): The place to put the file. defaults to compute data folder
-
     """
-
-    if not context.run_context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
 
     if not destination_folder:
         destination_folder = context.run_context.catalog_handler.compute_data_folder
@@ -148,32 +194,20 @@ def get_from_catalog(name: str, destination_folder: str = ""):
         compute_data_folder=destination_folder,
     )
 
-    if not data_catalog:
-        logger.warning(f"No catalog was obtained by the {name}")
-
     if context.run_context.executor._context_step_log:
         context.run_context.executor._context_step_log.add_data_catalogs(data_catalog)
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
 
+@CheckContext
 def put_in_catalog(filepath: str):
     """
-    A convenience interaction function to put the file in the catalog.
-
-    Note: We do not perform any kind of serialization/deserialization in this way.
+    A convenience interaction function to put the file from a location in the catalog.
 
     Args:
         filepath (str): The path of the file to put in the catalog
     """
-
-    if not context.run_context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
     file_path = Path(filepath)
 
     data_catalog = context.run_context.catalog_handler.put(
@@ -190,6 +224,7 @@ def put_in_catalog(filepath: str):
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
 
+@CheckContext
 def put_object(data: Any, name: str):
     """
     A convenient interaction function to serialize and store the object in catalog.
@@ -207,9 +242,10 @@ def put_object(data: Any, name: str):
     os.remove(f"{name}{native_pickler.extension}")
 
 
+@CheckContext
 def get_object(name: str) -> Any:
     """
-    A convenient interaction function to deserialize and retrieve the object from the catalog.
+    A convenient function to deserialize and retrieve the object from the catalog.
 
     Args:
         name (str): The name of the object to retrieve
@@ -233,20 +269,15 @@ def get_object(name: str) -> Any:
         raise e
 
 
+@CheckContext
 def get_run_id() -> str:
     """
     Returns the run_id of the current run
     """
-    if not context.run_context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
     return context.run_context.run_id
 
 
+@CheckContext
 def get_tag() -> str:
     """
     Returns the tag from the environment.
@@ -254,17 +285,11 @@ def get_tag() -> str:
     Returns:
         str: The tag if provided for the run, otherwise None
     """
-    if not context.run_context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
     return context.run_context.tag
 
 
-def get_experiment_tracker_context():
+@CheckContext
+def get_experiment_tracker_context() -> ContextManager:
     """
     Return a context session of the experiment tracker.
 
@@ -275,15 +300,7 @@ def get_experiment_tracker_context():
         pass
 
     Returns:
-        _type_: _description_
     """
-    if not context.run_context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
     experiment_tracker = context.run_context.experiment_tracker
     return experiment_tracker.client_context
 
@@ -355,13 +372,13 @@ def end_interactive_session():
         return
 
     tracked_data = utils.get_tracked_data()
-    parameters = utils.get_user_set_parameters(remove=True)
+    set_parameters = parameters.get_user_set_parameters(remove=True)
 
     step_log = cast(StepLog, context.run_context.executor._context_step_log)
     step_log.user_defined_metrics = tracked_data
     context.run_context.run_log_store.add_step_log(step_log, context.run_context.run_id)
 
-    context.run_context.run_log_store.set_parameters(context.run_context.run_id, parameters)
+    context.run_context.run_log_store.set_parameters(context.run_context.run_id, set_parameters)
 
     context.run_context.executor._context_step_log = None
     context.run_context.execution_plan = ""
