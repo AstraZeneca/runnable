@@ -10,13 +10,14 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, field_validator
 from stevedore import driver
 
 import magnus.context as context
 from magnus import defaults, parameters, utils
+from magnus.defaults import TypeMapVariable
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
@@ -50,8 +51,10 @@ class BaseTaskType(BaseModel):
         """
         raise NotImplementedError()
 
-    def _get_parameters(self, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> dict:
-        """Return the parameters in scope for the execution.
+    def _get_parameters(self, map_variable: TypeMapVariable = None, **kwargs) -> Dict[str, Any]:
+        """
+        By this step, all the parameters are present as environment variables as json strings.
+        Return the parameters in scope for the execution.
 
         Args:
             map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
@@ -61,7 +64,7 @@ class BaseTaskType(BaseModel):
         """
         return parameters.get_user_set_parameters(remove=False)
 
-    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
         """The function to execute the command.
 
         And map_variable is sent in as an argument into the function.
@@ -74,30 +77,23 @@ class BaseTaskType(BaseModel):
         """
         raise NotImplementedError()
 
-    def _set_parameters(self, parameters: Optional[Dict[str, str]] = None, **kwargs):
+    def _set_parameters(self, params: Optional[BaseModel] = None, **kwargs):
         """Set the parameters back to the environment variables.
 
         Args:
             parameters (dict, optional): The parameters to set back as env variables. Defaults to None.
         """
         # Nothing to do
-        if not parameters:
+        if not params:
             return
 
-        if not isinstance(parameters, dict):
-            msg = (
-                f"call to function returns of type: {type(parameters)}. "
-                "Only dictionaries are supported as return values for functions as part part of magnus pipeline."
-            )
-            logger.warn(msg)
-            return
+        if not isinstance(params, BaseModel):
+            raise ValueError("Output of a function must be a pydantic model")
 
-        for key, value in parameters.items():
-            logger.info(f"Setting User defined parameter {key} with value: {value}")
-            os.environ[defaults.PARAMETER_PREFIX + key] = json.dumps(value)
+        parameters.set_user_defined_params_as_environment_variables(params.model_dump(), update=True)
 
     @contextlib.contextmanager
-    def output_to_file(self, map_variable: Optional[Dict[str, str]] = None):
+    def output_to_file(self, map_variable: TypeMapVariable = None):
         """Context manager to put the output of a function execution to catalog.
 
         Args:
@@ -152,15 +148,15 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         """
         return "function", {"command": self.command}
 
-    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
         """Execute the notebook as defined by the command."""
         module, func = utils.get_module_and_func_names(self.command)
         sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
         imported_module = importlib.import_module(module)
         f = getattr(imported_module, func)
 
-        parameters = self._get_parameters()
-        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
+        params = self._get_parameters()
+        filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
 
         if map_variable:
             os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
@@ -169,7 +165,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
         with self.output_to_file(map_variable=map_variable) as _:
             try:
-                user_set_parameters = f(**filtered_parameters)
+                user_set_parameters: BaseModel = f(**filtered_parameters)
             except Exception as _e:
                 msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
                 logger.exception(msg)
@@ -196,7 +192,7 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 
         return command
 
-    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
         """Execute the lambda function as defined by the command.
 
         Args:
@@ -214,8 +210,8 @@ class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-meth
 
         f = eval(self.command)
 
-        parameters = self._get_parameters()
-        filtered_parameters = utils.filter_arguments_for_func(f, parameters, map_variable)
+        params = self._get_parameters()
+        filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
 
         if map_variable:
             os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
@@ -266,7 +262,7 @@ class NotebookTaskType(BaseTaskType):
     def get_cli_options(self) -> Tuple[str, dict]:
         return "notebook", {"command": self.command, "notebook-output-path": self.notebook_output_path}
 
-    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
         """Execute the python notebook as defined by the command.
 
         Args:
@@ -335,7 +331,7 @@ class ShellTaskType(BaseTaskType):
 
         return command
 
-    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
         # Using shell=True as we want to have chained commands to be executed in the same shell.
         """Execute the shell command as defined by the command.
 
@@ -391,7 +387,7 @@ class ContainerTaskType(BaseTaskType):
             "experiment-tracking-file": self.experiment_tracking_file,
         }
 
-    def execute_command(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
         # Conditional import
         from magnus import track_this
         from magnus.context import run_context
@@ -471,7 +467,7 @@ class ContainerTaskType(BaseTaskType):
                     with open(experiment_tracking_file, "r") as f:
                         experiment_tracking_variables = json.load(f)
 
-                self._set_parameters(container_return_parameters)
+                self._set_parameters(container_return_parameters)  # type: ignore # TODO: Not fixing this for now.
                 track_this(**experiment_tracking_variables)
 
         except Exception as _e:

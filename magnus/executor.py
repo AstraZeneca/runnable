@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict
 import magnus.context as context
 from magnus import defaults
 from magnus.datastore import DataCatalog, RunLog, StepLog
+from magnus.defaults import TypeMapVariable
 from magnus.graph import Graph
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -188,7 +189,7 @@ class BaseExecutor(ABC, BaseModel):
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
     @abstractmethod
-    def _execute_node(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def _execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         This is the entry point when we do the actual execution of the function.
 
@@ -210,7 +211,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def execute_node(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         The exposed method to executing a node.
         All implementations should implement this method.
@@ -238,7 +239,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def execute_from_graph(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         This is the entry point to from the graph execution.
 
@@ -266,7 +267,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def trigger_job(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         Executor specific way of triggering jobs when magnus does both traversal and execution
 
@@ -283,9 +284,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def _get_status_and_next_node_name(
-        self, current_node: BaseNode, dag: Graph, map_variable: Optional[Dict[str, str]] = None
-    ):
+    def _get_status_and_next_node_name(self, current_node: BaseNode, dag: Graph, map_variable: TypeMapVariable = None):
         """
         Given the current node and the graph, returns the name of the next node to execute.
 
@@ -303,7 +302,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def execute_graph(self, dag: Graph, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_graph(self, dag: Graph, map_variable: TypeMapVariable = None, **kwargs):
         """
         The parallelization is controlled by the nodes and not by this function.
 
@@ -324,7 +323,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None):
+    def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
         necessary.
@@ -405,7 +404,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def fan_out(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None):
+    def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         This method is used to appropriately fan-out the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
@@ -428,7 +427,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def fan_in(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None):
+    def fan_in(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         This method is used to appropriately fan-in after the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.

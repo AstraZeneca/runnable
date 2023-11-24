@@ -4,6 +4,21 @@ dag:
 
     step 1 >> step 2 >> step 3 >> success
 
+    --8<-- [start:graph]
+
+    %%{ init: { 'flowchart': { 'curve': 'linear' } } }%%
+    flowchart
+        direction LR
+        step1:::green
+        step1([Acquire data]) --> step2:::green
+        step2([Prepare data]) --> step3:::green
+        step3([Extract features]) --> step4:::green
+        step4([Model]) --> suc([success]):::green
+
+        classDef green stroke:#0f0
+
+    --8<-- [end:graph]
+
     All the steps are mocked and they will just pass through.
     Use this pattern to define the skeleton of your pipeline and flesh out the steps later.
 

@@ -2,6 +2,7 @@ import contextlib
 import os
 
 import pytest
+from pydantic import BaseModel
 
 from magnus import defaults, tasks
 
@@ -44,7 +45,11 @@ def test_base_task_set_parameters_sets_environ_vars_if_sent(
     monkeypatch.setattr(tasks.os, "environ", mock_os_environ)
 
     base_execution_type = tasks.BaseTaskType(**configuration)
-    base_execution_type._set_parameters(parameters={"x": 10})
+
+    class Parameter(BaseModel):
+        x: int = 10
+
+    base_execution_type._set_parameters(Parameter())
 
     assert mock_os_environ[defaults.PARAMETER_PREFIX + "x"] == "10"
 
@@ -61,7 +66,7 @@ def test_python_task_command_raises_exception_if_function_fails(mocker, monkeypa
 
     monkeypatch.setattr(tasks.BaseTaskType, "output_to_file", mocker.MagicMock(return_value=contextlib.nullcontext()))
 
-    monkeypatch.setattr(tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
+    monkeypatch.setattr(tasks.parameters, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
 
     configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)
@@ -79,7 +84,7 @@ def test_python_task_command_calls_with_no_parameters_if_none_sent(mocker, monke
     monkeypatch.setattr(tasks.utils, "get_module_and_func_names", mocker.MagicMock(return_value=("idk", "func")))
     monkeypatch.setattr(tasks.importlib, "import_module", mocker.MagicMock(return_value=DummyModule()))
     monkeypatch.setattr(tasks.BaseTaskType, "output_to_file", mocker.MagicMock(return_value=contextlib.nullcontext()))
-    monkeypatch.setattr(tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={}))
+    monkeypatch.setattr(tasks.parameters, "filter_arguments_for_func", mocker.MagicMock(return_value={}))
 
     configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)
@@ -99,7 +104,7 @@ def test_python_task_command_calls_with_parameters_if_sent_by_filter(mocker, mon
     monkeypatch.setattr(tasks.importlib, "import_module", mocker.MagicMock(return_value=DummyModule()))
 
     monkeypatch.setattr(tasks.BaseTaskType, "output_to_file", mocker.MagicMock(return_value=contextlib.nullcontext()))
-    monkeypatch.setattr(tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
+    monkeypatch.setattr(tasks.parameters, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
 
     configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)
@@ -117,7 +122,7 @@ def test_python_task_command_sends_no_mapped_variable_if_not_present_in_signatur
     monkeypatch.setattr(tasks.utils, "get_module_and_func_names", mocker.MagicMock(return_value=("idk", "func")))
     monkeypatch.setattr(tasks.importlib, "import_module", mocker.MagicMock(return_value=DummyModule()))
     monkeypatch.setattr(tasks.BaseTaskType, "output_to_file", mocker.MagicMock(return_value=contextlib.nullcontext()))
-    monkeypatch.setattr(tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
+    monkeypatch.setattr(tasks.parameters, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
 
     configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)
@@ -136,7 +141,7 @@ def test_python_task_command_sends_mapped_variable_if_present_in_signature(mocke
     monkeypatch.setattr(tasks.importlib, "import_module", mocker.MagicMock(return_value=DummyModule()))
     monkeypatch.setattr(tasks.BaseTaskType, "output_to_file", mocker.MagicMock(return_value=contextlib.nullcontext()))
     monkeypatch.setattr(
-        tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1, "map_name": "map_value"})
+        tasks.parameters, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1, "map_name": "map_value"})
     )
 
     configuration["command"] = "dummy"
@@ -146,7 +151,10 @@ def test_python_task_command_sends_mapped_variable_if_present_in_signature(mocke
 
 
 def test_python_task_command_sets_env_variable_of_return_values(mocker, monkeypatch, configuration):
-    dummy_func = mocker.MagicMock(return_value={"a": 10})
+    class Parameter(BaseModel):
+        a: int = 10
+
+    dummy_func = mocker.MagicMock(return_value=Parameter())
 
     class DummyModule:
         def __init__(self):
@@ -155,7 +163,7 @@ def test_python_task_command_sets_env_variable_of_return_values(mocker, monkeypa
     monkeypatch.setattr(tasks.utils, "get_module_and_func_names", mocker.MagicMock(return_value=("idk", "func")))
     monkeypatch.setattr(tasks.importlib, "import_module", mocker.MagicMock(return_value=DummyModule()))
     monkeypatch.setattr(tasks.BaseTaskType, "output_to_file", mocker.MagicMock(return_value=contextlib.nullcontext()))
-    monkeypatch.setattr(tasks.utils, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
+    monkeypatch.setattr(tasks.parameters, "filter_arguments_for_func", mocker.MagicMock(return_value={"a": 1}))
 
     configuration["command"] = "dummy"
     py_exec = tasks.PythonTaskType(**configuration)

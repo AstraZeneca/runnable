@@ -365,35 +365,6 @@ def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch
         assert utils.get_local_docker_image_id("test") == ""
 
 
-def test_filter_arguments_for_func_works_only_named_arguments_in_func_spec():
-    def my_func(a, b):
-        pass
-
-    parameters = {"a": 1, "b": 1}
-
-    assert parameters == utils.filter_arguments_for_func(my_func, parameters, map_variable=None)
-
-
-def test_filter_arguments_for_func_returns_empty_if_no_parameters():
-    def my_func(a=2, b=1):
-        pass
-
-    parameters = {}
-
-    assert parameters == utils.filter_arguments_for_func(my_func, parameters, map_variable=None)
-
-
-def test_filter_arguments_for_func_identifies_args_from_map_variables():
-    def my_func(y_i, a=2, b=1):
-        pass
-
-    parameters = {"a": 1, "b": 1}
-
-    assert {"a": 1, "b": 1, "y_i": "y"} == utils.filter_arguments_for_func(
-        my_func, parameters, map_variable={"y_i": "y"}
-    )
-
-
 def test_get_node_execution_command_returns_magnus_execute(mocker, monkeypatch):
     mock_context = mocker.MagicMock()
     mock_context.run_context.run_id = "test_run_id"

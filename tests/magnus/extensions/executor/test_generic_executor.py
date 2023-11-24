@@ -624,8 +624,8 @@ def test_get_status_and_next_node_name_returns_on_failure_node_if_failed(mocker,
 
 
 def test_execute_node_calls_store_parameter_with_update_false(mocker, monkeypatch, mock_run_context):
-    mock_interaction = mocker.MagicMock()
-    monkeypatch.setattr(executor, "interaction", mock_interaction)
+    mock_parameters = mocker.MagicMock()
+    monkeypatch.setattr(executor, "parameters", mock_parameters)
 
     mock_run_context.run_log_store.get_parameters.return_value = {"a": 1}
 
@@ -635,9 +635,11 @@ def test_execute_node_calls_store_parameter_with_update_false(mocker, monkeypatc
     mock_node = mocker.MagicMock()
     test_executor._execute_node(mock_node)
 
-    _, kwargs = mock_interaction.store_parameter.call_args
+    args, kwargs = mock_parameters.set_user_defined_params_as_environment_variables.call_args
+    print(kwargs)
+    print(args)
     assert kwargs["update"] == False
-    assert kwargs["a"] == 1
+    assert args[0] == {"a": 1}
 
 
 def test_execute_node_raises_exception_if_node_execute_raises_one(mocker, monkeypatch, mock_run_context, caplog):
@@ -687,34 +689,6 @@ def test_execute_node_sets_step_log_status_to_success_if_node_succeeds(mocker, m
     test_executor._execute_node(mock_node)
 
     assert mock_step_log.status == defaults.SUCCESS
-
-
-def test_execute_node_updates_parameters_for_downstream_if_success(mocker, monkeypatch, mock_run_context):
-    # Just to satisfy **parameters
-    mock_run_context.run_log_store.get_parameters.return_value = {"a": 1}
-
-    mock_set_parameters = mocker.MagicMock()
-    mock_run_context.run_log_store.set_parameters = mock_set_parameters
-
-    mock_utils = mocker.MagicMock()
-    mock_parameters = mocker.MagicMock()
-    monkeypatch.setattr(executor, "utils", mock_utils)
-    monkeypatch.setattr(executor, "parameters", mock_parameters)
-    mock_parameters.get_user_set_parameters.side_effect = [{"a": 2}, {"a": 5, "b": 3}]
-    mock_utils.diff_dict.return_value = {"a": 5, "b": 3}
-
-    mock_node = mocker.MagicMock()
-    mock_node.execute.return_value.status = defaults.SUCCESS
-
-    test_executor = GenericExecutor()
-    test_executor._sync_catalog = mocker.MagicMock()
-
-    test_executor._execute_node(mock_node)
-
-    args, kwargs = mock_set_parameters.call_args
-    assert args[1] == {"a": 5, "b": 3}
-    assert mock_utils.diff_dict.call_args[0][0] == {"a": 2}
-    assert mock_utils.diff_dict.call_args[0][1] == {"a": 5, "b": 3}
 
 
 def test_execute_node_step_log_gets_tracked_data(mocker, monkeypatch, mock_run_context):

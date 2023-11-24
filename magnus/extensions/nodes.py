@@ -4,7 +4,7 @@ import multiprocessing
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, cast
 
 from pydantic import ConfigDict, Field, FieldValidationInfo, field_validator
 from typing_extensions import Annotated
@@ -12,6 +12,7 @@ from typing_extensions import Annotated
 import magnus
 from magnus import defaults, utils
 from magnus.datastore import StepAttempt
+from magnus.defaults import TypeMapVariable
 from magnus.graph import Graph, create_graph
 from magnus.nodes import CompositeNode, ExecutableNode, TerminalNode
 from magnus.tasks import BaseTaskType, create_task
@@ -49,7 +50,7 @@ class TaskNode(ExecutableNode):
 
         self.internal_name = parent + "." + self.internal_name
 
-    def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
         """
         All that we do in magnus is to come to this point where we actually execute the command.
 
@@ -92,7 +93,7 @@ class FailNode(TerminalNode):
     def parse_from_config(cls, config: Dict[str, Any]) -> "FailNode":
         return cast("FailNode", super().parse_from_config(config))
 
-    def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
         """
         Execute the failure node.
         Set the run or branch log status to failure.
@@ -137,7 +138,7 @@ class SuccessNode(TerminalNode):
     def parse_from_config(cls, config: Dict[str, Any]) -> "SuccessNode":
         return cast("SuccessNode", super().parse_from_config(config))
 
-    def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
         """
         Execute the success node.
         Set the run or branch log status to success.
@@ -228,7 +229,7 @@ class ParallelNode(CompositeNode):
 
         self.branches = {branch.internal_branch_name: branch for _, branch in self.branches.items()}
 
-    def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         The general fan out method for a node of type Parallel.
         This method assumes that the step log has already been created.
@@ -247,7 +248,7 @@ class ParallelNode(CompositeNode):
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
-    def execute_as_graph(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         This function does the actual execution of the sub-branches of the parallel node.
 
@@ -298,7 +299,7 @@ class ParallelNode(CompositeNode):
 
         self.fan_in(map_variable=map_variable, **kwargs)
 
-    def fan_in(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         The general fan in method for a node of type Parallel.
 
@@ -385,7 +386,7 @@ class MapNode(CompositeNode):
         for node in self.branch.nodes.values():
             node.add_parent(parent)
 
-    def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         The general method to fan out for a node of type map.
         This method assumes that the step log has already been created.
@@ -407,7 +408,7 @@ class MapNode(CompositeNode):
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
-    def execute_as_graph(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         This function does the actual execution of the branch of the map node.
 
@@ -477,7 +478,7 @@ class MapNode(CompositeNode):
 
         self.fan_in(map_variable=map_variable, **kwargs)
 
-    def fan_in(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         The general method to fan in for a node of type map.
 
@@ -580,7 +581,7 @@ class DagNode(CompositeNode):
         for node in self.branch.nodes.values():
             node.add_parent(parent)
 
-    def fan_out(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         The general method to fan out for a node of type dag.
         The method assumes that the step log has already been created.
@@ -595,7 +596,7 @@ class DagNode(CompositeNode):
         branch_log.status = defaults.PROCESSING
         self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
-    def execute_as_graph(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         This function does the actual execution of the branch of the dag node.
 
@@ -624,7 +625,7 @@ class DagNode(CompositeNode):
         self._context.executor.execute_graph(self.branch, map_variable=map_variable, **kwargs)
         self.fan_in(map_variable=map_variable, **kwargs)
 
-    def fan_in(self, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         The general method to fan in for a node of type dag.
 
@@ -684,7 +685,7 @@ class StubNode(ExecutableNode):
         self.internal_branch_name = parent
         self.internal_name = parent + "." + self.internal_name
 
-    def execute(self, mock=False, map_variable: Optional[Dict[str, str]] = None, **kwargs) -> StepAttempt:
+    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
         """
         Do Nothing node.
         We just send an success attempt log back to the caller

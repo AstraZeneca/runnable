@@ -36,7 +36,6 @@ class CheckContext:
 
 @CheckContext
 def track_this(step: int = 0, **kwargs):
-    # TODO: Even this should be able to accept pydantic and dataclasses
     """
     Set up the keyword args as environment variables for tracking purposes as
     part of the run.
@@ -64,8 +63,10 @@ def track_this(step: int = 0, **kwargs):
 def store_parameter(**kwargs: dict) -> None:
     """
     Store a set of parameters.
-    Note: The parameters are not stored in run log at this point in time.
-    They are collected after the completion of the function.
+
+    !!! note
+        The parameters are not stored in run log at this point in time.
+        They are collected after the completion of the function.
 
     Parameters:
         **kwargs (dict): A dictionary of key-value pairs to store as parameters.
@@ -92,21 +93,12 @@ def store_parameter(**kwargs: dict) -> None:
         >>> get_parameter('my_model_param', MyModel)
         MyModel(field1='value1', field2=2)
 
-        >>> # Example of using dataclasses
-        >>> from dataclasses import dataclass
-        >>> @dataclass
-        ... class MyDataclass:
-        ...     field1: str
-        ...     field2: int
-        >>> store_parameter(my_dataclass_param=MyDataclass(field1='value1', field2=2))
-        >>> get_parameter('my_dataclass_param', MyDataclass)
-        MyDataclass(field1='value1', field2=2)
     """
     parameters.set_user_defined_params_as_environment_variables(kwargs)
 
 
 @CheckContext
-def get_parameter(key=None, cast_as: Optional[Type] = None) -> cast_typeT:
+def get_parameter(key=None, cast_as: Optional[Type] = None) -> Union[Dict[str, Any], BaseModel]:
     """
     Get a parameter by its key.
     If the key is not provided, all parameters will be returned but no casting will be performed.
@@ -136,8 +128,7 @@ def get_parameter(key=None, cast_as: Optional[Type] = None) -> cast_typeT:
         'hello world'
         >>> get_parameter('my_model_param', MyModel)
         MyModel(field1='value1', field2=2)
-        >>> get_parameter('my_dataclass_param', MyDataclass)
-        MyDataclass(field1='value1', field2=2)
+
     """
     params = parameters.get_user_set_parameters(remove=False)
 

@@ -8,8 +8,9 @@ from typing import Any, Dict, List, Optional, cast
 from pydantic import ConfigDict
 from rich import print
 
-from magnus import context, defaults, exceptions, integration, interaction, parameters, utils
+from magnus import context, defaults, exceptions, integration, parameters, utils
 from magnus.datastore import DataCatalog, RunLog, StepLog
+from magnus.defaults import TypeMapVariable
 from magnus.executor import BaseExecutor
 from magnus.extensions.nodes import TaskNode
 from magnus.graph import Graph
@@ -62,7 +63,16 @@ class GenericExecutor(BaseExecutor):
         """
         return os.environ.get("MAGNUS_RUN_ID", None)
 
-    def _get_parameters(self):
+    def _get_parameters(self) -> Dict[str, Any]:
+        """
+        Consolidate the parameters from the environment variables
+        and the parameters file.
+
+        The parameters defined in the environment variables take precedence over the parameters file.
+
+        Returns:
+            _type_: _description_
+        """
         params: Dict[str, Any] = {}
         if self._context.parameters_file:
             params.update(utils.load_yaml(self._context.parameters_file))
@@ -113,6 +123,7 @@ class GenericExecutor(BaseExecutor):
                 return
             raise
 
+        # Consolidate and get the parameters
         parameters = self._get_parameters()
 
         if self._context.use_cached:
@@ -273,7 +284,7 @@ class GenericExecutor(BaseExecutor):
         """
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
-    def _execute_node(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
+    def _execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         This is the entry point when we do the actual execution of the function.
         DO NOT Over-ride this function.
@@ -295,12 +306,14 @@ class GenericExecutor(BaseExecutor):
         """
         step_log = self._context.run_log_store.get_step_log(node._get_step_log_name(map_variable), self._context.run_id)
 
+        """
+        By now, all the parameters are part of the run log as a dictionary.
+        We set them as environment variables, serialized as json strings.
+        Since there is a possibility that parameters can be provided as environment variables in
+        3rd party executors, we need scan to keep a record of it in attempt logs.
+        """
         params = self._context.run_log_store.get_parameters(run_id=self._context.run_id)
-        # Set up environment variables for the execution
-        # If the key already exists, do not update it to give priority to parameters set by environment variables
-        interaction.store_parameter(**params)
-
-        parameters_in = parameters.get_user_set_parameters(remove=False)
+        parameters.set_user_defined_params_as_environment_variables(params, update=False)
 
         attempt = self.step_attempt_number
         logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}")
@@ -320,10 +333,11 @@ class GenericExecutor(BaseExecutor):
             raise Exception(msg) from e
         finally:
             attempt_log.attempt_number = attempt
-            attempt_log.parameters = parameters_in
+            attempt_log.parameters = params
             step_log.attempts.append(attempt_log)
 
             tracked_data = utils.get_tracked_data()
+            # By this point, the updated parameters are deserialized as json strings.
             parameters_out = parameters.get_user_set_parameters(remove=True)
 
             if attempt_log.status == defaults.FAIL:
@@ -334,7 +348,7 @@ class GenericExecutor(BaseExecutor):
                 step_log.status = defaults.SUCCESS
                 self._sync_catalog(step_log, stage="put", synced_catalogs=data_catalogs_get)
                 step_log.user_defined_metrics = tracked_data
-                diff_parameters = utils.diff_dict(parameters_in, parameters_out)
+                diff_parameters = utils.diff_dict(params, parameters_out)
                 self._context.run_log_store.set_parameters(self._context.run_id, diff_parameters)
 
             # Remove the step context
@@ -344,7 +358,7 @@ class GenericExecutor(BaseExecutor):
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
     @abstractmethod
-    def execute_node(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         The exposed method to executing a node.
         All implementations should implement this method.
@@ -370,7 +384,7 @@ class GenericExecutor(BaseExecutor):
         """
         step_log.code_identities.append(utils.get_git_code_identity())
 
-    def execute_from_graph(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
+    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         This is the entry point to from the graph execution.
 
@@ -429,7 +443,7 @@ class GenericExecutor(BaseExecutor):
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
         self.trigger_job(node=node, map_variable=map_variable, **kwargs)
 
-    def trigger_job(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
+    def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         Executor specific way of triggering jobs when magnus does both traversal and execution
 
@@ -445,7 +459,7 @@ class GenericExecutor(BaseExecutor):
         """
         pass
 
-    def _get_status_and_next_node_name(self, current_node: BaseNode, dag: Graph, map_variable: Optional[dict] = None):
+    def _get_status_and_next_node_name(self, current_node: BaseNode, dag: Graph, map_variable: TypeMapVariable = None):
         """
         Given the current node and the graph, returns the name of the next node to execute.
 
@@ -480,7 +494,7 @@ class GenericExecutor(BaseExecutor):
 
         return step_log.status, next_node_name
 
-    def execute_graph(self, dag: Graph, map_variable: Optional[dict] = None, **kwargs):
+    def execute_graph(self, dag: Graph, map_variable: TypeMapVariable = None, **kwargs):
         """
         The parallelization is controlled by the nodes and not by this function.
 
@@ -542,7 +556,7 @@ class GenericExecutor(BaseExecutor):
             run_log = self._context.run_log_store.get_run_log_by_id(run_id=self._context.run_id, full=True)
         print(json.dumps(run_log.model_dump(), indent=4))
 
-    def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: Optional[dict] = None):
+    def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
         necessary.
@@ -669,7 +683,7 @@ class GenericExecutor(BaseExecutor):
         """
         raise NotImplementedError
 
-    def fan_out(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None):
+    def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         This method is used to appropriately fan-out the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
@@ -701,7 +715,7 @@ class GenericExecutor(BaseExecutor):
 
         node.fan_out(executor=self, map_variable=map_variable)
 
-    def fan_in(self, node: BaseNode, map_variable: Optional[dict] = None):
+    def fan_in(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         This method is used to appropriately fan-in after the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.

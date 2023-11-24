@@ -1,8 +1,11 @@
 # mypy: ignore-errors
 # The above should be done until https://github.com/python/mypy/issues/8823
 from enum import Enum
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Union
 
+from typing_extensions import TypeAlias
+
+# TODO: This is not the correct way to do this.
 try:  # pragma: no cover
     from typing import TypedDict  # type: ignore[unused-ignore]
 except ImportError:  # pragma: no cover
@@ -38,6 +41,9 @@ class MagnusConfig(TypedDict, total=False):
     catalog: Optional[ServiceConfig]
     executor: Optional[ServiceConfig]
     experiment_tracker: Optional[ServiceConfig]
+
+
+TypeMapVariable: TypeAlias = Optional[Dict[str, Union[str, int, float]]]
 
 
 # Config file environment variable

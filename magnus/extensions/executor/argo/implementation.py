@@ -13,6 +13,7 @@ from ruamel.yaml import YAML
 from typing_extensions import Annotated
 
 from magnus import defaults, exceptions, integration, parameters, utils
+from magnus.defaults import TypeMapVariable
 from magnus.extensions.executor import GenericExecutor
 from magnus.extensions.nodes import DagNode, MapNode, ParallelNode
 from magnus.graph import Graph, create_node, search_node_by_internal_name
@@ -587,7 +588,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
         super().prepare_for_node_execution()
         self._set_up_run_log(exists_ok=True)
 
-    def execute_node(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         step_log = self._context.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
 
         self.add_code_identities(node=node, step_log=step_log)
@@ -614,7 +615,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
         if step_log.status == defaults.FAIL:
             raise Exception(f"Step {node.name} failed")
 
-    def fan_out(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None):
+    def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
         super().fan_out(node, map_variable)
 
         # If its a map node, write the list values to "/tmp/output.txt"
@@ -647,7 +648,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
 
         return self._clean_names[node.internal_name]
 
-    def compose_map_variable(self, list_of_iter_values: Optional[List] = None) -> OrderedDict:
+    def compose_map_variable(self, list_of_iter_values: Optional[List] = None) -> TypeMapVariable:
         map_variable = OrderedDict()
 
         # If we are inside a map node, compose a map_variable
@@ -656,7 +657,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
             for var in list_of_iter_values:
                 map_variable[var] = "{{inputs.parameters." + str(var) + "}}"
 
-        return map_variable
+        return map_variable  # type: ignore
 
     def create_container_template(
         self,
@@ -854,7 +855,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
         self._dag_templates.append(dag_template)
 
     def _get_template_defaults(self) -> UserControls:
-        template_defaults_keys = list(UserControls.__fields__.keys())  # type: ignore
+        template_defaults_keys = list(UserControls.model_fields.keys())
 
         user_provided_config = self.model_dump(by_alias=False)
         template_defaults_dict = {key: user_provided_config[key] for key in template_defaults_keys}

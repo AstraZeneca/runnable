@@ -1,7 +1,7 @@
 import logging
-from typing import Dict, Optional
 
 from magnus import defaults
+from magnus.defaults import TypeMapVariable
 from magnus.extensions.executor import GenericExecutor
 from magnus.extensions.nodes import TaskNode
 from magnus.nodes import BaseNode
@@ -26,7 +26,7 @@ class LocalExecutor(GenericExecutor):
 
     service_name: str = "local"
 
-    def trigger_job(self, node: BaseNode, map_variable: Optional[dict] = None, **kwargs):
+    def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         In this mode of execution, we prepare for the node execution and execute the node
 
@@ -37,7 +37,7 @@ class LocalExecutor(GenericExecutor):
         self.prepare_for_node_execution()
         self.execute_node(node=node, map_variable=map_variable, **kwargs)
 
-    def execute_node(self, node: BaseNode, map_variable: Optional[Dict[str, str]] = None, **kwargs):
+    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         For local execution, we just execute the node.
 

@@ -7,16 +7,17 @@ import os
 import subprocess
 from collections import OrderedDict
 from datetime import datetime
-from inspect import signature
 from pathlib import Path
 from string import Template as str_template
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Tuple, Union
 
+from pydantic.v1.utils import deep_update
 from ruamel.yaml import YAML
 from stevedore import driver
 
 import magnus.context as context
 from magnus import defaults, names
+from magnus.defaults import TypeMapVariable
 
 if TYPE_CHECKING:  # pragma: no cover
     from magnus.extensions.nodes import TaskNode
@@ -332,7 +333,8 @@ def get_tracked_data() -> Dict[str, str]:
 
 
 def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
-    """Given two dicts d1 and d2, return a new dict that has upsert items from d1.
+    """
+    Given two dicts d1 and d2, return a new dict that has upsert items from d1.
 
     Args:
         d1 (reference): The reference dict.
@@ -341,15 +343,7 @@ def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         dict: Any new or modified items in d2 in comparison to d1 would be sent back
     """
-    diff = {}
-
-    for k2, v2 in d2.items():
-        if k2 in d1 and d1[k2] != v2:
-            diff[k2] = v2
-            continue
-        diff[k2] = v2
-
-    return diff
+    return deep_update(d1, d2)
 
 
 def hash_bytestr_iter(bytesiter, hasher, ashexstr=True):  # pylint: disable=C0116
@@ -384,59 +378,9 @@ def get_data_hash(file_name: str):
     return hash_bytestr_iter(file_as_blockiter(open(file_name, "rb")), hashlib.sha256())  # pragma: no cover
 
 
-def filter_arguments_for_func(
-    func: Callable[[Any], Dict[str, Any]], parameters: Dict[str, Any], map_variable: Optional[Dict[str, str]] = None
-) -> Dict[str, Any]:
-    """Inspects the function to be called as part of the pipeline to find the arguments of the function.
-    Matches the function arguments to the parameters available either by command line or by up stream steps.
-
-    Args:
-        func (Callable): The function to inspect
-        parameters (dict): The parameters available for the run
-
-    Returns:
-        dict: The parameters matching the function signature
-    """
-    sign = signature(func)
-    return filter_arguments_from_parameters(
-        parameters=parameters,
-        signature_parameters=sign.parameters,
-        map_variable=map_variable,
-    )
-
-
-def filter_arguments_from_parameters(
-    parameters: Dict[str, Any],
-    signature_parameters: Union[List, Mapping],
-    map_variable: Optional[Dict[str, str]] = None,
-) -> dict:
-    """Filters the given parameters based on the signature of the function.
-
-    Args:
-        parameters (dict): All the parameters available for the run
-        signature_parameters (Union[List, Mapping]): The arguments of the function signature
-        map_variable (dict, optional): If the function is part of a map step. Defaults to None.
-
-    Returns:
-        dict: The filtered parameters of the function.
-    """
-    arguments = {}
-
-    for param, value in parameters.items():
-        if param in signature_parameters:
-            arguments[param] = value
-
-    if map_variable:
-        for iterate_as, value in map_variable.items():
-            if iterate_as in signature_parameters:
-                arguments[iterate_as] = value
-
-    return arguments
-
-
 def get_node_execution_command(
     node: BaseNode,
-    map_variable: Optional[Dict[str, str]] = None,
+    map_variable: TypeMapVariable = None,
     over_write_run_id: str = "",
 ) -> str:
     """A utility function to standardize execution call to a node via command line.
@@ -480,7 +424,7 @@ def get_fan_command(
     mode: str,
     node: BaseNode,
     run_id: str,
-    map_variable: Optional[Dict[str, str]] = None,
+    map_variable: TypeMapVariable = None,
 ) -> str:
     """
     An utility function to return the fan "in or out" command
@@ -624,7 +568,7 @@ def get_run_config() -> dict:
     return run_config
 
 
-def json_to_ordered_dict(json_str: str) -> OrderedDict:
+def json_to_ordered_dict(json_str: str) -> TypeMapVariable:
     """Decode a JSON str into OrderedDict.
 
     Args:
