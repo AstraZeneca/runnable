@@ -2,7 +2,7 @@ dag:
   description: |
     This is a simple pipeline that does 3 steps in sequence.
     In this example:
-      1. First step: returns a "parameter" x
+      1. First step: returns a "parameter" x as a Pydantic model
       2. Second step: Consumes that parameter and prints it
 
     This pipeline demonstrates one way to pass small data from one step to another.

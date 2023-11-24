@@ -32,3 +32,7 @@ or if you are using poetry
 ```shell
 poetry add "magnus[notebook]"
 ```
+
+## Extensions
+
+Magnus is designed to be extensible. Here are a few extensions available:

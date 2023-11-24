@@ -7,157 +7,145 @@ repo_url: https://github.com/AstraZeneca/magnus-core
 
 docs_dir: "docs"
 theme:
-    logo: assets/logo.png
-    favicon: assets/favicon.png
-    name: material
-    font:
-        code: Roboto Mono
-        text: Roboto
-    shortcuts:
-        help: 191 # ?
-        next: 78 # n
-        previous: 80 # p
-        search: 83 # s
-    palette:
-        - scheme: default
-          primary: amber
-          accent: red
-          toggle:
-              icon: material/lightbulb-outline
-              name: Switch to dark mode
-        - scheme: slate
-          primary: amber
-          accent: red
-          toggle:
-              icon: material/lightbulb
-              name: Switch to light mode
-    features:
-        - content.code.copy
-        - content.code.annotate
-        - header.autohide
-        - navigation.top
-        - toc.integrate
-        - toc.follow
-        - search.suggest
-        - navigation.tabs
-        - navigation.tabs.sticky
-        - navigation.sections
-        - navigation.expand
-        - navigation.instant
-        - navigation.instant.progress
-        - navigation.tracking
+      logo: assets/logo.png
+      favicon: assets/favicon.png
+      name: material
+      font:
+            code: Roboto Mono
+            text: Roboto
+      shortcuts:
+            help: 191 # ?
+            next: 78 # n
+            previous: 80 # p
+            search: 83 # s
+      palette:
+            - scheme: default
+              primary: amber
+              accent: red
+              toggle:
+                    icon: material/lightbulb-outline
+                    name: Switch to dark mode
+            - scheme: slate
+              primary: amber
+              accent: red
+              toggle:
+                    icon: material/lightbulb
+                    name: Switch to light mode
+      features:
+            - content.code.copy
+            - content.code.annotate
+            - header.autohide
+            - navigation.top
+            - toc.integrate
+            - toc.follow
+            - search.suggest
+            - navigation.tabs
+            - navigation.tabs.sticky
+            - navigation.sections
+            - navigation.expand
+            - navigation.instant
+            - navigation.instant.progress
+            - navigation.tracking
 
 # Extensions
 markdown_extensions:
-    - admonition
-    - def_list
-    - attr_list
-    - md_in_html
-    - pymdownx.details
-    - footnotes
-    - tables
-    - pymdownx.tasklist:
-          custom_checkbox: true
-    - pymdownx.tabbed:
-          alternate_style: true
-    - pymdownx.snippets:
-          base_path: "."
-          dedent_subsections: true
-    - pymdownx.inlinehilite
-    - pymdownx.highlight:
-          anchor_linenums: true
-          line_spans: __span
-          pygments_lang_class: true
-    - pymdownx.superfences:
-          custom_fences:
-              - name: mermaid
-                class: mermaid
-                format: !!python/name:pymdownx.superfences.fence_code_format
-    - pymdownx.caret
-    - pymdownx.mark
-    - pymdownx.tilde
-    - pymdownx.emoji:
-          emoji_index: !!python/name:materialx.emoji.twemoji
-          emoji_generator: !!python/name:materialx.emoji.to_svg
-    - toc:
-          permalink: true
-          separator: "_"
-          toc_depth: 2
+      - admonition
+      - def_list
+      - attr_list
+      - md_in_html
+      - pymdownx.details
+      - footnotes
+      - tables
+      - pymdownx.tasklist:
+              custom_checkbox: true
+      - pymdownx.tabbed:
+              alternate_style: true
+      - pymdownx.snippets:
+              base_path: "."
+              dedent_subsections: true
+      - pymdownx.inlinehilite
+      - pymdownx.highlight:
+              anchor_linenums: true
+              line_spans: __span
+              pygments_lang_class: true
+      - pymdownx.superfences:
+              custom_fences:
+                    - name: mermaid
+                      class: mermaid
+                      format: !!python/name:pymdownx.superfences.fence_code_format
+      - pymdownx.caret
+      - pymdownx.mark
+      - pymdownx.tilde
+      - pymdownx.emoji:
+              emoji_index: !!python/name:materialx.emoji.twemoji
+              emoji_generator: !!python/name:materialx.emoji.to_svg
+      - toc:
+              permalink: true
+              separator: "_"
+              toc_depth: 2
 
 plugins:
-    - search
-    - section-index
-    - mkdocstrings:
-          enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
-          default_handler: python
-          handlers:
-              python:
-                  options:
-                      show_source: false
-                      docstring_section_style: list
-                      allow_inspection: false
-                      show_signature_annotations: true
-                      separate_signature: true
+      - search
+      - section-index
+      - mkdocstrings:
+              enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+              default_handler: python
+              handlers:
+                    python:
+                          options:
+                                show_source: false
+                                docstring_section_style: list
+                                allow_inspection: false
+                                show_signature_annotations: true
+                                separate_signature: true
 
 nav:
-    - "Magnus":
-          - "Introduction": "index.md"
-          - "Example": "example.md"
-          - "Why magnus": "getting_started/why-magnus.md"
-    - "Getting started":
-          - "getting_started/installation.md"
-          - "Example Run": "getting_started/example.md"
-          - "Explanation - input": "getting_started/brief-concepts-input.md"
-          - "Explanation - output": "getting_started/brief-concepts-output.md"
-          - "Example Deployment": "getting_started/example-deployment.md"
-          - "Wrap up": "getting_started/wrap-up.md"
+      - "Magnus":
+              - "Introduction": "index.md"
+              - "Example": "example.md"
+              - "Why magnus": "why-magnus.md"
+              - "Installation": "installation.md"
+      - "Getting started":
+              - "Example Run": "getting_started/example.md"
+              - "Explanation - input": "getting_started/brief-concepts-input.md"
+              - "Explanation - output": "getting_started/brief-concepts-output.md"
+              - "Example Deployment": "getting_started/example-deployment.md"
+              - "Wrap up": "getting_started/wrap-up.md"
 
-    # - "Tutorial":
-    #     - "Overview": "tutorial/overview.md"
-    #     - "Single notebook": "tutorial/single-notebook.md"
-    #     - "Modular notebooks": "tutorial/modular-notebooks.md"
-    #     - "Switching configs": "tutorial/switching-configs.md"
-    #     - "Using parallels": "tutorial/using-parallel.md"
-    #     - "Dynamic looping": "tutorial/dynamic-looping.md"
-    #     - "Modular pipelines": "tutorial/modular-dags.md"
-    #     - "Script based": "tutorial/script-based.md"
-    #     - "What next?": "tutorial/wrap-up.md"
-    - "Concepts":
-          - "Node": "concepts/nodes.md"
-          - "Command types": "concepts/command-types.md"
-          - "Dag": "concepts/dag.md"
-          - "Catalog":
-                - "concepts/catalog.md"
-                - "Do Nothing Catalog": "concepts/catalog-implementations/do-nothing.md"
-                - "File System": "concepts/catalog-implementations/file-system.md"
-          - "Secrets":
-                - "concepts/secrets.md"
-                - "Dot Env": "concepts/secrets-implementations/dot-env.md"
-                - "Do Nothing": "concepts/secrets-implementations/do-nothing.md"
-                - "Env Secrets Manager": "concepts/secrets-implementations/env-secrets-manager.md"
-          - "Run Log":
-                - "concepts/run-log.md"
-                - "Buffered": "concepts/run-log-implementations/bufferred.md"
-                - "File System": "concepts/run-log-implementations/file-system.md"
-                - "Chunked File System": "concepts/run-log-implementations/chunked-fs.md"
-          - "Experiment Tracking":
-                - "concepts/experiment-tracking.md"
-          - "Integration":
-                - "concepts/integration.md"
-          - "Executors":
-                - "concepts/executor.md"
-                - "Local": "concepts/executor-implementations/local.md"
-                - "Local Container": "concepts/executor-implementations/local-container.md"
-                - "Demo Renderer": "concepts/executor-implementations/demo-renderer.md"
-    - "Command Line":
-          - "command-line.md"
-    - "Python API": "interactions.md"
-    - "How do I?":
-          - "how-do-i.md"
-    - "Examples":
-          - "examples.md"
-    - "Example":
-          - "generate.md"
-    - "Extensions":
-          - "extensions/extensions.md"
-    - "Releases": "RELEASES.md"
+      - "Concepts":
+              - "Node": "concepts/nodes.md"
+              - "Command types": "concepts/command-types.md"
+              - "Dag": "concepts/dag.md"
+              - "Catalog":
+                      - "concepts/catalog.md"
+                      - "Do Nothing Catalog": "concepts/catalog-implementations/do-nothing.md"
+                      - "File System": "concepts/catalog-implementations/file-system.md"
+              - "Secrets":
+                      - "concepts/secrets.md"
+                      - "Dot Env": "concepts/secrets-implementations/dot-env.md"
+                      - "Do Nothing": "concepts/secrets-implementations/do-nothing.md"
+                      - "Env Secrets Manager": "concepts/secrets-implementations/env-secrets-manager.md"
+              - "Run Log":
+                      - "concepts/run-log.md"
+                      - "Buffered": "concepts/run-log-implementations/bufferred.md"
+                      - "File System": "concepts/run-log-implementations/file-system.md"
+                      - "Chunked File System": "concepts/run-log-implementations/chunked-fs.md"
+              - "Experiment Tracking":
+                      - "concepts/experiment-tracking.md"
+              - "Integration":
+                      - "concepts/integration.md"
+              - "Executors":
+                      - "concepts/executor.md"
+                      - "Local": "concepts/executor-implementations/local.md"
+                      - "Local Container": "concepts/executor-implementations/local-container.md"
+                      - "Demo Renderer": "concepts/executor-implementations/demo-renderer.md"
+      - "Command Line":
+              - "command-line.md"
+      - "Python API": "interactions.md"
+      - "How do I?":
+              - "how-do-i.md"
+      - "Examples":
+              - "examples.md"
+      - "Extensions":
+              - "extensions/extensions.md"
+      - "Releases": "RELEASES.md"
