@@ -62,6 +62,7 @@ class TaskNode(ExecutableNode):
         Returns:
             StepAttempt: The attempt object
         """
+        print("Executing task:", self._context.executor._context_node)
         # Here is where the juice is
         attempt_log = self._context.run_log_store.create_attempt_log()
         try:

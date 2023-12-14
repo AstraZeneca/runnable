@@ -111,7 +111,7 @@ def apply_variables(apply_to: Dict[str, Any], variables: Dict[str, str]) -> Dict
     return json.loads(transformed)
 
 
-def get_module_and_func_names(command: str) -> Tuple[str, str]:
+def get_module_and_attr_names(command: str) -> Tuple[str, str]:
     """Given a string of module.function, this functions returns the module name and func names.
 
     It also checks to make sure that the string is of expected 'module.func' format

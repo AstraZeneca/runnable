@@ -52,13 +52,13 @@ def test_track_this_adds_step_if_non_zero():
 
 
 def test_store_paramenter_adds_values_to_environ():
-    interaction.store_parameter(a="b")
+    interaction.set_parameter(a="b")
     assert defaults.PARAMETER_PREFIX + "a" in os.environ
     del os.environ[defaults.PARAMETER_PREFIX + "a"]
 
 
 def test_store_parameter_adds_multiple_values_to_environ():
-    interaction.store_parameter(a="b", b="a")
+    interaction.set_parameter(a="b", b="a")
     assert defaults.PARAMETER_PREFIX + "a" in os.environ
     assert defaults.PARAMETER_PREFIX + "b" in os.environ
     del os.environ[defaults.PARAMETER_PREFIX + "a"]
@@ -68,7 +68,7 @@ def test_store_parameter_adds_multiple_values_to_environ():
 def test_store_parameter_updates_if_present_and_asked():
     os.environ[defaults.PARAMETER_PREFIX + "a"] = "b"
     os.environ[defaults.PARAMETER_PREFIX + "b"] = "a"
-    interaction.store_parameter(a="c", b="d")
+    interaction.set_parameter(a="c", b="d")
     assert json.loads(os.environ[defaults.PARAMETER_PREFIX + "a"]) == "c"
     assert json.loads(os.environ[defaults.PARAMETER_PREFIX + "b"]) == "d"
 

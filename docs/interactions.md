@@ -1,12 +1,24 @@
 # API Reference of Magnus functions
 
 
-::: magnus.interaction.get_parameter
+::: magnus.get_parameter
     options:
         show_root_heading: true
 
 ---
 
-::: magnus.interaction.store_parameter
+::: magnus.set_parameter
+    options:
+        show_root_heading: true
+
+---
+
+::: magnus.get_from_catalog
+    options:
+        show_root_heading: true
+
+---
+
+::: magnus.put_in_catalog
     options:
         show_root_heading: true

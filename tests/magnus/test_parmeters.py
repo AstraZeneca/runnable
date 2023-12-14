@@ -4,7 +4,6 @@ import logging
 import pytest
 
 from pydantic import BaseModel, ValidationError
-from dataclasses import dataclass
 
 from magnus import defaults
 from magnus.parameters import (
@@ -147,13 +146,13 @@ def test_filter_arguments_for_func_with_pydantic_model_arguments():
         a: int
         b: str
 
-    def func(a: MyModel, c: str):
+    def func(inner: MyModel, c: str):
         pass
 
-    params = {"a": 1, "b": "test", "c": "test"}
+    params = {"inner": {"a": 1, "b": "test"}, "c": "test"}
     bound_args = filter_arguments_for_func(func, params)
 
-    assert bound_args == {"a": MyModel(a=1, b="test"), "c": "test"}
+    assert bound_args == {"inner": MyModel(a=1, b="test"), "c": "test"}
 
 
 def test_filter_arguments_for_func_with_missing_arguments_but_defaults_present():
@@ -161,13 +160,13 @@ def test_filter_arguments_for_func_with_missing_arguments_but_defaults_present()
         a: int
         b: str
 
-    def func(a: MyModel, c: str = "test"):
+    def func(inner: MyModel, c: str = "test"):
         pass
 
-    params = {"a": 1, "b": "test"}
+    params = {"inner": {"a": 1, "b": "test"}}
     bound_args = filter_arguments_for_func(func, params)
 
-    assert bound_args == {"a": MyModel(a=1, b="test"), "c": "test"}
+    assert bound_args == {"inner": MyModel(a=1, b="test")}
 
 
 def test_filter_arguments_for_func_with_missing_arguments_and_no_defaults():
@@ -175,10 +174,10 @@ def test_filter_arguments_for_func_with_missing_arguments_and_no_defaults():
         a: int
         b: str
 
-    def func(a: MyModel, c: str):
+    def func(inner: MyModel, c: str):
         pass
 
-    params = {"a": 1, "b": "test"}
+    params = {"inner": {"a": 1, "b": "test"}}
     with pytest.raises(ValueError, match=r"Parameter c is required for func but not provided"):
         _ = filter_arguments_for_func(func, params)
 
@@ -188,10 +187,10 @@ def test_filter_arguments_for_func_with_map_variable_sent_in():
         a: int
         b: str
 
-    params = {"a": 1, "b": "test"}
+    params = {"inner": {"a": 1, "b": "test"}}
 
-    def func(a: MyModel, first: int, second: str):
+    def func(inner: MyModel, first: int, second: str):
         pass
 
     bound_args = filter_arguments_for_func(func, params, map_variable={"first": 1, "second": "test"})
-    assert bound_args == {"a": MyModel(a=1, b="test"), "first": 1, "second": "test"}
+    assert bound_args == {"inner": MyModel(a=1, b="test"), "first": 1, "second": "test"}

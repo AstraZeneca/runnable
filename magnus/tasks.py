@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, field_validator
 from stevedore import driver
@@ -77,7 +77,7 @@ class BaseTaskType(BaseModel):
         """
         raise NotImplementedError()
 
-    def _set_parameters(self, params: Optional[BaseModel] = None, **kwargs):
+    def _set_parameters(self, params: BaseModel, **kwargs):
         """Set the parameters back to the environment variables.
 
         Args:
@@ -88,9 +88,9 @@ class BaseTaskType(BaseModel):
             return
 
         if not isinstance(params, BaseModel):
-            raise ValueError("Output of a function must be a pydantic model")
+            raise ValueError("Output variable of a function can only be a pydantic model")
 
-        parameters.set_user_defined_params_as_environment_variables(params.model_dump(), update=True)
+        parameters.set_user_defined_params_as_environment_variables(params.model_dump(by_alias=True))
 
     @contextlib.contextmanager
     def output_to_file(self, map_variable: TypeMapVariable = None):
@@ -126,6 +126,18 @@ class BaseTaskType(BaseModel):
 # --8<-- [end:docs]
 
 
+class EasyModel(BaseModel):  # type: ignore
+    model_config = ConfigDict(extra="allow")
+
+
+def make_pydantic_model(
+    variables: Dict[str, Any],
+    prefix: str = "",
+) -> BaseModel:
+    prefix_removed = {utils.remove_prefix(k, prefix): v for k, v in variables.items()}
+    return EasyModel(**prefix_removed)
+
+
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """The task class for python command."""
 
@@ -150,7 +162,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
         """Execute the notebook as defined by the command."""
-        module, func = utils.get_module_and_func_names(self.command)
+        module, func = utils.get_module_and_attr_names(self.command)
         sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
         imported_module = importlib.import_module(module)
         f = getattr(imported_module, func)
@@ -165,7 +177,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
         with self.output_to_file(map_variable=map_variable) as _:
             try:
-                user_set_parameters: BaseModel = f(**filtered_parameters)
+                user_set_parameters = f(**filtered_parameters)
             except Exception as _e:
                 msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
                 logger.exception(msg)
@@ -317,7 +329,6 @@ class NotebookTaskType(BaseTaskType):
 class ShellTaskType(BaseTaskType):
     """
     The task class for shell based commands.
-    TODO: There is a way to read in parameters or tracking information from stdout and regex
     """
 
     task_type: str = Field(default="shell", serialization_alias="command_type")
@@ -343,8 +354,13 @@ class ShellTaskType(BaseTaskType):
         if map_variable:
             subprocess_env[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
+        command = self.command.strip() + " && env | grep MAGNUS"
+
+        output_parameters = {}
+        output_exp_trackers = {}
+
         with subprocess.Popen(
-            self.command,
+            command,
             shell=True,
             env=subprocess_env,
             stdout=subprocess.PIPE,
@@ -352,12 +368,27 @@ class ShellTaskType(BaseTaskType):
             universal_newlines=True,
         ) as proc, self.output_to_file(map_variable=map_variable) as _:
             for line in proc.stdout:  # type: ignore
+                if line.startswith(defaults.PARAMETER_PREFIX):
+                    key, value = line.strip().split("=", 1)
+                    output_parameters[key] = json.loads(value)
+
+                if line.startswith(defaults.TRACK_PREFIX):
+                    key, value = line.split("=", 1)
+                    output_exp_trackers[key] = json.loads(value)
+
                 logger.info(line)
                 print(line)
 
             proc.wait()
             if proc.returncode != 0:
                 raise Exception("Command failed")
+
+        self._set_parameters(
+            params=make_pydantic_model(
+                output_parameters,
+                defaults.PARAMETER_PREFIX,
+            )
+        )
 
 
 class ContainerTaskType(BaseTaskType):

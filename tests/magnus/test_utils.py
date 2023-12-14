@@ -73,13 +73,13 @@ def test_get_module_and_func_names_raises_exception_for_incorrect_command():
     command = "hello"
 
     with pytest.raises(Exception):
-        utils.get_module_and_func_names(command)
+        utils.get_module_and_attr_names(command)
 
 
 def test_get_module_and_func_names_returns_module_and_func_names():
     command = "module.func"
 
-    m, f = utils.get_module_and_func_names(command)
+    m, f = utils.get_module_and_attr_names(command)
 
     assert m == "module"
     assert f == "func"
@@ -88,7 +88,7 @@ def test_get_module_and_func_names_returns_module_and_func_names():
 def test_get_module_and_func_names_returns_module_and_func_names_inner():
     command = "module1.module2.func"
 
-    m, f = utils.get_module_and_func_names(command)
+    m, f = utils.get_module_and_attr_names(command)
 
     assert m == "module1.module2"
     assert f == "func"

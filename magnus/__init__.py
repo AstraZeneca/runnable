@@ -13,10 +13,10 @@ from magnus.interaction import (
     put_in_catalog,
     put_object,
     start_interactive_session,
-    store_parameter,
+    set_parameter,
     track_this,
 )  # noqa
-from magnus.sdk import Stub, Pipeline, Task, Parallel  # noqa
+from magnus.sdk import Stub, Pipeline, Task, Parallel, Catalog  # noqa
 
 
 # TODO: Think of model registry as a central place to store models.

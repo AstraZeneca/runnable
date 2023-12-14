@@ -309,17 +309,14 @@ class GenericExecutor(BaseExecutor):
         """
         By now, all the parameters are part of the run log as a dictionary.
         We set them as environment variables, serialized as json strings.
-        Since there is a possibility that parameters can be provided as environment variables in
-        3rd party executors, we need scan to keep a record of it in attempt logs.
         """
         params = self._context.run_log_store.get_parameters(run_id=self._context.run_id)
-        parameters.set_user_defined_params_as_environment_variables(params, update=False)
+        parameters.set_user_defined_params_as_environment_variables(params)
 
         attempt = self.step_attempt_number
         logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}")
 
         attempt_log = self._context.run_log_store.create_attempt_log()
-
         self._context_step_log = step_log
         self._context_node = node
 
@@ -333,7 +330,7 @@ class GenericExecutor(BaseExecutor):
             raise Exception(msg) from e
         finally:
             attempt_log.attempt_number = attempt
-            attempt_log.parameters = params
+            attempt_log.parameters = params.copy()
             step_log.attempts.append(attempt_log)
 
             tracked_data = utils.get_tracked_data()
@@ -345,6 +342,7 @@ class GenericExecutor(BaseExecutor):
                 step_log.status = defaults.FAIL
             else:
                 # TODO: Stub nodes should not sync back data
+                # TODO: Errors in catalog syncing should point to Fail step
                 step_log.status = defaults.SUCCESS
                 self._sync_catalog(step_log, stage="put", synced_catalogs=data_catalogs_get)
                 step_log.user_defined_metrics = tracked_data

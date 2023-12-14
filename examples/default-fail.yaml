@@ -8,7 +8,7 @@ dag:
 
     You can control the flow by using on_failure, please check example/on-failure.yaml
 
-    You can run this pipeline by magnus execute -f example/default-fail.yaml
+    You can run this pipeline by magnus execute -f examples/default-fail.yaml
   start_at: step 1
   steps:
     step 1:

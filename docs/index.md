@@ -66,5 +66,5 @@ of the provider, it exposes a consistent interface to those services, **this hol
   <figcaption></figcaption>
 </figure>
 
-The scope of magnus is intentionally limited. It does not boast of end to end development. The heavy lifting is always
-done by the providers.
+The scope of magnus is intentionally limited to aid during the model development phase.
+It does not boast of end to end development. The heavy lifting is always done by the providers.

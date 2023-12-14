@@ -4,6 +4,8 @@ dag:
     All the steps are mocked and they will just pass through.
     Use this pattern to define the skeleton of your pipeline and flesh out the steps later.
 
+    You can run this pipeline by magnus execute -f examples/contrived.yaml
+
   start_at: Acquire data
   steps:
     Acquire data:

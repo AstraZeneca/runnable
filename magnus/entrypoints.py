@@ -2,6 +2,8 @@ import json
 import logging
 from typing import List, Optional, cast
 
+from rich import print
+
 import magnus.context as context
 from magnus import defaults, exceptions, graph, utils
 from magnus.defaults import MagnusConfig, ServiceConfig
@@ -170,6 +172,9 @@ def execute(
         use_cached=use_cached,
         parameters_file=parameters_file,
     )
+    print("Working with context:")
+    print(run_context)
+
     executor = run_context.executor
 
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
@@ -218,6 +223,8 @@ def execute_single_step(
         use_cached="",
         parameters_file=parameters_file,
     )
+    print("Working with context:")
+    print(run_context)
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
@@ -271,6 +278,8 @@ def execute_single_node(
         use_cached="",
         parameters_file=parameters_file,
     )
+    print("Working with context:")
+    print(run_context)
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
@@ -325,6 +334,9 @@ def execute_single_brach(
         tag=tag,
         use_cached="",
     )
+    print("Working with context:")
+    print(run_context)
+
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
@@ -367,6 +379,9 @@ def execute_notebook(
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+
+    print("Working with context:")
+    print(run_context)
 
     step_config = {
         "command": notebook_file,
@@ -426,6 +441,9 @@ def execute_function(
 
     run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+
+    print("Working with context:")
+    print(run_context)
 
     # Prepare the graph with a single node
     step_config = {
@@ -490,6 +508,9 @@ def execute_container(
     run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
+    print("Working with context:")
+    print(run_context)
+
     # Prepare the graph with a single node
     step_config = {
         "image": image,
@@ -553,6 +574,9 @@ def fan(
         use_cached="",
         parameters_file=parameters_file,
     )
+    print("Working with context:")
+    print(run_context)
+
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)

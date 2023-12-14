@@ -10,7 +10,7 @@ dag:
 
     step 1 (FAIL) >> step 3 >> success
 
-    You can run this pipeline by magnus execute -f example/on-failure.yaml
+    You can run this pipeline by magnus execute -f examples/on-failure.yaml
   start_at: step 1
   steps:
     step 1:

@@ -6,22 +6,74 @@ from pydantic import BaseModel
 logger = logging.getLogger("application")
 logger.setLevel(logging.DEBUG)
 
-"""
-A lot of design is based on the idea that you should be able to call these functions independent of magnus.
-The below 2 functions are simple python functions that have no idea of where they would be run.
-"""
+
+class InnerModel(BaseModel):
+    """
+    A pydantic model representing a group of related parameters.
+    """
+
+    foo: int
+    bar: str
 
 
 class Parameter(BaseModel):
+    """
+    A pydantic model representing the parameters of the whole pipeline.
+    """
+
     x: int
+    y: InnerModel
 
 
 def return_parameter() -> Parameter:
+    """
+    A example python task that does something interesting and returns
+    a parameter to be used in downstream steps.
+
+    The annotation of the return type of the function is not mandatory
+    but it is a good practice.
+
+    Returns:
+        Parameter: The parameters that should be used in downstream steps.
+    """
     # Return type of a function should be a pydantic model
-    return Parameter(x=1)
+    return Parameter(x=1, y=InnerModel(foo=10, bar="hello world"))
 
 
-def get_parameter(model: Parameter):
-    # Input args can be a pydantic model or the individual attributes of the model.
-    # You can also do get_parameter(x: int). magnus will provide that parameter for you.
-    logger.info(f"I got a parameter: {model}")
+def display_parameter(x: int, y: InnerModel):
+    """
+    An example python task that does something interesting and displays
+    the parameters to be used in downstream steps.
+
+    Annotating the arguments of the function is important for
+    magnus to understand the type of parameters you want.
+
+    Without annotations, magnus would return a python dictionary.
+
+    Input args can be a pydantic model or the individual attributes of the non-nested model
+    """
+    print(x)
+    print(y)
+    logger.info(f"I got a parameter: {x}")
+    logger.info(f"I got another parameter: {y}")
+
+
+"""
+Note that there is no need to "import magnus" in your python code.
+Your application code can remain agnostic of magnus.
+
+For example, you can write your "driver" function as below which is
+not tied to any framework.
+"""
+
+
+def main():
+    """
+    This is not required for magnus to run!
+    """
+    my_param = return_parameter()
+    display_parameter(my_param.x, my_param.y)
+
+
+if __name__ == "__main__":
+    main()

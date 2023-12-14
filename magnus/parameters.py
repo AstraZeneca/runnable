@@ -42,7 +42,7 @@ def get_user_set_parameters(remove: bool = False) -> Dict[str, Any]:
     return parameters
 
 
-def set_user_defined_params_as_environment_variables(params: Dict[str, Any], update: bool = True):
+def set_user_defined_params_as_environment_variables(params: Dict[str, Any]):
     """
     Sets the user set parameters as environment variables.
 
@@ -56,9 +56,6 @@ def set_user_defined_params_as_environment_variables(params: Dict[str, Any], upd
     for key, value in params.items():
         logger.info(f"Storing parameter {key} with value: {value}")
         environ_key = defaults.PARAMETER_PREFIX + key
-
-        if environ_key in os.environ and not update:
-            continue
 
         os.environ[environ_key] = serialize_parameter_as_str(value)
 
@@ -147,20 +144,30 @@ def filter_arguments_for_func(
     unassigned_params = set(params.keys())
     bound_args = {}
     for name, value in function_args.items():
+        if name not in params:
+            # No parameter of this name was provided
+            if value.default == inspect.Parameter.empty:
+                # No default value is given in the function signature. error as parameter is required.
+                raise ValueError(f"Parameter {name} is required for {func.__name__} but not provided")
+            # default value is given in the function signature, nothing further to do.
+            continue
+
         if issubclass(value.annotation, BaseModel):
-            bound_model = bind_args_for_pydantic_model(params, value.annotation)
+            # We try to cast it as a pydantic model.
+            named_param = params[name]
+
+            if not isinstance(named_param, dict):
+                # A case where the parameter is a one attribute model
+                named_param = {name: named_param}
+
+            bound_model = bind_args_for_pydantic_model(named_param, value.annotation)
             bound_args[name] = bound_model
             unassigned_params = unassigned_params.difference(bound_model.model_fields.keys())
         else:
-            # No annotation is need, no casting required, we trust what we have stored before.
-            if name not in params:
-                if value.default == inspect.Parameter.empty:
-                    raise ValueError(f"Parameter {name} is required for {func.__name__} but not provided")
-                bound_args[name] = value.default
-                continue
-
+            # simple python data type.
             bound_args[name] = params[name]
-            unassigned_params.remove(name)
+
+        unassigned_params.remove(name)
 
         params = {key: params[key] for key in unassigned_params}  # remove keys from params if they are assigned
 

@@ -157,20 +157,18 @@ LOGGING_CONFIG = {
     },
     "handlers": {
         "default": {
-            "level": "INFO",
             "formatter": "standard",
             "class": "logging.StreamHandler",
             "stream": "ext://sys.stdout",  # Default is stderr
         },
         "magnus_handler": {
-            "level": LOG_LEVEL,
             "formatter": "magnus_formatter",
             "class": "rich.logging.RichHandler",
             "rich_tracebacks": True,
         },
     },
     "loggers": {
-        "": {"handlers": ["default"], "level": "WARNING", "propagate": False},  # Root logger
-        LOGGER_NAME: {"handlers": ["magnus_handler"], "level": LOG_LEVEL, "propagate": False},
+        "": {"handlers": ["default"], "propagate": False},  # Root logger
+        LOGGER_NAME: {"handlers": ["magnus_handler"], "propagate": False},
     },
 }

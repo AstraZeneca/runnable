@@ -21,7 +21,7 @@ dag:
     step 2:
       type: task
       command_type: python
-      command: examples.functions.get_parameter
+      command: examples.functions.display_parameter
       next: success
     success:
       type: success

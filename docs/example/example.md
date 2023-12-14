@@ -16,8 +16,8 @@ A contrived example of data science workflow without any implementation.
 
 ``` mermaid
 %%{ init: { 'flowchart': { 'curve': 'linear' } } }%%
-flowchart
-    direction LR
+flowchart TD
+
     step1:::green
     step1([Acquire data]) --> step2:::green
     step2([Prepare data]) --> step3:::green
@@ -53,6 +53,8 @@ This pipeline can be represented in **magnus** as below:
 
 
 === "Run log"
+
+    Please see [Reproducibility](../reproducibility) for more information.
 
     ```json
     {

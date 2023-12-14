@@ -7,7 +7,7 @@ dag:
     Use this pattern to define the skeleton of your pipeline and flesh out the steps later.
 
     You can run this pipeline by:
-       magnus execute -f example/parallel.yaml
+       magnus execute -f examples/parallel.yaml
   start_at: step 1
   steps:
     step 1:

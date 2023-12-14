@@ -1,5 +1,8 @@
 # Why Magnus
 
+As observed from the examples, the core design idea is to remove the orchestration framework from your application
+code as much as possible. We think that this tenant
+
 Magnus is never set out to replace  production grade orchestrators like AWS Step functions or argo. These
 orchestrators are proven to be robust and are constantly improved to align to best practices. We agree that, we should
 always use these tools for production grade deployments.

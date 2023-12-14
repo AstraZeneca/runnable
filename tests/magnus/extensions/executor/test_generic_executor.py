@@ -636,9 +636,6 @@ def test_execute_node_calls_store_parameter_with_update_false(mocker, monkeypatc
     test_executor._execute_node(mock_node)
 
     args, kwargs = mock_parameters.set_user_defined_params_as_environment_variables.call_args
-    print(kwargs)
-    print(args)
-    assert kwargs["update"] == False
     assert args[0] == {"a": 1}
 
 

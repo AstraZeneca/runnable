@@ -11,7 +11,7 @@ dag:
     to mock steps within mature pipelines.
 
     You can run this pipeline by:
-       magnus execute -f example/mocking.yaml
+       magnus execute -f examples/mocking.yaml
   start_at: step 1
   steps:
     step 1:
