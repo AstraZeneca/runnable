@@ -1,0 +1,4 @@
+secrets:
+  type: dotenv # (1)
+  config:
+    location: examples/secrets.env # (2)

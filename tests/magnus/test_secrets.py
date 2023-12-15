@@ -23,14 +23,9 @@ def test_base_secrets_get_raises_not_implemented_error(instantiable_base_class):
     base_secret = secrets.BaseSecrets()
 
     with pytest.raises(NotImplementedError):
-        base_secret.get()
+        base_secret.get(name="secret")
 
 
 def test_do_nothing_secrets_handler_returns_none_if_name_provided(mocker, monkeypatch):
     dummy_secret = secrets.DoNothingSecretManager()
     assert dummy_secret.get("I dont exist") == ""
-
-
-def test_do_nothing__handler_returns_empty_dict_if_name_not_provided(mocker, monkeypatch):
-    dummy_secret = secrets.DoNothingSecretManager()
-    assert dummy_secret.get() == {}

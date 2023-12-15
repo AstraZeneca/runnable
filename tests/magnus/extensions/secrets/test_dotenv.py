@@ -2,8 +2,8 @@ import pytest
 
 from magnus import defaults, exceptions
 
-from magnus.extensions.secrets.dot_env.implementation import DotEnvSecrets
-import magnus.extensions.secrets.dot_env.implementation as implementation
+from magnus.extensions.secrets.dotenv.implementation import DotEnvSecrets
+import magnus.extensions.secrets.dotenv.implementation as implementation
 
 
 def test_dot_env_secrets_defaults_to_default_location_if_none_provided(mocker, monkeypatch):
@@ -14,15 +14,6 @@ def test_dot_env_secrets_defaults_to_default_location_if_none_provided(mocker, m
 def test_dot_env_secrets_usees_location_if_provided(mocker, monkeypatch):
     dot_env_secret = DotEnvSecrets(location="here")
     assert dot_env_secret.location == "here"
-
-
-def test_dot_env_secrets_get_returns_all_secrets_if_no_name_provided(mocker, monkeypatch):
-    monkeypatch.setattr(DotEnvSecrets, "_load_secrets", mocker.MagicMock())
-
-    dot_env_secret = DotEnvSecrets(location="here")
-    dot_env_secret.secrets = {"secret": "TopSecret"}
-
-    assert dot_env_secret.get() == {"secret": "TopSecret"}
 
 
 def test_dot_env_secrets_get_returns_secret_if_one_provided(mocker, monkeypatch):

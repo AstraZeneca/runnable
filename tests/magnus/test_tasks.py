@@ -223,7 +223,6 @@ def test_shell_task_type_can_gather_env_vars_on_return(mocker, monkeypatch):
     shell_task = tasks.ShellTaskType(
         command="export MAGNUS_PRM_x=1",
         node_name="dummy",
-        cast_as="tests.magnus.test_tasks.ParamModel",
     )
 
     shell_task.execute_command()

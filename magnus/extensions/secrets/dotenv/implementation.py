@@ -1,5 +1,5 @@
 import logging
-from typing import Union
+import os
 
 from magnus import defaults, exceptions, utils
 from magnus.secrets import BaseSecrets
@@ -34,8 +34,10 @@ class DotEnvSecrets(BaseSecrets):
         """
         We assume that a dotenv file is of format,
             key=value  -> secrets[key]='value'
-            key1=value1# comment  -> secrets[key1]='value1'
-            key2=value2 # comment. -> secrets[key2]='value2'
+            key=value# comment  -> secrets[key1]='value1'
+            key=value2 # comment. -> secrets[key2]='value2'
+
+        Any of the above formats with export or set in front of them.
 
         We strip the secret value of any empty spaces at the start and end.
 
@@ -53,18 +55,33 @@ class DotEnvSecrets(BaseSecrets):
 
         with open(secrets_location, "r") as fr:
             for secret_line in fr:
-                secret_line = secret_line.split("#")[0]  #  To remove any comments the user might have put
+                # The order of removing fluff around the expression
+                # the new line
+                # the comment
+                # the white space
+                # Any export or set in front of the key any spaces after that.
+
+                secret_line = secret_line.strip(os.linesep).split("#")[0].strip()
+
+                if secret_line == "":
+                    continue
+
+                secret_line = utils.remove_prefix(secret_line, prefix="export").strip()
+                secret_line = utils.remove_prefix(secret_line, prefix="EXPORT").strip()
+                secret_line = utils.remove_prefix(secret_line, prefix="set").strip()
+                secret_line = utils.remove_prefix(secret_line, prefix="SET").strip()
+
                 data = secret_line.split("=")
                 if len(data) != 2:
                     raise Exception("A secret should be of format, secret_name=secret_value[# any comment]")
-                key, value = data
-                self.secrets[key] = value.strip("\n")
 
-    def get(self, name: str = "", **kwargs) -> Union[str, dict]:
+                key, value = data
+                self.secrets[key] = value.strip().strip('"').strip(os.linesep)
+
+    def get(self, name: str = "", **kwargs) -> str:
         """
         Get a secret of name from the secrets file.
 
-        If no name is provided, we return all
 
         Args:
             name (str): The name of the secret to retrieve
@@ -73,14 +90,11 @@ class DotEnvSecrets(BaseSecrets):
             Exception: If the secret by the name is not found.
 
         Returns:
-            [type]: [description]
+            str: The value of the secret
         """
         self._load_secrets()
-        if not name:
-            return self.secrets
 
         if name in self.secrets:
             return self.secrets[name]
 
-        secrets_location = self.secrets_location
-        raise exceptions.SecretNotFoundError(secret_name=name, secret_setting=secrets_location)
+        raise exceptions.SecretNotFoundError(secret_name=name, secret_setting=self.secrets_location)

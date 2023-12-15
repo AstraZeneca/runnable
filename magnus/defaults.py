@@ -168,7 +168,10 @@ LOGGING_CONFIG = {
         },
     },
     "loggers": {
-        "": {"handlers": ["default"], "propagate": False},  # Root logger
-        LOGGER_NAME: {"handlers": ["magnus_handler"], "propagate": False},
+        "": {
+            "handlers": ["default"],
+            "propagate": True,
+        },  # Root logger
+        LOGGER_NAME: {"handlers": ["magnus_handler"], "propagate": True},
     },
 }

@@ -43,7 +43,8 @@ def main():
     pipeline = Pipeline(steps=[create, retrieve], start_at=create, add_terminal_nodes=True)
 
     # Override the default configuration file with the one that has file-system as the catalog.
-    pipeline.execute(configuration_file="examples/configs/fs-catalog.yaml")
+    run_log = pipeline.execute(configuration_file="examples/configs/fs-catalog.yaml")
+    print(run_log)
 
 
 if __name__ == "__main__":

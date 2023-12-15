@@ -45,7 +45,7 @@ def test_env_secrets_returns_matched_secrets_with_suffix(monkeypatch):
 
     manager = EnvSecretsManager(suffix="_SUFFIX")
 
-    assert manager.get() == {"TEST_SECRET": "test_secret"}
+    assert manager.get("TEST_SECRET") == "test_secret"
 
 
 def test_env_secrets_returns_matched_secrets_with_prefix(monkeypatch):

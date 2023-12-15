@@ -145,29 +145,28 @@ def get_parameter(key: Optional[str] = None, cast_as: Optional[CastT] = None) ->
 
     if not key:
         # Return all parameters
-        return cast(CastT, parameters.cast_parameters_as_type(params, cast_as))
+        return cast(CastT, parameters.cast_parameters_as_type(params, cast_as))  # type: ignore
 
     if key not in params:
         raise Exception(f"Parameter {key} is not set before")
 
     # Return the parameter value, casted as asked.
-    return cast(CastT, parameters.cast_parameters_as_type(params[key], cast_as))
+    return cast(CastT, parameters.cast_parameters_as_type(params[key], cast_as))  # type: ignore
 
 
 @check_context
-def get_secret(secret_name: str = "") -> str | Dict[str, str]:
+def get_secret(secret_name: str) -> str:
     """
-    Get a secret by the name from the secrets manager
+    Retrieve a secret from the secret store.
 
     Args:
-        secret_name (str): The name of the secret to get. Defaults to None.
-
-    Returns:
-        str: The secret from the secrets manager, if exists. If the requested secret was None, we return all.
-        Otherwise, raises exception.
+        secret_name (str): The name of the secret to retrieve.
 
     Raises:
-        exceptions.SecretNotFoundError: Secret not found in the secrets manager.
+        SecretNotFoundError: If the secret does not exist in the store.
+
+    Returns:
+        str: The secret value.
     """
     secrets_handler = context.run_context.secrets_handler
     try:

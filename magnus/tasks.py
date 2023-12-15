@@ -126,7 +126,7 @@ class BaseTaskType(BaseModel):
 # --8<-- [end:docs]
 
 
-class EasyModel(BaseModel):  # type: ignore
+class EasyModel(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 

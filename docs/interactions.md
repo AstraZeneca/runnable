@@ -22,3 +22,9 @@
 ::: magnus.put_in_catalog
     options:
         show_root_heading: true
+
+---
+
+::: magnus.get_secret
+    options:
+        show_root_heading: true

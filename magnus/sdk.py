@@ -14,6 +14,7 @@ from magnus import defaults, entrypoints, graph, utils
 from magnus.extensions.nodes import FailNode, ParallelNode, StubNode, SuccessNode, TaskNode
 from magnus.nodes import TraversalNode
 
+dictConfig(defaults.LOGGING_CONFIG)
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 StepType = Union["Stub", "Task", "Success", "Fail", "Parallel"]
@@ -203,8 +204,6 @@ class Pipeline(BaseModel):
 
         This method should be beefed up as the use cases grow.
         """
-        dictConfig(defaults.LOGGING_CONFIG)
-        logger = logging.getLogger(defaults.LOGGER_NAME)
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)

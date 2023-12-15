@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import Union
 
 from magnus import defaults, exceptions
 from magnus.secrets import BaseSecrets
@@ -19,7 +18,7 @@ class EnvSecretsManager(BaseSecrets):
     prefix: str = ""
     suffix: str = ""
 
-    def get(self, name: str = "", **kwargs) -> Union[str, dict]:
+    def get(self, name: str = "", **kwargs) -> str:
         """
         If a name is provided, we look for that in the environment.
         If a environment variable by that name is not found, we raise an Exception.
@@ -35,17 +34,9 @@ class EnvSecretsManager(BaseSecrets):
         Returns:
             [type]: [description]
         """
-        if name:
-            try:
-                return os.environ[f"{self.prefix}{name}{self.suffix}"]
-            except KeyError as _e:
-                logger.exception(f"Secret {self.prefix}{name}{self.suffix} not found in environment")
-                raise exceptions.SecretNotFoundError(secret_name=name, secret_setting="environment") from _e
 
-        matched_secrets = {}
-        for key in os.environ:
-            if key.startswith(self.prefix) and key.endswith(self.suffix):
-                up_to = len(key) - len(self.suffix) if self.suffix else len(key)
-                matched_secrets[key[len(self.prefix) : up_to]] = os.environ[key]
-
-        return matched_secrets
+        try:
+            return os.environ[f"{self.prefix}{name}{self.suffix}"]
+        except KeyError as _e:
+            logger.exception(f"Secret {self.prefix}{name}{self.suffix} not found in environment")
+            raise exceptions.SecretNotFoundError(secret_name=name, secret_setting="environment") from _e

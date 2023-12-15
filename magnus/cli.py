@@ -53,7 +53,6 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cach
     Ensure that the catalogs and run logs are accessible by the present configuration.
     """
     logger.setLevel(log_level)
-    print(logger.__dict__)
     entrypoints.execute(
         configuration_file=config_file,
         pipeline_file=file,

@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 import importlib
+import logging
 
 from magnus.entrypoints import execute
 from magnus import exceptions
@@ -48,6 +49,7 @@ python_examples = [
     ("parameters_api", False),
     ("parameters", False),
     ("python-tasks", False),
+    ("secrets", False),
 ]
 
 
@@ -58,14 +60,14 @@ def list_python_examples():
 
 @pytest.mark.parametrize("example", list_python_examples())
 @pytest.mark.no_cover
-def test_python_examples(example):
+def test_python_examples(example, caplog):
     print(f"Testing {example}...")
 
     mod, status = example
 
     imported_module = importlib.import_module(f"examples.{mod}")
     f = getattr(imported_module, "main")
-
+    caplog.set_level(logging.INFO, logger="")
     try:
         f()
     except exceptions.ExecutionFailedError:

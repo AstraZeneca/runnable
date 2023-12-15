@@ -77,7 +77,11 @@ def main():
         add_terminal_nodes=True,
     )
 
-    pipeline.execute()
+    run_log = pipeline.execute(parameters_file="examples/parameters_initial.yaml")
+    params = run_log.parameters
+
+    assert params["simple"] == 2
+    assert params["inner"] == {"x": 30, "y": "world!!"}
 
 
 if __name__ == "__main__":

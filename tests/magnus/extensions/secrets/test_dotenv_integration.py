@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from magnus.extensions.secrets.dot_env import integration
+from magnus.extensions.secrets.dotenv import integration
 
 
 def test_validate_issues_warning(mocker, caplog):

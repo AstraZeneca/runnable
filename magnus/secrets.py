@@ -1,11 +1,11 @@
 import logging
+import os
 from abc import ABC, abstractmethod
-from typing import Union
 
 from pydantic import BaseModel, ConfigDict
 
 import magnus.context as context
-from magnus import defaults
+from magnus import defaults, exceptions
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -33,16 +33,16 @@ class BaseSecrets(ABC, BaseModel):
         return context.run_context
 
     @abstractmethod
-    def get(self, name: str = "", **kwargs) -> Union[str, dict]:
+    def get(self, name: str, **kwargs) -> str:
         """
         Return the secret by name.
-        If no name is give, return all the secrets.
 
         Args:
             name (str): The name of the secret to return.
 
         Raises:
             NotImplementedError: Base class and hence not implemented.
+            exceptions.SecretNotFoundError: Secret not found in the secrets manager.
         """
         raise NotImplementedError
 
@@ -57,7 +57,7 @@ class DoNothingSecretManager(BaseSecrets):
 
     service_name: str = "do-nothing"
 
-    def get(self, name: str = "", **kwargs) -> Union[str, dict]:
+    def get(self, name: str, **kwargs) -> str:
         """
         If a name is provided, return None else return empty dict.
 
@@ -65,11 +65,35 @@ class DoNothingSecretManager(BaseSecrets):
             name (str): The name of the secret to retrieve
 
         Raises:
-            Exception: If the secret by the name is not found.
+            exceptions.SecretNotFoundError: Secret not found in the secrets manager.
 
         Returns:
-            [type]: [description]
+            [str]: The value of the secret
         """
-        if name:
-            return ""
-        return {}
+        return ""
+
+
+class EnvSecretsManager(BaseSecrets):
+    """
+    A secret manager which uses environment variables for secrets.
+    """
+
+    service_name: str = "env-secrets"
+
+    def get(self, name: str, **kwargs) -> str:
+        """
+        If a name is provided, return None else return empty dict.
+
+        Args:
+            name (str): The name of the secret to retrieve
+
+        Raises:
+            exceptions.SecretNotFoundError: Secret not found in the secrets manager.
+
+        Returns:
+            [str]: The value of the secret
+        """
+        try:
+            return os.environ[name]
+        except KeyError:
+            raise exceptions.SecretNotFoundError(secret_name=name, secret_setting="environment variables")
