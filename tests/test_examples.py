@@ -19,6 +19,9 @@ examples = [
     ("python-tasks.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
     ("catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
     ("parameters_env.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
+    ("retry-fail.yaml", True, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
+    ("retry-fixed.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
+    ("pipelines/traversal.yaml", False, {}),
 ]
 
 
@@ -46,10 +49,12 @@ python_examples = [
     ("catalog_api", False),
     ("contrived", False),
     ("mocking", False),
+    ("on_failure", False),
     ("parameters_api", False),
     ("parameters", False),
     ("python-tasks", False),
     ("secrets", False),
+    ("pipelines.traversal", False),
 ]
 
 
@@ -67,7 +72,6 @@ def test_python_examples(example, caplog):
 
     imported_module = importlib.import_module(f"examples.{mod}")
     f = getattr(imported_module, "main")
-    caplog.set_level(logging.INFO, logger="")
     try:
         f()
     except exceptions.ExecutionFailedError:

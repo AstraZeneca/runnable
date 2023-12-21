@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import magnus.context as context
 from magnus import defaults, exceptions
@@ -83,7 +83,7 @@ class StepLog(BaseModel):
     attempts: List[StepAttempt] = []
     user_defined_metrics: dict = {}
     branches: Dict[str, BranchLog] = {}  # Keyed in by the branch key name
-    data_catalog: List[DataCatalog] = []
+    data_catalog: List[DataCatalog] = Field(default_factory=list)
 
     def get_data_catalogs_by_stage(self, stage="put") -> List[DataCatalog]:
         """
@@ -115,6 +115,7 @@ class StepLog(BaseModel):
         Args:
             dict_catalogs ([DataCatalog]): A list of data catalog items
         """
+
         if not self.data_catalog:
             self.data_catalog = []
         for data_catalog in data_catalogs:

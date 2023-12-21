@@ -245,7 +245,7 @@ class GenericExecutor(BaseExecutor):
             else:
                 raise Exception(f"Invalid stage: {stage}")
             logger.info(f"Added data catalog: {data_catalog} to step log")
-            data_catalogs.append(data_catalog)
+            data_catalogs.extend(data_catalog)
 
         if data_catalogs:
             step_log.add_data_catalogs(data_catalogs)

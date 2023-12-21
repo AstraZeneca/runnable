@@ -1,5 +1,4 @@
 import logging
-from logging.config import dictConfig
 
 import click
 from click_plugins import with_plugins
@@ -7,7 +6,6 @@ from pkg_resources import iter_entry_points
 
 from magnus import defaults, entrypoints
 
-dictConfig(defaults.LOGGING_CONFIG)
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, field_validator
+from pydantic._internal._model_construction import ModelMetaclass
 from stevedore import driver
 
 import magnus.context as context
@@ -87,8 +88,8 @@ class BaseTaskType(BaseModel):
         if not params:
             return
 
-        if not isinstance(params, BaseModel):
-            raise ValueError("Output variable of a function can only be a pydantic model")
+        if not isinstance(params, BaseModel) or isinstance(params, ModelMetaclass):
+            raise ValueError("Output variable of a function can only be a pydantic model or dynamic model.")
 
         parameters.set_user_defined_params_as_environment_variables(params.model_dump(by_alias=True))
 
@@ -102,7 +103,7 @@ class BaseTaskType(BaseModel):
         """
         from magnus import put_in_catalog  # Causing cyclic imports
 
-        log_file_name = self.node_name.replace(" ", "_")
+        log_file_name = self.node_name.replace(" ", "_") + ".execution.log"
         if map_variable:
             for _, value in map_variable.items():
                 log_file_name += "_" + str(value)

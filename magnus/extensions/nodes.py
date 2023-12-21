@@ -659,14 +659,11 @@ class StubNode(ExecutableNode):
     """
     Stub is a convenience design node.
 
-    It always returns success in the attempt log and does nothing during interactive compute.
+    It always returns success in the attempt log and does nothing.
 
-    The command given to execute is ignored but it does do the syncing of the catalog.
     This node is very similar to pass state in Step functions.
 
     This node type could be handy when designing the pipeline and stubbing functions
-
-    But in render mode for job specification of a 3rd party orchestrator, this node comes handy.
     """
 
     node_type: str = Field(default="stub", serialization_alias="type")

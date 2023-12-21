@@ -1,0 +1,11 @@
+dag:
+  start_at: simple
+  steps:
+    simple:
+      command: "examples.concepts.simple_function"
+      command_type: python
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail

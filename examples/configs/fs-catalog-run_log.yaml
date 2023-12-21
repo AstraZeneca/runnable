@@ -1,0 +1,7 @@
+catalog:
+  type: file-system # (1)
+  config:
+    compute_data_folder: . # (2)
+
+run_log_store:
+  type: file-system # (1)

@@ -331,7 +331,7 @@ def test_sync_catalog_calls_get_from_catalog_handler(mocker, monkeypatch, mock_r
     monkeypatch.setattr(GenericExecutor, "get_effective_compute_data_folder", mock_get_effective_compute_folder)
 
     mock_catalog_handler_get = mocker.MagicMock()
-    mock_catalog_handler_get.return_value = "data_catalog"
+    mock_catalog_handler_get.return_value = ["data_catalog"]
     mock_run_context.catalog_handler.get = mock_catalog_handler_get
     mock_run_context.run_id = "run_id"
 
@@ -353,7 +353,7 @@ def test_sync_catalog_calls_get_from_catalog_handler_as_per_input(mocker, monkey
     monkeypatch.setattr(GenericExecutor, "get_effective_compute_data_folder", mock_get_effective_compute_folder)
 
     mock_catalog_handler_get = mocker.MagicMock()
-    mock_catalog_handler_get.return_value = "data_catalog"
+    mock_catalog_handler_get.return_value = ["data_catalog"]
     mock_run_context.catalog_handler.get = mock_catalog_handler_get
     mock_run_context.run_id = "run_id"
 
@@ -375,7 +375,7 @@ def test_sync_catalog_calls_put_from_catalog_handler(mocker, monkeypatch, mock_r
     monkeypatch.setattr(GenericExecutor, "get_effective_compute_data_folder", mock_get_effective_compute_folder)
 
     mock_catalog_handler_put = mocker.MagicMock()
-    mock_catalog_handler_put.return_value = "data_catalog"
+    mock_catalog_handler_put.return_value = ["data_catalog"]
     mock_run_context.catalog_handler.put = mock_catalog_handler_put
     mock_run_context.run_id = "run_id"
 
@@ -399,7 +399,7 @@ def test_sync_catalog_calls_put_from_catalog_handler_as_per_input(mocker, monkey
     monkeypatch.setattr(GenericExecutor, "get_effective_compute_data_folder", mock_get_effective_compute_folder)
 
     mock_catalog_handler_put = mocker.MagicMock()
-    mock_catalog_handler_put.return_value = "data_catalog"
+    mock_catalog_handler_put.return_value = ["data_catalog"]
     mock_run_context.catalog_handler.put = mock_catalog_handler_put
     mock_run_context.run_id = "run_id"
 
@@ -421,7 +421,7 @@ def test_sync_catalog_calls_put_sends_synced_catalogs_to_catalog_handler(mocker,
     monkeypatch.setattr(GenericExecutor, "get_effective_compute_data_folder", mock_get_effective_compute_folder)
 
     mock_catalog_handler_put = mocker.MagicMock()
-    mock_catalog_handler_put.return_value = "data_catalog"
+    mock_catalog_handler_put.return_value = ["data_catalog"]
     mock_run_context.catalog_handler.put = mock_catalog_handler_put
     mock_run_context.run_id = "run_id"
 
@@ -647,7 +647,7 @@ def test_execute_node_raises_exception_if_node_execute_raises_one(mocker, monkey
     mock_node = mocker.MagicMock()
     mock_node.execute.side_effect = Exception()
 
-    with caplog.at_level(logging.ERROR) and pytest.raises(Exception):
+    with caplog.at_level(logging.ERROR, logger="magnus") and pytest.raises(Exception):
         test_executor._execute_node(mock_node)
 
     assert "This is clearly magnus fault, " in caplog.text

@@ -206,8 +206,13 @@ class FileSystemCatalog(BaseCatalog):
             )
             raise Exception(msg)
 
-        cataloged_files = (catalog_location / previous_run_id).glob("**/**")
+        cataloged_files = list((catalog_location / previous_run_id).glob("**/*"))
 
         for cataloged_file in cataloged_files:
-            shutil.copy(cataloged_file, run_catalog)
+            if str(cataloged_file).endswith("execution.log"):
+                continue
+            if cataloged_file.is_file():
+                shutil.copy(cataloged_file, run_catalog / cataloged_file.name)
+            else:
+                shutil.copytree(cataloged_file, run_catalog / cataloged_file.name)
             logger.info(f"Copied file from: {cataloged_file} to {run_catalog}")

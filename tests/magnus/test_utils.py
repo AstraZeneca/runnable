@@ -366,6 +366,8 @@ def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch
 
 
 def test_get_node_execution_command_returns_magnus_execute(mocker, monkeypatch):
+    import logging
+
     mock_context = mocker.MagicMock()
     mock_context.run_context.run_id = "test_run_id"
     mock_context.run_context.pipeline_file = "test_pipeline_file"
@@ -375,6 +377,10 @@ def test_get_node_execution_command_returns_magnus_execute(mocker, monkeypatch):
 
     monkeypatch.setattr(utils, "context", mock_context)
 
+    logger = logging.getLogger(name="magnus")
+    old_level = logger.level
+    logger.setLevel(defaults.LOG_LEVEL)
+
     class MockNode:
         internal_name = "test_node_id"
 
@@ -382,14 +388,19 @@ def test_get_node_execution_command_returns_magnus_execute(mocker, monkeypatch):
             return "test_node_id"
 
     test_map_variable = {"a": "b"}
-    assert utils.get_node_execution_command(MockNode(), map_variable=test_map_variable) == (
-        "magnus execute_single_node test_run_id test_node_id "
-        f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
-        "--parameters-file test_parameters_file --tag test_tag"
-    )
+    try:
+        assert utils.get_node_execution_command(MockNode(), map_variable=test_map_variable) == (
+            "magnus execute_single_node test_run_id test_node_id "
+            f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
+            "--parameters-file test_parameters_file --tag test_tag"
+        )
+    finally:
+        logger.setLevel(old_level)
 
 
 def test_get_node_execution_command_overwrites_run_id_if_asked(mocker, monkeypatch):
+    import logging
+
     mock_context = mocker.MagicMock()
     mock_context.run_context.run_id = "test_run_id"
     mock_context.run_context.pipeline_file = "test_pipeline_file"
@@ -405,12 +416,21 @@ def test_get_node_execution_command_overwrites_run_id_if_asked(mocker, monkeypat
         def _command_friendly_name(self):
             return "test_node_id"
 
+    logger = logging.getLogger(name="magnus")
+    old_level = logger.level
+    logger.setLevel(defaults.LOG_LEVEL)
+
     test_map_variable = {"a": "b"}
-    assert utils.get_node_execution_command(MockNode(), map_variable=test_map_variable, over_write_run_id="this") == (
-        "magnus execute_single_node this test_node_id "
-        f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
-        "--parameters-file test_parameters_file --tag test_tag"
-    )
+    try:
+        assert utils.get_node_execution_command(
+            MockNode(), map_variable=test_map_variable, over_write_run_id="this"
+        ) == (
+            "magnus execute_single_node this test_node_id "
+            f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
+            "--parameters-file test_parameters_file --tag test_tag"
+        )
+    finally:
+        logger.setLevel(old_level)
 
 
 def test_get_service_base_class_throws_exception_for_unknown_service():

@@ -96,12 +96,12 @@ def set_parameter(**kwargs) -> None:
 
 
 @overload
-def get_parameter(key, cast_as: CastT) -> CastT:
+def get_parameter(key: str, cast_as: Optional[CastT]) -> CastT:
     ...
 
 
 @overload
-def get_parameter(*, cast_as: CastT) -> CastT:
+def get_parameter(cast_as: Optional[CastT]) -> CastT:
     ...
 
 

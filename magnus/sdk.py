@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from logging.config import dictConfig
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_validator, model_validator
 from rich import print
 from typing_extensions import Self
 
@@ -14,18 +12,37 @@ from magnus import defaults, entrypoints, graph, utils
 from magnus.extensions.nodes import FailNode, ParallelNode, StubNode, SuccessNode, TaskNode
 from magnus.nodes import TraversalNode
 
-dictConfig(defaults.LOGGING_CONFIG)
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 StepType = Union["Stub", "Task", "Success", "Fail", "Parallel"]
 TraversalTypes = Union["Stub", "Task", "Parallel"]
 
 
+ALLOWED_COMMAND_TYPES = ["shell", "python", "notebook"]
+
+
 class Catalog(BaseModel):
+    """
+    Use to instruct a task to sync data from/to the central catalog.
+
+    Args:
+        compute_data_folder (str): The reference path, from the root of the project, to get/put the data.
+            Defaults to the compute_data_folder defined at the catalog settings.
+        get (List[str]): List of glob patterns to get from central catalog to the compute data folder.
+        put (List[str]): List of glob patterns to put into central catalog from the compute data folder.
+
+    Examples:
+        >>> from magnus import Catalog, Task
+        >>> catalog = Catalog(compute_data_folder="/path/to/data", get=["*.csv"], put=["*.csv"])
+
+        >>> task = Task(name="task", catalog=catalog)
+
+    """
+
     model_config = ConfigDict(extra="forbid")  # Need to be for command, would be validated later
     compute_data_folder: str = Field(default="", alias="compute_data_folder")
-    get: List[Union[str, Path]] = Field(default_factory=list, alias="get")
-    put: List[Union[str, Path]] = Field(default_factory=list, alias="put")
+    get: List[str] = Field(default_factory=list, alias="get")
+    put: List[str] = Field(default_factory=list, alias="put")
 
 
 class BaseTraversal(ABC, BaseModel):
@@ -87,10 +104,32 @@ class BaseTraversal(ABC, BaseModel):
 
 
 class Task(BaseTraversal):
-    model_config = ConfigDict(extra="allow")  # Need to be for command, would be validated later
+    model_config = ConfigDict(use_enum_values=True)  # Need to be for command, would be validated later
     command: str = Field(alias="command")
-    command_type: str = Field(alias="command_type", default="python")
+    command_type: str = Field(default="python")
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
+
+    notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path")
+    optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
+
+    @field_validator("command_type", mode="after")
+    @classmethod
+    def validate_command_type(cls, value: str) -> str:
+        if value not in ALLOWED_COMMAND_TYPES:
+            raise ValueError(f"Invalid command_type: {value}")
+        return value
+
+    @model_validator(mode="after")
+    def check_notebook_args(self) -> "Task":
+        if self.command_type != "notebook":
+            assert (
+                self.notebook_output_path is None
+            ), "Only command_types of 'notebook' can be used with notebook_output_path"
+
+            assert (
+                self.optional_ploomber_args is None
+            ), "Only command_types of 'notebook' can be used with optional_ploomber_args"
+        return self
 
     def create_node(self) -> TaskNode:
         if not self.next_node:
@@ -162,7 +201,6 @@ class Pipeline(BaseModel):
     start_at: TraversalTypes
     name: str = ""
     description: str = ""
-    max_time: int = defaults.MAX_TIME
     add_terminal_nodes: bool = True  # Adds "success" and "fail" nodes
 
     internal_branch_name: str = ""
@@ -176,7 +214,6 @@ class Pipeline(BaseModel):
         self._dag = graph.Graph(
             start_at=self.start_at.name,
             description=self.description,
-            max_time=self.max_time,
             internal_branch_name=self.internal_branch_name,
         )
 
@@ -198,6 +235,7 @@ class Pipeline(BaseModel):
         run_id: str = "",
         tag: str = "",
         parameters_file: str = "",
+        use_cached: str = "",
         log_level: str = defaults.LOG_LEVEL,
     ):
         """Execute the pipeline.
@@ -212,6 +250,7 @@ class Pipeline(BaseModel):
             run_id=run_id,
             tag=tag,
             parameters_file=parameters_file,
+            use_cached=use_cached,
         )
 
         run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value

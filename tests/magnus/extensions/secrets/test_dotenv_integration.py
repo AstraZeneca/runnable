@@ -10,7 +10,7 @@ def test_validate_issues_warning(mocker, caplog):
 
     test_integration = integration.LocalContainerComputeDotEnvSecrets(mock_executor, mock_dot_env_secrets)
 
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.WARNING, logger="magnus"):
         test_integration.validate()
 
     assert "Using dot env for non local deployments is not ideal" in caplog.text

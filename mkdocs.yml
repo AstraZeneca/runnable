@@ -34,6 +34,7 @@ theme:
   features:
     - content.code.copy
     - content.code.annotate
+    - content.tabs.link
     - header.autohide
     - navigation.top
     - toc.integrate
@@ -115,7 +116,23 @@ nav:
           - "Experiment tracking": "example/experiment-tracking.md"
           - "Secrets": "example/secrets.md"
           - "Reproducibility": "example/reproducibility.md"
+          - "Retry failures": "example/retry-after-failure.md"
       - "Why magnus?": "why-magnus.md"
+  - "Concepts":
+      - "Pipeline": "concepts/pipeline.md"
+      - "Parameters": "concepts/parameters.md"
+      - "Nodes":
+          - "Stub": "concepts/stub.md"
+          - "Task": "concepts/task.md"
+          - "Parallel": "concepts/parallel.md"
+          - "Map": "concepts/map.md"
+          - "Dag": "concepts/dag.md"
+  - "Configurations":
+      - "Executor": "configurations/executor.md"
+      - "Run log": "configurations/run-log.md"
+      - "Catalog": "configurations/catalog.md"
+      - "Secrets": "configurations/secrets.md"
+      - "Experiment tracking": "configurations/experiment-tracking.md"
   #       - "Installation": "installation.md"
   # # - "Getting started":
   #     - "Example Run": "getting_started/example.md"

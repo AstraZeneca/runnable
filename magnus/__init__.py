@@ -1,6 +1,13 @@
 # ruff: noqa
 
 # TODO: Might need to add Rich to pyinstaller part
+import logging
+from logging.config import dictConfig
+
+from magnus import defaults
+
+dictConfig(defaults.LOGGING_CONFIG)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 from magnus.interaction import (
     end_interactive_session,

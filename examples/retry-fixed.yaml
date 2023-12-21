@@ -24,15 +24,10 @@ dag:
       command_type: shell
       command: |
         echo "Hello from magnus" >> data/hello.txt
-      next: Clean up to get again
+      next: Retrieve Content
       catalog: # (2)
         put:
           - data/hello.txt
-    Clean up to get again:
-      type: task # (3)
-      command_type: shell
-      command: rm -rf data
-      next: Retrieve Content
     Retrieve Content:
       type: task
       command_type: shell
@@ -41,11 +36,6 @@ dag:
         compute_data_folder: data # (5)
         get:
           - "hello.txt" # You can use wild cards following glob pattern
-      next: Clean up
-    Clean up:
-      type: task # (6)
-      command_type: shell
-      command: rm -rf data
       next: success
     success:
       type: success

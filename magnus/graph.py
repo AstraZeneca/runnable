@@ -23,7 +23,6 @@ class Graph(BaseModel):
     start_at: str
     name: str = ""
     description: Optional[str] = ""
-    max_time: int = 86400
     internal_branch_name: str = ""
     nodes: Dict[str, "BaseNode"] = Field(default_factory=dict, serialization_alias="steps")
 
