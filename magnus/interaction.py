@@ -9,7 +9,7 @@ from typing import Any, ContextManager, Dict, Optional, TypeVar, Union, cast, ov
 
 import magnus.context as context
 from magnus import defaults, exceptions, parameters, pickler, utils
-from magnus.datastore import StepLog
+from magnus.datastore import RunLog, StepLog
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -279,6 +279,17 @@ def get_run_id() -> str:
     Returns the run_id of the current run
     """
     return context.run_context.run_id
+
+
+@check_context
+def get_run_log() -> RunLog:
+    """
+    Returns the run_log of the current run
+    """
+    return context.run_context.run_log_store.get_run_log_by_id(
+        context.run_context.run_id,
+        full=True,
+    )
 
 
 @check_context

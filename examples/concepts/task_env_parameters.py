@@ -28,7 +28,7 @@ def modify_initial():
 
     # modify parameters
     os.environ["MAGNUS_PRM_spam"] = "World"
-    os.environ["MAGNUS_PRM_eggs"] = json.dumps(eggs.model_dump_json(by_alias=True))
+    os.environ["MAGNUS_PRM_eggs"] = json.dumps(eggs.model_dump(by_alias=True))
 
 
 def consume():

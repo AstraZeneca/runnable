@@ -15,7 +15,7 @@ In **magnus**, we use the words
 
 
 Dag or directed acyclic graphs are a way to define your pipelines.
-Its a graph representation of the series of tasks you want to perform and the order of it.
+Its a graph representation of the list of tasks you want to perform and the order of it.
 
 
 <br>

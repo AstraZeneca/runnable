@@ -1,3 +1,4 @@
+import ast
 import contextlib
 import importlib
 import io
@@ -249,8 +250,11 @@ class NotebookTaskType(BaseTaskType):
 
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
-    notebook_output_path: str = ""
+    notebook_output_path: str = Field(default="", validate_default=True)
+    output_cell_tag: str = Field(default="magnus_output", validate_default=True)
     optional_ploomber_args: dict = {}
+
+    _output_tag: str = "magnus_output"
 
     @field_validator("command")
     @classmethod
@@ -274,6 +278,23 @@ class NotebookTaskType(BaseTaskType):
 
     def get_cli_options(self) -> Tuple[str, dict]:
         return "notebook", {"command": self.command, "notebook-output-path": self.notebook_output_path}
+
+    def _parse_notebook_for_output(self, notebook: Any):
+        collected_params = {}
+
+        for cell in notebook.cells:
+            d = cell.dict()
+            # identify the tags attached to the cell.
+            tags = d.get("metadata", {}).get("tags", {})
+            if self.output_cell_tag in tags:
+                # There is a tag that has output
+                outputs = d["outputs"]
+
+                for out in outputs:
+                    params = out.get("text", "{}")
+                    collected_params.update(ast.literal_eval(params))
+
+        return collected_params
 
     def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
         """Execute the python notebook as defined by the command.
@@ -310,11 +331,15 @@ class NotebookTaskType(BaseTaskType):
                 "log_output": True,
                 "progress_bar": False,
             }
-
             kwds.update(ploomber_optional_args)
 
+            collected_params: Dict[str, Any] = {}
             with self.output_to_file(map_variable=map_variable) as _:
-                pm.execute_notebook(**kwds)
+                out = pm.execute_notebook(**kwds)
+                collected_params = self._parse_notebook_for_output(out)
+
+            collected_params_model = make_pydantic_model(collected_params)
+            self._set_parameters(collected_params_model)
 
             put_in_catalog(notebook_output_path)
             if map_variable:
@@ -356,6 +381,7 @@ class ShellTaskType(BaseTaskType):
             subprocess_env[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
 
         command = self.command.strip() + " && env | grep MAGNUS"
+        logger.info(f"Executing shell command: {command}")
 
         output_parameters = {}
         output_exp_trackers = {}
@@ -365,20 +391,23 @@ class ShellTaskType(BaseTaskType):
             shell=True,
             env=subprocess_env,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stderr=subprocess.PIPE,
             universal_newlines=True,
         ) as proc, self.output_to_file(map_variable=map_variable) as _:
             for line in proc.stdout:  # type: ignore
+                logger.info(line)
+                print(line)
+
                 if line.startswith(defaults.PARAMETER_PREFIX):
                     key, value = line.strip().split("=", 1)
-                    output_parameters[key] = json.loads(value)
+                    try:
+                        output_parameters[key] = json.loads(value)
+                    except json.JSONDecodeError:
+                        output_parameters[key] = value  # simple data types
 
                 if line.startswith(defaults.TRACK_PREFIX):
                     key, value = line.split("=", 1)
                     output_exp_trackers[key] = json.loads(value)
-
-                logger.info(line)
-                print(line)
 
             proc.wait()
             if proc.returncode != 0:

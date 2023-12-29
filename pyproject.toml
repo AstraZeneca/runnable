@@ -17,7 +17,7 @@ pydantic = "^2.3"
 stevedore = "^3.5.0"
 "click" = "*"
 click-plugins = "^1.1.1"
-ploomber-engine ={ version= "^0.0.19", optional = true, python = ">=3.8,<4.0" }
+ploomber-engine ={ version= "^0.0.31", optional = true, python = ">=3.8,<4.0" }
 typing-extensions ={ version= "*", python = "<3.8" }
 docker ={ version = "*", optional = true }
 sqlalchemy ={ version = "*", optional = true }
@@ -28,6 +28,7 @@ mkdocs = "*"
 mkdocs-material = "*"
 mkdocs-section-index = "^0.3.5"
 mkdocstrings = {extras = ["python"], version = "^0.24.0"}
+nbconvert = "^7.13.1"
 
 [tool.poetry.group.binary.dependencies]
 pyinstaller = "^5.13.2"

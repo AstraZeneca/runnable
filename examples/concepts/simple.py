@@ -11,7 +11,7 @@ def simple_function():
 def main():
     simple_task = Task(
         name="simple",
-        command="examples.concepts.simple_function",
+        command="examples.concepts.simple.simple_function",
         terminate_with_success=True,
     )
 

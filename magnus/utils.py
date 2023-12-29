@@ -11,7 +11,6 @@ from pathlib import Path
 from string import Template as str_template
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Tuple, Union
 
-from pydantic.v1.utils import deep_update
 from ruamel.yaml import YAML
 from stevedore import driver
 
@@ -343,7 +342,15 @@ def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         dict: Any new or modified items in d2 in comparison to d1 would be sent back
     """
-    return deep_update(d1, d2)
+    diff = {}
+
+    for k2, v2 in d2.items():
+        if k2 in d1 and d1[k2] != v2:
+            diff[k2] = v2
+            continue
+        diff[k2] = v2
+
+    return diff
 
 
 def hash_bytestr_iter(bytesiter, hasher, ashexstr=True):  # pylint: disable=C0116

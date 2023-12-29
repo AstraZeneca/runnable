@@ -111,6 +111,7 @@ class Task(BaseTraversal):
 
     notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path")
     optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
+    output_cell_tag: Optional[str] = Field(default=None, alias="output_cell_tag")
 
     @field_validator("command_type", mode="after")
     @classmethod
@@ -129,6 +130,8 @@ class Task(BaseTraversal):
             assert (
                 self.optional_ploomber_args is None
             ), "Only command_types of 'notebook' can be used with optional_ploomber_args"
+
+            assert self.output_cell_tag is None, "Only command_types of 'notebook' can be used with output_cell_tag"
         return self
 
     def create_node(self) -> TaskNode:

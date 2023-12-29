@@ -78,8 +78,8 @@ markdown_extensions:
   - pymdownx.mark
   - pymdownx.tilde
   - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - toc:
       permalink: true
       separator: "_"
@@ -100,8 +100,8 @@ plugins:
             show_signature_annotations: true
             separate_signature: true
 
-extra_javascript:
-  - https://unpkg.com/mermaid@9.2/dist/mermaid.min.js
+# extra_javascript:
+#   - https://unpkg.com/mermaid@9.2/dist/mermaid.min.js
 
 extra_css:
   - css/extra.css
@@ -121,6 +121,8 @@ nav:
   - "Concepts":
       - "Pipeline": "concepts/pipeline.md"
       - "Parameters": "concepts/parameters.md"
+      - "Run log": "concepts/run-log.md"
+      - "Catalog": "concepts/catalog.md"
       - "Nodes":
           - "Stub": "concepts/stub.md"
           - "Task": "concepts/task.md"
