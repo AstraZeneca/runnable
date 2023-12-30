@@ -10,182 +10,253 @@ when running the ```command``` of a task.
 
 === "pipeline"
 
-  ```python
-  --8<-- "examples/concepts/simple.py"
-  ```
+    This is the same example [described in tasks](../task/#shell).
+
+    tl;dr a pipeline that consumes some initial parameters and passes them
+    to the next step. Both the steps are ```shell``` based tasks.
+
+    ```yaml
+    --8<-- "examples/concepts/task_shell_parameters.yaml"
+    ```
+
 
 === "Run log"
 
-  ```json
-  {
-    "run_id": "acidic-sammet-0543",
-    "dag_hash": "",
-    "use_cached": false,
-    "tag": "",
-    "original_run_id": "",
-    "status": "SUCCESS",
-    "steps": {
-        "simple": {
-            "name": "simple",
-            "internal_name": "simple",
-            "status": "SUCCESS",
-            "step_type": "task",
-            "message": "",
-            "mock": false,
-            "code_identities": [
-                {
-                    "code_identifier": "e95f858f1d4c45bbb2ffb5af9605243d038fa7c5",
-                    "code_identifier_type": "git",
-                    "code_identifier_dependable": false,
-                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
-                    "code_identifier_message": "changes found in docs/.DS_Store, docs/concepts/parallel.md, docs/concepts/pipeline.md, docs/concepts/task.md,
-docs/css/extra.css, examples/concepts/simple.py, examples/concepts/task_env_parameters.py, examples/parallel.yaml, magnus/interaction.py, magnus/sdk.py,
-magnus/tasks.py, magnus/utils.py, mkdocs.yml, poetry.lock, pyproject.toml"
-                }
-            ],
-            "attempts": [
-                {
-                    "attempt_number": 1,
-                    "start_time": "2023-12-29 05:43:31.080242",
-                    "end_time": "2023-12-29 05:43:31.088223",
-                    "duration": "0:00:00.007981",
-                    "status": "SUCCESS",
-                    "message": "",
-                    "parameters": {}
-                }
-            ],
-            "user_defined_metrics": {},
-            "branches": {},
-            "data_catalog": [
-                {
-                    "name": "simple.execution.log",
-                    "data_hash": "03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340",
-                    "catalog_relative_path": "acidic-sammet-0543/simple.execution.log",
-                    "catalog_handler_location": ".catalog",
-                    "stage": "put"
-                }
-            ]
-        },
-        "success": {
-            "name": "success",
-            "internal_name": "success",
-            "status": "SUCCESS",
-            "step_type": "success",
-            "message": "",
-            "mock": false,
-            "code_identities": [
-                {
-                    "code_identifier": "e95f858f1d4c45bbb2ffb5af9605243d038fa7c5",
-                    "code_identifier_type": "git",
-                    "code_identifier_dependable": false,
-                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
-                    "code_identifier_message": "changes found in docs/.DS_Store, docs/concepts/parallel.md, docs/concepts/pipeline.md, docs/concepts/task.md,
-docs/css/extra.css, examples/concepts/simple.py, examples/concepts/task_env_parameters.py, examples/parallel.yaml, magnus/interaction.py, magnus/sdk.py,
-magnus/tasks.py, magnus/utils.py, mkdocs.yml, poetry.lock, pyproject.toml"
-                }
-            ],
-            "attempts": [
-                {
-                    "attempt_number": 1,
-                    "start_time": "2023-12-29 05:43:31.154782",
-                    "end_time": "2023-12-29 05:43:31.154839",
-                    "duration": "0:00:00.000057",
-                    "status": "SUCCESS",
-                    "message": "",
-                    "parameters": {}
-                }
-            ],
-            "user_defined_metrics": {},
-            "branches": {},
-            "data_catalog": []
-        }
-    },
-    "parameters": {},
-    "run_config": {
-        "executor": {
-            "service_name": "local",
-            "service_type": "executor",
-            "enable_parallel": false,
-            "placeholders": {}
-        },
-        "run_log_store": {
-            "service_name": "buffered",
-            "service_type": "run_log_store"
-        },
-        "secrets_handler": {
-            "service_name": "do-nothing",
-            "service_type": "secrets"
-        },
-        "catalog_handler": {
-            "service_name": "file-system",
-            "service_type": "catalog",
-            "compute_data_folder": "data"
-        },
-        "experiment_tracker": {
-            "service_name": "do-nothing",
-            "service_type": "experiment_tracker"
-        },
-        "pipeline_file": "",
-        "parameters_file": "",
-        "configuration_file": "",
-        "tag": "",
-        "run_id": "acidic-sammet-0543",
-        "variables": {},
-        "use_cached": false,
-        "original_run_id": "",
-        "dag": {
-            "start_at": "simple",
-            "name": "",
-            "description": "",
-            "internal_branch_name": "",
-            "steps": {
-                "simple": {
-                    "type": "task",
-                    "name": "simple",
-                    "internal_name": "simple",
-                    "internal_branch_name": "",
-                    "is_composite": false
-                },
-                "success": {
-                    "type": "success",
-                    "name": "success",
-                    "internal_name": "success",
-                    "internal_branch_name": "",
-                    "is_composite": false
-                },
-                "fail": {
-                    "type": "fail",
-                    "name": "fail",
-                    "internal_name": "fail",
-                    "internal_branch_name": "",
-                    "is_composite": false
-                }
-            }
-        },
-        "dag_hash": "",
-        "execution_plan": "chained"
+    Please look into the inline annotations for more information about the different fields.
+
+    ```json linenums="1"
+    {
+      "run_id": "affable-babbage-0545",
+      "dag_hash": "",
+      "use_cached": false,
+      "tag": "",
+      "original_run_id": "",
+      "status": "SUCCESS",
+      "steps": {
+          "simple": {
+              "name": "simple",
+              "internal_name": "simple",
+              "status": "SUCCESS",
+              "step_type": "task",
+              "message": "",
+              "mock": false,
+              "code_identities": [
+                  {
+                      "code_identifier": "2d1951a9126c213cf9db917a4f17a72b51557181",
+                      "code_identifier_type": "git",
+                      "code_identifier_dependable": true,
+                      "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                      "code_identifier_message": ""
+                  }
+              ],
+              "attempts": [
+                  {
+                      "attempt_number": 1,
+                      "start_time": "2023-12-29 05:45:26.785469",
+                      "end_time": "2023-12-29 05:45:26.789541",
+                      "duration": "0:00:00.004072",
+                      "status": "SUCCESS",
+                      "message": "",
+                      "parameters": {}
+                  }
+              ],
+              "user_defined_metrics": {},
+              "branches": {},
+              "data_catalog": [
+                  {
+                      "name": "simple.execution.log",
+                      "data_hash": "03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340",
+                      "catalog_relative_path": "affable-babbage-0545/simple.execution.log",
+                      "catalog_handler_location": ".catalog",
+                      "stage": "put"
+                  }
+              ]
+          },
+          "success": {
+              "name": "success",
+              "internal_name": "success",
+              "status": "SUCCESS",
+              "step_type": "success",
+              "message": "",
+              "mock": false,
+              "code_identities": [
+                  {
+                      "code_identifier": "2d1951a9126c213cf9db917a4f17a72b51557181",
+                      "code_identifier_type": "git",
+                      "code_identifier_dependable": true,
+                      "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                      "code_identifier_message": ""
+                  }
+              ],
+              "attempts": [
+                  {
+                      "attempt_number": 1,
+                      "start_time": "2023-12-29 05:45:26.854451",
+                      "end_time": "2023-12-29 05:45:26.854503",
+                      "duration": "0:00:00.000052",
+                      "status": "SUCCESS",
+                      "message": "",
+                      "parameters": {}
+                  }
+              ],
+              "user_defined_metrics": {},
+              "branches": {},
+              "data_catalog": []
+          }
+      },
+      "parameters": {},
+      "run_config": {
+          "executor": {
+              "service_name": "local",
+              "service_type": "executor",
+              "enable_parallel": false,
+              "placeholders": {}
+          },
+          "run_log_store": {
+              "service_name": "buffered",
+              "service_type": "run_log_store"
+          },
+          "secrets_handler": {
+              "service_name": "do-nothing",
+              "service_type": "secrets"
+          },
+          "catalog_handler": {
+              "service_name": "file-system",
+              "service_type": "catalog",
+              "compute_data_folder": "data"
+          },
+          "experiment_tracker": {
+              "service_name": "do-nothing",
+              "service_type": "experiment_tracker"
+          },
+          "pipeline_file": "",
+          "parameters_file": "",
+          "configuration_file": "",
+          "tag": "",
+          "run_id": "affable-babbage-0545",
+          "variables": {},
+          "use_cached": false,
+          "original_run_id": "",
+          "dag": {
+              "start_at": "simple",
+              "name": "",
+              "description": "",
+              "internal_branch_name": "",
+              "steps": {
+                  "simple": {
+                      "type": "task",
+                      "name": "simple",
+                      "internal_name": "simple",
+                      "internal_branch_name": "",
+                      "is_composite": false
+                  },
+                  "success": {
+                      "type": "success",
+                      "name": "success",
+                      "internal_name": "success",
+                      "internal_branch_name": "",
+                      "is_composite": false
+                  },
+                  "fail": {
+                      "type": "fail",
+                      "name": "fail",
+                      "internal_name": "fail",
+                      "internal_branch_name": "",
+                      "is_composite": false
+                  }
+              }
+          },
+          "dag_hash": "",
+          "execution_plan": "chained"
+      }
     }
-  }
-  ```
+    ```
 
 
-## Structure of Run Log
+In the above example,
 
-A typical run log has the following structure, with a few definitions given inline.
+- ```run_id```: Defined in line #2, is a a unique id generated for every execution of the pipeline.
+- ```use_cached```: in line #4, is the execution id of an older run that is being restarted in the current execution.
+- ```tag```: A user defined label to be attached to an execution of the pipeline to contextually group executions.
+This label can also be used to group experiments of experiment tracking tools like
+[mlflow](https://mlflow.org/docs/latest/tracking/tracking-api.html#organizing-runs-in-experiments).
+- ```status```: In line #7, defines the global status of the execution. ``` SUCCESS``, ```PROCESSING``` or ```FAILED``
+are the three possible states.
+- ```steps```: From lines 8- 79, capture the logs of individual steps of the execution. It is a mapping of
+name of the step to a [step og](#step_log)
+- ```parameters```: In line #80, are the final state of parameters used during the execution.
+- ```run_config```: From line #81 to end, capture the configuration used during the execution. It details the
+configuration of different services (executor, catalog, secrets handler etc) and also the pipeline definition. This
+is the internal representation of the execution.
 
-```json
-{
-    "run_id": ,
-    "dag_hash": , # The SHA id of the dag definition
-    "use_cached": , # True for a re-run, False otherwise
-    "tag": , # A friendly name given to a group of runs
-    "original_run_id": , # The run id of the older run in case of a re-run
-    "status": ,
-    "steps": {},
-    "parameters": {},
-    "variables": {}
-}
+
+!!! tip
+
+    The system generated ```run_id``` is always appended with the time of execution. Use this to distinguish
+    between execution id's during rapid experimentation.
+
+    In the above example, the ```run_id```, "affable-babbage-0545" is executed at 05:45.
+
+
+## Step Log
+
+The step log captures the information about the execution of the steps. It is mapping indexed by the name of the step
+in the pipeline and is ordered chronologically by the start time of the execution of the step.
+
+### Example
+
+A snippet from the above example:
+
+```json linenums="1"
+"steps": {
+  "simple": {
+      "name": "simple",
+      "internal_name": "simple",
+      "status": "SUCCESS",
+      "step_type": "task",
+      "message": "",
+      "mock": false,
+      "code_identities": [
+          {
+              "code_identifier": "2d1951a9126c213cf9db917a4f17a72b51557181",
+              "code_identifier_type": "git",
+              "code_identifier_dependable": true,
+              "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+              "code_identifier_message": ""
+          }
+      ],
+      "attempts": [
+          {
+              "attempt_number": 1,
+              "start_time": "2023-12-29 05:45:26.785469",
+              "end_time": "2023-12-29 05:45:26.789541",
+              "duration": "0:00:00.004072",
+              "status": "SUCCESS",
+              "message": "",
+              "parameters": {}
+          }
+      ],
+      "user_defined_metrics": {},
+      "branches": {},
+      "data_catalog": [
+          {
+              "name": "simple.execution.log",
+              "data_hash": "03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340",
+              "catalog_relative_path": "affable-babbage-0545/simple.execution.log",
+              "catalog_handler_location": ".catalog",
+              "stage": "put"
+          }
+      ]
+  },
+  ...
+
 ```
+
+- The key is the "name" of the step in steps dictionary.
+- ```status```: In line #5 is the status of the step with three possible states, "SUCCESS", "FAILURE" or "PROCESSING".
+- ```step_type```: In line #6, is the type of step.
+
+
 
 ### run_id
 Every run in magnus is given a unique ```run_id```.
@@ -212,42 +283,6 @@ def my_function():
     run_id = os.environ['MAGNUS_RUN_ID'] # Returns the run_id of the current run
 ```
 
-
-
-
-### dag_hash
-
-The SHA id of the pipeline itself is stored here.
-
-In the case of re-run, we check the newly run pipeline hash against the older run to ensure they are the same. You
-can force to re-run too if you are aware of the differences.
-
-### tag
-
-A friendly name that could be used to group multiple runs together. You can ```group``` multiple runs by the tag to
-compare and track the experiments done in the group.
-
-### status
-
-A flag to denote the status of the run. The status could be:
-
-- success : If the graph or sub-graph succeeded, i.e reached the success node.
-- fail: If the graph or sub-graph reached the fail node. Please note that a  failure of a node does not imply failure of
-    the graph as you can configure conditional traversal of the nodes.
-- processing: A temporary status if any of the nodes are currently being processed.
-- triggered: A temporary status if any of the nodes triggered a remote job (in cloud, for example).
-
-### parameters
-
-A dictionary of key-value pairs available to all the nodes.
-
-Any ```kwargs``` present in the function signature, called as part of the pipeline, are resolved against this
-dictionary and the values are set during runtime.
-
-### steps
-
-steps is a dictionary containing step log for every individual step of the pipeline. The structure of step log is
-described below.
 
 ## Structure of Step Log
 

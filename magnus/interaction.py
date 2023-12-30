@@ -284,12 +284,14 @@ def get_run_id() -> str:
 @check_context
 def get_run_log() -> RunLog:
     """
-    Returns the run_log of the current run
+    Returns the run_log of the current run.
+
+    The return is a deep copy of the run log to prevent any modification.
     """
     return context.run_context.run_log_store.get_run_log_by_id(
         context.run_context.run_id,
         full=True,
-    )
+    ).copy(deep=True)
 
 
 @check_context
