@@ -2,7 +2,8 @@ dag:
   start_at: simple
   steps:
     simple:
-      command: "examples.concepts.simple_function"
+      type: task
+      command: "examples.concepts.simple.simple_function"
       command_type: python
       next: success
     success:

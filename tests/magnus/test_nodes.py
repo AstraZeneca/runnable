@@ -164,19 +164,6 @@ def test_traversal_node_get_executor_returns_configured_config(instantiable_trav
     assert traversal_class._get_executor_config("test") == {"key": "value"}
 
 
-def test_executable_node_get_catalog_returns_from_config(instantiable_executable_node):
-    traversal_class = nodes.ExecutableNode(
-        name="test",
-        internal_name="test",
-        node_type="test",
-        next_node="next",
-        on_failure="on_failure",
-        catalog={"test": {"key": "value"}},
-    )
-
-    assert traversal_class._get_catalog_settings() == {"test": {"key": "value"}}
-
-
 def test_executable_node_get_catalog_detaults_to_empty(instantiable_executable_node):
     traversal_class = nodes.ExecutableNode(
         name="test",

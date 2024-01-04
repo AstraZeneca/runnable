@@ -8,20 +8,28 @@ from magnus import exceptions
 
 # (file, is_fail?, kwargs)
 examples = [
+    ("concepts/catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
+    ("concepts/notebook_api_parameters.yaml", False, {"parameters_file": "examples/concepts/parameters.yaml"}),
+    ("concepts/notebook_env_parameters.yaml", False, {"parameters_file": "examples/concepts/parameters.yaml"}),
+    ("concepts/notebook_native_parameters.yaml", False, {"parameters_file": "examples/concepts/parameters.yaml"}),
+    ("concepts/parallel.yaml", False, {}),
+    ("concepts/simple_notebook.yaml", False, {}),
+    ("concepts/simple.yaml", False, {}),
+    ("concepts/task_shell_parameters.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
+    ("concepts/task_shell_simple.yaml", False, {}),
+    ("concepts/traversal.yaml", False, {}),
+    ("catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
     ("contrived.yaml", False, {}),
     ("default-fail.yaml", True, {}),
     ("logging.yaml", False, {}),
     ("mocking.yaml", False, {}),
     ("on-failure.yaml", False, {}),
-    ("concepts/parallel.yaml", False, {}),
     ("parallel-fail.yaml", True, {}),
+    ("parameters_env.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
     ("parameters_flow.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
     ("python-tasks.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
-    ("catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
-    ("parameters_env.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
-    ("retry-fail.yaml", True, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
-    ("retry-fixed.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
-    ("concepts/traversal.yaml", False, {}),
+    ("retry-fail.yaml", True, {"configuration_file": "examples/configs/fs-catalog-run_log.yaml"}),
+    ("retry-fixed.yaml", False, {"configuration_file": "examples/configs/fs-catalog-run_log.yaml"}),
 ]
 
 
@@ -47,6 +55,7 @@ def test_yaml_examples(example):
 
 python_examples = [
     ("catalog_api", False),
+    ("catalog", False),
     ("contrived", False),
     ("mocking", False),
     ("on_failure", False),
@@ -54,6 +63,12 @@ python_examples = [
     ("parameters", False),
     ("python-tasks", False),
     ("secrets", False),
+    ("concepts.catalog", False),
+    ("concepts.parallel", False),
+    ("concepts.simple", False),
+    ("concepts.task_api_parameters", False),
+    ("concepts.task_env_parameters", False),
+    ("concepts.task_native_parameters", False),
     ("concepts.traversal", False),
 ]
 
@@ -65,7 +80,7 @@ def list_python_examples():
 
 @pytest.mark.parametrize("example", list_python_examples())
 @pytest.mark.no_cover
-def test_python_examples(example, caplog):
+def test_python_examples(example):
     print(f"Testing {example}...")
 
     mod, status = example

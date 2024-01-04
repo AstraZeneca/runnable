@@ -37,7 +37,7 @@ def main():
     # Since the compute_data_folder is set to "." at global level, we can
     # override the default compute_data_folder of data to be "data"
     # The same can be achieved by referencing the file from root, i.e data/hello.txt.
-    data_catalog = Catalog(put=["hello.txt"], compute_data_folder="data")
+    data_catalog = Catalog(put=["data/hello.txt"])
     data_create = Task(
         name="create_content_in_data_folder",
         command="examples.concepts.catalog.create_content_in_data_folder",
@@ -48,7 +48,7 @@ def main():
     # This step overrides the default compute_data_folder of data to be "another"
     # Again, this is same as Catalog(put=["another/hello.txt"]) as the
     # global definition of compute_data_folder is "."
-    another_catalog = Catalog(compute_data_folder="another", put=["world.txt"])
+    another_catalog = Catalog(put=["another/world.txt"])
     another_create = Task(
         name="create_content_in_another_folder",
         command="examples.concepts.catalog.create_content_in_another_folder",

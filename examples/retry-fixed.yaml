@@ -33,9 +33,8 @@ dag:
       command_type: shell
       command: cat data/hello.txt # (4)
       catalog:
-        compute_data_folder: data # (5)
         get:
-          - "hello.txt" # You can use wild cards following glob pattern
+          - "data/hello.txt" # You can use wild cards following glob pattern
       next: success
     success:
       type: success

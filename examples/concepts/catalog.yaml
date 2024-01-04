@@ -17,17 +17,15 @@ dag:
       type: task
       command: examples.concepts.catalog.create_content_in_data_folder
       catalog:
-        compute_data_folder: "data"
         put:
-          - "hello.txt"
+          - "data/hello.txt"
       next: create_content_in_another_folder
     create_content_in_another_folder:
       type: task
       command: examples.concepts.catalog.create_content_in_another_folder
       catalog:
-        compute_data_folder: "another"
         put:
-          - "world.txt"
+          - "another/world.txt"
       next: delete_another_folder
     delete_another_folder:
       type: task
