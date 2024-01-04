@@ -80,6 +80,9 @@ class FileSystemCatalog(BaseCatalog):
                 # Need not add a data catalog for the folder
                 continue
 
+            if str(file).endswith(".execution.log"):
+                continue
+
             relative_file_path = file.relative_to(run_catalog)
 
             data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
@@ -175,6 +178,10 @@ class FileSystemCatalog(BaseCatalog):
                 shutil.copy(file, run_catalog / relative_file_path)
             else:
                 logger.info(f"{data_catalog.name} was found to be unchanged, ignoring syncing")
+
+        if not data_catalogs:
+            raise Exception(f"Did not find any files matching {name} in {copy_from}")
+
         return data_catalogs
 
     def sync_between_runs(self, previous_run_id: str, run_id: str):
@@ -211,6 +218,7 @@ class FileSystemCatalog(BaseCatalog):
         for cataloged_file in cataloged_files:
             if str(cataloged_file).endswith("execution.log"):
                 continue
+
             if cataloged_file.is_file():
                 shutil.copy(cataloged_file, run_catalog / cataloged_file.name)
             else:

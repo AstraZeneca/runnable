@@ -276,7 +276,9 @@ def get_object(name: str) -> Any:
 @check_context
 def get_run_id() -> str:
     """
-    Returns the run_id of the current run
+    Returns the run_id of the current run.
+
+    You can also access this from the environment variable `MAGNUS_RUN_ID`.
     """
     return context.run_context.run_id
 

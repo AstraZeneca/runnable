@@ -1,0 +1,47 @@
+dag:
+  description: |
+    An example pipeline to showcase catalog functionality.
+
+    The pipeline consists of four steps:
+    create_content_in_data_folder: Creates a file in "data" folder and syncs it to catalog
+    create_content_in_another_folder: Creates another file in "another" folder and syncs it to catalog
+    delete_another_folder: Deletes the another folder to showcase that it is recreated later.
+    retrieve_content_from_both: Retrieves the content from both "data" and "another
+
+    You can run this pipeline by:
+    magnus execute -f examples/concepts/catalog.yaml -c examples/configs/fs-catalog.yaml
+
+  start_at: create_content_in_data_folder
+  steps:
+    create_content_in_data_folder:
+      type: task
+      command: examples.concepts.catalog.create_content_in_data_folder
+      catalog:
+        compute_data_folder: "data"
+        put:
+          - "hello.txt"
+      next: create_content_in_another_folder
+    create_content_in_another_folder:
+      type: task
+      command: examples.concepts.catalog.create_content_in_another_folder
+      catalog:
+        compute_data_folder: "another"
+        put:
+          - "world.txt"
+      next: delete_another_folder
+    delete_another_folder:
+      type: task
+      command_type: shell
+      command: rm -rf another
+      next: retrieve_content_from_both
+    retrieve_content_from_both:
+      type: task
+      command: examples.concepts.catalog.retrieve_content_from_both
+      catalog:
+        get:
+          - "**/*"
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail

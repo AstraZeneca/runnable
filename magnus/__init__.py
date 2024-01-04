@@ -16,6 +16,7 @@ from magnus.interaction import (
     get_object,
     get_parameter,
     get_run_id,
+    get_run_log,
     get_secret,
     put_in_catalog,
     put_object,

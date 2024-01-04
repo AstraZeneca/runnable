@@ -59,9 +59,8 @@ def test_file_system_catalog_get_copies_files_from_catalog_to_compute_folder_wit
 
             catalog_handler = FileSystemCatalog()
             catalog_handler.catalog_location = catalog_location
-            catalog_handler.compute_data_folder = compute_folder
 
-            catalog_handler.get(name="*", run_id=run_id)
+            catalog_handler.get(name="**/*", run_id=run_id)
 
             _, _, files = next(os.walk(compute_folder))
 
@@ -90,8 +89,8 @@ def test_file_system_catalog_get_copies_files_from_catalog_to_compute_folder_wit
             with open(implementation.Path(catalog_location) / run_id / compute_folder / "not_catalog", "w") as fw:
                 fw.write("hello")
 
-            catalog_handler = FileSystemCatalog(catalog_location=catalog_location, compute_data_folder=compute_folder)
-            catalog_handler.get(name="catalog*", run_id=run_id)
+            catalog_handler = FileSystemCatalog(catalog_location=catalog_location)
+            catalog_handler.get(name="**/catalog*", run_id=run_id)
 
             _, _, files = next(os.walk(compute_folder))
 
@@ -115,11 +114,12 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
             catalog_location_path = implementation.Path(catalog_location)
             run_id = "testing"
             implementation.Path(catalog_location_path / run_id).mkdir(parents=True)
+
             with open(implementation.Path(compute_folder) / "catalog_file", "w") as fw:
                 fw.write("hello")
 
-            catalog_handler = FileSystemCatalog(compute_data_folder=compute_folder, catalog_location=catalog_location)
-            catalog_handler.put(name="*", run_id=run_id)
+            catalog_handler = FileSystemCatalog(catalog_location=catalog_location)
+            catalog_handler.put(name=str(compute_folder) + "/*", run_id=run_id)
 
             _, _, files = next(os.walk(catalog_location_path / run_id / compute_folder))
 
@@ -150,9 +150,9 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
             with open(implementation.Path(compute_folder) / "not_catalog_file", "w") as fw:
                 fw.write("hello")
 
-            catalog_handler = FileSystemCatalog(compute_data_folder=compute_folder, catalog_location=catalog_location)
+            catalog_handler = FileSystemCatalog(catalog_location=catalog_location)
 
-            catalog_handler.put(name="catalog*", run_id=run_id)
+            catalog_handler.put(name=str(compute_folder) + "/catalog*", run_id=run_id)
 
             _, _, files = next(os.walk(catalog_location_path / run_id / compute_folder))
 
@@ -182,9 +182,9 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
             with open(implementation.Path(compute_folder) / "not_catalog_file", "w") as fw:
                 fw.write("hello")
 
-            catalog_handler = FileSystemCatalog(compute_data_folder=compute_folder, catalog_location=catalog_location)
+            catalog_handler = FileSystemCatalog(catalog_location=catalog_location)
 
-            catalog_handler.put(name="*", run_id=run_id)
+            catalog_handler.put(name=str(compute_folder) + "/*", run_id=run_id)
 
             with pytest.raises(FileNotFoundError):
                 _ = os.listdir(catalog_location_path / run_id / compute_folder)
@@ -202,7 +202,7 @@ def test_file_system_catalog_put_uses_compute_folder_by_default(monkeypatch, moc
     with pytest.raises(Exception):
         catalog_handler.put("testing", run_id="dummy_run_id")
 
-    mock_does_dir_exist.assert_called_once_with(implementation.Path("data"))
+    mock_does_dir_exist.assert_called_once_with(implementation.Path("."))
 
 
 def test_file_system_catalog_put_uses_compute_folder_provided(monkeypatch, mocker):

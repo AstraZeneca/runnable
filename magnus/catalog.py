@@ -23,12 +23,15 @@ class BaseCatalog(ABC, BaseModel):
 
     service_name: str = ""
     service_type: str = "catalog"
-    compute_data_folder: str = defaults.COMPUTE_DATA_FOLDER
     model_config = ConfigDict(extra="forbid")
 
     @property
     def _context(self):
         return context.run_context
+
+    @property
+    def compute_data_folder(self) -> str:
+        return defaults.COMPUTE_DATA_FOLDER
 
     @abstractmethod
     def get(self, name: str, run_id: str, compute_data_folder: str = "", **kwargs) -> List[DataCatalog]:

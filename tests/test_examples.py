@@ -13,7 +13,7 @@ examples = [
     ("logging.yaml", False, {}),
     ("mocking.yaml", False, {}),
     ("on-failure.yaml", False, {}),
-    ("parallel.yaml", False, {}),
+    ("concepts/parallel.yaml", False, {}),
     ("parallel-fail.yaml", True, {}),
     ("parameters_flow.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
     ("python-tasks.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
@@ -21,7 +21,7 @@ examples = [
     ("parameters_env.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
     ("retry-fail.yaml", True, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
     ("retry-fixed.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
-    ("pipelines/traversal.yaml", False, {}),
+    ("concepts/traversal.yaml", False, {}),
 ]
 
 
@@ -54,7 +54,7 @@ python_examples = [
     ("parameters", False),
     ("python-tasks", False),
     ("secrets", False),
-    ("pipelines.traversal", False),
+    ("concepts.traversal", False),
 ]
 
 

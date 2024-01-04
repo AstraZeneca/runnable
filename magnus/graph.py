@@ -70,7 +70,7 @@ class Graph(BaseModel):
         Return a string representation of the graph
         """
         node_str = ", ".join([x.name for x in list(self.nodes.values())])
-        return f"Starts at: {self.start_at} and has a max run time of {self.max_time} and {node_str}"
+        return f"Starts at: {self.start_at} and {node_str}"
 
     def add_node(self, node: "BaseNode"):
         """
@@ -315,17 +315,15 @@ def create_graph(dag_config: Dict[str, Any], internal_branch_name: str = "") -> 
         Graph: The created graph object
     """
     description: str = dag_config.get("description", None)
-    max_time: int = dag_config.get("max_time", defaults.MAX_TIME)
     start_at: str = cast(str, dag_config.get("start_at"))  # Let the start_at be relative to the graph
 
     graph = Graph(
         start_at=start_at,
         description=description,
-        max_time=max_time,
         internal_branch_name=internal_branch_name,
     )
 
-    logger.info(f"Initialized a graph object that starts at {start_at} and runs for maximum of {max_time} secs")
+    logger.info(f"Initialized a graph object that starts at {start_at}")
     for name, step_config in dag_config.get("steps", {}).items():
         logger.info(f"Adding node {name} with :{step_config}")
 

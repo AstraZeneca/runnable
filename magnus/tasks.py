@@ -25,6 +25,8 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
+# TODO: Can we add memory peak, cpu usage, etc. to the metrics?
+
 # --8<-- [start:docs]
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, OrderedDict, Tuple, Union
+from typing import Any, Dict, List, Optional, OrderedDict, Tuple, Union
 
 from pydantic import BaseModel, Field
 
@@ -53,7 +53,7 @@ class StepAttempt(BaseModel):
     duration: str = ""  #  end_time - start_time
     status: str = "FAIL"
     message: str = ""
-    parameters: dict = {}
+    parameters: Dict[str, Any] = Field(default_factory=dict)
 
 
 class CodeIdentity(BaseModel, extra="allow"):
@@ -79,10 +79,10 @@ class StepLog(BaseModel):
     step_type: str = "task"
     message: str = ""
     mock: bool = False
-    code_identities: List[CodeIdentity] = []
-    attempts: List[StepAttempt] = []
-    user_defined_metrics: dict = {}
-    branches: Dict[str, BranchLog] = {}  # Keyed in by the branch key name
+    code_identities: List[CodeIdentity] = Field(default_factory=list)
+    attempts: List[StepAttempt] = Field(default_factory=list)
+    user_defined_metrics: Dict[str, Any] = Field(default_factory=dict)
+    branches: Dict[str, BranchLog] = Field(default_factory=dict)
     data_catalog: List[DataCatalog] = Field(default_factory=list)
 
     def get_data_catalogs_by_stage(self, stage="put") -> List[DataCatalog]:
@@ -132,7 +132,7 @@ class BranchLog(BaseModel):
 
     internal_name: str
     status: str = "FAIL"
-    steps: OrderedDict[str, StepLog] = {}  # type: ignore # StepLogs keyed by internal name
+    steps: OrderedDict[str, StepLog] = Field(default_factory=OrderedDict)
 
     def get_data_catalogs_by_stage(self, stage="put") -> List[DataCatalog]:
         """
@@ -172,9 +172,9 @@ class RunLog(BaseModel):
     tag: Optional[str] = ""
     original_run_id: Optional[str] = ""
     status: str = defaults.FAIL
-    steps: OrderedDict[str, StepLog] = {}  # type: ignore # Has the steps keyed by internal_name
-    parameters: dict = {}
-    run_config: dict = {}
+    steps: OrderedDict[str, StepLog] = Field(default_factory=OrderedDict)
+    parameters: Dict[str, Any] = Field(default_factory=dict)
+    run_config: Dict[str, Any] = Field(default_factory=dict)
 
     def get_data_catalogs_by_stage(self, stage: str = "put") -> List[DataCatalog]:
         """

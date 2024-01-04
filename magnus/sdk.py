@@ -26,8 +26,6 @@ class Catalog(BaseModel):
     Use to instruct a task to sync data from/to the central catalog.
 
     Args:
-        compute_data_folder (str): The reference path, from the root of the project, to get/put the data.
-            Defaults to the compute_data_folder defined at the catalog settings.
         get (List[str]): List of glob patterns to get from central catalog to the compute data folder.
         put (List[str]): List of glob patterns to put into central catalog from the compute data folder.
 
@@ -40,7 +38,8 @@ class Catalog(BaseModel):
     """
 
     model_config = ConfigDict(extra="forbid")  # Need to be for command, would be validated later
-    compute_data_folder: str = Field(default="", alias="compute_data_folder")
+    # Note: compute_data_folder was confusing to explain, might be introduced later.
+    # compute_data_folder: str = Field(default="", alias="compute_data_folder")
     get: List[str] = Field(default_factory=list, alias="get")
     put: List[str] = Field(default_factory=list, alias="put")
 
@@ -232,6 +231,7 @@ class Pipeline(BaseModel):
 
         self._dag.check_graph()
 
+    # TODO: There is a need for variables to be part of the process.
     def execute(
         self,
         configuration_file: str = "",

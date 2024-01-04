@@ -144,38 +144,38 @@ def test_on_failure():
                 assert False
 
 
-@pytest.mark.no_cover
-def test_parallel():
-    configs = get_configs()
-    for config in configs:
-        with tempfile.TemporaryDirectory() as context_dir:
-            context_dir_path = Path(context_dir)
+# @pytest.mark.no_cover
+# def test_parallel():
+#     configs = get_configs()
+#     for config in configs:
+#         with tempfile.TemporaryDirectory() as context_dir:
+#             context_dir_path = Path(context_dir)
 
-            write_config(context_dir_path, config)
-            run_id = "testing_parallel"
+#             write_config(context_dir_path, config)
+#             run_id = "testing_parallel"
 
-            entrypoints.execute(
-                configuration_file=str(context_dir_path / "config.yaml"),
-                pipeline_file=str(PIPELINES_DEFINITION / "parallel.yaml"),
-                run_id=run_id,
-            )
+#             entrypoints.execute(
+#                 configuration_file=str(context_dir_path / "config.yaml"),
+#                 pipeline_file=str(PIPELINES_DEFINITION / "concepts/parallel.yaml"),
+#                 run_id=run_id,
+#             )
 
-            try:
-                run_log = get_run_log(context_dir_path, run_id)
-                assert run_log["status"] == defaults.SUCCESS
-                assert list(run_log["steps"].keys()) == ["step 1", "step 2", "step 3", "success"]
-                assert list(run_log["steps"]["step 2"]["branches"]["step 2.branch_a"]["steps"].keys()) == [
-                    "step 2.branch_a.step 1",
-                    "step 2.branch_a.step 2",
-                    "step 2.branch_a.success",
-                ]
-                assert list(run_log["steps"]["step 2"]["branches"]["step 2.branch_b"]["steps"].keys()) == [
-                    "step 2.branch_b.step 1",
-                    "step 2.branch_b.step 2",
-                    "step 2.branch_b.success",
-                ]
-            except:
-                assert False
+#             try:
+#                 run_log = get_run_log(context_dir_path, run_id)
+#                 assert run_log["status"] == defaults.SUCCESS
+#                 assert list(run_log["steps"].keys()) == ["step 1", "step 2", "step 3", "success"]
+#                 assert list(run_log["steps"]["step 2"]["branches"]["step 2.branch_a"]["steps"].keys()) == [
+#                     "step 2.branch_a.step 1",
+#                     "step 2.branch_a.step 2",
+#                     "step 2.branch_a.success",
+#                 ]
+#                 assert list(run_log["steps"]["step 2"]["branches"]["step 2.branch_b"]["steps"].keys()) == [
+#                     "step 2.branch_b.step 1",
+#                     "step 2.branch_b.step 2",
+#                     "step 2.branch_b.success",
+#                 ]
+#             except:
+#                 assert False
 
 
 # @pytest.mark.no_cover

@@ -28,3 +28,17 @@
 ::: magnus.get_secret
     options:
         show_root_heading: true
+
+
+---
+
+::: magnus.get_run_log
+    options:
+        show_root_heading: true
+
+
+---
+
+::: magnus.get_run_id
+    options:
+        show_root_heading: true

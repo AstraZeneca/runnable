@@ -105,7 +105,7 @@ DAG_BRANCH_NAME = "dag"
 
 # Data catalog settings
 CATALOG_LOCATION_FOLDER = ".catalog"
-COMPUTE_DATA_FOLDER = "data"
+COMPUTE_DATA_FOLDER = "."
 
 # Secrets settings
 DOTENV_FILE_LOCATION = ".env"

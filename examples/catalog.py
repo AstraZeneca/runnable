@@ -29,7 +29,7 @@ def main():
     # Here we use "compute_folder_name" to point to the directory of interest.
     # You can alteratively ignore compute_folder_name and get "data/hello.txt"
     # You can use wild card following glob patterns to retrieve multiple files.
-    get_catalog = Catalog(compute_data_folder="data", get=["hello.txt"])
+    get_catalog = Catalog(get=["data/hello.txt"])
     # This task will retrieve the file from the catalog and attach the instruction
     # to retrieve the file from the catalog before execution.
     retrieve = Task(

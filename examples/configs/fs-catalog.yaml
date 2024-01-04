@@ -1,4 +1,2 @@
 catalog:
   type: file-system # (1)
-  config:
-    compute_data_folder: . # (2)
