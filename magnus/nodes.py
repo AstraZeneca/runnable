@@ -431,8 +431,15 @@ class TraversalNode(BaseNode):
         return self.executor_config.get(executor_type, {})
 
 
+class CatalogStructure(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    get: List[str] = Field(default_factory=list)
+    put: List[str] = Field(default_factory=list)
+
+
 class ExecutableNode(TraversalNode):
-    catalog: Dict[str, Any] = {}
+    catalog: CatalogStructure = Field(default=None)
     executor_config: Dict[str, Any] = {}
     max_attempts: int = 1
 
@@ -443,7 +450,9 @@ class ExecutableNode(TraversalNode):
         Returns:
             dict: catalog settings defined as per the node or None
         """
-        return self.catalog
+        if self.catalog:
+            return self.catalog.model_dump()
+        return {}
 
     def _get_max_attempts(self) -> int:
         return self.max_attempts
