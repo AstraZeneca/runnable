@@ -432,7 +432,7 @@ class TraversalNode(BaseNode):
 
 
 class CatalogStructure(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid")  # Need to forbid
 
     get: List[str] = Field(default_factory=list)
     put: List[str] = Field(default_factory=list)
