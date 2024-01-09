@@ -296,7 +296,7 @@ when running the ```command``` of a task.
     ```
 
 
-In the above example,
+In the above example of ```run log``` tab,
 
 - ```run_id```: Defined in line #2, is a a unique id generated for every execution of the pipeline.
 - ```use_cached```: in line #4, is the execution id of an older run that is being restarted in the current execution.
@@ -322,7 +322,7 @@ execution.
 ## parameters
 
 The final state of parameters are captured at the run log level while individual
-[step logs](#step_log) show the parameters at the state of execution of the task.
+[step logs](#step_log) show the parameters at the point of execution of the task.
 
 In the above example, lines 178-183 show the final parameters at the end of execution.
 
@@ -430,7 +430,7 @@ captured during the execution of the step.
 
 - ```branches```: This only applies to parallel, map or dag steps and shows the logs captured during the
 execution of the branch.
-- ```data_catalog```: Captures any data flowing through the tasks by the [catalog](../catalog)
+- ```data_catalog```: Captures any data flowing through the tasks by the [catalog](../catalog).
 By default, the execution logs of the task are put in the catalog for easier debugging purposes.
 
 For example,  the below lines from the snippet specifies one entry into the catalog which is the execution log
@@ -448,6 +448,8 @@ of the task ```access initial``` and also the hash of the data.
 ]
 ```
 
+
+## Retrying failures
 
 
 ## API

@@ -1,7 +1,6 @@
 import pytest
 from pathlib import Path
 import importlib
-import logging
 
 from magnus.entrypoints import execute
 from magnus import exceptions
@@ -39,7 +38,7 @@ def list_examples():
 
 
 @pytest.mark.parametrize("example", list_examples())
-@pytest.mark.no_cover
+# @pytest.mark.no_cover
 def test_yaml_examples(example):
     print(f"Testing {example}...")
     examples_path = Path("examples")
@@ -79,7 +78,7 @@ def list_python_examples():
 
 
 @pytest.mark.parametrize("example", list_python_examples())
-@pytest.mark.no_cover
+# @pytest.mark.no_cover
 def test_python_examples(example):
     print(f"Testing {example}...")
 

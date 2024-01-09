@@ -3,12 +3,11 @@ steps of the dag. It can be any storage system that indexes its data by a unique
 
 For example, a local directory structure partitioned by a ```run_id``` or S3 bucket prefixed by ```run_id```.
 
-!!! info inline end "Structure"
+!!! tip inline end "Checkpoint"
 
-    In the strictest sense, the directory structure is same as the directory structure of any individual task.
+    Cataloging happens even if the step execution eventually fails. This behavior
+    can be used to recover from a failed run from a checkpoint.
 
-    This distinction is important when every step is a [```shell``` task](../task/#shell) that operate in
-    different execution contexts like containers.
 
 
 The directory structure within a partition is the same as the project directory structure. This enables you to
@@ -22,6 +21,8 @@ Since the catalog captures the data files flowing through the pipeline and the e
 to debug failed pipelines or keep track of data lineage.
 
 
+
+
 !!! warning "Storage considerations"
 
     Since the data is stored per-run, it might cause the catalog to inflate.
@@ -30,17 +31,10 @@ to debug failed pipelines or keep track of data lineage.
     mechanisms to regularly prune catalog for executions that are not relevant.
 
 
-### Compute data folder
-
-The directory structure of the catalog for an execution of the pipeline resembles the project
-directory structure. compute data folder provides a handy way to provide a default directory
-for the project data.
-
-The default location of the ```compute_data_folder``` within magnus is the ```data``` folder. This can be overridden either at [global level](../../configurations/catalog) or
-per task level by configuration.
 
 
 ## Example
+
 
 
 === "Configuration"
@@ -56,216 +50,424 @@ per task level by configuration.
     ```
 
     1. Use local file system as a central catalog, defaults to ```.catalog```
-    2. By default, use ```data``` folder as the location of users content but we override it
-    globally to "."
 
 === "python sdk"
 
-    ```python
+    In the below example, the steps ```create_content_in_data_folder``` and ```create_content_in_another_folder```
+    create content for downstream steps, i.e ```retrieve_content_from_both``` to consume.
+
+    !!! note "Delete?"
+
+        Since we are executing in local compute and creating sub-directory ```another```, it might be mistaken that
+        we are not cataloging anything. We delete ```another``` directory between steps
+        to demonstrate that we indeed move files in and out of the catalog.
+
+    The highlighted lines in the below example show how to specify the files to get/put from the catalog using python SDK.
+
+    ```python linenums="1" hl_lines="37 45 61"
     --8<-- "examples/concepts/catalog.py"
     ```
 
 === "yaml"
 
-    ```yaml
+    In the below example, the steps ```data_create``` and ```another_create``` create content for
+    downstream steps, i.e ```retrieve``` to consume.
+
+    !!! note "Delete?"
+
+        Since we are executing in local compute and creating sub-directory ```another```, it might be mistaken that
+        we are not cataloging anything. We delete ```another``` directory between steps
+        to demonstrate that we indeed move files in and out of the catalog.
+
+    The highlighted lines in the below example show how to specify the files to get/put from the catalog using
+    yaml.
+
+
+    ```yaml linenums="1" hl_lines="19-21 26-28 38-40"
     --8<-- "examples/concepts/catalog.yaml"
+    ```
+
+!!! note "glob pattern"
+
+    We use [glob pattern](https://docs.python.org/3/library/glob.html) to search for files.
+
+    Note that, the pattern to recursively match all directories is ```**/*```
+
+
+The execution results in the ```catalog``` populated with the artifacts and the execution logs of the tasks.
+
+
+=== "Directory structure"
+
+    The directory structure within the ```catalog``` for the execution, i.e meek-stonebraker-0626, resembles
+    the project directory structure.
+
+    The execution logs of all the tasks are also present in the ```catalog```.
+
+    ```
+    >>> tree .catalog
+    .catalog
+    └── meek-stonebraker-0626
+        ├── another
+        │   └── world.txt
+        ├── create_content_in_another_folder.execution.log
+        ├── create_content_in_data_folder.execution.log
+        ├── data
+        │   └── hello.txt
+        ├── delete_another_folder.execution.log
+        └── retrieve_content_from_both.execution.log
+
+    4 directories, 6 files
+    ```
+
+=== "Run log"
+
+    The run log captures the data identities of the data flowing through the catalog.
+
+
+    ```json linenums="1" hl_lines="38-53 84-99 169-191"
+    {
+    "run_id": "meek-stonebraker-0626",
+    "dag_hash": "",
+    "use_cached": false,
+    "tag": "",
+    "original_run_id": "",
+    "status": "SUCCESS",
+    "steps": {
+        "create_content_in_data_folder": {
+            "name": "create_content_in_data_folder",
+            "internal_name": "create_content_in_data_folder",
+            "status": "SUCCESS",
+            "step_type": "task",
+            "message": "",
+            "mock": false,
+            "code_identities": [
+                {
+                    "code_identifier": "6029841c3737fe1163e700b4324d22a469993bb0",
+                    "code_identifier_type": "git",
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_message": ""
+                }
+            ],
+            "attempts": [
+                {
+                    "attempt_number": 1,
+                    "start_time": "2024-01-06 06:26:56.279278",
+                    "end_time": "2024-01-06 06:26:56.284564",
+                    "duration": "0:00:00.005286",
+                    "status": "SUCCESS",
+                    "message": "",
+                    "parameters": {}
+                }
+            ],
+            "user_defined_metrics": {},
+            "branches": {},
+            "data_catalog": [
+                {
+                    "name": "create_content_in_data_folder.execution.log",
+                    "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "catalog_relative_path": "meek-stonebraker-0626/create_content_in_data_folder.execution.log",
+                    "catalog_handler_location": ".catalog",
+                    "stage": "put"
+                },
+                {
+                    "name": "data/hello.txt",
+                    "data_hash": "6ccad99847c78bfdc7a459399c9957893675d4fec2d675cec750b50ab4842542",
+                    "catalog_relative_path": "meek-stonebraker-0626/data/hello.txt",
+                    "catalog_handler_location": ".catalog",
+                    "stage": "put"
+                }
+            ]
+        },
+        "create_content_in_another_folder": {
+            "name": "create_content_in_another_folder",
+            "internal_name": "create_content_in_another_folder",
+            "status": "SUCCESS",
+            "step_type": "task",
+            "message": "",
+            "mock": false,
+            "code_identities": [
+                {
+                    "code_identifier": "6029841c3737fe1163e700b4324d22a469993bb0",
+                    "code_identifier_type": "git",
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_message": ""
+                }
+            ],
+            "attempts": [
+                {
+                    "attempt_number": 1,
+                    "start_time": "2024-01-06 06:26:56.353734",
+                    "end_time": "2024-01-06 06:26:56.357519",
+                    "duration": "0:00:00.003785",
+                    "status": "SUCCESS",
+                    "message": "",
+                    "parameters": {}
+                }
+            ],
+            "user_defined_metrics": {},
+            "branches": {},
+            "data_catalog": [
+                {
+                    "name": "create_content_in_another_folder.execution.log",
+                    "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "catalog_relative_path": "meek-stonebraker-0626/create_content_in_another_folder.execution.log",
+                    "catalog_handler_location": ".catalog",
+                    "stage": "put"
+                },
+                {
+                    "name": "another/world.txt",
+                    "data_hash": "869ae2ac8365d5353250fc502b084a28b2029f951ea7da0a6948f82172accdfd",
+                    "catalog_relative_path": "meek-stonebraker-0626/another/world.txt",
+                    "catalog_handler_location": ".catalog",
+                    "stage": "put"
+                }
+            ]
+        },
+        "delete_another_folder": {
+            "name": "delete_another_folder",
+            "internal_name": "delete_another_folder",
+            "status": "SUCCESS",
+            "step_type": "task",
+            "message": "",
+            "mock": false,
+            "code_identities": [
+                {
+                    "code_identifier": "6029841c3737fe1163e700b4324d22a469993bb0",
+                    "code_identifier_type": "git",
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_message": ""
+                }
+            ],
+            "attempts": [
+                {
+                    "attempt_number": 1,
+                    "start_time": "2024-01-06 06:26:56.428437",
+                    "end_time": "2024-01-06 06:26:56.450148",
+                    "duration": "0:00:00.021711",
+                    "status": "SUCCESS",
+                    "message": "",
+                    "parameters": {}
+                }
+            ],
+            "user_defined_metrics": {},
+            "branches": {},
+            "data_catalog": [
+                {
+                    "name": "delete_another_folder.execution.log",
+                    "data_hash": "a9b49c92ed63cb54a8b02c0271a925d9fac254034ed45df83f3ff24c0bd53ef6",
+                    "catalog_relative_path": "meek-stonebraker-0626/delete_another_folder.execution.log",
+                    "catalog_handler_location": ".catalog",
+                    "stage": "put"
+                }
+            ]
+        },
+        "retrieve_content_from_both": {
+            "name": "retrieve_content_from_both",
+            "internal_name": "retrieve_content_from_both",
+            "status": "SUCCESS",
+            "step_type": "task",
+            "message": "",
+            "mock": false,
+            "code_identities": [
+                {
+                    "code_identifier": "6029841c3737fe1163e700b4324d22a469993bb0",
+                    "code_identifier_type": "git",
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_message": ""
+                }
+            ],
+            "attempts": [
+                {
+                    "attempt_number": 1,
+                    "start_time": "2024-01-06 06:26:56.520948",
+                    "end_time": "2024-01-06 06:26:56.530135",
+                    "duration": "0:00:00.009187",
+                    "status": "SUCCESS",
+                    "message": "",
+                    "parameters": {}
+                }
+            ],
+            "user_defined_metrics": {},
+            "branches": {},
+            "data_catalog": [
+                {
+                    "name": "data/hello.txt",
+                    "data_hash": "6ccad99847c78bfdc7a459399c9957893675d4fec2d675cec750b50ab4842542",
+                    "catalog_relative_path": "data/hello.txt",
+                    "catalog_handler_location": ".catalog",
+                    "stage": "get"
+                },
+                {
+                    "name": "another/world.txt",
+                    "data_hash": "869ae2ac8365d5353250fc502b084a28b2029f951ea7da0a6948f82172accdfd",
+                    "catalog_relative_path": "another/world.txt",
+                    "catalog_handler_location": ".catalog",
+                    "stage": "get"
+                },
+                {
+                    "name": "retrieve_content_from_both.execution.log",
+                    "data_hash": "0a085cb15df6c70c5859b44cc62bfdc98383600ba4f2983124375a4f64f1ae83",
+                    "catalog_relative_path": "meek-stonebraker-0626/retrieve_content_from_both.execution.log",
+                    "catalog_handler_location": ".catalog",
+                    "stage": "put"
+                }
+            ]
+        },
+        "success": {
+            "name": "success",
+            "internal_name": "success",
+            "status": "SUCCESS",
+            "step_type": "success",
+            "message": "",
+            "mock": false,
+            "code_identities": [
+                {
+                    "code_identifier": "6029841c3737fe1163e700b4324d22a469993bb0",
+                    "code_identifier_type": "git",
+                    "code_identifier_dependable": true,
+                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_message": ""
+                }
+            ],
+            "attempts": [
+                {
+                    "attempt_number": 1,
+                    "start_time": "2024-01-06 06:26:56.591948",
+                    "end_time": "2024-01-06 06:26:56.592032",
+                    "duration": "0:00:00.000084",
+                    "status": "SUCCESS",
+                    "message": "",
+                    "parameters": {}
+                }
+            ],
+            "user_defined_metrics": {},
+            "branches": {},
+            "data_catalog": []
+        }
+    },
+    "parameters": {},
+    "run_config": {
+        "executor": {
+            "service_name": "local",
+            "service_type": "executor",
+            "enable_parallel": false,
+            "placeholders": {}
+        },
+        "run_log_store": {
+            "service_name": "buffered",
+            "service_type": "run_log_store"
+        },
+        "secrets_handler": {
+            "service_name": "do-nothing",
+            "service_type": "secrets"
+        },
+        "catalog_handler": {
+            "service_name": "file-system",
+            "service_type": "catalog"
+        },
+        "experiment_tracker": {
+            "service_name": "do-nothing",
+            "service_type": "experiment_tracker"
+        },
+        "pipeline_file": "",
+        "parameters_file": "",
+        "configuration_file": "examples/configs/fs-catalog.yaml",
+        "tag": "",
+        "run_id": "meek-stonebraker-0626",
+        "variables": {},
+        "use_cached": false,
+        "original_run_id": "",
+        "dag": {
+            "start_at": "create_content_in_data_folder",
+            "name": "",
+            "description": "",
+            "internal_branch_name": "",
+            "steps": {
+                "create_content_in_data_folder": {
+                    "type": "task",
+                    "name": "create_content_in_data_folder",
+                    "internal_name": "create_content_in_data_folder",
+                    "internal_branch_name": "",
+                    "is_composite": false
+                },
+                "create_content_in_another_folder": {
+                    "type": "task",
+                    "name": "create_content_in_another_folder",
+                    "internal_name": "create_content_in_another_folder",
+                    "internal_branch_name": "",
+                    "is_composite": false
+                },
+                "retrieve_content_from_both": {
+                    "type": "task",
+                    "name": "retrieve_content_from_both",
+                    "internal_name": "retrieve_content_from_both",
+                    "internal_branch_name": "",
+                    "is_composite": false
+                },
+                "delete_another_folder": {
+                    "type": "task",
+                    "name": "delete_another_folder",
+                    "internal_name": "delete_another_folder",
+                    "internal_branch_name": "",
+                    "is_composite": false
+                },
+                "success": {
+                    "type": "success",
+                    "name": "success",
+                    "internal_name": "success",
+                    "internal_branch_name": "",
+                    "is_composite": false
+                },
+                "fail": {
+                    "type": "fail",
+                    "name": "fail",
+                    "internal_name": "fail",
+                    "internal_branch_name": "",
+                    "is_composite": false
+                }
+            }
+        },
+        "dag_hash": "",
+        "execution_plan": "chained"
+    }
+    }
     ```
 
 
 
+## Using python API
 
-Resulting directory structure and ```run log```.
-
-=== "Directory structure"
-
-
-=== "Run log"
+Files could also be cataloged using [python API](../../interactions)
 
 
+This functionality is possible in [python](../task/#python_functions)
+and [notebook](../task/#notebook) tasks.
 
-
-## Configuration within Step
-
-Within a step of the dag, the catalog can be configured by
-
-```yaml
-catalog:
-  ...
-
-dag:
-  steps:
-    step name:
-      ...
-      catalog:
-        compute_data_folder: # optional
-        get:
-          - list
-        put:
-          - list
-
-    ...
+```python linenums="1" hl_lines="2 14 26 36"
+--8<-- "examples/concepts/catalog_api.py"
 ```
 
-or via the Python SDK:
 
-```python
-from magnus import Task
-
-catalog = {
-  'compute_data_folder': '' # point to the directory from where the data should be extracted
-  'get': [], # All the files to get from the catalog
-  'put': [] # All the files to put in the catalog
-}
-
-first = Task(name='Cool function', command='my_module.my_cool_function', catalog=catalog)
-
-```
-
-### compute_data_folder
-
-The ```compute_data_folder``` for a single step could be different from the global ```compute_data_folder```
-and you can provide it by using the catalog settings for that step.
-
-The actual cataloging is done in two stages:
-
-- get: Get the data mentioned in the ```get``` from the catalog to ```compute_data_folder``` before executing the node.
-- put: Store all the data mentioned in ```put``` from the ```compute_data_folder``` to catalog after executing the node.
-
-Both ```get``` and ```put``` can accept glob patterns. Internally we use
-[Pathlib match function](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.match)
-to match the name to pattern.
-
----
-!!! Note
-
-    The ```put``` stage of the cataloging checks if the data source has been obtained from ```get``` phase and
-    only puts a new record if there were changes observed during the execution of the node.
----
-
-## Interaction within code
-
-You can also interact with the catalog within your python programs if it is convenient than providing it in yaml.
-
---8<-- [start:how-do-i-pass-data]
-
-### Get from catalog
-
-To get a file from the catalog, use ```get_from_catalog``` from magnus.
-
-For example, the below code gets the file ```interesting_data.csv``` from the catalog into ```data/``` folder.
-
-
-```python
-from magnus import get_from_catalog
-
-def my_function():
-  get_from_catalog('interesting.csv', destination_folder='data/')
-
-```
-
-### Put in catalog
-
-To put a file into the catalog, use ```put_in_catalog``` from magnus.
-
-For example, the below code puts the file ```data/interesting_data.csv``` from the data folder into catalog.
-
-
-```python
-from magnus import put_in_catalog
-
-def my_function():
-  put_in_catalog('data/interesting.csv')
-
-```
-
----
-!!! Note
-
-    Unlike ```put``` phase of the cataloging process, put_in_catalog does not check if the cataloging object has
-    changed and does a blind update.
-
----
-
---8<-- [end:how-do-i-pass-data]
 
 ## Passing Data Objects
 
---8<-- [start:how-do-i-pass-objects]
+Data objects can be shared between [python](../task/#python_functions) or [notebook](../task/#notebook) tasks,
+instead of serializing data and deserializing to file structure, using
+[get_object](../../interactions/#magnus.get_object) and [put_object](../../interactions/#magnus.put_object).
 
-While the is good for files, it is inconvenient to dump and load the object into files for the cataloging to happen.
-Magnus provides utility functions to make it easier.
+Internally, we use [pickle](https://docs.python.org/3/library/pickle.html) to serialize and
+deserialize python objects. Please ensure that the object can be serialized via pickle.
 
-### Get object from catalog
+### Example
 
-To get a object from the catalog, use ```get_object``` from magnus.
+In the below example, the step ```put_data_object``` puts a pydantic object into the catalog while the step
+```retrieve_object``` retrieves the pydantic object from the catalog and prints it.
 
-For example, the below code gets a pandas dataframe from previous steps, called ```interesting_data``` from the catalog.
-
-
-```python
-from magnus import get_object
-
-def my_function():
-  df = get_object("interesting_data")
-
-```
-
-Be aware that, the function would raise an exception if ```interesting_data``` was not added to catalog before.
-
-### Put object in catalog
-
-To put a object into the catalog, use ```put_object``` from magnus.
-
-For example, the below code puts the dataframe ```interesting_data``` into the catalog as ```interesting_data.pickle```.
-
-
-```python
-from magnus import put_object
-
-def my_function():
-  put_object(data=interesting_data, name="interesting_data")
-
-```
-
----
-!!! Note
-
-    We internally use pickle for the serialization and deserialization. Please raise a feature request if you need
-    other kind of serializers.
-
----
-
---8<-- [end:how-do-i-pass-objects]
-
-## Parameterized definition
-
-As with any part of the magnus configuration, you can parameterize the configuration of catalog to switch between
-catalog providers without changing the base definition.
-
-Please follow the example provided [here](../dag/#parameterized_definition) for more information.
-
-
-## Extensions
-
-You can easily extend magnus to bring in your custom provider, if a default
-implementation does not exist or you are not happy with the implementation.
-
-[Extensions are being actively developed and can be found here.](https://github.com/AstraZeneca/magnus-extensions)
-
-The ```BaseCatalog``` implementation is as follows:
-
-```python
-# You can find the source code in magnus/catalog.py
---8<-- "magnus/catalog.py:docs"
-
-```
-
-
-The custom extensions should be registered as part of the namespace: ```catalog``` for it to be
-loaded.
-
-```toml
-# For example, as part of your pyproject.toml
-[tool.poetry.plugins."catalog"]
-"gfs" = "YOUR_PACKAGE:GFStorage"
+```python linenums="1" hl_lines="3 23 31"
+--8<-- "examples/concepts/catalog_object.py"
 ```

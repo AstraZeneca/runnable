@@ -6,7 +6,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, cast
 
-from pydantic import ConfigDict, Field, FieldValidationInfo, field_validator
+from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 from typing_extensions import Annotated
 
 import magnus
@@ -532,7 +532,7 @@ class DagNode(CompositeNode):
 
     @field_validator("internal_branch_name")
     @classmethod
-    def validate_internal_branch_name(cls, internal_branch_name: str, info: FieldValidationInfo):
+    def validate_internal_branch_name(cls, internal_branch_name: str, info: ValidationInfo):
         internal_name = info.data["internal_name"]
         return internal_name + "." + defaults.DAG_BRANCH_NAME
 

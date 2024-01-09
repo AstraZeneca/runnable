@@ -326,7 +326,12 @@ def get_tracked_data() -> Dict[str, str]:
     for env_var, value in os.environ.items():
         if env_var.startswith(defaults.TRACK_PREFIX):
             key = remove_prefix(env_var, defaults.TRACK_PREFIX)
-            tracked_data[key.lower()] = json.loads(value)
+            try:
+                tracked_data[key.lower()] = json.loads(value)
+            except json.decoder.JSONDecodeError:
+                logger.warning(f"Tracker {key} could not be JSON decoded, adding the literal value")
+                tracked_data[key.lower()] = value
+
             del os.environ[env_var]
     return tracked_data
 

@@ -218,25 +218,10 @@ Lets assume that the initial parameters are:
     ways of working.
 
 
-### Data flow
+### Passing data and execution logs
 
-Catalog configuration.
-Over-riding the catalog configuration.
-
-=== "Using the API"
-
-
-=== "Via configuration"
-
-
-### Object flow
-
-Using the API
-
-
-### Execution logs
-
-Show the tree structure in the catalog
+Please refer to [catalog](../catalog) for more details and examples on passing
+data between tasks and the storage of execution logs.
 
 ---
 
@@ -440,25 +425,10 @@ Assume that the initial parameters are:
         </figure>
 
 
-### Data flow
+### Passing data and execution logs
 
-Catalog configuration.
-Over-riding the catalog configuration.
-
-=== "Using the API"
-
-
-=== "Via configuration"
-
-
-### Object flow
-
-Using the API
-
-
-### Execution logs
-
-Show the tree structure in the catalog
+Please refer to [catalog](../catalog) for more details and examples on passing
+data between tasks and the storage of execution logs.
 
 
 ---
@@ -527,33 +497,10 @@ lines 33-35.
 
 
 
-### Data flow
+### Passing data and execution logs
 
-Catalog configuration.
-Over-riding the catalog configuration.
-
-=== "Via configuration"
-
-
-### Execution logs
-
-Show the tree structure in the catalog
-
-
-## Data flow
-
-Catalog configuration.
-Over-riding the catalog configuration.
-
-=== "Using the API"
-
-
-=== "Via configuration"
-
-
-## Object flow
-
-Using the API
+Please refer to [catalog](../catalog) for more details and examples on passing
+data between tasks and the storage of execution logs.
 
 
 ## Experiment tracking

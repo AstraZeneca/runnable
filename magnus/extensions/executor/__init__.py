@@ -269,7 +269,6 @@ class GenericExecutor(BaseExecutor):
         compute_data_folder = self._context.catalog_handler.compute_data_folder
 
         catalog_settings = self._context_node._get_catalog_settings()
-        print(catalog_settings)
         effective_compute_data_folder = catalog_settings.get("compute_data_folder", "") or compute_data_folder
 
         return effective_compute_data_folder
@@ -344,6 +343,7 @@ class GenericExecutor(BaseExecutor):
             else:
                 # TODO: Stub nodes should not sync back data
                 # TODO: Errors in catalog syncing should point to Fail step
+                # TODO: Even for a failed execution, the catalog can happen
                 step_log.status = defaults.SUCCESS
                 self._sync_catalog(step_log, stage="put", synced_catalogs=data_catalogs_get)
                 step_log.user_defined_metrics = tracked_data

@@ -7,6 +7,8 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, ContextManager, Dict, Optional, TypeVar, Union, cast, overload
 
+from pydantic import BaseModel
+
 import magnus.context as context
 from magnus import defaults, exceptions, parameters, pickler, utils
 from magnus.datastore import RunLog, StepLog
@@ -35,16 +37,17 @@ def check_context(func):
 def track_this(step: int = 0, **kwargs):
     # TODO: passing to experiment tracker might need to happen at different level
     """
-    Set up the keyword args as environment variables for tracking purposes as
-    part of the run.
+    Tracks key-value pairs to the experiment tracker.
 
-    For every key-value pair found in kwargs, we set up an environmental variable of
-    MAGNUS_TRACK_key_{step} = json.dumps(value)
-
-    If step=0, we ignore step for magnus purposes.
+    The value is dumped as a dict if it is a pydantic model.
 
     Args:
-        kwargs (dict): The dictionary of key value pairs to track.
+        step (int, optional): The step to track the data at. Defaults to 0.
+        **kwargs (dict): The key-value pairs to track.
+
+    Examples:
+        >>> track_this(step=0, my_int_param=123, my_float_param=123.45, my_str_param='hello world')
+        >>> track_this(step=1, my_int_param=456, my_float_param=456.78, my_str_param='goodbye world')
     """
     prefix = defaults.TRACK_PREFIX
 
@@ -53,8 +56,12 @@ def track_this(step: int = 0, **kwargs):
 
     for key, value in kwargs.items():
         logger.info(f"Tracking {key} with value: {value}")
+
+        if isinstance(value, BaseModel):
+            value = value.model_dump(by_alias=True)
+
         os.environ[prefix + key] = json.dumps(value)
-        context.run_context.experiment_tracker.log_metric(key, value, step=step)
+        # context.run_context.experiment_tracker.log_metric(key, value, step=step)
 
 
 @check_context
@@ -194,7 +201,6 @@ def get_from_catalog(name: str, destination_folder: str = ""):
     data_catalog = context.run_context.catalog_handler.get(
         name,
         run_id=context.run_context.run_id,
-        compute_data_folder=destination_folder,
     )
 
     if context.run_context.executor._context_step_log:
@@ -210,14 +216,13 @@ def put_in_catalog(filepath: str):
     You can use wild cards following globing rules.
 
     Args:
-        filepath (str): The path to the file or folder to add to the catalog.
+        filepath (str): The path to the file or folder added to the catalog
     """
     file_path = Path(filepath)
 
     data_catalog = context.run_context.catalog_handler.put(
-        file_path.name,
+        str(file_path),
         run_id=context.run_context.run_id,
-        compute_data_folder=str(file_path.parent),
     )
     if not data_catalog:
         logger.warning(f"No catalog was done by the {filepath}")
@@ -231,11 +236,14 @@ def put_in_catalog(filepath: str):
 @check_context
 def put_object(data: Any, name: str):
     """
-    A convenient interaction function to serialize and store the object in catalog.
+    Serialize and store a python object in the data catalog.
+
+    This function behaves the same as `put_in_catalog`
+    but with python objects.
 
     Args:
-        data (Any): The data object to add to catalog
-        name (str): The name to give to the object
+        data (Any): The python data object to store.
+        name (str): The name to store it against.
     """
     native_pickler = pickler.NativePickler()
 
@@ -249,10 +257,10 @@ def put_object(data: Any, name: str):
 @check_context
 def get_object(name: str) -> Any:
     """
-    A convenient function to deserialize and retrieve the object from the catalog.
+    Retrieve and deserialize a python object from the data catalog.
 
-    Args:
-        name (str): The name of the object to retrieve
+    This function behaves the same as `get_from_catalog` but with
+    python objects.
 
     Returns:
         Any : The object

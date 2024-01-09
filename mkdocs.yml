@@ -119,6 +119,7 @@ nav:
           - "Retry failures": "example/retry-after-failure.md"
       - "Why magnus?": "why-magnus.md"
   - "Concepts":
+      - "tl;dr": "concepts/the-big-picture.md"
       - "Pipeline": "concepts/pipeline.md"
       - "Executor": "concepts/executor.md"
       - "Parameters": "concepts/parameters.md"
@@ -133,6 +134,7 @@ nav:
           - "Map": "concepts/map.md"
           - "Dag": "concepts/dag.md"
   - "Configurations":
+      - "Overview": "configurations/overview.md"
       - "Executor": "configurations/executor.md"
       - "Run log": "configurations/run-log.md"
       - "Catalog": "configurations/catalog.md"

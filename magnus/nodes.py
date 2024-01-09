@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -439,7 +439,7 @@ class CatalogStructure(BaseModel):
 
 
 class ExecutableNode(TraversalNode):
-    catalog: CatalogStructure = Field(default=None)
+    catalog: Optional[CatalogStructure] = Field(default=None)
     executor_config: Dict[str, Any] = {}
     max_attempts: int = 1
 

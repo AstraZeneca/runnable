@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 from pydantic._internal._model_construction import ModelMetaclass
 from stevedore import driver
 
@@ -271,7 +271,7 @@ class NotebookTaskType(BaseTaskType):
 
     @field_validator("notebook_output_path")
     @classmethod
-    def correct_notebook_output_path(cls, notebook_output_path: str, info: FieldValidationInfo):
+    def correct_notebook_output_path(cls, notebook_output_path: str, info: ValidationInfo):
         if notebook_output_path:
             return notebook_output_path
 
@@ -386,7 +386,6 @@ class ShellTaskType(BaseTaskType):
         logger.info(f"Executing shell command: {command}")
 
         output_parameters = {}
-        output_exp_trackers = {}
 
         with subprocess.Popen(
             command,
@@ -409,7 +408,7 @@ class ShellTaskType(BaseTaskType):
 
                 if line.startswith(defaults.TRACK_PREFIX):
                     key, value = line.split("=", 1)
-                    output_exp_trackers[key] = json.loads(value)
+                    os.environ[key] = value.strip()
 
             proc.wait()
             if proc.returncode != 0:

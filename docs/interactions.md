@@ -25,6 +25,20 @@
 
 ---
 
+::: magnus.get_object
+    options:
+        show_root_heading: true
+
+---
+
+::: magnus.put_object
+    options:
+        show_root_heading: true
+
+
+
+---
+
 ::: magnus.get_secret
     options:
         show_root_heading: true
@@ -40,5 +54,11 @@
 ---
 
 ::: magnus.get_run_id
+    options:
+        show_root_heading: true
+
+---
+
+::: magnus.track_this
     options:
         show_root_heading: true

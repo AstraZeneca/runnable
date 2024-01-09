@@ -1,28 +1,41 @@
 from pathlib import Path
 
+from magnus import get_from_catalog, put_in_catalog
+
 
 def create_content_in_data_folder():
     """
     Create a data directory and write a file "hello.txt" in the data folder.
+    Use the python API put_in_catalog to put the file in the catalog.
     """
     Path("data").mkdir(parents=True, exist_ok=True)
     with open(Path("data") / "hello.txt", "w") as f:
         f.write("Hello from data folder!!")
 
+    put_in_catalog("data/hello.txt")
+
 
 def create_content_in_another_folder():
     """
     Create a "another" directory and write a file "world.txt" in it.
+    Use the python API put_in_catalog to put the file in the catalog.
     """
     Path("another").mkdir(parents=True, exist_ok=True)
     with open(Path("another") / "world.txt", "w") as f:
         f.write("Hello from another folder!!")
 
+    put_in_catalog("another/world.txt")
+
 
 def retrieve_content_from_both():
     """
+    Retrieve the contents of the files from the catalog using the python
+    API get_from_catalog.
     Display the contents of the files in data and "another" folder
     """
+
+    get_from_catalog("**/*")
+
     with open(Path("data") / "hello.txt", "r") as f:
         print(f.read())
 
@@ -31,22 +44,18 @@ def retrieve_content_from_both():
 
 
 def main():
-    from magnus import Catalog, Pipeline, Task
+    from magnus import Pipeline, Task
 
     # This step creates a file in the data folder and syncs it to the catalog.
-    data_catalog = Catalog(put=["data/hello.txt"])
     data_create = Task(
         name="create_content_in_data_folder",
-        command="examples.concepts.catalog.create_content_in_data_folder",
-        catalog=data_catalog,
+        command="examples.concepts.catalog_api.create_content_in_data_folder",
     )
 
     # This step creates a file in the another folder and syncs it to the catalog.
-    another_catalog = Catalog(put=["another/world.txt"])
     another_create = Task(
         name="create_content_in_another_folder",
-        command="examples.concepts.catalog.create_content_in_another_folder",
-        catalog=another_catalog,
+        command="examples.concepts.catalog_api.create_content_in_another_folder",
     )
 
     # Delete the another folder to showcase that the folder will be recreated
@@ -58,11 +67,9 @@ def main():
     )
 
     # This step retrieves the file from the catalog and prints its content.
-    all_catalog = Catalog(get=["**/*"])
     retrieve = Task(
         name="retrieve_content_from_both",
-        command="examples.concepts.catalog.retrieve_content_from_both",
-        catalog=all_catalog,
+        command="examples.concepts.catalog_api.retrieve_content_from_both",
         terminate_with_success=True,
     )
 
