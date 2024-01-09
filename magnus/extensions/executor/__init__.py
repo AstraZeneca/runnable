@@ -12,6 +12,7 @@ from magnus import context, defaults, exceptions, integration, parameters, utils
 from magnus.datastore import DataCatalog, RunLog, StepLog
 from magnus.defaults import TypeMapVariable
 from magnus.executor import BaseExecutor
+from magnus.experiment_tracker import get_tracked_data
 from magnus.extensions.nodes import TaskNode
 from magnus.graph import Graph
 from magnus.nodes import BaseNode
@@ -333,7 +334,7 @@ class GenericExecutor(BaseExecutor):
             attempt_log.parameters = params.copy()
             step_log.attempts.append(attempt_log)
 
-            tracked_data = utils.get_tracked_data()
+            tracked_data = get_tracked_data()
             # By this point, the updated parameters are deserialized as json strings.
             parameters_out = parameters.get_user_set_parameters(remove=True)
 
@@ -353,6 +354,7 @@ class GenericExecutor(BaseExecutor):
             # Remove the step context
             self._context_step_log = None
             self._context_node = None  # type: ignore
+            self._context_metrics = {}  # type: ignore
 
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 

@@ -35,11 +35,10 @@ def check_context(func):
 
 @check_context
 def track_this(step: int = 0, **kwargs):
-    # TODO: passing to experiment tracker might need to happen at different level
     """
     Tracks key-value pairs to the experiment tracker.
 
-    The value is dumped as a dict if it is a pydantic model.
+    The value is dumped as a dict, by alias, if it is a pydantic model.
 
     Args:
         step (int, optional): The step to track the data at. Defaults to 0.
@@ -51,17 +50,13 @@ def track_this(step: int = 0, **kwargs):
     """
     prefix = defaults.TRACK_PREFIX
 
-    if step:
-        prefix += f"{str(step)}_"
-
     for key, value in kwargs.items():
         logger.info(f"Tracking {key} with value: {value}")
 
         if isinstance(value, BaseModel):
             value = value.model_dump(by_alias=True)
 
-        os.environ[prefix + key] = json.dumps(value)
-        # context.run_context.experiment_tracker.log_metric(key, value, step=step)
+        os.environ[prefix + key + f"{defaults.STEP_INDICATOR}{step}"] = json.dumps(value)
 
 
 @check_context

@@ -1,14 +1,54 @@
 import contextlib
+import json
 import logging
+import os
 from abc import ABC, abstractmethod
-from typing import Any, ContextManager
+from collections import defaultdict
+from typing import Any, ContextManager, Dict, Tuple
 
 from pydantic import BaseModel, ConfigDict
 
 import magnus.context as context
 from magnus import defaults
+from magnus.utils import remove_prefix
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
+
+
+def retrieve_step_details(key: str) -> Tuple[str, int]:
+    key = remove_prefix(key, defaults.TRACK_PREFIX)
+    data = key.split(defaults.STEP_INDICATOR)
+
+    key = data[0].lower()
+    step = 0
+
+    if len(data) > 1:
+        step = int(data[1])
+
+    return key, step
+
+
+def get_tracked_data() -> Dict[str, Any]:
+    tracked_data = defaultdict(dict)
+    for env_var, value in os.environ.items():
+        if env_var.startswith(defaults.TRACK_PREFIX):
+            key, step = retrieve_step_details(env_var)
+
+            # print(value, type(value))
+            try:
+                value = json.loads(value)
+            except json.decoder.JSONDecodeError:
+                logger.warning(f"Tracker {key} could not be JSON decoded, adding the literal value")
+
+            tracked_data[key][step] = value
+            del os.environ[env_var]
+
+    for key, value in tracked_data.items():
+        if len(value) == 1:
+            tracked_data[key] = value[0]
+
+    return tracked_data
+
 
 # --8<-- [start:docs]
 
