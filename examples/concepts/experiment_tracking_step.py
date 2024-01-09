@@ -15,7 +15,7 @@ def emit_metrics():
     Nested structures are supported by pydantic models.
     """
     track_this(step=0, spam="hello", eggs=EggsModel(ham="world"))
-    track_this(step=1, spam="hello", eggs=EggsModel(ham="universe"))
+    track_this(step=1, spam="hey", eggs=EggsModel(ham="universe"))
     track_this(answer=42.0)
     track_this(is_it_true=False)
 
