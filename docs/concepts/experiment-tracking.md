@@ -223,7 +223,7 @@ The step is defaulted to be 0.
 
 === "Run log entry"
 
-    ```json
+    ```json linenums="1" hl_lines="36-51"
     {
         "run_id": "syrupy-jang-1528",
         "dag_hash": "",
@@ -262,7 +262,7 @@ The step is defaulted to be 0.
                 "user_defined_metrics": {
                     "spam": {
                         "0": "hello",
-                        "1": "hello"
+                        "1": "hey"
                     },
                     "eggs": {
                         "0": {
