@@ -9,8 +9,8 @@ dag:
   start_at: Acquire data
   steps:
     Acquire data:
-      type: stub
-      next: Prepare data
+      type: stub # (1)
+      next: Prepare data # (2)
     Prepare data:
       type: stub
       next: Extract features
@@ -20,7 +20,7 @@ dag:
     Model:
       type: stub
       next: success
-    success:
+    success: # (3)
       type: success
-    fail:
+    fail: # (4)
       type: fail

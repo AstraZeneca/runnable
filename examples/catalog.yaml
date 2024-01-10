@@ -29,7 +29,7 @@ dag:
         put:
           - data/hello.txt
     Clean up to get again:
-      type: task # (3)
+      type: stub # (3)
       command_type: shell
       command: rm -rf data
       next: Retrieve Content
@@ -42,7 +42,7 @@ dag:
           - "data/hello.txt" # You can use wild cards following glob pattern
       next: Clean up
     Clean up:
-      type: task # (6)
+      type: stub # (6)
       command_type: shell
       command: rm -rf data
       next: success

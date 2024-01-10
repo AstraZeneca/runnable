@@ -114,9 +114,9 @@ nav:
           - "Pipeline Definition": "example/example.md"
           - "Steps": "example/steps.md"
           - "Flow of data": "example/dataflow.md"
+          - "Reproducibility": "example/reproducibility.md"
           - "Experiment tracking": "example/experiment-tracking.md"
           - "Secrets": "example/secrets.md"
-          - "Reproducibility": "example/reproducibility.md"
           - "Retry failures": "example/retry-after-failure.md"
       - "Why magnus?": "why-magnus.md"
   - "Concepts":

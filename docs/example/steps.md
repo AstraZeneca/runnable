@@ -1,18 +1,17 @@
-Magnus provides a very rich definition of of step types.
+Magnus provides a rich definition of of step types.
 
 <div class="annotate" markdown>
 
-- [stub](#stub): A mock step which is handy during designing and debugging pipelines.
-- [task](#task): To execute python functions, jupyter notebooks, shell scripts.
-- parallel: To execute many tasks in parallel.
-- map: To execute the same task over a list of parameters. (1)
-- dag: To embed a pipeline defined in other modules.
+- [stub](../../concepts/stub): A mock step which is handy during designing and debugging pipelines.
+- [task](../../concepts/task): To execute python functions, jupyter notebooks, shell scripts.
+- [parallel](../../concepts/parallel): To execute many tasks in parallel.
+- [map](../../concepts/map): To execute the same task over a list of parameters. (1)
+- [dag](../../concepts/dag): To embed a pipeline defined in other modules.
 
 </div>
 
 1. Similar to ```map``` state in AWS step functions or ```loops``` in Argo workflows.
 
-Please refer to examples for more examples of all the steps.
 
 ## stub
 
@@ -22,13 +21,13 @@ Used as a mock node or a placeholder before the actual implementation (1).
 1.  :raised_hand: Equivalent to ```pass``` or ```...``` in python.
 
 
-=== "YAML"
+=== "yaml"
 
     ``` yaml
     --8<-- "examples/mocking.yaml"
     ```
 
-=== "Python"
+=== "python"
 
     ```python
     --8<-- "examples/mocking.py"
@@ -42,11 +41,12 @@ Used as a mock node or a placeholder before the actual implementation (1).
 
 ## task
 
-Used to execute a single unit of work. You can use ```python```, ```shell```, ```notebook``` as command types.
+Used to execute a single unit of work. You can use [python](../../concepts/task/#python_functions),
+[shell](../../concepts/task/#shell), [notebook](../../concepts/task/#notebook) as command types.
 
 !!! note annotate "Execution logs"
 
-    You can view the execution logs of the tasks in the ```catalog``` without digging through the
+    You can view the execution logs of the tasks in the [catalog](../../concepts/catalog) without digging through the
     logs from the underlying executor.
 
 
@@ -58,7 +58,7 @@ Used to execute a single unit of work. You can use ```python```, ```shell```, ``
     --8<-- "examples/functions.py"
     ```
 
-=== "YAML"
+=== "yaml"
 
     ``` yaml
     --8<-- "examples/python-tasks.yaml"
@@ -67,7 +67,7 @@ Used to execute a single unit of work. You can use ```python```, ```shell```, ``
     1. Note that the ```command``` is the path to the python function.
     2. ```python``` is default command type, you can use ```shell```, ```notebook``` too.
 
-=== "Python"
+=== "python"
 
     ```python
     --8<-- "examples/python-tasks.py"

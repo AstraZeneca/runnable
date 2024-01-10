@@ -15,7 +15,7 @@ when running the ```command``` of a task.
     tl;dr a pipeline that consumes some initial parameters and passes them
     to the next step. Both the steps are ```shell``` based tasks.
 
-    ```yaml
+    ```yaml linenums="1"
     --8<-- "examples/concepts/task_shell_parameters.yaml"
     ```
 

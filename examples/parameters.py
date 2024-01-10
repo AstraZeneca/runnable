@@ -5,6 +5,8 @@ inner:
   x: 10
   y: "hello"
 
+You can execute this pipeline by: python examples/parameters.py
+
 """
 
 from pydantic import BaseModel

@@ -6,6 +6,9 @@ dag:
     All parameters are prefixed by MAGNUS_PRM_ in json serialized form.
     To set a parameter, you need to set the environment variable with the prefix
 
+    You can run this example:
+    magnus execute -f examples/parameters_env.yaml -p examples/parameters_initial.yaml
+
   start_at: display
   steps:
     display:
@@ -25,6 +28,8 @@ dag:
     display again:
       type: task
       command: examples.parameters.display # (3)
+      # prints MAGNUS_PRM_simple=10
+      # prints MAGNUS_PRM_inner={"x": 100, "y": "world"}
       next: success
     success:
       type: success

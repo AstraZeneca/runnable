@@ -3,16 +3,21 @@ python API to get secrets from various sources.
 
 !!! info annotate inline end "from magnus import get_secret"
 
-        Secrets is the only interface that you are required to "import magnus" in your python application.
+    Secrets is the only interface that you are required to "import magnus" in your python application.
 
-        Native python and Jupyter notebooks can use this API. We currently do not support shell tasks with
-        secrets from this interface. (1)
+    Native python and Jupyter notebooks can use this API. We currently do not support shell tasks with
+    secrets from this interface. (1)
 
 1. Using environment variables to access secrets is one pattern works in all environments.
 
-=== "Dotenv format"
+=== "dotenv format"
 
-    ```shell
+    The dotenv format for providing secrets. Ideally, this file should not be part of the
+    version control but present during development phase.
+
+    The file is assumed to be present in ```examples/secrets.env``` for this example.
+
+    ```shell linenums="1"
     --8<-- "examples/secrets.env"
     ```
 
@@ -22,7 +27,9 @@ python API to get secrets from various sources.
 
 === "Example configuration"
 
-    ```yaml
+    Configuration to use the dotenv format file.
+
+    ```yaml linenums="1"
     --8<-- "examples/configs/dotenv.yaml"
     ```
 
@@ -32,7 +39,7 @@ python API to get secrets from various sources.
 
 === "Pipeline in python"
 
-    ```python hl_lines="9-10"
+    ```python linenums="1" hl_lines="9-10"
     --8<-- "examples/secrets.py"
     ```
 

@@ -31,7 +31,7 @@ orchestration frameworks (e.g Argo workflows, AWS step functions).
 
 Below is a simple pipeline definition that does one task of printing "Hello World".
 
-```yaml
+```yaml linenums="1"
 --8<-- "examples/concepts/task_shell_simple.yaml"
 ```
 
@@ -231,7 +231,7 @@ application codebase.
 In a very simplistic sense, the below stubbed-code explains the context of magnus during
 execution of a task.
 
-```python
+```python linenums="1"
 
 def execute_single_node(workflow, step_name, configuration):
 

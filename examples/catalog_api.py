@@ -2,6 +2,8 @@
 This example demonstrates how to use the catalog API.
 You can use the python API for fine grained control if configurational specification
 does not fit your needs.
+
+You can run this pipeline by: python examples/catalog_api.py
 """
 
 from pathlib import Path

@@ -42,8 +42,7 @@ def return_parameter() -> Parameter:
 
 def display_parameter(x: int, y: InnerModel):
     """
-    An example python task that does something interesting and displays
-    the parameters to be used in downstream steps.
+    An example python task that does something interesting with input parameters.
 
     Annotating the arguments of the function is important for
     magnus to understand the type of parameters you want.
@@ -53,17 +52,15 @@ def display_parameter(x: int, y: InnerModel):
     Input args can be a pydantic model or the individual attributes of the non-nested model
     """
     print(x)
+    # >>> prints 1
     print(y)
+    # >>> prints InnerModel(foo=10, bar="hello world")
     logger.info(f"I got a parameter: {x}")
     logger.info(f"I got another parameter: {y}")
 
 
 """
-Note that there is no need to "import magnus" in your python code.
-Your application code can remain agnostic of magnus.
-
-For example, you can write your "driver" function as below which is
-not tied to any framework.
+Without any framework, the "driver" code would be the main function.
 """
 
 

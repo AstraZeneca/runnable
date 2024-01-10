@@ -18,40 +18,24 @@ We build __**Magnus**__ to separate those concerns and create a clear boundary o
 
 ## Design principles
 
-`Code should not be mixed with implementation details of underlying platform.`
+- [x] Code should not be mixed with implementation details of underlying platform.
 
-<div class="annotate" markdown>
-
-**Example**: Data and parameters are often shared between different steps of the pipeline. (1)
+**Example**: Data and parameters are often shared between different steps of the pipeline.
 The platform implementation should not add additional code to make this happen.
 
-</div>
-
-1.  :raised_hand: Think of them as functions returning values or creating files.
 
 
-`Interactive development/debugging should be a first-class citizen.`
+- [x] Interactive development/debugging should be a first-class citizen.
 
-<div class="annotate" markdown>
 
 **Example**: Data science teams thrive in environments with quick debug loop. Able to use their preferred tools
-and iterate without constraints of the platform aids development/debugging (1).
+and iterate without constraints of the platform aids development/debugging.
 
-</div>
 
-1.  :raised_hand: The code should not move away from the comfort state of the data science teams; Minimize refactor.
-
-`Align the best practices even during development phase.`
-
-<div class="annotate" markdown>
+- [x] Align the best practices even during development phase.
 
 **Example**: All projects require secrets to access secure content. The concept of secret should be
-available even during development phase (1) and there should be no change in code when it is run in production set up.
-
-</div>
-
-1.  :ballot_box_with_check: Accessing secrets either from environment variables or files is acceptable
-during development phase.
+available even during development phase and there should be no change in code when it is run in production set up.
 
 
 

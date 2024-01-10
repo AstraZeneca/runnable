@@ -5,6 +5,9 @@ inner:
   x: 10
   y: "hello"
 
+
+You can run this pipeline by: python examples/parameters_api.py
+
 """
 
 from pydantic import BaseModel
@@ -96,7 +99,7 @@ def main():
         add_terminal_nodes=True,
     )
 
-    pipeline.execute()
+    pipeline.execute(parameters_file="examples/parameters_initial.yaml")
 
 
 if __name__ == "__main__":

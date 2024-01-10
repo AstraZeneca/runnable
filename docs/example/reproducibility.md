@@ -1,4 +1,5 @@
-Magnus stores a variety of information about the current execution in ```run log```. The run log is internally used
+Magnus stores a variety of information about the current execution in [run log](../../concepts/run-log).
+The run log is internally used
 for keeping track of the execution (status of different steps, parameters, etc) but also has rich information
 for reproducing the state at the time of pipeline execution.
 
@@ -17,9 +18,9 @@ as part of the run log.
 
 !!! info annotate "Invisible?"
 
-        Reproducibility should not be a "nice to have" but is a must in data science projects. We believe that
-        it should not be left to the data scientist to be conscious of it but should be done without any active
-        intervention.
+    Reproducibility should not be a "nice to have" but is a must in data science projects. We believe that
+    it should not be left to the data scientist to be conscious of it but should be done without any active
+    intervention.
 
 
 Below we show an example pipeline and the different layers of the run log.
@@ -34,18 +35,18 @@ Below we show an example pipeline and the different layers of the run log.
         gets it from the catalog.
 
 
-    ```python title="simple data passing pipeline"
+    ```python title="simple data passing pipeline" linenums="1"
     --8<-- "examples/catalog_api.py"
     ```
 === "General run log attributes"
 
     !!! info annotate
 
-        The different attributes of the run log which show the state of the pipeline execution.
-        This layer does not show the attributes of the steps in the pipeline.
+        This section of the run log is about the over all status of the execution. It has information
+        about the run_id, the execution status, re-run indicators and the final state of the parameters.
 
 
-    ```json
+    ```json linenums="1"
     {
         "run_id": "greedy-yonath-1608", // (1)
         "dag_hash": "",
@@ -71,7 +72,7 @@ Below we show an example pipeline and the different layers of the run log.
         run id.
 
 
-    ```json
+    ```json linenums="1"
     "create_content": { // (1)
         "name": "create_content",
         "internal_name": "create_content",
@@ -139,7 +140,7 @@ Below we show an example pipeline and the different layers of the run log.
         execution of the pipeline.
 
 
-    ```json
+    ```json linenums="1"
     "run_config": {
         "executor": { // (1)
             "service_name": "local",

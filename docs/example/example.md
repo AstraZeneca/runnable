@@ -1,4 +1,9 @@
-# Example
+
+
+Magnus revolves around the concept of [pipelines or workflows](../../concepts/pipeline).
+Pipelines defined in magnus are translated into
+other workflow engine definitions like [Argo workflows](https://argoproj.github.io/workflows/) or
+[AWS step functions](https://aws.amazon.com/step-functions/).
 
 ## Example Pipeline definition
 
@@ -9,10 +14,6 @@ A contrived example of data science workflow without any implementation.
     In this extremely reduced example, we acquire data from different sources, clean it and shape it for analysis.
     Features are then engineered from the clean data to run data science modelling.
 
-    We are intentionally hiding highly nuanced parts (1) of the pipeline to give you a flavor, please refer to the
-    docs for more details.
-
-1. Tolerating failures, experiment tracking, logging and much more.
 
 ``` mermaid
 %%{ init: { 'flowchart': { 'curve': 'linear' } } }%%
@@ -32,15 +33,20 @@ flowchart TD
 This pipeline can be represented in **magnus** as below:
 
 
-=== "YAML"
+=== "yaml"
 
-    ``` yaml
+    ``` yaml linenums="1"
     --8<-- "examples/contrived.yaml"
     ```
 
-=== "Python"
+    1. ```stub``` nodes are mock nodes and always succeed.
+    2. Execute the ```next``` node if it succeeds.
+    3. This marks the pipeline to be be successfully completed.
+    4. Any failure in the execution of the node will, by default, reach this step.
 
-    ``` python
+=== "python"
+
+    ``` python linenums="1"
     --8<-- "examples/contrived.py"
     ```
 
@@ -48,15 +54,15 @@ This pipeline can be represented in **magnus** as below:
     2. ```terminate_with_success``` indicates the pipeline to be successfully complete.
     3. Alternative ways to define dependencies, ```>>```, ```<<```, ```depends_on```. Choose the style that you
     prefer.
-    4. ```add_terminal_nodes``` adds success and end states to the pipeline.
+    4. ```add_terminal_nodes``` adds success and fail states to the pipeline.
     5. A very rich run log that captures different properties of the run for maximum reproducibility.
 
 
 === "Run log"
 
-    Please see [Reproducibility](../reproducibility) for more information.
+    Please see [Run log](../../concepts/run-log) for more detailed information about the structure.
 
-    ```json
+    ```json linenums="1"
     {
         "run_id": "vain-hopper-0731", // (1)
         "dag_hash": "",
@@ -325,25 +331,12 @@ This pipeline can be represented in **magnus** as below:
 Independent of the platform it is run on,
 
 
-<div class="annotate" markdown>
+- [x] The pipeline definition remains the same from an author point of view. The data scientists are always part of
+the process and contribute to the development even in production environments.
 
-> The pipeline definition remains the same from an user point of view. (1)
-    Magnus transpiles it to the platform specification.
+- [x] The run log remains the same except for the execution configuration enabling users to debug the pipeline
+execution in lower environments for failed executions or to validate the expectation of the execution.
 
-</div>
-
-1.  :eight_spoked_asterisk: Enables data science teams to define/run pipelines in local environments and deploy it
-anywhere.
-
-
-
-<div class="annotate" markdown>
-
-> The run log remains the same except for the execution configuration. (1)
-
-</div>
-
-1.  :eight_spoked_asterisk: Enables reproducing and debugging pipeline executions in "comfortable" environments.
 
 
 
@@ -353,7 +346,7 @@ To run the pipeline in different environments, we just provide the required conf
 
 === "Default Configuration"
 
-    ``` yaml
+    ``` yaml linenums="1"
     --8<-- "examples/configs/default.yaml"
     ```
 
@@ -365,7 +358,11 @@ To run the pipeline in different environments, we just provide the required conf
 
 === "Argo Configuration"
 
-    ``` yaml
+    To render the pipeline in argo specification, mention the configuration during execution.
+
+    ```magnus execute -f examples/contrived.yaml -c examples/configs/argo-config.yaml```
+
+    ``` yaml linenums="1"
     --8<-- "examples/configs/argo-config.yaml"
     ```
 
@@ -381,7 +378,9 @@ To run the pipeline in different environments, we just provide the required conf
 
 === "Transpiled Workflow"
 
-    ```yaml
+    The below is the same workflow definition in argo specification.
+
+    ```yaml linenums="1"
 
     apiVersion: argoproj.io/v1alpha1
     kind: Workflow

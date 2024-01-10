@@ -411,22 +411,38 @@ Since mlflow does not support step wise logging of parameters, the key name is f
 
 === "Example configuration"
 
+    In the below configuration, the mlflow tracking server is a local instance listening on port 8080.
+
     ```yaml linenums="1" hl_lines="13-16"
     --8<-- "examples/configs/mlflow-config.yaml"
     ```
 
 === "Pipeline"
 
-    ```python linenums="1" hl_lines="13-16"
+    As with other examples, we are using the ```track_this``` python API to capture metrics. During the pipeline
+    execution in line #39, we use the configuration of ```mlflow``` as experiment tracking tool.
+
+    The tag provided during the execution is used as a experiment name in mlflow.
+
+    ```python linenums="1" hl_lines="3 20-23 39"
     --8<-- "examples/concepts/experiment_tracking_integration.py"
     ```
 
 
 === "In mlflow UI"
 
+    <figure markdown>
+        ![Image](../assets/screenshots/mlflow.png){ width="800" height="600"}
+        <figcaption>mlflow UI for the execution. The run_id remains the same as the run_id of magnus</figcaption>
+    </figure>
 
-- [client context](../../interactions/#magnus.get_experiment_tracker_context): Returns the configured
-client context of the experiment tracking tool. The default client context is a
-[null context](https://docs.python.org/3/library/contextlib.html#contextlib.nullcontext).
+    <figure markdown>
+        ![Image title](../assets/screenshots/mlflow_step.png){ width="800" height="600"}
+        <figcaption>The step wise metric plotted as a graph in mlflow</figcaption>
+    </figure>
 
-- Grouping experiments: The CLI argument ```tag``` is used to group experiments.
+
+
+To provide implementation specific capabilities, we also provide a
+[python API](../../interactions/#magnus.get_experiment_tracker_context) to obtain the client context. The default
+client context is a [null context manager](https://docs.python.org/3/library/contextlib.html#contextlib.nullcontext).

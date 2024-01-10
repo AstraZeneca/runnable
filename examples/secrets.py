@@ -24,7 +24,7 @@ def main():
 
     pipeline = Pipeline(steps=[show], start_at=show, add_terminal_nodes=True)
 
-    pipeline.execute(configuration_file="examples/configs/dotenv.yaml", log_level="ERROR")
+    pipeline.execute(configuration_file="examples/configs/dotenv.yaml")
 
 
 if __name__ == "__main__":

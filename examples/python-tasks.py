@@ -12,7 +12,10 @@ from magnus import Pipeline, Task
 
 
 def main():
-    step1 = Task(name="step1", command="examples.functions.return_parameter")  # (1)
+    step1 = Task(
+        name="step1",
+        command="examples.functions.return_parameter",
+    )  # (1)
     step2 = Task(
         name="step2",
         command="examples.functions.display_parameter",
@@ -21,7 +24,11 @@ def main():
         step1
     )  # (2), (3)
 
-    pipeline = Pipeline(start_at=step1, steps=[step1, step2], add_terminal_nodes=True)  # (4)
+    pipeline = Pipeline(
+        start_at=step1,
+        steps=[step1, step2],
+        add_terminal_nodes=True,
+    )  # (4)
 
     pipeline.execute()
 
