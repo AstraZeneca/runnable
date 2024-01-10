@@ -1,19 +1,13 @@
 import functools
 import logging
-from typing import Any
+from typing import Any, Union
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, PrivateAttr
 
 from magnus import defaults
 from magnus.experiment_tracker import BaseExperimentTracker
 
 logger = logging.getLogger(defaults.NAME)
-
-try:
-    import mlflow
-except ImportError:
-    msg = "You need to install mlflow to use MLFlowExperimentTracker. " "Try `pip install mlflow-skinny`."
-    # raise Exception(msg) from _e
 
 
 class MLFlowExperimentTracker(BaseExperimentTracker):
@@ -24,18 +18,28 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
     """
 
     service_name: str = "mlflow"
+
     server_url: str
     autolog: bool = False
-    _default_experiment_name: str = "Default"
-    _active_run_id: str = ""
+
+    _default_experiment_name: str = PrivateAttr(default="Default")
+    _active_run_id: str = PrivateAttr(default="")
+    _client: Any = PrivateAttr(default=None)
+
     model_config = ConfigDict(extra="forbid")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        mlflow.set_tracking_uri(self.server_url)
+    def model_post_init(self, __context: Any) -> None:
+        try:
+            import mlflow
+        except ImportError:
+            raise Exception("You need to install mlflow to use MLFlowExperimentTracker.")
+
+        self._client = mlflow
+
+        self._client.set_tracking_uri(self.server_url)
 
         if self.autolog:
-            mlflow.autolog(log_models=False)
+            self._client.autolog(log_models=False)
 
     @functools.cached_property
     def experiment_id(self):
@@ -45,11 +49,11 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
         if self._context.tag:
             experiment_name = self._context.tag
 
-        experiment = mlflow.get_experiment_by_name(experiment_name)
+        experiment = self._client.get_experiment_by_name(experiment_name)
         if not experiment:
             # Create the experiment and get it.
-            experiment = mlflow.create_experiment(experiment_name)
-            experiment = mlflow.get_experiment(experiment)
+            experiment = self._client.create_experiment(experiment_name)
+            experiment = self._client.get_experiment(experiment)
 
         return experiment.experiment_id
 
@@ -60,15 +64,15 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
     @property
     def client_context(self):
         if self._active_run_id:
-            return mlflow.start_run(
+            return self._client.start_run(
                 run_id=self._active_run_id, experiment_id=self.experiment_id, run_name=self.run_name
             )
 
-        active_run = mlflow.start_run(run_name=self.run_name, experiment_id=self.experiment_id)
+        active_run = self._client.start_run(run_name=self.run_name, experiment_id=self.experiment_id)
         self._active_run_id = active_run.info.run_id
         return active_run
 
-    def log_metric(self, key: str, value: float, step: int = 0):
+    def log_metric(self, key: str, value: Union[int, float], step: int = 0):
         """
         Sets the metric in the experiment tracking.
 
@@ -76,15 +80,15 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
             key (str): The key against you want to store the value
             value (Any): The value of the metric
         """
-        if not isinstance(value, float):
-            msg = f"Only float values are accepted as metrics. Setting the metric {key} as parameter {key}_{step}"
+        if not isinstance(value, float) or isinstance(value, int):
+            msg = f"Only float/int values are accepted as metrics. Setting the metric {key} as parameter {key}_{step}"
             logger.warning(msg)
-            self.log_parameter(key=key + f"_{step}", value=value)
+            self.log_parameter(key=key, value=value, step=step)
             return
 
         with self.client_context as _:
-            mlflow.log_metric(key, value, step=step or None)
+            self._client.log_metric(key, float(value), step=step or None)
 
-    def log_parameter(self, key: str, value: Any):
+    def log_parameter(self, key: str, value: Any, step: int = 0):
         with self.client_context as _:
-            mlflow.log_param(key, value)
+            self._client.log_param(key + f"_{str(step)}", value)

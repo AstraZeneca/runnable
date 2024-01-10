@@ -22,6 +22,7 @@ typing-extensions ={ version= "*", python = "<3.8" }
 docker ={ version = "*", optional = true }
 sqlalchemy ={ version = "*", optional = true }
 rich = "^13.5.2"
+mlflow-skinny ={ version = "*", optional = true }
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "*"
@@ -29,6 +30,7 @@ mkdocs-material = "*"
 mkdocs-section-index = "^0.3.5"
 mkdocstrings = {extras = ["python"], version = "^0.24.0"}
 nbconvert = "^7.13.1"
+mkdocs-click = "^0.8.1"
 
 [tool.poetry.group.binary.dependencies]
 pyinstaller = "^5.13.2"
@@ -41,6 +43,7 @@ pyflame = "^0.3.1"
 docker = ['docker']
 notebook = ['ploomber-engine']
 database = ["sqlalchemy"]
+mlflow = ["mlflow-skinny"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
@@ -86,6 +89,7 @@ magnus= 'magnus.cli:cli'
 # Plugins for Experiment tracker
 [tool.poetry.plugins."experiment_tracker"]
 "do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
+"mlflow" = "magnus.extensions.experiment_tracker.mlflow.implementation:MLFlowExperimentTracker"
 
 # Plugins for Pickler
 [tool.poetry.plugins."pickler"]

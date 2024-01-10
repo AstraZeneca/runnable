@@ -335,6 +335,8 @@ class GenericExecutor(BaseExecutor):
             step_log.attempts.append(attempt_log)
 
             tracked_data = get_tracked_data()
+
+            self._context.experiment_tracker.publish_data(tracked_data)
             # By this point, the updated parameters are deserialized as json strings.
             parameters_out = parameters.get_user_set_parameters(remove=True)
 

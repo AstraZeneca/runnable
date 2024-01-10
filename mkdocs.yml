@@ -50,6 +50,7 @@ theme:
 
 # Extensions
 markdown_extensions:
+  - mkdocs-click
   - admonition
   - def_list
   - attr_list
@@ -144,6 +145,7 @@ nav:
   # - "Command Line":
   #       - "command-line.md"
   - "Python API": "interactions.md"
+  - "CLI": "cli.md"
   # - "Examples":
   #       - "examples.md"
   - "Extensions": "extensions.md"

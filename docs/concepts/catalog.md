@@ -448,7 +448,7 @@ Files could also be cataloged using [python API](../../interactions)
 This functionality is possible in [python](../task/#python_functions)
 and [notebook](../task/#notebook) tasks.
 
-```python linenums="1" hl_lines="2 14 26 36"
+```python linenums="1" hl_lines="3 15 27 37"
 --8<-- "examples/concepts/catalog_api.py"
 ```
 

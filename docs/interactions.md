@@ -62,3 +62,10 @@
 ::: magnus.track_this
     options:
         show_root_heading: true
+
+
+---
+
+::: magnus.get_experiment_tracker_context
+    options:
+        show_root_heading: true

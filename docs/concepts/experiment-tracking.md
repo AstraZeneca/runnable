@@ -225,7 +225,7 @@ The step is defaulted to be 0.
 
     ```json linenums="1" hl_lines="36-51"
     {
-        "run_id": "syrupy-jang-1528",
+        "run_id": "blocking-stonebraker-1545",
         "dag_hash": "",
         "use_cached": false,
         "tag": "",
@@ -241,7 +241,7 @@ The step is defaulted to be 0.
                 "mock": false,
                 "code_identities": [
                     {
-                        "code_identifier": "d80b86c0f9d053301868410908a1ed7c8e741d87",
+                        "code_identifier": "858c4df44f15d81139341641c63ead45042e0d89",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
                         "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
@@ -251,9 +251,9 @@ The step is defaulted to be 0.
                 "attempts": [
                     {
                         "attempt_number": 1,
-                        "start_time": "2024-01-09 15:28:17.625129",
-                        "end_time": "2024-01-09 15:28:17.628064",
-                        "duration": "0:00:00.002935",
+                        "start_time": "2024-01-09 15:45:34.940999",
+                        "end_time": "2024-01-09 15:45:34.943648",
+                        "duration": "0:00:00.002649",
                         "status": "SUCCESS",
                         "message": "",
                         "parameters": {}
@@ -280,7 +280,7 @@ The step is defaulted to be 0.
                     {
                         "name": "Emit_Metrics.execution.log",
                         "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                        "catalog_relative_path": "syrupy-jang-1528/Emit_Metrics.execution.log",
+                        "catalog_relative_path": "blocking-stonebraker-1545/Emit_Metrics.execution.log",
                         "catalog_handler_location": ".catalog",
                         "stage": "put"
                     }
@@ -295,7 +295,7 @@ The step is defaulted to be 0.
                 "mock": false,
                 "code_identities": [
                     {
-                        "code_identifier": "d80b86c0f9d053301868410908a1ed7c8e741d87",
+                        "code_identifier": "858c4df44f15d81139341641c63ead45042e0d89",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
                         "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
@@ -305,9 +305,9 @@ The step is defaulted to be 0.
                 "attempts": [
                     {
                         "attempt_number": 1,
-                        "start_time": "2024-01-09 15:28:17.816447",
-                        "end_time": "2024-01-09 15:28:17.816528",
-                        "duration": "0:00:00.000081",
+                        "start_time": "2024-01-09 15:45:35.126659",
+                        "end_time": "2024-01-09 15:45:35.126745",
+                        "duration": "0:00:00.000086",
                         "status": "SUCCESS",
                         "message": "",
                         "parameters": {}
@@ -346,7 +346,7 @@ The step is defaulted to be 0.
             "parameters_file": "",
             "configuration_file": "",
             "tag": "",
-            "run_id": "syrupy-jang-1528",
+            "run_id": "blocking-stonebraker-1545",
             "variables": {},
             "use_cached": false,
             "original_run_id": "",
@@ -385,13 +385,48 @@ The step is defaulted to be 0.
     }
     ```
 
-
-## Client context
-
-
-### Example
-
-
-## Grouping experiments
-
 ## Experiment tracking tools
+
+
+The default experiment tracking tool of magnus is a no-op as the ```run log``` captures all the
+required details. To make it compatible with other experiment tracking tools like
+[mlflow](https://mlflow.org/docs/latest/tracking.html) or
+[Weights and Biases](https://wandb.ai/site/experiment-tracking), we map attributes of magnus
+to the underlying tool.
+
+For example, for mlflow:
+
+- Any numeric (int/float) observation is logged as
+[a metric](https://mlflow.org/docs/latest/python_api/mlflow.html#mlflow.log_metric)
+with a step.
+
+- Any non numeric observation is logged as
+[a parameter](https://mlflow.org/docs/latest/python_api/mlflow.html#mlflow.log_param).
+Since mlflow does not support step wise logging of parameters, the key name is formatted as
+```key_step```.
+
+- The tag associate with an execution is used as the
+[experiment name](https://mlflow.org/docs/latest/tracking/tracking-api.html#organizing-runs-in-experiments).
+
+
+=== "Example configuration"
+
+    ```yaml linenums="1" hl_lines="13-16"
+    --8<-- "examples/configs/mlflow-config.yaml"
+    ```
+
+=== "Pipeline"
+
+    ```python linenums="1" hl_lines="13-16"
+    --8<-- "examples/concepts/experiment_tracking_integration.py"
+    ```
+
+
+=== "In mlflow UI"
+
+
+- [client context](../../interactions/#magnus.get_experiment_tracker_context): Returns the configured
+client context of the experiment tracking tool. The default client context is a
+[null context](https://docs.python.org/3/library/contextlib.html#contextlib.nullcontext).
+
+- Grouping experiments: The CLI argument ```tag``` is used to group experiments.

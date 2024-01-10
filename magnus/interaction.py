@@ -315,13 +315,7 @@ def get_experiment_tracker_context() -> ContextManager:
     """
     Return a context session of the experiment tracker.
 
-    You can start to use the context with the python with statement.
-
-    eg:
-    with get_experiment_tracker_context() as ctx:
-        pass
-
-    Returns:
+    You can start to use the context with the python ```with``` statement.
     """
     experiment_tracker = context.run_context.experiment_tracker
     return experiment_tracker.client_context

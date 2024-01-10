@@ -4,7 +4,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Any, ContextManager, Dict, Tuple
+from typing import Any, ContextManager, Dict, Tuple, Union
 
 from pydantic import BaseModel, ConfigDict
 
@@ -74,8 +74,16 @@ class BaseExperimentTracker(ABC, BaseModel):
         """
         return contextlib.nullcontext()
 
+    def publish_data(self, tracked_data: Dict[str, Any]):
+        for key, value in tracked_data.items():
+            if isinstance(value, dict):
+                for key2, value2 in value.items():
+                    self.log_metric(key, value2, step=key2)
+                continue
+            self.log_metric(key, value)
+
     @abstractmethod
-    def log_metric(self, key: str, value: float, step: int = 0):
+    def log_metric(self, key: str, value: Union[int, float], step: int = 0):
         """
         Sets the metric in the experiment tracking.
 
@@ -103,8 +111,6 @@ class BaseExperimentTracker(ABC, BaseModel):
         """
         pass
 
-        # TODO: Consider log_artifact
-
 
 # --8<-- [end:docs]
 
@@ -116,7 +122,7 @@ class DoNothingTracker(BaseExperimentTracker):
 
     service_name: str = "do-nothing"
 
-    def log_metric(self, key: str, value: float, step: int = 0):
+    def log_metric(self, key: str, value: Union[int, float], step: int = 0):
         """
         Sets the metric in the experiment tracking.
 
