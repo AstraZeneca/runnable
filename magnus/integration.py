@@ -1,4 +1,3 @@
-import importlib
 import logging
 
 from stevedore import extension
@@ -204,12 +203,3 @@ class DoNothingExperimentTracker(BaseIntegration):
     def validate(self, **kwargs):
         msg = "A do-nothing experiment tracker does nothing and therefore cannot track anything."
         logger.warning(msg)
-
-
-# Load extension integrations
-services = ["catalog", "run_log_store", "executor", "secrets", "experiment_tracker"]
-
-for service in services:
-    module_path = f"magnus.extensions.{service}"
-
-    importlib.import_module(module_path)

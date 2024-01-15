@@ -1,13 +1,16 @@
 import logging
+from pathlib import Path
 from typing import Dict, cast
+
+from rich import print
 
 from magnus import defaults, integration, utils
 from magnus.datastore import StepLog
 from magnus.defaults import TypeMapVariable
 from magnus.extensions.executor import GenericExecutor
 from magnus.extensions.nodes import TaskNode
+from magnus.integration import BaseIntegration
 from magnus.nodes import BaseNode
-from magnus.tasks import ContainerTaskType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -47,6 +50,7 @@ class LocalContainerExecutor(GenericExecutor):
 
     service_name: str = "local-container"
     docker_image: str
+
     _container_log_location = "/tmp/run_logs/"
     _container_catalog_location = "/tmp/catalog/"
     _container_secrets_location = "/tmp/dotenv"
@@ -77,6 +81,7 @@ class LocalContainerExecutor(GenericExecutor):
     def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         We are already in the container, we just execute the node.
+        The node is already prepared for execution.
         """
         return self._execute_node(node, map_variable, **kwargs)
 
@@ -87,8 +92,6 @@ class LocalContainerExecutor(GenericExecutor):
         Args:
             node (BaseNode): _description_
         """
-        from magnus import integration
-        from magnus.tasks import ContainerTaskType
 
         step_log = self._context.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable=None))
 
@@ -98,18 +101,8 @@ class LocalContainerExecutor(GenericExecutor):
         step_log.status = defaults.PROCESSING
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-        if node.executable.task_type == ContainerTaskType.task_type:
-            # Do not change config but only validate the configuration.
-            # Trigger the job on local system instead of a container
-            # Or if the task type is a container, just spin the container.
-            integration.validate(self, self._context.run_log_store)
-            integration.validate(self, self._context.catalog_handler)
-            integration.validate(self, self._context.secrets_handler)
-
-            self.execute_node(node=node, map_variable={})
-        else:
-            command = utils.get_job_execution_command(node)
-            self._spin_container(node=node, command=command)
+        command = utils.get_job_execution_command(node)
+        self._spin_container(node=node, command=command)
 
         # Check the step log status and warn if necessary. Docker errors are generally suppressed.
         step_log = self._context.run_log_store.get_step_log(
@@ -125,6 +118,9 @@ class LocalContainerExecutor(GenericExecutor):
 
     def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
+        We come into this step via execute from graph, use trigger job to spin up the container.
+
+
         If the config has "run_in_local: True", we compute it on local system instead of container.
         In local container execution, we just spin the container to execute magnus execute_single_node.
 
@@ -137,9 +133,7 @@ class LocalContainerExecutor(GenericExecutor):
         logger.debug("Here is the resolved executor config")
         logger.debug(executor_config)
 
-        if executor_config.get("run_in_local", None) or (
-            cast(TaskNode, node).executable.task_type == ContainerTaskType.task_type
-        ):
+        if executor_config.get("run_in_local", False):
             # Do not change config but only validate the configuration.
             # Trigger the job on local system instead of a container
             # Or if the task type is a container, just spin the container.
@@ -151,10 +145,9 @@ class LocalContainerExecutor(GenericExecutor):
             return
 
         command = utils.get_node_execution_command(node, map_variable=map_variable)
+
         self._spin_container(node=node, command=command, map_variable=map_variable, **kwargs)
 
-        # Check for the status of the node log and anything apart from Success is FAIL
-        # This typically happens if something is wrong with magnus or settings.
         step_log = self._context.run_log_store.get_step_log(node._get_step_log_name(map_variable), self._context.run_id)
         if step_log.status != defaults.SUCCESS:
             msg = (
@@ -171,6 +164,7 @@ class LocalContainerExecutor(GenericExecutor):
         During the flow run, we have to spin up a container with the docker image mentioned
         and the right log locations
         """
+        print("Executing", node)
         # Conditional import
         import docker  # pylint: disable=C0415
 
@@ -202,6 +196,9 @@ class LocalContainerExecutor(GenericExecutor):
                 network_mode="host",
                 environment=environment,
             )
+
+            # print(container.__dict__)
+
             container.start()
             stream = api_client.logs(container=container.id, timestamps=True, stream=True, follow=True)
             while True:
@@ -212,8 +209,10 @@ class LocalContainerExecutor(GenericExecutor):
                 except StopIteration:
                     logger.info("Docker Run completed")
                     break
+
             exit_status = api_client.inspect_container(container.id)["State"]["ExitCode"]
             container.remove(force=True)
+
             if exit_status != 0:
                 msg = f"Docker command failed with exit code {exit_status}"
                 raise Exception(msg)
@@ -221,3 +220,42 @@ class LocalContainerExecutor(GenericExecutor):
         except Exception as _e:
             logger.exception("Problems with spinning/running the container")
             raise _e
+
+
+class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
+    """
+    Integration between local container and file system run log store
+    """
+
+    executor_type = "local-container"
+    service_type = "run_log_store"  # One of secret, catalog, datastore
+    service_provider = "file-system"  # The actual implementation of the service
+
+    def validate(self, **kwargs):
+        if self.executor._is_parallel_execution():  # pragma: no branch
+            msg = (
+                "Run log generated by file-system run log store are not thread safe. "
+                "Inconsistent results are possible because of race conditions to write to the same file.\n"
+                "Consider using partitioned run log store like database for consistent results."
+            )
+            logger.warning(msg)
+
+    def configure_for_traversal(self, **kwargs):
+        from magnus.extensions.run_log_store.file_system.implementation import FileSystemRunLogstore
+
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(FileSystemRunLogstore, self.service)
+
+        write_to = self.service.log_folder_name
+        self.executor._volumes[str(Path(write_to).resolve())] = {
+            "bind": f"{self.executor._container_log_location}",
+            "mode": "rw",
+        }
+
+    def configure_for_execution(self, **kwargs):
+        from magnus.extensions.run_log_store.file_system.implementation import FileSystemRunLogstore
+
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(FileSystemRunLogstore, self.service)
+
+        self.service.log_folder = self.executor._container_log_location

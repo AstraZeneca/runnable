@@ -1,0 +1,16 @@
+executor:
+  type: "local-container" # (1)
+  config:
+    docker_image: magnus:base # (2)
+
+run_log_store: # (5)
+  type: file-system
+
+catalog:
+  type: file-system
+
+secrets:
+  type: do-nothing
+
+experiment_tracker:
+  type: do-nothing

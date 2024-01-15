@@ -35,6 +35,7 @@ class BaseTaskType(BaseModel):
 
     task_type: str = Field(serialization_alias="command_type")
     node_name: str = Field(exclude=True)
+
     model_config = ConfigDict(extra="forbid")
 
     @property

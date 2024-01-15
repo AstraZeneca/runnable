@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SerializeAsAny
 from stevedore import driver
 
 from magnus import defaults, exceptions
@@ -23,8 +23,8 @@ class Graph(BaseModel):
     start_at: str
     name: str = ""
     description: Optional[str] = ""
-    internal_branch_name: str = ""
-    nodes: Dict[str, "BaseNode"] = Field(default_factory=dict, serialization_alias="steps")
+    internal_branch_name: str = Field(exclude=True)
+    nodes: SerializeAsAny[Dict[str, "BaseNode"]] = Field(default_factory=dict, serialization_alias="steps")
 
     def get_node_by_name(self, name: str) -> "BaseNode":
         """

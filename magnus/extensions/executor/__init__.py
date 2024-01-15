@@ -178,7 +178,6 @@ class GenericExecutor(BaseExecutor):
             node (Node): [description]
             map_variable (dict, optional): [description]. Defaults to None.
         """
-
         integration.validate(self, self._context.run_log_store)
         integration.configure_for_execution(self, self._context.run_log_store)
 
@@ -307,6 +306,9 @@ class GenericExecutor(BaseExecutor):
         """
         step_log = self._context.run_log_store.get_step_log(node._get_step_log_name(map_variable), self._context.run_id)
 
+        print("at the start of the _execute_ node execution")
+        print(step_log)
+
         """
         By now, all the parameters are part of the run log as a dictionary.
         We set them as environment variables, serialized as json strings.
@@ -359,21 +361,6 @@ class GenericExecutor(BaseExecutor):
             self._context_metrics = {}  # type: ignore
 
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-
-    @abstractmethod
-    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
-        """
-        The exposed method to executing a node.
-        All implementations should implement this method.
-
-        Args:
-            node (BaseNode): The node to execute
-            map_variable (dict, optional): If the node is part of a map, send in the map dictionary. Defaults to None.
-
-        Raises:
-            NotImplementedError: _description_
-        """
-        raise NotImplementedError
 
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
         """
@@ -448,10 +435,10 @@ class GenericExecutor(BaseExecutor):
 
     def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
-        Executor specific way of triggering jobs when magnus does both traversal and execution
+        Call this method only if we are responsible for traversing the graph via
+        execute_from_graph().
 
-        Transpilers will NEVER use this method and will NEVER call them.
-        Only interactive executors who need execute_from_graph will ever implement it.
+        We are not prepared to execute node as of now.
 
         Args:
             node (BaseNode): The node to execute

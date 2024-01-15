@@ -6,7 +6,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, cast
 
-from pydantic import ConfigDict, Field, ValidationInfo, field_validator
+from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_validator
 from typing_extensions import Annotated
 
 import magnus
@@ -27,8 +27,12 @@ class TaskNode(ExecutableNode):
     This node does the actual function execution of the graph in all cases.
     """
 
-    executable: BaseTaskType
+    executable: BaseTaskType = Field(exclude=True)
     node_type: str = Field(default="task", serialization_alias="type")
+
+    # It is technically not allowed as parse_from_config filters them.
+    # This is just to get the task level configuration to be present during serialization.
+    model_config = ConfigDict(extra="allow")
 
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any]) -> "TaskNode":
@@ -39,7 +43,7 @@ class TaskNode(ExecutableNode):
         task_config["node_name"] = config.get("name")
 
         executable = create_task(task_config)
-        return cls(executable=executable, **node_config)
+        return cls(executable=executable, **node_config, **task_config)
 
     def add_parent(self, parent: str):
         if not parent:
@@ -189,7 +193,16 @@ class ParallelNode(CompositeNode):
 
     node_type: str = Field(default="parallel", serialization_alias="type")
     branches: Dict[str, Graph]
-    is_composite: bool = True
+    is_composite: bool = Field(default=True, exclude=True)
+
+    @field_serializer("branches")
+    def ser_branches(self, branches: Dict[str, Graph]) -> Dict[str, Graph]:
+        ret: Dict[str, Graph] = {}
+
+        for branch_name, branch in branches.items():
+            ret[branch_name.split(".")[-1]] = branch
+
+        return ret
 
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any]) -> "ParallelNode":

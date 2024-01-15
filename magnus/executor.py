@@ -213,8 +213,8 @@ class BaseExecutor(ABC, BaseModel):
     @abstractmethod
     def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
-        The exposed method to executing a node.
-        All implementations should implement this method.
+        The entry point for all executors apart from local.
+        We have already prepared for node execution.
 
         Args:
             node (BaseNode): The node to execute

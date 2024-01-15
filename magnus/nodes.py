@@ -34,9 +34,9 @@ class BaseNode(ABC, BaseModel):
 
     node_type: str = Field(serialization_alias="type")
     name: str
-    internal_name: str
-    internal_branch_name: str = ""
-    is_composite: bool = False
+    internal_name: str = Field(exclude=True)
+    internal_branch_name: str = Field(default="", exclude=True)
+    is_composite: bool = Field(default=False, exclude=True)
 
     @property
     def _context(self):
@@ -393,10 +393,10 @@ class BaseNode(ABC, BaseModel):
 # --8<-- [end:docs]
 class TraversalNode(BaseNode):
     next_node: str = Field(serialization_alias="next")
-    on_failure: str = ""
-    executor_config: Dict[str, Any] = {}
+    on_failure: Optional[str] = Field(default=None)
+    executor_config: Dict[str, Any] = Field(default_factory=dict)
 
-    def _get_on_failure_node(self) -> str:
+    def _get_on_failure_node(self) -> Optional[str]:
         """
         If the node defines a on_failure node in the config, return this or None.
 
@@ -440,8 +440,8 @@ class CatalogStructure(BaseModel):
 
 class ExecutableNode(TraversalNode):
     catalog: Optional[CatalogStructure] = Field(default=None)
-    executor_config: Dict[str, Any] = {}
-    max_attempts: int = 1
+    executor_config: Dict[str, Any] = Field(default_factory=dict)
+    max_attempts: int = Field(default=1, gt=1)
 
     def _get_catalog_settings(self) -> Dict[str, Any]:
         """

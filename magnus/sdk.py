@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_validator, model_validator
 from rich import print
+from ruamel.yaml import YAML
 from typing_extensions import Self
 
 from magnus import defaults, entrypoints, graph, utils
@@ -240,11 +241,14 @@ class Pipeline(BaseModel):
         parameters_file: str = "",
         use_cached: str = "",
         log_level: str = defaults.LOG_LEVEL,
+        output_pipeline_definition: str = "magnus-pipeline.yaml",
     ):
         """Execute the pipeline.
 
         This method should be beefed up as the use cases grow.
         """
+        from magnus.extensions.executor.local.implementation import LocalExecutor
+
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)
@@ -263,6 +267,18 @@ class Pipeline(BaseModel):
 
         print("Working with context:")
         print(run_context)
+
+        if not isinstance(run_context.executor, LocalExecutor):
+            logger.debug(run_context.dag.model_dump(by_alias=True))
+            yaml = YAML()
+
+            with open(output_pipeline_definition, "w", encoding="utf-8") as f:
+                yaml.dump(
+                    {"dag": run_context.dag.model_dump(by_alias=True, exclude_none=True)},
+                    f,
+                )
+
+            return
 
         # Prepare for graph execution
         run_context.executor.prepare_for_graph_execution()
