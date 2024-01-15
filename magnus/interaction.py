@@ -4,7 +4,6 @@ import json
 import logging
 import os
 from functools import wraps
-from pathlib import Path
 from typing import Any, ContextManager, Dict, Optional, TypeVar, Union, cast, overload
 
 from pydantic import BaseModel
@@ -213,10 +212,9 @@ def put_in_catalog(filepath: str):
     Args:
         filepath (str): The path to the file or folder added to the catalog
     """
-    file_path = Path(filepath)
 
     data_catalog = context.run_context.catalog_handler.put(
-        str(file_path),
+        filepath,
         run_id=context.run_context.run_id,
     )
     if not data_catalog:

@@ -23,32 +23,24 @@ def mock_context(monkeypatch, mocker, request):
 
 def test_track_this_adds_values_to_environ():
     interaction.track_this(a="b")
-    assert defaults.TRACK_PREFIX + "a" in os.environ
-    del os.environ[defaults.TRACK_PREFIX + "a"]
+    assert defaults.TRACK_PREFIX + "a" + f"{defaults.STEP_INDICATOR}0" in os.environ
+    del os.environ[defaults.TRACK_PREFIX + "a" + f"{defaults.STEP_INDICATOR}0"]
 
 
 def test_track_this_adds_multiple_values_to_environ():
     interaction.track_this(a="b", b="a")
-    assert defaults.TRACK_PREFIX + "a" in os.environ
-    assert defaults.TRACK_PREFIX + "b" in os.environ
-    del os.environ[defaults.TRACK_PREFIX + "a"]
-    del os.environ[defaults.TRACK_PREFIX + "b"]
-
-
-def test_track_this_ignores_step_if_zero():
-    interaction.track_this(a="b", b="a")
-    assert defaults.TRACK_PREFIX + "a" in os.environ
-    assert defaults.TRACK_PREFIX + "b" in os.environ
-    del os.environ[defaults.TRACK_PREFIX + "a"]
-    del os.environ[defaults.TRACK_PREFIX + "b"]
+    assert defaults.TRACK_PREFIX + "a" + f"{defaults.STEP_INDICATOR}0" in os.environ
+    assert defaults.TRACK_PREFIX + "b" + f"{defaults.STEP_INDICATOR}0" in os.environ
+    del os.environ[defaults.TRACK_PREFIX + "a" + f"{defaults.STEP_INDICATOR}0"]
+    del os.environ[defaults.TRACK_PREFIX + "b" + f"{defaults.STEP_INDICATOR}0"]
 
 
 def test_track_this_adds_step_if_non_zero():
     interaction.track_this(a="b", b="a", step=1)
-    assert defaults.TRACK_PREFIX + "1_" + "a" in os.environ
-    assert defaults.TRACK_PREFIX + "1_" + "b" in os.environ
-    del os.environ[defaults.TRACK_PREFIX + "1_" + "a"]
-    del os.environ[defaults.TRACK_PREFIX + "1_" + "b"]
+    assert defaults.TRACK_PREFIX + "a" f"{defaults.STEP_INDICATOR}1" in os.environ
+    assert defaults.TRACK_PREFIX + "b" + f"{defaults.STEP_INDICATOR}1" in os.environ
+    del os.environ[defaults.TRACK_PREFIX + "a" + f"{defaults.STEP_INDICATOR}1"]
+    del os.environ[defaults.TRACK_PREFIX + "b" + f"{defaults.STEP_INDICATOR}1"]
 
 
 def test_store_paramenter_adds_values_to_environ():
@@ -140,7 +132,7 @@ def test_get_from_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
 
     interaction.get_from_catalog("this")
 
-    mock_catalog_handler_get.assert_called_once_with("this", compute_data_folder="compute_folder", run_id="RUN_ID")
+    mock_catalog_handler_get.assert_called_once_with("this", run_id="RUN_ID")
 
 
 def test_get_from_catalog_uses_destination_folder(mocker, monkeypatch):
@@ -158,7 +150,7 @@ def test_get_from_catalog_uses_destination_folder(mocker, monkeypatch):
 
     interaction.get_from_catalog("this", destination_folder="use_this_folder")
 
-    mock_catalog_handler_get.assert_called_once_with("this", compute_data_folder="use_this_folder", run_id="RUN_ID")
+    mock_catalog_handler_get.assert_called_once_with("this", run_id="RUN_ID")
 
 
 def test_get_from_catalog_raises_warning_if_no_context_step_log(mocker, monkeypatch, caplog):
@@ -180,64 +172,7 @@ def test_get_from_catalog_raises_warning_if_no_context_step_log(mocker, monkeypa
 
     assert "Step log context was not found during interaction" in caplog.text
 
-    mock_catalog_handler_get.assert_called_once_with("this", compute_data_folder="compute_folder", run_id="RUN_ID")
-
-
-def test_put_in_catalog_raises_warning_if_no_catalog_was_obtained(mocker, monkeypatch, caplog):
-    mock_context = mocker.MagicMock()
-    mock_catalog_handler = mocker.MagicMock()
-
-    mock_context.run_context.catalog_handler = mock_catalog_handler
-
-    mock_catalog_handler_put = mocker.MagicMock()
-    mock_catalog_handler_put.return_value = None
-    mock_catalog_handler.put = mock_catalog_handler_put
-    mock_context.run_context.run_id = "RUN_ID"
-
-    mock_catalog_handler.compute_data_folder = "compute_folder"
-    monkeypatch.setattr(interaction, "context", mock_context)
-
-    mock_file_path = mocker.MagicMock()
-    mock_path = mocker.MagicMock(return_value=mock_file_path)
-    mock_file_path.name = "file_name"
-    mock_file_path.parent = "in_this_folder"
-    monkeypatch.setattr(interaction, "Path", mock_path)
-
-    with caplog.at_level(logging.WARNING, logger="magnus"):
-        interaction.put_in_catalog("this_file")
-
-    assert "No catalog was done by the this_file" in caplog.text
-
-    mock_catalog_handler_put.assert_called_once_with("file_name", compute_data_folder="in_this_folder", run_id="RUN_ID")
-
-
-def test_put_in_catalog_raises_warning_if_no_context_step_log(mocker, monkeypatch, caplog):
-    mock_context = mocker.MagicMock()
-    mock_catalog_handler = mocker.MagicMock()
-
-    mock_context.run_context.catalog_handler = mock_catalog_handler
-    mock_context.run_context.executor._context_step_log = None
-
-    mock_catalog_handler_put = mocker.MagicMock()
-    mock_catalog_handler_put.return_value = None
-    mock_catalog_handler.put = mock_catalog_handler_put
-    mock_context.run_context.run_id = "RUN_ID"
-
-    mock_catalog_handler.compute_data_folder = "compute_folder"
-    monkeypatch.setattr(interaction, "context", mock_context)
-
-    mock_file_path = mocker.MagicMock()
-    mock_path = mocker.MagicMock(return_value=mock_file_path)
-    mock_file_path.name = "file_name"
-    mock_file_path.parent = "in_this_folder"
-    monkeypatch.setattr(interaction, "Path", mock_path)
-
-    with caplog.at_level(logging.WARNING, logger="magnus"):
-        interaction.put_in_catalog("this_file")
-
-    assert "Step log context was not found during interaction" in caplog.text
-
-    mock_catalog_handler_put.assert_called_once_with("file_name", compute_data_folder="in_this_folder", run_id="RUN_ID")
+    mock_catalog_handler_get.assert_called_once_with("this", run_id="RUN_ID")
 
 
 def test_put_in_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
@@ -261,7 +196,7 @@ def test_put_in_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
 
     interaction.put_in_catalog("this_file")
 
-    mock_catalog_handler_put.assert_called_once_with("file_name", compute_data_folder="in_this_folder", run_id="RUN_ID")
+    mock_catalog_handler_put.assert_called_once_with("this_file", run_id="RUN_ID")
 
 
 @pytest.mark.noautofixt

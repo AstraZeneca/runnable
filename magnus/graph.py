@@ -23,7 +23,7 @@ class Graph(BaseModel):
     start_at: str
     name: str = ""
     description: Optional[str] = ""
-    internal_branch_name: str = Field(exclude=True)
+    internal_branch_name: str = Field(default="", exclude=True)
     nodes: SerializeAsAny[Dict[str, "BaseNode"]] = Field(default_factory=dict, serialization_alias="steps")
 
     def get_node_by_name(self, name: str) -> "BaseNode":

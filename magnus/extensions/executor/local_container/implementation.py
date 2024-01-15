@@ -206,6 +206,7 @@ class LocalContainerExecutor(GenericExecutor):
                     output = next(stream).decode("utf-8")
                     output = output.strip("\r\n")
                     logger.info(output)
+                    print(output)
                 except StopIteration:
                     logger.info("Docker Run completed")
                     break
@@ -259,3 +260,33 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
         self.service = cast(FileSystemRunLogstore, self.service)
 
         self.service.log_folder = self.executor._container_log_location
+
+
+class LocalContainerComputeFileSystemCatalog(BaseIntegration):
+    """
+    Integration pattern between Local container and File System catalog
+    """
+
+    executor_type = "local-container"
+    service_type = "catalog"  # One of secret, catalog, datastore
+    service_provider = "file-system"  # The actual implementation of the service
+
+    def configure_for_traversal(self, **kwargs):
+        from magnus.extensions.catalog.file_system.implementation import FileSystemCatalog
+
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(FileSystemCatalog, self.service)
+
+        catalog_location = self.service.catalog_location
+        self.executor._volumes[str(Path(catalog_location).resolve())] = {
+            "bind": f"{self.executor._container_catalog_location}",
+            "mode": "rw",
+        }
+
+    def configure_for_execution(self, **kwargs):
+        from magnus.extensions.catalog.file_system.implementation import FileSystemCatalog
+
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(FileSystemCatalog, self.service)
+
+        self.service.catalog_location = self.executor._container_catalog_location

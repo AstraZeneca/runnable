@@ -393,7 +393,7 @@ class BaseNode(ABC, BaseModel):
 # --8<-- [end:docs]
 class TraversalNode(BaseNode):
     next_node: str = Field(serialization_alias="next")
-    on_failure: Optional[str] = Field(default=None)
+    on_failure: Optional[str] = Field(default="")
     executor_config: Dict[str, Any] = Field(default_factory=dict)
 
     def _get_on_failure_node(self) -> Optional[str]:

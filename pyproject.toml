@@ -17,12 +17,12 @@ pydantic = "^2.5"
 stevedore = "^3.5.0"
 "click" = "*"
 click-plugins = "^1.1.1"
-ploomber-engine ={ version= "^0.0.31", optional = true, python = ">=3.8,<4.0" }
 typing-extensions ={ version= "*", python = "<3.8" }
 docker ={ version = "*", optional = true }
 sqlalchemy ={ version = "*", optional = true }
 rich = "^13.5.2"
 mlflow-skinny ={ version = "*", optional = true }
+ploomber-engine = "^0.0.31"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "*"

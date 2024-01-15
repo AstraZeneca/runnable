@@ -8,6 +8,8 @@ from magnus import exceptions
 # (file, is_fail?, kwargs)
 examples = [
     ("concepts/catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
+    ("concepts/experiment_tracking_env_step.yaml", False, {}),
+    ("concepts/experiment_tracking_env.yaml", False, {}),
     ("concepts/notebook_api_parameters.yaml", False, {"parameters_file": "examples/concepts/parameters.yaml"}),
     ("concepts/notebook_env_parameters.yaml", False, {"parameters_file": "examples/concepts/parameters.yaml"}),
     ("concepts/notebook_native_parameters.yaml", False, {"parameters_file": "examples/concepts/parameters.yaml"}),
@@ -20,6 +22,7 @@ examples = [
     ("catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
     ("contrived.yaml", False, {}),
     ("default-fail.yaml", True, {}),
+    ("experiment_tracking_env.yaml", True, {}),
     ("logging.yaml", False, {}),
     ("mocking.yaml", False, {}),
     ("on-failure.yaml", False, {}),
@@ -38,7 +41,7 @@ def list_examples():
 
 
 @pytest.mark.parametrize("example", list_examples())
-# @pytest.mark.no_cover
+@pytest.mark.no_cover
 def test_yaml_examples(example):
     print(f"Testing {example}...")
     examples_path = Path("examples")
@@ -47,6 +50,22 @@ def test_yaml_examples(example):
         full_file_path = examples_path / file_path
         configuration_file = kwargs.pop("configuration_file", "")
         execute(configuration_file=configuration_file, pipeline_file=str(full_file_path.resolve()), **kwargs)
+    except exceptions.ExecutionFailedError:
+        if not status:
+            raise
+
+
+@pytest.mark.parametrize("example", list_examples())
+@pytest.mark.no_cover
+def test_yaml_examples_container(example):
+    print(f"Testing {example}...")
+    examples_path = Path("examples")
+    file_path, status, kwargs = example
+    try:
+        full_file_path = examples_path / file_path
+        kwargs.pop("configuration_file", "")
+        configuration_file = "examples/configs/local-container.yaml"
+        execute(configuration_file=configuration_file, pipeline_file=str(full_file_path), **kwargs)
     except exceptions.ExecutionFailedError:
         if not status:
             raise
@@ -78,7 +97,7 @@ def list_python_examples():
 
 
 @pytest.mark.parametrize("example", list_python_examples())
-# @pytest.mark.no_cover
+@pytest.mark.no_cover
 def test_python_examples(example):
     print(f"Testing {example}...")
 
