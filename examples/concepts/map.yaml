@@ -1,14 +1,14 @@
 dag:
-  start_at: generate list
+  start_at: generate sequence
   steps:
-    generate list:
+    generate sequence:
       type: task
       command_type: python
-      command: "examples.concepts.map.generate_array"
+      command: "examples.concepts.map.sequence_generator"
       next: iterate and execute
     iterate and execute:
       type: map
-      iterate_on: array
+      iterate_on: sequence
       iterate_as: i
       next: success
       branch:
@@ -17,7 +17,7 @@ dag:
           execute:
             type: task
             command_type: python
-            command: "examples.concepts.map.execute_every_element"
+            command: "examples.concepts.map.execute_on_every_element"
             next: success
           success:
             type: success

@@ -396,10 +396,18 @@ class MapNode(CompositeNode):
         return self.branch
 
     def add_parent(self, parent: str):
-        self.internal_name = parent + "." + self.internal_name
+        if not parent:
+            raise ValueError("Add parent of composite nodes should be sent with parent step names")
+
+        if len(parent.split(".")) % 2 == 0:
+            raise ValueError("Map node should always be added to a step, not a branch")
+
+        self.internal_name = parent
+
+        self.branch.internal_branch_name = parent + "." + defaults.MAP_PLACEHOLDER
 
         for node in self.branch.nodes.values():
-            node.add_parent(parent)
+            node.add_parent(parent + "." + defaults.MAP_PLACEHOLDER)
 
     def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
         """

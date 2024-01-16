@@ -1,3 +1,4 @@
+#TODO: Fix release for non bump builds
 on:
   push:
     paths:

@@ -24,7 +24,7 @@ from magnus.interaction import (
     set_parameter,
     track_this,
 )  # noqa
-from magnus.sdk import Stub, Pipeline, Task, Parallel, Catalog  # noqa
+from magnus.sdk import Stub, Pipeline, Task, Parallel, Map, Catalog  # noqa
 
 
 # TODO: Think of model registry as a central place to store models.
