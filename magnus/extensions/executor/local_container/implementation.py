@@ -164,7 +164,6 @@ class LocalContainerExecutor(GenericExecutor):
         During the flow run, we have to spin up a container with the docker image mentioned
         and the right log locations
         """
-        print("Executing", node)
         # Conditional import
         import docker  # pylint: disable=C0415
 

@@ -305,10 +305,6 @@ class GenericExecutor(BaseExecutor):
                         Defaults to None.
         """
         step_log = self._context.run_log_store.get_step_log(node._get_step_log_name(map_variable), self._context.run_id)
-
-        print("at the start of the _execute_ node execution")
-        print(step_log)
-
         """
         By now, all the parameters are part of the run log as a dictionary.
         We set them as environment variables, serialized as json strings.

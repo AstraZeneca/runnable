@@ -1,0 +1,29 @@
+dag:
+  start_at: generate list
+  steps:
+    generate list:
+      type: task
+      command_type: python
+      command: "examples.concepts.map.generate_array"
+      next: iterate and execute
+    iterate and execute:
+      type: map
+      iterate_on: array
+      iterate_as: i
+      next: success
+      branch:
+        start_at: execute
+        steps:
+          execute:
+            type: task
+            command_type: python
+            command: "examples.concepts.map.execute_every_element"
+            next: success
+          success:
+            type: success
+          fail:
+            type: fail
+    success:
+      type: success
+    fail:
+      type: fail

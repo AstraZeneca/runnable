@@ -9,7 +9,6 @@ from typing import Any, Dict, cast
 from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_validator
 from typing_extensions import Annotated
 
-import magnus
 from magnus import defaults, utils
 from magnus.datastore import StepAttempt
 from magnus.defaults import TypeMapVariable
@@ -283,6 +282,8 @@ class ParallelNode(CompositeNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
+        from magnus import entrypoints
+
         self.fan_out(map_variable=map_variable, **kwargs)
 
         jobs = []
@@ -291,7 +292,7 @@ class ParallelNode(CompositeNode):
         for internal_branch_name, branch in self.branches.items():
             if self._context.executor._is_parallel_execution():
                 # Trigger parallel jobs
-                action = magnus.entrypoints.execute_single_brach
+                action = entrypoints.execute_single_brach
                 kwargs = {
                     "configuration_file": self._context.configuration_file,
                     "pipeline_file": self._context.pipeline_file,
@@ -448,6 +449,8 @@ class MapNode(CompositeNode):
             map_variable (dict): The map variables the graph belongs to
             **kwargs: Optional kwargs passed around
         """
+        from magnus import entrypoints
+
         iterate_on = None
         try:
             iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on]
@@ -470,7 +473,7 @@ class MapNode(CompositeNode):
 
             if self._context.executor._is_parallel_execution():
                 # Trigger parallel jobs
-                action = magnus.entrypoints.execute_single_brach
+                action = entrypoints.execute_single_brach
                 kwargs = {
                     "configuration_file": self._context.configuration_file,
                     "pipeline_file": self._context.pipeline_file,

@@ -10,13 +10,13 @@ from ruamel.yaml import YAML
 from typing_extensions import Self
 
 from magnus import defaults, entrypoints, graph, utils
-from magnus.extensions.nodes import FailNode, ParallelNode, StubNode, SuccessNode, TaskNode
+from magnus.extensions.nodes import FailNode, MapNode, ParallelNode, StubNode, SuccessNode, TaskNode
 from magnus.nodes import TraversalNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-StepType = Union["Stub", "Task", "Success", "Fail", "Parallel"]
-TraversalTypes = Union["Stub", "Task", "Parallel"]
+StepType = Union["Stub", "Task", "Success", "Fail", "Parallel", "Map"]
+TraversalTypes = Union["Stub", "Task", "Parallel", "Map"]
 
 
 ALLOWED_COMMAND_TYPES = ["shell", "python", "notebook"]
@@ -168,6 +168,34 @@ class Parallel(BaseTraversal):
                 raise AssertionError("A node not being terminated must have a user defined next node")
 
         node = ParallelNode(name=self.name, branches=self.graph_branches, internal_name="", next_node=self.next_node)
+
+        node.add_parent(self.name)
+        return node
+
+
+class Map(BaseTraversal):
+    branch: "Pipeline"
+    iterate_on: str
+    iterate_as: str
+
+    @computed_field  # type: ignore
+    @property
+    def graph_branch(self) -> graph.Graph:
+        return self.branch._dag.model_copy()
+
+    def create_node(self) -> MapNode:
+        if not self.next_node:
+            if not (self.terminate_with_failure or self.terminate_with_success):
+                raise AssertionError("A node not being terminated must have a user defined next node")
+
+        node = MapNode(
+            name=self.name,
+            branch=self.graph_branch,
+            internal_name="",
+            next_node=self.next_node,
+            iterate_on=self.iterate_on,
+            iterate_as=self.iterate_as,
+        )
 
         node.add_parent(self.name)
         return node
