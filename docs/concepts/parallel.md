@@ -70,6 +70,8 @@ ensemble model happens only after both models are (successfully) trained.
     --8<-- "examples/concepts/parallel.py"
     ```
 
+=== "Run log"
+
 All pipelines, nested or parent, have the same structure as defined in
 [pipeline definition](../pipeline).
 

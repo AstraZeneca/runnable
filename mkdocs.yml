@@ -133,6 +133,7 @@ nav:
           - "Task": "concepts/task.md"
           - "Parallel": "concepts/parallel.md"
           - "Map": "concepts/map.md"
+          - "Nesting": "concepts/nesting.md"
           - "Dag": "concepts/dag.md"
   - "Configurations":
       - "Overview": "configurations/overview.md"

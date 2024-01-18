@@ -176,7 +176,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
 
         if map_variable:
-            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
+            os.environ[defaults.MAP_VARIABLE] = json.dumps(map_variable)
 
         logger.info(f"Calling {func} from {module} with {filtered_parameters}")
 
@@ -190,7 +190,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                 raise
 
             if map_variable:
-                del os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"]
+                del os.environ[defaults.MAP_VARIABLE]
 
             self._set_parameters(user_set_parameters)
 
@@ -320,7 +320,7 @@ class NotebookTaskType(BaseTaskType):
             notebook_output_path = self.notebook_output_path
 
             if map_variable:
-                os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
+                os.environ[defaults.MAP_VARIABLE] = json.dumps(map_variable)
 
                 for _, value in map_variable.items():
                     notebook_output_path += "_" + str(value)
@@ -346,7 +346,7 @@ class NotebookTaskType(BaseTaskType):
 
             put_in_catalog(notebook_output_path)
             if map_variable:
-                del os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"]
+                del os.environ[defaults.MAP_VARIABLE]
 
         except ImportError as e:
             msg = (
@@ -381,7 +381,7 @@ class ShellTaskType(BaseTaskType):
         subprocess_env = os.environ.copy()
 
         if map_variable:
-            subprocess_env[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
+            subprocess_env[defaults.MAP_VARIABLE] = json.dumps(map_variable)
 
         command = self.command.strip() + " && env | grep MAGNUS"
         logger.info(f"Executing shell command: {command}")

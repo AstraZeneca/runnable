@@ -10,12 +10,18 @@ dag:
 
     The step "iterate and execute" iterates on "chunks" and the
     parameter name per chunk is set to be "start_index".
+
+    The shell script can access the start_index as
+    MAGNUS_MAP_VARIABLE environment variable.
+
   start_at: chunk files
   steps:
     chunk files:
       type: task
-      command_type: python
-      command: "examples.concepts.map.chunk_files"
+      command_type: shell
+      command: |
+        export MAGNUS_PRM_stride=10 &&
+        export MAGNUS_PRM_chunks="[0, 10, 20, 30, 40]"
       next: iterate and execute
     iterate and execute:
       type: map
@@ -27,8 +33,11 @@ dag:
         steps:
           execute:
             type: task
-            command_type: python
-            command: "examples.concepts.map.process_chunk"
+            command_type: shell
+            command: |
+              echo $MAGNUS_PRM_stride
+              echo $MAGNUS_MAP_VARIABLE
+              # prints 10 and {"start_index": <start_index>}
             next: success
           success:
             type: success

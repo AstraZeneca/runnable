@@ -3,31 +3,57 @@ from typing import List
 from pydantic import create_model
 
 
-def sequence_generator():
-    return create_model("DynamicModel", sequence=(List[int], [1, 2, 3, 4, 5]))()
+def chunk_files():
+    """
+    Identify the number of chunks and files to execute per batch.
+
+    Set the parameter "chunks" to be the start indexes of batch.
+    Set the parameter "stride" to be the number of files to
+    execute per batch.
+    """
+    return create_model(
+        "DynamicModel",
+        chunks=(List[int], list(range(0, 50, 10))),
+        stride=(int, 10),
+    )()
 
 
-def execute_on_every_element(i: int):
-    print(i)
+def process_chunk(stride, start_index):
+    """
+    The function processes a chunk of files.
+    The files between the start_index and the start_index + stride
+    are processed per chunk.
+    """
+    for i in range(start_index, start_index + stride, stride):
+        pass
 
 
 def main():
+    """
+    The pythonic equivalent of the following pipeline.
+
+    chunks = chunk_files()
+
+    for start_index in chunks.chunks:
+        process_chunk(chunks.stride, start_index)
+
+    """
     from magnus import Map, Pipeline, Task
 
     execute = Task(
         name="execute",
-        command="examples.concepts.map.execute_on_every_element",
+        command="examples.concepts.map.process_chunk",
         terminate_with_success=True,
     )
 
     execute_branch = Pipeline(steps=[execute], start_at=execute, add_terminal_nodes=True)
 
-    generate = Task(name="generate sequence", command="examples.concepts.map.sequence_generator")
+    generate = Task(name="chunk files", command="examples.concepts.map.chunk_files")
     iterate_and_execute = Map(
         name="iterate and execute",
         branch=execute_branch,
-        iterate_on="sequence",
-        iterate_as="i",
+        iterate_on="chunks",  # iterate on chunks parameter set by execute step
+        iterate_as="start_index",  # expose the current start_index as the iterate_as parameter
         terminate_with_success=True,
     )
 
