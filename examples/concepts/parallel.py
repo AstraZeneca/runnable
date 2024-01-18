@@ -44,7 +44,7 @@ def main():
         add_terminal_nodes=True,
     )
 
-    _ = pipeline.execute(configuration_file="examples/configs/argo-config.yaml")
+    _ = pipeline.execute(configuration_file="examples/configs/fs-catalog-run_log.yaml")
 
 
 if __name__ == "__main__":

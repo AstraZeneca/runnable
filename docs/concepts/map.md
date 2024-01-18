@@ -119,3 +119,696 @@ of the files to process.
     ```
 
 === "Run log"
+
+    The step log of the ```iterate and execute``` has branches for every dynamically executed branch
+    of the format ```iterate and execute.<iterate_as value>```.
+
+    ```json
+    {
+        "run_id": "simple-turing-0153",
+        "dag_hash": "",
+        "use_cached": false,
+        "tag": "",
+        "original_run_id": "",
+        "status": "SUCCESS",
+        "steps": {
+            "chunk files": {
+                "name": "chunk files",
+                "internal_name": "chunk files",
+                "status": "SUCCESS",
+                "step_type": "task",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-01-18 01:54:00.038461",
+                        "end_time": "2024-01-18 01:54:00.045343",
+                        "duration": "0:00:00.006882",
+                        "status": "SUCCESS",
+                        "message": "",
+                        "parameters": {}
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": [
+                    {
+                        "name": "chunk_files.execution.log",
+                        "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                        "catalog_relative_path": "simple-turing-0153/chunk_files.execution.log",
+                        "catalog_handler_location": ".catalog",
+                        "stage": "put"
+                    }
+                ]
+            },
+            "iterate and execute": {
+                "name": "iterate and execute",
+                "internal_name": "iterate and execute",
+                "status": "SUCCESS",
+                "step_type": "map",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [],
+                "user_defined_metrics": {},
+                "branches": {
+                    "iterate and execute.0": {
+                        "internal_name": "iterate and execute.0",
+                        "status": "SUCCESS",
+                        "steps": {
+                            "iterate and execute.0.execute": {
+                                "name": "execute",
+                                "internal_name": "iterate and execute.0.execute",
+                                "status": "SUCCESS",
+                                "step_type": "task",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 01:54:00.221240",
+                                        "end_time": "2024-01-18 01:54:00.222560",
+                                        "duration": "0:00:00.001320",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {
+                                            "chunks": [
+                                                0,
+                                                10,
+                                                20,
+                                                30,
+                                                40
+                                            ],
+                                            "stride": 10
+                                        }
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": [
+                                    {
+                                        "name": "execute.execution.log_0",
+                                        "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                        "catalog_relative_path": "simple-turing-0153/execute.execution.log_0",
+                                        "catalog_handler_location": ".catalog",
+                                        "stage": "put"
+                                    }
+                                ]
+                            },
+                            "iterate and execute.0.success": {
+                                "name": "success",
+                                "internal_name": "iterate and execute.0.success",
+                                "status": "SUCCESS",
+                                "step_type": "success",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 01:54:00.301335",
+                                        "end_time": "2024-01-18 01:54:00.302161",
+                                        "duration": "0:00:00.000826",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {
+                                            "chunks": [
+                                                0,
+                                                10,
+                                                20,
+                                                30,
+                                                40
+                                            ],
+                                            "stride": 10
+                                        }
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": []
+                            }
+                        }
+                    },
+                    "iterate and execute.10": {
+                        "internal_name": "iterate and execute.10",
+                        "status": "SUCCESS",
+                        "steps": {
+                            "iterate and execute.10.execute": {
+                                "name": "execute",
+                                "internal_name": "iterate and execute.10.execute",
+                                "status": "SUCCESS",
+                                "step_type": "task",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 01:54:00.396194",
+                                        "end_time": "2024-01-18 01:54:00.397462",
+                                        "duration": "0:00:00.001268",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {
+                                            "chunks": [
+                                                0,
+                                                10,
+                                                20,
+                                                30,
+                                                40
+                                            ],
+                                            "stride": 10
+                                        }
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": [
+                                    {
+                                        "name": "execute.execution.log_10",
+                                        "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                        "catalog_relative_path": "simple-turing-0153/execute.execution.log_10",
+                                        "catalog_handler_location": ".catalog",
+                                        "stage": "put"
+                                    }
+                                ]
+                            },
+                            "iterate and execute.10.success": {
+                                "name": "success",
+                                "internal_name": "iterate and execute.10.success",
+                                "status": "SUCCESS",
+                                "step_type": "success",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 01:54:00.469211",
+                                        "end_time": "2024-01-18 01:54:00.470266",
+                                        "duration": "0:00:00.001055",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {
+                                            "chunks": [
+                                                0,
+                                                10,
+                                                20,
+                                                30,
+                                                40
+                                            ],
+                                            "stride": 10
+                                        }
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": []
+                            }
+                        }
+                    },
+                    "iterate and execute.20": {
+                        "internal_name": "iterate and execute.20",
+                        "status": "SUCCESS",
+                        "steps": {
+                            "iterate and execute.20.execute": {
+                                "name": "execute",
+                                "internal_name": "iterate and execute.20.execute",
+                                "status": "SUCCESS",
+                                "step_type": "task",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 01:54:00.558053",
+                                        "end_time": "2024-01-18 01:54:00.561472",
+                                        "duration": "0:00:00.003419",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {
+                                            "chunks": [
+                                                0,
+                                                10,
+                                                20,
+                                                30,
+                                                40
+                                            ],
+                                            "stride": 10
+                                        }
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": [
+                                    {
+                                        "name": "execute.execution.log_20",
+                                        "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                        "catalog_relative_path": "simple-turing-0153/execute.execution.log_20",
+                                        "catalog_handler_location": ".catalog",
+                                        "stage": "put"
+                                    }
+                                ]
+                            },
+                            "iterate and execute.20.success": {
+                                "name": "success",
+                                "internal_name": "iterate and execute.20.success",
+                                "status": "SUCCESS",
+                                "step_type": "success",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 01:54:00.660092",
+                                        "end_time": "2024-01-18 01:54:00.661215",
+                                        "duration": "0:00:00.001123",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {
+                                            "chunks": [
+                                                0,
+                                                10,
+                                                20,
+                                                30,
+                                                40
+                                            ],
+                                            "stride": 10
+                                        }
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": []
+                            }
+                        }
+                    },
+                    "iterate and execute.30": {
+                        "internal_name": "iterate and execute.30",
+                        "status": "SUCCESS",
+                        "steps": {
+                            "iterate and execute.30.execute": {
+                                "name": "execute",
+                                "internal_name": "iterate and execute.30.execute",
+                                "status": "SUCCESS",
+                                "step_type": "task",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 01:54:00.765689",
+                                        "end_time": "2024-01-18 01:54:00.766705",
+                                        "duration": "0:00:00.001016",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {
+                                            "chunks": [
+                                                0,
+                                                10,
+                                                20,
+                                                30,
+                                                40
+                                            ],
+                                            "stride": 10
+                                        }
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": [
+                                    {
+                                        "name": "execute.execution.log_30",
+                                        "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                        "catalog_relative_path": "simple-turing-0153/execute.execution.log_30",
+                                        "catalog_handler_location": ".catalog",
+                                        "stage": "put"
+                                    }
+                                ]
+                            },
+                            "iterate and execute.30.success": {
+                                "name": "success",
+                                "internal_name": "iterate and execute.30.success",
+                                "status": "SUCCESS",
+                                "step_type": "success",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 01:54:00.851112",
+                                        "end_time": "2024-01-18 01:54:00.852454",
+                                        "duration": "0:00:00.001342",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {
+                                            "chunks": [
+                                                0,
+                                                10,
+                                                20,
+                                                30,
+                                                40
+                                            ],
+                                            "stride": 10
+                                        }
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": []
+                            }
+                        }
+                    },
+                    "iterate and execute.40": {
+                        "internal_name": "iterate and execute.40",
+                        "status": "SUCCESS",
+                        "steps": {
+                            "iterate and execute.40.execute": {
+                                "name": "execute",
+                                "internal_name": "iterate and execute.40.execute",
+                                "status": "SUCCESS",
+                                "step_type": "task",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 01:54:00.950911",
+                                        "end_time": "2024-01-18 01:54:00.952000",
+                                        "duration": "0:00:00.001089",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {
+                                            "chunks": [
+                                                0,
+                                                10,
+                                                20,
+                                                30,
+                                                40
+                                            ],
+                                            "stride": 10
+                                        }
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": [
+                                    {
+                                        "name": "execute.execution.log_40",
+                                        "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                        "catalog_relative_path": "simple-turing-0153/execute.execution.log_40",
+                                        "catalog_handler_location": ".catalog",
+                                        "stage": "put"
+                                    }
+                                ]
+                            },
+                            "iterate and execute.40.success": {
+                                "name": "success",
+                                "internal_name": "iterate and execute.40.success",
+                                "status": "SUCCESS",
+                                "step_type": "success",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 01:54:01.032790",
+                                        "end_time": "2024-01-18 01:54:01.034254",
+                                        "duration": "0:00:00.001464",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {
+                                            "chunks": [
+                                                0,
+                                                10,
+                                                20,
+                                                30,
+                                                40
+                                            ],
+                                            "stride": 10
+                                        }
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": []
+                            }
+                        }
+                    }
+                },
+                "data_catalog": []
+            },
+            "success": {
+                "name": "success",
+                "internal_name": "success",
+                "status": "SUCCESS",
+                "step_type": "success",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-01-18 01:54:01.141928",
+                        "end_time": "2024-01-18 01:54:01.142928",
+                        "duration": "0:00:00.001000",
+                        "status": "SUCCESS",
+                        "message": "",
+                        "parameters": {
+                            "chunks": [
+                                0,
+                                10,
+                                20,
+                                30,
+                                40
+                            ],
+                            "stride": 10
+                        }
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": []
+            }
+        },
+        "parameters": {
+            "chunks": [
+                0,
+                10,
+                20,
+                30,
+                40
+            ],
+            "stride": 10
+        },
+        "run_config": {
+            "executor": {
+                "service_name": "local",
+                "service_type": "executor",
+                "enable_parallel": false,
+                "placeholders": {}
+            },
+            "run_log_store": {
+                "service_name": "file-system",
+                "service_type": "run_log_store"
+            },
+            "secrets_handler": {
+                "service_name": "do-nothing",
+                "service_type": "secrets"
+            },
+            "catalog_handler": {
+                "service_name": "file-system",
+                "service_type": "catalog"
+            },
+            "experiment_tracker": {
+                "service_name": "do-nothing",
+                "service_type": "experiment_tracker"
+            },
+            "pipeline_file": "",
+            "parameters_file": "",
+            "configuration_file": "examples/configs/fs-catalog-run_log.yaml",
+            "tag": "",
+            "run_id": "simple-turing-0153",
+            "variables": {},
+            "use_cached": false,
+            "original_run_id": "",
+            "dag": {
+                "start_at": "chunk files",
+                "name": "",
+                "description": "",
+                "steps": {
+                    "chunk files": {
+                        "type": "task",
+                        "name": "chunk files",
+                        "next": "iterate and execute",
+                        "on_failure": "",
+                        "executor_config": {},
+                        "catalog": null,
+                        "max_attempts": 1,
+                        "command": "examples.concepts.map.chunk_files",
+                        "node_name": "chunk files"
+                    },
+                    "iterate and execute": {
+                        "type": "map",
+                        "name": "iterate and execute",
+                        "is_composite": true,
+                        "next": "success",
+                        "on_failure": "",
+                        "executor_config": {},
+                        "iterate_on": "chunks",
+                        "iterate_as": "start_index",
+                        "branch": {
+                            "start_at": "execute",
+                            "name": "",
+                            "description": "",
+                            "steps": {
+                                "execute": {
+                                    "type": "task",
+                                    "name": "execute",
+                                    "next": "success",
+                                    "on_failure": "",
+                                    "executor_config": {},
+                                    "catalog": null,
+                                    "max_attempts": 1,
+                                    "command": "examples.concepts.map.process_chunk",
+                                    "node_name": "execute"
+                                },
+                                "success": {
+                                    "type": "success",
+                                    "name": "success"
+                                },
+                                "fail": {
+                                    "type": "fail",
+                                    "name": "fail"
+                                }
+                            }
+                        }
+                    },
+                    "success": {
+                        "type": "success",
+                        "name": "success"
+                    },
+                    "fail": {
+                        "type": "fail",
+                        "name": "fail"
+                    }
+                }
+            },
+            "dag_hash": "",
+            "execution_plan": "chained"
+        }
+    }
+    ```
