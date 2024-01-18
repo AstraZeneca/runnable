@@ -6,7 +6,6 @@ Magnus provides a rich definition of of step types.
 - [task](../../concepts/task): To execute python functions, jupyter notebooks, shell scripts.
 - [parallel](../../concepts/parallel): To execute many tasks in parallel.
 - [map](../../concepts/map): To execute the same task over a list of parameters. (1)
-- [dag](../../concepts/dag): To embed a pipeline defined in other modules.
 
 </div>
 

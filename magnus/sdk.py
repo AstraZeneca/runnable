@@ -169,8 +169,6 @@ class Parallel(BaseTraversal):
                 raise AssertionError("A node not being terminated must have a user defined next node")
 
         node = ParallelNode(name=self.name, branches=self.graph_branches, internal_name="", next_node=self.next_node)
-
-        node.add_parent(self.name)
         return node
 
 
@@ -198,7 +196,6 @@ class Map(BaseTraversal):
             iterate_as=self.iterate_as,
         )
 
-        node.add_parent(self.name)
         return node
 
 
@@ -293,7 +290,7 @@ class Pipeline(BaseModel):
         run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
         utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-        run_context.dag = self._dag
+        run_context.dag = graph.create_graph(self._dag.model_dump(by_alias=True, exclude_none=True))
 
         print("Working with context:")
         print(run_context)

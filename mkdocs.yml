@@ -134,7 +134,6 @@ nav:
           - "Parallel": "concepts/parallel.md"
           - "Map": "concepts/map.md"
           - "Nesting": "concepts/nesting.md"
-          - "Dag": "concepts/dag.md"
   - "Configurations":
       - "Overview": "configurations/overview.md"
       - "Executor": "configurations/executor.md"

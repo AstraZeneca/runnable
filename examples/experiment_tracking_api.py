@@ -1,3 +1,15 @@
+"""
+An example pipeline to demonstrate setting experiment tracking metrics
+    using environment variables. Any environment variable with prefix
+    'MAGNUS_TRACK_' will be recorded as a metric captured during the step.
+
+    You can run this pipeline as:
+      python examples/experiment_tracking_api.py
+
+    The mlflow server is expected to be running at http://127.0.0.1:8080
+"""
+
+
 from pydantic import BaseModel
 
 from magnus import Pipeline, Task, track_this

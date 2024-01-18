@@ -1,12 +1,10 @@
 dag:
   description: |
-    This is a simple pipeline that demonstrates passing data between steps.
+    This is a simple pipeline that demonstrates retrying failures.
 
     1. Setup: We setup a data folder, we ignore if it is already present
     2. Create Content: We create a "hello.txt" and "put" the file in catalog
-    3. Clean up to get again: We remove the data folder. Note that this is stubbed to prevent
-      accidental deletion of your contents. You can change type to task to make really run.
-    4. Retrieve Content: We "get" the file "hello.txt" from the catalog and show the contents
+    3. Retrieve Content: We "get" the file "hello.txt" from the catalog and show the contents
     5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.
 
 

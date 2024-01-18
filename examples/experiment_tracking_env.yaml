@@ -8,6 +8,8 @@ dag:
       magnus execute -f examples/concepts/experiment_tracking_env.yaml \
       -c examples/configs/mlflow-config.yaml
 
+    The mlflow server is expected to be running at http://127.0.0.1:8080
+
   start_at: shell
   steps:
     shell:

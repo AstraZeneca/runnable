@@ -356,39 +356,6 @@ class BaseNode(ABC, BaseModel):
         """
         ...
 
-    @abstractmethod
-    def add_parent(self, parent: str):
-        """
-        S1 = Task()
-        S2 = Task()
-
-        pipeline1 = Pipeline(steps = [foo, bar])
-        The steps internal names are valid as of now.
-
-        Need not fix the internal names when the pipeline is created!!
-
-        P1 = Parallel(branches: {"B1": pipeline1})
-        P1's internal name is valid.
-
-        B1 name should be P1.B1
-        S1 and S2 names have to be changed to P1.B1.S1 and P1.B1.S2
-
-
-        M1 = Map(branch: P1)
-        M1's internal name is valid
-
-        P1's name should be: M1.branch.P1.B1
-        S1 and S2 should be: M1.branch.P1.B1.S1 and M1.branch.P1.B1.S2
-
-        When creating the pipeline, just add the branches without any parent.
-        After creation of the step, add_parent should be called with the name of the step.
-
-        For a composite node, the parent step should be the step name.
-        For nodes belonging to composite node, the parent step should be branch name.
-
-        """
-        ...
-
 
 # --8<-- [end:docs]
 class TraversalNode(BaseNode):
@@ -441,7 +408,7 @@ class CatalogStructure(BaseModel):
 class ExecutableNode(TraversalNode):
     catalog: Optional[CatalogStructure] = Field(default=None)
     executor_config: Dict[str, Any] = Field(default_factory=dict)
-    max_attempts: int = Field(default=1, gt=1)
+    max_attempts: int = Field(default=1, ge=1)
 
     def _get_catalog_settings(self) -> Dict[str, Any]:
         """
@@ -521,13 +488,3 @@ class TerminalNode(BaseNode):
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any]) -> "TerminalNode":
         return cls(**config)
-
-    def add_parent(self, parent: str):
-        if not parent:
-            return
-
-        if len(parent.split(".")) % 2 == 1:
-            raise ValueError("Terminal node should always be added to a branch, not step")
-
-        self.internal_branch_name = parent
-        self.internal_name = parent + "." + self.internal_name

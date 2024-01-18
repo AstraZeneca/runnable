@@ -43,7 +43,7 @@ Below is an example of retrying a pipeline that failed.
 
         You can run this pipeline on your local machine by
 
-        ```magnus execute -f examples/retry-fail.yaml -c examples/configs/fs-catalog-run_log.yaml --use-cached wrong-file-name --run-id```
+        ```magnus execute -f examples/retry-fail.yaml -c examples/configs/fs-catalog-run_log.yaml --use-cached wrong-file-name```
 
         Note that we have specified the run_id of the failed execution to be ```use-cached``` for the new execution.
 

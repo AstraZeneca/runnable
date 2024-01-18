@@ -44,15 +44,6 @@ class TaskNode(ExecutableNode):
         executable = create_task(task_config)
         return cls(executable=executable, **node_config, **task_config)
 
-    def add_parent(self, parent: str):
-        if not parent:
-            return
-
-        if len(parent.split(".")) % 2 == 1:
-            raise ValueError("Task node should always be added to a branch, not step")
-
-        self.internal_name = parent + "." + self.internal_name
-
     def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
         """
         All that we do in magnus is to come to this point where we actually execute the command.
@@ -226,22 +217,6 @@ class ParallelNode(CompositeNode):
 
         raise Exception(f"Branch {branch_name} does not exist")
 
-    def add_parent(self, parent: str):
-        if not parent:
-            raise ValueError("Add parent of composite nodes should be sent with parent step names")
-
-        if len(parent.split(".")) % 2 == 0:
-            raise ValueError("Parallel node should always be added to a step, not a branch")
-
-        self.internal_name = parent
-
-        for name, branch in self.branches.items():
-            branch.internal_branch_name = parent + "." + name
-            for node in branch.nodes.values():
-                node.add_parent(parent + "." + name)
-
-        self.branches = {branch.internal_branch_name: branch for _, branch in self.branches.items()}
-
     def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         The general fan out method for a node of type Parallel.
@@ -394,20 +369,6 @@ class MapNode(CompositeNode):
             Exception: If the branch by that name does not exist
         """
         return self.branch
-
-    def add_parent(self, parent: str):
-        if not parent:
-            raise ValueError("Add parent of composite nodes should be sent with parent step names")
-
-        if len(parent.split(".")) % 2 == 0:
-            raise ValueError("Map node should always be added to a step, not a branch")
-
-        self.internal_name = parent
-
-        self.branch.internal_branch_name = parent + "." + defaults.MAP_PLACEHOLDER
-
-        for node in self.branch.nodes.values():
-            node.add_parent(parent + "." + defaults.MAP_PLACEHOLDER)
 
     def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
         """
@@ -600,12 +561,6 @@ class DagNode(CompositeNode):
 
         return self.branch
 
-    def add_parent(self, parent: str):
-        self.internal_name = parent + "." + self.internal_name
-
-        for node in self.branch.nodes.values():
-            node.add_parent(parent)
-
     def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
         """
         The general method to fan out for a node of type dag.
@@ -696,16 +651,6 @@ class StubNode(ExecutableNode):
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any]) -> "StubNode":
         return cls(**config)
-
-    def add_parent(self, parent: str):
-        if not parent:
-            return
-
-        if len(parent.split(".")) % 2 == 1:
-            raise ValueError("Task node should always be added to a branch, not step")
-
-        self.internal_branch_name = parent
-        self.internal_name = parent + "." + self.internal_name
 
     def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
         """
