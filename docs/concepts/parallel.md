@@ -72,6 +72,480 @@ ensemble model happens only after both models are (successfully) trained.
 
 === "Run log"
 
+    The step log for the parallel branch ```Train models``` has branches which have similar
+    structure to a run log.
+
+    ```json
+    {
+        "run_id": "savory-pike-0201",
+        "dag_hash": "",
+        "use_cached": false,
+        "tag": "",
+        "original_run_id": "",
+        "status": "SUCCESS",
+        "steps": {
+            "Get Features": {
+                "name": "Get Features",
+                "internal_name": "Get Features",
+                "status": "SUCCESS",
+                "step_type": "stub",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-01-18 02:01:10.978646",
+                        "end_time": "2024-01-18 02:01:10.978665",
+                        "duration": "0:00:00.000019",
+                        "status": "SUCCESS",
+                        "message": "",
+                        "parameters": {}
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": []
+            },
+            "Train Models": {
+                "name": "Train Models",
+                "internal_name": "Train Models",
+                "status": "SUCCESS",
+                "step_type": "parallel",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [],
+                "user_defined_metrics": {},
+                "branches": {
+                    "Train Models.XGBoost": {
+                        "internal_name": "Train Models.XGBoost",
+                        "status": "SUCCESS",
+                        "steps": {
+                            "Train Models.XGBoost.Prepare for XGBoost": {
+                                "name": "Prepare for XGBoost",
+                                "internal_name": "Train Models.XGBoost.Prepare for XGBoost",
+                                "status": "SUCCESS",
+                                "step_type": "stub",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 02:01:11.132822",
+                                        "end_time": "2024-01-18 02:01:11.132840",
+                                        "duration": "0:00:00.000018",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {}
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": []
+                            },
+                            "Train Models.XGBoost.Train XGBoost": {
+                                "name": "Train XGBoost",
+                                "internal_name": "Train Models.XGBoost.Train XGBoost",
+                                "status": "SUCCESS",
+                                "step_type": "stub",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 02:01:11.216418",
+                                        "end_time": "2024-01-18 02:01:11.216430",
+                                        "duration": "0:00:00.000012",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {}
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": []
+                            },
+                            "Train Models.XGBoost.success": {
+                                "name": "success",
+                                "internal_name": "Train Models.XGBoost.success",
+                                "status": "SUCCESS",
+                                "step_type": "success",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 02:01:11.291222",
+                                        "end_time": "2024-01-18 02:01:11.292140",
+                                        "duration": "0:00:00.000918",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {}
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": []
+                            }
+                        }
+                    },
+                    "Train Models.RF Model": {
+                        "internal_name": "Train Models.RF Model",
+                        "status": "SUCCESS",
+                        "steps": {
+                            "Train Models.RF Model.Train RF": {
+                                "name": "Train RF",
+                                "internal_name": "Train Models.RF Model.Train RF",
+                                "status": "SUCCESS",
+                                "step_type": "stub",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 02:01:11.379438",
+                                        "end_time": "2024-01-18 02:01:11.379453",
+                                        "duration": "0:00:00.000015",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {}
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": []
+                            },
+                            "Train Models.RF Model.success": {
+                                "name": "success",
+                                "internal_name": "Train Models.RF Model.success",
+                                "status": "SUCCESS",
+                                "step_type": "success",
+                                "message": "",
+                                "mock": false,
+                                "code_identities": [
+                                    {
+                                        "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
+                                        "code_identifier_type": "git",
+                                        "code_identifier_dependable": true,
+                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_message": ""
+                                    }
+                                ],
+                                "attempts": [
+                                    {
+                                        "attempt_number": 1,
+                                        "start_time": "2024-01-18 02:01:11.458716",
+                                        "end_time": "2024-01-18 02:01:11.459695",
+                                        "duration": "0:00:00.000979",
+                                        "status": "SUCCESS",
+                                        "message": "",
+                                        "parameters": {}
+                                    }
+                                ],
+                                "user_defined_metrics": {},
+                                "branches": {},
+                                "data_catalog": []
+                            }
+                        }
+                    }
+                },
+                "data_catalog": []
+            },
+            "Ensemble Modelling": {
+                "name": "Ensemble Modelling",
+                "internal_name": "Ensemble Modelling",
+                "status": "SUCCESS",
+                "step_type": "stub",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-01-18 02:01:11.568072",
+                        "end_time": "2024-01-18 02:01:11.568085",
+                        "duration": "0:00:00.000013",
+                        "status": "SUCCESS",
+                        "message": "",
+                        "parameters": {}
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": []
+            },
+            "Run Inference": {
+                "name": "Run Inference",
+                "internal_name": "Run Inference",
+                "status": "SUCCESS",
+                "step_type": "stub",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-01-18 02:01:11.650023",
+                        "end_time": "2024-01-18 02:01:11.650037",
+                        "duration": "0:00:00.000014",
+                        "status": "SUCCESS",
+                        "message": "",
+                        "parameters": {}
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": []
+            },
+            "success": {
+                "name": "success",
+                "internal_name": "success",
+                "status": "SUCCESS",
+                "step_type": "success",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-01-18 02:01:11.727802",
+                        "end_time": "2024-01-18 02:01:11.728651",
+                        "duration": "0:00:00.000849",
+                        "status": "SUCCESS",
+                        "message": "",
+                        "parameters": {}
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": []
+            }
+        },
+        "parameters": {},
+        "run_config": {
+            "executor": {
+                "service_name": "local",
+                "service_type": "executor",
+                "enable_parallel": false,
+                "placeholders": {}
+            },
+            "run_log_store": {
+                "service_name": "file-system",
+                "service_type": "run_log_store"
+            },
+            "secrets_handler": {
+                "service_name": "do-nothing",
+                "service_type": "secrets"
+            },
+            "catalog_handler": {
+                "service_name": "file-system",
+                "service_type": "catalog"
+            },
+            "experiment_tracker": {
+                "service_name": "do-nothing",
+                "service_type": "experiment_tracker"
+            },
+            "pipeline_file": "",
+            "parameters_file": "",
+            "configuration_file": "examples/configs/fs-catalog-run_log.yaml",
+            "tag": "",
+            "run_id": "savory-pike-0201",
+            "variables": {},
+            "use_cached": false,
+            "original_run_id": "",
+            "dag": {
+                "start_at": "Get Features",
+                "name": "",
+                "description": "",
+                "steps": {
+                    "Get Features": {
+                        "type": "stub",
+                        "name": "Get Features",
+                        "next": "Train Models",
+                        "on_failure": "",
+                        "executor_config": {},
+                        "catalog": null,
+                        "max_attempts": 1
+                    },
+                    "Train Models": {
+                        "type": "parallel",
+                        "name": "Train Models",
+                        "next": "Ensemble Modelling",
+                        "on_failure": "",
+                        "executor_config": {},
+                        "branches": {
+                            "XGBoost": {
+                                "start_at": "Prepare for XGBoost",
+                                "name": "",
+                                "description": "",
+                                "steps": {
+                                    "Prepare for XGBoost": {
+                                        "type": "stub",
+                                        "name": "Prepare for XGBoost",
+                                        "next": "Train XGBoost",
+                                        "on_failure": "",
+                                        "executor_config": {},
+                                        "catalog": null,
+                                        "max_attempts": 1
+                                    },
+                                    "Train XGBoost": {
+                                        "type": "stub",
+                                        "name": "Train XGBoost",
+                                        "next": "success",
+                                        "on_failure": "",
+                                        "executor_config": {},
+                                        "catalog": null,
+                                        "max_attempts": 1
+                                    },
+                                    "success": {
+                                        "type": "success",
+                                        "name": "success"
+                                    },
+                                    "fail": {
+                                        "type": "fail",
+                                        "name": "fail"
+                                    }
+                                }
+                            },
+                            "RF Model": {
+                                "start_at": "Train RF",
+                                "name": "",
+                                "description": "",
+                                "steps": {
+                                    "Train RF": {
+                                        "type": "stub",
+                                        "name": "Train RF",
+                                        "next": "success",
+                                        "on_failure": "",
+                                        "executor_config": {},
+                                        "catalog": null,
+                                        "max_attempts": 1
+                                    },
+                                    "success": {
+                                        "type": "success",
+                                        "name": "success"
+                                    },
+                                    "fail": {
+                                        "type": "fail",
+                                        "name": "fail"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "Ensemble Modelling": {
+                        "type": "stub",
+                        "name": "Ensemble Modelling",
+                        "next": "Run Inference",
+                        "on_failure": "",
+                        "executor_config": {},
+                        "catalog": null,
+                        "max_attempts": 1
+                    },
+                    "Run Inference": {
+                        "type": "stub",
+                        "name": "Run Inference",
+                        "next": "success",
+                        "on_failure": "",
+                        "executor_config": {},
+                        "catalog": null,
+                        "max_attempts": 1
+                    },
+                    "success": {
+                        "type": "success",
+                        "name": "success"
+                    },
+                    "fail": {
+                        "type": "fail",
+                        "name": "fail"
+                    }
+                }
+            },
+            "dag_hash": "",
+            "execution_plan": "chained"
+        }
+    }
+    ```
+
+
+
 All pipelines, nested or parent, have the same structure as defined in
 [pipeline definition](../pipeline).
 

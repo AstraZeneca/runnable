@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
@@ -280,6 +281,7 @@ class Pipeline(BaseModel):
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)
+        configuration_file = os.environ.get("MAGNUS_CONFIGURATION_FILE", configuration_file)
         run_context = entrypoints.prepare_configurations(
             configuration_file=configuration_file,
             run_id=run_id,

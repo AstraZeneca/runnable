@@ -85,6 +85,11 @@ of the files to process.
     The ```start_index``` argument for the function ```process_chunk``` is dynamically set by iterating
     over ```chunks```.
 
+    If the argument ```start_index``` is not provided, you can still access the current
+    value by ```MAGNUS_MAP_VARIABLE``` environment variable.
+    The environment variable ```MAGNUS_MAP_VARIABLE``` is a dictionary with keys as
+    ```iterate_as```
+
     This instruction is set while defining the map node.
 
     ```python linenums="1" hl_lines="21 52-58"
@@ -812,3 +817,27 @@ of the files to process.
         }
     }
     ```
+
+
+## Traversal
+
+A branch of a map step is considered success only if the ```success``` step is reached at the end.
+The steps of the pipeline can fail and be handled by [on failure](../concepts/ppiline/on_failure) and
+redirected to ```success``` if that is the desired behavior.
+
+The map step is considered successful only if all the branches of the step have terminated successfully.
+
+
+## Parameters
+
+All the tasks defined in the branches of the map pipeline can
+[access to parameters and data as usual](../task).
+
+
+!!! warning
+
+    The parameters can be updated by all the tasks and the last task to execute overwrites
+    the previous changes.
+
+    Since the order of execution is not guaranteed, its best to avoid mutating the same parameters in
+    the steps belonging to map step.
