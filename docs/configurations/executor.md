@@ -25,6 +25,8 @@ config:
 [parallel](../../concepts/parallel) or [map](../../concepts/map) to be executed in parallel.
 
 
+---
+
 
 ## Local container
 
@@ -58,7 +60,13 @@ default image by providing an ```executor_config``` as part of step definition.
 
 #### Example
 
+Nearly all the examples seen in concepts can be executed using
+the ```local-container``` configuration. Below is one simple example to concretely show
+the patterns.
+
 === "Local container config"
+
+    Assumed to be present at ```examples/configs/local-container.yaml```
 
     ```yaml linenums="1" hl_lines="4"
     --8<-- "examples/configs/local-container.yaml"
@@ -74,21 +82,41 @@ default image by providing an ```executor_config``` as part of step definition.
 
 === "python sdk"
 
-    ```python linenums="1"
-    --8<-- "examples/configs/simple.py"
+    Running the SDK defined pipelines for any container based executions [is a 3 step
+    process](#container_environments).
+
+    1. Generate the ```yaml``` definition file by:
+    ```MAGNUS_CONFIGURATION_FILE=examples/configs/local-container.yaml python examples/concepts/simple.py```
+    2. Build the docker image with yaml definition in it, called magnus:demo in current example.
+    3. Execute the pipeline via the magnus CLI,
+    ```MAGNUS_VAR_default_docker_image=magnus:demo  magnus execute -f magnus-pipeline.yaml -c examples/configs/local-container.yaml```
+
+
+    ```python linenums="1" hl_lines="24"
+    --8<-- "examples/concepts/simple.py"
     ```
+
+    1. You can provide a configuration file dynamically by using the environment
+    variable ```MAGNUS_CONFIGURATION_FILE```. Please see [SDK for more details](../../sdk).
+
 
 
 === "yaml"
 
+    For yaml based definitions, the execution order is to:
+
+    1. Build the docker image with the yaml definition in it, called magnus:demo in current example.
+    2. Execute the pipeline via the magnus CLI:
+    ```MAGNUS_VAR_default_docker_image=magnus:base magnus execute -f examples/concepts/simple.yaml -c examples/configs/local-container.yaml```
+
     ```yaml linenums="1"
-    --8<-- "examples/configs/simple.yaml"
+    --8<-- "examples/concepts/simple.yaml"
     ```
 
 === "Run log"
 
 
-=== "Step override"
+"Step override"
 
     In the below pipeline definition, the step ```shell``` executes in the default docker image
     while the step ```custom docker image``` executes in the docker image in a different image.
