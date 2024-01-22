@@ -145,6 +145,7 @@ nav:
   # - "Command Line":
   #       - "command-line.md"
   - "Python API": "interactions.md"
+  - "python SDK": "sdk.md"
   - "CLI": "cli.md"
   # - "Examples":
   #       - "examples.md"

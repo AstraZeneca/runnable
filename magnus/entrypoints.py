@@ -61,8 +61,7 @@ def prepare_configurations(
     if configuration_file:
         templated_configuration = utils.load_yaml(configuration_file) or {}
 
-    # apply variables
-    configuration: MagnusConfig = cast(MagnusConfig, utils.apply_variables(templated_configuration, variables))
+    configuration: MagnusConfig = cast(MagnusConfig, templated_configuration)
 
     # Run log settings, configuration over-rides everything
     run_log_config: Optional[ServiceConfig] = configuration.get("run_log_store", None)
@@ -116,7 +115,7 @@ def prepare_configurations(
     if pipeline_file:
         # There are use cases where we are only preparing the executor
         pipeline_config = utils.load_yaml(pipeline_file)
-        pipeline_config = utils.apply_variables(pipeline_config, variables=variables)
+        # pipeline_config = utils.apply_variables(pipeline_config, variables=variables)
 
         logger.info("The input pipeline:")
         logger.info(json.dumps(pipeline_config, indent=4))

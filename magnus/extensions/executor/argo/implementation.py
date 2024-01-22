@@ -117,6 +117,7 @@ class UserControls(BaseModel):
     active_deadline_seconds: int = Field(default=60 * 60 * 2, serialization_alias="activeDeadlineSeconds", gt=0)
     # Note: Volume mounts cannot be defined here
 
+    # TODO: User should be able to set environment variables
     # Should not be populated by user!!
     _env_vars: List[EnvVar] = PrivateAttr(default=[])
     _secrets_from_k8s: List[SecretEnvVar] = PrivateAttr(default=[])

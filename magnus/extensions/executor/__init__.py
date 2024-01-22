@@ -5,7 +5,7 @@ import os
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional, cast
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 from rich import print
 
 from magnus import context, defaults, exceptions, integration, parameters, utils
@@ -38,7 +38,7 @@ class GenericExecutor(BaseExecutor):
     service_type: str = "executor"
 
     enable_parallel: bool = defaults.ENABLE_PARALLEL
-    placeholders: dict = {}
+    placeholders: Dict[str, Any] = Field(default_factory=dict)
 
     _single_step: str = ""
 
@@ -601,6 +601,8 @@ class GenericExecutor(BaseExecutor):
         To avoid too much clutter in the dag definition, we allow the configuration file to have placeholders block.
         The nodes can over-ride the global config by referring to key in the placeholder.
 
+        This function also applies variables to the effective node config.
+
         For example:
         # configuration.yaml
         execution:
@@ -650,6 +652,7 @@ class GenericExecutor(BaseExecutor):
 
             effective_node_config[key] = value
         # effective_node_config.pop("placeholders", None)
+        effective_node_config = utils.apply_variables(effective_node_config, self._context.variables)
 
         return effective_node_config
 

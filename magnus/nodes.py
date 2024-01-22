@@ -407,7 +407,6 @@ class CatalogStructure(BaseModel):
 
 class ExecutableNode(TraversalNode):
     catalog: Optional[CatalogStructure] = Field(default=None)
-    executor_config: Dict[str, Any] = Field(default_factory=dict)
     max_attempts: int = Field(default=1, ge=1)
 
     def _get_catalog_settings(self) -> Dict[str, Any]:

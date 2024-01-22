@@ -1,0 +1,72 @@
+dag:
+  start_at: generate_list
+  steps:
+    generate_list:
+      type: task
+      command_type: shell
+      command: export MAGNUS_PRM_array="[0, 1]"
+      next: outer most map
+    outer most map:
+      type: map
+      iterate_on: array
+      iterate_as: x
+      next: success
+      branch:
+        start_at: nested parallel
+        steps:
+          nested parallel:
+            type: parallel
+            next: success
+            branches:
+              a:
+                start_at: inner most map
+                steps:
+                  inner most map:
+                    type: map
+                    iterate_on: array
+                    iterate_as: y
+                    next: success
+                    branch:
+                      start_at: executable
+                      steps:
+                        executable:
+                          type: stub
+                          next: success
+                        success:
+                          type: success
+                        fail:
+                          type: fail
+                  success:
+                    type: success
+                  fail:
+                    type: fail
+              b:
+                start_at: inner most map
+                steps:
+                  inner most map:
+                    type: map
+                    iterate_on: array
+                    iterate_as: y
+                    next: success
+                    branch:
+                      start_at: executable
+                      steps:
+                        executable:
+                          type: stub
+                          next: success
+                        success:
+                          type: success
+                        fail:
+                          type: fail
+                  success:
+                    type: success
+                  fail:
+                    type: fail
+          success:
+            type: success
+          fail:
+            type: fail
+    success:
+      type: success
+    fail:
+      type: fail

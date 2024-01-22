@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from typing import Dict, cast
 
+from pydantic import Field
 from rich import print
 
 from magnus import defaults, integration, utils
@@ -50,6 +51,8 @@ class LocalContainerExecutor(GenericExecutor):
 
     service_name: str = "local-container"
     docker_image: str
+    auto_remove_container: bool = True
+    environment: Dict[str, str] = Field(default_factory=dict)
 
     _container_log_location = "/tmp/run_logs/"
     _container_catalog_location = "/tmp/catalog/"
@@ -66,6 +69,11 @@ class LocalContainerExecutor(GenericExecutor):
         """
 
         super().add_code_identities(node, step_log)
+
+        if node.node_type in ["success", "fail"]:
+            # Need not add code identities if we are in a success or fail node
+            return
+
         mode_config = self._resolve_executor_config(node)
 
         docker_image = mode_config.get("docker_image", None)
@@ -129,6 +137,7 @@ class LocalContainerExecutor(GenericExecutor):
             map_variable (str, optional): If the node is part of the map branch. Defaults to ''.
         """
         executor_config = self._resolve_executor_config(node)
+        auto_remove_container = executor_config.get("auto_remove_container", True)
 
         logger.debug("Here is the resolved executor config")
         logger.debug(executor_config)
@@ -146,7 +155,13 @@ class LocalContainerExecutor(GenericExecutor):
 
         command = utils.get_node_execution_command(node, map_variable=map_variable)
 
-        self._spin_container(node=node, command=command, map_variable=map_variable, **kwargs)
+        self._spin_container(
+            node=node,
+            command=command,
+            map_variable=map_variable,
+            auto_remove_container=auto_remove_container,
+            **kwargs,
+        )
 
         step_log = self._context.run_log_store.get_step_log(node._get_step_log_name(map_variable), self._context.run_id)
         if step_log.status != defaults.SUCCESS:
@@ -159,7 +174,14 @@ class LocalContainerExecutor(GenericExecutor):
             step_log.status = defaults.FAIL
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    def _spin_container(self, node: BaseNode, command: str, map_variable: TypeMapVariable = None, **kwargs):
+    def _spin_container(
+        self,
+        node: BaseNode,
+        command: str,
+        map_variable: TypeMapVariable = None,
+        auto_remove_container: bool = True,
+        **kwargs,
+    ):
         """
         During the flow run, we have to spin up a container with the docker image mentioned
         and the right log locations
@@ -211,7 +233,9 @@ class LocalContainerExecutor(GenericExecutor):
                     break
 
             exit_status = api_client.inspect_container(container.id)["State"]["ExitCode"]
-            container.remove(force=True)
+
+            if auto_remove_container:
+                container.remove(force=True)
 
             if exit_status != 0:
                 msg = f"Docker command failed with exit code {exit_status}"

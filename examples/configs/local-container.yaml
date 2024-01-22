@@ -1,9 +1,11 @@
 executor:
   type: "local-container" # (1)
   config:
-    docker_image: magnus:base # (2)
+    docker_image: $default_docker_image # (2)
+    environment:
+      key: value # (3)
 
-run_log_store: # (5)
+run_log_store: # (4)
   type: file-system
 
 catalog:

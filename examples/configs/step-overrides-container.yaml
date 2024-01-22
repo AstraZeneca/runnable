@@ -1,0 +1,28 @@
+dag:
+  description: |
+    Demonstration of step over-riding the default image in local container based execution.
+
+    The below pipeline is for demonstration purposes and will not run
+    unless values for "default_docker_image" and "custom_docker_image" are
+    set via environment variables, MAGNUS_VAR_default_docker_image and
+    MAGNUS_VAR_custom_docker_image respectively.
+
+  start_at: shell
+  steps:
+    shell:
+      type: task
+      command_type: shell
+      command: echo "Hello world!!"
+      next: custom docker image
+    custom docker image:
+      type: task
+      command_type: shell
+      command: echo "Hello from custom docker image"
+      executor_config:
+        local_container: # (1)
+          docker_image: $custom_docker_image
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail

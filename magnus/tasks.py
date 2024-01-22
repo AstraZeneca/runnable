@@ -584,14 +584,16 @@ def create_task(kwargs_for_init) -> BaseTaskType:
     Returns:
         tasks.BaseTaskType: The command object
     """
-    command_type = kwargs_for_init.pop("command_type", defaults.COMMAND_TYPE)
+    # The dictionary cannot be modified
+    kwargs = kwargs_for_init.copy()
+    command_type = kwargs.pop("command_type", defaults.COMMAND_TYPE)
 
     try:
         task_mgr = driver.DriverManager(
             namespace="tasks",
             name=command_type,
             invoke_on_load=True,
-            invoke_kwds=kwargs_for_init,
+            invoke_kwds=kwargs,
         )
         return task_mgr.driver
     except Exception as _e:

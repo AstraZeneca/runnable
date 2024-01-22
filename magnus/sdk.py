@@ -139,7 +139,6 @@ class Task(BaseTraversal):
         if not self.next_node:
             if not (self.terminate_with_failure or self.terminate_with_success):
                 raise AssertionError("A node not being terminated must have a user defined next node")
-
         return TaskNode.parse_from_config(self.model_dump(exclude_none=True))
 
 
@@ -290,7 +289,9 @@ class Pipeline(BaseModel):
         run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
         utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-        run_context.dag = graph.create_graph(self._dag.model_dump(by_alias=True, exclude_none=True))
+        dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
+
+        run_context.dag = graph.create_graph(dag_definition)
 
         print("Working with context:")
         print(run_context)
