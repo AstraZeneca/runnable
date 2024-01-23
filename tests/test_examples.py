@@ -1,5 +1,6 @@
 import pytest
 from pathlib import Path
+import os
 import importlib
 
 from magnus.entrypoints import execute
@@ -65,6 +66,7 @@ def test_yaml_examples_container(example):
         full_file_path = examples_path / file_path
         kwargs.pop("configuration_file", "")
         configuration_file = "examples/configs/local-container.yaml"
+        os.environ["MAGNUS_VAR_default_docker_image"] = "magnus:demo"
         execute(configuration_file=configuration_file, pipeline_file=str(full_file_path), **kwargs)
     except exceptions.ExecutionFailedError:
         if not status:

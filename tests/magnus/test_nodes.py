@@ -158,7 +158,7 @@ def test_traversal_node_get_executor_returns_configured_config(instantiable_trav
         node_type="test",
         next_node="next",
         on_failure="on_failure",
-        executor_config={"test": {"key": "value"}},
+        overrides={"test": {"key": "value"}},
     )
 
     assert traversal_class._get_executor_config("test") == {"key": "value"}

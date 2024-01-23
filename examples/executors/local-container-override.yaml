@@ -1,0 +1,23 @@
+executor:
+  type: "local-container" # (1)
+  config:
+    docker_image: $default_docker_image # (2)
+    environment:
+      key: value # (3)
+    overrides:
+      custom_docker_image:
+        docker_image: $custom_docker_image
+        environment:
+          key: not-value
+
+run_log_store: # (4)
+  type: file-system
+
+catalog:
+  type: file-system
+
+secrets:
+  type: do-nothing
+
+experiment_tracker:
+  type: do-nothing

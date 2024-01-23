@@ -5,7 +5,6 @@ import os
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional, cast
 
-from pydantic import ConfigDict, Field
 from rich import print
 
 from magnus import context, defaults, exceptions, integration, parameters, utils
@@ -36,15 +35,6 @@ class GenericExecutor(BaseExecutor):
 
     service_name: str = ""
     service_type: str = "executor"
-
-    enable_parallel: bool = defaults.ENABLE_PARALLEL
-    placeholders: Dict[str, Any] = Field(default_factory=dict)
-
-    _single_step: str = ""
-
-    _context_step_log = None  # type : StepLog
-    _context_node = None  # type: BaseNode
-    model_config = ConfigDict(extra="forbid")
 
     @property
     def _context(self):
@@ -597,9 +587,9 @@ class GenericExecutor(BaseExecutor):
 
     def _resolve_executor_config(self, node: BaseNode):
         """
-        The executor_config section can contain specific over-rides to an global executor config.
-        To avoid too much clutter in the dag definition, we allow the configuration file to have placeholders block.
-        The nodes can over-ride the global config by referring to key in the placeholder.
+        The overrides section can contain specific over-rides to an global executor config.
+        To avoid too much clutter in the dag definition, we allow the configuration file to have overrides block.
+        The nodes can over-ride the global config by referring to key in the overrides.
 
         This function also applies variables to the effective node config.
 
@@ -610,19 +600,19 @@ class GenericExecutor(BaseExecutor):
           config:
             k1: v1
             k3: v3
-            placeholders:
+            overrides:
+              k1: v11
               k2: v2 # Could be a mapping internally.
 
         # in pipeline definition.yaml
         dag:
           steps:
             step1:
-              executor_config:
+              overrides:
                 cloud-implementation:
-                  k1: value_specific_to_node
                   k2:
 
-        This method should resolve the node_config to {'k1': 'value_specific_to_node', 'k2': 'v2', 'k3': 'v3'}
+        This method should resolve the node_config to {'k1': 'v11', 'k2': 'v2', 'k3': 'v3'}
 
         Args:
             node (BaseNode): The current node being processed.
@@ -635,23 +625,19 @@ class GenericExecutor(BaseExecutor):
             # Some modes request for effective node config even for success or fail nodes
             return effective_node_config
 
-        placeholders = self.placeholders
-
         for key, value in ctx_node_config.items():
-            if not value:
-                if key in placeholders:  # Update via placeholder only if value is None
-                    try:
-                        effective_node_config.update(placeholders[key])
-                    except TypeError:
-                        logger.error(f"Expected value to the {key} to be a mapping but found {type(placeholders[key])}")
-                    continue
-                logger.info(
-                    f"For key: {key} in the {node.name} mode_config, there is no value provided and no \
-                    corresponding placeholder was found"
-                )
+            if value:
+                raise Exception("Overrides should be empty mapping")
 
-            effective_node_config[key] = value
-        # effective_node_config.pop("placeholders", None)
+            if key not in self.overrides:
+                raise Exception("Step overrides should refer to a key in executor overrides")
+
+            if not isinstance(self.overrides[key], dict):
+                logger.error(f"Expected value to the {key} to be a mapping but found {type(self.overrides[key])}")
+                raise Exception(f"Expected value to the {key} to be a mapping but found {type(self.overrides[key])}")
+
+            effective_node_config.update(self.overrides[key])
+
         effective_node_config = utils.apply_variables(effective_node_config, self._context.variables)
 
         return effective_node_config

@@ -53,6 +53,8 @@ class BaseTraversal(ABC, BaseModel):
     terminate_with_failure: bool = Field(default=False, exclude=True)
     on_failure: str = Field(default="", alias="on_failure")
 
+    model_config = ConfigDict(extra="forbid")
+
     @computed_field  # type: ignore
     @property
     def internal_name(self) -> str:
@@ -109,6 +111,7 @@ class Task(BaseTraversal):
     command: str = Field(alias="command")
     command_type: str = Field(default="python")
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
+    overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
 
     notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path")
     optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
@@ -119,6 +122,17 @@ class Task(BaseTraversal):
     def validate_command_type(cls, value: str) -> str:
         if value not in ALLOWED_COMMAND_TYPES:
             raise ValueError(f"Invalid command_type: {value}")
+        return value
+
+    @field_validator("overrides", mode="after")
+    @classmethod
+    def validate_overrides(cls, value: Dict[str, Any]) -> Dict[str, Any]:
+        print("here")
+        for _, executor_config in value.items():
+            for _, value in executor_config.items():
+                if value:
+                    raise ValueError("The value of the key should be an empty mapping")
+
         return value
 
     @model_validator(mode="after")

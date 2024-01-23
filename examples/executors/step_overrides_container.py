@@ -8,30 +8,30 @@ This is a simple pipeline that does 2 steps in sequence.
 
     You can run this pipeline by: python examples/python-tasks.py
 """
-# TODO: This need not exist and can be replaced by configuration file by environment variable.
 from magnus import Pipeline, Task
 
 
 def main():
     step1 = Task(
         name="step1",
-        command="examples.functions.return_parameter",
-    )  # (1)
+        command="python --version",
+        command_type="shell",
+    )
     step2 = Task(
         name="step2",
-        command="examples.functions.display_parameter",
+        command="python --version",
+        command_type="shell",
         terminate_with_success=True,
-    ).depends_on(
-        step1
-    )  # (2), (3)
+        overrides={"local-container": {"custom_docker_image": {}}},
+    ).depends_on(step1)
 
     pipeline = Pipeline(
         start_at=step1,
         steps=[step1, step2],
         add_terminal_nodes=True,
-    )  # (4)
+    )
 
-    pipeline.execute(configuration_file="examples/configs/argo-config.yaml")
+    pipeline.execute()
 
 
 if __name__ == "__main__":

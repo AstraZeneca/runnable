@@ -39,7 +39,7 @@ class BaseExecutor(ABC, BaseModel):
     service_type: str = "executor"
 
     enable_parallel: bool = defaults.ENABLE_PARALLEL
-    placeholders: dict = {}
+    overrides: dict = {}
 
     _previous_run_log: Optional[RunLog] = None
     _single_step: str = ""
@@ -356,9 +356,9 @@ class BaseExecutor(ABC, BaseModel):
     @abstractmethod
     def _resolve_executor_config(self, node: BaseNode):
         """
-        The executor_config section can contain specific over-rides to an global executor config.
-        To avoid too much clutter in the dag definition, we allow the configuration file to have placeholders block.
-        The nodes can over-ride the global config by referring to key in the placeholder.
+        The overrides section can contain specific over-rides to an global executor config.
+        To avoid too much clutter in the dag definition, we allow the configuration file to have overrides block.
+        The nodes can over-ride the global config by referring to key in the overrides.
 
         For example:
         # configuration.yaml
@@ -367,14 +367,14 @@ class BaseExecutor(ABC, BaseModel):
           config:
             k1: v1
             k3: v3
-            placeholders:
+            overrides:
               k2: v2 # Could be a mapping internally.
 
         # in pipeline definition.yaml
         dag:
           steps:
             step1:
-              executor_config:
+              overrides:
                 cloud-implementation:
                   k1: value_specific_to_node
                   k2:

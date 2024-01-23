@@ -52,6 +52,7 @@ class LocalContainerExecutor(GenericExecutor):
     service_name: str = "local-container"
     docker_image: str
     auto_remove_container: bool = True
+    run_in_local: bool = False
     environment: Dict[str, str] = Field(default_factory=dict)
 
     _container_log_location = "/tmp/run_logs/"
@@ -145,7 +146,6 @@ class LocalContainerExecutor(GenericExecutor):
         if executor_config.get("run_in_local", False):
             # Do not change config but only validate the configuration.
             # Trigger the job on local system instead of a container
-            # Or if the task type is a container, just spin the container.
             integration.validate(self, self._context.run_log_store)
             integration.validate(self, self._context.catalog_handler)
             integration.validate(self, self._context.secrets_handler)
@@ -200,6 +200,7 @@ class LocalContainerExecutor(GenericExecutor):
             logger.info(f"Running the command {command}")
             #  Overrides global config with local
             executor_config = self._resolve_executor_config(node)
+
             docker_image = executor_config.get("docker_image", None)
             environment = executor_config.get("environment", {})
             environment.update(self._context.variables)
