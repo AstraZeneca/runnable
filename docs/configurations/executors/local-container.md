@@ -1,37 +1,6 @@
-## Local
-
-All the steps of the pipeline are executed in the local compute environment in the same shell
-as it was triggered.
-
-- [x] Provides the most comfortable environment for experimentation and development.
-- [ ] The scalability is constrained by the local compute environment.
-- [ ] Not possible to provide specialized compute environments for different steps of the pipeline.
-
-!!! warning inline end "parallel executions"
-
-    Not all run log stores are compatible for parallel execution. Please choose from
-    run log stores that are compatible for parallel execution.
-
-
-### Options
-
-```yaml
-executor: local
-config:
-  enable_parallel: false # (1)
-```
-
-1. By default, all tasks are sequentially executed. Provide ```true``` to enable tasks within
-[parallel](../../concepts/parallel) or [map](../../concepts/map) to be executed in parallel.
-
-
----
-
-
-## Local container
 
 Execute all the steps of the pipeline in containers. Please refer to the
-[note on containers](#container_environments) on building images.
+[note on containers](../container-environments) on building images.
 
 - [x] Provides a way to test the containers and the execution of the pipeline in local environment.
 - [x] Any failure in cloud native container environments can be replicated in local environments.
@@ -47,9 +16,9 @@ config:
   enable_parallel: false # (1)
   auto_remove_container: true # (2)
   run_in_local: false # (3)
-  environment:
+  environment: # (4)
     ...
-  placeholders:
+  overrides: # (5)
     ...
 ```
 
@@ -57,10 +26,12 @@ config:
 [parallel](../../concepts/parallel) or [map](../../concepts/map) to be executed in parallel.
 2. Set it to false, to debug a failed container.
 3. Setting it to true will behave exactly like a [local executor](#local).
+4. Pass any environment variables into the container.
+5. Please refer to [step overrides](#step_override) for more details.
 
 The ```docker_image``` field is required and default image to execute tasks
-of the pipeline. Individual [tasks](../../concepts/task) can over-ride the
-default image by providing an ```executor_config``` as part of step definition.
+of the pipeline. Individual [tasks](../../../concepts/task) can
+[override](#step_override) the global defaults of executor by providing ```overrides```
 
 
 !!! tip "Debugging"
@@ -72,13 +43,13 @@ default image by providing an ```executor_config``` as part of step definition.
     debugging and also selectively choose which step to run in container.
 
 
-#### Example
+## Example
 
 Nearly all the examples seen in concepts can be executed using
 the ```local-container``` configuration. Below is one simple example to concretely show
 the patterns.
 
-=== "Local container config"
+=== "Configuration"
 
     Assumed to be present at ```examples/configs/local-container.yaml```
 
@@ -291,7 +262,7 @@ the patterns.
     ```
 
 
-### Step override
+## Step override
 
 Individual steps of the pipeline can over-ride the default configuration by referring to the
 specific ```override``` defined in ```overrides``` section of the executor configuration.
@@ -299,7 +270,7 @@ specific ```override``` defined in ```overrides``` section of the executor confi
 ```override``` should be defined per executor and is only applicable for that specific
 executor.
 
-#### Example
+### Example
 
 
 === "Configuration"
@@ -367,77 +338,3 @@ executor.
     ```yaml linenums="1" hl_lines="29-30"
     --8<-- "examples/executors/step_overrides_container.yaml"
     ```
-
-
-## Argo workflows
-
-
-
-## Container environments
-
-### Pipeline definition
-
-Executing pipelines in containers needs a ```yaml``` based definition of the pipeline which is referred during the
-[task execution](../../concepts/executor/#step_execution).
-
-
-Any execution of the pipeline [defined by SDK](../../sdk) generates the pipeline definition in ```yaml``` format
-for all executors apart from the ```local``` executor. Follow the below steps to create the docker image.
-
-
-<div class="annotate" markdown>
-
-1. Optionally (but highly recommended) version your code using git.
-2. Build the docker image with the ```yaml``` file-based definition as part of the image. We recommend
-tagging the docker image with the short git sha to uniquely identify the docker image (1).
-3. Define a [variable to temporarily hold](#dynamic_name_of_the_image) the docker image name in the
-pipeline definition, if the docker image name is not known.
-4. Execute the pipeline using the [magnus CLI](../../cli).
-
-</div>
-
-1. Avoid using generic tags such as [```latest```](https://docs.docker.com/develop/dev-best-practices/).
-
-### Dynamic name of the image
-
-
-All containerized executors have a circular dependency problem.
-
-- The docker image tag is only known after the creation of the image with the ```yaml``` file-based definition.
-- But the ```yaml``` file-based definition needs the docker image tag as part of the definition.
-
-
-
-!!! warning inline end
-
-    Not providing the required environment variable will raise an exception.
-
-To resolve this, magnus supports ```variables``` in the configuration of executors, both global and in step
-overrides. Variables should follow the
-[python template strings](https://docs.python.org/3/library/string.html#template-strings)
-syntax and are replaced with environment variable prefixed by ```MAGNUS_VAR_<identifier>```.
-
-Concretely, ```$identifier``` is replaced by ```MAGNUS_VAR_<identifier>```.
-
-
-### Dockerfile
-
-magnus should be installed in the docker image and available in the path. An example dockerfile is provided
-below.
-
-!!! note inline end "non-native orchestration"
-
-    Having magnus to be part of the docker image adds additional dependencies for python to be present in the docker
-    image. In that sense, magnus is technically non-native container orchestration tool.
-
-    Facilitating native container orchestration, without magnus as part of the docker image, results in a complicated
-    specification of files/parameters/experiment tracking losing the value of native interfaces to these essential
-    orchestration concepts.
-
-    With the improvements in python packaging ecosystem, it should be possible to distribute magnus as a
-    self-contained binary and reducing the dependency on the docker image.
-
-#### TODO: Change this to a proper example.
-```dockerfile linenums="1"
---8<-- "examples/Dockerfile"
-```

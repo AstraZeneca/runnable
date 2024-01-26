@@ -394,7 +394,7 @@ class ShellTaskType(BaseTaskType):
             env=subprocess_env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            universal_newlines=True,
+            text=True,
         ) as proc, self.output_to_file(map_variable=map_variable) as _:
             for line in proc.stdout:  # type: ignore
                 logger.info(line)

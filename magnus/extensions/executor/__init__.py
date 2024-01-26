@@ -601,16 +601,16 @@ class GenericExecutor(BaseExecutor):
             k1: v1
             k3: v3
             overrides:
-              k1: v11
-              k2: v2 # Could be a mapping internally.
+             custom_config:
+                k1: v11
+                k2: v2 # Could be a mapping internally.
 
         # in pipeline definition.yaml
         dag:
           steps:
             step1:
               overrides:
-                cloud-implementation:
-                  k2:
+                cloud-implementation: custom_config
 
         This method should resolve the node_config to {'k1': 'v11', 'k2': 'v2', 'k3': 'v3'}
 
@@ -625,20 +625,14 @@ class GenericExecutor(BaseExecutor):
             # Some modes request for effective node config even for success or fail nodes
             return effective_node_config
 
-        for key, value in ctx_node_config.items():
-            if value:
-                raise Exception("Overrides should be empty mapping")
+        if ctx_node_config:
+            if ctx_node_config not in self.overrides:
+                raise Exception(f"No override of key: {ctx_node_config} found in the overrides section")
 
-            if key not in self.overrides:
-                raise Exception("Step overrides should refer to a key in executor overrides")
-
-            if not isinstance(self.overrides[key], dict):
-                logger.error(f"Expected value to the {key} to be a mapping but found {type(self.overrides[key])}")
-                raise Exception(f"Expected value to the {key} to be a mapping but found {type(self.overrides[key])}")
-
-            effective_node_config.update(self.overrides[key])
+            effective_node_config.update(self.overrides[ctx_node_config])
 
         effective_node_config = utils.apply_variables(effective_node_config, self._context.variables)
+        logger.debug(f"Effective node config: {effective_node_config}")
 
         return effective_node_config
 

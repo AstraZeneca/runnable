@@ -136,7 +136,11 @@ nav:
           - "Nesting": "concepts/nesting.md"
   - "Configurations":
       - "Overview": "configurations/overview.md"
-      - "Executor": "configurations/executor.md"
+      - "Executor":
+          - "local": "configurations/executors/local.md"
+          - "local-container": "configurations/executors/local-container.md"
+          - "argo workflows": "configurations/executors/argo.md"
+          - "container environments": "configurations/executors/container-environments.md"
       - "Run log": "configurations/run-log.md"
       - "Catalog": "configurations/catalog.md"
       - "Secrets": "configurations/secrets.md"

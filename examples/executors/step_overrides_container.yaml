@@ -1,13 +1,16 @@
 dag:
   description: |
-    This is a simple pipeline that does 3 steps in sequence.
-    In this example:
-      1. First step: returns a "parameter" x as a Pydantic model
-      2. Second step: Consumes that parameter and prints it
+    An example to demonstrate overriding global configuration for a step.
 
-    This pipeline demonstrates one way to pass small data from one step to another.
+    step 1 runs in the docker image specified in the executor config and uses the environment
+    value for key to be "value"
 
-    You can run this pipeline by: magnus execute -f examples/python-tasks.yaml
+    step 2 overrides the config and executes the command in the configuration defined
+    in overrides section of executor config.
+
+    You can execute the pipeline by:
+    magnus execute -f examples/executors/step_overrides_container.yaml \
+     -c examples/executors/local-container-override.yaml
   start_at: step 1
   steps:
     step 1:
@@ -24,8 +27,7 @@ dag:
         python --version &&
         env | grep key
       overrides:
-        local-container:
-          custom_docker_image:
+        local-container: custom_docker_image
       next: success
     success:
       type: success

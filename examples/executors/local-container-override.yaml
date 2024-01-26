@@ -1,16 +1,16 @@
 executor:
-  type: "local-container" # (1)
+  type: "local-container"
   config:
-    docker_image: $default_docker_image # (2)
+    docker_image: $default_docker_image
     environment:
-      key: value # (3)
+      key: value
     overrides:
       custom_docker_image:
         docker_image: $custom_docker_image
         environment:
           key: not-value
 
-run_log_store: # (4)
+run_log_store:
   type: file-system
 
 catalog:

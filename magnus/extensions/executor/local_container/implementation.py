@@ -75,9 +75,9 @@ class LocalContainerExecutor(GenericExecutor):
             # Need not add code identities if we are in a success or fail node
             return
 
-        mode_config = self._resolve_executor_config(node)
+        executor_config = self._resolve_executor_config(node)
 
-        docker_image = mode_config.get("docker_image", None)
+        docker_image = executor_config.get("docker_image", None)
         if docker_image:
             code_id = self._context.run_log_store.create_code_identity()
 

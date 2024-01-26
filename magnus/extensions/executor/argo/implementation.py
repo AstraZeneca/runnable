@@ -22,6 +22,37 @@ from magnus.nodes import BaseNode
 logger = logging.getLogger(defaults.NAME)
 
 
+"""
+executor:
+  type: argo
+  config:
+    image: # apply to template
+    max_workflow_duration: # Apply to spec
+    nodeSelector: #Apply to spec
+    parallelism: #apply to spec
+    resources: # convert to podSpecPath
+      limits:
+      requests:
+    retryStrategy:
+    max_step_duration: # apply to templateDefaults
+    step_timeout: # apply to templateDefaults
+    tolerations: # apply to spec
+    imagePullPolicy: # apply to template
+
+    overrides:
+      override:
+        tolerations: # template
+        image: # container
+        max_step_duration: # template
+        step_timeout: #template
+        nodeSelector: #template
+        parallelism: # this need to applied for map
+        resources: # container
+        imagePullPolicy: #container
+        retryStrategy: # template
+"""
+
+
 class SecretEnvVar(BaseModel):
     """
     Renders:
@@ -58,105 +89,7 @@ class EnvVar(BaseModel):
     """
 
     name: str
-    value: Union[str, int, float] = ""
-
-
-class Request(BaseModel):
-    """
-    The default requests
-    """
-
-    memory: str = "1Gi"
-    cpu: str = "250m"
-
-
-class Retry(BaseModel):
-    limit: int = 0
-    retry_policy: str = Field(default="Always", serialization_alias="retryPolicy")
-
-    @field_serializer("limit")
-    def cast_limit_as_str(self, limit: int, _info) -> str:
-        return str(limit)
-
-
-VendorGPU = Annotated[
-    Optional[int],
-    PlainSerializer(lambda x: str(x), return_type=str, when_used="unless-none"),
-]
-
-
-class Limit(Request):
-    """
-    The default limits
-    """
-
-    gpu: VendorGPU = Field(default=None, serialization_alias="nvidia.com/gpu")
-
-
-class Toleration(BaseModel):
-    effect: str
-    key: str
-    operator: str
-    value: str
-
-
-class UserControls(BaseModel):
-    """
-    These are all the controls given to the user at the config level per step or globally.
-    """
-
-    limits: Limit = Field(default=Limit(), serialization_alias="limits")
-    requests: Request = Field(default=Request(), serialization_alias="requests")
-    image_pull_policy: str = Field(default="", serialization_alias="imagePullPolicy")
-    # Better to leave it empty, as it is a sensible default
-    # https://argoproj.github.io/argo-workflows/fields/#container
-    node_selector: dict = Field(default={}, serialization_alias="nodeSelector")
-    tolerations: Optional[List[Toleration]] = None
-    # Note: retry seems to mess with the graph viz but works well with gant chart.
-    retry_strategy: Retry = Field(default=Retry(), serialization_alias="retryStrategy")
-    active_deadline_seconds: int = Field(default=60 * 60 * 2, serialization_alias="activeDeadlineSeconds", gt=0)
-    # Note: Volume mounts cannot be defined here
-
-    # TODO: User should be able to set environment variables
-    # Should not be populated by user!!
-    _env_vars: List[EnvVar] = PrivateAttr(default=[])
-    _secrets_from_k8s: List[SecretEnvVar] = PrivateAttr(default=[])
-
-    @computed_field  # type: ignore
-    @property
-    def env(self) -> Optional[List[Union[EnvVar, SecretEnvVar]]]:
-        if not self._env_vars and not self._secrets_from_k8s:
-            return None
-
-        return self._env_vars + self._secrets_from_k8s
-
-
-ShlexCommand = Annotated[str, PlainSerializer(lambda x: shlex.split(x), return_type=List[str])]
-
-
-class DefaultContainer(BaseModel):
-    """
-    The non-defaulted config + these variables make per step configuration.
-    """
-
-    image: str
-    command: ShlexCommand
-    volume_mounts: Optional[List["ContainerVolume"]] = Field(default=None, serialization_alias="volumeMounts")
-
-    _env_vars: List[EnvVar] = PrivateAttr(default=[])
-    _secrets_from_k8s: List[SecretEnvVar] = PrivateAttr(default=[])
-
-    @computed_field  # type: ignore
-    @property
-    def env(self) -> Optional[List[Union[EnvVar, SecretEnvVar]]]:
-        if not self._env_vars and not self._secrets_from_k8s:
-            return None
-
-        return self._env_vars + self._secrets_from_k8s
-
-
-class Container(DefaultContainer, UserControls):
-    ...
+    value: Union[str, int, float] = Field(default="")
 
 
 class Parameter(BaseModel):
@@ -192,6 +125,147 @@ class Argument(BaseModel):
 
     name: str
     value: str
+
+
+class Request(BaseModel):
+    """
+    The default requests
+    """
+
+    memory: str = "1Gi"
+    cpu: str = "250m"
+
+
+VendorGPU = Annotated[
+    Optional[int],
+    PlainSerializer(lambda x: str(x), return_type=str, when_used="unless-none"),
+]
+
+
+class Limit(Request):
+    """
+    The default limits
+    """
+
+    gpu: VendorGPU = Field(default=None, serialization_alias="nvidia.com/gpu")
+
+
+class Resources(Limit):
+    ...
+
+
+class BackOff(BaseModel):
+    duration_in_seconds: int = Field(default=2 * 60, serialization_alias="duration")
+    factor: float = Field(default=2, serialization_alias="factor")
+    max_duration: int = Field(default=60 * 60, serialization_alias="maxDuration")
+
+    @field_serializer("duration_in_seconds")
+    def cast_duration_as_str(self, duration_in_seconds: int, _info) -> str:
+        return str(duration_in_seconds)
+
+    @field_serializer("max_duration")
+    def cast_mas_duration_as_str(self, max_duration: int, _info) -> str:
+        return str(max_duration)
+
+
+class Retry(BaseModel):
+    limit: int = 0
+    retry_policy: str = Field(default="Always", serialization_alias="retryPolicy")
+    back_off: BackOff = Field(default=BackOff(), serialization_alias="backoff")
+
+    @field_serializer("limit")
+    def cast_limit_as_str(self, limit: int, _info) -> str:
+        return str(limit)
+
+
+class Toleration(BaseModel):
+    effect: str
+    key: str
+    operator: str
+    value: str
+
+
+# Go away
+class TemplateDefaults(BaseModel):
+    node_selector: dict = Field(default={}, serialization_alias="nodeSelector")
+    tolerations: Optional[List[Toleration]] = None
+    # Note: retry seems to mess with the graph viz but works well with gant chart.
+    retry_strategy: Retry = Field(default=Retry(), serialization_alias="retryStrategy")
+    max_step_duration: int = Field(
+        default=60 * 60 * 2,
+        serialization_alias="activeDeadlineSeconds",
+        gt=0,
+        description="Max run time of a step",
+    )
+    timeout_in_seconds: int = Field(
+        60 * 60 * 4,
+        serialization_alias="timeout",
+        description="Max run time of step including wait time",
+    )
+
+
+# GO away
+class UserControls(TemplateDefaults):
+    """
+    These are all the controls given to the user at the config level per step or globally.
+    """
+
+    limits: Limit = Field(default=Limit(), serialization_alias="limits")
+    requests: Request = Field(default=Request(), serialization_alias="requests")
+    image_pull_policy: str = Field(default="", serialization_alias="imagePullPolicy")
+    # Better to leave it empty, as it is a sensible default
+    # https://argoproj.github.io/argo-workflows/fields/#container
+
+    # Note: Volume mounts cannot be defined here
+    # Should not be populated by user!!
+    _env_vars: List[EnvVar] = PrivateAttr(default=[])
+    _secrets_from_k8s: List[SecretEnvVar] = PrivateAttr(default=[])
+
+    _tmeplate_defaults_keys: List[str] = PrivateAttr(
+        default=[
+            "node_selector",
+            "tolerations",
+            "retry_strategy",
+            "active_deadline_seconds",
+        ]
+    )
+
+    @computed_field  # type: ignore
+    @property
+    def env(self) -> Optional[List[Union[EnvVar, SecretEnvVar]]]:
+        if not self._env_vars and not self._secrets_from_k8s:
+            return None
+
+        return self._env_vars + self._secrets_from_k8s
+
+
+ShlexCommand = Annotated[str, PlainSerializer(lambda x: shlex.split(x), return_type=List[str])]
+
+
+# GO away
+class DefaultContainer(BaseModel):
+    """
+    The non-defaulted config + these variables make per step configuration.
+    """
+
+    image: str
+    command: ShlexCommand
+    volume_mounts: Optional[List["ContainerVolume"]] = Field(default=None, serialization_alias="volumeMounts")
+
+    _env_vars: List[EnvVar] = PrivateAttr(default=[])
+    _secrets_from_k8s: List[SecretEnvVar] = PrivateAttr(default=[])
+
+    @computed_field  # type: ignore
+    @property
+    def env(self) -> Optional[List[Union[EnvVar, SecretEnvVar]]]:
+        if not self._env_vars and not self._secrets_from_k8s:
+            return None
+
+        return self._env_vars + self._secrets_from_k8s
+
+
+class Container(DefaultContainer, UserControls):
+    ...
 
 
 class TaskTemplate(BaseModel):
@@ -230,11 +304,11 @@ class ContainerTemplate(BaseModel):
         return hash(self.name)
 
     @field_serializer("outputs", when_used="unless-none")
-    def empty_outputs_to_none(self, outputs: List[OutputParameter]) -> Dict[str, List[OutputParameter]]:
+    def reshape_outputs(self, outputs: List[OutputParameter]) -> Dict[str, List[OutputParameter]]:
         return {"parameters": outputs}
 
     @field_serializer("inputs", when_used="unless-none")
-    def empty_inputs_to_none(self, inputs: List[Parameter]) -> Dict[str, List[Parameter]]:
+    def reshape_inputs(self, inputs: List[Parameter]) -> Dict[str, List[Parameter]]:
         return {"parameters": inputs}
 
 
@@ -283,41 +357,6 @@ class UserVolumeMounts(BaseModel):
 
     name: str  # This is the name of the PVC on K8s
     mount_path: str  # This is mount path on the container
-
-
-class Spec(BaseModel):
-    entrypoint: str = "magnus-dag"
-    templates: List[Union[DagTemplate, ContainerTemplate]] = Field(default=[])
-    service_account_name: Optional[str] = Field(default=None, serialization_alias="serviceAccountName")
-    arguments: Optional[List[EnvVar]] = Field(default=None)
-    persistent_volumes: List[UserVolumeMounts] = Field(default=[], exclude=True)
-    template_defaults: Optional[UserControls] = Field(default=None, serialization_alias="templateDefaults")
-    parallelism: Optional[int] = None
-
-    @computed_field  # type: ignore
-    @property
-    def volumes(self) -> List[Volume]:
-        volumes: List[Volume] = []
-        claim_names = {}
-        for i, user_volume in enumerate(self.persistent_volumes):
-            if user_volume.name in claim_names:
-                raise Exception(f"Duplicate claim name {user_volume.name}")
-            claim_names[user_volume.name] = user_volume.name
-
-            volume = Volume(name=f"executor-{i}", claim=user_volume.name, mount_path=user_volume.mount_path)
-            volumes.append(volume)
-        return volumes
-
-    @field_serializer("arguments", when_used="unless-none")
-    def reshape_arguments(self, arguments: List[EnvVar], _info) -> Dict[str, List[EnvVar]]:
-        return {"parameters": arguments}
-
-
-class Workflow(BaseModel):
-    api_version: str = Field(default="argoproj.io/v1alpha1", serialization_alias="apiVersion")
-    kind: str = "Workflow"
-    metadata: dict = {"generateName": "magnus-dag-"}
-    spec: Spec
 
 
 class NodeRenderer(ABC):
@@ -470,7 +509,7 @@ class MapNodeRender(NodeRenderer):
         if list_of_iter_values:
             for value in list_of_iter_values:
                 task_template_arguments.append(Argument(name=value, value="{{inputs.parameters." + value + "}}"))
-            dag_inputs.append(Parameter(name=value))
+                dag_inputs.append(Parameter(name=value))
 
         clean_name = self.executor.get_clean_name(self.node)
         fan_out_template = self.executor._create_fan_out_template(
@@ -530,6 +569,145 @@ def get_renderer(node):
         if node.node_type in renderer.allowed_node_types:
             return renderer
     raise Exception("This node type is not render-able")
+
+
+class MetaData(BaseModel):
+    generate_name: str = Field(default="magnus-dag-", serialization_alias="generateName")
+    annotations: Optional[Dict[str, str]] = Field(default_factory=dict)
+    labels: Optional[Dict[str, str]] = Field(default_factory=dict)
+    namespace: Optional[str] = Field(default=None)
+
+
+class Spec(BaseModel):
+    active_deadline_seconds: int = Field(serialization_alias="activeDeadlineSeconds")
+    entrypoint: str = Field(default="magnus-dag")
+    node_selector: Optional[Dict[str, str]] = Field(default_factory=dict, serialization_alias="nodeSelector")
+    tolerations: Optional[Toleration] = Field(default=None, serialization_alias="tolerations")
+    parallelism: Optional[int] = Field(default=None, serialization_alias="parallelism")
+    pod_gc: Dict[str, str] = Field(default={"strategy": "OnPodCompletion"}, serialization_alias="podGC")
+    resources: Resources = Field(default=Resources(), exclude=True)
+    retry_strategy: Retry = Field(default=Retry(), serialization_alias="retryStrategy")
+    service_account_name: Optional[str] = Field(default=None, serialization_alias="serviceAccountName")
+
+    templates: List[Union[DagTemplate, ContainerTemplate]] = Field(default_factory=list)
+    template_defaults: Optional[TemplateDefaults] = Field(default=None, serialization_alias="templateDefaults")
+
+    arguments: Optional[List[EnvVar]] = Field(default=None)
+    persistent_volumes: List[UserVolumeMounts] = Field(default_factory=list, exclude=True)
+
+    @computed_field
+    @property
+    def podSpecPath(self) -> str:
+        return json.dumps(self.resources.model_dump_json(exclude_none=True))
+
+    @computed_field  # type: ignore
+    @property
+    def volumes(self) -> List[Volume]:
+        volumes: List[Volume] = []
+        claim_names = {}
+        for i, user_volume in enumerate(self.persistent_volumes):
+            if user_volume.name in claim_names:
+                raise Exception(f"Duplicate claim name {user_volume.name}")
+            claim_names[user_volume.name] = user_volume.name
+
+            volume = Volume(name=f"executor-{i}", claim=user_volume.name, mount_path=user_volume.mount_path)
+            volumes.append(volume)
+        return volumes
+
+    @field_serializer("arguments", when_used="unless-none")
+    def reshape_arguments(self, arguments: List[EnvVar], _info) -> Dict[str, List[EnvVar]]:
+        return {"parameters": arguments}
+
+
+class Workflow(BaseModel):
+    api_version: str = Field(
+        default="argoproj.io/v1alpha1",
+        serialization_alias="apiVersion",
+    )
+    kind: str = "Workflow"
+    metadata: MetaData = Field(default=MetaData())
+    spec: Spec
+
+
+class Executor(GenericExecutor):
+    model_config = ConfigDict(extra="forbid")
+
+    image: str
+    expose_parameters_as_inputs: bool = True
+    output_file: str = "argo-pipeline.yaml"
+
+    # Metadata related fields
+    name: str = Field(default="magnus-dag-", description="Used as an identifier for the workflow")
+    annotations: Dict[str, str] = Field(default_factory=dict)
+    labels: Dict[str, str] = Field(default_factory=dict)
+    namespace: Optional[str] = Field(default=None)
+
+    max_workflow_duration_in_seconds: int = Field(
+        2 * 24 * 60 * 60,  # 2 days
+        serialization_alias="activeDeadlineSeconds",
+        gt=0,
+    )
+    node_selector: Optional[Dict[str, str]] = Field(
+        default=None,
+        serialization_alias="nodeSelector",
+    )
+    parallelism: int = Field(
+        default=1,
+        gt=0,
+        serialization_alias="parallelism",
+    )
+    resources: Resources = Field(
+        default=Resources(),
+        serialization_alias="resources",
+    )
+    retry_strategy: Retry = Field(
+        default=Retry(),
+        serialization_alias="retryStrategy",
+        description="Common across all templates",
+    )
+    max_step_duration_in_seconds: int = Field(
+        2 * 60 * 60,  # 2 hours
+        gt=0,
+    )
+    tolerations: Optional[Toleration] = Field(default=None)
+    image_pull_policy: str = Field(default="")
+    service_account_name: Optional[str] = None
+    secrets_from_k8s: List[SecretEnvVar] = Field(default_factory=list)
+    persistent_volumes: List[UserVolumeMounts] = Field(default_factory=list)
+
+    @computed_field
+    @property
+    def step_timeout(self) -> int:
+        """
+        Maximum time the step can take to complete, including the pending state.
+        """
+        return self.max_step_duration_in_seconds + 2 * 60 * 60  # 2 hours + max_step_duration_in_seconds
+
+    @property
+    def metadata(self) -> MetaData:
+        return MetaData(
+            generate_name=self.name,
+            annotations=self.annotations,
+            labels=self.labels,
+            namespace=self.namespace,
+        )
+
+    @property
+    def spec(self) -> Spec:
+        return Spec(
+            active_deadline_seconds=self.max_workflow_duration_in_seconds,
+            node_selector=self.node_selector,
+            tolerations=self.tolerations,
+            parallelism=self.parallelism,
+            resources=self.resources,
+            retry_strategy=self.retry_strategy,
+            service_account_name=self.service_account_name,
+            persistent_volumes=self.persistent_volumes,
+        )
+
+    @property
+    def workflow(self) -> Workflow:
+        return Workflow(metadata=self.metadata, spec=self.spec)
 
 
 class ArgoExecutor(GenericExecutor, UserControls):
@@ -855,13 +1033,10 @@ class ArgoExecutor(GenericExecutor, UserControls):
         # Add the dag template to the list of templates
         self._dag_templates.append(dag_template)
 
-    def _get_template_defaults(self) -> UserControls:
-        template_defaults_keys = list(UserControls.model_fields.keys())
-
+    def _get_template_defaults(self) -> TemplateDefaults:
         user_provided_config = self.model_dump(by_alias=False)
-        template_defaults_dict = {key: user_provided_config[key] for key in template_defaults_keys}
 
-        return UserControls(**template_defaults_dict)
+        return TemplateDefaults(**user_provided_config)
 
     def execute_graph(self, dag: Graph, map_variable: Optional[dict] = None, **kwargs):
         arguments = []
@@ -906,6 +1081,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
 
         yaml = YAML()
         with open(self.output_file, "w") as f:
+            yaml.indent(mapping=2, sequence=4, offset=2)
             yaml.dump(workflow.model_dump(by_alias=True, exclude_none=True), f)
 
     def execute_job(self, node: BaseNode):

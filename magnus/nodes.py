@@ -361,7 +361,7 @@ class BaseNode(ABC, BaseModel):
 class TraversalNode(BaseNode):
     next_node: str = Field(serialization_alias="next")
     on_failure: Optional[str] = Field(default="")
-    overrides: Dict[str, Any] = Field(default_factory=dict)
+    overrides: Dict[str, str] = Field(default_factory=dict)
 
     def _get_on_failure_node(self) -> Optional[str]:
         """
@@ -394,8 +394,8 @@ class TraversalNode(BaseNode):
         """
         return False
 
-    def _get_executor_config(self, executor_type) -> Dict[str, Any]:
-        return self.overrides.get(executor_type, {})
+    def _get_executor_config(self, executor_type) -> str:
+        return self.overrides.get(executor_type) or ""
 
 
 class CatalogStructure(BaseModel):

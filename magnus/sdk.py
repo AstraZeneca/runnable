@@ -107,7 +107,8 @@ class BaseTraversal(ABC, BaseModel):
 
 
 class Task(BaseTraversal):
-    model_config = ConfigDict(use_enum_values=True)  # Need to be for command, would be validated later
+    # model_config = ConfigDict(use_enum_values=True)  # Need to be for command, would be validated later
+
     command: str = Field(alias="command")
     command_type: str = Field(default="python")
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
@@ -117,22 +118,11 @@ class Task(BaseTraversal):
     optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
     output_cell_tag: Optional[str] = Field(default=None, alias="output_cell_tag")
 
-    @field_validator("command_type", mode="after")
+    @field_validator("command_type", mode="before")
     @classmethod
     def validate_command_type(cls, value: str) -> str:
         if value not in ALLOWED_COMMAND_TYPES:
             raise ValueError(f"Invalid command_type: {value}")
-        return value
-
-    @field_validator("overrides", mode="after")
-    @classmethod
-    def validate_overrides(cls, value: Dict[str, Any]) -> Dict[str, Any]:
-        print("here")
-        for _, executor_config in value.items():
-            for _, value in executor_config.items():
-                if value:
-                    raise ValueError("The value of the key should be an empty mapping")
-
         return value
 
     @model_validator(mode="after")
@@ -271,7 +261,6 @@ class Pipeline(BaseModel):
 
         self._dag.check_graph()
 
-    # TODO: There is a need for variables to be part of the process.
     def execute(
         self,
         configuration_file: str = "",
