@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union, cast
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_serializer, field_validator
 from pydantic.functional_serializers import PlainSerializer
 from ruamel.yaml import YAML
 from typing_extensions import Annotated
@@ -150,8 +150,9 @@ class Limit(Request):
     gpu: VendorGPU = Field(default=None, serialization_alias="nvidia.com/gpu")
 
 
-class Resources(Limit):
-    ...
+class Resources(BaseModel):
+    limits: Limit = Field(default=Limit(), serialization_alias="limits")
+    requests: Request = Field(default=Request(), serialization_alias="requests")
 
 
 class BackOff(BaseModel):
@@ -185,72 +186,29 @@ class Toleration(BaseModel):
     value: str
 
 
-# Go away
 class TemplateDefaults(BaseModel):
-    node_selector: dict = Field(default={}, serialization_alias="nodeSelector")
-    tolerations: Optional[List[Toleration]] = None
-    # Note: retry seems to mess with the graph viz but works well with gant chart.
-    retry_strategy: Retry = Field(default=Retry(), serialization_alias="retryStrategy")
     max_step_duration: int = Field(
         default=60 * 60 * 2,
         serialization_alias="activeDeadlineSeconds",
         gt=0,
         description="Max run time of a step",
     )
-    timeout_in_seconds: int = Field(
-        60 * 60 * 4,
-        serialization_alias="timeout",
-        description="Max run time of step including wait time",
-    )
 
-
-# GO away
-class UserControls(TemplateDefaults):
-    """
-    These are all the controls given to the user at the config level per step or globally.
-    """
-
-    limits: Limit = Field(default=Limit(), serialization_alias="limits")
-    requests: Request = Field(default=Request(), serialization_alias="requests")
-    image_pull_policy: str = Field(default="", serialization_alias="imagePullPolicy")
-    # Better to leave it empty, as it is a sensible default
-    # https://argoproj.github.io/argo-workflows/fields/#container
-
-    # Note: Volume mounts cannot be defined here
-    # Should not be populated by user!!
-    _env_vars: List[EnvVar] = PrivateAttr(default=[])
-    _secrets_from_k8s: List[SecretEnvVar] = PrivateAttr(default=[])
-
-    _tmeplate_defaults_keys: List[str] = PrivateAttr(
-        default=[
-            "node_selector",
-            "tolerations",
-            "retry_strategy",
-            "active_deadline_seconds",
-        ]
-    )
-
-    @computed_field  # type: ignore
+    @computed_field
     @property
-    def env(self) -> Optional[List[Union[EnvVar, SecretEnvVar]]]:
-        if not self._env_vars and not self._secrets_from_k8s:
-            return None
-
-        return self._env_vars + self._secrets_from_k8s
+    def timeout(self) -> str:
+        return f"{self.max_step_duration + 60*60}s"
 
 
 ShlexCommand = Annotated[str, PlainSerializer(lambda x: shlex.split(x), return_type=List[str])]
 
 
-# GO away
-class DefaultContainer(BaseModel):
-    """
-    The non-defaulted config + these variables make per step configuration.
-    """
-
+class Container(BaseModel):
     image: str
     command: ShlexCommand
     volume_mounts: Optional[List["ContainerVolume"]] = Field(default=None, serialization_alias="volumeMounts")
+    image_pull_policy: str = Field(default="", serialization_alias="imagePullPolicy")
+    resources: Optional[Resources] = Field(default=None, serialization_alias="resources")
 
     _env_vars: List[EnvVar] = PrivateAttr(default=[])
     _secrets_from_k8s: List[SecretEnvVar] = PrivateAttr(default=[])
@@ -264,11 +222,7 @@ class DefaultContainer(BaseModel):
         return self._env_vars + self._secrets_from_k8s
 
 
-class Container(DefaultContainer, UserControls):
-    ...
-
-
-class TaskTemplate(BaseModel):
+class DagTaskTemplate(BaseModel):
     """
     dag:
         tasks:
@@ -296,7 +250,13 @@ class TaskTemplate(BaseModel):
 class ContainerTemplate(BaseModel):
     # These templates are used for actual execution nodes.
     name: str
-    container: Union[Container, DefaultContainer]
+    active_deadline_seconds: Optional[int] = Field(default=None, serialization_alias="activeDeadlineSeconds", gt=0)
+    node_selector: Optional[Dict[str, str]] = Field(default=None, serialization_alias="nodeSelector")
+    retry_strategy: Optional[Retry] = Field(default=None, serialization_alias="retryStrategy")
+    tolerations: Optional[List[Toleration]] = Field(default=None, serialization_alias="tolerations")
+
+    container: Container
+
     outputs: Optional[List[OutputParameter]] = Field(default=None, serialization_alias="outputs")
     inputs: Optional[List[Parameter]] = Field(default=None, serialization_alias="inputs")
 
@@ -313,15 +273,23 @@ class ContainerTemplate(BaseModel):
 
 
 class DagTemplate(BaseModel):
+    # These are used for parallel, map nodes dag definition
     name: str = "magnus-dag"
-    tasks: List[TaskTemplate] = Field(default=[], exclude=True)
+    tasks: List[DagTaskTemplate] = Field(default=[], exclude=True)
     inputs: Optional[List[Parameter]] = Field(default=None, serialization_alias="inputs")
     parallelism: Optional[int] = None
     fail_fast: bool = Field(default=True, serialization_alias="failFast")
 
+    @field_validator("parallelism")
+    @classmethod
+    def validate_parallelism(cls, parallelism: Optional[int]) -> Optional[int]:
+        if parallelism is not None and parallelism <= 0:
+            raise ValueError("Parallelism must be a positive integer greater than 0")
+        return parallelism
+
     @computed_field  # type: ignore
     @property
-    def dag(self) -> Dict[str, List[TaskTemplate]]:
+    def dag(self) -> Dict[str, List[DagTaskTemplate]]:
         return {"tasks": self.tasks}
 
     @field_serializer("inputs", when_used="unless-none")
@@ -383,7 +351,7 @@ class ExecutionNode(NodeRenderer):
         map_variable = self.executor.compose_map_variable(list_of_iter_values)
         command = utils.get_node_execution_command(
             self.node,
-            over_write_run_id=self.executor.run_id_placeholder,
+            over_write_run_id=self.executor._run_id_placeholder,
             map_variable=map_variable,
         )
 
@@ -431,7 +399,7 @@ class DagNodeRenderer(NodeRenderer):
             list_of_iter_values=list_of_iter_values,
         )
 
-        branch_template = TaskTemplate(
+        branch_template = DagTaskTemplate(
             name=f"{clean_name}-branch",
             template=f"{clean_name}-branch",
             arguments=task_template_arguments if task_template_arguments else None,
@@ -480,7 +448,7 @@ class ParallelNodeRender(NodeRenderer):
                 dag_name=f"{clean_name}-{branch_name}",
                 list_of_iter_values=list_of_iter_values,
             )
-            task_template = TaskTemplate(
+            task_template = DagTaskTemplate(
                 name=f"{clean_name}-{branch_name}",
                 template=f"{clean_name}-{branch_name}",
                 arguments=task_template_arguments if task_template_arguments else None,
@@ -533,7 +501,7 @@ class MapNodeRender(NodeRenderer):
             list_of_iter_values=list_of_iter_values,
         )
 
-        task_template = TaskTemplate(
+        task_template = DagTaskTemplate(
             name=f"{clean_name}-map",
             template=f"{clean_name}-map",
             arguments=task_template_arguments if task_template_arguments else None,
@@ -582,23 +550,39 @@ class Spec(BaseModel):
     active_deadline_seconds: int = Field(serialization_alias="activeDeadlineSeconds")
     entrypoint: str = Field(default="magnus-dag")
     node_selector: Optional[Dict[str, str]] = Field(default_factory=dict, serialization_alias="nodeSelector")
-    tolerations: Optional[Toleration] = Field(default=None, serialization_alias="tolerations")
+    tolerations: Optional[List[Toleration]] = Field(default=None, serialization_alias="tolerations")
     parallelism: Optional[int] = Field(default=None, serialization_alias="parallelism")
     pod_gc: Dict[str, str] = Field(default={"strategy": "OnPodCompletion"}, serialization_alias="podGC")
-    resources: Resources = Field(default=Resources(), exclude=True)
+
     retry_strategy: Retry = Field(default=Retry(), serialization_alias="retryStrategy")
     service_account_name: Optional[str] = Field(default=None, serialization_alias="serviceAccountName")
 
     templates: List[Union[DagTemplate, ContainerTemplate]] = Field(default_factory=list)
     template_defaults: Optional[TemplateDefaults] = Field(default=None, serialization_alias="templateDefaults")
 
-    arguments: Optional[List[EnvVar]] = Field(default=None)
+    arguments: Optional[List[EnvVar]] = Field(default_factory=list)
     persistent_volumes: List[UserVolumeMounts] = Field(default_factory=list, exclude=True)
 
-    @computed_field
-    @property
-    def podSpecPath(self) -> str:
-        return json.dumps(self.resources.model_dump_json(exclude_none=True))
+    @field_validator("parallelism")
+    @classmethod
+    def validate_parallelism(cls, parallelism: Optional[int]) -> Optional[int]:
+        if parallelism is not None and parallelism <= 0:
+            raise ValueError("Parallelism must be a positive integer greater than 0")
+        return parallelism
+
+    # @computed_field
+    # @property
+    # def podSpecPatch(self) -> str:
+    #     return json.dumps(
+    #         {
+    #             "containers": [
+    #                 {
+    #                     "name": "main",
+    #                     "resources": self.resources.model_dump_json(exclude_none=True),
+    #                 }
+    #             ]
+    #         }
+    #     )
 
     @computed_field  # type: ignore
     @property
@@ -629,7 +613,51 @@ class Workflow(BaseModel):
     spec: Spec
 
 
-class Executor(GenericExecutor):
+class Override(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    image: str
+    tolerations: Optional[List[Toleration]] = Field(default=None)
+
+    max_step_duration_in_seconds: int = Field(
+        default=2 * 60 * 60,  # 2 hours
+        gt=0,
+    )
+
+    node_selector: Optional[Dict[str, str]] = Field(
+        default=None,
+        serialization_alias="nodeSelector",
+    )
+
+    parallelism: Optional[int] = Field(
+        default=None,
+        serialization_alias="parallelism",
+    )
+
+    resources: Resources = Field(
+        default=Resources(),
+        serialization_alias="resources",
+    )
+
+    image_pull_policy: str = Field(default="")
+
+    retry_strategy: Retry = Field(
+        default=Retry(),
+        serialization_alias="retryStrategy",
+        description="Common across all templates",
+    )
+
+    @field_validator("parallelism")
+    @classmethod
+    def validate_parallelism(cls, parallelism: Optional[int]) -> Optional[int]:
+        if parallelism is not None and parallelism <= 0:
+            raise ValueError("Parallelism must be a positive integer greater than 0")
+        return parallelism
+
+
+class ArgoExecutor(GenericExecutor):
+    service_name: str = "argo"
+
     model_config = ConfigDict(extra="forbid")
 
     image: str
@@ -651,14 +679,15 @@ class Executor(GenericExecutor):
         default=None,
         serialization_alias="nodeSelector",
     )
-    parallelism: int = Field(
-        default=1,
-        gt=0,
+    parallelism: Optional[int] = Field(
+        default=None,
         serialization_alias="parallelism",
     )
+    branch_parallelism: int = Field(default=0, ge=0)  # Controls the parallelism of branches
     resources: Resources = Field(
         default=Resources(),
         serialization_alias="resources",
+        exclude=True,
     )
     retry_strategy: Retry = Field(
         default=Retry(),
@@ -666,14 +695,27 @@ class Executor(GenericExecutor):
         description="Common across all templates",
     )
     max_step_duration_in_seconds: int = Field(
-        2 * 60 * 60,  # 2 hours
+        default=2 * 60 * 60,  # 2 hours
         gt=0,
     )
-    tolerations: Optional[Toleration] = Field(default=None)
+    tolerations: Optional[List[Toleration]] = Field(default=None)
     image_pull_policy: str = Field(default="")
     service_account_name: Optional[str] = None
     secrets_from_k8s: List[SecretEnvVar] = Field(default_factory=list)
     persistent_volumes: List[UserVolumeMounts] = Field(default_factory=list)
+
+    _run_id_placeholder: str = "{{workflow.parameters.run_id}}"
+    _container_templates: List[ContainerTemplate] = []
+    _dag_templates: List[DagTemplate] = []
+    _clean_names: Dict[str, str] = {}
+    _container_volumes: List[ContainerVolume] = []
+
+    @field_validator("parallelism")
+    @classmethod
+    def validate_parallelism(cls, parallelism: Optional[int]) -> Optional[int]:
+        if parallelism is not None and parallelism <= 0:
+            raise ValueError("Parallelism must be a positive integer greater than 0")
+        return parallelism
 
     @computed_field
     @property
@@ -699,38 +741,11 @@ class Executor(GenericExecutor):
             node_selector=self.node_selector,
             tolerations=self.tolerations,
             parallelism=self.parallelism,
-            resources=self.resources,
             retry_strategy=self.retry_strategy,
             service_account_name=self.service_account_name,
             persistent_volumes=self.persistent_volumes,
+            template_defaults=TemplateDefaults(max_step_duration=self.max_step_duration_in_seconds),
         )
-
-    @property
-    def workflow(self) -> Workflow:
-        return Workflow(metadata=self.metadata, spec=self.spec)
-
-
-class ArgoExecutor(GenericExecutor, UserControls):
-    service_name: str = "argo"
-
-    image: str
-
-    run_id_placeholder: str = "{{workflow.parameters.run_id}}"
-    parallelism: Optional[int] = Field(default=None)
-    service_account_name: Optional[str] = None
-    secrets_from_k8s: List[SecretEnvVar] = Field(default=[])
-
-    persistent_volumes: List[UserVolumeMounts] = []
-    fail_fast: bool = True
-    expose_parameters_as_inputs: bool = True
-
-    output_file: str = "argo-pipeline.yaml"
-    model_config = ConfigDict(extra="forbid")
-
-    _container_templates: List[ContainerTemplate] = []
-    _dag_templates: List[DagTemplate] = []
-    _clean_names: Dict[str, str] = {}
-    _container_volumes: List[ContainerVolume] = []
 
     def prepare_for_graph_execution(self):
         """
@@ -848,14 +863,15 @@ class ArgoExecutor(GenericExecutor, UserControls):
     ):
         effective_node_config = self._resolve_executor_config(working_on)
 
-        default_user_controls = self._get_template_defaults()
-        step_controls = UserControls(**effective_node_config)
+        override: Override = Override(**effective_node_config)
 
-        container: Union[Container, DefaultContainer]
-        if default_user_controls == step_controls:
-            container = DefaultContainer(command=command, image=self.image, volume_mounts=self._container_volumes)
-        else:
-            container = Container(command=command, volume_mounts=self._container_volumes, **effective_node_config)
+        container = Container(
+            command=command,
+            image=override.image,
+            volume_mounts=self._container_volumes,
+            image_pull_policy=override.image_pull_policy,
+            resources=override.resources,
+        )
 
         if working_on.name == self._context.dag.start_at and self.expose_parameters_as_inputs:
             for key, value in self._get_parameters().items():
@@ -872,7 +888,16 @@ class ArgoExecutor(GenericExecutor, UserControls):
         if overwrite_name:
             clean_name = overwrite_name
 
-        container_template = ContainerTemplate(name=clean_name, container=container)
+        container_template = ContainerTemplate(
+            name=clean_name,
+            active_deadline_seconds=override.max_step_duration_in_seconds
+            if self.max_step_duration_in_seconds != override.max_step_duration_in_seconds
+            else None,
+            container=container,
+            retry_strategy=override.retry_strategy if self.retry_strategy != override.retry_strategy else None,
+            tolerations=override.tolerations if self.tolerations != override.tolerations else None,
+            node_selector=override.node_selector if self.node_selector != override.node_selector else None,
+        )
 
         # inputs are the "iterate_as" value map variables in the same order as they are observed
         # We need to expose the map variables in the command of the container
@@ -904,7 +929,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
         command = utils.get_fan_command(
             mode="out",
             node=composite_node,
-            run_id=self.run_id_placeholder,
+            run_id=self._run_id_placeholder,
             map_variable=map_variable,
         )
 
@@ -928,7 +953,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
         )
 
         self._container_templates.append(container_template)
-        return TaskTemplate(name=f"{clean_name}-fan-out", template=f"{clean_name}-fan-out")
+        return DagTaskTemplate(name=f"{clean_name}-fan-out", template=f"{clean_name}-fan-out")
 
     def _create_fan_in_template(self, composite_node, list_of_iter_values: Optional[List] = None):
         clean_name = self.get_clean_name(composite_node)
@@ -945,7 +970,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
         command = utils.get_fan_command(
             mode="in",
             node=composite_node,
-            run_id=self.run_id_placeholder,
+            run_id=self._run_id_placeholder,
             map_variable=map_variable,
         )
 
@@ -959,7 +984,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
         )
         self._container_templates.append(container_template)
         clean_name = self.get_clean_name(composite_node)
-        return TaskTemplate(name=f"{clean_name}-fan-in", template=f"{clean_name}-fan-in")
+        return DagTaskTemplate(name=f"{clean_name}-fan-in", template=f"{clean_name}-fan-in")
 
     def _gather_task_templates_of_dag(
         self, dag: Graph, dag_name="magnus-dag", list_of_iter_values: Optional[List] = None
@@ -968,7 +993,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
         previous_node = None
         previous_node_template_name = None
 
-        templates: Dict[str, TaskTemplate] = {}
+        templates: Dict[str, DagTaskTemplate] = {}
 
         if not list_of_iter_values:
             list_of_iter_values = []
@@ -984,7 +1009,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
             clean_name = self.get_clean_name(working_on)
 
             # If a task template for clean name exists, retrieve it (could have been created by on_failure)
-            template = templates.get(clean_name, TaskTemplate(name=clean_name, template=clean_name))
+            template = templates.get(clean_name, DagTaskTemplate(name=clean_name, template=clean_name))
 
             # Link the current node to previous node, if the previous node was successful.
             if previous_node:
@@ -1000,7 +1025,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
                 # If a task template for clean name exists, retrieve it
                 failure_template = templates.get(
                     failure_template_name,
-                    TaskTemplate(name=failure_template_name, template=failure_template_name),
+                    DagTaskTemplate(name=failure_template_name, template=failure_template_name),
                 )
                 failure_template.depends.append(f"{clean_name}.Failed")
 
@@ -1039,6 +1064,7 @@ class ArgoExecutor(GenericExecutor, UserControls):
         return TemplateDefaults(**user_provided_config)
 
     def execute_graph(self, dag: Graph, map_variable: Optional[dict] = None, **kwargs):
+        # TODO: Add metadata
         arguments = []
         # Expose "simple" parameters as workflow arguments for dynamic behavior
         if self.expose_parameters_as_inputs:
@@ -1051,21 +1077,12 @@ class ArgoExecutor(GenericExecutor, UserControls):
         run_id_var = EnvVar(name="run_id", value="{{workflow.uid}}")
         arguments.append(run_id_var)
 
-        # TODO: Experimental feature
-        original_run_id_var = EnvVar(name="original_run_id")
-        arguments.append(original_run_id_var)
+        # # TODO: Experimental feature
 
-        template_defaults = self._get_template_defaults()
+        # original_run_id_var = EnvVar(name="original_run_id")
+        # arguments.append(original_run_id_var)
 
-        specification = Spec(
-            service_account_name=self.service_account_name,
-            parallelism=self.parallelism,
-            arguments=arguments,
-            persistent_volumes=self.persistent_volumes,
-            template_defaults=template_defaults,
-        )
-
-        for volume in specification.volumes:
+        for volume in self.spec.volumes:
             self._container_volumes.append(ContainerVolume(name=volume.name, mount_path=volume.mount_path))
 
         # Container specifications are globally collected and added at the end.
@@ -1075,9 +1092,10 @@ class ArgoExecutor(GenericExecutor, UserControls):
         templates.extend(self._dag_templates)
         templates.extend(self._container_templates)
 
-        specification.templates = templates
-
-        workflow = Workflow(spec=specification)
+        spec = self.spec
+        spec.templates = templates
+        spec.arguments = arguments
+        workflow = Workflow(metadata=self.metadata, spec=spec)
 
         yaml = YAML()
         with open(self.output_file, "w") as f:

@@ -18,12 +18,14 @@ def chunk_files():
     )()
 
 
-def process_chunk(stride, start_index):
+def process_chunk(stride: int, start_index: int):
     """
     The function processes a chunk of files.
     The files between the start_index and the start_index + stride
     are processed per chunk.
     """
+    print("stride", stride, type(stride))
+    print("start_index", start_index, type(start_index))
     for i in range(start_index, start_index + stride, stride):
         pass
 

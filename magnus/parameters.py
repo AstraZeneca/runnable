@@ -60,7 +60,7 @@ def set_user_defined_params_as_environment_variables(params: Dict[str, Any]):
         os.environ[environ_key] = serialize_parameter_as_str(value)
 
 
-def cast_parameters_as_type(value: Any, newT: Optional[Type] = None) -> Union[BaseModel, Dict[str, Any]]:
+def cast_parameters_as_type(value: Any, newT: Optional[Type] = None) -> Union[Any, BaseModel, Dict[str, Any]]:
     """
     Casts the environment variable to the given type.
 
@@ -165,7 +165,7 @@ def filter_arguments_for_func(
             unassigned_params = unassigned_params.difference(bound_model.model_fields.keys())
         else:
             # simple python data type.
-            bound_args[name] = params[name]
+            bound_args[name] = cast_parameters_as_type(params[name], value.annotation)
 
         unassigned_params.remove(name)
 

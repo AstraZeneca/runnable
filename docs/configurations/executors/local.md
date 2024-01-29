@@ -1,5 +1,3 @@
-## Local
-
 All the steps of the pipeline are executed in the local compute environment in the same shell
 as it was triggered.
 
@@ -9,7 +7,7 @@ as it was triggered.
 
 
 
-### Options
+## Configuration
 
 ```yaml
 executor: local
@@ -26,7 +24,7 @@ config:
     Run logs that use a single json (eg. file-system) are not compatible with parallel
     executions due to race conditions to write the same file by different processes.
 
-    Use ```chunked``` run log stores (eg. chunked-file-system).
+    Use ```chunked``` run log stores (eg. chunked-fs).
 
 
 

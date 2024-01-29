@@ -1,3 +1,7 @@
+**Magnus** is designed to make collaboration between data scientists/researchers and infrastructure
+engineers
+
+
 Configurations are the way to choose between different providers of below services.
 
 - [executor](../../concepts/executor)

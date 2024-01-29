@@ -623,7 +623,7 @@ class GenericExecutor(BaseExecutor):
             ctx_node_config = node._get_executor_config(self.service_name)
         except exceptions.TerminalNodeError:
             # Some modes request for effective node config even for success or fail nodes
-            return effective_node_config
+            return utils.apply_variables(effective_node_config, self._context.variables)
 
         if ctx_node_config:
             if ctx_node_config not in self.overrides:

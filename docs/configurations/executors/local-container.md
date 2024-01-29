@@ -7,7 +7,7 @@ Execute all the steps of the pipeline in containers. Please refer to the
 - [x] Ability to provide specialized compute environments for different steps of the pipeline.
 - [ ] The scalability is still constrained by the resources in local environment.
 
-### options
+## Configuration
 
 ```yaml
 executor: local-container
