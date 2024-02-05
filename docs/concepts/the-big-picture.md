@@ -66,30 +66,38 @@ A step in the workflow can be:
     A step that has a defined number of [parallel workflows](../parallel) executing
      simultaneously.
 
+     In the below visualisation, the green lined steps happen in sequence and wait for the previous step to
+    successfully complete.
+
+    The branches lined in yellow run in parallel to each other but sequential within the branch.
+
     ```mermaid
     flowchart TD
 
-        step1([Step 1]):::green
-        parallel(Parallel Step):::green
-        step3([Step 3]):::green
+        getFeatures([Get Features]):::green
+        trainStep(Train Models):::green
+        ensembleModel([Ensemble Modelling]):::green
+        inference([Run Inference]):::green
         success([Success]):::green
 
-        step211([Branch 1 Step 1]):::yellow
-        step212([Branch 1 Step 2]):::yellow
-        branch1Suc([Branch 1 Success]):::yellow
-        step211 --> step212 --> branch1Suc
+        prepareXG([Prepare for XGBoost]):::yellow
+        trainXG([Train XGBoost]):::yellow
+        successXG([XGBoost success]):::yellow
+        prepareXG --> trainXG --> successXG
 
-        step22([Branch 2 Step 1]):::yellow
-        branch2Suc([Branch 2 Success]):::yellow
-        step22 --> branch2Suc
+        trainRF([Train RF model]):::yellow
+        successRF([RF Model success]):::yellow
+        trainRF --> successRF
 
 
-        step1 --> parallel
-        parallel --> step211
-        parallel --> step22
-        branch1Suc --> step3
-        branch2Suc --> step3
-        step3 --> success
+        getFeatures --> trainStep
+        trainStep --> prepareXG
+        trainStep --> trainRF
+        successXG --> ensembleModel
+        successRF --> ensembleModel
+        ensembleModel --> inference
+        inference --> success
+
 
         classDef yellow stroke:#FFFF00
         classDef green stroke:#0f0
@@ -98,10 +106,65 @@ A step in the workflow can be:
     ```
 
 
-=== "pipeline"
-
-
 === "map"
+
+    The step "chunk files" identifies the number of files to process and computes the start index of every
+    batch of files to process for a chunk size of 10, the stride.
+
+    "Process Chunk" pipelines are then triggered in parallel to process the chunk of files between ```start index```
+    and ```start index + stride```
+
+    ```mermaid
+    flowchart TD
+    chunkify([Chunk files]):::green
+    success([Success]):::green
+
+    subgraph one[Process Chunk]
+        process_chunk1([Process Chunk]):::yellow
+        success_chunk1([Success]):::yellow
+
+        process_chunk1 --> success_chunk1
+    end
+
+    subgraph two[Process Chunk]
+        process_chunk2([Process Chunk]):::yellow
+        success_chunk2([Success]):::yellow
+
+        process_chunk2 --> success_chunk2
+    end
+
+    subgraph three[Process Chunk]
+        process_chunk3([Process Chunk]):::yellow
+        success_chunk3([Success]):::yellow
+
+        process_chunk3 --> success_chunk3
+    end
+
+    subgraph four[Process Chunk]
+        process_chunk4([Process Chunk]):::yellow
+        success_chunk4([Success]):::yellow
+
+        process_chunk4 --> success_chunk4
+    end
+
+    subgraph five[Process Chunk]
+        process_chunk5([Process Chunk]):::yellow
+        success_chunk5([Success]):::yellow
+
+        process_chunk5 --> success_chunk5
+    end
+
+
+
+    chunkify -- (stride=10, start_index=0)--> one --> success
+    chunkify -- (stride=10, start_index=10)--> two --> success
+    chunkify -- (stride=10, start_index=20)--> three --> success
+    chunkify -- (stride=10, start_index=30)--> four --> success
+    chunkify -- (stride=10, start_index=40)--> five --> success
+
+    classDef yellow stroke:#FFFF00
+    classDef green stroke:#0f0
+    ```
 
 
 

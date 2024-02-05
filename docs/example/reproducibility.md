@@ -227,5 +227,5 @@ Below we show an example pipeline and the different layers of the run log.
 
 
 
-This structure of the run log is the same independent of where the pipeline was executed. This enables you
-to reproduce a failed execution in complex environments on local environments for easier debugging.
+This [structure of the run log](../../concepts/run-log) is the same independent of where the pipeline was executed.
+This enables you to reproduce a failed execution in complex environments on local environments for easier debugging.

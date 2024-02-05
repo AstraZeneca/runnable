@@ -9,7 +9,7 @@ dag:
     outer most map:
       type: map
       iterate_on: array
-      iterate_as: x
+      iterate_as: xarg
       next: success
       branch:
         start_at: nested parallel
@@ -24,7 +24,7 @@ dag:
                   inner most map:
                     type: map
                     iterate_on: array
-                    iterate_as: y
+                    iterate_as: yarg
                     next: success
                     branch:
                       start_at: executable
@@ -46,7 +46,7 @@ dag:
                   inner most map:
                     type: map
                     iterate_on: array
-                    iterate_as: y
+                    iterate_as: yarg
                     next: success
                     branch:
                       start_at: executable

@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union, cast
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_serializer, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer, field_validator
 from pydantic.functional_serializers import PlainSerializer
 from ruamel.yaml import YAML
 from typing_extensions import Annotated
@@ -96,6 +96,14 @@ class Parameter(BaseModel):
     name: str
     value: Optional[str] = None
 
+    @field_serializer("name")
+    def serialize_name(self, name: str) -> str:
+        return f"{str(name)}"
+
+    @field_serializer("value")
+    def serialize_value(self, value: str) -> str:
+        return f"{value}"
+
 
 class OutputParameter(Parameter):
     """
@@ -125,6 +133,14 @@ class Argument(BaseModel):
 
     name: str
     value: str
+
+    @field_serializer("name")
+    def serialize_name(self, name: str) -> str:
+        return f"{str(name)}"
+
+    @field_serializer("value")
+    def serialize_value(self, value: str) -> str:
+        return f"{value}"
 
 
 class Request(BaseModel):
@@ -210,16 +226,16 @@ class Container(BaseModel):
     image_pull_policy: str = Field(default="", serialization_alias="imagePullPolicy")
     resources: Optional[Resources] = Field(default=None, serialization_alias="resources")
 
-    _env_vars: List[EnvVar] = PrivateAttr(default=[])
-    _secrets_from_k8s: List[SecretEnvVar] = PrivateAttr(default=[])
+    env_vars: List[EnvVar] = Field(default_factory=list, exclude=True)
+    secrets_from_k8s: List[SecretEnvVar] = Field(default_factory=list, exclude=True)
 
     @computed_field  # type: ignore
     @property
     def env(self) -> Optional[List[Union[EnvVar, SecretEnvVar]]]:
-        if not self._env_vars and not self._secrets_from_k8s:
+        if not self.env_vars and not self.secrets_from_k8s:
             return None
 
-        return self._env_vars + self._secrets_from_k8s
+        return self.env_vars + self.secrets_from_k8s
 
 
 class DagTaskTemplate(BaseModel):
@@ -458,11 +474,14 @@ class ParallelNodeRender(NodeRenderer):
             fan_in_template.depends.append(f"{task_template.name}.Failed")
             branch_templates.append(task_template)
 
+        executor_config = self.executor._resolve_executor_config(self.node)
+
         self.executor._dag_templates.append(
             DagTemplate(
                 tasks=[fan_out_template] + branch_templates + [fan_in_template],
                 name=clean_name,
                 inputs=dag_inputs if dag_inputs else None,
+                parallelism=executor_config.get("parallelism", None),
             )
         )
 
@@ -524,7 +543,7 @@ class MapNodeRender(NodeRenderer):
                 tasks=[fan_out_template, task_template, fan_in_template],
                 name=clean_name,
                 inputs=dag_inputs if dag_inputs else None,
-                parallelism=executor_config.get("parallelism", 0),
+                parallelism=executor_config.get("parallelism", None),
                 fail_fast=executor_config.get("fail_fast", True),
             )
         )
@@ -552,6 +571,7 @@ class Spec(BaseModel):
     node_selector: Optional[Dict[str, str]] = Field(default_factory=dict, serialization_alias="nodeSelector")
     tolerations: Optional[List[Toleration]] = Field(default=None, serialization_alias="tolerations")
     parallelism: Optional[int] = Field(default=None, serialization_alias="parallelism")
+    # This has to be user driven
     pod_gc: Dict[str, str] = Field(default={"strategy": "OnPodCompletion"}, serialization_alias="podGC")
 
     retry_strategy: Retry = Field(default=Retry(), serialization_alias="retryStrategy")
@@ -662,13 +682,13 @@ class ArgoExecutor(GenericExecutor):
 
     image: str
     expose_parameters_as_inputs: bool = True
+    secrets_from_k8s: List[SecretEnvVar] = Field(default_factory=list)
     output_file: str = "argo-pipeline.yaml"
 
     # Metadata related fields
     name: str = Field(default="magnus-dag-", description="Used as an identifier for the workflow")
     annotations: Dict[str, str] = Field(default_factory=dict)
     labels: Dict[str, str] = Field(default_factory=dict)
-    namespace: Optional[str] = Field(default=None)
 
     max_workflow_duration_in_seconds: int = Field(
         2 * 24 * 60 * 60,  # 2 days
@@ -683,7 +703,6 @@ class ArgoExecutor(GenericExecutor):
         default=None,
         serialization_alias="parallelism",
     )
-    branch_parallelism: int = Field(default=0, ge=0)  # Controls the parallelism of branches
     resources: Resources = Field(
         default=Resources(),
         serialization_alias="resources",
@@ -701,7 +720,6 @@ class ArgoExecutor(GenericExecutor):
     tolerations: Optional[List[Toleration]] = Field(default=None)
     image_pull_policy: str = Field(default="")
     service_account_name: Optional[str] = None
-    secrets_from_k8s: List[SecretEnvVar] = Field(default_factory=list)
     persistent_volumes: List[UserVolumeMounts] = Field(default_factory=list)
 
     _run_id_placeholder: str = "{{workflow.parameters.run_id}}"
@@ -731,7 +749,6 @@ class ArgoExecutor(GenericExecutor):
             generate_name=self.name,
             annotations=self.annotations,
             labels=self.labels,
-            namespace=self.namespace,
         )
 
     @property
@@ -871,18 +888,18 @@ class ArgoExecutor(GenericExecutor):
             volume_mounts=self._container_volumes,
             image_pull_policy=override.image_pull_policy,
             resources=override.resources,
+            secrets_from_k8s=self.secrets_from_k8s,
         )
 
         if working_on.name == self._context.dag.start_at and self.expose_parameters_as_inputs:
             for key, value in self._get_parameters().items():
                 # Get the value from work flow parameters for dynamic behavior
-                if isinstance(value, dict) or isinstance(value, list):
-                    continue
-                env_var = EnvVar(
-                    name=defaults.PARAMETER_PREFIX + key,
-                    value="{{workflow.parameters." + key + "}}",
-                )
-                container._env_vars.append(env_var)
+                if isinstance(value, int) or isinstance(value, float) or isinstance(value, str):
+                    env_var = EnvVar(
+                        name=defaults.PARAMETER_PREFIX + key,
+                        value="{{workflow.parameters." + key + "}}",
+                    )
+                    container.env_vars.append(env_var)
 
         clean_name = self.get_clean_name(working_on)
         if overwrite_name:
@@ -1100,6 +1117,7 @@ class ArgoExecutor(GenericExecutor):
         yaml = YAML()
         with open(self.output_file, "w") as f:
             yaml.indent(mapping=2, sequence=4, offset=2)
+
             yaml.dump(workflow.model_dump(by_alias=True, exclude_none=True), f)
 
     def execute_job(self, node: BaseNode):

@@ -1,0 +1,175 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: magnus-dag-
+  annotations: {}
+  labels: {}
+spec:
+  activeDeadlineSeconds: 172800
+  entrypoint: magnus-dag
+  podGC:
+    strategy: OnPodCompletion
+  retryStrategy:
+    limit: '0'
+    retryPolicy: Always
+    backoff:
+      duration: '120'
+      factor: 2
+      maxDuration: '3600'
+  serviceAccountName: default-editor
+  templates:
+    - name: magnus-dag
+      failFast: true
+      dag:
+        tasks:
+          - name: Acquire-data-stub-d6ndhb
+            template: Acquire-data-stub-d6ndhb
+            depends: ''
+          - name: Prepare-data-stub-bd3xa9
+            template: Prepare-data-stub-bd3xa9
+            depends: Acquire-data-stub-d6ndhb.Succeeded
+          - name: Extract-features-stub-0p4bit
+            template: Extract-features-stub-0p4bit
+            depends: Prepare-data-stub-bd3xa9.Succeeded
+          - name: Model-stub-6i3ur4
+            template: Model-stub-6i3ur4
+            depends: Extract-features-stub-0p4bit.Succeeded
+          - name: success-success-q0wvs6
+            template: success-success-q0wvs6
+            depends: Model-stub-6i3ur4.Succeeded
+    - name: Acquire-data-stub-d6ndhb
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - Acquire%data
+          - --log-level
+          - WARNING
+          - --file
+          - examples/contrived.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: Prepare-data-stub-bd3xa9
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - Prepare%data
+          - --log-level
+          - WARNING
+          - --file
+          - examples/contrived.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: Extract-features-stub-0p4bit
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - Extract%features
+          - --log-level
+          - WARNING
+          - --file
+          - examples/contrived.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: Model-stub-6i3ur4
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - Model
+          - --log-level
+          - WARNING
+          - --file
+          - examples/contrived.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: success-success-q0wvs6
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - success
+          - --log-level
+          - WARNING
+          - --file
+          - examples/contrived.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+  templateDefaults:
+    activeDeadlineSeconds: 7200
+    timeout: 10800s
+  arguments:
+    parameters:
+      - name: run_id
+        value: '{{workflow.uid}}'
+  volumes:
+    - name: executor-0
+      persistentVolumeClaim:
+        claimName: magnus-volume

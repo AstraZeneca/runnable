@@ -13,6 +13,8 @@ during the execution of the pipeline.
 
     Any pydantic model as a value would be dumped as a dict, respecting the alias, before tracking it.
 
+    You can run this example by ```python run examples/concepts/experiment_tracking_api.py```
+
     ```python linenums="1" hl_lines="3 17-19"
     --8<-- "examples/concepts/experiment_tracking_api.py"
     ```
@@ -208,6 +210,7 @@ The step is defaulted to be 0.
     The highlighted lines in the below example show how to [use the API](../../interactions/#magnus.track_this) with
     the step parameter.
 
+    You can run this example by ```python run examples/concepts/experiment_tracking_step.py```
 
     ```python linenums="1" hl_lines="3 17-20"
     --8<-- "examples/concepts/experiment_tracking_step.py"
@@ -423,6 +426,8 @@ Since mlflow does not support step wise logging of parameters, the key name is f
     execution in line #39, we use the configuration of ```mlflow``` as experiment tracking tool.
 
     The tag provided during the execution is used as a experiment name in mlflow.
+
+    You can run this example by ```python run examples/concepts/experiment_tracking_integration.py```
 
     ```python linenums="1" hl_lines="3 20-23 39"
     --8<-- "examples/concepts/experiment_tracking_integration.py"

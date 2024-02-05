@@ -2,7 +2,8 @@ Metrics in data science projects summarize important information about the execu
 experiment.
 
 Magnus captures [this information as part of the run log](../../concepts/experiment-tracking) and also provides
-an interface to experiment tracking tools like [mlflow](https://mlflow.org/docs/latest/tracking.html) or
+an [interface to experiment tracking tools](../../concepts/experiment-tracking/#experiment_tracking_tools)
+like [mlflow](https://mlflow.org/docs/latest/tracking.html) or
 [Weights and Biases](https://wandb.ai/site/experiment-tracking).
 
 

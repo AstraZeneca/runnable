@@ -92,6 +92,8 @@ of the files to process.
 
     This instruction is set while defining the map node.
 
+    You can run this example by ```python examples/concepts/map.py```
+
     ```python linenums="1" hl_lines="21 52-58"
     --8<-- "examples/concepts/map.py"
     ```
@@ -104,6 +106,8 @@ of the files to process.
 
     This instruction is set while defining the map node.
     Note that the ```branch``` of the map node has a similar schema of the pipeline.
+
+    You can run this example by ```magnus execute examples/concepts/map.yaml```
 
     ```yaml linenums="1" hl_lines="22-23 25-36"
     --8<-- "examples/concepts/map.yaml"
@@ -118,6 +122,8 @@ of the files to process.
     as environment variable ```MAGNUS_MAP_VARIABLE```.
 
     The environment variable ```MAGNUS_MAP_VARIABLE``` is a json string with keys of the ```iterate_as```.
+
+    You can run this example by ```magnus execute examples/concepts/map_shell.yaml```
 
     ```yaml linenums="1" hl_lines="23-24 38-40"
     --8<-- "examples/concepts/map_shell.yaml"

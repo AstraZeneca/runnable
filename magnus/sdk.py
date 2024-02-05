@@ -26,6 +26,7 @@ ALLOWED_COMMAND_TYPES = ["shell", "python", "notebook"]
 class Catalog(BaseModel):
     """
     Use to instruct a task to sync data from/to the central catalog.
+    Please refer to [concepts](../../concepts/catalog) for more information.
 
     Args:
         get (List[str]): List of glob patterns to get from central catalog to the compute data folder.
@@ -35,7 +36,7 @@ class Catalog(BaseModel):
         >>> from magnus import Catalog, Task
         >>> catalog = Catalog(compute_data_folder="/path/to/data", get=["*.csv"], put=["*.csv"])
 
-        >>> task = Task(name="task", catalog=catalog)
+        >>> task = Task(name="task", catalog=catalog, command="echo 'hello'")
 
     """
 
@@ -107,7 +108,61 @@ class BaseTraversal(ABC, BaseModel):
 
 
 class Task(BaseTraversal):
-    # model_config = ConfigDict(use_enum_values=True)  # Need to be for command, would be validated later
+    """
+    An execution node of the pipeline.
+    Please refer to [concepts](../../concepts/task) for more information.
+
+    Args:
+        name (str): The name of the node.
+        command (str): The command to execute.
+
+            - For python functions, [dotted path](../../concepts/task/#python_functions) to the function.
+            - For shell commands: command to execute in the shell.
+            - For notebooks: path to the notebook.
+
+        command_type (str): The type of command to execute.
+            Can be one of "shell", "python", or "notebook".
+
+        catalog (Optional[Catalog]): The catalog to sync data from/to.
+            Please see Catalog about the structure of the catalog.
+
+
+        overrides (Dict[str, Any]): Any overrides to the command.
+            Individual tasks can override the global configuration config by referring to the
+            specific override.
+
+            For example,
+            ### Global configuration
+            ```yaml
+            executor:
+              type: local-container
+              config:
+                docker_image: "magnus/magnus:latest"
+                overrides:
+                  custom_docker_image:
+                    docker_image: "magnus/magnus:custom"
+
+            ```
+            ### Task specific configuration
+            ```python
+            task = Task(name="task", command="echo 'hello'", command_type="shell",
+                    overrides={'local-container': custom_docker_image})
+            ```
+
+        notebook_output_path (Optional[str]): The path to save the notebook output.
+            Only used when command_type is 'notebook', defaults to command+_out.ipynb
+
+        optional_ploomber_args (Optional[Dict[str, Any]]): Any optional ploomber args.
+            Only used when command_type is 'notebook', defaults to {}
+
+        output_cell_tag (Optional[str]): The tag of the output cell.
+            Only used when command_type is 'notebook', defaults to "magnus_output"
+
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+        on_failure (str): The name of the node to execute if the step fails.
+
+    """
 
     command: str = Field(alias="command")
     command_type: str = Field(default="python")
@@ -147,6 +202,19 @@ class Task(BaseTraversal):
 
 
 class Stub(BaseTraversal):
+    """
+    A node that does nothing.
+
+    A stub node can tak arbitrary number of arguments.
+    Please refer to [concepts](../../concepts/stub) for more information.
+
+    Args:
+        name (str): The name of the node.
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+
+    """
+
     model_config = ConfigDict(extra="allow")
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
 
@@ -159,6 +227,18 @@ class Stub(BaseTraversal):
 
 
 class Parallel(BaseTraversal):
+    """
+    A node that executes multiple branches in parallel.
+    Please refer to [concepts](../../concepts/parallel) for more information.
+
+    Args:
+        name (str): The name of the node.
+        branches (Dict[str, Pipeline]): A dictionary of branches to execute in parallel.
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+        on_failure (str): The name of the node to execute if any of the branches fail.
+    """
+
     branches: Dict[str, "Pipeline"]
 
     @computed_field  # type: ignore
@@ -176,9 +256,27 @@ class Parallel(BaseTraversal):
 
 
 class Map(BaseTraversal):
+    """
+    A node that iterates over a list of items and executes a pipeline for each item.
+    Please refer to [concepts](../../concepts/map) for more information.
+
+    Args:
+        branch: The pipeline to execute for each item.
+
+        iterate_on: The name of the parameter to iterate over.
+            The parameter should be defined either by previous steps or statically at the start of execution.
+
+        iterate_as: The name of the iterable to be passed to functions.
+
+
+        overrides (Dict[str, Any]): Any overrides to the command.
+
+    """
+
     branch: "Pipeline"
     iterate_on: str
     iterate_as: str
+    overrides: Dict[str, Any] = Field(default_factory=dict)
 
     @computed_field  # type: ignore
     @property
@@ -197,12 +295,23 @@ class Map(BaseTraversal):
             next_node=self.next_node,
             iterate_on=self.iterate_on,
             iterate_as=self.iterate_as,
+            overrides=self.overrides,
         )
 
         return node
 
 
 class Success(BaseModel):
+    """
+    A node that represents a successful execution of the pipeline.
+
+    Most often, there is no need to use this node as nodes can be instructed to
+    terminate_with_success and pipeline with add_terminal_nodes=True.
+
+    Args:
+        name (str): The name of the node.
+    """
+
     name: str = "success"
 
     @computed_field  # type: ignore
@@ -215,6 +324,16 @@ class Success(BaseModel):
 
 
 class Fail(BaseModel):
+    """
+    A node that represents a failed execution of the pipeline.
+
+    Most often, there is no need to use this node as nodes can be instructed to
+    terminate_with_failure and pipeline with add_terminal_nodes=True.
+
+    Args:
+        name (str): The name of the node.
+    """
+
     name: str = "fail"
 
     @computed_field  # type: ignore
@@ -227,9 +346,23 @@ class Fail(BaseModel):
 
 
 class Pipeline(BaseModel):
-    """An exposed magnus pipeline to be used in SDK."""
+    """
+    A Pipeline is a directed acyclic graph of Steps that define a workflow.
 
-    steps: List[StepType]  # TODO: Add map and dag nodes
+    Args:
+        steps (List[Stub | Task | Parallel | Map | Success | Fail]): A list of Steps that make up the Pipeline.
+        start_at (Stub | Task | Parallel | Map): The name of the first Step in the Pipeline.
+        name (str, optional): The name of the Pipeline. Defaults to "".
+        description (str, optional): A description of the Pipeline. Defaults to "".
+        add_terminal_nodes (bool, optional): Whether to add terminal nodes to the Pipeline. Defaults to True.
+
+    The default behavior is to add "success" and "fail" nodes to the Pipeline.
+    To add custom success and fail nodes, set add_terminal_nodes=False and create success
+    and fail nodes manually.
+
+    """
+
+    steps: List[StepType]
     start_at: TraversalTypes
     name: str = ""
     description: str = ""
@@ -271,9 +404,34 @@ class Pipeline(BaseModel):
         log_level: str = defaults.LOG_LEVEL,
         output_pipeline_definition: str = "magnus-pipeline.yaml",
     ):
-        """Execute the pipeline.
+        """
+        *Execute* the Pipeline.
 
-        This method should be beefed up as the use cases grow.
+        Execution of pipeline could either be:
+
+        Traverse and execute all the steps of the pipeline, eg. [local execution](../../configurations/executors/local).
+
+        Or create the ```yaml``` representation of the pipeline for other executors.
+
+        Please refer to [concepts](../../concepts/executor) for more information.
+
+        Args:
+            configuration_file (str, optional): The path to the configuration file. Defaults to "".
+                The configuration file can be overridden by the environment variable MAGNUS_CONFIGURATION_FILE.
+
+            run_id (str, optional): The ID of the run. Defaults to "".
+            tag (str, optional): The tag of the run. Defaults to "".
+                Use to group multiple runs.
+
+            parameters_file (str, optional): The path to the parameters file. Defaults to "".
+            use_cached (str, optional): Whether to use cached results. Defaults to "".
+                Provide the run_id of the older execution to recover.
+
+            log_level (str, optional): The log level. Defaults to defaults.LOG_LEVEL.
+            output_pipeline_definition (str, optional): The path to the output pipeline definition file.
+                Defaults to "magnus-pipeline.yaml".
+
+                Only applicable for the execution via SDK for non ```local``` executors.
         """
         from magnus.extensions.executor.local.implementation import LocalExecutor
 

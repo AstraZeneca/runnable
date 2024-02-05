@@ -1,0 +1,42 @@
+dag:
+  description: |
+    This pipeline demonstrates the usage of map state to dynamically
+    execute workflows in parallel.
+
+    The step "chunk files" identifies the total number of batches to
+    execute in parallel and sets the parameters
+     - start_index of every batch to process, chunks
+     - number of files to process per batch, stride.
+
+    The step "iterate and execute" iterates on "chunks" and the
+    parameter name per chunk is set to be "start_index".
+  start_at: chunk files
+  steps:
+    chunk files:
+      type: task
+      command_type: python
+      command: "examples.concepts.map.chunk_files"
+      next: iterate and execute
+    iterate and execute:
+      type: map
+      iterate_on: chunks
+      iterate_as: start_index
+      next: success
+      overrides:
+        argo: sequential
+      branch:
+        start_at: execute
+        steps:
+          execute:
+            type: task
+            command_type: python
+            command: "examples.concepts.map.process_chunk"
+            next: success
+          success:
+            type: success
+          fail:
+            type: fail
+    success:
+      type: success
+    fail:
+      type: fail

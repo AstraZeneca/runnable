@@ -6,6 +6,9 @@ executor:
     persistent_volumes: # (3)
       - name: magnus-volume
         mount_path: /mnt
+    overrides:
+      sequential:
+        parallelism: 1
 
 run_log_store: # (4)
   type: chunked-fs

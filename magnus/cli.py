@@ -44,11 +44,22 @@ def cli():
 @click.option("--use-cached", help="Provide the previous run_id to re-run.", show_default=True)
 def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cached):  # pragma: no cover
     """
-    External entry point to executing a pipeline. This command is most commonly used
-    either to execute a pipeline or to translate the pipeline definition to another language.
+    Execute a pipeline
 
-    You can re-run an older run by providing the run_id of the older run in --use-cached.
-    Ensure that the catalogs and run logs are accessible by the present configuration.
+    Usage: magnus execute [OPTIONS]
+
+    Options:
+    -f, --file TEXT               The pipeline definition file [default: pipeline.yaml]
+    -c, --config-file TEXT        config file, in yaml, to be used for the run [default: None]
+    -p, --parameters-file TEXT    Parameters, in yaml,  accessible by the application [default: None]
+    --log-level                     One of [INFO|DEBUG|WARNING|ERROR|FATAL]
+                                    The log level
+                                    [default: INFO]
+    --tag TEXT                   A tag attached to the run
+                                    [default: ]
+    --run-id TEXT                An optional run_id, one would be generated if not
+                                    provided
+    --use-cached TEXT            Provide the previous run_id to re-run.
     """
     logger.setLevel(log_level)
     entrypoints.execute(

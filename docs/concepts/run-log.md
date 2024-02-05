@@ -303,7 +303,7 @@ In the above example of ```run log``` tab,
 - ```tag```: A user defined label to be attached to an execution of the pipeline to contextually group executions.
 This label can also be used to group experiments of experiment tracking tools like
 [mlflow](https://mlflow.org/docs/latest/tracking/tracking-api.html#organizing-runs-in-experiments).
-- ```status```: In line #7, defines the global status of the execution. ``` SUCCESS``, ```PROCESSING``` or ```FAILED``
+- ```status```: In line #7, defines the global status of the execution. ```SUCCESS```, ```PROCESSING``` or ```FAILED```
 are the three possible states.
 - ```run_config```: From line #184 to end, capture the configuration used during the
 execution. It details the configuration of different services (executor, catalog, secrets
@@ -391,7 +391,8 @@ in the steps mapping is "access initial" which corresponds to the name of the ta
 the pipeline. For nested steps, the step log is also nested and shown in more detail for
   [parallel](../parallel), [map](../map) and [dag](../dag).
 
-- ```status```: In line #5 is the status of the step with three possible states, "SUCCESS", "FAILURE" or "PROCESSING".
+- ```status```: In line #5 is the status of the step with three possible states,
+```SUCCESS```, ```PROCESSING``` or ```FAILED```
 - ```step_type```: In line #6, is the type of step, in this case is a ```task```.
 - ```message```: in line #7, is a short description of the error if the step failed.
 This might not always be useful as a step can fail for many complicate reasons.

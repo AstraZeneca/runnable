@@ -7,6 +7,16 @@ Execute all the steps of the pipeline in containers. Please refer to the
 - [x] Ability to provide specialized compute environments for different steps of the pipeline.
 - [ ] The scalability is still constrained by the resources in local environment.
 
+
+!!! warning inline end "parallel executions"
+
+    Run logs that use a single json (eg. file-system) are not compatible with parallel
+    executions due to race conditions to write the same file by different processes.
+
+    Use ```chunked``` run log stores (eg. chunked-fs).
+
+
+
 ## Configuration
 
 ```yaml
@@ -260,6 +270,8 @@ the patterns.
       }
     }
     ```
+
+## Compatibility
 
 
 ## Step override

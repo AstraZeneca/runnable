@@ -135,6 +135,13 @@ Lets assume that the initial parameters are:
     the yaml representation and also are annotated in the function signature. They are sent in to the function
     as arguments with proper type conversion.
 
+    !!! warning "Annotation"
+
+         Without annotations, magnus cannot determine the type and can cause unexpected behavior.
+
+         This is especially true in distributed executors (eg: argo workflows).
+
+
     ### ^^Output arguments of function^^
 
     Only pydantic models are allowed to be return types of a function. There is no need
@@ -159,6 +166,7 @@ Lets assume that the initial parameters are:
          as it looses the nested structure.
 
 
+    You can run this example using: ```python run examples/concepts/task_native_parameters.py```
 
     ```python linenums="1"
     --8<-- "examples/concepts/task_native_parameters.py"
@@ -182,6 +190,8 @@ Lets assume that the initial parameters are:
     [model_dump](https://docs.pydantic.dev/latest/concepts/serialization/#modelmodel_dump), respecting the alias.
 
 
+    You can run this example by: ```python run examples/concepts/task_api_parameters.py```
+
     ```python linenums="1"
     --8<-- "examples/concepts/task_api_parameters.py"
     ```
@@ -200,6 +210,8 @@ Lets assume that the initial parameters are:
     Parameters set by environment variables over-ride the parameters defined by the initial parameters which can be
     handy to quickly experiment without modifying code or to dynamically adjust behavior when running in
     orchestrators like Argo or AWS step functions.
+
+    You can run this example by: ```python run examples/concepts/task_env_parameters.py```
 
     ```python linenums="1"
     --8<-- "examples/concepts/task_env_parameters.py"

@@ -66,6 +66,8 @@ ensemble model happens only after both models are (successfully) trained.
 
 === "python sdk"
 
+    You can run this example by: ```python examples/concepts/parallel.py```
+
     ```python linenums="1"
     --8<-- "examples/concepts/parallel.py"
     ```

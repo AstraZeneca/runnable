@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, SerializeAsAny
 
 from magnus.catalog import BaseCatalog
 from magnus.datastore import BaseRunLogStore
@@ -11,11 +11,11 @@ from magnus.secrets import BaseSecrets
 
 
 class Context(BaseModel):
-    executor: BaseExecutor
-    run_log_store: BaseRunLogStore
-    secrets_handler: BaseSecrets
-    catalog_handler: BaseCatalog
-    experiment_tracker: BaseExperimentTracker
+    executor: SerializeAsAny[BaseExecutor]
+    run_log_store: SerializeAsAny[BaseRunLogStore]
+    secrets_handler: SerializeAsAny[BaseSecrets]
+    catalog_handler: SerializeAsAny[BaseCatalog]
+    experiment_tracker: SerializeAsAny[BaseExperimentTracker]
 
     pipeline_file: Optional[str] = ""
     parameters_file: Optional[str] = ""

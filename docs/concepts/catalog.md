@@ -468,6 +468,8 @@ deserialize python objects. Please ensure that the object can be serialized via 
 In the below example, the step ```put_data_object``` puts a pydantic object into the catalog while the step
 ```retrieve_object``` retrieves the pydantic object from the catalog and prints it.
 
+You can run this example by ```python run examples/concepts/catalog_object.py```
+
 ```python linenums="1" hl_lines="3 23 31"
 --8<-- "examples/concepts/catalog_object.py"
 ```

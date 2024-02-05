@@ -110,6 +110,7 @@ extra_css:
 nav:
   - "Magnus":
       - "Introduction": "index.md"
+      - "Usage": "usage.md"
       - "Example":
           - "Pipeline Definition": "example/example.md"
           - "Steps": "example/steps.md"
@@ -149,8 +150,7 @@ nav:
   # - "Command Line":
   #       - "command-line.md"
   - "Python API": "interactions.md"
-  - "python SDK": "sdk.md"
-  - "CLI": "cli.md"
+  - "Python SDK": "sdk.md"
   # - "Examples":
   #       - "examples.md"
   - "Extensions": "extensions.md"

@@ -15,11 +15,16 @@ AWS Step functions and Argo workflows support them.
 
 === "python sdk"
 
+
+    You can run this pipeline by ```python examples/concepts/nesting.py```
+
     ```python linenums="1"
     --8<-- "examples/concepts/nesting.py"
     ```
 
 === "yaml"
+
+    You can run this pipeline by ```magnus execute examples/concepts/nesting.yaml```
 
     ```yaml linenums="1"
     --8<-- "examples/concepts/nesting.yaml"

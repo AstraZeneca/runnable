@@ -6,6 +6,14 @@ as it was triggered.
 - [ ] Not possible to provide specialized compute environments for different steps of the pipeline.
 
 
+!!! warning inline end "parallel executions"
+
+    Run logs that use a single json (eg. file-system) are not compatible with parallel
+    executions due to race conditions to write the same file by different processes.
+
+    Use ```chunked``` run log stores (eg. chunked-fs).
+
+
 
 ## Configuration
 
@@ -17,14 +25,6 @@ config:
 
 1. By default, all tasks are sequentially executed. Provide ```true``` to enable tasks within
 [parallel](../../concepts/parallel) or [map](../../concepts/map) to be executed in parallel.
-
-
-!!! warning "parallel executions"
-
-    Run logs that use a single json (eg. file-system) are not compatible with parallel
-    executions due to race conditions to write the same file by different processes.
-
-    Use ```chunked``` run log stores (eg. chunked-fs).
 
 
 

@@ -13,7 +13,12 @@ using catalog. This can be controlled either by the configuration or by python A
 
 ## Flow of Parameters
 
-The [initial parameters](../../concepts/parameters) of the pipeline can set by using a ```yaml``` file.
+The [initial parameters](../../concepts/parameters) of the pipeline can set by using a ```yaml``` file and presented
+during execution
+
+```--parameters-file, -parameters``` while using the [magnus CLI](../../usage/#usage)
+
+or by using ```parameters_file``` with [the sdk](../../sdk/#magnus.Pipeline.execute).
 
 === "Initial Parameters"
 

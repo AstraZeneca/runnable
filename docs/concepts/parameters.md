@@ -5,9 +5,14 @@ environment variables, arguments of the ```python function``` or using the
 
 ## Initial parameters
 
-The initial parameters to the application can be defined in either ```yaml``` format or
-as environment variables.
+The initial parameters of the pipeline can set by using a ```yaml``` file and presented
+during execution
 
+```--parameters-file, -parameters``` while using the [magnus CLI](../../usage/#usage)
+
+or by using ```parameters_file``` with [the sdk](../../sdk/#magnus.Pipeline.execute).
+
+They can also be set using environment variables which override the parameters defined by the file.
 
 === "yaml"
 

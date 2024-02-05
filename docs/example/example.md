@@ -331,18 +331,20 @@ This pipeline can be represented in **magnus** as below:
 Independent of the platform it is run on,
 
 
-- [x] The pipeline definition remains the same from an author point of view. The data scientists are always part of
-the process and contribute to the development even in production environments.
+- [x] The [pipeline definition](../../concepts/pipeline) remains the same from an author point of view.
+The data scientists are always part of the process and contribute to the development even in production environments.
 
-- [x] The run log remains the same except for the execution configuration enabling users to debug the pipeline
-execution in lower environments for failed executions or to validate the expectation of the execution.
+- [x] The [run log](../../concepts/run-log) remains the same except for the execution configuration enabling users
+to debug the pipeline execution in lower environments for failed executions or to validate the
+expectation of the execution.
 
 
 
 
 ## Example configuration
 
-To run the pipeline in different environments, we just provide the required configuration.
+To run the pipeline in different environments, we just provide the
+[required configuration](../../configurations/overview).
 
 === "Default Configuration"
 
@@ -358,11 +360,19 @@ To run the pipeline in different environments, we just provide the required conf
 
 === "Argo Configuration"
 
-    To render the pipeline in argo specification, mention the configuration during execution.
+    To render the pipeline in [argo specification](../../configurations/executors/argo/), mention the
+    configuration during execution.
+
+    yaml:
 
     ```magnus execute -f examples/contrived.yaml -c examples/configs/argo-config.yaml```
 
-    ``` yaml linenums="1"
+
+    python:
+
+    ```MAGNUS_CONFIGURATION_FILE=examples/configs/argo-config.yaml python examples/contrived.py```
+
+    ``` yaml linenums="1" title="Argo Configuration"
     --8<-- "examples/configs/argo-config.yaml"
     ```
 
@@ -381,142 +391,5 @@ To run the pipeline in different environments, we just provide the required conf
     The below is the same workflow definition in argo specification.
 
     ```yaml linenums="1"
-
-    apiVersion: argoproj.io/v1alpha1
-    kind: Workflow
-    metadata:
-    generateName: magnus-dag-
-    spec:
-    entrypoint: magnus-dag
-    templates:
-        - name: magnus-dag
-        failFast: true
-        dag:
-            tasks:
-            - name: Acquire-data-stub-abtb7i
-                template: Acquire-data-stub-abtb7i
-                depends: ""
-            - name: Prepare-data-stub-6av7ff
-                template: Prepare-data-stub-6av7ff
-                depends: Acquire-data-stub-abtb7i.Succeeded
-            - name: Extract-features-stub-a61cjo
-                template: Extract-features-stub-a61cjo
-                depends: Prepare-data-stub-6av7ff.Succeeded
-            - name: Model-stub-wmaegb
-                template: Model-stub-wmaegb
-                depends: Extract-features-stub-a61cjo.Succeeded
-            - name: success-success-edhfdn
-                template: success-success-edhfdn
-                depends: Model-stub-wmaegb.Succeeded
-        - name: Acquire-data-stub-abtb7i
-        container:
-            image: magnus-example:latest
-            command:
-            - magnus
-            - execute_single_node
-            - "{{workflow.parameters.run_id}}"
-            - Acquire%data
-            - --log-level
-            - WARNING
-            - --file
-            - examples/contrived.yaml
-            - --config-file
-            - examples/configs/argo-config.yaml
-            volumeMounts:
-            - name: executor-0
-                mountPath: /mnt
-        - name: Prepare-data-stub-6av7ff
-        container:
-            image: magnus-example:latest
-            command:
-            - magnus
-            - execute_single_node
-            - "{{workflow.parameters.run_id}}"
-            - Prepare%data
-            - --log-level
-            - WARNING
-            - --file
-            - examples/contrived.yaml
-            - --config-file
-            - examples/configs/argo-config.yaml
-            volumeMounts:
-            - name: executor-0
-                mountPath: /mnt
-        - name: Extract-features-stub-a61cjo
-        container:
-            image: magnus-example:latest
-            command:
-            - magnus
-            - execute_single_node
-            - "{{workflow.parameters.run_id}}"
-            - Extract%features
-            - --log-level
-            - WARNING
-            - --file
-            - examples/contrived.yaml
-            - --config-file
-            - examples/configs/argo-config.yaml
-            volumeMounts:
-            - name: executor-0
-                mountPath: /mnt
-        - name: Model-stub-wmaegb
-        container:
-            image: magnus-example:latest
-            command:
-            - magnus
-            - execute_single_node
-            - "{{workflow.parameters.run_id}}"
-            - Model
-            - --log-level
-            - WARNING
-            - --file
-            - examples/contrived.yaml
-            - --config-file
-            - examples/configs/argo-config.yaml
-            volumeMounts:
-            - name: executor-0
-                mountPath: /mnt
-        - name: success-success-edhfdn
-        container:
-            image: magnus-example:latest
-            command:
-            - magnus
-            - execute_single_node
-            - "{{workflow.parameters.run_id}}"
-            - success
-            - --log-level
-            - WARNING
-            - --file
-            - examples/contrived.yaml
-            - --config-file
-            - examples/configs/argo-config.yaml
-            volumeMounts:
-            - name: executor-0
-                mountPath: /mnt
-    arguments:
-        parameters:
-        - name: run_id
-            value: "{{workflow.uid}}"
-        - name: original_run_id
-            value: ""
-    templateDefaults:
-        limits:
-        memory: 512Mi
-        cpu: 500m
-        nvidia.com/gpu: "0"
-        requests:
-        memory: 1Gi
-        cpu: 250m
-        imagePullPolicy: ""
-        nodeSelector: {}
-        retryStrategy:
-        limit: "0"
-        retryPolicy: Always
-        activeDeadlineSeconds: 7200
-    volumes:
-        - name: executor-0
-        persistentVolumeClaim:
-            claimName: magnus-volume
-
-
+    --8<-- "examples/generated-argo-pipeline.yaml"
     ```
