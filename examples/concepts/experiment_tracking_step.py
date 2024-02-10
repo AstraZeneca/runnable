@@ -1,3 +1,11 @@
+"""
+A simple example of using experiment tracking service to track experiments.
+In this example, we are emitting metrics per step.
+
+You can run this pipeline by:
+    python run examples/concepts/experiment_tracking_step.py
+"""
+
 from pydantic import BaseModel
 
 from magnus import Pipeline, Task, track_this

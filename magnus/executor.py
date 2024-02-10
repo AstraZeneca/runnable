@@ -20,18 +20,14 @@ if TYPE_CHECKING:  # pragma: no cover
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-# --8<-- [start:docs]
 class BaseExecutor(ABC, BaseModel):
     """
     The skeleton of an executor class.
     Any implementation of an executor should inherit this class and over-ride accordingly.
 
-    This is a loaded base class which has a lot of methods already implemented for "typical" executions.
-    Look at the function docs to understand how to use them appropriately.
-
-    For any implementation:
-    1). Who/when should the run log be set up?
-    2). Who/When should the step log be set up?
+    There is a extension available in magnus/extensions/executor/__init__.py
+    which implements the most common functionality which is easier to
+    extend/override in most scenarios.
 
     """
 
@@ -447,6 +443,3 @@ class BaseExecutor(ABC, BaseModel):
 
         """
         ...
-
-
-# --8<-- [end:docs]

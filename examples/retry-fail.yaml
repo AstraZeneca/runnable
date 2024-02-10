@@ -9,7 +9,8 @@ dag:
 
 
     You can run this pipeline by:
-       magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml
+       magnus execute -f examples/retry-fail.yaml -c examples/configs/fs-catalog-run_log.yaml \
+        --run-id wrong-file-name
   start_at: Setup
   steps:
     Setup:

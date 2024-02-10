@@ -1,3 +1,11 @@
+"""
+A pipeline to demonstrate using the catalog service to create and retrieve content.
+Here we use the python API get and put in the catalog.
+
+You can run this pipeline by:
+    python run examples/concepts/catalog_api.py
+"""
+
 from pathlib import Path
 
 from magnus import get_from_catalog, put_in_catalog

@@ -1,3 +1,11 @@
+"""
+An example pipeline of accessing initial parameters and passing parameters between tasks.
+
+You can run this pipeline by:
+    python examples/concepts/task_native_parameters.py
+
+"""
+
 from pydantic import BaseModel, create_model
 
 

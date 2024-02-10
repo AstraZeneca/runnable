@@ -1,3 +1,11 @@
+"""
+An example pipeline to demonstrate the use of file-system catalog.
+
+Run this pipeline by:
+    python examples/concepts/catalog_simple.py
+
+"""
+
 from magnus import Catalog, Pipeline, Task
 
 

@@ -1,3 +1,10 @@
+"""
+A simple example of using catalog service to create and retrieve objects.
+
+You can run this pipeline by:
+    python run examples/concepts/catalog_object.py
+"""
+
 from pydantic import BaseModel
 
 from magnus import get_object, put_object

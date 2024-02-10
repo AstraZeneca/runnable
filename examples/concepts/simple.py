@@ -1,3 +1,10 @@
+"""
+A simple pipeline with a simple function that just prints "Hello World!".
+
+Run this pipeline by:
+    python examples/concepts/simple.py
+"""
+
 from magnus import Pipeline, Task
 
 

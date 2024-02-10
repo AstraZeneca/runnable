@@ -1,3 +1,16 @@
+"""
+This is a stubbed pipeline that demonstrates parallel
+    pipeline execution.
+    Note that the branches schema is same as dag schema.
+
+    All the steps are mocked and they will just pass through.
+    Use this pattern to define the skeleton of your pipeline and
+    flesh out the steps later.
+
+    You can run this pipeline by:
+       python examples/concepts/parallel.py
+"""
+
 from magnus import Parallel, Pipeline, Stub
 
 

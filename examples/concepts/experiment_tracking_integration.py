@@ -1,3 +1,13 @@
+"""
+A simple example of using experiment tracking service to track experiments.
+In this example, we integrate with mlflow as our experiment tracking service.
+
+The mlflow server is expected to be running at: http://127.0.0.1:8080
+
+You can run this pipeline by:
+    python run examples/concepts/experiment_tracking_integration.py
+"""
+
 from pydantic import BaseModel
 
 from magnus import Pipeline, Task, track_this

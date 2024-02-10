@@ -1,4 +1,3 @@
-
 Executors are the heart of magnus, they traverse the workflow and execute the tasks within the
 workflow while coordinating with different services
 (eg. [run log](../run-log), [catalog](../catalog), [secrets](../secrets) etc)
@@ -61,7 +60,8 @@ translated to argo specification just by changing the configuration.
 
     In this configuration, we are using [argo workflows](https://argoproj.github.io/argo-workflows/)
     as our workflow engine. We are also instructing the workflow engine to use a docker image,
-    ```magnus-example:latest``` defined in line #5, as our execution environment.
+    ```magnus:demo``` defined in line #4, as our execution environment. Please read
+    [containerised environments](../../configurations/container-environments) for more information.
 
     Since magnus needs to track the execution status of the workflow, we are using a ```run log```
     which is persistent and available in for jobs in kubernetes environment.
@@ -87,8 +87,6 @@ translated to argo specification just by changing the configuration.
 
 === "Transpiled Workflow"
 
-    # TODO: Need to update this
-
     In the below generated argo workflow template:
 
     - Lines 10-17 define a ```dag``` with tasks that corresponding to the tasks in
@@ -105,77 +103,94 @@ translated to argo specification just by changing the configuration.
     kind: Workflow
     metadata:
       generateName: magnus-dag-
+      annotations: {}
+      labels: {}
     spec:
+      activeDeadlineSeconds: 172800
       entrypoint: magnus-dag
+      podGC:
+        strategy: OnPodCompletion
+      retryStrategy:
+        limit: '0'
+        retryPolicy: Always
+        backoff:
+          duration: '120'
+          factor: 2
+          maxDuration: '3600'
+      serviceAccountName: default-editor
       templates:
-      - name: magnus-dag
-        failFast: true
-        dag:
-          tasks:
-          - name: shell-task-dz3l3t
-            template: shell-task-dz3l3t
-            depends: ''
-          - name: success-success-ou7qlf
-            template: success-success-ou7qlf
-            depends: shell-task-dz3l3t.Succeeded
-      - name: shell-task-dz3l3t
-        container:
-          image: magnus-example:latest
-          command:
-          - magnus
-          - execute_single_node
-          - '{{workflow.parameters.run_id}}'
-          - shell
-          - --log-level
-          - WARNING
-          - --file
-          - examples/concepts/task_shell_simple.yaml
-          - --config-file
-          - examples/configs/argo-config.yaml
-          volumeMounts:
-          - name: executor-0
-            mountPath: /mnt
-      - name: success-success-ou7qlf
-        container:
-          image: magnus-example:latest
-          command:
-          - magnus
-          - execute_single_node
-          - '{{workflow.parameters.run_id}}'
-          - success
-          - --log-level
-          - WARNING
-          - --file
-          - examples/concepts/task_shell_simple.yaml
-          - --config-file
-          - examples/configs/argo-config.yaml
-          volumeMounts:
-          - name: executor-0
-            mountPath: /mnt
+        - name: magnus-dag
+          failFast: true
+          dag:
+            tasks:
+              - name: shell-task-4jy8pl
+                template: shell-task-4jy8pl
+                depends: ''
+              - name: success-success-djhm6j
+                template: success-success-djhm6j
+                depends: shell-task-4jy8pl.Succeeded
+        - name: shell-task-4jy8pl
+          container:
+            image: magnus:demo
+            command:
+              - magnus
+              - execute_single_node
+              - '{{workflow.parameters.run_id}}'
+              - shell
+              - --log-level
+              - WARNING
+              - --file
+              - examples/concepts/task_shell_simple.yaml
+              - --config-file
+              - examples/configs/argo-config.yaml
+            volumeMounts:
+              - name: executor-0
+                mountPath: /mnt
+            imagePullPolicy: ''
+            resources:
+              limits:
+                memory: 1Gi
+                cpu: 250m
+              requests:
+                memory: 1Gi
+                cpu: 250m
+        - name: success-success-djhm6j
+          container:
+            image: magnus:demo
+            command:
+              - magnus
+              - execute_single_node
+              - '{{workflow.parameters.run_id}}'
+              - success
+              - --log-level
+              - WARNING
+              - --file
+              - examples/concepts/task_shell_simple.yaml
+              - --config-file
+              - examples/configs/argo-config.yaml
+            volumeMounts:
+              - name: executor-0
+                mountPath: /mnt
+            imagePullPolicy: ''
+            resources:
+              limits:
+                memory: 1Gi
+                cpu: 250m
+              requests:
+                memory: 1Gi
+                cpu: 250m
+      templateDefaults:
+        activeDeadlineSeconds: 7200
+        timeout: 10800s
       arguments:
         parameters:
-        - name: run_id
-          value: '{{workflow.uid}}'
-        - name: original_run_id
-          value: ''
-      templateDefaults:
-        limits:
-          memory: 512Mi
-          cpu: 500m
-          nvidia.com/gpu: '0'
-        requests:
-          memory: 1Gi
-          cpu: 250m
-        imagePullPolicy: ''
-        nodeSelector: {}
-        retryStrategy:
-          limit: '0'
-          retryPolicy: Always
-        activeDeadlineSeconds: 7200
+          - name: run_id
+            value: '{{workflow.uid}}'
       volumes:
-      - name: executor-0
-        persistentVolumeClaim:
-          claimName: magnus-volume
+        - name: executor-0
+          persistentVolumeClaim:
+            claimName: magnus-volume
+
 
     ```
 
@@ -247,7 +262,7 @@ def execute_single_node(workflow, step_name, configuration):
 
     # Get the current parameters set by the initial parameters
     # or by previous steps.
-    existing parameters = run_log.get_parameters()
+    existing_parameters = run_log.get_parameters()
     # Get the data requested by the step and populate
     # the data folder defined in the catalog configuration
     catalog.get_data(step.get_from_catalog) # (4)

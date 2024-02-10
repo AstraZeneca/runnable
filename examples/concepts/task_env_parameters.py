@@ -1,3 +1,12 @@
+"""
+An example pipeline of accessing initial parameters and passing parameters between tasks
+using environment variables.
+
+You can run this pipeline by:
+    python examples/concepts/task_env_parameters.py
+
+"""
+
 import json
 import os
 

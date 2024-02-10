@@ -7,7 +7,7 @@ Parallel nodes in magnus allows you to run multiple pipelines in parallel and us
     All the steps in the below example are ```stubbed``` for convenience. The functionality is similar
     even if the steps are execution units like ```tasks``` or any other nodes.
 
-    We support deeply nested steps. For example, a step in the parallel branch can be a ```map``` which internally
+    We support deeply [nested steps](../nesting). For example, a step in the parallel branch can be a ```map``` which internally
     loops over a ```dag``` and so on. Though this functionality is useful, it can be difficult to debug and
     understand in large code bases.
 
@@ -77,7 +77,7 @@ ensemble model happens only after both models are (successfully) trained.
     The step log for the parallel branch ```Train models``` has branches which have similar
     structure to a run log.
 
-    ```json
+    ```json linenums="1"
     {
         "run_id": "savory-pike-0201",
         "dag_hash": "",

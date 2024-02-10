@@ -286,7 +286,6 @@ class RunLog(BaseModel):
 # If you want to customize dataclass, extend BaseRunLogStore and implement the methods as per the specification
 
 
-# --8<-- [start:docs]
 class BaseRunLogStore(ABC, BaseModel):
     """
     The base class of a Run Log Store with many common methods implemented.
@@ -612,9 +611,6 @@ class BaseRunLogStore(ABC, BaseModel):
         """
         logger.info(f"{self.service_name} Creating Data Catalog for {name}")
         return DataCatalog(name=name)
-
-
-# --8<-- [end:docs]
 
 
 class BufferRunLogstore(BaseRunLogStore):

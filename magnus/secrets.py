@@ -16,10 +16,6 @@ class BaseSecrets(ABC, BaseModel):
     A base class for Secrets Handler.
     All implementations should extend this class.
 
-    Note: As a general guideline, do not extract anything from the config to set class level attributes.
-          Integration patterns modify the config after init to change behaviors.
-          Access config properties using getters/property of the class.
-
     Raises:
         NotImplementedError: Base class and not implemented
     """

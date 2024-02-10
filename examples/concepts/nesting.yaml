@@ -1,4 +1,10 @@
 dag:
+  description: |
+    An example of nesting pipelines within pipelines.
+
+    Run this pipeline by:
+      magnus execute -f example/concepts/nesting.yaml
+
   start_at: generate_list
   steps:
     generate_list:

@@ -85,8 +85,6 @@ def generate_run_id(run_id: str = "") -> str:
 
 
 def apply_variables(apply_to: Dict[str, Any], variables: Dict[str, str]) -> Dict[str, Any]:
-    # TODO: Only values should be replaced, not the keys
-    # Not sure of the above statement, check with local-container and argo
     """Safely applies the variables to a config.
 
     For example: For config:

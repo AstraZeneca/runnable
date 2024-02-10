@@ -1,3 +1,12 @@
+"""
+An example pipeline of accessing initial parameters and passing parameters between tasks
+using the python API.
+
+You can run this pipeline by:
+    python examples/concepts/task_api_parameters.py
+
+"""
+
 from pydantic import BaseModel
 
 from magnus import Pipeline, Task, get_parameter, set_parameter

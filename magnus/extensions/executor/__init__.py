@@ -332,6 +332,7 @@ class GenericExecutor(BaseExecutor):
                 logger.exception(f"Node: {node} failed")
                 step_log.status = defaults.FAIL
             else:
+                # Mock is always set to False, bad design??
                 # TODO: Stub nodes should not sync back data
                 # TODO: Errors in catalog syncing should point to Fail step
                 # TODO: Even for a failed execution, the catalog can happen

@@ -82,6 +82,7 @@ def main():
     run_log = pipeline.execute(parameters_file="examples/parameters_initial.yaml")
     params = run_log.parameters
 
+    ## Reflects the changes done by "return_parameters" function call.
     assert params["simple"] == 2
     assert params["inner"] == {"x": 30, "y": "world!!"}
 

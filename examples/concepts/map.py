@@ -1,3 +1,17 @@
+"""
+An example pipeline of using "map" to process a sequence of nodes repeatedly over a iterable
+parameter.
+
+The start_index argument for the function process_chunk is dynamically set by iterating over chunks.
+
+If the argument start_index is not provided, you can still access the current value by
+MAGNUS_MAP_VARIABLE environment variable. The environment variable MAGNUS_MAP_VARIABLE
+is a dictionary with keys as iterate_as.
+
+Run this pipeline by:
+    python examples/concepts/map.py
+"""
+
 from typing import List
 
 from pydantic import create_model

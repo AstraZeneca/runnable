@@ -52,3 +52,12 @@ The options are detailed below:
 - ```--tag``` (str): A tag attached to the run[default: ]
 - ```--run-id``` (str): An optional run_id, one would be generated if not provided
 - ```--use-cached``` (str): Provide the previous run_id to re-run.
+
+<hr style="border:2px dotted orange">
+
+## Examples
+
+All the examples in the documentation are present in the ```examples``` directory of
+[the repo](https://github.com/AstraZeneca/magnus-core) with instructions on how to run them.
+
+All the examples are tested, with multiple configurations, as part of our CI test suite.

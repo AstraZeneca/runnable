@@ -11,27 +11,29 @@ dag:
 
 
     You can run this pipeline by:
-       magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml
+       magnus execute -f examples/retry-fixed.yaml -c examples/configs/fs-catalog-run_log.yaml \
+       --use-cached wrong-file-name
+
   start_at: Setup
   steps:
     Setup:
-      type: task
+      type: task # (1)
       command_type: shell
-      command: mkdir -p data # (1)
+      command: mkdir -p data
       next: Create Content
     Create Content:
-      type: task
+      type: stub # (2)
       command_type: shell
       command: |
         echo "Hello from magnus" >> data/hello.txt
       next: Retrieve Content
-      catalog: # (2)
+      catalog:
         put:
           - data/hello.txt
     Retrieve Content:
       type: task
       command_type: shell
-      command: cat data/hello.txt # (4)
+      command: cat data/hello.txt
       catalog:
         get:
           - "data/hello.txt" # You can use wild cards following glob pattern

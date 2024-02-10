@@ -63,7 +63,7 @@ Used to execute a single unit of work. You can use [python](../../concepts/task/
     --8<-- "examples/python-tasks.yaml"
     ```
 
-    1. Note that the ```command``` is the path to the python function.
+    1. Note that the ```command``` is the [path to the python function](../../concepts/task/#python_functions).
     2. ```python``` is default command type, you can use ```shell```, ```notebook``` too.
 
 === "python"
@@ -72,7 +72,7 @@ Used to execute a single unit of work. You can use [python](../../concepts/task/
     --8<-- "examples/python-tasks.py"
     ```
 
-    1. Note that the command is the path to the function.
+    1. Note that the command is the [path to the function](../../concepts/task/#python_functions).
     2. There are many ways to define dependencies within nodes, step1 >> step2, step1 << step2 or during the definition of step1, we can define a next step.
     3. ```terminate_with_success``` indicates that the dag is completed successfully. You can also use ```terminate_with_failure``` to indicate the dag failed.
     4. Add ```success``` and ```fail``` nodes to the dag.

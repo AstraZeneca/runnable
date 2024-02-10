@@ -1,3 +1,10 @@
+"""
+Example pipeline to demonstrate passing data files between tasks.
+
+You can run this pipeline by:
+    python run examples/catalog.py
+"""
+
 from magnus import Catalog, Pipeline, Stub, Task
 
 

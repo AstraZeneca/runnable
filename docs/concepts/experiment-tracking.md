@@ -15,7 +15,7 @@ during the execution of the pipeline.
 
     You can run this example by ```python run examples/concepts/experiment_tracking_api.py```
 
-    ```python linenums="1" hl_lines="3 17-19"
+    ```python linenums="1" hl_lines="10 24-26"
     --8<-- "examples/concepts/experiment_tracking_api.py"
     ```
 
@@ -212,7 +212,7 @@ The step is defaulted to be 0.
 
     You can run this example by ```python run examples/concepts/experiment_tracking_step.py```
 
-    ```python linenums="1" hl_lines="3 17-20"
+    ```python linenums="1" hl_lines="11 25-28"
     --8<-- "examples/concepts/experiment_tracking_step.py"
     ```
 
@@ -390,6 +390,13 @@ The step is defaulted to be 0.
 
 ## Experiment tracking tools
 
+!!! note "Opt out"
+
+    Pipelines need not use the ```experiment-tracking``` if the preferred tools of choice is
+    not implemented in magnus. The default configuration of ```do-nothing``` is no-op by design.
+    We kindly request to raise a feature request to make us aware of the eco-system.
+
+
 
 The default experiment tracking tool of magnus is a no-op as the ```run log``` captures all the
 required details. To make it compatible with other experiment tracking tools like
@@ -429,7 +436,7 @@ Since mlflow does not support step wise logging of parameters, the key name is f
 
     You can run this example by ```python run examples/concepts/experiment_tracking_integration.py```
 
-    ```python linenums="1" hl_lines="3 20-23 39"
+    ```python linenums="1" hl_lines="13 27-33 49"
     --8<-- "examples/concepts/experiment_tracking_integration.py"
     ```
 

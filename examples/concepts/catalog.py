@@ -1,3 +1,10 @@
+"""
+A pipeline to demonstrate using the catalog service to create and retrieve content.
+
+You can run this pipeline by:
+    python run examples/concepts/catalog.py
+"""
+
 from pathlib import Path
 
 

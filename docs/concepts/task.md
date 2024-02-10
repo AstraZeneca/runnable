@@ -39,6 +39,7 @@ should be the dotted path to the python function.
 
 ### Example
 
+
 === "python"
 
     !!! tip inline end "Structuring"
@@ -48,6 +49,7 @@ should be the dotted path to the python function.
 
         In this example, we combined them as one module for convenience.
 
+    You can execute this pipeline using ```examples/concepts/simple.py```
 
     ```python linenums="1" hl_lines="4-8"
     --8<-- "examples/concepts/simple.py"
@@ -57,7 +59,7 @@ should be the dotted path to the python function.
 
     You can execute this by magnus execute -f examples/concepts/simple.yaml
 
-    ```python linenums="1"
+    ```yaml linenums="1"
     --8<-- "examples/concepts/simple.yaml"
     ```
 
@@ -75,7 +77,7 @@ is to execute this function.
 
 ### Fields
 
-- ```command``` : Should refer to the function in dotted path notation (#python_functions).
+- ```command``` : Should refer to the function in [dotted path notation](#python_functions).
 - ```command_type```: Defaults to python and not needed for python task types.
 - [next](../pipeline/#linking): is required for any step of the pipeline except for success and fail steps.
 - [on_failure](../pipeline/#on_failure): Name of the step to execute if the step fails.
@@ -202,7 +204,7 @@ Lets assume that the initial parameters are:
 
     Before the execution of the ```command```, all the parameters at the root level are set as environment variables
     with the key prefixed by ```MAGNUS_PRM_```. Python functions that are called during the execution of the command
-    can access them as environment variables.
+    can also access them as environment variables.
 
     After the execution of the ```command```, the environment is "scanned" again to identify changes to the existing
     variables prefixed by ```MAGNUS_PRM_```. All updated variables are stored at the root level.

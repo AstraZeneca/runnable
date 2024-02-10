@@ -1,119 +1,69 @@
 # Overview
 
-Secrets are essential in making your data science projects secure and collaborative. They could be database credentials,
-API keys or any information that need to present at the run-time but invisible at all other times.
-Magnus provides a clean interface to access/store secrets and independent of the actual secret provider,
-the interface remains the same.
+!!! note "Opt out"
 
-As with all modules of magnus, there are many secrets providers and if none fit your needs, it is easier to write
-one of your to fit your needs. In magnus, all secrets are key value pairs.
-
-## Configuration
-
-Configuration of a Secrets is as follows:
-
-```yaml
-secrets:
-  type:
-  config:
-```
-
-### type
-
-The type of secrets provider you want. This should be one of the secrets types already available.
-
-There is no default secrets provider.
-
-### config
-
-Any configuration parameters the secret provider accepts.
+    Pipelines need not use the ```secrets``` if the preferred tools of choice is
+    not implemented in magnus. The default configuration of ```do-nothing``` is no-op by design.
+    We kindly request to raise a feature request to make us aware of the eco-system.
 
 
-## Interaction with other services
+Most complex pipelines require secrets to hold sensitive information during task execution.
+They could be database credentials, API keys or any information that need to present at
+the run-time but invisible at all other times.
 
-Other service providers, like run log store or catalog, can access the secrets by using the
-```executor.secrets_handler``` of ```context``` module during the run time. This could be useful for
-constructing connection strings to database or AWS connections.
+Magnus provides a [clean API](../../interactions/#magnus.get_secret) to access secrets
+and independent of the actual secret provider, the interface remains the same.
 
-For example:
+A typical example would be a task requiring the database connection string to connect
+to a database.
 
-```python
+
+```python title="Using the secrets API"
 
 class CustomObject:
 
     @property
     def connection_object(self):
-        from magnus.context import executor
-        secrets = executor.secrets_handler.get_secrets()
+        from magnus import get_secret
+        connection_string = get_secret("connection_string")
         # Do something with the secrets
-
 ```
 
-## Interaction within code
+Please refer to [configurations](../../configurations/secrets) for available implementations.
 
-Secrets is the only implementation that requires you to ```import magnus``` in the code to access secrets.
-This is mostly to follow the best safety guidelines.
+## Example
 
-Once a secret configuration is defined as above, you can access the secret by using ```get_secret``` of magnus.
-If a key is provided to the API, we return only the value associated with the secret by the key.
-If a key is not provided, we return all the key value secret pairs provided.
-The API would raise an exception if a secret by the key requested does not exist.
+=== "dotenv format"
 
-Currently, there is no provision to update/edit secrets via code.
+    The dotenv format for providing secrets. Ideally, this file should not be part of the
+    version control but present during development phase.
 
+    The file is assumed to be present in ```examples/secrets.env``` for this example.
 
-For example if the secret key-value pairs are:
+    ```shell linenums="1"
+    --8<-- "examples/secrets.env"
+    ```
 
-```yaml
-secret_answer: 42
-secret_question: everything
-```
-
-And for the code:
-```python
-# In my_module.py
-from magnus import get_secret
-
-def my_cool_function():
-
-    secret = get_secret('secret_answer')
-
-    all_secrets = get_secret()
-
-```
-
-secret would have a value of ```42``` while all_secrets would be a dictionary
-```{'secret_answer': 42, 'secret_question': 'everything'}```
+    1. Shell scripts style are supported.
+    2. Key value based format is also supported.
 
 
-## Parameterized definition
+=== "Example configuration"
 
-As with any part of the magnus configuration, you can parameterize the configuration of secrets to switch between
-providers without changing the base definition.
+    Configuration to use the dotenv format file.
 
-Please follow the example provided [here](../dag/#parameterized_definition) for more information.
+    ```yaml linenums="1"
+    --8<-- "examples/configs/dotenv.yaml"
+    ```
+
+    1. Use dotenv secrets manager.
+    2. Location of the dotenv file, defaults to ```.env``` in project root.
 
 
-## Extensions
+=== "Pipeline in python"
 
-You can easily extend magnus to bring in your custom provider, if a default
-implementation does not exist or you are not happy with the implementation.
+    ```python linenums="1" hl_lines="12-13"
+    --8<-- "examples/secrets.py"
+    ```
 
-[Extensions are being actively developed and can be found here.](https://github.com/AstraZeneca/magnus-extensions)
-
-To implement your custom secret class, please extend BaseSecret class of magnus whose definition is given below.
-
-```python
-# Source code found in magnus/secrets.py
---8<-- "magnus/secrets.py:docs"
-
-```
-
-The custom extensions should be registered as part of the namespace: ```secrets``` for it to be
-loaded.
-
-```toml
-# For example, as part of your pyproject.toml
-[tool.poetry.plugins."secrets"]
-"k8s-secrets" = "YOUR_PACKAGE:K8sSecret"
-```
+    1. The key of the secret that you want to retrieve.

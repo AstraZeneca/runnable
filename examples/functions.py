@@ -1,3 +1,7 @@
+"""
+Utility functions used in examples.
+"""
+
 import logging
 
 from pydantic import BaseModel

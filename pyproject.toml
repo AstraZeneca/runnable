@@ -68,6 +68,7 @@ magnus= 'magnus.cli:cli'
 "local-container" = "magnus.extensions.executor.local_container.implementation:LocalContainerExecutor"
 "demo-renderer" = "magnus.extensions.executor.demo_renderer.implementation:DemoRenderer"
 "argo" = "magnus.extensions.executor.argo.implementation:ArgoExecutor"
+"mocked" = "magnus.extensions.executor.mocked.implementation:MockedExecutor"
 
 # Plugins for Catalog
 [tool.poetry.plugins."catalog"]

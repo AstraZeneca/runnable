@@ -370,15 +370,17 @@ To run the pipeline in different environments, we just provide the
 
     python:
 
-    ```MAGNUS_CONFIGURATION_FILE=examples/configs/argo-config.yaml python examples/contrived.py```
+    Please refer to [containerised environments](../../configurations/executors/container-environments/) for more information.
+
+    MAGNUS_CONFIGURATION_FILE=examples/configs/argo-config.yaml python examples/contrived.py && magnus execute -f magnus-pipeline.yaml -c examples/configs/argo-config.yaml
 
     ``` yaml linenums="1" title="Argo Configuration"
     --8<-- "examples/configs/argo-config.yaml"
     ```
 
     1. Use argo workflows as the execution engine to run the pipeline.
-    2. Run this docker image for every step of the pipeline. The docker image should have the same directory structure
-    as the project directory.
+    2. Run this docker image for every step of the pipeline. Please refer to
+    [containerised environments](../../configurations/executors/container-environments/) for more details.
     3. Mount the volume from Kubernetes persistent volumes (magnus-volume) to /mnt directory.
     4. Resource constraints for the container runtime.
     5. Since every step runs in a container, the run log should be persisted. Here we are using the file-system as our

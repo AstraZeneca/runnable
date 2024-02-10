@@ -39,7 +39,7 @@ python API to get secrets from various sources.
 
 === "Pipeline in python"
 
-    ```python linenums="1" hl_lines="9-10"
+    ```python linenums="1" hl_lines="12-13"
     --8<-- "examples/secrets.py"
     ```
 

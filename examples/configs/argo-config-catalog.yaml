@@ -1,7 +1,7 @@
 executor:
   type: "argo" # (1)
   config:
-    image: magnus:demo # (2)
+    image: $argo_docker_image # (2)
     service_account_name: default-editor
     persistent_volumes: # (3)
       - name: magnus-volume
@@ -13,7 +13,9 @@ run_log_store: # (4)
     log_folder: /mnt/run_log_store
 
 catalog:
-  type: do-nothing
+  type: file-system
+  config:
+    catalog_location: /mnt/catalog
 
 secrets:
   type: do-nothing

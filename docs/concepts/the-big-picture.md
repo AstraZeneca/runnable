@@ -29,7 +29,7 @@ To define a workflow, we need:
 
 - [Terminating](../pipeline/terminating)
 
-The workflow can be defined either in ```yaml``` or using the ```python sdk```.
+The workflow can be defined either in ```yaml``` or using the [```python sdk```](../../sdk).
 
 ---
 
@@ -107,6 +107,8 @@ A step in the workflow can be:
 
 
 === "map"
+
+    A step that executes a workflow over an [iterable parameter](../map).
 
     The step "chunk files" identifies the number of files to process and computes the start index of every
     batch of files to process for a chunk size of 10, the stride.
@@ -217,3 +219,6 @@ For example a pipeline should be able to run:
 
 - Local machines + local file system for data + database for logs + mlflow for experiment
 tracking.
+- argo executor + cloud accessible storage for data and logs + mlflow for experiment tracking
+
+without any change in the code.

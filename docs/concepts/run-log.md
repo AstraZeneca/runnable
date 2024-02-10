@@ -452,6 +452,787 @@ of the task ```access initial``` and also the hash of the data.
 
 ## Retrying failures
 
+The structure of the run log remains the same independent of the ```executor``` used to execute.
+This enables to debug failures during the execution in complex environments to be easily
+reproduced in local environments and fixed.
+
+!!! note "Shortcomings"
+
+    Currently, the support is only available for
+
+    - non-nested, linear pipelines
+    - non-chunked run log store
+
+    They are on the roadmap to be supported.
+
+
+### Example
+
+=== "Argo configuration"
+
+    The configuration file is assumed to be located at: ```examples/configs/argo-config-catalog.yaml```
+
+    ```yaml linenums="1"
+    --8<-- "examples/configs/argo-config-catalog.yaml"
+    ```
+
+=== "Faulty pipeline"
+
+    To run the pipeline in argo, change the configuration file from
+    ```examples/configs/fs-catalog-run_log.yaml``` to
+    ```examples/configs/argo-config-catalog.yaml```
+
+    ```yaml linenums="1"
+    --8<-- "examples/retry-fail.yaml"
+    ```
+
+=== "Run log in Argo"
+
+    ```json linenums="1"
+    {
+        "run_id": "toFail",
+        "dag_hash": "13f7c1b29ebb07ce058305253171ceae504e1683",
+        "use_cached": false,
+        "tag": "",
+        "original_run_id": "",
+        "status": "PROCESSING",
+        "steps": {
+            "Setup": {
+                "name": "Setup",
+                "internal_name": "Setup",
+                "status": "SUCCESS",
+                "step_type": "task",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-02-05 22:11:47.213714",
+                        "end_time": "2024-02-05 22:11:47.290352",
+                        "duration": "0:00:00.076638",
+                        "status": "SUCCESS",
+                        "message": "",
+                        "parameters": {}
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": [
+                    {
+                        "name": "Setup.execution.log",
+                        "data_hash": "b709b710424701bd86be1cca36c5ec18f412b6dbb8d4e7729ec10e44319adbaf",
+                        "catalog_relative_path": "toFail/Setup.execution.log",
+                        "catalog_handler_location": "/mnt/catalog",
+                        "stage": "put"
+                    }
+                ]
+            },
+            "Create Content": {
+                "name": "Create Content",
+                "internal_name": "Create Content",
+                "status": "SUCCESS",
+                "step_type": "task",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-02-05 22:12:14.210011",
+                        "end_time": "2024-02-05 22:12:14.225645",
+                        "duration": "0:00:00.015634",
+                        "status": "SUCCESS",
+                        "message": "",
+                        "parameters": {}
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": [
+                    {
+                        "name": "Create_Content.execution.log",
+                        "data_hash": "618e515729e00c7811865306b41e91d698c00577078e75b2e4bcf87ec9669d62",
+                        "catalog_relative_path": "toFail/Create_Content.execution.log",
+                        "catalog_handler_location": "/mnt/catalog",
+                        "stage": "put"
+                    },
+                    {
+                        "name": "data/hello.txt",
+                        "data_hash": "949a4f1afcea77b4b3f483ebe993e733122fb87b7539a3fc3d6752030be6ad44",
+                        "catalog_relative_path": "toFail/data/hello.txt",
+                        "catalog_handler_location": "/mnt/catalog",
+                        "stage": "put"
+                    }
+                ]
+            },
+            "Retrieve Content": {
+                "name": "Retrieve Content",
+                "internal_name": "Retrieve Content",
+                "status": "FAIL",
+                "step_type": "task",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-02-05 22:12:36.514484",
+                        "end_time": "2024-02-05 22:12:36.985694",
+                        "duration": "0:00:00.471210",
+                        "status": "FAIL",
+                        "message": "Command failed",
+                        "parameters": {}
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": [
+                    {
+                        "name": "data/hello.txt",
+                        "data_hash": "949a4f1afcea77b4b3f483ebe993e733122fb87b7539a3fc3d6752030be6ad44",
+                        "catalog_relative_path": "data/hello.txt",
+                        "catalog_handler_location": "/mnt/catalog",
+                        "stage": "get"
+                    },
+                    {
+                        "name": "Retrieve_Content.execution.log",
+                        "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                        "catalog_relative_path": "toFail/Retrieve_Content.execution.log",
+                        "catalog_handler_location": "/mnt/catalog",
+                        "stage": "put"
+                    }
+                ]
+            }
+        },
+        "parameters": {},
+        "run_config": {
+            "executor": {
+                "service_name": "argo",
+                "service_type": "executor",
+                "enable_parallel": false,
+                "overrides": {},
+                "image": "$argo_docker_image",
+                "expose_parameters_as_inputs": true,
+                "secrets_from_k8s": [],
+                "output_file": "argo-pipeline.yaml",
+                "name": "magnus-dag-",
+                "annotations": {},
+                "labels": {},
+                "activeDeadlineSeconds": 172800,
+                "nodeSelector": null,
+                "parallelism": null,
+                "retryStrategy": {
+                    "limit": "0",
+                    "retryPolicy": "Always",
+                    "backoff": {
+                        "duration": "120",
+                        "factor": 2,
+                        "maxDuration": "3600"
+                    }
+                },
+                "max_step_duration_in_seconds": 7200,
+                "tolerations": null,
+                "image_pull_policy": "",
+                "service_account_name": "default-editor",
+                "persistent_volumes": [
+                    {
+                        "name": "magnus-volume",
+                        "mount_path": "/mnt"
+                    }
+                ],
+                "step_timeout": 14400
+            },
+            "run_log_store": {
+                "service_name": "file-system",
+                "service_type": "run_log_store",
+                "log_folder": "/mnt/run_log_store"
+            },
+            "secrets_handler": {
+                "service_name": "do-nothing",
+                "service_type": "secrets"
+            },
+            "catalog_handler": {
+                "service_name": "file-system",
+                "service_type": "catalog",
+                "catalog_location": "/mnt/catalog"
+            },
+            "experiment_tracker": {
+                "service_name": "do-nothing",
+                "service_type": "experiment_tracker"
+            },
+            "pipeline_file": "examples/retry-fail.yaml",
+            "parameters_file": null,
+            "configuration_file": "examples/configs/argo-config-catalog.yaml",
+            "tag": "",
+            "run_id": "toFail",
+            "variables": {},
+            "use_cached": false,
+            "original_run_id": "",
+            "dag": {
+                "start_at": "Setup",
+                "name": "",
+                "description": "This is a simple pipeline that demonstrates retrying failures.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
+                "steps": {
+                    "Setup": {
+                        "type": "task",
+                        "name": "Setup",
+                        "next": "Create Content",
+                        "on_failure": "",
+                        "overrides": {},
+                        "catalog": null,
+                        "max_attempts": 1,
+                        "command_type": "shell",
+                        "command": "mkdir -p data",
+                        "node_name": "Setup"
+                    },
+                    "Create Content": {
+                        "type": "task",
+                        "name": "Create Content",
+                        "next": "Retrieve Content",
+                        "on_failure": "",
+                        "overrides": {},
+                        "catalog": {
+                            "get": [],
+                            "put": [
+                                "data/hello.txt"
+                            ]
+                        },
+                        "max_attempts": 1,
+                        "command_type": "shell",
+                        "command": "echo \"Hello from magnus\" >> data/hello.txt\n",
+                        "node_name": "Create Content"
+                    },
+                    "Retrieve Content": {
+                        "type": "task",
+                        "name": "Retrieve Content",
+                        "next": "success",
+                        "on_failure": "",
+                        "overrides": {},
+                        "catalog": {
+                            "get": [
+                                "data/hello.txt"
+                            ],
+                            "put": []
+                        },
+                        "max_attempts": 1,
+                        "command_type": "shell",
+                        "command": "cat data/hello1.txt",
+                        "node_name": "Retrieve Content"
+                    },
+                    "success": {
+                        "type": "success",
+                        "name": "success"
+                    },
+                    "fail": {
+                        "type": "fail",
+                        "name": "fail"
+                    }
+                }
+            },
+            "dag_hash": "13f7c1b29ebb07ce058305253171ceae504e1683",
+            "execution_plan": "chained"
+        }
+    }
+    ```
+
+
+=== "Fixed pipeline in local environment"
+
+    Bring the run log from K8's volumes to local machine for a retry.
+
+    ```yaml linenums="1"
+    --8<-- "examples/retry-fixed.yaml"
+    ```
+
+
+=== "Run log in local"
+
+
+    ```json linenums="1"
+    {
+        "run_id": "polynomial-bartik-2226",
+        "dag_hash": "2beec08fd417134cd3b04599d6684469db4ad176",
+        "use_cached": true,
+        "tag": "",
+        "original_run_id": "toFail",
+        "status": "SUCCESS",
+        "steps": {
+            "Setup": {
+                "name": "Setup",
+                "internal_name": "Setup",
+                "status": "SUCCESS",
+                "step_type": "task",
+                "message": "",
+                "mock": true,
+                "code_identities": [
+                    {
+                        "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": []
+            },
+            "Create Content": {
+                "name": "Create Content",
+                "internal_name": "Create Content",
+                "status": "SUCCESS",
+                "step_type": "task",
+                "message": "",
+                "mock": true,
+                "code_identities": [
+                    {
+                        "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": []
+            },
+            "Retrieve Content": {
+                "name": "Retrieve Content",
+                "internal_name": "Retrieve Content",
+                "status": "SUCCESS",
+                "step_type": "task",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-02-05 22:26:05.366143",
+                        "end_time": "2024-02-05 22:26:05.383790",
+                        "duration": "0:00:00.017647",
+                        "status": "SUCCESS",
+                        "message": "",
+                        "parameters": {}
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": [
+                    {
+                        "name": "data/hello.txt",
+                        "data_hash": "14e0a818c551fd963f9496f5b9e780f741e3ee020456c7d8b761b902fbfa4cb4",
+                        "catalog_relative_path": "data/hello.txt",
+                        "catalog_handler_location": ".catalog",
+                        "stage": "get"
+                    },
+                    {
+                        "name": "Retrieve_Content.execution.log",
+                        "data_hash": "f7911c18bf8be5131e6f61eecbeaf607758b9bf38a84b237e2aad7497ff46211",
+                        "catalog_relative_path": "polynomial-bartik-2226/Retrieve_Content.execution.log",
+                        "catalog_handler_location": ".catalog",
+                        "stage": "put"
+                    }
+                ]
+            },
+            "success": {
+                "name": "success",
+                "internal_name": "success",
+                "status": "SUCCESS",
+                "step_type": "success",
+                "message": "",
+                "mock": false,
+                "code_identities": [
+                    {
+                        "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
+                        "code_identifier_type": "git",
+                        "code_identifier_dependable": true,
+                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_message": ""
+                    }
+                ],
+                "attempts": [
+                    {
+                        "attempt_number": 1,
+                        "start_time": "2024-02-05 22:26:05.465249",
+                        "end_time": "2024-02-05 22:26:05.466008",
+                        "duration": "0:00:00.000759",
+                        "status": "SUCCESS",
+                        "message": "",
+                        "parameters": {}
+                    }
+                ],
+                "user_defined_metrics": {},
+                "branches": {},
+                "data_catalog": []
+            }
+        },
+        "parameters": {},
+        "run_config": {
+            "executor": {
+                "service_name": "local",
+                "service_type": "executor",
+                "enable_parallel": false,
+                "overrides": {}
+            },
+            "run_log_store": {
+                "service_name": "file-system",
+                "service_type": "run_log_store",
+                "log_folder": ".run_log_store"
+            },
+            "secrets_handler": {
+                "service_name": "do-nothing",
+                "service_type": "secrets"
+            },
+            "catalog_handler": {
+                "service_name": "file-system",
+                "service_type": "catalog",
+                "catalog_location": ".catalog"
+            },
+            "experiment_tracker": {
+                "service_name": "do-nothing",
+                "service_type": "experiment_tracker"
+            },
+            "pipeline_file": "examples/retry-fixed.yaml",
+            "parameters_file": null,
+            "configuration_file": "examples/configs/fs-catalog-run_log.yaml",
+            "tag": "",
+            "run_id": "polynomial-bartik-2226",
+            "variables": {
+                "argo_docker_image": "harbor.csis.astrazeneca.net/mlops/magnus:latest"
+            },
+            "use_cached": true,
+            "original_run_id": "toFail",
+            "dag": {
+                "start_at": "Setup",
+                "name": "",
+                "description": "This is a simple pipeline that demonstrates passing data between steps.\n\n1. Setup: We setup a data folder, we ignore if it is already
+    present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Clean up to get again: We remove the data folder. Note that this is stubbed
+    to prevent\n  accidental deletion of your contents. You can change type to task to make really run.\n4. Retrieve Content: We \"get\" the file \"hello.txt\" from the
+    catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n
+    magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
+                "steps": {
+                    "Setup": {
+                        "type": "task",
+                        "name": "Setup",
+                        "next": "Create Content",
+                        "on_failure": "",
+                        "overrides": {},
+                        "catalog": null,
+                        "max_attempts": 1,
+                        "command_type": "shell",
+                        "command": "mkdir -p data",
+                        "node_name": "Setup"
+                    },
+                    "Create Content": {
+                        "type": "task",
+                        "name": "Create Content",
+                        "next": "Retrieve Content",
+                        "on_failure": "",
+                        "overrides": {},
+                        "catalog": {
+                            "get": [],
+                            "put": [
+                                "data/hello.txt"
+                            ]
+                        },
+                        "max_attempts": 1,
+                        "command_type": "shell",
+                        "command": "echo \"Hello from magnus\" >> data/hello.txt\n",
+                        "node_name": "Create Content"
+                    },
+                    "Retrieve Content": {
+                        "type": "task",
+                        "name": "Retrieve Content",
+                        "next": "success",
+                        "on_failure": "",
+                        "overrides": {},
+                        "catalog": {
+                            "get": [
+                                "data/hello.txt"
+                            ],
+                            "put": []
+                        },
+                        "max_attempts": 1,
+                        "command_type": "shell",
+                        "command": "cat data/hello.txt",
+                        "node_name": "Retrieve Content"
+                    },
+                    "success": {
+                        "type": "success",
+                        "name": "success"
+                    },
+                    "fail": {
+                        "type": "fail",
+                        "name": "fail"
+                    }
+                }
+            },
+            "dag_hash": "2beec08fd417134cd3b04599d6684469db4ad176",
+            "execution_plan": "chained"
+        }
+    }
+
+    ```
+
+=== "Diff"
+
+    ```diff
+    diff .run_log_store/toFail.json .run_log_store/polynomial-bartik-2226.json
+    2,4c2,4
+    <     "run_id": "toFail",
+    <     "dag_hash": "13f7c1b29ebb07ce058305253171ceae504e1683",
+    <     "use_cached": false,
+    ---
+    >     "run_id": "polynomial-bartik-2226",
+    >     "dag_hash": "2beec08fd417134cd3b04599d6684469db4ad176",
+    >     "use_cached": true,
+    6,7c6,7
+    <     "original_run_id": "",
+    <     "status": "PROCESSING",
+    ---
+    >     "original_run_id": "toFail",
+    >     "status": "SUCCESS",
+    15c15
+    <             "mock": false,
+    ---
+    >             "mock": true,
+    25,35c25
+    <             "attempts": [
+    <                 {
+    <                     "attempt_number": 1,
+    <                     "start_time": "2024-02-05 22:11:47.213714",
+    <                     "end_time": "2024-02-05 22:11:47.290352",
+    <                     "duration": "0:00:00.076638",
+    <                     "status": "SUCCESS",
+    <                     "message": "",
+    <                     "parameters": {}
+    <                 }
+    <             ],
+    ---
+    >             "attempts": [],
+    38,46c28
+    <             "data_catalog": [
+    <                 {
+    <                     "name": "Setup.execution.log",
+    <                     "data_hash": "b709b710424701bd86be1cca36c5ec18f412b6dbb8d4e7729ec10e44319adbaf",
+    <                     "catalog_relative_path": "toFail/Setup.execution.log",
+    <                     "catalog_handler_location": "/mnt/catalog",
+    <                     "stage": "put"
+    <                 }
+    <             ]
+    ---
+    >             "data_catalog": []
+    53a36,56
+    >             "mock": true,
+    >             "code_identities": [
+    >                 {
+    >                     "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
+    >                     "code_identifier_type": "git",
+    >                     "code_identifier_dependable": true,
+    >                     "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+    >                     "code_identifier_message": ""
+    >                 }
+    >             ],
+    >             "attempts": [],
+    >             "user_defined_metrics": {},
+    >             "branches": {},
+    >             "data_catalog": []
+    >         },
+    >         "Retrieve Content": {
+    >             "name": "Retrieve Content",
+    >             "internal_name": "Retrieve Content",
+    >             "status": "SUCCESS",
+    >             "step_type": "task",
+    >             "message": "",
+    67,69c70,72
+    <                     "start_time": "2024-02-05 22:12:14.210011",
+    <                     "end_time": "2024-02-05 22:12:14.225645",
+    <                     "duration": "0:00:00.015634",
+    ---
+    >                     "start_time": "2024-02-05 22:26:05.366143",
+    >                     "end_time": "2024-02-05 22:26:05.383790",
+    >                     "duration": "0:00:00.017647",
+    79,83c82,86
+    <                     "name": "Create_Content.execution.log",
+    <                     "data_hash": "618e515729e00c7811865306b41e91d698c00577078e75b2e4bcf87ec9669d62",
+    <                     "catalog_relative_path": "toFail/Create_Content.execution.log",
+    <                     "catalog_handler_location": "/mnt/catalog",
+    <                     "stage": "put"
+    ---
+    >                     "name": "data/hello.txt",
+    >                     "data_hash": "14e0a818c551fd963f9496f5b9e780f741e3ee020456c7d8b761b902fbfa4cb4",
+    >                     "catalog_relative_path": "data/hello.txt",
+    >                     "catalog_handler_location": ".catalog",
+    >                     "stage": "get"
+    86,89c89,92
+    <                     "name": "data/hello.txt",
+    <                     "data_hash": "949a4f1afcea77b4b3f483ebe993e733122fb87b7539a3fc3d6752030be6ad44",
+    <                     "catalog_relative_path": "toFail/data/hello.txt",
+    <                     "catalog_handler_location": "/mnt/catalog",
+    ---
+    >                     "name": "Retrieve_Content.execution.log",
+    >                     "data_hash": "f7911c18bf8be5131e6f61eecbeaf607758b9bf38a84b237e2aad7497ff46211",
+    >                     "catalog_relative_path": "polynomial-bartik-2226/Retrieve_Content.execution.log",
+    >                     "catalog_handler_location": ".catalog",
+    94,98c97,101
+    <         "Retrieve Content": {
+    <             "name": "Retrieve Content",
+    <             "internal_name": "Retrieve Content",
+    <             "status": "FAIL",
+    <             "step_type": "task",
+    ---
+    >         "success": {
+    >             "name": "success",
+    >             "internal_name": "success",
+    >             "status": "SUCCESS",
+    >             "step_type": "success",
+    113,117c116,120
+    <                     "start_time": "2024-02-05 22:12:36.514484",
+    <                     "end_time": "2024-02-05 22:12:36.985694",
+    <                     "duration": "0:00:00.471210",
+    <                     "status": "FAIL",
+    <                     "message": "Command failed",
+    ---
+    >                     "start_time": "2024-02-05 22:26:05.465249",
+    >                     "end_time": "2024-02-05 22:26:05.466008",
+    >                     "duration": "0:00:00.000759",
+    >                     "status": "SUCCESS",
+    >                     "message": "",
+    123,138c126
+    <             "data_catalog": [
+    <                 {
+    <                     "name": "data/hello.txt",
+    <                     "data_hash": "949a4f1afcea77b4b3f483ebe993e733122fb87b7539a3fc3d6752030be6ad44",
+    <                     "catalog_relative_path": "data/hello.txt",
+    <                     "catalog_handler_location": "/mnt/catalog",
+    <                     "stage": "get"
+    <                 },
+    <                 {
+    <                     "name": "Retrieve_Content.execution.log",
+    <                     "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    <                     "catalog_relative_path": "toFail/Retrieve_Content.execution.log",
+    <                     "catalog_handler_location": "/mnt/catalog",
+    <                     "stage": "put"
+    <                 }
+    <             ]
+    ---
+    >             "data_catalog": []
+    144c132
+    <             "service_name": "argo",
+    ---
+    >             "service_name": "local",
+    147,177c135
+    <             "overrides": {},
+    <             "image": "$argo_docker_image",
+    <             "expose_parameters_as_inputs": true,
+    <             "secrets_from_k8s": [],
+    <             "output_file": "argo-pipeline.yaml",
+    <             "name": "magnus-dag-",
+    <             "annotations": {},
+    <             "labels": {},
+    <             "activeDeadlineSeconds": 172800,
+    <             "nodeSelector": null,
+    <             "parallelism": null,
+    <             "retryStrategy": {
+    <                 "limit": "0",
+    <                 "retryPolicy": "Always",
+    <                 "backoff": {
+    <                     "duration": "120",
+    <                     "factor": 2,
+    <                     "maxDuration": "3600"
+    <                 }
+    <             },
+    <             "max_step_duration_in_seconds": 7200,
+    <             "tolerations": null,
+    <             "image_pull_policy": "",
+    <             "service_account_name": "default-editor",
+    <             "persistent_volumes": [
+    <                 {
+    <                     "name": "magnus-volume",
+    <                     "mount_path": "/mnt"
+    <                 }
+    <             ],
+    <             "step_timeout": 14400
+    ---
+    >             "overrides": {}
+    182c140
+    <             "log_folder": "/mnt/run_log_store"
+    ---
+    >             "log_folder": ".run_log_store"
+    191c149
+    <             "catalog_location": "/mnt/catalog"
+    ---
+    >             "catalog_location": ".catalog"
+    197c155
+    <         "pipeline_file": "examples/retry-fail.yaml",
+    ---
+    >         "pipeline_file": "examples/retry-fixed.yaml",
+    199c157
+    <         "configuration_file": "examples/configs/argo-config-catalog.yaml",
+    ---
+    >         "configuration_file": "examples/configs/fs-catalog-run_log.yaml",
+    201,204c159,164
+    <         "run_id": "toFail",
+    <         "variables": {},
+    <         "use_cached": false,
+    <         "original_run_id": "",
+    ---
+    >         "run_id": "polynomial-bartik-2226",
+    >         "variables": {
+    >             "argo_docker_image": "harbor.csis.astrazeneca.net/mlops/magnus:latest"
+    >         },
+    >         "use_cached": true,
+    >         "original_run_id": "toFail",
+    208c168
+    <             "description": "This is a simple pipeline that demonstrates retrying failures.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
+    ---
+    >             "description": "This is a simple pipeline that demonstrates passing data between steps.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Clean up to get again: We remove the data folder. Note that this is stubbed to prevent\n  accidental deletion of your contents. You can change type to task to make really run.\n4. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
+    253c213
+    <                     "command": "cat data/hello1.txt",
+    ---
+    >                     "command": "cat data/hello.txt",
+    266c226
+    <         "dag_hash": "13f7c1b29ebb07ce058305253171ceae504e1683",
+    ---
+    >         "dag_hash": "2beec08fd417134cd3b04599d6684469db4ad176",
+    ```
+
 
 ## API
 

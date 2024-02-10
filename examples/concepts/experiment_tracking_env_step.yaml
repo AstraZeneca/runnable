@@ -5,7 +5,7 @@ dag:
     'MAGNUS_TRACK_' will be recorded as a metric captured during the step.
 
     You can run this pipeline as:
-      magnus execute -f examples/concepts/experiment_tracking_env.yaml
+      magnus execute -f examples/concepts/experiment_tracking_env_step.yaml
 
   start_at: shell
   steps:

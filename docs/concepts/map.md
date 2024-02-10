@@ -5,6 +5,7 @@
 Conceptually, map node can be represented in python like below.
 
 ```python
+#technically it is async for
 for i in iterable_parameter:
     # a pipeline of steps
     execute_first_step(i)
@@ -94,7 +95,7 @@ of the files to process.
 
     You can run this example by ```python examples/concepts/map.py```
 
-    ```python linenums="1" hl_lines="21 52-58"
+    ```python linenums="1" hl_lines="21 53-60"
     --8<-- "examples/concepts/map.py"
     ```
 
@@ -134,7 +135,7 @@ of the files to process.
     The step log of the ```iterate and execute``` has branches for every dynamically executed branch
     of the format ```iterate and execute.<iterate_as value>```.
 
-    ```json
+    ```json linenums="1"
     {
         "run_id": "simple-turing-0153",
         "dag_hash": "",

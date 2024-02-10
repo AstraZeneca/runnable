@@ -1,4 +1,9 @@
 dag:
+  description: |
+    A simple pipeline with a simple function that just prints "Hello World!".
+
+    Run this pipeline by:
+      magnus execute -f  examples/concepts/simple.yaml
   start_at: simple
   steps:
     simple:

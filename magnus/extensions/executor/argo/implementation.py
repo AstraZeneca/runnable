@@ -21,6 +21,7 @@ from magnus.nodes import BaseNode
 
 logger = logging.getLogger(defaults.NAME)
 
+# TODO: Leave the run log in consistent state.
 
 """
 executor:
@@ -571,7 +572,7 @@ class Spec(BaseModel):
     node_selector: Optional[Dict[str, str]] = Field(default_factory=dict, serialization_alias="nodeSelector")
     tolerations: Optional[List[Toleration]] = Field(default=None, serialization_alias="tolerations")
     parallelism: Optional[int] = Field(default=None, serialization_alias="parallelism")
-    # This has to be user driven
+    # TODO: This has to be user driven
     pod_gc: Dict[str, str] = Field(default={"strategy": "OnPodCompletion"}, serialization_alias="podGC")
 
     retry_strategy: Retry = Field(default=Retry(), serialization_alias="retryStrategy")
@@ -907,9 +908,11 @@ class ArgoExecutor(GenericExecutor):
 
         container_template = ContainerTemplate(
             name=clean_name,
-            active_deadline_seconds=override.max_step_duration_in_seconds
-            if self.max_step_duration_in_seconds != override.max_step_duration_in_seconds
-            else None,
+            active_deadline_seconds=(
+                override.max_step_duration_in_seconds
+                if self.max_step_duration_in_seconds != override.max_step_duration_in_seconds
+                else None
+            ),
             container=container,
             retry_strategy=override.retry_strategy if self.retry_strategy != override.retry_strategy else None,
             tolerations=override.tolerations if self.tolerations != override.tolerations else None,
