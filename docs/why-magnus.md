@@ -27,7 +27,7 @@ versions of essential services—such as execution engines, data catalogs, secre
 experiment tracking—without necessitating intricate configuration. As the project transitions into the
 production phase, these local stand-ins are replaced with their robust, production-grade counterparts.
 
-### Remove refactoring
+### Reduce refactoring
 
 Transitioning from the proof of concept (PoC) phase to production often necessitates extensive code
 refactoring, which presents significant challenges:
@@ -115,7 +115,7 @@ to allow orchestrating notebooks.
 
 ### Testing pipelines
 
-Magnus supports patching tasks and mocking tasks to test the end to end execution of the
+Magnus supports patching and mocking tasks to test the end to end execution of the
 pipeline. It is not clear on how to achieve the same in kedro or metaflow.
 
 ### Learning curve
@@ -129,3 +129,10 @@ In contrast, learning to use Kedro and Metaflow can take more time because they 
 specific ways of structuring projects and code that users need to learn.
 
 ### Language support
+
+Kedro and metaflow only support python based pipeline definitions. It is possible to
+run the non-python tasks as ```subprocesses``` in the pipeline tasks but the definition
+is only possible using the python API.
+
+Magnus supports ```yaml``` based pipeline definitions and has ```shell``` tasks which
+can be used for non-python tasks.

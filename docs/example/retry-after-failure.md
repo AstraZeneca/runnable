@@ -583,3 +583,11 @@ Below is an example of retrying a pipeline that failed.
         }
     }
     ```
+
+
+Magnus also supports [```mocked``` executor](../../configurations/executors/mocked) which can
+patch and mock tasks to isolate and focus on the failed task. Since python functions and notebooks
+are run in the same shell, it is possible to use
+[python debugger](https://docs.python.org/3/library/pdb.html) and
+[ploomber debugger](https://engine.ploomber.io/en/docs/user-guide/debugging/debuglater.html)
+to debug failed tasks.

@@ -434,6 +434,7 @@ class Pipeline(BaseModel):
                 Only applicable for the execution via SDK for non ```local``` executors.
         """
         from magnus.extensions.executor.local.implementation import LocalExecutor
+        from magnus.extensions.executor.mocked.implementation import MockedExecutor
 
         logger.setLevel(log_level)
 
@@ -457,7 +458,7 @@ class Pipeline(BaseModel):
         print("Working with context:")
         print(run_context)
 
-        if not isinstance(run_context.executor, LocalExecutor):
+        if not (isinstance(run_context.executor, LocalExecutor) or isinstance(run_context.executor, MockedExecutor)):
             logger.debug(run_context.dag.model_dump(by_alias=True))
             yaml = YAML()
 

@@ -8,5 +8,5 @@ executor:
   type: mocked
   config:
     patches:
-      chunk files:
-        command: examples.concepts.map.chunk_files
+      step 1:
+        command: exit 0

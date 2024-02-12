@@ -1,23 +1,31 @@
 import copy
 import logging
-from typing import Any, Dict, cast
+from typing import Any, Dict, Type, cast
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from magnus import context, defaults
 from magnus.defaults import TypeMapVariable
 from magnus.extensions.executor import GenericExecutor
 from magnus.extensions.nodes import TaskNode
 from magnus.nodes import BaseNode
-from magnus.tasks import PythonTaskType
+from magnus.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
+
+
+def create_executable(params: Dict[str, Any], model: Type[BaseTaskType], node_name: str) -> BaseTaskType:
+    class EasyModel(model):  # type: ignore
+        model_config = ConfigDict(extra="ignore")
+
+    swallow_all = EasyModel(**params, node_name=node_name)
+    return swallow_all
 
 
 class MockedExecutor(GenericExecutor):
     service_name: str = "mocked"
 
-    patches: Dict[str, str] = Field(default_factory=dict)
+    patches: Dict[str, Any] = Field(default_factory=dict)
 
     @property
     def _context(self):
@@ -78,7 +86,12 @@ class MockedExecutor(GenericExecutor):
         else:
             # node is mocked, change the executable to python with the
             # command as the patch value
-            executable = PythonTaskType(node_name=node_to_send.name, command=self.patches[node.name])
+            executable_type = node_to_send.executable.__class__
+            executable = create_executable(
+                self.patches[node.name],
+                executable_type,
+                node_name=node.name,
+            )
             node_to_send.executable = executable
             pass
 

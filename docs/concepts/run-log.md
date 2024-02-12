@@ -463,7 +463,7 @@ reproduced in local environments and fixed.
     - non-nested, linear pipelines
     - non-chunked run log store
 
-    They are on the roadmap to be supported.
+    [mocked executor](../../configurations/executors/mocked) provides better support in debugging failures.
 
 
 ### Example

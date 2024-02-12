@@ -1,3 +1,18 @@
+"""
+This is a simple pipeline to demonstrate failure in a step.
+
+    The default behavior is to traverse to step type fail and mark the run as failed.
+    But you can control it by providing on_failure.
+
+    In this example: step 1 fails and moves to step 3 skipping step 2. The pipeline status
+    is considered to be success.
+
+    step 1 (FAIL) >> step 3 >> success
+
+    You can run this example by:
+    python examples/on_failure.py
+"""
+
 from magnus import Pipeline, Stub, Task
 
 

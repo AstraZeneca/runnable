@@ -139,6 +139,7 @@ nav:
       - "Overview": "configurations/overview.md"
       - "Executor":
           - "local": "configurations/executors/local.md"
+          - "mocked": "configurations/executors/mocked.md"
           - "local-container": "configurations/executors/local-container.md"
           - "argo workflows": "configurations/executors/argo.md"
           - "container environments": "configurations/executors/container-environments.md"

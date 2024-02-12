@@ -397,7 +397,6 @@ The step is defaulted to be 0.
     We kindly request to raise a feature request to make us aware of the eco-system.
 
 
-
 The default experiment tracking tool of magnus is a no-op as the ```run log``` captures all the
 required details. To make it compatible with other experiment tracking tools like
 [mlflow](https://mlflow.org/docs/latest/tracking.html) or
@@ -417,6 +416,15 @@ Since mlflow does not support step wise logging of parameters, the key name is f
 
 - The tag associate with an execution is used as the
 [experiment name](https://mlflow.org/docs/latest/tracking/tracking-api.html#organizing-runs-in-experiments).
+
+
+!!! note inline end "Shortcomings"
+
+    Experiment tracking capabilities of magnus are inferior in integration with
+    popular python frameworks like pytorch and tensorflow as compared to other
+    experiment tracking tools.
+
+    We strongly advise to use them if you need advanced capabilities.
 
 
 === "Example configuration"

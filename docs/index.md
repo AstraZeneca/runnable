@@ -10,6 +10,38 @@ sidebarDepth: 0
 
 ---
 
+Magnus is a simplified workflow definition language that helps in:
+
+- **Streamlined Design Process:** Magnus enables users to efficiently plan their pipelines with
+[stubbed nodes](../concepts/stub), along with offering support for various structures such as
+[tasks](../concepts/task), [parallel branches](../concepts/parallel), and [loops or map branches](../concepts/map)
+in both [yaml](../concepts/pipeline) or a [python SDK](../sdk) for maximum flexibility.
+
+- **Incremental Development:** Build your pipeline piece by piece with Magnus, which allows for the
+implementation of tasks as [python functions](../concepts/task/#python_functions),
+[notebooks](../concepts/task/#notebooks), or [shell scripts](../concepts/task/#shell),
+adapting to the developer's preferred tools and methods.
+
+- **Robust Testing:** Ensure your pipeline performs as expected with the ability to test using sampled data. Magnus
+also provides the capability to [mock and patch tasks](../configurations/executors/mocked)
+for thorough evaluation before full-scale deployment.
+
+- **Seamless Deployment:** Transition from the development stage to production with ease.
+Magnus simplifies the process by requiring [only configuration changes](../configurations/overview)
+to adapt to different environments, including support for [argo workflows](../configurations/executors/argo).
+
+- **Efficient Debugging:** Quickly identify and resolve issues in pipeline execution with Magnus's local
+debugging features. Retrieve data from failed tasks and [retry failures](../concepts/run-log/#retrying_failures)
+using your chosen debugging tools to maintain a smooth development experience.
+
+
+Along with the developer friendly features, magnus also acts as an interface to production grade concepts
+such as [data catalog](../concepts/catalog), [reproducibility](../concepts/run-log),
+[experiment tracking](../concepts/experiment-tracking)
+and secure [access to secrets](../concepts/secrets).
+
+## Motivation
+
 Successful data science projects require a varied set of skills from data scientists, ML engineers, and infrastructure
 teams. Often, the roles and responsibilities of these personas are blurred leading to projects that are difficult to
 maintain, test, reproduce or run at scale.
