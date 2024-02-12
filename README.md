@@ -85,7 +85,7 @@ poetry add magnus
 ## Example
 
 <table>
-<tr><th>SDK/th><th>Mermaid</th></tr>
+<tr><th>SDK</th><th>Mermaid</th></tr>
 <tr>
 <td valign="top"><p>
 
