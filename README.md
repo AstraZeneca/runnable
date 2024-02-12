@@ -369,3 +369,117 @@ spec:
 ```
 
 </details>
+
+## Pipelines can be:
+
+### Linear
+
+A simple linear pipeline with tasks either a python functions, shell scripts or notebooks.
+
+``` mermaid
+%%{ init: { 'flowchart': { 'curve': 'linear' } } }%%
+flowchart LR
+
+    step1:::green
+    step1([Step 1]) --> step2:::green
+    step2([Step 2]) --> step3:::green
+    step3([Step ...]) --> step4:::green
+    step4([Step n]) --> suc([success]):::green
+
+    classDef green stroke:#0f0
+
+```
+
+### Parallel branches
+
+Execute branches in parallel.
+
+```mermaid
+flowchart TD
+
+    getFeatures([Get Features]):::green
+    trainStep(Train Models):::green
+    ensembleModel([Ensemble Modelling]):::green
+    inference([Run Inference]):::green
+    success([Success]):::green
+
+    prepareXG([Prepare for XGBoost]):::yellow
+    trainXG([Train XGBoost]):::yellow
+    successXG([XGBoost success]):::yellow
+    prepareXG --> trainXG --> successXG
+
+    trainRF([Train RF model]):::yellow
+    successRF([RF Model success]):::yellow
+    trainRF --> successRF
+
+
+    getFeatures --> trainStep
+    trainStep --> prepareXG
+    trainStep --> trainRF
+    successXG --> ensembleModel
+    successRF --> ensembleModel
+    ensembleModel --> inference
+    inference --> success
+
+
+    classDef yellow stroke:#FFFF00
+    classDef green stroke:#0f0
+
+
+```
+
+### loops or map
+
+Execute a branch over a parameter.
+
+```mermaid
+flowchart TD
+chunkify([Chunk files]):::green
+success([Success]):::green
+
+subgraph one[Process Chunk]
+    process_chunk1([Process Chunk]):::yellow
+    success_chunk1([Success]):::yellow
+
+    process_chunk1 --> success_chunk1
+end
+
+subgraph two[Process Chunk]
+    process_chunk2([Process Chunk]):::yellow
+    success_chunk2([Success]):::yellow
+
+    process_chunk2 --> success_chunk2
+end
+
+subgraph three[Process Chunk]
+    process_chunk3([Process Chunk]):::yellow
+    success_chunk3([Success]):::yellow
+
+    process_chunk3 --> success_chunk3
+end
+
+subgraph four[Process Chunk]
+    process_chunk4([Process Chunk]):::yellow
+    success_chunk4([Success]):::yellow
+
+    process_chunk4 --> success_chunk4
+end
+
+subgraph five[Process Chunk]
+    process_chunk5([Process Chunk]):::yellow
+    success_chunk5([Success]):::yellow
+
+    process_chunk5 --> success_chunk5
+end
+
+
+
+chunkify -- (stride=10, start_index=0)--> one --> success
+chunkify -- (stride=10, start_index=10)--> two --> success
+chunkify -- (stride=10, start_index=20)--> three --> success
+chunkify -- (stride=10, start_index=30)--> four --> success
+chunkify -- (stride=10, start_index=40)--> five --> success
+
+classDef yellow stroke:#FFFF00
+classDef green stroke:#0f0
+```
