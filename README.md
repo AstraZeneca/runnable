@@ -374,112 +374,21 @@ spec:
 
 ### Linear
 
-A simple linear pipeline with tasks either a python functions, shell scripts or notebooks.
+A simple linear pipeline with tasks either
+[python functions](https://astrazeneca.github.io/magnus-core/concepts/task/#python_functions),
+[notebooks](https://astrazeneca.github.io/magnus-core/concepts/task/#notebooks), or [shell scripts](https://astrazeneca.github.io/magnus-core/concepts/task/#shell)
 
-``` mermaid
-%%{ init: { 'flowchart': { 'curve': 'linear' } } }%%
-flowchart LR
+[![](https://mermaid.ink/img/pako:eNpl0bFuwyAQBuBXQVdZTqTESpxMDJ0ytkszhgwnOCcoNo4OaFVZfvcSx20tGSQ4fn0wHB3o1hBIyLJOWGeDFJ3Iq7r90lfkkA9HHfmTUpnX1hFyLvrHzDLl_qB4-1BOOZGGD3TfSikvTDSNFqdj2sT2vBTr9euQlXNWjqycsN2c7UZWFMUE7udwP0L3y6JenNKiyfvz8t8_b-gavT9QJYY0PcDtjeTLptrAChriBq1JzeoeWkG4UkMKZCoN8k2Bcn1yGEN7_HYaZOBIK4h3g4EOFi-MDcgKa59SMja0_P7s_vAJ_Q_YOH6o?type=png)](https://mermaid.live/edit#pako:eNpl0bFuwyAQBuBXQVdZTqTESpxMDJ0ytkszhgwnOCcoNo4OaFVZfvcSx20tGSQ4fn0wHB3o1hBIyLJOWGeDFJ3Iq7r90lfkkA9HHfmTUpnX1hFyLvrHzDLl_qB4-1BOOZGGD3TfSikvTDSNFqdj2sT2vBTr9euQlXNWjqycsN2c7UZWFMUE7udwP0L3y6JenNKiyfvz8t8_b-gavT9QJYY0PcDtjeTLptrAChriBq1JzeoeWkG4UkMKZCoN8k2Bcn1yGEN7_HYaZOBIK4h3g4EOFi-MDcgKa59SMja0_P7s_vAJ_Q_YOH6o)
 
-    step1:::green
-    step1([Step 1]) --> step2:::green
-    step2([Step 2]) --> step3:::green
-    step3([Step ...]) --> step4:::green
-    step4([Step n]) --> suc([success]):::green
+### [Parallel branches](https://astrazeneca.github.io/magnus-core/concepts/parallel)
 
-    classDef green stroke:#0f0
+Execute branches in parallel
 
-```
-
-### Parallel branches
-
-Execute branches in parallel.
-
-```mermaid
-flowchart TD
-
-    getFeatures([Get Features]):::green
-    trainStep(Train Models):::green
-    ensembleModel([Ensemble Modelling]):::green
-    inference([Run Inference]):::green
-    success([Success]):::green
-
-    prepareXG([Prepare for XGBoost]):::yellow
-    trainXG([Train XGBoost]):::yellow
-    successXG([XGBoost success]):::yellow
-    prepareXG --> trainXG --> successXG
-
-    trainRF([Train RF model]):::yellow
-    successRF([RF Model success]):::yellow
-    trainRF --> successRF
+[![](https://mermaid.ink/img/pako:eNp9k01vgzAMhv9KlF2Y1Eqcc9hh6qh2qDRBD5XIDhkYigoJSoKqqup_XxI-SquUnBzz2H5tnCvORA6Y4KIW5-zIpEb7DeWUo-GUoCNgupOggnQLGo2333dCSCkBZrCWrOKJhjbYWwvtTO5aeUDgCpq_GhwQpF_DtQ-oK176sle8AAk8gyCNO46-x6uPVV2WgTKSk96YM3eqldAyCYdtkP70JiqERIftpxBKu5iL0SPOTy3agL7DJXTQYOEBG11efBKD1uuPsY6zp0T0edZxNAqJI9TY4S0psbTh3JAXpQy558XjiPIXe3HXa3-9ZxscMLX3ChiKeubnPj-sjKe1JejB7cBplzzrNW_7semsZkptoED9wJDSUpyAvEXmhKGHcxs3YWER4hVuQDasys2bu9oIivURGqCYGDNn8kQx5TfDsU6L5MIzTLTsYIW7NmcaNhUrJWswKVitjBfySgu56x-xe8u3fwRRNyE?type=png)](https://mermaid.live/edit#pako:eNp9k01vgzAMhv9KlF2Y1Eqcc9hh6qh2qDRBD5XIDhkYigoJSoKqqup_XxI-SquUnBzz2H5tnCvORA6Y4KIW5-zIpEb7DeWUo-GUoCNgupOggnQLGo2333dCSCkBZrCWrOKJhjbYWwvtTO5aeUDgCpq_GhwQpF_DtQ-oK176sle8AAk8gyCNO46-x6uPVV2WgTKSk96YM3eqldAyCYdtkP70JiqERIftpxBKu5iL0SPOTy3agL7DJXTQYOEBG11efBKD1uuPsY6zp0T0edZxNAqJI9TY4S0psbTh3JAXpQy558XjiPIXe3HXa3-9ZxscMLX3ChiKeubnPj-sjKe1JejB7cBplzzrNW_7semsZkptoED9wJDSUpyAvEXmhKGHcxs3YWER4hVuQDasys2bu9oIivURGqCYGDNn8kQx5TfDsU6L5MIzTLTsYIW7NmcaNhUrJWswKVitjBfySgu56x-xe8u3fwRRNyE)
 
 
-    getFeatures --> trainStep
-    trainStep --> prepareXG
-    trainStep --> trainRF
-    successXG --> ensembleModel
-    successRF --> ensembleModel
-    ensembleModel --> inference
-    inference --> success
+### [loops or map](https://astrazeneca.github.io/magnus-core/concepts/map)
 
+Execute a pipeline over an iterable parameter.
 
-    classDef yellow stroke:#FFFF00
-    classDef green stroke:#0f0
-
-
-```
-
-### loops or map
-
-Execute a branch over a parameter.
-
-```mermaid
-flowchart TD
-chunkify([Chunk files]):::green
-success([Success]):::green
-
-subgraph one[Process Chunk]
-    process_chunk1([Process Chunk]):::yellow
-    success_chunk1([Success]):::yellow
-
-    process_chunk1 --> success_chunk1
-end
-
-subgraph two[Process Chunk]
-    process_chunk2([Process Chunk]):::yellow
-    success_chunk2([Success]):::yellow
-
-    process_chunk2 --> success_chunk2
-end
-
-subgraph three[Process Chunk]
-    process_chunk3([Process Chunk]):::yellow
-    success_chunk3([Success]):::yellow
-
-    process_chunk3 --> success_chunk3
-end
-
-subgraph four[Process Chunk]
-    process_chunk4([Process Chunk]):::yellow
-    success_chunk4([Success]):::yellow
-
-    process_chunk4 --> success_chunk4
-end
-
-subgraph five[Process Chunk]
-    process_chunk5([Process Chunk]):::yellow
-    success_chunk5([Success]):::yellow
-
-    process_chunk5 --> success_chunk5
-end
-
-
-
-chunkify -- (stride=10, start_index=0)--> one --> success
-chunkify -- (stride=10, start_index=10)--> two --> success
-chunkify -- (stride=10, start_index=20)--> three --> success
-chunkify -- (stride=10, start_index=30)--> four --> success
-chunkify -- (stride=10, start_index=40)--> five --> success
-
-classDef yellow stroke:#FFFF00
-classDef green stroke:#0f0
-```
+[![](https://mermaid.ink/img/pako:eNqVlF1rwjAUhv9KyG4qKNR-3AS2m8nuBgN3Z0Sy5tQG20SSdE7E_76kVVEr2CY3Ied9Tx6Sk3PAmeKACc5LtcsKpi36nlGZFbXciHwfLN79CuWiBLMcEULWGkBSaeosA2OCxbxdXMd89Get2bZASsLiSyuvQE2mJZXIjW27t2rOmQZ3Gp9rD6UjatWnwy7q6zPPukd50WTydmemEiS_QbQ79RwxGoQY9UaMuojRA8TCXexzyHgQZNwbMu5Cxl3IXNX6OWMyiDHpzZh0GZMHjOK3xz2mgxjT3oxplzG9MPp5_nVOhwJjteDwOg3HyFj3L1dCcvh7DUc-iftX18n6Waet1xX8cG908vpKHO6OW7cvkeHm5GR2b3drdvaSGTODHLW37mxabYC8fLgRhlfxpjNdwmEets-Dx7gCXTHBXQc8-D2KbQEVUEzckjO9oZjKo9Ox2qr5XmaYWF3DGNdbzizMBHOVVWGSs9K4XeDCKv3ZttSmsx7_AYa341E?type=png)](https://mermaid.live/edit#pako:eNqVlF1rwjAUhv9KyG4qKNR-3AS2m8nuBgN3Z0Sy5tQG20SSdE7E_76kVVEr2CY3Ied9Tx6Sk3PAmeKACc5LtcsKpi36nlGZFbXciHwfLN79CuWiBLMcEULWGkBSaeosA2OCxbxdXMd89Get2bZASsLiSyuvQE2mJZXIjW27t2rOmQZ3Gp9rD6UjatWnwy7q6zPPukd50WTydmemEiS_QbQ79RwxGoQY9UaMuojRA8TCXexzyHgQZNwbMu5Cxl3IXNX6OWMyiDHpzZh0GZMHjOK3xz2mgxjT3oxplzG9MPp5_nVOhwJjteDwOg3HyFj3L1dCcvh7DUc-iftX18n6Waet1xX8cG908vpKHO6OW7cvkeHm5GR2b3drdvaSGTODHLW37mxabYC8fLgRhlfxpjNdwmEets-Dx7gCXTHBXQc8-D2KbQEVUEzckjO9oZjKo9Ox2qr5XmaYWF3DGNdbzizMBHOVVWGSs9K4XeDCKv3ZttSmsx7_AYa341E)
