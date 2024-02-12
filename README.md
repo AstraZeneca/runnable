@@ -84,10 +84,10 @@ poetry add magnus
 
 ## Example
 
-<table>
+<table width="100%">
 <tr><th>SDK</th><th>Mermaid</th></tr>
 <tr>
-<td valign="top"><p>
+<td valign="top" width="50%"><p>
 
 ```python
 """
@@ -128,7 +128,7 @@ if __name__ == "__main__":
 ```
 
 </p></td>
-<td valign="top"><p>
+<td width="50%"><p>
 
 ``` mermaid
 %%{ init: { 'flowchart': { 'curve': 'linear' } } }%%
