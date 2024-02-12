@@ -62,86 +62,310 @@ and secure [access to secrets](https://astrazeneca.github.io/magnus-core/concept
 
 ## Installation
 
-<!--- --8<-- [start:installation] -->
-
 The minimum python version that magnus supports is 3.8
-## pip
-
-magnus is a python package and should be installed as any other.
 
 ```shell
 pip install magnus
 ```
 
-We recommend that you install magnus in a virtual environment specific to the project and also poetry for your
-application development.
+Please look at the [installation guide](https://astrazeneca.github.io/magnus-core/usage)
+for more information.
 
-The command to install in a poetry managed virtual environment
-
-```
-poetry add magnus
-```
 
 ## Example
 
-<table width="100%">
-<tr><th>SDK</th><th>Mermaid</th></tr>
-<tr>
-<td valign="top" width="50%"><p>
+Your application code. Use pydantic models as DTO.
+
+Assumed to be present at ```functions.py```
+```python
+from pydantic import BaseModel
+
+class InnerModel(BaseModel):
+    """
+    A pydantic model representing a group of related parameters.
+    """
+
+    foo: int
+    bar: str
+
+
+class Parameter(BaseModel):
+    """
+    A pydantic model representing the parameters of the whole pipeline.
+    """
+
+    x: int
+    y: InnerModel
+
+
+def return_parameter() -> Parameter:
+    """
+    The annotation of the return type of the function is not mandatory
+    but it is a good practice.
+
+    Returns:
+        Parameter: The parameters that should be used in downstream steps.
+    """
+    # Return type of a function should be a pydantic model
+    return Parameter(x=1, y=InnerModel(foo=10, bar="hello world"))
+
+
+def display_parameter(x: int, y: InnerModel):
+    """
+    Annotating the arguments of the function is important for
+    magnus to understand the type of parameters you want.
+
+    Input args can be a pydantic model or the individual attributes.
+    """
+    print(x)
+    # >>> prints 1
+    print(y)
+    # >>> prints InnerModel(foo=10, bar="hello world")
+```
+
+### Application code without magnus using driver functions.
+
+The code is runnable without any orchestration framework.
 
 ```python
-"""
-This is a stubbed pipeline that does 4 steps in sequence.
-All the steps are mocked and they will just pass through.
-Use this pattern to define the skeleton of your pipeline and flesh out the steps later.
+from functions import return_parameter, display_parameter
 
-You can run this pipeline by python run examples/contrived.py
-"""
+my_param = return_parameter()
+display_parameter(my_param.x, my_param.y)
+```
 
-from magnus import Pipeline, Stub
+### Orchestration using magnus
 
+<table>
+<tr>
+    <th>python SDK</th>
+    <th>yaml</th>
+</tr>
+<tr>
+<td valign="top"><p>
+
+Example present at: ```examples/python-tasks.py```
+
+Run it as: ```python examples/python-tasks.py```
+
+```python
+from magnus import Pipeline, Task
 
 def main():
-    acquire_data = Stub(name="Acquire Data", next="Prepare Data")  # (1)
+    step1 = Task(
+        name="step1",
+        command="examples.functions.return_parameter",
+    )
+    step2 = Task(
+        name="step2",
+        command="examples.functions.display_parameter",
+        terminate_with_success=True,
+    )
 
-    prepare_data = Stub(name="Prepare Data")
-
-    extract_features = Stub(name="Extract Features").depends_on(prepare_data)
-
-    modelling = Stub(name="Model", terminate_with_success=True)  # (2)
-
-    extract_features >> modelling  # (3)
+    step1 >> step2
 
     pipeline = Pipeline(
-        steps=[acquire_data, prepare_data, extract_features, modelling],
-        start_at=acquire_data,
+        start_at=step1,
+        steps=[step1, step2],
         add_terminal_nodes=True,
-    )  # (4)
+    )
 
-    run_log = pipeline.execute()  # (5)
-    print(run_log)
+    pipeline.execute()
 
 
 if __name__ == "__main__":
     main()
-
 ```
 
 </p></td>
-<td width="50%"><p>
 
-``` mermaid
-%%{ init: { 'flowchart': { 'curve': 'linear' } } }%%
-flowchart TD
+<td valign="top"><p>
 
-    step1:::green
-    step1([Acquire data]) --> step2:::green
-    step2([Prepare data]) --> step3:::green
-    step3([Extract features]) --> step4:::green
-    step4([Model]) --> suc([success]):::green
+Example present at: ```examples/python-tasks.yaml```
 
-    classDef green stroke:#0f0
 
+Execute via the cli: ```magnus execute -f examples/python-tasks.yaml```
+
+```yaml
+dag:
+  description: |
+    This is a simple pipeline that does 3 steps in sequence.
+    In this example:
+      1. First step: returns a "parameter" x as a Pydantic model
+      2. Second step: Consumes that parameter and prints it
+
+    This pipeline demonstrates one way to pass small data from one step to another.
+
+  start_at: step 1
+  steps:
+    step 1:
+      type: task
+      command_type: python # (2)
+      command: examples.functions.return_parameter # (1)
+      next: step 2
+    step 2:
+      type: task
+      command_type: python
+      command: examples.functions.display_parameter
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail
 ```
+
 </p></td>
+
+</tr>
 </table>
+
+### Transpile to argo workflows
+
+No code change, just change the configuration.
+
+```yaml
+executor:
+  type: "argo"
+  config:
+    image: magnus:demo
+    persistent_volumes:
+      - name: magnus-volume
+        mount_path: /mnt
+
+run_log_store:
+  type: file-system
+  config:
+    log_folder: /mnt/run_log_store
+```
+
+More details can be found in [argo configuration](https://astrazeneca.github.io/magnus-core/configurations/executors/argo).
+
+Execute the code as ```magnus execute -f examples/python-tasks.yaml -c examples/configs/argo-config.yam```
+
+<details>
+  <summary>Expand</summary>
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: magnus-dag-
+  annotations: {}
+  labels: {}
+spec:
+  activeDeadlineSeconds: 172800
+  entrypoint: magnus-dag
+  podGC:
+    strategy: OnPodCompletion
+  retryStrategy:
+    limit: '0'
+    retryPolicy: Always
+    backoff:
+      duration: '120'
+      factor: 2
+      maxDuration: '3600'
+  serviceAccountName: default-editor
+  templates:
+    - name: magnus-dag
+      failFast: true
+      dag:
+        tasks:
+          - name: step-1-task-uvdp7h
+            template: step-1-task-uvdp7h
+            depends: ''
+          - name: step-2-task-772vg3
+            template: step-2-task-772vg3
+            depends: step-1-task-uvdp7h.Succeeded
+          - name: success-success-igzq2e
+            template: success-success-igzq2e
+            depends: step-2-task-772vg3.Succeeded
+    - name: step-1-task-uvdp7h
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - step%1
+          - --log-level
+          - WARNING
+          - --file
+          - examples/python-tasks.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: step-2-task-772vg3
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - step%2
+          - --log-level
+          - WARNING
+          - --file
+          - examples/python-tasks.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: success-success-igzq2e
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - success
+          - --log-level
+          - WARNING
+          - --file
+          - examples/python-tasks.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+  templateDefaults:
+    activeDeadlineSeconds: 7200
+    timeout: 10800s
+  arguments:
+    parameters:
+      - name: run_id
+        value: '{{workflow.uid}}'
+  volumes:
+    - name: executor-0
+      persistentVolumeClaim:
+        claimName: magnus-volume
+
+```
+
+</details>
