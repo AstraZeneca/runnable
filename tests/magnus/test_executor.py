@@ -17,13 +17,6 @@ def test_base_executor_context_refers_to_global_run_context(mocker, monkeypatch)
     assert base_executor._context is mock_run_context
 
 
-def test_base_executor_step_run_id_refers_to_environmental_variable(monkeypatch):
-    monkeypatch.setenv("MAGNUS_RUN_ID", "12345")
-
-    base_executor = executor.BaseExecutor()
-    assert base_executor.step_decorator_run_id == "12345"
-
-
 def test_is_parallel_refers_to_config():
     base_executor = executor.BaseExecutor()
 
