@@ -121,7 +121,7 @@ def get_parameter(key: Optional[str] = None, cast_as: Optional[CastT] = None) ->
     Args:
         key (str, optional): The key of the parameter to retrieve. If not provided, all parameters will be returned.
         cast_as (Type, optional): The type to cast the parameter to. If not provided, the type will remain as it is
-        for simple data types (int, float, bool, str). For nested parameters, it would be a dict.
+            for simple data types (int, float, bool, str). For nested parameters, it would be a dict.
 
     Raises:
         Exception: If the parameter does not exist and key is not provided.

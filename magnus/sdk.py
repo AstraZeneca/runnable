@@ -28,7 +28,7 @@ class Catalog(BaseModel):
     Use to instruct a task to sync data from/to the central catalog.
     Please refer to [concepts](../../concepts/catalog) for more information.
 
-    Args:
+    Attributes:
         get (List[str]): List of glob patterns to get from central catalog to the compute data folder.
         put (List[str]): List of glob patterns to put into central catalog from the compute data folder.
 
@@ -112,21 +112,17 @@ class Task(BaseTraversal):
     An execution node of the pipeline.
     Please refer to [concepts](../../concepts/task) for more information.
 
-    Args:
+    Attributes:
         name (str): The name of the node.
         command (str): The command to execute.
 
             - For python functions, [dotted path](../../concepts/task/#python_functions) to the function.
             - For shell commands: command to execute in the shell.
             - For notebooks: path to the notebook.
-
         command_type (str): The type of command to execute.
             Can be one of "shell", "python", or "notebook".
-
         catalog (Optional[Catalog]): The catalog to sync data from/to.
             Please see Catalog about the structure of the catalog.
-
-
         overrides (Dict[str, Any]): Any overrides to the command.
             Individual tasks can override the global configuration config by referring to the
             specific override.
@@ -141,23 +137,18 @@ class Task(BaseTraversal):
                 overrides:
                   custom_docker_image:
                     docker_image: "magnus/magnus:custom"
-
             ```
             ### Task specific configuration
             ```python
             task = Task(name="task", command="echo 'hello'", command_type="shell",
                     overrides={'local-container': custom_docker_image})
             ```
-
         notebook_output_path (Optional[str]): The path to save the notebook output.
             Only used when command_type is 'notebook', defaults to command+_out.ipynb
-
         optional_ploomber_args (Optional[Dict[str, Any]]): Any optional ploomber args.
             Only used when command_type is 'notebook', defaults to {}
-
         output_cell_tag (Optional[str]): The tag of the output cell.
             Only used when command_type is 'notebook', defaults to "magnus_output"
-
         terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
         terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
         on_failure (str): The name of the node to execute if the step fails.
@@ -208,7 +199,7 @@ class Stub(BaseTraversal):
     A stub node can tak arbitrary number of arguments.
     Please refer to [concepts](../../concepts/stub) for more information.
 
-    Args:
+    Attributes:
         name (str): The name of the node.
         terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
         terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
@@ -231,7 +222,7 @@ class Parallel(BaseTraversal):
     A node that executes multiple branches in parallel.
     Please refer to [concepts](../../concepts/parallel) for more information.
 
-    Args:
+    Attributes:
         name (str): The name of the node.
         branches (Dict[str, Pipeline]): A dictionary of branches to execute in parallel.
         terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
@@ -260,7 +251,7 @@ class Map(BaseTraversal):
     A node that iterates over a list of items and executes a pipeline for each item.
     Please refer to [concepts](../../concepts/map) for more information.
 
-    Args:
+    Attributes:
         branch: The pipeline to execute for each item.
 
         iterate_on: The name of the parameter to iterate over.
@@ -308,7 +299,7 @@ class Success(BaseModel):
     Most often, there is no need to use this node as nodes can be instructed to
     terminate_with_success and pipeline with add_terminal_nodes=True.
 
-    Args:
+    Attributes:
         name (str): The name of the node.
     """
 
@@ -330,7 +321,7 @@ class Fail(BaseModel):
     Most often, there is no need to use this node as nodes can be instructed to
     terminate_with_failure and pipeline with add_terminal_nodes=True.
 
-    Args:
+    Attributes:
         name (str): The name of the node.
     """
 
@@ -349,7 +340,7 @@ class Pipeline(BaseModel):
     """
     A Pipeline is a directed acyclic graph of Steps that define a workflow.
 
-    Args:
+    Attributes:
         steps (List[Stub | Task | Parallel | Map | Success | Fail]): A list of Steps that make up the Pipeline.
         start_at (Stub | Task | Parallel | Map): The name of the first Step in the Pipeline.
         name (str, optional): The name of the Pipeline. Defaults to "".

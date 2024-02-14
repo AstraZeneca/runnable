@@ -201,12 +201,3 @@ Example:
         show_symbol_type_heading: true
         members: None
         heading_level: 3
-
-
-## Roadmap
-
-- AWS environments using Sagemaker pipelines or AWS step functions.
-- HPC environment using SLURM executor.
-- Database based Run log store.
-- Better integrations with experiment tracking tools.
-- Azure ML environments.

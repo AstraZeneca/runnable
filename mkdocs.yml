@@ -1,6 +1,6 @@
 site_name: Magnus
 site_description: "Pipelines made easy"
-strict: false
+strict: true
 repo_url: https://github.com/AstraZeneca/magnus-core
 
 # TODO: Set up versioning

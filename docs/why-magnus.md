@@ -11,8 +11,8 @@ straightforward implementation for task orchestration. Nonetheless, due to their
 design, orchestrating the flow of data—whether parameters or artifacts—can introduce complexity and
 require careful handling.
 
-Magnus simplifies this aspect by introducing an intuitive mechanism for data flow, thereby
-streamlining data management. This approach allows the orchestrators to focus on their core
+Magnus simplifies this aspect by introducing an [intuitive mechanism for data flow](/example/dataflow),
+thereby streamlining data management. This approach allows the orchestrators to focus on their core
 competency: allocating the necessary computational resources for task execution.
 
 ### Local first
@@ -22,8 +22,8 @@ In the context of the project's proof-of-concept (PoC) phase, the utilization of
  experimentation. Data scientists require an environment that aligns with their established workflows,
  which is most effectively achieved through the use of local development tools.
 
-Magnus serves as an intermediary stage, simulating the production environment by offering local
-versions of essential services—such as execution engines, data catalogs, secret management, and
+Magnus serves as an intermediary stage, simulating the production environment by offering [local
+versions](/configurations/overview/) of essential services—such as execution engines, data catalogs, secret management, and
 experiment tracking—without necessitating intricate configuration. As the project transitions into the
 production phase, these local stand-ins are replaced with their robust, production-grade counterparts.
 
@@ -40,8 +40,9 @@ experimentation, thus impeding iterative research and development.
 
 
 Magnus is engineered to minimize the need for such extensive refactoring when operationalizing
-projects. It achieves this by allowing tasks to be defined as simple Python functions or Jupyter
-notebooks. This means that the research-centric components of the code can remain unchanged, avoiding
+projects. It achieves this by allowing tasks to be defined as [simple Python functions](/concepts/task/#python_functions)
+or [Jupyter notebooks](/concepts/task/#notebook). This means that the research-centric components of the code
+can remain unchanged, avoiding
 the need for immediate refactoring and allowing for the postponement of these efforts until they
 become necessary for the long-term maintenance of the product.
 
