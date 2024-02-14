@@ -1,7 +1,5 @@
 on:
   push:
-    paths:
-      - "magnus/**"
     branches:
       - "main"
       - "rc"
@@ -53,11 +51,11 @@ jobs:
           CURRENT=$(git tag --sort=-committerdate -l | head -n 1)
           echo "current: $CURRENT"
 
-          VERSION=$(python -m semantic-release --noop --strict version --no-push --no-commit --print)
+          VERSION=$(semantic-release --noop --strict version --no-push --no-commit --print)
           echo "New: $VERSION"
 
           if [ "$CURRENT" == "$VERSION" ]; then
-            echo "version="" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
             exit 1
           fi
 
