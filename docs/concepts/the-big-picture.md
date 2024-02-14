@@ -2,7 +2,7 @@ Magnus revolves around the concept of pipelines or workflows and tasks that happ
 
 ---
 
-A [workflow](../pipeline) is simply a series of steps that you want to execute for a desired outcome.
+A [workflow](/concepts/pipeline) is simply a series of steps that you want to execute for a desired outcome.
 
 ``` mermaid
 %%{ init: { 'flowchart': { 'curve': 'linear' } } }%%
@@ -11,7 +11,7 @@ flowchart LR
     step1:::green
     step1([Step 1]) --> step2:::green
     step2([Step 2]) --> step3:::green
-    step3([Step ...]) --> step4:::green
+    step3([Step .. ]) --> step4:::green
     step4([Step n]) --> suc([success]):::green
 
     classDef green stroke:#0f0
@@ -20,16 +20,16 @@ flowchart LR
 
 To define a workflow, we need:
 
-- [List of steps](../pipeline/#steps)
-- [starting step](../pipeline/#start_at)
+- [List of steps](/concepts/pipeline/#steps)
+- [starting step](/concepts/pipeline/#start_at)
 - Next step
 
-    - [In case of success](../pipeline/#linking)
-    - [In case of failure](../pipeline/#on_failure)
+    - [In case of success](/concepts/pipeline/#linking)
+    - [In case of failure](/concepts/pipeline/#on_failure)
 
-- [Terminating](../pipeline/terminating)
+- [Terminating](/concepts/pipeline/#terminating)
 
-The workflow can be defined either in ```yaml``` or using the [```python sdk```](../../sdk).
+The workflow can be defined either in ```yaml``` or using the [```python sdk```](/sdk).
 
 ---
 
@@ -40,18 +40,18 @@ A step in the workflow can be:
 
     A step in the workflow that does a logical unit work.
 
-    The unit of work can be a [python function](../task/#python_functions),
-    a [shell script](../task/#shell) or a
-    [notebook](../task/#notebook).
+    The unit of work can be a [python function](/concepts/task/#python_functions),
+    a [shell script](/concepts/task/#shell) or a
+    [notebook](/concepts/task/#notebook).
 
     All the logs, i.e stderr and stdout or executed notebooks are stored
-    in [catalog](../catalog) for easier access and debugging.
+    in [catalog](/concepts/catalog) for easier access and debugging.
 
 
 
 === "stub"
 
-    An [abstract step](../stub) that is not yet fully implemented.
+    An [abstract step](/concepts/stub) that is not yet fully implemented.
 
     For example in python:
 
@@ -63,7 +63,7 @@ A step in the workflow can be:
 
 === "parallel"
 
-    A step that has a defined number of [parallel workflows](../parallel) executing
+    A step that has a defined number of [parallel workflows](/concepts/parallel) executing
      simultaneously.
 
      In the below visualisation, the green lined steps happen in sequence and wait for the previous step to
@@ -108,7 +108,7 @@ A step in the workflow can be:
 
 === "map"
 
-    A step that executes a workflow over an [iterable parameter](../map).
+    A step that executes a workflow over an [iterable parameter](/concepts/map).
 
     The step "chunk files" identifies the number of files to process and computes the start index of every
     batch of files to process for a chunk size of 10, the stride.
@@ -172,19 +172,19 @@ A step in the workflow can be:
 
 ---
 
-A [step type of task](../task) is the functional unit of the pipeline.
+A [step type of task](/concepts/task) is the functional unit of the pipeline.
 
 To be useful, it can:
 
 - Access parameters
 
-    - Either [defined statically](../parameters/#initial_parameters) at the start of the
+    - Either [defined statically](/concepts/parameters/#initial_parameters) at the start of the
     pipeline
-    - Or by [upstream steps](../parameters/#parameters_flow)
+    - Or by [upstream steps](/concepts/parameters/#parameters_flow)
 
-- [Publish or retrieve artifacts](../catalog) from/to other steps.
-- [Publish metrics](../experiment-tracking) that are interesting.
-- Have [access to secrets](../secrets).
+- [Publish or retrieve artifacts](/concepts/catalog) from/to other steps.
+- [Publish metrics](/concepts/experiment-tracking) that are interesting.
+- Have [access to secrets](/concepts/secrets).
 
 All the above functionality is possible either via:
 
@@ -193,15 +193,15 @@ All the above functionality is possible either via:
     - Application native way.
     - Or via environment variables.
 
-- Or via the [python API](../interactions) which involves ```importing magnus``` in your code.
+- Or via the [python API](/interactions) which involves ```importing magnus``` in your code.
 
 ---
 
 All executions of the pipeline should be:
 
-- [Reproducible](../run-log) for audit and data lineage purposes.
+- [Reproducible](/concepts/run-log) for audit and data lineage purposes.
 - Runnable at local environments for
-[debugging failed runs](../run-log/#retrying_failures).
+[debugging failed runs](/concepts/run-log/#retrying_failures).
 
 ---
 
@@ -212,7 +212,7 @@ Pipelines should be portable between different infrastructure patterns.
 Infrastructure patterns change all the time and
 so are the demands from the infrastructure.
 
-We achieve this by [changing configurations](../../configurations/overview), rather than
+We achieve this by [changing configurations](/configurations/overview), rather than
 changing the application code.
 
 For example a pipeline should be able to run:

@@ -1,4 +1,3 @@
-#TODO: Fix release for non bump builds
 on:
   push:
     paths:
@@ -31,15 +30,27 @@ jobs:
         with:
           python-version: 3.8
       - run: python -m pip install python-semantic-release==8.0.7
-      # - run: python -m poetry install --only release
       - name: Figure version
+        continue-on-error: true
         id: last_tag
         run: |
 
+          CURRENT=$(git tag --sort=-committerdate -l | head -n 1)
+          echo "current: $CURRENT"
+
           VERSION=$(python -m semantic-release --noop --strict version --no-push --no-commit --print)
-          echo $VERSION
+          echo "New: $VERSION"
+
+          if [ "$CURRENT" == "$VERSION" ]; then
+            echo "version="" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          exit 0
+
       - name: Apply new tag
+        if: steps.last_tag.outcome == 'success'
         env:
           VERSION: ${{ steps.last_tag.outputs.version }}
         uses: actions/github-script@v6
@@ -54,6 +65,7 @@ jobs:
               sha: context.sha
             })
       - name: Publish to PyPI
+        if: steps.last_tag.outcome == 'success'
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
           LAST_TAG: ${{ steps.last_tag.outputs.version }}
@@ -64,6 +76,7 @@ jobs:
           poetry publish --build
 
       - name: "Create release"
+        if: steps.last_tag.outcome == 'success'
         env:
           RELEASE_TAG: ${{ steps.last_tag.outputs.version }}
         uses: "actions/github-script@v6"

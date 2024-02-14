@@ -1,4 +1,4 @@
-Magnus stores a variety of information about the current execution in [run log](../../concepts/run-log).
+Magnus stores a variety of information about the current execution in [run log](/concepts/run-log).
 The run log is internally used
 for keeping track of the execution (status of different steps, parameters, etc) but also has rich information
 for reproducing the state at the time of pipeline execution.
@@ -227,5 +227,5 @@ Below we show an example pipeline and the different layers of the run log.
 
 
 
-This [structure of the run log](../../concepts/run-log) is the same independent of where the pipeline was executed.
+This [structure of the run log](/concepts/run-log) is the same independent of where the pipeline was executed.
 This enables you to reproduce a failed execution in complex environments on local environments for easier debugging.

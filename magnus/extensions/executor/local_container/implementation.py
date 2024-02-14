@@ -314,3 +314,54 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
         self.service = cast(FileSystemCatalog, self.service)
 
         self.service.catalog_location = self.executor._container_catalog_location
+
+
+class LocalContainerComputeDotEnvSecrets(BaseIntegration):
+    """
+    Integration between local container and dot env secrets
+    """
+
+    executor_type = "local-container"
+    service_type = "secrets"  # One of secret, catalog, datastore
+    service_provider = "dotenv"  # The actual implementation of the service
+
+    def validate(self, **kwargs):
+        logger.warning("Using dot env for non local deployments is not ideal, consider options")
+
+    def configure_for_traversal(self, **kwargs):
+        from magnus.extensions.secrets.dotenv.implementation import DotEnvSecrets
+
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(DotEnvSecrets, self.service)
+
+        secrets_location = self.service.secrets_location
+        self.executor._volumes[str(Path(secrets_location).resolve())] = {
+            "bind": f"{self.executor._container_secrets_location}",
+            "mode": "ro",
+        }
+
+    def configure_for_execution(self, **kwargs):
+        from magnus.extensions.secrets.dotenv.implementation import DotEnvSecrets
+
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(DotEnvSecrets, self.service)
+
+        self.service.location = self.executor._container_secrets_location
+
+
+class LocalContainerComputeEnvSecretsManager(BaseIntegration):
+    """
+    Integration between local container and env secrets manager
+    """
+
+    executor_type = "local-container"
+    service_type = "secrets"  # One of secret, catalog, datastore
+    service_provider = "env-secrets-manager"  # The actual implementation of the service
+
+    def validate(self, **kwargs):
+        msg = (
+            "Local container executions cannot be used with environment secrets manager. "
+            "Please use a supported secrets manager"
+        )
+        logger.exception(msg)
+        raise Exception(msg)

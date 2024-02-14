@@ -1,7 +1,7 @@
 **Magnus** provides an interface to secrets managers
-[via the API](../../interactions/#magnus.get_secret).
+[via the API](/interactions/#magnus.get_secret).
 
-Please refer to [Secrets in concepts](../../concepts/secrets) for more information.
+Please refer to [Secrets in concepts](/concepts/secrets) for more information.
 
 ## do-nothing
 
@@ -133,7 +133,7 @@ for shell scripts are allowed.
 
     The example is present in ```examples/secrets.py```
 
-    ```python linenums="1" hl_lines="9-10"
+    ```python linenums="1" hl_lines="12-13"
     --8<-- "examples/secrets.py"
     ```
 

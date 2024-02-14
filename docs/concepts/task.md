@@ -111,7 +111,7 @@ is to execute this function.
 
 
 
-Please refer to [Initial Parameters](../parameters/#initial_parameters) for more information about setting
+Please refer to [Initial Parameters](/concepts/parameters/#initial_parameters) for more information about setting
 initial parameters.
 
 Lets assume that the initial parameters are:
@@ -177,14 +177,14 @@ Lets assume that the initial parameters are:
 
 === "Using the API"
 
-    Magnus also has [python API](../../interactions) to access parameters.
+    Magnus also has [python API](/interactions) to access parameters.
 
-    Use [get_parameter](../../interactions/get_parameter) to access a parameter at the root level.
+    Use [get_parameter](/interactions/#magnus.get_parameter) to access a parameter at the root level.
     You can optionally specify the ```type``` by using ```cast_as``` argument to the API.
     For example, line 19 would cast ```eggs```parameter into ```EggsModel```.
     Native python types do not need any explicit ```cast_as``` argument.
 
-    Use [set_parameter](../../interactions/set_parameter) to set parameters at the root level.
+    Use [set_parameter](/interactions/#magnus.set_parameter) to set parameters at the root level.
     Multiple parameters can be set at the same time, for example, line 26 would set both the ```spam```
     and ```eggs``` in a single call.
 
@@ -234,7 +234,7 @@ Lets assume that the initial parameters are:
 
 ### Passing data and execution logs
 
-Please refer to [catalog](../catalog) for more details and examples on passing
+Please refer to [catalog](/concepts/catalog) for more details and examples on passing
 data between tasks and the storage of execution logs.
 
 ---
@@ -261,7 +261,7 @@ The output notebook is also saved in the ```catalog``` for logging and ease of d
 
 
     <figure markdown>
-        ![Image title](../assets/screenshots/simple_notebook.png){ width="800" height="600"}
+        ![Image title](/assets/screenshots/simple_notebook.png){ width="800" height="600"}
         <figcaption></figcaption>
     </figure>
 
@@ -290,8 +290,8 @@ the current project are readily available.
 - ```notebook_output_path```: the location of the executed notebook. Defaults to the
 notebook name defined in ```command``` with ```_out``` post-fixed. The location should be relative
 to the project root and also would be stored in catalog in the same location.
-- [next](../pipeline/#linking): is required for any step of the pipeline except for success and fail steps.
-- [on_failure](../pipeline/#on_failure): Name of the step to execute if the step fails.
+- [next](/concepts/pipeline/#linking): is required for any step of the pipeline except for success and fail steps.
+- [on_failure](/concepts/pipeline/#on_failure): Name of the step to execute if the step fails.
 - catalog: Optional required for data access patterns from/to the central storage.
 
 ### ploomber arguments
@@ -315,7 +315,7 @@ You can set additional arguments or override these by sending an optional dictio
 
 ### Accessing parameters
 
-Please refer to [Initial Parameters](../parameters/#initial_parameters) for more information about setting
+Please refer to [Initial Parameters](/concepts/parameters/#initial_parameters) for more information about setting
 initial parameters.
 
 Assume that the initial parameters are:
@@ -343,7 +343,7 @@ Assume that the initial parameters are:
     === "Notebook"
 
         <figure markdown>
-            ![Image title](../assets/screenshots/notebook_native_parameters.png){ width="800" height="600"}
+            ![Image title](/assets/screenshots/notebook_native_parameters.png){ width="800" height="600"}
             <figcaption></figcaption>
         </figure>
 
@@ -359,7 +359,7 @@ Assume that the initial parameters are:
     For example, the initial parameters will be passed to the notebook as shown below.
 
     <figure markdown>
-        ![Image title](../assets/screenshots/notebook_input_parameters.png){ width="800" height="600"}
+        ![Image title](/assets/screenshots/notebook_input_parameters.png){ width="800" height="600"}
         <figcaption></figcaption>
     </figure>
 
@@ -378,7 +378,7 @@ Assume that the initial parameters are:
 
 
     <figure markdown>
-        ![Image title](../assets/screenshots/notebook_output_parameters.png){ width="800" height="600"}
+        ![Image title](/assets/screenshots/notebook_output_parameters.png){ width="800" height="600"}
         <figcaption></figcaption>
     </figure>
 
@@ -405,7 +405,7 @@ Assume that the initial parameters are:
 
 
         <figure markdown>
-            ![Image title](../assets/screenshots/notebook_api_parameters.png){ width="800" height="600"}
+            ![Image title](/assets/screenshots/notebook_api_parameters.png){ width="800" height="600"}
             <figcaption></figcaption>
         </figure>
 
@@ -441,7 +441,7 @@ Assume that the initial parameters are:
 
 ### Passing data and execution logs
 
-Please refer to [catalog](../catalog) for more details and examples on passing
+Please refer to [catalog](/concepts/catalog) for more details and examples on passing
 data between tasks and the storage of execution logs.
 
 
@@ -472,7 +472,7 @@ to execute the command.
 
 ### Accessing parameters
 
-Please refer to [Initial Parameters](../parameters/#initial_parameters) for more information about setting
+Please refer to [Initial Parameters](/concepts/parameters/#initial_parameters) for more information about setting
 initial parameters.
 
 Assuming the initial parameters are:
@@ -513,10 +513,10 @@ lines 33-35.
 
 ### Passing data and execution logs
 
-Please refer to [catalog](../catalog) for more details and examples on passing
+Please refer to [catalog](/concepts/catalog) for more details and examples on passing
 data between tasks and the storage of execution logs.
 
 
 ## Experiment tracking
 
-Please refer to [experiment tracking](../experiment-tracking) for more details and examples on experiment tracking.
+Please refer to [experiment tracking](/concepts/experiment-tracking) for more details and examples on experiment tracking.

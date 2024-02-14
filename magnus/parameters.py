@@ -165,7 +165,7 @@ def filter_arguments_for_func(
             unassigned_params = unassigned_params.difference(bound_model.model_fields.keys())
         else:
             # simple python data type.
-            bound_args[name] = cast_parameters_as_type(params[name], value.annotation)
+            bound_args[name] = cast_parameters_as_type(params[name], value.annotation)  # type: ignore
 
         unassigned_params.remove(name)
 

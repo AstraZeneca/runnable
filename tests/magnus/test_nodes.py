@@ -148,7 +148,7 @@ def test_traversal_node_get_executor_config_defaults_to_empty_dict(instantiable_
         name="test", internal_name="test", node_type="test", next_node="next", on_failure="on_failure"
     )
 
-    assert traversal_class._get_executor_config("I do not exist") == {}
+    assert traversal_class._get_executor_config("I do not exist") == ""
 
 
 def test_traversal_node_get_executor_returns_configured_config(instantiable_traversal_node):
@@ -158,10 +158,10 @@ def test_traversal_node_get_executor_returns_configured_config(instantiable_trav
         node_type="test",
         next_node="next",
         on_failure="on_failure",
-        overrides={"test": {"key": "value"}},
+        overrides={"test": "key"},
     )
 
-    assert traversal_class._get_executor_config("test") == {"key": "value"}
+    assert traversal_class._get_executor_config("test") == "key"
 
 
 def test_executable_node_get_catalog_detaults_to_empty(instantiable_executable_node):

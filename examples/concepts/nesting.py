@@ -31,7 +31,7 @@ def main():
     inner_most_map = Map(
         name="inner most",
         branch=stubbed_pipeline,
-        iterate_on="array",
+        iterate_on="array",  # Parameter defined in line #20
         iterate_as="y",
         terminate_with_success=True,
     )

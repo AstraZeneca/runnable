@@ -37,6 +37,8 @@ def retrieve_object():
 
     data_model = get_object("everything_model")
 
+    assert data_model == EverythingModel(spam="Hello", eggs=EggsModel(ham="Yes, please!!"))
+
     print(data_model)
     ">>>spam='Hello' eggs=EggsModel(ham='Yes, please!!')"
 

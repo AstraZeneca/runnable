@@ -1,6 +1,6 @@
 Executors are the heart of magnus, they traverse the workflow and execute the tasks within the
 workflow while coordinating with different services
-(eg. [run log](../run-log), [catalog](../catalog), [secrets](../secrets) etc)
+(eg. [run log](/concepts/run-log), [catalog](/concepts/catalog), [secrets](/concepts/secrets) etc)
 
 To enable workflows run in varied computational environments, we distinguish between two core functions of
 any workflow engine.
@@ -61,7 +61,7 @@ translated to argo specification just by changing the configuration.
     In this configuration, we are using [argo workflows](https://argoproj.github.io/argo-workflows/)
     as our workflow engine. We are also instructing the workflow engine to use a docker image,
     ```magnus:demo``` defined in line #4, as our execution environment. Please read
-    [containerised environments](../../configurations/container-environments) for more information.
+    [containerised environments](/configurations/executors/container-environments) for more information.
 
     Since magnus needs to track the execution status of the workflow, we are using a ```run log```
     which is persistent and available in for jobs in kubernetes environment.
@@ -195,7 +195,7 @@ translated to argo specification just by changing the configuration.
     ```
 
 
-As seen from the above example, once a [pipeline is defined in magnus](../pipeline) either via yaml or SDK, we can
+As seen from the above example, once a [pipeline is defined in magnus](/concepts/pipeline) either via yaml or SDK, we can
 run the pipeline in different environments just by providing a different configuration. Most often, there is
 no need to change the code or deviate from standard best practices while coding.
 
@@ -287,22 +287,22 @@ def execute_single_node(workflow, step_name, configuration):
     ##### END POST EXECUTION #####
 ```
 
-1. The [run log](../run-log) maintains the state of the execution of the tasks and subsequently the pipeline. It also
+1. The [run log](/concepts/run-log) maintains the state of the execution of the tasks and subsequently the pipeline. It also
 holds the latest state of parameters along with captured metrics.
-2. The [catalog](../catalog) contains the information about the data flowing through the pipeline. You can get/put
+2. The [catalog](/concepts/catalog) contains the information about the data flowing through the pipeline. You can get/put
 artifacts generated during the current execution of the pipeline to a central storage.
-3. Read the workflow and get the [step definition](../task) which holds the ```command``` or ```function``` to
+3. Read the workflow and get the [step definition](/concepts/task) which holds the ```command``` or ```function``` to
 execute along with the other optional information.
 4. Any artifacts from previous steps that are needed to execute the current step can be
-[retrieved from the catalog](../catalog).
+[retrieved from the catalog](/concepts/catalog).
 5. The current function or step might need only some of the
-[parameters casted as pydantic models](../task/#accessing_parameters), filter and cast them appropriately.
+[parameters casted as pydantic models](/concepts/task/#accessing_parameters), filter and cast them appropriately.
 6. At this point in time, we have the required parameters and data to execute the actual command. The command can
-internally request for more data using the [python API](../interactions) or record
-[experiment tracking metrics](../experiment-tracking).
+internally request for more data using the [python API](/interactions) or record
+[experiment tracking metrics](/concepts/experiment-tracking).
 7. If the task failed, we update the run log with that information and also raise an exception for the
-workflow engine to handle. Any [on-failure](../pipeline/#on_failure) traversals are already handled
+workflow engine to handle. Any [on-failure](/concepts/pipeline/#on_failure) traversals are already handled
 as part of the workflow definition.
 8. Upon successful execution, we update the run log with current state of parameters for downstream steps.
-9. Any artifacts generated from this step are [put into the central storage](../catalog) for downstream steps.
+9. Any artifacts generated from this step are [put into the central storage](/concepts/catalog) for downstream steps.
 10. We send a success message to the workflow engine and mark the step as completed.

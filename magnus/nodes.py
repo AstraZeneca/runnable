@@ -251,7 +251,7 @@ class BaseNode(ABC, BaseModel):
         return neighbors
 
     @abstractmethod
-    def _get_executor_config(self, executor_type: str) -> dict:
+    def _get_executor_config(self, executor_type: str) -> str:
         """
         Return the executor config of the node, if defined, or empty dict
 
@@ -360,10 +360,10 @@ class BaseNode(ABC, BaseModel):
 # --8<-- [end:docs]
 class TraversalNode(BaseNode):
     next_node: str = Field(serialization_alias="next")
-    on_failure: Optional[str] = Field(default="")
+    on_failure: str = Field(default="")
     overrides: Dict[str, str] = Field(default_factory=dict)
 
-    def _get_on_failure_node(self) -> Optional[str]:
+    def _get_on_failure_node(self) -> str:
         """
         If the node defines a on_failure node in the config, return this or None.
 
@@ -469,7 +469,7 @@ class TerminalNode(BaseNode):
     def _get_branch_by_name(self, branch_name: str):
         raise exceptions.TerminalNodeError()
 
-    def _get_executor_config(self, executor_type) -> dict:
+    def _get_executor_config(self, executor_type) -> str:
         raise exceptions.TerminalNodeError()
 
     def _get_max_attempts(self) -> int:

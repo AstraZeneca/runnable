@@ -1,15 +1,15 @@
 **Magnus** is designed to make effective collaborations between data scientists/researchers
 and infrastructure engineers.
 
-All the features described in the [concepts](../../concepts/the-big-picture) are
+All the features described in the [concepts](/concepts/the-big-picture) are
 aimed at the *research* side of data science projects while configurations add *scaling* features to them.
 
 
 Configurations are presented during the execution:
 
-For ```yaml``` based pipeline, use the ```--config-file, -c``` option in the [magnus CLI](../../usage/#usage).
+For ```yaml``` based pipeline, use the ```--config-file, -c``` option in the [magnus CLI](/usage/#usage).
 
-For [python SDK](../../sdk/#magnus.Pipeline.execute), use the ```configuration_file``` option or via
+For [python SDK](/sdk/#magnus.Pipeline.execute), use the ```configuration_file``` option or via
 environment variable ```MAGNUS_CONFIGURATION_FILE```
 
 ## Default configuration
@@ -25,8 +25,12 @@ environment variable ```MAGNUS_CONFIGURATION_FILE```
 5. No experiment tracking tools, all interactions with experiment tracking tools are effectively no-op.
 Run log still captures the metrics, but are not passed to the experiment tracking tools.
 
-The default configuration for all the pipeline executions runs on the [local compute](../executors/local), using a
-```buffered``` run log store with no catalog or secrets or experiment tracking functionality.
+The default configuration for all the pipeline executions runs on the
+[local compute](/configurations/executors/local), using a
+[buffered run log](/configurations/run-log/#buffered) store with
+[no catalog](/configurations/catalog/#do-nothing) or
+[secrets](/configurations/secrets/#do-nothing) or
+[experiment tracking functionality](/configurations/experiment-tracking/).
 
 
 

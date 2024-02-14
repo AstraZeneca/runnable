@@ -65,8 +65,8 @@ def test_apply_variables_applies_variables():
 def test_apply_variables_applies_known_variables():
     apply_to = "${var}_${var1}"
 
-    transformed = utils.apply_variables(apply_to, variables={"var": "hello"})
-    assert transformed == "hello_${var1}"
+    with pytest.raises(KeyError):
+        transformed = utils.apply_variables(apply_to, variables={"var": "hello"})
 
 
 def test_get_module_and_func_names_raises_exception_for_incorrect_command():

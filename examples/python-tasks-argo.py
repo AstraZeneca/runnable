@@ -8,7 +8,7 @@ This is a simple pipeline that does 2 steps in sequence.
 
     You can run this pipeline by: python examples/python-tasks.py
 """
-# TODO: This need not exist and can be replaced by configuration file by environment variable.
+
 from magnus import Pipeline, Task
 
 

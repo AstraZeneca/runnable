@@ -147,11 +147,7 @@ nav:
       - "Catalog": "configurations/catalog.md"
       - "Secrets": "configurations/secrets.md"
       - "Experiment tracking": "configurations/experiment-tracking.md"
-
-  # - "Command Line":
-  #       - "command-line.md"
   - "Python API": "interactions.md"
   - "Python SDK": "sdk.md"
-  # - "Examples":
-  #       - "examples.md"
   - "Extensions": "extensions.md"
+  - "Roadmap": "roadmap.md"

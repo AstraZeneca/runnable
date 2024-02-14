@@ -527,44 +527,11 @@ def test_base_executor_resolve_executor_config_gives_global_config_if_node_does_
     mock_node = mocker.MagicMock()
     mock_node._get_executor_config.return_value = {}
 
+    mock_run_context.variables = {}
+
     test_executor = GenericExecutor()
 
     assert test_executor._resolve_executor_config(mock_node) == {**test_executor.model_dump()}
-
-
-def test_base_executor__resolve_node_config_updates_global_config_if_node_overrides(mocker, monkeypatch):
-    mock_node = mocker.MagicMock()
-    mock_node._get_executor_config.return_value = {"enable_parallel": True}
-
-    test_executor = GenericExecutor()
-
-    assert test_executor._resolve_executor_config(mock_node)["enable_parallel"] is True
-
-
-def test_resolve_node_config_updates_config_with_nested_config(mocker):
-    mock_node = mocker.MagicMock()
-    mock_node._get_executor_config.return_value = {"first": {"second": {"third": {"a": 1}}}}
-
-    test_executor = GenericExecutor()
-
-    assert test_executor._resolve_executor_config(mock_node)["first"] == {"second": {"third": {"a": 1}}}
-
-
-def test_base_executor__resolve_node_config_updates_global_config_if_node_adds(mocker, monkeypatch):
-    mock_node = mocker.MagicMock()
-    mock_node._get_executor_config.return_value = {"b": 2}
-
-    test_executor = GenericExecutor()
-    assert test_executor._resolve_executor_config(mock_node) == {**test_executor.model_dump(), **{"b": 2}}
-
-
-def test_base_executor_resolve_node_supresess_global_config_from_placeholders_if_its_not_mapping(mocker, monkeypatch):
-    mock_node = mocker.MagicMock()
-    mock_node._get_executor_config.return_value = {"b": 2, "replace": None}
-
-    test_executor = executor.GenericExecutor(placeholders={"replace": {"a": 1}})
-
-    assert test_executor._resolve_executor_config(mock_node) == {**test_executor.model_dump(), **{"b": 2, "a": 1}}
 
 
 def test_get_status_and_next_node_name_returns_empty_for_terminal_node(mocker, monkeypatch, mock_run_context):
@@ -686,26 +653,6 @@ def test_execute_node_sets_step_log_status_to_success_if_node_succeeds(mocker, m
     test_executor._execute_node(mock_node)
 
     assert mock_step_log.status == defaults.SUCCESS
-
-
-def test_execute_node_step_log_gets_tracked_data(mocker, monkeypatch, mock_run_context):
-    mock_run_context.run_log_store.get_parameters.return_value = {"a": 1}
-
-    mock_step_log = mocker.MagicMock()
-    mock_run_context.run_log_store.get_step_log.return_value = mock_step_log
-
-    mock_utils = mocker.MagicMock()
-    mock_utils.get_tracked_data.return_value = {"a": 2}
-    monkeypatch.setattr(executor, "utils", mock_utils)
-
-    mock_node = mocker.MagicMock()
-    mock_node.execute.return_value.status = defaults.SUCCESS
-
-    test_executor = GenericExecutor()
-    test_executor._sync_catalog = mocker.MagicMock()
-
-    test_executor._execute_node(mock_node)
-    assert mock_step_log.user_defined_metrics == {"a": 2}
 
 
 def test_send_return_code_raises_exception_if_pipeline_execution_failed(mocker, mock_run_context):

@@ -66,7 +66,6 @@ magnus= 'magnus.cli:cli'
 [tool.poetry.plugins."executor"]
 "local" = "magnus.extensions.executor.local.implementation:LocalExecutor"
 "local-container" = "magnus.extensions.executor.local_container.implementation:LocalContainerExecutor"
-"demo-renderer" = "magnus.extensions.executor.demo_renderer.implementation:DemoRenderer"
 "argo" = "magnus.extensions.executor.argo.implementation:ArgoExecutor"
 "mocked" = "magnus.extensions.executor.mocked.implementation:MockedExecutor"
 
@@ -104,10 +103,8 @@ magnus= 'magnus.cli:cli'
 # Plugins for Tasks
 [tool.poetry.plugins."tasks"]
 "python" = "magnus.tasks:PythonTaskType"
-"python-lambda" = "magnus.tasks:PythonLambdaTaskType"
 "shell" = "magnus.tasks:ShellTaskType"
 "notebook" = "magnus.tasks:NotebookTaskType"
-"container" = "magnus.tasks:ContainerTaskType"
 
 # Plugins for Nodes
 [tool.poetry.plugins."nodes"]

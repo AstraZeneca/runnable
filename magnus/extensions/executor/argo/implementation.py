@@ -17,6 +17,7 @@ from magnus.defaults import TypeMapVariable
 from magnus.extensions.executor import GenericExecutor
 from magnus.extensions.nodes import DagNode, MapNode, ParallelNode
 from magnus.graph import Graph, create_node, search_node_by_internal_name
+from magnus.integration import BaseIntegration
 from magnus.nodes import BaseNode
 
 logger = logging.getLogger(defaults.NAME)
@@ -211,7 +212,7 @@ class TemplateDefaults(BaseModel):
         description="Max run time of a step",
     )
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def timeout(self) -> str:
         return f"{self.max_step_duration + 60*60}s"
@@ -591,20 +592,6 @@ class Spec(BaseModel):
             raise ValueError("Parallelism must be a positive integer greater than 0")
         return parallelism
 
-    # @computed_field
-    # @property
-    # def podSpecPatch(self) -> str:
-    #     return json.dumps(
-    #         {
-    #             "containers": [
-    #                 {
-    #                     "name": "main",
-    #                     "resources": self.resources.model_dump_json(exclude_none=True),
-    #                 }
-    #             ]
-    #         }
-    #     )
-
     @computed_field  # type: ignore
     @property
     def volumes(self) -> List[Volume]:
@@ -736,7 +723,7 @@ class ArgoExecutor(GenericExecutor):
             raise ValueError("Parallelism must be a positive integer greater than 0")
         return parallelism
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def step_timeout(self) -> int:
         """
@@ -1142,3 +1129,54 @@ class ArgoExecutor(GenericExecutor):
             run_log = self._context.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
             if run_log.status == defaults.FAIL:
                 raise exceptions.ExecutionFailedError(run_id)
+
+
+class FileSystemRunLogStore(BaseIntegration):
+    """
+    Only local execution mode is possible for Buffered Run Log store
+    """
+
+    executor_type = "argo"
+    service_type = "run_log_store"  # One of secret, catalog, datastore
+    service_provider = "file-system"  # The actual implementation of the service
+
+    def validate(self, **kwargs):
+        msg = (
+            "Argo cannot run work with file-system run log store. "
+            "Unless you have made a mechanism to use volume mounts."
+            "Using this run log store if the pipeline has concurrent tasks might lead to unexpected results"
+        )
+        logger.warning(msg)
+
+
+class ChunkedFileSystemRunLogStore(BaseIntegration):
+    """
+    Only local execution mode is possible for Buffered Run Log store
+    """
+
+    executor_type = "argo"
+    service_type = "run_log_store"  # One of secret, catalog, datastore
+    service_provider = "chunked-fs"  # The actual implementation of the service
+
+    def validate(self, **kwargs):
+        msg = (
+            "Argo cannot run work with chunked file-system run log store. "
+            "Unless you have made a mechanism to use volume mounts"
+        )
+        logger.warning(msg)
+
+
+class FileSystemCatalog(BaseIntegration):
+    """
+    Only local execution mode is possible for Buffered Run Log store
+    """
+
+    executor_type = "argo"
+    service_type = "catalog"  # One of secret, catalog, datastore
+    service_provider = "file-system"  # The actual implementation of the service
+
+    def validate(self, **kwargs):
+        msg = (
+            "Argo cannot run work with file-system run log store. Unless you have made a mechanism to use volume mounts"
+        )
+        logger.warning(msg)

@@ -31,6 +31,4 @@ from magnus.sdk import Stub, Pipeline, Task, Parallel, Map, Catalog, Success, Fa
 # TODO: Implement Sagemaker pipelines as a executor.
 
 
-# TODO: Bring this in the mix: https://github.com/mkdocs/mkdocs-click
-
 # TODO: Think of way of generating dag hash without executor configuration

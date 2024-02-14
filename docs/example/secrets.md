@@ -1,5 +1,5 @@
 Secrets are required assets as the complexity of the application increases. Magnus provides a
-python API to get secrets from various sources.
+[python API](/interactions/#magnus.get_secret) to get secrets from various sources.
 
 !!! info annotate inline end "from magnus import get_secret"
 

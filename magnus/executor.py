@@ -48,20 +48,6 @@ class BaseExecutor(ABC, BaseModel):
     def _context(self):
         return context.run_context
 
-    @property
-    def step_decorator_run_id(self):
-        """
-        TODO: Experimental feature, design is not mature yet.
-
-        This function is used by the decorator function.
-        The design idea is we can over-ride this method in different implementations to retrieve the run_id.
-        But is it really intrusive to ask to set the environmental variable MAGNUS_RUN_ID?
-
-        Returns:
-            _type_: _description_
-        """
-        return os.environ.get("MAGNUS_RUN_ID", None)
-
     def _is_parallel_execution(self) -> bool:
         """
         Controls the parallelization of branches in map and parallel state.

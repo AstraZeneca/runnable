@@ -29,7 +29,7 @@ def retrieve_step_details(key: str) -> Tuple[str, int]:
 
 
 def get_tracked_data() -> Dict[str, Any]:
-    tracked_data = defaultdict(dict)
+    tracked_data: Dict[str, Any] = defaultdict(dict)
     for env_var, value in os.environ.items():
         if env_var.startswith(defaults.TRACK_PREFIX):
             key, step = retrieve_step_details(env_var)

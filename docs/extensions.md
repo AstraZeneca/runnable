@@ -2,10 +2,10 @@
 
 Magnus is built around the idea to decouple the pipeline definition and pipeline execution.
 
-[All the concepts](../concepts/the-big-picture/) are defined with this principle and therefore
+[All the concepts](/concepts/the-big-picture/) are defined with this principle and therefore
 are extendible as long as the API is satisfied.
 
-We internally use [stevedore](https://pypi.org/project/stevedore/) to manage extensions.
+We internally use [stevedore](https:/pypi.org/project/stevedore/) to manage extensions.
 Our [pyproject.toml](https://github.com/AstraZeneca/magnus-core/blob/main/pyproject.toml) has
 plugin space for all the concepts.
 
@@ -80,9 +80,11 @@ are extended from pydantic BaseModel.
 
 ## Executor
 
-Examples: [local](../../configurations/executors/local),
-[local-container](../../configurations/executors/local-container),
-[argo](../../configurations/executors/argo)
+Register to namespace: [tool.poetry.plugins."executor"]
+
+Examples: [local](/configurations/executors/local),
+[local-container](/configurations/executors/local-container),
+[argo](/configurations/executors/argo)
 
 ::: magnus.executor.BaseExecutor
     options:
@@ -95,9 +97,11 @@ Examples: [local](../../configurations/executors/local),
 
 ## Run Log
 
-Examples: [buffered](../../configurations/run-log/#buffered),
-[file-system](../../configurations/run-log/#file-system),
- [chunked-fs](../../configurations/run-log/#chunked-fs)
+Register to namespace: [tool.poetry.plugins."run_log_store"]
+
+Examples: [buffered](/configurations/run-log/#buffered),
+[file-system](/configurations/run-log/#file-system),
+ [chunked-fs](/configurations/run-log/#chunked-fs)
 
 ::: magnus.datastore.BaseRunLogStore
     options:
@@ -113,9 +117,11 @@ The ```RunLog``` is a nested pydantic model and is located in ```magnus.datastor
 
 ## Catalog
 
+Register to namespace: [tool.poetry.plugins."catalog"]
+
 Example:
-[do-nothing](../../configurations/catalog/#do-nothing),
- [file-system](../../configurations/catalog/#file-system)
+[do-nothing](/configurations/catalog/#do-nothing),
+ [file-system](/configurations/catalog/#file-system)
 
 ::: magnus.catalog.BaseCatalog
     options:
@@ -128,10 +134,12 @@ Example:
 
 ## Secrets
 
+Register to namespace: [tool.poetry.plugins."secrets"]
+
 Example:
-[do-nothing](../../configurations/secrets/#do-nothing),
- [env-secrets-manager](../../configurations/secrets/#environment_secret_manager),
- [dotenv](../../configurations/secrets/#dotenv)
+[do-nothing](/configurations/secrets/#do-nothing),
+ [env-secrets-manager](/configurations/secrets/#environment_secret_manager),
+ [dotenv](/configurations/secrets/#dotenv)
 
 ::: magnus.secrets.BaseSecrets
     options:
@@ -144,8 +152,10 @@ Example:
 
 ## Experiment tracking
 
+Register to namespace: [tool.poetry.plugins."experiment_tracker"]
+
 Example:
-[do-nothing](../../configurations/experiment-tracking), ```mlflow```
+[do-nothing](/configurations/experiment-tracking), ```mlflow```
 
 ::: magnus.experiment_tracker.BaseExperimentTracker
     options:
@@ -157,12 +167,13 @@ Example:
 
 ## Nodes
 
+Register to namespace: [tool.poetry.plugins."nodes"]
 
 Example:
-[task](../../concepts/task),
-[stub](../../concepts/stub),
-[parallel](../../concepts/parallel),
-[map](../../concepts/map)
+[task](/concepts/task),
+[stub](/concepts/stub),
+[parallel](/concepts/parallel),
+[map](/concepts/map)
 
 ::: magnus.nodes.BaseNode
     options:
@@ -176,10 +187,12 @@ Example:
 
 ## Tasks
 
+Register to namespace: [tool.poetry.plugins."tasks"]
+
 Example:
-[python](../../concepts/task/#python_functions),
-[shell](../../concepts/task/#shell),
-[notebook](../../concepts/task/#notebook)
+[python](/concepts/task/#python_functions),
+[shell](/concepts/task/#shell),
+[notebook](/concepts/task/#notebook)
 
 ::: magnus.tasks.BaseTaskType
     options:
@@ -191,3 +204,9 @@ Example:
 
 
 ## Roadmap
+
+- AWS environments using Sagemaker pipelines or AWS step functions.
+- HPC environment using SLURM executor.
+- Database based Run log store.
+- Better integrations with experiment tracking tools.
+- Azure ML environments.

@@ -1,4 +1,4 @@
-Magnus allows you to [debug and recover](../../concepts/run-log/#retrying_failures) from a
+Magnus allows you to [debug and recover](/concepts/run-log/#retrying_failures) from a
 failure during the execution of pipeline. The pipeline can be
 restarted in any suitable environment for debugging.
 
@@ -585,7 +585,7 @@ Below is an example of retrying a pipeline that failed.
     ```
 
 
-Magnus also supports [```mocked``` executor](../../configurations/executors/mocked) which can
+Magnus also supports [```mocked``` executor](/configurations/executors/mocked) which can
 patch and mock tasks to isolate and focus on the failed task. Since python functions and notebooks
 are run in the same shell, it is possible to use
 [python debugger](https://docs.python.org/3/library/pdb.html) and

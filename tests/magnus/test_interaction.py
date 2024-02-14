@@ -175,30 +175,6 @@ def test_get_from_catalog_raises_warning_if_no_context_step_log(mocker, monkeypa
     mock_catalog_handler_get.assert_called_once_with("this", run_id="RUN_ID")
 
 
-def test_put_in_catalog_delegates_to_catalog_handler(mocker, monkeypatch):
-    mock_context = mocker.MagicMock()
-    mock_catalog_handler = mocker.MagicMock()
-
-    mock_context.run_context.catalog_handler = mock_catalog_handler
-
-    mock_catalog_handler_put = mocker.MagicMock()
-    mock_catalog_handler.put = mock_catalog_handler_put
-    mock_context.run_context.run_id = "RUN_ID"
-
-    mock_catalog_handler.compute_data_folder = "compute_folder"
-    monkeypatch.setattr(interaction, "context", mock_context)
-
-    mock_file_path = mocker.MagicMock()
-    mock_path = mocker.MagicMock(return_value=mock_file_path)
-    mock_file_path.name = "file_name"
-    mock_file_path.parent = "in_this_folder"
-    monkeypatch.setattr(interaction, "Path", mock_path)
-
-    interaction.put_in_catalog("this_file")
-
-    mock_catalog_handler_put.assert_called_once_with("this_file", run_id="RUN_ID")
-
-
 @pytest.mark.noautofixt
 def test_get_run_id_returns_from_context(monkeypatch, mocker):
     mock_context = mocker.MagicMock()

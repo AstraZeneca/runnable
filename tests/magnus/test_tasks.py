@@ -175,13 +175,6 @@ def test_python_task_command_sets_env_variable_of_return_values(mocker, monkeypa
     del os.environ[defaults.PARAMETER_PREFIX + "a"]
 
 
-def test_python_lambda_task_type_execute_command_raises_for_under_and_dunder():
-    lambda_exec = tasks.PythonLambdaTaskType(command="_ and __", node_name="dummy")
-
-    with pytest.raises(Exception):
-        lambda_exec.execute_command()
-
-
 def test_notebook_raises_exception_if_command_is_not_a_notebook():
     with pytest.raises(Exception):
         tasks.NotebookTaskType(command="path to notebook")

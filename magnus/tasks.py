@@ -5,13 +5,9 @@ import io
 import json
 import logging
 import os
-import shlex
-import shutil
 import subprocess
 import sys
-import tempfile
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 from pydantic._internal._model_construction import ModelMetaclass
@@ -26,8 +22,6 @@ logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
 # TODO: Can we add memory peak, cpu usage, etc. to the metrics?
-
-# --8<-- [start:docs]
 
 
 class BaseTaskType(BaseModel):
@@ -128,9 +122,6 @@ class BaseTaskType(BaseModel):
             os.remove(log_file.name)
 
 
-# --8<-- [end:docs]
-
-
 class EasyModel(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -193,59 +184,6 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                 del os.environ[defaults.MAP_VARIABLE]
 
             self._set_parameters(user_set_parameters)
-
-
-class PythonLambdaTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
-    """The task class for python-lambda command."""
-
-    task_type: str = Field(default="python-lambda", serialization_alias="command_type")
-    command: str
-
-    @field_validator("command")
-    @classmethod
-    def validate_command(cls, command: str):
-        if not command:
-            raise Exception("Command cannot be empty for shell task")
-
-        return command
-
-    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
-        """Execute the lambda function as defined by the command.
-
-        Args:
-            map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
-
-        Raises:
-            Exception: If the lambda function has _ or __ in it that can cause issues.
-        """
-        if "_" in self.command or "__" in self.command:
-            msg = (
-                f"Command given to {self.task_type} cannot have _ or __ in them. "
-                "The string is supposed to be for simple expressions only."
-            )
-            raise Exception(msg)
-
-        f = eval(self.command)
-
-        params = self._get_parameters()
-        filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
-
-        if map_variable:
-            os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
-
-        logger.info(f"Calling lambda function: {self.command} with {filtered_parameters}")
-        try:
-            user_set_parameters = f(**filtered_parameters)
-        except Exception as _e:
-            msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
-            logger.exception(msg)
-            logger.exception(_e)
-            raise
-
-        if map_variable:
-            del os.environ[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"]
-
-        self._set_parameters(user_set_parameters)
 
 
 class NotebookTaskType(BaseTaskType):
@@ -421,156 +359,6 @@ class ShellTaskType(BaseTaskType):
                 defaults.PARAMETER_PREFIX,
             )
         )
-
-
-class ContainerTaskType(BaseTaskType):
-    """
-    The task class for container based execution.
-    """
-
-    task_type: str = Field(default="container", serialization_alias="command_type")
-    image: str
-    context_path: str = defaults.DEFAULT_CONTAINER_CONTEXT_PATH
-    command: str = ""  # Would be defaulted to the entrypoint of the container
-    data_folder: str = defaults.DEFAULT_CONTAINER_DATA_PATH  # Would be relative to the context_path
-    output_parameters_file: str = defaults.DEFAULT_CONTAINER_OUTPUT_PARAMETERS  # would be relative to the context_path
-    secrets: List[str] = []
-    experiment_tracking_file: str = ""
-
-    _temp_dir: str = ""
-
-    def get_cli_options(self) -> Tuple[str, dict]:
-        return "container", {
-            "image": self.image,
-            "context-path": self.context_path,
-            "command": self.command,
-            "data-folder": self.data_folder,
-            "output-parameters_file": self.output_parameters_file,
-            "secrets": self.secrets,
-            "experiment-tracking-file": self.experiment_tracking_file,
-        }
-
-    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
-        # Conditional import
-        from magnus import track_this
-        from magnus.context import run_context
-
-        try:
-            import docker  # pylint: disable=C0415
-
-            client = docker.from_env()
-            api_client = docker.APIClient()
-        except ImportError as e:
-            msg = "Task type of container requires docker to be installed. Please install via optional: docker"
-            logger.exception(msg)
-            raise Exception(msg) from e
-        except Exception as ex:
-            logger.exception("Could not get access to docker")
-            raise Exception("Could not get the docker socket file, do you have docker installed?") from ex
-
-        container_env_variables = {}
-
-        for key, value in self._get_parameters().items():
-            container_env_variables[defaults.PARAMETER_PREFIX + key] = value
-
-        if map_variable:
-            container_env_variables[defaults.PARAMETER_PREFIX + "MAP_VARIABLE"] = json.dumps(map_variable)
-
-        for secret_name in self.secrets:
-            secret_value = run_context.secrets_handler.get(secret_name)
-            container_env_variables[secret_name] = secret_value
-
-        mount_volumes = self.get_mount_volumes()
-
-        executor_config = run_context.executor._resolve_executor_config(run_context.executor._context_node)
-        optional_docker_args = executor_config.get("optional_docker_args", {})
-
-        try:
-            container = client.containers.create(
-                self.image,
-                command=shlex.split(self.command),
-                auto_remove=False,
-                network_mode="host",
-                environment=container_env_variables,
-                volumes=mount_volumes,
-                **optional_docker_args,
-            )
-
-            container.start()
-            stream = api_client.logs(container=container.id, timestamps=True, stream=True, follow=True)
-            while True:
-                try:
-                    output = next(stream).decode("utf-8")
-                    output = output.strip("\r\n")
-                    logger.info(output)
-                except StopIteration:
-                    logger.info("Docker Run completed")
-                    break
-
-            exit_status = api_client.inspect_container(container.id)["State"]["ExitCode"]
-            container.remove(force=True)
-
-            if exit_status != 0:
-                msg = (
-                    f"Docker command failed with exit code {exit_status}."
-                    "Hint: When chaining multiple commands, use sh -c"
-                )
-                raise Exception(msg)
-
-            container_return_parameters = {}
-            experiment_tracking_variables = {}
-            if self._temp_dir:
-                parameters_file = Path(self._temp_dir) / self.output_parameters_file
-                if parameters_file.is_file():
-                    with open(parameters_file, "r") as f:
-                        container_return_parameters = json.load(f)
-
-                experiment_tracking_file = Path(self._temp_dir) / self.experiment_tracking_file
-                if experiment_tracking_file.is_file():
-                    with open(experiment_tracking_file, "r") as f:
-                        experiment_tracking_variables = json.load(f)
-
-                self._set_parameters(container_return_parameters)  # type: ignore # TODO: Not fixing this for now.
-                track_this(**experiment_tracking_variables)
-
-        except Exception as _e:
-            logger.exception("Problems with spinning up the container")
-            raise _e
-        finally:
-            if self._temp_dir:
-                shutil.rmtree(self._temp_dir)
-
-    def get_mount_volumes(self) -> dict:
-        """
-        Get the required mount volumes from the configuration.
-        We need to mount both the catalog and the parameter.json files.
-
-        Returns:
-            dict: The mount volumes in the format that docker expects.
-        """
-        from magnus.context import run_context
-
-        compute_data_folder = run_context.executor.get_effective_compute_data_folder()
-        mount_volumes = {}
-
-        # Create temporary directory for parameters.json and map it to context_path
-        self._temp_dir = tempfile.mkdtemp()
-        mount_volumes[str(Path(self._temp_dir).resolve())] = {
-            "bind": f"{str(Path(self.context_path).resolve())}/",
-            "mode": "rw",
-        }
-        logger.info(f"Mounting {str(Path(self._temp_dir).resolve())} to {str(Path(self.context_path).resolve())}/")
-
-        # Map the data folder to context_path/data_folder
-        if compute_data_folder:
-            path_to_data = Path(self.context_path) / self.data_folder
-            mount_volumes[str(Path(compute_data_folder).resolve())] = {
-                "bind": f"{str(path_to_data)}/",
-                "mode": "rw",
-            }
-            logger.info(f"Mounting {compute_data_folder} to {str(path_to_data)}/")
-
-        return mount_volumes
 
 
 def create_task(kwargs_for_init) -> BaseTaskType:

@@ -95,7 +95,7 @@ of the files to process.
 
     You can run this example by ```python examples/concepts/map.py```
 
-    ```python linenums="1" hl_lines="21 53-60"
+    ```python linenums="1" hl_lines="30-31 35 68-74"
     --8<-- "examples/concepts/map.py"
     ```
 
@@ -110,7 +110,7 @@ of the files to process.
 
     You can run this example by ```magnus execute examples/concepts/map.yaml```
 
-    ```yaml linenums="1" hl_lines="22-23 25-36"
+    ```yaml linenums="1" hl_lines="23-26"
     --8<-- "examples/concepts/map.yaml"
     ```
 
@@ -126,7 +126,7 @@ of the files to process.
 
     You can run this example by ```magnus execute examples/concepts/map_shell.yaml```
 
-    ```yaml linenums="1" hl_lines="23-24 38-40"
+    ```yaml linenums="1" hl_lines="26-27 29-32"
     --8<-- "examples/concepts/map_shell.yaml"
     ```
 
@@ -829,7 +829,7 @@ of the files to process.
 ## Traversal
 
 A branch of a map step is considered success only if the ```success``` step is reached at the end.
-The steps of the pipeline can fail and be handled by [on failure](../concepts/ppiline/on_failure) and
+The steps of the pipeline can fail and be handled by [on failure](/concepts/pipeline/#on_failure) and
 redirected to ```success``` if that is the desired behavior.
 
 The map step is considered successful only if all the branches of the step have terminated successfully.
@@ -838,7 +838,7 @@ The map step is considered successful only if all the branches of the step have 
 ## Parameters
 
 All the tasks defined in the branches of the map pipeline can
-[access to parameters and data as usual](../task).
+[access to parameters and data as usual](/concepts/task).
 
 
 !!! warning

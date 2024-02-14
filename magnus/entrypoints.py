@@ -1,11 +1,11 @@
 import json
 import logging
-from typing import List, Optional, cast
+from typing import Optional, cast
 
 from rich import print
 
 import magnus.context as context
-from magnus import defaults, exceptions, graph, utils
+from magnus import defaults, graph, utils
 from magnus.defaults import MagnusConfig, ServiceConfig
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -115,7 +115,6 @@ def prepare_configurations(
     if pipeline_file:
         # There are use cases where we are only preparing the executor
         pipeline_config = utils.load_yaml(pipeline_file)
-        # pipeline_config = utils.apply_variables(pipeline_config, variables=variables)
 
         logger.info("The input pipeline:")
         logger.info(json.dumps(pipeline_config, indent=4))
@@ -123,7 +122,6 @@ def prepare_configurations(
         # Create the graph
         dag_config = pipeline_config["dag"]
         dag_hash = utils.get_dag_hash(dag_config)
-        # TODO: Dag nodes should not self refer themselves
         dag = graph.create_graph(dag_config)
 
         run_context.pipeline_file = pipeline_file
@@ -181,61 +179,6 @@ def execute(
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     # Prepare for graph execution
-    executor.prepare_for_graph_execution()
-
-    logger.info("Executing the graph")
-    executor.execute_graph(dag=run_context.dag)  # type: ignore
-
-    executor.send_return_code()
-
-
-def execute_single_step(
-    configuration_file: str,
-    pipeline_file: str,
-    step_name: str,
-    run_id: str,
-    tag: str = "",
-    parameters_file: str = "",
-    use_cached: str = "",
-):
-    """
-    TODO: Remove this!!
-    The entry point into executing a single step of magnus.
-
-    It should have similar set up of configurations to execute because orchestrator modes can initiate the execution.
-
-    Args:
-        variables_file (str): The variables file, if used or None
-        step_name : The name of the step to execute in dot path convention
-        pipeline_file (str): The config/dag file
-        run_id (str): The run id of the run.
-        tag (str): If a tag is provided at the run time
-        parameters_file (str): The parameters being sent in to the application
-
-    """
-    run_id = utils.generate_run_id(run_id=run_id)
-
-    run_context = prepare_configurations(
-        configuration_file=configuration_file,
-        pipeline_file=pipeline_file,
-        run_id=run_id,
-        tag=tag,
-        use_cached="",
-        parameters_file=parameters_file,
-    )
-    print("Working with context:")
-    print(run_context)
-
-    executor = run_context.executor
-    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
-    try:
-        _ = run_context.dag.get_node_by_name(step_name)  # type: ignore
-    except exceptions.NodeNotFoundError as e:
-        msg = f"The node by name {step_name} is not found in the graph. Please provide a valid node name"
-        raise Exception(msg) from e
-
-    executor._single_step = step_name
     executor.prepare_for_graph_execution()
 
     logger.info("Executing the graph")
@@ -477,68 +420,6 @@ def execute_function(
     executor.send_return_code()
 
 
-def execute_container(
-    image: str,
-    entrypoint: str,
-    command: str = "",
-    configuration_file="",
-    parameters_file: str = "",
-    context_path: str = defaults.DEFAULT_CONTAINER_CONTEXT_PATH,
-    catalog_config: Optional[dict] = None,
-    output_parameters_file: str = defaults.DEFAULT_CONTAINER_OUTPUT_PARAMETERS,
-    experiment_tracking_file: str = "",
-    expose_secrets: Optional[List[str]] = None,
-    tag: str = "",
-    run_id: str = "",
-):
-    """
-    The entry point to magnus execution of a container.
-    This method, as designed, should only be used by interactive computes.
-    """
-    run_id = utils.generate_run_id(run_id=run_id)
-
-    run_context = prepare_configurations(
-        configuration_file=configuration_file,
-        run_id=run_id,
-        tag=tag,
-        parameters_file=parameters_file,
-    )
-    executor = run_context.executor
-
-    run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
-
-    print("Working with context:")
-    print(run_context)
-
-    # Prepare the graph with a single node
-    step_config = {
-        "image": image,
-        "context_path": context_path,
-        "command": command,
-        "data_folder": defaults.DEFAULT_CONTAINER_DATA_PATH,
-        "output_parameters_file": output_parameters_file,
-        "secrets": expose_secrets,
-        "experiment_tracking_file": experiment_tracking_file,
-        "command_type": "container",
-        "type": "task",
-        "next": "success",
-        "catalog": catalog_config,
-    }
-    node = graph.create_node(name="executing job", step_config=step_config)
-
-    if entrypoint == defaults.ENTRYPOINT.USER.value:
-        # Prepare for graph execution
-        executor.prepare_for_graph_execution()
-
-        logger.info("Executing the job from the user. We are still in the caller's compute environment")
-        executor.execute_job(node=node)
-    else:
-        raise ValueError(f"Invalid entrypoint {entrypoint}")
-
-    executor.send_return_code()
-
-
 def fan(
     configuration_file: str,
     pipeline_file: str,
@@ -596,26 +477,6 @@ def fan(
         executor.fan_out(node=node_to_execute, map_variable=map_variable_dict)
     else:
         raise ValueError(f"Invalid mode {mode}")
-
-
-def wrap_around_container(run_id: str, step_identifier: str, map_variable: str, mode: str):
-    """
-    This function provides a pre and post processing steps for magnus to execute a container in non-interactive mode.
-
-    Expectations:
-        It is expected that the config is available as a JSON string in the environment.
-        It is also expected that step_identifiers (key: step_identifier, value: step_config) is available as
-        a JSON string in the environment.
-
-    We prepare configurations with the config variable from the environment, the dag is empty.
-
-
-    Args:
-        run_id (str): _description_
-        step_identifier (str): _description_
-        map_variable (str): _description_
-        mode (str): _description_
-    """
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@
 <p align="center">
   <img src="https://github.com/AstraZeneca/magnus-core/blob/main/assets/logo-readme.png?raw=true" alt="Logo"/>
 </p>
----
+<hr style="border:2px dotted orange">
 
 <p align="center">
 <a href="https://pypi.org/project/magnus/"><img alt="python:" src="https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg"></a>
@@ -17,7 +17,7 @@
 <a href="https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml"><img alt="Tests:" src="https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml/badge.svg">
 <a href="https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml"><img alt="Docs:" src="https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml/badge.svg">
 </p>
----
+<hr style="border:2px dotted orange">
 
 Magnus is a simplified workflow definition language that helps in:
 
@@ -48,17 +48,20 @@ such as [data catalog](https://astrazeneca.github.io/magnus-core/concepts/catalo
 [experiment tracking](https://astrazeneca.github.io/magnus-core/concepts/experiment-tracking)
 and secure [access to secrets](https://astrazeneca.github.io/magnus-core/concepts/secrets).
 
+<hr style="border:2px dotted orange">
 
 ## What does it do?
 
 
 ![works](assets/work.png)
 
+<hr style="border:2px dotted orange">
 
 ## Documentation
 
 [More details about the project and how to use it available here](https://astrazeneca.github.io/magnus-core/).
 
+<hr style="border:2px dotted orange">
 
 ## Installation
 
@@ -71,6 +74,7 @@ pip install magnus
 Please look at the [installation guide](https://astrazeneca.github.io/magnus-core/usage)
 for more information.
 
+<hr style="border:2px dotted orange">
 
 ## Example
 
@@ -391,3 +395,5 @@ Execute branches in parallel
 Execute a pipeline over an iterable parameter.
 
 [![](https://mermaid.ink/img/pako:eNqVlF1rwjAUhv9KyG4qKNR-3AS2m8nuBgN3Z0Sy5tQG20SSdE7E_76kVVEr2CY3Ied9Tx6Sk3PAmeKACc5LtcsKpi36nlGZFbXciHwfLN79CuWiBLMcEULWGkBSaeosA2OCxbxdXMd89Get2bZASsLiSyuvQE2mJZXIjW27t2rOmQZ3Gp9rD6UjatWnwy7q6zPPukd50WTydmemEiS_QbQ79RwxGoQY9UaMuojRA8TCXexzyHgQZNwbMu5Cxl3IXNX6OWMyiDHpzZh0GZMHjOK3xz2mgxjT3oxplzG9MPp5_nVOhwJjteDwOg3HyFj3L1dCcvh7DUc-iftX18n6Waet1xX8cG908vpKHO6OW7cvkeHm5GR2b3drdvaSGTODHLW37mxabYC8fLgRhlfxpjNdwmEets-Dx7gCXTHBXQc8-D2KbQEVUEzckjO9oZjKo9Ox2qr5XmaYWF3DGNdbzizMBHOVVWGSs9K4XeDCKv3ZttSmsx7_AYa341E?type=png)](https://mermaid.live/edit#pako:eNqVlF1rwjAUhv9KyG4qKNR-3AS2m8nuBgN3Z0Sy5tQG20SSdE7E_76kVVEr2CY3Ied9Tx6Sk3PAmeKACc5LtcsKpi36nlGZFbXciHwfLN79CuWiBLMcEULWGkBSaeosA2OCxbxdXMd89Get2bZASsLiSyuvQE2mJZXIjW27t2rOmQZ3Gp9rD6UjatWnwy7q6zPPukd50WTydmemEiS_QbQ79RwxGoQY9UaMuojRA8TCXexzyHgQZNwbMu5Cxl3IXNX6OWMyiDHpzZh0GZMHjOK3xz2mgxjT3oxplzG9MPp5_nVOhwJjteDwOg3HyFj3L1dCcvh7DUc-iftX18n6Waet1xX8cG908vpKHO6OW7cvkeHm5GR2b3drdvaSGTODHLW37mxabYC8fLgRhlfxpjNdwmEets-Dx7gCXTHBXQc8-D2KbQEVUEzckjO9oZjKo9Ox2qr5XmaYWF3DGNdbzizMBHOVVWGSs9K4XeDCKv3ZttSmsx7_AYa341E)
+
+### [Arbitrary nesting](https://astrazeneca.github.io/magnus-core/concepts/nesting/)
