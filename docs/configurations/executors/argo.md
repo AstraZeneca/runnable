@@ -16,7 +16,7 @@ to get inputs from infrastructure teams or ML engineers in defining the configur
 ## Configuration
 
 Only ```image``` is the required parameter. Please refer to the
-[note on containers](/configurations/executors/container-environments) on building images.
+[note on containers](container-environments.md) on building images.
 
 
 ```yaml linenums="1"
@@ -333,7 +333,7 @@ as inputs to the workflow. This allows for changing the parameters at runtime.
 === "Run Submission"
 
     <figure markdown>
-        ![Image](/assets/screenshots/argo-expose-parameters.png){ width="800" height="600"}
+        ![Image](../../assets/screenshots/argo-expose-parameters.png){ width="800" height="600"}
         <figcaption>argo workflows UI exposing the parameters</figcaption>
     </figure>
 
@@ -411,7 +411,7 @@ The parallelism constraint [only applies to the step](https://github.com/argopro
 
     === "Pipeline"
 
-        This example is the same as [detailed in map](/concepts/map).
+        This example is the same as [detailed in map](../../concepts/map.md).
 
         ```yaml linenums="1" hl_lines="22-23 25-36"
         --8<-- "examples/concepts/map.yaml"
@@ -423,7 +423,7 @@ The parallelism constraint [only applies to the step](https://github.com/argopro
         tasks execute simultaneously.
 
         <figure markdown>
-          ![Image](/assets/screenshots/argo-parallel-map.png){ width="800" height="600"}
+          ![Image](../../assets/screenshots/argo-parallel-map.png){ width="800" height="600"}
           <figcaption>argo workflows UI exposing the parameters</figcaption>
         </figure>
 
@@ -442,7 +442,7 @@ The parallelism constraint [only applies to the step](https://github.com/argopro
 
     === "Pipeline"
 
-        The pipeline defined here is nearly the same as [detailed in map](/concepts/map) with the
+        The pipeline defined here is nearly the same as [detailed in map](../../concepts/map.md) with the
         only exception in lines 25-26 which use the ```sequential``` override.
 
         ```yaml linenums="1" hl_lines="22-23 25-36"
@@ -456,7 +456,7 @@ The parallelism constraint [only applies to the step](https://github.com/argopro
         instead of parallel as seen in the default.
 
         <figure markdown>
-          ![Image](/assets/screenshots/argo-sequential-map.png){ width="800" height="600"}
+          ![Image](../../assets/screenshots/argo-sequential-map.png){ width="800" height="600"}
           <figcaption>argo workflows UI exposing the parameters</figcaption>
         </figure>
 
@@ -538,7 +538,7 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
 
     Assumed to be present at ```examples/configs/argo-config.yaml```
 
-    The docker image is a [variable](/configurations/executors/container-environments/#dynamic_name_of_the_image) and
+    The docker image is a [variable](container-environments.md/#dynamic_name_of_the_image) and
     dynamically set during execution.
 
     ```yaml linenums="1" hl_lines="4"
@@ -547,7 +547,7 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
 
     1. Use ```argo``` executor type to execute the pipeline.
     2. By default, all the tasks are executed in the docker image . Please
-    refer to [building docker images](/configurations/executors/container-environments/)
+    refer to [building docker images](container-environments.md)
     3. Mount the persistent volume ```magnus-volume``` to all the containers as ```/mnt```.
     4. Store the run logs in the file-system. As all containers have access to ```magnus-volume```
     as ```/mnt```. We use that to mounted folder as run log store.
@@ -556,7 +556,7 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
 === "python SDK"
 
     Running the SDK defined pipelines for any container based executions [happens in
-    multi-stage process](/configurations/executors/container-environments/).
+    multi-stage process](container-environments.md).
 
     1. Generate the ```yaml``` definition file by:
     ```MAGNUS_CONFIGURATION_FILE=examples/configs/argo-config.yaml python examples/concepts/simple.py```
@@ -570,7 +570,7 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
     ```
 
     1. You can provide a configuration file dynamically by using the environment
-    variable ```MAGNUS_CONFIGURATION_FILE```. Please see [SDK for more details](../../sdk).
+    variable ```MAGNUS_CONFIGURATION_FILE```. Please see [SDK for more details](../../sdk.md).
 
 
 === "yaml"
@@ -594,12 +594,12 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
 === "Screenshots"
 
     <figure markdown>
-        ![Image](/assets/screenshots/argo-workflows-gant.png){ width="800" height="600"}
+        ![Image](../../assets/screenshots/argo-workflows-gant.png){ width="800" height="600"}
         <figcaption>argo workflows UI showing the pipeline</figcaption>
     </figure>
 
     <figure markdown>
-        ![Image](/assets/screenshots/argo-workflows-logs.png){ width="800" height="600"}
+        ![Image](../../assets/screenshots/argo-workflows-logs.png){ width="800" height="600"}
         <figcaption>argo workflows UI showing the logs</figcaption>
     </figure>
 
@@ -788,7 +788,7 @@ Magnus compiled argo workflows support deeply nested workflows.
 
 === "Nested workflow"
 
-    This is the same example as shown in [nested](/concepts/nesting).
+    This is the same example as shown in [nested](../../concepts/nesting.md).
 
     ```yaml linenums="1"
     --8<-- "examples/concepts/nesting.yaml"
@@ -799,7 +799,7 @@ Magnus compiled argo workflows support deeply nested workflows.
 
     Assumed to be present at ```examples/configs/argo-config.yaml```
 
-    The docker image is a [variable](/configurations/executors/container-environments/) and
+    The docker image is a [variable](container-environments.md) and
     dynamically set during execution.
 
     ```yaml linenums="1" hl_lines="4"
@@ -808,7 +808,7 @@ Magnus compiled argo workflows support deeply nested workflows.
 
     1. Use ```argo``` executor type to execute the pipeline.
     2. By default, all the tasks are executed in the docker image . Please
-    refer to [building docker images](#container_environments)
+    refer to [building docker images](container-environments.md)
     3. Mount the persistent volume ```magnus-volume``` to all the containers as ```/mnt```.
     4. Store the run logs in the file-system. As all containers have access to ```magnus-volume```
     as ```/mnt```. We use that to mounted folder as run log store.
@@ -1628,7 +1628,7 @@ Magnus compiled argo workflows support deeply nested workflows.
 === "In argo UI"
 
     <figure markdown>
-        ![Image](/assets/screenshots/argo-nested.png){ width="800" height="600"}
+        ![Image](../../assets/screenshots/argo-nested.png){ width="800" height="600"}
         <figcaption>argo workflows UI showing the deeply nested workflows.</figcaption>
     </figure>
 
@@ -1636,15 +1636,15 @@ Magnus compiled argo workflows support deeply nested workflows.
 ## Kubeflow
 
 Kubeflow pipelines compiles workflows defined in SDK to Argo workflows and thereby
-has support for uploading argo workflows. Below is a screenshot of the [map](/concepts/map) pipeline uploaded to Kubeflow.
+has support for uploading argo workflows. Below is a screenshot of the [map](../../concepts/map.md) pipeline uploaded to Kubeflow.
 
 
 <figure markdown>
-  ![Image](/assets/screenshots/argo-kubeflow-ui.png){ width="800" height="600"}
+  ![Image](../../assets/screenshots/argo-kubeflow-ui.png){ width="800" height="600"}
   <figcaption>argo workflows UI showing the map workflow definition.</figcaption>
 </figure>
 
 <figure markdown>
-  ![Image](/assets/screenshots/argo-kubeflow-exec.png){ width="800" height="600"}
+  ![Image](../../assets/screenshots/argo-kubeflow-exec.png){ width="800" height="600"}
   <figcaption>argo workflows UI showing the map workflow execution.</figcaption>
 </figure>

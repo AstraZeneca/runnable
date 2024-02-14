@@ -2,7 +2,7 @@ Along with tracking the progress and status of the execution of the pipeline, ru
 also keeps a track of parameters, experiment tracking metrics, data flowing through
 the pipeline and any reproducibility metrics emitted by the tasks of the pipeline.
 
-Please refer here for detailed [information about run log](/concepts/run-log).
+Please refer here for detailed [information about run log](../concepts/run-log.md).
 
 
 ## buffered
@@ -74,7 +74,7 @@ run_log_store:
 
 === "Run log"
 
-    The structure of the run log is [detailed in concepts](/concepts/run-log).
+    The structure of the run log is [detailed in concepts](../concepts/run-log.md).
 
     ```json linenums="1"
     {
@@ -276,7 +276,7 @@ run_log_store:
 
 === "Run log"
 
-    The structure of the run log is [detailed in concepts](/concepts/run-log).
+    The structure of the run log is [detailed in concepts](../concepts/run-log.md).
 
     === "RunLog.json"
 

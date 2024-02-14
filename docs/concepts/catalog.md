@@ -18,10 +18,11 @@ For example, a local directory structure partitioned by a ```run_id``` or S3 buc
 
 The directory structure within a partition is the same as the project directory structure. This enables you to
 get/put data in the catalog as if you are working with local directory structure. Every interaction with the catalog
-(either by API or configuration) results in an entry in the [```run log```](/concepts/run-log/#step_log)
+(either by API or configuration) results in an entry in the [```run log```](../concepts/run-log.md/#step_log)
 
 Internally, magnus also uses the catalog to store execution logs of tasks i.e stdout and stderr from
-[python](/concepts/task/#python) or [shell](/concepts/task/#shell) and executed notebook from [notebook tasks](/concepts/task/#notebook).
+[python](../concepts/task.md/#python) or [shell](../concepts/task.md/#shell) and executed notebook
+from [notebook tasks](../concepts/task.md/#notebook).
 
 Since the catalog captures the data files flowing through the pipeline and the execution logs, it enables you
 to debug failed pipelines or keep track of data lineage.
@@ -448,11 +449,11 @@ The execution results in the ```catalog``` populated with the artifacts and the 
 
 ## Using python API
 
-Files could also be cataloged using [python API](/interactions)
+Files could also be cataloged using [python API](../interactions.md)
 
 
-This functionality is possible in [python](/concepts/task/#python_functions)
-and [notebook](/concepts/task/#notebook) tasks.
+This functionality is possible in [python](../concepts/task.md/#python_functions)
+and [notebook](../concepts/task.md/#notebook) tasks.
 
 ```python linenums="1" hl_lines="11 23 35 45"
 --8<-- "examples/concepts/catalog_api.py"
@@ -463,9 +464,10 @@ and [notebook](/concepts/task/#notebook) tasks.
 
 ## Passing Data Objects
 
-Data objects can be shared between [python](/concepts/task/#python_functions) or [notebook](/concepts/task/#notebook) tasks,
+Data objects can be shared between [python](../concepts/task.md/#python_functions) or
+[notebook](../concepts/task.md/#notebook) tasks,
 instead of serializing data and deserializing to file structure, using
-[get_object](/interactions/#magnus.get_object) and [put_object](/interactions/#magnus.put_object).
+[get_object](../interactions.md/#magnus.get_object) and [put_object](../interactions.md/#magnus.put_object).
 
 Internally, we use [pickle](https:/docs.python.org/3/library/pickle.html) to serialize and
 deserialize python objects. Please ensure that the object can be serialized via pickle.

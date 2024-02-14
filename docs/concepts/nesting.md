@@ -1,4 +1,5 @@
-As seen from the definitions of [parallel](/concepts/parallel) or [map](/concepts/map), the branches are pipelines
+As seen from the definitions of [parallel](../concepts/parallel.md) or
+[map](../concepts/map.md), the branches are pipelines
 themselves. This allows for deeply nested workflows in **magnus**.
 
 Technically there is no limit in the depth of nesting but there are some practical considerations.

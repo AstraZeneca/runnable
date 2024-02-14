@@ -24,7 +24,7 @@ config:
 ```
 
 1. By default, all tasks are sequentially executed. Provide ```true``` to enable tasks within
-[parallel](/concepts/parallel) or [map](/concepts/map) to be executed in parallel.
+[parallel](../..//concepts/parallel.md) or [map](../../concepts/map.md) to be executed in parallel.
 
 
 

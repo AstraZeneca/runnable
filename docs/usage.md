@@ -40,14 +40,14 @@ pip install "magnus[mlflow]"
 
 ## Usage
 
-Pipelines defined in **magnus** can be either via [python sdk](/sdk) or ```yaml``` based definitions.
+Pipelines defined in **magnus** can be either via [python sdk](sdk.md) or ```yaml``` based definitions.
 
 To execute a pipeline, defined in ```yaml```, use the **magnus** cli.
 The options are detailed below:
 
 - ```-f, --file``` (str): The pipeline definition file, defaults to pipeline.yaml
-- ```-c, --config-file``` (str): [config file](/configurations/overview) to be used for the run [default: None]
-- ```-p, --parameters-file``` (str): [Parameters](/concepts/parameters)  accessible by the application [default: None]
+- ```-c, --config-file``` (str): [config file](configurations/overview.md) to be used for the run [default: None]
+- ```-p, --parameters-file``` (str): [Parameters](concepts/parameters.md)  accessible by the application [default: None]
 - ```--log-level``` : The log level, one of ```INFO | DEBUG | WARNING| ERROR| FATAL``` [default: INFO]
 - ```--tag``` (str): A tag attached to the run[default: ]
 - ```--run-id``` (str): An optional run_id, one would be generated if not provided

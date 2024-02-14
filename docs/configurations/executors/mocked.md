@@ -23,7 +23,8 @@ to run and the configuration of the command.
 #### Command configuration for notebook nodes
 
 ```python``` and ```shell``` based tasks have no configuration options apart from the ```command```.
-Notebook nodes have additional configuration options [detailed in concepts](/concepts/task/#notebook). Ploomber engine provides [rich options](https://engine.ploomber.io/en/docs/user-guide/debugging/debuglater.html) in debugging failed notebooks.
+Notebook nodes have additional configuration options [detailed in concepts](../../concepts/task.md/#notebook).
+Ploomber engine provides [rich options](https://engine.ploomber.io/en/docs/user-guide/debugging/debuglater.html) in debugging failed notebooks.
 
 
 ## Example
@@ -211,7 +212,7 @@ take an example pipeline to test the behavior of the traversal.
 
 The below pipeline is designed to follow: ```step 1 >> step 2 >> step 3``` in case of no failures
 and ```step 1 >> step3``` in case of failure. The traversal is
-[shown in concepts](/concepts/pipeline/#on_failure).
+[shown in concepts](../../concepts/pipeline.md/#on_failure).
 
 !!! tip "Asserting Run log"
 

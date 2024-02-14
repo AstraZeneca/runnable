@@ -1,11 +1,11 @@
 ## Pipeline definition
 
 Executing pipelines in containers needs a ```yaml``` based definition of the pipeline which is
-referred during the [task execution](/concepts/executor/#step_execution).
+referred during the [task execution](../../concepts/executor.md/#step_execution).
 
 
-Any execution of the pipeline [defined by SDK](/sdk) generates the pipeline
-definition in```yaml``` format for all executors apart from the [```local``` executor](../local).
+Any execution of the pipeline [defined by SDK](../../sdk.md) generates the pipeline
+definition in```yaml``` format for all executors apart from the [```local``` executor](local.md).
 
 
 Follow the below steps to execute the pipeline defined by SDK.
@@ -20,7 +20,7 @@ Follow the below steps to execute the pipeline defined by SDK.
 tagging the docker image with the short git sha to uniquely identify the docker image (1).
 3. Define a [variable to temporarily hold](https://docs.python.org/3/library/string.html#template-strings) the docker image name in the
 pipeline definition, if the docker image name is not known.
-4. Execute the pipeline using the [magnus CLI](/usage/#usage).
+4. Execute the pipeline using the [magnus CLI](../../usage.md/#usage).
 
 </div>
 

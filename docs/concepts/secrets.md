@@ -11,7 +11,7 @@ Most complex pipelines require secrets to hold sensitive information during task
 They could be database credentials, API keys or any information that need to present at
 the run-time but invisible at all other times.
 
-Magnus provides a [clean API](/interactions/#magnus.get_secret) to access secrets
+Magnus provides a [clean API](../interactions.md/#magnus.get_secret) to access secrets
 and independent of the actual secret provider, the interface remains the same.
 
 A typical example would be a task requiring the database connection string to connect
@@ -29,7 +29,7 @@ class CustomObject:
         # Do something with the secrets
 ```
 
-Please refer to [configurations](/configurations/secrets) for available implementations.
+Please refer to [configurations](../configurations/secrets.md) for available implementations.
 
 ## Example
 

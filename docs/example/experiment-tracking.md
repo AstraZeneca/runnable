@@ -1,8 +1,8 @@
 Metrics in data science projects summarize important information about the execution and performance of the
 experiment.
 
-Magnus captures [this information as part of the run log](/concepts/experiment-tracking) and also provides
-an [interface to experiment tracking tools](/concepts/experiment-tracking/#experiment_tracking_tools)
+Magnus captures [this information as part of the run log](../concepts/experiment-tracking.md) and also provides
+an [interface to experiment tracking tools](../concepts/experiment-tracking.md/#experiment_tracking_tools)
 like [mlflow](https://mlflow.org/docs/latest/tracking.html) or
 [Weights and Biases](https://wandb.ai/site/experiment-tracking).
 
@@ -197,6 +197,6 @@ like [mlflow](https://mlflow.org/docs/latest/tracking.html) or
     The metrics are also sent to mlflow.
 
     <figure markdown>
-        ![Image](/assets/screenshots/mlflow_example.png){ width="800" height="600"}
+        ![Image](../assets/screenshots/mlflow_example.png){ width="800" height="600"}
         <figcaption>mlflow UI for the execution. The run_id remains the same as the run_id of magnus</figcaption>
     </figure>
