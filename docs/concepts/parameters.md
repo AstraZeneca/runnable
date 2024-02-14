@@ -1,16 +1,16 @@
 In magnus, ```parameters``` are python data types that can be passed from one ```task```
 to the next ```task```. These parameters can be accessed by the ```task``` either as
 environment variables, arguments of the ```python function``` or using the
-[API](/interactions).
+[API](../interactions.md).
 
 ## Initial parameters
 
 The initial parameters of the pipeline can set by using a ```yaml``` file and presented
 during execution
 
-```--parameters-file, -parameters``` while using the [magnus CLI](/usage/#usage)
+```--parameters-file, -parameters``` while using the [magnus CLI](../usage.md/#usage)
 
-or by using ```parameters_file``` with [the sdk](/sdk/#magnus.Pipeline.execute).
+or by using ```parameters_file``` with [the sdk](..//sdk.md/#magnus.Pipeline.execute).
 
 They can also be set using environment variables which override the parameters defined by the file.
 
@@ -42,5 +42,5 @@ They can also be set using environment variables which override the parameters d
 ## Parameters flow
 
 Tasks can access and return parameters and the patterns are specific to the
-```command_type``` of the task nodes. Please refer to [tasks](/concepts/task)
+```command_type``` of the task nodes. Please refer to [tasks](../concepts/task.md)
 for more information.

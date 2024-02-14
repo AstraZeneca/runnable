@@ -1,6 +1,6 @@
 # Overview
 
-[Run log](/concepts/run-log) stores a lot of information about the execution along with the metrics captured
+[Run log](../concepts/run-log.md) stores a lot of information about the execution along with the metrics captured
 during the execution of the pipeline.
 
 
@@ -9,7 +9,7 @@ during the execution of the pipeline.
 
 === "Using the API"
 
-    The highlighted lines in the below example show how to [use the API](/interactions/#magnus.track_this)
+    The highlighted lines in the below example show how to [use the API](../interactions.md/#magnus.track_this)
 
     Any pydantic model as a value would be dumped as a dict, respecting the alias, before tracking it.
 
@@ -207,7 +207,7 @@ The step is defaulted to be 0.
 
 === "Using the API"
 
-    The highlighted lines in the below example show how to [use the API](/interactions/#magnus.track_this) with
+    The highlighted lines in the below example show how to [use the API](../interactions.md/#magnus.track_this) with
     the step parameter.
 
     You can run this example by ```python run examples/concepts/experiment_tracking_step.py```
@@ -452,17 +452,17 @@ Since mlflow does not support step wise logging of parameters, the key name is f
 === "In mlflow UI"
 
     <figure markdown>
-        ![Image](/assets/screenshots/mlflow.png){ width="800" height="600"}
+        ![Image](../assets/screenshots/mlflow.png){ width="800" height="600"}
         <figcaption>mlflow UI for the execution. The run_id remains the same as the run_id of magnus</figcaption>
     </figure>
 
     <figure markdown>
-        ![Image title](/assets/screenshots/mlflow_step.png){ width="800" height="600"}
+        ![Image title](../assets/screenshots/mlflow_step.png){ width="800" height="600"}
         <figcaption>The step wise metric plotted as a graph in mlflow</figcaption>
     </figure>
 
 
 
 To provide implementation specific capabilities, we also provide a
-[python API](/interactions/#magnus.get_experiment_tracker_context) to obtain the client context. The default
+[python API](../interactions.md/#magnus.get_experiment_tracker_context) to obtain the client context. The default
 client context is a [null context manager](https://docs.python.org/3/library/contextlib.html#contextlib.nullcontext).

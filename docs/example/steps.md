@@ -2,10 +2,10 @@ Magnus provides a rich definition of of step types.
 
 <div class="annotate" markdown>
 
-- [stub](/concepts/stub): A mock step which is handy during designing and debugging pipelines.
-- [task](/concepts/task): To execute python functions, jupyter notebooks, shell scripts.
-- [parallel](/concepts/parallel): To execute many tasks in parallel.
-- [map](/concepts/map): To execute the same task over a list of parameters. (1)
+- [stub](../concepts/stub.md): A mock step which is handy during designing and debugging pipelines.
+- [task](../concepts/task.md): To execute python functions, jupyter notebooks, shell scripts.
+- [parallel](../concepts/parallel.md): To execute many tasks in parallel.
+- [map](../concepts/map.md): To execute the same task over a list of parameters. (1)
 
 </div>
 
@@ -40,12 +40,12 @@ Used as a mock node or a placeholder before the actual implementation (1).
 
 ## task
 
-Used to execute a single unit of work. You can use [python](/concepts/task/#python_functions),
-[shell](/concepts/task/#shell), [notebook](/concepts/task/#notebook) as command types.
+Used to execute a single unit of work. You can use [python](../concepts/task.md/#python_functions),
+[shell](../concepts/task.md/#shell), [notebook](../concepts/task.md/#notebook) as command types.
 
 !!! note annotate "Execution logs"
 
-    You can view the execution logs of the tasks in the [catalog](/concepts/catalog) without digging through the
+    You can view the execution logs of the tasks in the [catalog](../concepts/catalog.md) without digging through the
     logs from the underlying executor.
 
 
@@ -63,7 +63,7 @@ Used to execute a single unit of work. You can use [python](/concepts/task/#pyth
     --8<-- "examples/python-tasks.yaml"
     ```
 
-    1. Note that the ```command``` is the [path to the python function](/concepts/task/#python_functions).
+    1. Note that the ```command``` is the [path to the python function](../concepts/task.md/#python_functions).
     2. ```python``` is default command type, you can use ```shell```, ```notebook``` too.
 
 === "python"
@@ -72,7 +72,7 @@ Used to execute a single unit of work. You can use [python](/concepts/task/#pyth
     --8<-- "examples/python-tasks.py"
     ```
 
-    1. Note that the command is the [path to the function](/concepts/task/#python_functions).
+    1. Note that the command is the [path to the function](../concepts/task.md/#python_functions).
     2. There are many ways to define dependencies within nodes, step1 >> step2, step1 << step2 or during the definition of step1, we can define a next step.
     3. ```terminate_with_success``` indicates that the dag is completed successfully. You can also use ```terminate_with_failure``` to indicate the dag failed.
     4. Add ```success``` and ```fail``` nodes to the dag.

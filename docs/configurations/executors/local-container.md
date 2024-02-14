@@ -1,6 +1,6 @@
 
 Execute all the steps of the pipeline in containers. Please refer to the
-[note on containers](/configurations/executors/container-environments/) on building images.
+[note on containers](container-environments.md) on building images.
 
 - [x] Provides a way to test the containers and the execution of the pipeline in local environment.
 - [x] Any failure in cloud native container environments can be replicated in local environments.
@@ -33,14 +33,14 @@ config:
 ```
 
  1. By default, all tasks are sequentially executed. Provide ```true``` to enable tasks within
-[parallel](/concepts/parallel) or [map](/concepts/map) to be executed in parallel.
+[parallel](../../concepts/parallel.md) or [map](../../concepts/map.md) to be executed in parallel.
 2. Set it to false, to debug a failed container.
-3. Setting it to true will behave exactly like a [local executor](/configurations/executors/local/).
+3. Setting it to true will behave exactly like a [local executor](local.md).
 4. Pass any environment variables into the container.
 5. Please refer to [step overrides](#step_override) for more details.
 
 The ```docker_image``` field is required and default image to execute tasks
-of the pipeline. Individual [tasks](/concepts/task) can
+of the pipeline. Individual [tasks](../../concepts/task.md) can
 [override](#step_override) the global defaults of executor by providing ```overrides```
 
 
@@ -63,7 +63,7 @@ the patterns.
 
     Assumed to be present at ```examples/configs/local-container.yaml```
 
-    The docker image is a [variable](/configurations/executors/container-environments/#dynamic_name_of_the_image) and
+    The docker image is a [variable](container-environments.md/#dynamic_name_of_the_image) and
     dynamically set during execution.
 
     ```yaml linenums="1" hl_lines="4"
@@ -72,7 +72,7 @@ the patterns.
 
     1. Use local-container executor type to execute the pipeline.
     2. By default, all the tasks are executed in the docker image . Please
-    refer to [building docker images](/configurations/executors/container-environments/#dynamic_name_of_the_image)
+    refer to [building docker images](container-environments.md/#dynamic_name_of_the_image)
     3. Pass any environment variables that are needed for the container.
     4. Store the run logs in the file-system. Magnus will handle the access to them
     by mounting the file system into the container.
@@ -81,7 +81,7 @@ the patterns.
 === "python sdk"
 
     Running the SDK defined pipelines for any container based executions [happens in
-    multi-stage process](/configurations/executors/container-environments/).
+    multi-stage process](container-environments.md).
 
     1. Generate the ```yaml``` definition file by:
     ```MAGNUS_CONFIGURATION_FILE=examples/configs/local-container.yaml python examples/concepts/simple.py```
@@ -95,7 +95,7 @@ the patterns.
     ```
 
     1. You can provide a configuration file dynamically by using the environment
-    variable ```MAGNUS_CONFIGURATION_FILE```. Please see [SDK for more details](sdk).
+    variable ```MAGNUS_CONFIGURATION_FILE```. Please see [SDK for more details](../../sdk.md).
 
 
 
@@ -302,7 +302,7 @@ executor.
 
     As seen in the above example,
     running the SDK defined pipelines for any container based executions [happens in
-    multi-stage process](/configurations/executors/container-environments/).
+    multi-stage process](container-environments.md).
 
     1. Generate the ```yaml``` definition file by:
     ```MAGNUS_CONFIGURATION_FILE=examples/executors/local-container-override.yaml python examples/executors/step_overrides_container.py```

@@ -26,7 +26,7 @@ ALLOWED_COMMAND_TYPES = ["shell", "python", "notebook"]
 class Catalog(BaseModel):
     """
     Use to instruct a task to sync data from/to the central catalog.
-    Please refer to [concepts](../../concepts/catalog) for more information.
+    Please refer to [concepts](concepts/catalog.md) for more information.
 
     Attributes:
         get (List[str]): List of glob patterns to get from central catalog to the compute data folder.
@@ -110,13 +110,13 @@ class BaseTraversal(ABC, BaseModel):
 class Task(BaseTraversal):
     """
     An execution node of the pipeline.
-    Please refer to [concepts](../../concepts/task) for more information.
+    Please refer to [concepts](concepts/task.md) for more information.
 
     Attributes:
         name (str): The name of the node.
         command (str): The command to execute.
 
-            - For python functions, [dotted path](../../concepts/task/#python_functions) to the function.
+            - For python functions, [dotted path](concepts/task.md/#python_functions) to the function.
             - For shell commands: command to execute in the shell.
             - For notebooks: path to the notebook.
         command_type (str): The type of command to execute.
@@ -197,7 +197,7 @@ class Stub(BaseTraversal):
     A node that does nothing.
 
     A stub node can tak arbitrary number of arguments.
-    Please refer to [concepts](../../concepts/stub) for more information.
+    Please refer to [concepts](concepts/stub.md) for more information.
 
     Attributes:
         name (str): The name of the node.
@@ -220,7 +220,7 @@ class Stub(BaseTraversal):
 class Parallel(BaseTraversal):
     """
     A node that executes multiple branches in parallel.
-    Please refer to [concepts](../../concepts/parallel) for more information.
+    Please refer to [concepts](concepts/parallel.md) for more information.
 
     Attributes:
         name (str): The name of the node.
@@ -249,7 +249,7 @@ class Parallel(BaseTraversal):
 class Map(BaseTraversal):
     """
     A node that iterates over a list of items and executes a pipeline for each item.
-    Please refer to [concepts](../../concepts/map) for more information.
+    Please refer to [concepts](concepts/map.md) for more information.
 
     Attributes:
         branch: The pipeline to execute for each item.
@@ -400,11 +400,11 @@ class Pipeline(BaseModel):
 
         Execution of pipeline could either be:
 
-        Traverse and execute all the steps of the pipeline, eg. [local execution](../../configurations/executors/local).
+        Traverse and execute all the steps of the pipeline, eg. [local execution](configurations/executors/local.md).
 
         Or create the ```yaml``` representation of the pipeline for other executors.
 
-        Please refer to [concepts](../../concepts/executor) for more information.
+        Please refer to [concepts](concepts/executor.md) for more information.
 
         Args:
             configuration_file (str, optional): The path to the configuration file. Defaults to "".

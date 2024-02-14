@@ -1,7 +1,7 @@
 **Magnus** provides an interface to secrets managers
-[via the API](/interactions/#magnus.get_secret).
+[via the API](../interactions.md/#magnus.get_secret).
 
-Please refer to [Secrets in concepts](/concepts/secrets) for more information.
+Please refer to [Secrets in concepts](../concepts/secrets.md) for more information.
 
 ## do-nothing
 

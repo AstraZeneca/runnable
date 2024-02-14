@@ -1,6 +1,6 @@
 
 
-Magnus revolves around the concept of [pipelines or workflows](/concepts/pipeline).
+Magnus revolves around the concept of [pipelines or workflows](../concepts/pipeline.md).
 Pipelines defined in magnus are translated into
 other workflow engine definitions like [Argo workflows](https://argoproj.github.io/workflows/) or
 [AWS step functions](https://aws.amazon.com/step-functions/).
@@ -60,7 +60,7 @@ This pipeline can be represented in **magnus** as below:
 
 === "Run log"
 
-    Please see [Run log](/concepts/run-log) for more detailed information about the structure.
+    Please see [Run log](../concepts/run-log.md) for more detailed information about the structure.
 
     ```json linenums="1"
     {
@@ -331,10 +331,10 @@ This pipeline can be represented in **magnus** as below:
 Independent of the platform it is run on,
 
 
-- [x] The [pipeline definition](/concepts/pipeline) remains the same from an author point of view.
+- [x] The [pipeline definition](..//concepts/pipeline.md) remains the same from an author point of view.
 The data scientists are always part of the process and contribute to the development even in production environments.
 
-- [x] The [run log](/concepts/run-log) remains the same except for the execution configuration enabling users
+- [x] The [run log](../concepts/run-log.md) remains the same except for the execution configuration enabling users
 to debug the pipeline execution in lower environments for failed executions or to validate the
 expectation of the execution.
 
@@ -344,7 +344,7 @@ expectation of the execution.
 ## Example configuration
 
 To run the pipeline in different environments, we just provide the
-[required configuration](/configurations/overview).
+[required configuration](../configurations/overview.md).
 
 === "Default Configuration"
 
@@ -360,7 +360,7 @@ To run the pipeline in different environments, we just provide the
 
 === "Argo Configuration"
 
-    To render the pipeline in [argo specification](/configurations/executors/argo/), mention the
+    To render the pipeline in [argo specification](../configurations/executors/argo.md), mention the
     configuration during execution.
 
     yaml:
@@ -370,7 +370,7 @@ To run the pipeline in different environments, we just provide the
 
     python:
 
-    Please refer to [containerised environments](/configurations/executors/container-environments/) for more information.
+    Please refer to [containerised environments](../configurations/executors/container-environments.md) for more information.
 
     MAGNUS_CONFIGURATION_FILE=examples/configs/argo-config.yaml python examples/contrived.py && magnus execute -f magnus-pipeline.yaml -c examples/configs/argo-config.yaml
 
@@ -380,7 +380,7 @@ To run the pipeline in different environments, we just provide the
 
     1. Use argo workflows as the execution engine to run the pipeline.
     2. Run this docker image for every step of the pipeline. Please refer to
-    [containerised environments](/configurations/executors/container-environments/) for more details.
+    [containerised environments](../configurations/executors/container-environments.md) for more details.
     3. Mount the volume from Kubernetes persistent volumes (magnus-volume) to /mnt directory.
     4. Resource constraints for the container runtime.
     5. Since every step runs in a container, the run log should be persisted. Here we are using the file-system as our

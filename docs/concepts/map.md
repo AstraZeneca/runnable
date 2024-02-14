@@ -829,7 +829,7 @@ of the files to process.
 ## Traversal
 
 A branch of a map step is considered success only if the ```success``` step is reached at the end.
-The steps of the pipeline can fail and be handled by [on failure](/concepts/pipeline/#on_failure) and
+The steps of the pipeline can fail and be handled by [on failure](../concepts/pipeline.md/#on_failure) and
 redirected to ```success``` if that is the desired behavior.
 
 The map step is considered successful only if all the branches of the step have terminated successfully.
@@ -838,7 +838,7 @@ The map step is considered successful only if all the branches of the step have 
 ## Parameters
 
 All the tasks defined in the branches of the map pipeline can
-[access to parameters and data as usual](/concepts/task).
+[access to parameters and data as usual](../concepts/task.md).
 
 
 !!! warning

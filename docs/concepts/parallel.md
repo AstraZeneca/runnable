@@ -7,7 +7,7 @@ Parallel nodes in magnus allows you to run multiple pipelines in parallel and us
     All the steps in the below example are ```stubbed``` for convenience. The functionality is similar
     even if the steps are execution units like ```tasks``` or any other nodes.
 
-    We support deeply [nested steps](/concepts/nesting). For example, a step in the parallel branch can be a ```map``` which internally
+    We support deeply [nested steps](../concepts/nesting.md). For example, a step in the parallel branch can be a ```map``` which internally
     loops over a ```dag``` and so on. Though this functionality is useful, it can be difficult to debug and
     understand in large code bases.
 
@@ -549,7 +549,7 @@ ensemble model happens only after both models are (successfully) trained.
 
 
 All pipelines, nested or parent, have the same structure as defined in
-[pipeline definition](/concepts/pipeline).
+[pipeline definition](../concepts/pipeline.md).
 
 The parent pipeline defines a step ```Train models``` which is a parallel step.
 The branches, XGBoost and RF model, are pipelines themselves.
@@ -557,7 +557,7 @@ The branches, XGBoost and RF model, are pipelines themselves.
 ## Traversal
 
 A branch of a parallel step is considered success only if the ```success``` step is reached at the end.
-The steps of the pipeline can fail and be handled by [on failure](/concepts/pipeline/#on_failure) and
+The steps of the pipeline can fail and be handled by [on failure](../concepts/pipeline.md/#on_failure) and
 redirected to ```success``` if that is the desired behavior.
 
 The parallel step is considered successful only if all the branches of the step have terminated successfully.
@@ -566,7 +566,7 @@ The parallel step is considered successful only if all the branches of the step 
 ## Parameters
 
 All the tasks defined in the branches of the parallel pipeline can
-[access to parameters and data as usual](/concepts/task).
+[access to parameters and data as usual](../concepts/task.md).
 
 
 !!! warning

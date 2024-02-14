@@ -10,7 +10,7 @@ when running the ```command``` of a task.
 
 === "pipeline"
 
-    This is the same example [described in tasks](/concepts/task/#shell).
+    This is the same example [described in tasks](../concepts/task.md/#shell).
 
     tl;dr a pipeline that consumes some initial parameters and passes them
     to the next step. Both the steps are ```shell``` based tasks.
@@ -389,7 +389,7 @@ A snippet from the above example:
 - For non-nested steps, the key is the name of the step. For example, the first entry
 in the steps mapping is "access initial" which corresponds to the name of the task in
 the pipeline. For nested steps, the step log is also nested and shown in more detail for
-  [parallel](/concepts/parallel), [map](/concepts/map).
+  [parallel](../concepts/parallel.md), [map](../concepts/map.md).
 
 - ```status```: In line #5 is the status of the step with three possible states,
 ```SUCCESS```, ```PROCESSING``` or ```FAILED```
@@ -426,12 +426,12 @@ end time, duration of the execution and the parameters at the time of execution 
   }
   ```
 
-- ```user_defined_metrics```: are any [experiment tracking metrics](/concepts/task/#experiment_tracking)
+- ```user_defined_metrics```: are any [experiment tracking metrics](../concepts/task.md/#experiment_tracking)
 captured during the execution of the step.
 
 - ```branches```: This only applies to parallel, map or dag steps and shows the logs captured during the
 execution of the branch.
-- ```data_catalog```: Captures any data flowing through the tasks by the [catalog](/concepts/catalog).
+- ```data_catalog```: Captures any data flowing through the tasks by the [catalog](../concepts/catalog.md).
 By default, the execution logs of the task are put in the catalog for easier debugging purposes.
 
 For example,  the below lines from the snippet specifies one entry into the catalog which is the execution log
@@ -463,7 +463,7 @@ reproduced in local environments and fixed.
     - non-nested, linear pipelines
     - non-chunked run log store
 
-    [mocked executor](/configurations/executors/mocked) provides better support in debugging failures.
+    [mocked executor](../configurations/executors/mocked.md) provides better support in debugging failures.
 
 
 ### Example
@@ -1237,10 +1237,10 @@ reproduced in local environments and fixed.
 ## API
 
 Tasks can access the ```run log``` during the execution of the step
-[using the API](/interactions/#magnus.get_run_log). The run log returned by this method is a deep copy
+[using the API](../interactions.md/#magnus.get_run_log). The run log returned by this method is a deep copy
 to prevent any modifications.
 
 
 Tasks can also access the ```run_id``` of the current execution either by
-[using the API](/interactions/#magnus.get_run_id) or by the environment
+[using the API](../interactions.md/#magnus.get_run_id) or by the environment
 variable ```MAGNUS_RUN_ID```.

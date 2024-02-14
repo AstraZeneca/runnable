@@ -13,32 +13,33 @@ sidebarDepth: 0
 Magnus is a simplified workflow definition language that helps in:
 
 - **Streamlined Design Process:** Magnus enables users to efficiently plan their pipelines with
-[stubbed nodes](concepts/stub), along with offering support for various structures such as
-[tasks](../concepts/task), [parallel branches](concepts/parallel), and [loops or map branches](concepts/map)
-in both [yaml](concepts/pipeline) or a [python SDK](sdk) for maximum flexibility.
+[stubbed nodes](concepts/stub.md), along with offering support for various structures such as
+[tasks](concepts/task.md), [parallel branches](concepts/parallel.md), and [loops or map branches](concepts/map.md)
+in both [yaml](concepts/pipeline.md) or a [python SDK](sdk.md) for maximum flexibility.
 
 - **Incremental Development:** Build your pipeline piece by piece with Magnus, which allows for the
-implementation of tasks as [python functions](concepts/task/#python_functions),
-[notebooks](concepts/task/#notebooks), or [shell scripts](concepts/task/#shell),
+implementation of tasks as [python functions](concepts/task.md/#python_functions),
+[notebooks](concepts/task.md/#notebooks), or [shell scripts](concepts/task.md/#shell),
 adapting to the developer's preferred tools and methods.
 
 - **Robust Testing:** Ensure your pipeline performs as expected with the ability to test using sampled data. Magnus
-also provides the capability to [mock and patch tasks](configurations/executors/mocked)
+also provides the capability to [mock and patch tasks](configurations/executors/mocked.md)
 for thorough evaluation before full-scale deployment.
 
 - **Seamless Deployment:** Transition from the development stage to production with ease.
-Magnus simplifies the process by requiring [only configuration changes](configurations/overview)
-to adapt to different environments, including support for [argo workflows](configurations/executors/argo).
+Magnus simplifies the process by requiring
+[only configuration changes](configurations/overview.md)
+to adapt to different environments, including support for [argo workflows](configurations/executors/argo.md).
 
 - **Efficient Debugging:** Quickly identify and resolve issues in pipeline execution with Magnus's local
-debugging features. Retrieve data from failed tasks and [retry failures](concepts/run-log/#retrying_failures)
+debugging features. Retrieve data from failed tasks and [retry failures](concepts/run-log.md/#retrying_failures)
 using your chosen debugging tools to maintain a smooth development experience.
 
 
 Along with the developer friendly features, magnus also acts as an interface to production grade concepts
-such as [data catalog](concepts/catalog), [reproducibility](concepts/run-log),
-[experiment tracking](concepts/experiment-tracking)
-and secure [access to secrets](concepts/secrets).
+such as [data catalog](concepts/catalog.md), [reproducibility](concepts/run-log.md),
+[experiment tracking](concepts/experiment-tracking.md)
+and secure [access to secrets](concepts/secrets.md).
 
 ## Motivation
 
