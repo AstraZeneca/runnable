@@ -1,0 +1,90 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: magnus-dag-
+  annotations: {}
+  labels: {}
+spec:
+  activeDeadlineSeconds: 172800
+  entrypoint: magnus-dag
+  podGC:
+    strategy: OnPodCompletion
+  retryStrategy:
+    limit: "0"
+    retryPolicy: Always
+    backoff:
+      duration: "120"
+      factor: 2
+      maxDuration: "3600"
+  templates:
+    - name: magnus-dag
+      failFast: true
+      dag:
+        tasks:
+          - name: simple-task-6mn2ll
+            template: simple-task-6mn2ll
+            depends: ""
+          - name: success-success-0uvo9r
+            template: success-success-0uvo9r
+            depends: simple-task-6mn2ll.Succeeded
+    - name: simple-task-6mn2ll
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+        command:
+          - magnus
+          - execute_single_node
+          - "{{workflow.parameters.run_id}}"
+          - simple
+          - --log-level
+          - WARNING
+          - --file
+          - examples/concepts/simple.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ""
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: success-success-0uvo9r
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+        command:
+          - magnus
+          - execute_single_node
+          - "{{workflow.parameters.run_id}}"
+          - success
+          - --log-level
+          - WARNING
+          - --file
+          - examples/concepts/simple.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ""
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+  templateDefaults:
+    activeDeadlineSeconds: 7200
+    timeout: 10800s
+  arguments:
+    parameters:
+      - name: run_id
+        value: "{{workflow.uid}}"
+  volumes:
+    - name: executor-0
+      persistentVolumeClaim:
+        claimName: magnus-volume

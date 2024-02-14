@@ -1,0 +1,12 @@
+catalog:
+  type: file-system # (1)
+
+run_log_store:
+  type: file-system # (1)
+
+executor:
+  type: mocked
+  config:
+    patches:
+      chunk files:
+        command: examples.concepts.map.chunk_files

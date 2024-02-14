@@ -1,7 +1,0 @@
-executor:
-  type: local
-  config:
-    enable_parallel: "False"
-
-run_log_store:
-  type: file-system

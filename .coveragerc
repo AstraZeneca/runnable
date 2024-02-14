@@ -1,7 +1,0 @@
-[report]
-# Regexes for lines to exclude from consideration
-exclude_lines =
-    pragma: no cover
-
-omit =
-    magnus/cli.py

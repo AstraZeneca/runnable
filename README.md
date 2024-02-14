@@ -6,7 +6,7 @@
 <p align="center">
   <img src="https://github.com/AstraZeneca/magnus-core/blob/main/assets/logo-readme.png?raw=true" alt="Logo"/>
 </p>
----
+<hr style="border:2px dotted orange">
 
 <p align="center">
 <a href="https://pypi.org/project/magnus/"><img alt="python:" src="https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg"></a>
@@ -17,365 +17,383 @@
 <a href="https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml"><img alt="Tests:" src="https://github.com/AstraZeneca/magnus-core/actions/workflows/release.yaml/badge.svg">
 <a href="https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml"><img alt="Docs:" src="https://github.com/AstraZeneca/magnus-core/actions/workflows/docs.yaml/badge.svg">
 </p>
----
+<hr style="border:2px dotted orange">
 
-<!--- --8<-- [start:intro] -->
+Magnus is a simplified workflow definition language that helps in:
 
-**Magnus** is a *thin* layer of abstraction over the underlying infrastructure to enable data scientist and
-machine learning engineers. It provides:
+- **Streamlined Design Process:** Magnus enables users to efficiently plan their pipelines with
+[stubbed nodes](https://astrazeneca.github.io/magnus-core/concepts/stub), along with offering support for various structures such as
+[tasks](https://astrazeneca.github.io/magnus-core/concepts/task), [parallel branches](https://astrazeneca.github.io/magnus-core/concepts/parallel), and [loops or map branches](https://astrazeneca.github.io/magnus-core/concepts/map)
+in both [yaml](https://astrazeneca.github.io/magnus-core/concepts/pipeline) or a [python SDK](https://astrazeneca.github.io/magnus-core/sdk) for maximum flexibility.
 
-- A way to execute Jupyter notebooks/python functions in local or remote platforms.
-- A framework to define complex pipelines via YAML or Python SDK.
-- Robust and *automatic* logging to ensure maximum reproducibility of experiments.
-- A framework to interact with secret managers ranging from environment variables to other vendors.
-- Interactions with various experiment tracking tools.
+- **Incremental Development:** Build your pipeline piece by piece with Magnus, which allows for the
+implementation of tasks as [python functions](https://astrazeneca.github.io/magnus-core/concepts/task/#python_functions),
+[notebooks](https://astrazeneca.github.io/magnus-core/concepts/task/#notebooks), or [shell scripts](https://astrazeneca.github.io/magnus-core/concepts/task/#shell),
+adapting to the developer's preferred tools and methods.
 
-## What does **thin** mean?
+- **Robust Testing:** Ensure your pipeline performs as expected with the ability to test using sampled data. Magnus
+also provides the capability to [mock and patch tasks](https://astrazeneca.github.io/magnus-core/configurations/executors/mocked)
+for thorough evaluation before full-scale deployment.
 
-- We really have no say in what happens within your notebooks or python functions.
-- We do not dictate how the infrastructure should be configured as long as it satisfies some *basic* criteria.
-    - The underlying infrastructure should support container execution and an orchestration framework.
-    - Some way to handle secrets either via environment variables or secrets manager.
-    - A blob storage or some way to store your intermediate artifacts.
-    - A database or blob storage to store logs.
-- We have no opinion of how your structure your project.
-- We do not creep into your CI/CD practices but it is your responsibility to provide the same environment where ever
-the execution happens. This is usually via git, virtual environment manager and docker.
-- We transpile to the orchestration framework that is used by your teams to do the heavy lifting.
+- **Seamless Deployment:** Transition from the development stage to production with ease.
+Magnus simplifies the process by requiring [only configuration changes](https://astrazeneca.github.io/magnus-core/configurations/overview)
+to adapt to different environments, including support for [argo workflows](https://astrazeneca.github.io/magnus-core/configurations/executors/argo).
+
+- **Efficient Debugging:** Quickly identify and resolve issues in pipeline execution with Magnus's local
+debugging features. Retrieve data from failed tasks and [retry failures](https://astrazeneca.github.io/magnus-core/concepts/run-log/#retrying_failures)
+using your chosen debugging tools to maintain a smooth development experience.
+
+Along with the developer friendly features, magnus also acts as an interface to production grade concepts
+such as [data catalog](https://astrazeneca.github.io/magnus-core/concepts/catalog), [reproducibility](https://astrazeneca.github.io/magnus-core/concepts/run-log),
+[experiment tracking](https://astrazeneca.github.io/magnus-core/concepts/experiment-tracking)
+and secure [access to secrets](https://astrazeneca.github.io/magnus-core/concepts/secrets).
+
+<hr style="border:2px dotted orange">
 
 ## What does it do?
 
 
 ![works](assets/work.png)
 
-### Shift Left
-
-Magnus provides patterns typically used in production environments even in the development phase.
-
-- Reduces the need for code refactoring during production phase of the project.
-- Enables best practices and understanding of infrastructure patterns.
-- Run the same code on your local machines or in production environments.
-
-:sparkles: :sparkles: Happy Experimenting!! :sparkles: :sparkles:
-
-<!--- --8<-- [end:intro] -->
+<hr style="border:2px dotted orange">
 
 ## Documentation
 
 [More details about the project and how to use it available here](https://astrazeneca.github.io/magnus-core/).
 
-## Extensions
-
-All the services of magnus are extendable by design, please refer to
-[magnus extensions](https://github.com/AstraZeneca/magnus-extensions)
+<hr style="border:2px dotted orange">
 
 ## Installation
 
-<!--- --8<-- [start:installation] -->
-
 The minimum python version that magnus supports is 3.8
-## pip
-
-magnus is a python package and should be installed as any other.
 
 ```shell
 pip install magnus
 ```
 
-We recommend that you install magnus in a virtual environment specific to the project and also poetry for your
-application development.
+Please look at the [installation guide](https://astrazeneca.github.io/magnus-core/usage)
+for more information.
 
-The command to install in a poetry managed virtual environment
+<hr style="border:2px dotted orange">
 
+## Example
+
+Your application code. Use pydantic models as DTO.
+
+Assumed to be present at ```functions.py```
+```python
+from pydantic import BaseModel
+
+class InnerModel(BaseModel):
+    """
+    A pydantic model representing a group of related parameters.
+    """
+
+    foo: int
+    bar: str
+
+
+class Parameter(BaseModel):
+    """
+    A pydantic model representing the parameters of the whole pipeline.
+    """
+
+    x: int
+    y: InnerModel
+
+
+def return_parameter() -> Parameter:
+    """
+    The annotation of the return type of the function is not mandatory
+    but it is a good practice.
+
+    Returns:
+        Parameter: The parameters that should be used in downstream steps.
+    """
+    # Return type of a function should be a pydantic model
+    return Parameter(x=1, y=InnerModel(foo=10, bar="hello world"))
+
+
+def display_parameter(x: int, y: InnerModel):
+    """
+    Annotating the arguments of the function is important for
+    magnus to understand the type of parameters you want.
+
+    Input args can be a pydantic model or the individual attributes.
+    """
+    print(x)
+    # >>> prints 1
+    print(y)
+    # >>> prints InnerModel(foo=10, bar="hello world")
 ```
-poetry add magnus
+
+### Application code using driver functions.
+
+The code is runnable without any orchestration framework.
+
+```python
+from functions import return_parameter, display_parameter
+
+my_param = return_parameter()
+display_parameter(my_param.x, my_param.y)
 ```
 
-<!--- --8<-- [end:installation] -->
+### Orchestration using magnus
 
-## Example Run
+<table>
+<tr>
+    <th>python SDK</th>
+    <th>yaml</th>
+</tr>
+<tr>
+<td valign="top"><p>
 
-<!--- --8<-- [start:exampleRun] -->
+Example present at: ```examples/python-tasks.py```
 
-To give you a flavour of how magnus works, lets create a simple pipeline.
+Run it as: ```python examples/python-tasks.py```
 
-Copy the contents of this yaml into getting-started.yaml or alternatively in a python file if you are using the SDK.
+```python
+from magnus import Pipeline, Task
 
----
-!!! Note
+def main():
+    step1 = Task(
+        name="step1",
+        command="examples.functions.return_parameter",
+    )
+    step2 = Task(
+        name="step2",
+        command="examples.functions.display_parameter",
+        terminate_with_success=True,
+    )
 
-   The below execution would create a folder called 'data' in the current working directory.
-   The command as given should work in linux/macOS but for windows, please change accordingly.
+    step1 >> step2
 
----
+    pipeline = Pipeline(
+        start_at=step1,
+        steps=[step1, step2],
+        add_terminal_nodes=True,
+    )
 
-<!--- --8<-- [end:exampleRun] -->
-<!--- --8<-- [start:exampleInput] -->
+    pipeline.execute()
 
-``` yaml
+
+if __name__ == "__main__":
+    main()
+```
+
+</p></td>
+
+<td valign="top"><p>
+
+Example present at: ```examples/python-tasks.yaml```
+
+
+Execute via the cli: ```magnus execute -f examples/python-tasks.yaml```
+
+```yaml
 dag:
-  description: Getting started
-  start_at: step parameters
+  description: |
+    This is a simple pipeline that does 3 steps in sequence.
+    In this example:
+      1. First step: returns a "parameter" x as a Pydantic model
+      2. Second step: Consumes that parameter and prints it
+
+    This pipeline demonstrates one way to pass small data from one step to another.
+
+  start_at: step 1
   steps:
-    step parameters:
+    step 1:
       type: task
-      command_type: python-lambda
-      command: "lambda x: {'x': int(x) + 1}"
-      next: step shell
-    step shell:
+      command_type: python # (2)
+      command: examples.functions.return_parameter # (1)
+      next: step 2
+    step 2:
       type: task
-      command_type: shell
-      command: mkdir data ; env >> data/data.txt # For Linux/macOS
+      command_type: python
+      command: examples.functions.display_parameter
       next: success
-      catalog:
-        put:
-          - "*"
     success:
       type: success
     fail:
       type: fail
 ```
 
-The same could also be defined via a Python SDK.
+</p></td>
 
-```python
+</tr>
+</table>
 
-#in pipeline.py
-from magnus import Pipeline, Task
+### Transpile to argo workflows
 
-def pipeline():
-    first = Task(name='step parameters', command="lambda x: {'x': int(x) + 1}", command_type='python-lambda',
-                next_node='step shell')
-    second = Task(name='step shell', command='mkdir data ; env >> data/data.txt',
-                  command_type='shell', catalog={'put': '*'})
-
-    pipeline = Pipeline(name='getting_started')
-    pipeline.construct([first, second])
-    pipeline.execute(parameters_file='parameters.yaml')
-
-if __name__ == '__main__':
-    pipeline()
-
-```
-
-
-
-Since the pipeline expects a parameter ```x```, lets provide that using ```parameters.yaml```
+No code change, just change the configuration.
 
 ```yaml
-x: 3
+executor:
+  type: "argo"
+  config:
+    image: magnus:demo
+    persistent_volumes:
+      - name: magnus-volume
+        mount_path: /mnt
+
+run_log_store:
+  type: file-system
+  config:
+    log_folder: /mnt/run_log_store
 ```
 
+More details can be found in [argo configuration](https://astrazeneca.github.io/magnus-core/configurations/executors/argo).
 
-And let's run the pipeline using:
-``` shell
- magnus execute --file getting-started.yaml --parameters-file parameters.yaml
+Execute the code as ```magnus execute -f examples/python-tasks.yaml -c examples/configs/argo-config.yam```
+
+<details>
+  <summary>Expand</summary>
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: magnus-dag-
+  annotations: {}
+  labels: {}
+spec:
+  activeDeadlineSeconds: 172800
+  entrypoint: magnus-dag
+  podGC:
+    strategy: OnPodCompletion
+  retryStrategy:
+    limit: '0'
+    retryPolicy: Always
+    backoff:
+      duration: '120'
+      factor: 2
+      maxDuration: '3600'
+  serviceAccountName: default-editor
+  templates:
+    - name: magnus-dag
+      failFast: true
+      dag:
+        tasks:
+          - name: step-1-task-uvdp7h
+            template: step-1-task-uvdp7h
+            depends: ''
+          - name: step-2-task-772vg3
+            template: step-2-task-772vg3
+            depends: step-1-task-uvdp7h.Succeeded
+          - name: success-success-igzq2e
+            template: success-success-igzq2e
+            depends: step-2-task-772vg3.Succeeded
+    - name: step-1-task-uvdp7h
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - step%1
+          - --log-level
+          - WARNING
+          - --file
+          - examples/python-tasks.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: step-2-task-772vg3
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - step%2
+          - --log-level
+          - WARNING
+          - --file
+          - examples/python-tasks.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: success-success-igzq2e
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - success
+          - --log-level
+          - WARNING
+          - --file
+          - examples/python-tasks.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+  templateDefaults:
+    activeDeadlineSeconds: 7200
+    timeout: 10800s
+  arguments:
+    parameters:
+      - name: run_id
+        value: '{{workflow.uid}}'
+  volumes:
+    - name: executor-0
+      persistentVolumeClaim:
+        claimName: magnus-volume
+
 ```
 
-If you are using the python SDK:
+</details>
 
-```
-poetry run python pipeline.py
-```
+## Pipelines can be:
 
-<!--- --8<-- [end:exampleInput] -->
+### Linear
 
-You should see a list of warnings but your terminal output should look something similar to this:
+A simple linear pipeline with tasks either
+[python functions](https://astrazeneca.github.io/magnus-core/concepts/task/#python_functions),
+[notebooks](https://astrazeneca.github.io/magnus-core/concepts/task/#notebooks), or [shell scripts](https://astrazeneca.github.io/magnus-core/concepts/task/#shell)
 
+[![](https://mermaid.ink/img/pako:eNpl0bFuwyAQBuBXQVdZTqTESpxMDJ0ytkszhgwnOCcoNo4OaFVZfvcSx20tGSQ4fn0wHB3o1hBIyLJOWGeDFJ3Iq7r90lfkkA9HHfmTUpnX1hFyLvrHzDLl_qB4-1BOOZGGD3TfSikvTDSNFqdj2sT2vBTr9euQlXNWjqycsN2c7UZWFMUE7udwP0L3y6JenNKiyfvz8t8_b-gavT9QJYY0PcDtjeTLptrAChriBq1JzeoeWkG4UkMKZCoN8k2Bcn1yGEN7_HYaZOBIK4h3g4EOFi-MDcgKa59SMja0_P7s_vAJ_Q_YOH6o?type=png)](https://mermaid.live/edit#pako:eNpl0bFuwyAQBuBXQVdZTqTESpxMDJ0ytkszhgwnOCcoNo4OaFVZfvcSx20tGSQ4fn0wHB3o1hBIyLJOWGeDFJ3Iq7r90lfkkA9HHfmTUpnX1hFyLvrHzDLl_qB4-1BOOZGGD3TfSikvTDSNFqdj2sT2vBTr9euQlXNWjqycsN2c7UZWFMUE7udwP0L3y6JenNKiyfvz8t8_b-gavT9QJYY0PcDtjeTLptrAChriBq1JzeoeWkG4UkMKZCoN8k2Bcn1yGEN7_HYaZOBIK4h3g4EOFi-MDcgKa59SMja0_P7s_vAJ_Q_YOH6o)
 
-<!--- --8<-- [start:exampleOutput] -->
+### [Parallel branches](https://astrazeneca.github.io/magnus-core/concepts/parallel)
 
-``` json
-{
-    "run_id": "20230131195647",
-    "dag_hash": "",
-    "use_cached": false,
-    "tag": "",
-    "original_run_id": "",
-    "status": "SUCCESS",
-    "steps": {
-        "step parameters": {
-            "name": "step parameters",
-            "internal_name": "step parameters",
-            "status": "SUCCESS",
-            "step_type": "task",
-            "message": "",
-            "mock": false,
-            "code_identities": [
-                {
-                    "code_identifier": "e15d1374aac217f649972d11fe772e61b5a2478d",
-                    "code_identifier_type": "git",
-                    "code_identifier_dependable": true,
-                    "code_identifier_url": "INTENTIONALLY REMOVED",
-                    "code_identifier_message": ""
-                }
-            ],
-            "attempts": [
-                {
-                    "attempt_number": 0,
-                    "start_time": "2023-01-31 19:56:55.007931",
-                    "end_time": "2023-01-31 19:56:55.009273",
-                    "duration": "0:00:00.001342",
-                    "status": "SUCCESS",
-                    "message": ""
-                }
-            ],
-            "user_defined_metrics": {},
-            "branches": {},
-            "data_catalog": []
-        },
-        "step shell": {
-            "name": "step shell",
-            "internal_name": "step shell",
-            "status": "SUCCESS",
-            "step_type": "task",
-            "message": "",
-            "mock": false,
-            "code_identities": [
-                {
-                    "code_identifier": "e15d1374aac217f649972d11fe772e61b5a2478d",
-                    "code_identifier_type": "git",
-                    "code_identifier_dependable": true,
-                    "code_identifier_url": "INTENTIONALLY REMOVED",
-                    "code_identifier_message": ""
-                }
-            ],
-            "attempts": [
-                {
-                    "attempt_number": 0,
-                    "start_time": "2023-01-31 19:56:55.128697",
-                    "end_time": "2023-01-31 19:56:55.150878",
-                    "duration": "0:00:00.022181",
-                    "status": "SUCCESS",
-                    "message": ""
-                }
-            ],
-            "user_defined_metrics": {},
-            "branches": {},
-            "data_catalog": [
-                {
-                    "name": "data/data.txt",
-                    "data_hash": "7e91b0a9ff8841a3b5bf2c711f58bcc0cbb6a7f85b9bc92aa65e78cdda59a96e",
-                    "catalog_relative_path": "20230131195647/data/data.txt",
-                    "catalog_handler_location": ".catalog",
-                    "stage": "put"
-                }
-            ]
-        },
-        "success": {
-            "name": "success",
-            "internal_name": "success",
-            "status": "SUCCESS",
-            "step_type": "success",
-            "message": "",
-            "mock": false,
-            "code_identities": [
-                {
-                    "code_identifier": "e15d1374aac217f649972d11fe772e61b5a2478d",
-                    "code_identifier_type": "git",
-                    "code_identifier_dependable": true,
-                    "code_identifier_url": "INTENTIONALLY REMOVED",
-                    "code_identifier_message": ""
-                }
-            ],
-            "attempts": [
-                {
-                    "attempt_number": 0,
-                    "start_time": "2023-01-31 19:56:55.239877",
-                    "end_time": "2023-01-31 19:56:55.240116",
-                    "duration": "0:00:00.000239",
-                    "status": "SUCCESS",
-                    "message": ""
-                }
-            ],
-            "user_defined_metrics": {},
-            "branches": {},
-            "data_catalog": []
-        }
-    },
-    "parameters": {
-        "x": 4
-    },
-    "run_config": {
-        "executor": {
-            "type": "local",
-            "config": {
-                "enable_parallel": false,
-                "placeholders": {}
-            }
-        },
-        "run_log_store": {
-            "type": "buffered",
-            "config": {}
-        },
-        "catalog": {
-            "type": "file-system",
-            "config": {
-                "compute_data_folder": "data",
-                "catalog_location": ".catalog"
-            }
-        },
-        "secrets": {
-            "type": "do-nothing",
-            "config": {}
-        },
-        "experiment_tracker": {
-            "type": "do-nothing",
-            "config": {}
-        },
-        "variables": {},
-        "pipeline": {
-            "start_at": "step parameters",
-            "name": "getting_started",
-            "description": "",
-            "max_time": 86400,
-            "steps": {
-                "step parameters": {
-                    "mode_config": {},
-                    "next_node": "step shell",
-                    "command": "lambda x: {'x': int(x) + 1}",
-                    "command_type": "python-lambda",
-                    "command_config": {},
-                    "catalog": {},
-                    "retry": 1,
-                    "on_failure": "",
-                    "type": "task"
-                },
-                "step shell": {
-                    "mode_config": {},
-                    "next_node": "success",
-                    "command": "mkdir data ; env >> data/data.txt",
-                    "command_type": "shell",
-                    "command_config": {},
-                    "catalog": {
-                        "put": "*"
-                    },
-                    "retry": 1,
-                    "on_failure": "",
-                    "type": "task"
-                },
-                "success": {
-                    "mode_config": {},
-                    "type": "success"
-                },
-                "fail": {
-                    "mode_config": {},
-                    "type": "fail"
-                }
-            }
-        }
-    }
-}
-```
+Execute branches in parallel
 
-<!--- --8<-- [end:exampleOutput] -->
+[![](https://mermaid.ink/img/pako:eNp9k01rwzAMhv-K8S4ZtJCzDzuMLmWwwkh2KMQ7eImShiZ2sB1KKf3vs52PpsWNT7LySHqlyBeciRwwwUUtTtmBSY2-YsopR8MpQUfAdCdBBekWNBpvv6-EkFICzGAtWcUTDW3wYy20M7lr5QGBK2j-anBAkH4M1z6grnjpy17xAiTwDII07jj6HK8-VnVZBspITnpjztyoVkLLJOy3Qfrdm6gQEu2370Io7WLORo84PbRoA_oOl9BBg4UHbHR58UkMWq_fxjrOnhLRx1nH0SgkjlBjh7ekxNKGc0NelDLknhePI8qf7MVNr_31nm1wwNTeM2Ao6pmf-3y3Mp7WlqA7twOnXfKs17zt-6azmim1gQL1A0NKS3EE8hKZE4Yezm3chIVFiFe4AdmwKjdv7mIjKNYHaIBiYsycySPFlF8NxzotkjPPMNGygxXu2pxp2FSslKzBpGC1Ml7IKy3krn_E7i1f_wEayTcn?type=png)](https://mermaid.live/edit#pako:eNp9k01rwzAMhv-K8S4ZtJCzDzuMLmWwwkh2KMQ7eImShiZ2sB1KKf3vs52PpsWNT7LySHqlyBeciRwwwUUtTtmBSY2-YsopR8MpQUfAdCdBBekWNBpvv6-EkFICzGAtWcUTDW3wYy20M7lr5QGBK2j-anBAkH4M1z6grnjpy17xAiTwDII07jj6HK8-VnVZBspITnpjztyoVkLLJOy3Qfrdm6gQEu2370Io7WLORo84PbRoA_oOl9BBg4UHbHR58UkMWq_fxjrOnhLRx1nH0SgkjlBjh7ekxNKGc0NelDLknhePI8qf7MVNr_31nm1wwNTeM2Ao6pmf-3y3Mp7WlqA7twOnXfKs17zt-6azmim1gQL1A0NKS3EE8hKZE4Yezm3chIVFiFe4AdmwKjdv7mIjKNYHaIBiYsycySPFlF8NxzotkjPPMNGygxXu2pxp2FSslKzBpGC1Ml7IKy3krn_E7i1f_wEayTcn)
 
-You should see that ```data``` folder being created with a file called ```data.txt``` in it.
-This is according to the command in ```step shell```.
+### [loops or map](https://astrazeneca.github.io/magnus-core/concepts/map)
 
-You should also see a folder ```.catalog``` being created with a single folder corresponding to the run_id of this run.
+Execute a pipeline over an iterable parameter.
 
+[![](https://mermaid.ink/img/pako:eNqVlF1rwjAUhv9KyG4qKNR-3AS2m8nuBgN3Z0Sy5tQG20SSdE7E_76kVVEr2CY3Ied9Tx6Sk3PAmeKACc5LtcsKpi36nlGZFbXciHwfLN79CuWiBLMcEULWGkBSaeosA2OCxbxdXMd89Get2bZASsLiSyuvQE2mJZXIjW27t2rOmQZ3Gp9rD6UjatWnwy7q6zPPukd50WTydmemEiS_QbQ79RwxGoQY9UaMuojRA8TCXexzyHgQZNwbMu5Cxl3IXNX6OWMyiDHpzZh0GZMHjOK3xz2mgxjT3oxplzG9MPp5_nVOhwJjteDwOg3HyFj3L1dCcvh7DUc-iftX18n6Waet1xX8cG908vpKHO6OW7cvkeHm5GR2b3drdvaSGTODHLW37mxabYC8fLgRhlfxpjNdwmEets-Dx7gCXTHBXQc8-D2KbQEVUEzckjO9oZjKo9Ox2qr5XmaYWF3DGNdbzizMBHOVVWGSs9K4XeDCKv3ZttSmsx7_AYa341E?type=png)](https://mermaid.live/edit#pako:eNqVlF1rwjAUhv9KyG4qKNR-3AS2m8nuBgN3Z0Sy5tQG20SSdE7E_76kVVEr2CY3Ied9Tx6Sk3PAmeKACc5LtcsKpi36nlGZFbXciHwfLN79CuWiBLMcEULWGkBSaeosA2OCxbxdXMd89Get2bZASsLiSyuvQE2mJZXIjW27t2rOmQZ3Gp9rD6UjatWnwy7q6zPPukd50WTydmemEiS_QbQ79RwxGoQY9UaMuojRA8TCXexzyHgQZNwbMu5Cxl3IXNX6OWMyiDHpzZh0GZMHjOK3xz2mgxjT3oxplzG9MPp5_nVOhwJjteDwOg3HyFj3L1dCcvh7DUc-iftX18n6Waet1xX8cG908vpKHO6OW7cvkeHm5GR2b3drdvaSGTODHLW37mxabYC8fLgRhlfxpjNdwmEets-Dx7gCXTHBXQc8-D2KbQEVUEzckjO9oZjKo9Ox2qr5XmaYWF3DGNdbzizMBHOVVWGSs9K4XeDCKv3ZttSmsx7_AYa341E)
 
-
-To understand more about the input and output, please head over to the
-[documentation](https://project-magnus.github.io/magnus-core/).
+### [Arbitrary nesting](https://astrazeneca.github.io/magnus-core/concepts/nesting/)

@@ -1,17 +1,18 @@
-import logging
-from typing import TYPE_CHECKING, Dict, List
+from __future__ import annotations
 
+import logging
+from typing import Any, Dict, List, Optional, cast
+
+from pydantic import BaseModel, Field, SerializeAsAny
 from stevedore import driver
 
 from magnus import defaults, exceptions
 
-if TYPE_CHECKING:
-    from magnus.nodes import BaseNode
-
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
+logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
-class Graph:
+class Graph(BaseModel):
     """
     A class representing a graph.
 
@@ -19,35 +20,11 @@ class Graph:
     We have nodes and traversal is based on start_at and on_failure definition of individual nodes of the graph
     """
 
-    def __init__(
-        self,
-        start_at,
-        name: str = "",
-        description: str = "",
-        max_time: int = 86400,
-        internal_branch_name: str = "",
-    ):
-        self.start_at = start_at
-        self.name = name
-        self.description = description
-        self.max_time = max_time
-        self.internal_branch_name = internal_branch_name
-        self.nodes: List[BaseNode] = []
-
-    def _to_dict(self) -> dict:
-        """
-        Return a dict representation of the graph
-        """
-        dag = {}
-        dag["start_at"] = self.start_at
-        dag["name"] = self.name
-        dag["description"] = self.description
-        dag["max_time"] = self.max_time
-        dag["steps"] = {}
-        for node in self.nodes:
-            dag["steps"][node.name] = node._to_dict()
-
-        return dag
+    start_at: str
+    name: str = ""
+    description: Optional[str] = ""
+    internal_branch_name: str = Field(default="", exclude=True)
+    nodes: SerializeAsAny[Dict[str, "BaseNode"]] = Field(default_factory=dict, serialization_alias="steps")
 
     def get_node_by_name(self, name: str) -> "BaseNode":
         """
@@ -63,9 +40,9 @@ class Graph:
         Returns:
             Node: The Node object by name
         """
-        for node in self.nodes:
-            if node.name == name:
-                return node
+        for key, value in self.nodes.items():
+            if key == name:
+                return value
         raise exceptions.NodeNotFoundError(name)
 
     def get_node_by_internal_name(self, internal_name: str) -> "BaseNode":
@@ -83,17 +60,17 @@ class Graph:
         Returns:
             Node: The Node object by the name
         """
-        for node in self.nodes:
-            if node.internal_name == internal_name:
-                return node
+        for _, value in self.nodes.items():
+            if value.internal_name == internal_name:
+                return value
         raise exceptions.NodeNotFoundError(internal_name)
 
     def __str__(self):  # pragma: no cover
         """
         Return a string representation of the graph
         """
-        node_str = ", ".join([x.name for x in self.nodes])
-        return f"Starts at: {self.start_at} and has a max run time of {self.max_time} and {node_str}"
+        node_str = ", ".join([x.name for x in list(self.nodes.values())])
+        return f"Starts at: {self.start_at} and {node_str}"
 
     def add_node(self, node: "BaseNode"):
         """
@@ -102,9 +79,9 @@ class Graph:
         Args:
             node (object): The node to add
         """
-        self.nodes.append(node)
+        self.nodes[node.name] = node
 
-    def validate(self):
+    def check_graph(self):
         """
         Validate the graph to make sure,
         1). All the neighbors of nodes are present.
@@ -160,9 +137,9 @@ class Graph:
         Returns:
             object: The success node
         """
-        for node in self.nodes:
-            if node.node_type == "success":
-                return node
+        for _, value in self.nodes.items():
+            if value.node_type == "success":
+                return value
         raise Exception("No success node defined")
 
     def get_fail_node(self) -> "BaseNode":
@@ -175,9 +152,9 @@ class Graph:
         Returns:
             object: The fail node of the graph
         """
-        for node in self.nodes:
-            if node.node_type == "fail":
-                return node
+        for _, value in self.nodes.items():
+            if value.node_type == "fail":
+                return value
         raise Exception("No fail node defined")
 
     def is_start_node_present(self) -> bool:
@@ -202,8 +179,8 @@ class Graph:
             bool: True if there is only one, false otherwise
         """
         node_count = 0
-        for node in self.nodes:
-            if node.node_type == "success":
+        for _, value in self.nodes.items():
+            if value.node_type == "success":
                 node_count += 1
         if node_count == 1:
             return True
@@ -217,8 +194,8 @@ class Graph:
             bool: true if there is one and only one fail node, false otherwise
         """
         node_count = 0
-        for node in self.nodes:
-            if node.node_type == "fail":
+        for _, value in self.nodes.items():
+            if value.node_type == "fail":
                 node_count += 1
         if node_count == 1:
             return True
@@ -231,11 +208,11 @@ class Graph:
         Returns:
             bool: Returns True if it is directed and acyclic.
         """
-        visited = {n.name: False for n in self.nodes}
-        recstack = {n.name: False for n in self.nodes}
+        visited = {n: False for n in self.nodes.keys()}
+        recstack = {n: False for n in self.nodes.keys()}
 
-        for node in self.nodes:
-            if not visited[node.name]:
+        for name, node in self.nodes.items():
+            if not visited[name]:
                 if self.is_cyclic_util(node, visited, recstack):
                     return False
         return True
@@ -267,7 +244,7 @@ class Graph:
         recstack[node.name] = False
         return False
 
-    def missing_neighbors(self) -> List["BaseNode"]:
+    def missing_neighbors(self) -> List[str]:
         """
         Iterates through nodes and gets their connecting neighbors and checks if they exist in the graph.
 
@@ -275,13 +252,13 @@ class Graph:
             list: List of the missing nodes. Empty list if all neighbors are in the graph.
         """
         missing_nodes = []
-        for node in self.nodes:
+        for _, node in self.nodes.items():
             neighbors = node._get_neighbors()
             for neighbor in neighbors:
                 try:
                     self.get_node_by_name(neighbor)
                 except exceptions.NodeNotFoundError:
-                    logger.exception("Could not find the node")
+                    logger.exception(f"Could not find the node {neighbor}")
                     if neighbor not in missing_nodes:
                         missing_nodes.append(neighbor)
         return missing_nodes
@@ -290,7 +267,7 @@ class Graph:
         self,
         success_node_name: str = "success",
         failure_node_name: str = "fail",
-        internal_branch_name: str = None,
+        internal_branch_name: str = "",
     ):
         """
         Add the success and fail nodes to the graph
@@ -315,8 +292,12 @@ class Graph:
         self.add_node(fail_node)
 
 
-def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
-    # pylint: disable=R0914,R0913
+from magnus.nodes import BaseNode  # noqa: E402
+
+Graph.model_rebuild()
+
+
+def create_graph(dag_config: Dict[str, Any], internal_branch_name: str = "") -> Graph:
     """
     Creates a dag object from the dag definition.
 
@@ -333,36 +314,28 @@ def create_graph(dag_config: dict, internal_branch_name: str = "") -> Graph:
     Returns:
         Graph: The created graph object
     """
-    description = dag_config.get("description", None)
-    max_time = dag_config.get("max_time", defaults.MAX_TIME)
-    start_at = dag_config.get("start_at")  # Let the start_at be relative to the graph
+    description: str = dag_config.get("description", None)
+    start_at: str = cast(str, dag_config.get("start_at"))  # Let the start_at be relative to the graph
 
     graph = Graph(
         start_at=start_at,
         description=description,
-        max_time=max_time,
         internal_branch_name=internal_branch_name,
     )
 
-    logger.info(f"Initialized a graph object that starts at {start_at} and runs for maximum of {max_time} secs")
-    messages = []
-    for step in dag_config.get("steps", []):
-        step_config = dag_config["steps"][step]
-        logger.info(f"Adding node {step} with :{step_config}")
+    logger.info(f"Initialized a graph object that starts at {start_at}")
+    for name, step_config in dag_config.get("steps", {}).items():
+        logger.info(f"Adding node {name} with :{step_config}")
 
-        node = create_node(step, step_config=step_config, internal_branch_name=internal_branch_name)
-        messages.extend(node.validate())
+        node = create_node(name, step_config=step_config, internal_branch_name=internal_branch_name)
         graph.add_node(node)
 
-    if messages:
-        raise Exception(", ".join(messages))
-
-    graph.validate()
+    graph.check_graph()
 
     return graph
 
 
-def create_node(name: str, step_config: dict, internal_branch_name: str = None):
+def create_node(name: str, step_config: dict, internal_branch_name: Optional[str] = ""):
     """
     Creates a node object from the step configuration.
 
@@ -383,27 +356,31 @@ def create_node(name: str, step_config: dict, internal_branch_name: str = None):
 
     try:
         node_type = step_config.pop("type")  # Remove the type as it is not used in node creation.
-        node_mgr = driver.DriverManager(
-            namespace="nodes",
-            name=node_type,
-            invoke_on_load=True,
-            invoke_kwds={
-                "name": name,
-                "internal_name": internal_name,
-                "config": step_config,
-                "internal_branch_name": internal_branch_name,
-            },
-        )
-        return node_mgr.driver
+        node_mgr: BaseNode = driver.DriverManager(namespace="nodes", name=node_type).driver
+
+        next_node = step_config.pop("next", None)
+
+        if next_node:
+            step_config["next_node"] = next_node
+
+        invoke_kwds = {
+            "name": name,
+            "internal_name": internal_name,
+            "internal_branch_name": internal_branch_name,
+            **step_config,
+        }
+        node = node_mgr.parse_from_config(config=invoke_kwds)
+        return node
     except KeyError:
+        # type is missing!!
         msg = "The node configuration does not contain the required key 'type'."
         logger.exception(step_config)
         raise Exception(msg)
     except Exception as _e:
         msg = (
-            f"Could not find the node type {step_config['type']}. Please ensure you have installed "
+            f"Could not find the node type {node_type}. Please ensure you have installed "
             "the extension that provides the node type."
-            "\nCore supports: task, success, fail, parallel, dag, map, as-is"
+            "\nCore supports: task, success, fail, parallel, dag, map, stub"
         )
         raise Exception(msg) from _e
 

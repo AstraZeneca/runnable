@@ -1,10 +1,13 @@
 # ruff: noqa
 
+# TODO: Might need to add Rich to pyinstaller part
 import logging
+from logging.config import dictConfig
 
-from yachalk import chalk
+from magnus import defaults
 
-chalk_colors = {"debug": chalk.grey, "info": chalk.green, "warning": chalk.yellow_bright, "error": chalk.bold.red}
+dictConfig(defaults.LOGGING_CONFIG)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 from magnus.interaction import (
     end_interactive_session,
@@ -13,30 +16,19 @@ from magnus.interaction import (
     get_object,
     get_parameter,
     get_run_id,
+    get_run_log,
     get_secret,
     put_in_catalog,
     put_object,
     start_interactive_session,
-    store_parameter,
+    set_parameter,
     track_this,
 )  # noqa
-from magnus.sdk import AsIs, Pipeline, Task  # noqa
+from magnus.sdk import Stub, Pipeline, Task, Parallel, Map, Catalog, Success, Fail  # noqa
 
 
-class ColorFormatter(logging.Formatter):
-    """
-    Custom class to get colors to logs
-    """
-
-    def __init__(self, *args, **kwargs):
-        # can't do super(...) here because Formatter is an old school class
-        logging.Formatter.__init__(self, *args, **kwargs)  # pragma: no cover
-
-    def format(self, record):  # pragma: no cover
-        levelname = record.levelname
-        color = chalk_colors[levelname.lower()]
-        message = logging.Formatter.format(self, record)
-        return color(message)
+# TODO: Think of model registry as a central place to store models.
+# TODO: Implement Sagemaker pipelines as a executor.
 
 
-logging.ColorFormatter = ColorFormatter  # type: ignore
+# TODO: Think of way of generating dag hash without executor configuration

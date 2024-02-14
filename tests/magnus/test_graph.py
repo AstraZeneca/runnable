@@ -5,7 +5,7 @@ from magnus import (
     exceptions,  # pylint: disable=import-error
     graph,  # pylint: disable=import-error
 )
-from magnus.nodes import AsISNode, FailNode, SuccessNode
+from magnus.extensions.nodes import StubNode, FailNode, SuccessNode
 
 
 def get_new_graph(start_at="this", internal_branch_name="i_name"):
@@ -48,7 +48,7 @@ def test_get_node_by_name_raises_exception_if_no_match(new_graph):
 
 
 def test_get_node_by_name_returns_node_if_match(new_graph, dummy_node):
-    new_graph.nodes.append(dummy_node)
+    new_graph.nodes["a"] = dummy_node
     assert dummy_node == new_graph.get_node_by_name("a")
 
 
@@ -58,14 +58,14 @@ def test_get_node_by_internal_name_raises_exception_if_no_match(new_graph):
 
 
 def test_get_node_by_internal_name_returns_node_if_match(new_graph, dummy_node):
-    new_graph.nodes.append(dummy_node)
+    new_graph.nodes["a.b"] = dummy_node
     assert dummy_node == new_graph.get_node_by_internal_name("a.b")
 
 
 def test_add_node_adds_to_nodes(new_graph, dummy_node):
     new_graph.add_node(dummy_node)
     assert len(new_graph.nodes) == 1
-    assert new_graph.nodes[0] == dummy_node
+    assert new_graph.nodes["a"] == dummy_node
 
 
 def test_get_success_node_fails_if_none_present(new_graph):
@@ -74,8 +74,8 @@ def test_get_success_node_fails_if_none_present(new_graph):
 
 
 def test_get_success_node_returns_success_node_if_present(new_graph):
-    new_node = Node(node_type="success")
-    new_graph.nodes.append(new_node)
+    new_node = Node(node_type="success", name="a")
+    new_graph.nodes["a"] = new_node
 
     assert new_graph.get_success_node() == new_node
 
@@ -86,8 +86,8 @@ def test_get_fail_node_fails_if_none_present(new_graph):
 
 
 def test_get_fail_node_returns_success_node_if_present(new_graph):
-    new_node = Node(node_type="fail")
-    new_graph.nodes.append(new_node)
+    new_node = Node(node_type="fail", name="a")
+    new_graph.nodes["a"] = new_node
 
     assert new_graph.get_fail_node() == new_node
 
@@ -111,15 +111,15 @@ def test_success_node_validation_returns_false_if_neq_1(new_graph):
 
 
 def test_success_node_validation_returns_false_if_gr_1(new_graph):
-    node = Node(node_type="success")
-    new_graph.nodes.append(node)
-    new_graph.nodes.append(node)
+    node = Node(node_type="success", name="a")
+    new_graph.nodes["a"] = node
+    new_graph.nodes["b"] = node
     assert new_graph.success_node_validation() is False
 
 
 def test_success_node_validation_returns_true_if_eq_1(new_graph):
-    node = Node(node_type="success")
-    new_graph.nodes.append(node)
+    node = Node(node_type="success", name="a")
+    new_graph.nodes["a"] = node
     assert new_graph.success_node_validation() is True
 
 
@@ -128,19 +128,19 @@ def test_fail_node_validation_returns_false_if_neq_1(new_graph):
 
 
 def test_fail_node_validation_returns_false_if_gr_1(new_graph):
-    node = Node(node_type="fail")
-    new_graph.nodes.append(node)
-    new_graph.nodes.append(node)
+    node = Node(node_type="fail", name="a")
+    new_graph.nodes["a"] = node
+    new_graph.nodes["b"] = node
     assert new_graph.fail_node_validation() is False
 
 
 def test_fail_node_validation_returns_true_if_eq_1(new_graph):
-    node = Node(node_type="fail")
-    new_graph.nodes.append(node)
+    node = Node(node_type="fail", name="a")
+    new_graph.nodes["a"] = node
     assert new_graph.fail_node_validation() is True
 
 
-def test_validate_does_not_raise_exception_if_all_pass(monkeypatch, mocker):
+def test_check_graph_does_not_raise_exception_if_all_pass(monkeypatch, mocker):
     try:
         monkeypatch.setattr(graph.Graph, "missing_neighbors", mocker.MagicMock(return_value=[]))
         monkeypatch.setattr(graph.Graph, "is_dag", mocker.MagicMock(return_value=True))
@@ -148,7 +148,7 @@ def test_validate_does_not_raise_exception_if_all_pass(monkeypatch, mocker):
         monkeypatch.setattr(graph.Graph, "success_node_validation", mocker.MagicMock(return_value=True))
         monkeypatch.setattr(graph.Graph, "fail_node_validation", mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
-        new_graph.validate()
+        new_graph.check_graph()
     except BaseException:
         assert False
 
@@ -161,7 +161,7 @@ def test_validate_raises_exception_if_is_dag_fails(mocker, monkeypatch):
         monkeypatch.setattr(graph.Graph, "success_node_validation", mocker.MagicMock(return_value=True))
         monkeypatch.setattr(graph.Graph, "fail_node_validation", mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
-        new_graph.validate()
+        new_graph.check_graph()
 
 
 def test_validate_raises_exception_if_is_start_node_present_fails(mocker, monkeypatch):
@@ -172,7 +172,7 @@ def test_validate_raises_exception_if_is_start_node_present_fails(mocker, monkey
         monkeypatch.setattr(graph.Graph, "success_node_validation", mocker.MagicMock(return_value=True))
         monkeypatch.setattr(graph.Graph, "fail_node_validation", mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
-        new_graph.validate()
+        new_graph.check_graph()
 
 
 def test_validate_raises_exception_if_success_node_validation_fails(mocker, monkeypatch):
@@ -183,7 +183,7 @@ def test_validate_raises_exception_if_success_node_validation_fails(mocker, monk
         monkeypatch.setattr(graph.Graph, "success_node_validation", mocker.MagicMock(return_value=False))
         monkeypatch.setattr(graph.Graph, "fail_node_validation", mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
-        new_graph.validate()
+        new_graph.check_graph()
 
 
 def test_validate_raises_exception_if_fail_node_validation_fails(mocker, monkeypatch):
@@ -194,7 +194,7 @@ def test_validate_raises_exception_if_fail_node_validation_fails(mocker, monkeyp
         monkeypatch.setattr(graph.Graph, "success_node_validation", mocker.MagicMock(return_value=True))
         monkeypatch.setattr(graph.Graph, "fail_node_validation", mocker.MagicMock(return_value=False))
         new_graph = get_new_graph()
-        new_graph.validate()
+        new_graph.check_graph()
 
 
 def test_validate_raises_exception_if_missing_neighbors(mocker, monkeypatch):
@@ -205,96 +205,26 @@ def test_validate_raises_exception_if_missing_neighbors(mocker, monkeypatch):
         monkeypatch.setattr(graph.Graph, "success_node_validation", mocker.MagicMock(return_value=True))
         monkeypatch.setattr(graph.Graph, "fail_node_validation", mocker.MagicMock(return_value=True))
         new_graph = get_new_graph()
-        new_graph.validate()
-
-
-def test_create_graph_inits_graph_with_defaults(mocker, monkeypatch):
-    dag_config = {"start_at": "step1"}
-    graph_init = mocker.MagicMock(return_value=None)
-    monkeypatch.setattr(graph.Graph, "__init__", graph_init)
-    monkeypatch.setattr(graph.Graph, "validate", mocker.MagicMock())
-
-    graph.create_graph(dag_config, internal_branch_name="i_name")
-    graph_init.assert_called_once_with(
-        start_at="step1", description=None, max_time=defaults.MAX_TIME, internal_branch_name="i_name"
-    )
-
-
-def test_create_graph_inits_graph_with_given_config(mocker, monkeypatch):
-    dag_config = {"start_at": "step1", "description": "test", "max_time": 1}
-    graph_init = mocker.MagicMock(return_value=None)
-    monkeypatch.setattr(graph.Graph, "__init__", graph_init)
-    monkeypatch.setattr(graph.Graph, "validate", mocker.MagicMock())
-
-    graph.create_graph(dag_config, internal_branch_name="i_name")
-    graph_init.assert_called_once_with(start_at="step1", description="test", max_time=1, internal_branch_name="i_name")
-
-
-def test_create_graph_inits_graph_populates_nodes(mocker, monkeypatch):
-    dag_config = {"start_at": "step1", "steps": {"step1": {"type": "test"}}}
-    graph_init = mocker.MagicMock(return_value=None)
-    monkeypatch.setattr(graph.Graph, "__init__", graph_init)
-    monkeypatch.setattr(graph.Graph, "validate", mocker.MagicMock())
-    monkeypatch.setattr(graph.Graph, "add_node", mocker.MagicMock())
-
-    mock_driver_manager = mocker.MagicMock()
-
-    monkeypatch.setattr(graph.driver, "DriverManager", mock_driver_manager)
-    graph.create_graph(dag_config, internal_branch_name=None)
-
-    _, kwargs = mock_driver_manager.call_args
-    assert kwargs["invoke_kwds"]["name"] == "step1"
-    assert kwargs["invoke_kwds"]["internal_name"] == "step1"
-
-
-def test_create_graph_inits_graph_populates_nodes_with_internal_branch(mocker, monkeypatch):
-    dag_config = {"start_at": "step1", "steps": {"step1": {"type": "test"}}}
-    graph_init = mocker.MagicMock(return_value=None)
-    monkeypatch.setattr(graph.Graph, "__init__", graph_init)
-    monkeypatch.setattr(graph.Graph, "validate", mocker.MagicMock())
-    monkeypatch.setattr(graph.Graph, "add_node", mocker.MagicMock())
-
-    mock_driver_manager = mocker.MagicMock()
-
-    monkeypatch.setattr(graph.driver, "DriverManager", mock_driver_manager)
-    graph.create_graph(dag_config, internal_branch_name="i_name")
-
-    _, kwargs = mock_driver_manager.call_args
-    assert kwargs["invoke_kwds"]["name"] == "step1"
-    assert kwargs["invoke_kwds"]["internal_name"] == "i_name.step1"
-
-
-def test_create_graph_raises_exception_if_node_fails(mocker, monkeypatch):
-    dag_config = {"start_at": "step1", "steps": {"step1": {"type": "test"}}}
-    graph_init = mocker.MagicMock(return_value=None)
-    monkeypatch.setattr(graph.Graph, "__init__", graph_init)
-    monkeypatch.setattr(graph.Graph, "validate", mocker.MagicMock())
-    monkeypatch.setattr(graph.Graph, "add_node", mocker.MagicMock())
-
-    with pytest.raises(Exception):
-        graph.create_graph(dag_config, internal_branch_name=None)
+        new_graph.check_graph()
 
 
 @pytest.fixture(name="mocked_graph")
 def create_mocked_graph(mocker):
-    mocked_graph_init = mocker.MagicMock(return_value=None)
-    mocker.patch.object(graph.Graph, "__init__", mocked_graph_init)
-    return graph.Graph()
+    return graph.Graph(start_at="start")
 
 
 def test_is_dag_returns_true_when_acyclic(mocked_graph):
+    start_node = StubNode(name="start", internal_name="start", next_node="middle")
+
+    middle_node = StubNode(name="middle", internal_name="middle", next_node="success")
+
+    success_node = SuccessNode(name="success", internal_name="success")
+
+    fail_node = FailNode(name="fail", internal_name="fail")
+
     test_graph = mocked_graph
-    start_node_config = {"next_node": "middle", "on_failure": ""}
-    start_node = AsISNode(name="start", internal_name="start", config=start_node_config)
-
-    middle_node_config = {"next_node": "success", "on_failure": ""}
-    middle_node = AsISNode(name="middle", internal_name="middle", config=middle_node_config)
-
-    success_node = SuccessNode(name="success", internal_name="success", config={})
-
-    fail_node = FailNode(name="fail", internal_name="fail", config={})
-
-    test_graph.nodes = [start_node, middle_node, success_node, fail_node]
+    for node in [start_node, middle_node, success_node, fail_node]:
+        test_graph.add_node(node)
 
     assert test_graph.is_dag()
 
@@ -303,16 +233,19 @@ def test_is_dag_returns_true_when_on_failure_points_to_non_terminal_node_and_lat
     test_graph = mocked_graph
 
     start_node_config = {"next_node": "middle", "on_failure": ""}
-    start_node = AsISNode(name="start", internal_name="start", config=start_node_config)
+    start_node = StubNode(name="start", internal_name="start", next_node="middle", on_failure="")
 
     middle_node_config = {"next_node": "success", "on_failure": "fail"}
-    middle_node = AsISNode(name="middle", internal_name="middle", config=middle_node_config)
+    middle_node = StubNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
 
-    success_node = SuccessNode(name="success", internal_name="success", config={})
+    success_node = SuccessNode(name="success", internal_name="success")
 
-    fail_node = FailNode(name="fail", internal_name="fail", config={})
+    fail_node = FailNode(name="fail", internal_name="fail")
 
-    test_graph.nodes = [start_node, middle_node, success_node, fail_node]
+    test_graph = mocked_graph
+    for node in [start_node, middle_node, success_node, fail_node]:
+        test_graph.add_node(node)
+
     assert test_graph.is_dag()
 
 
@@ -320,20 +253,20 @@ def test_is_dag_returns_false_when_cyclic_in_next_nodes(mocked_graph):
     test_graph = mocked_graph
 
     start_node_config = {"next_node": "b", "on_failure": "fail"}
-    start_node = AsISNode(name="start", internal_name="start", config=start_node_config)
+    start_node = StubNode(name="start", internal_name="start", next_node="b", on_failure="fail")
 
-    bnode_config = {"next_node": "c", "on_failure": "fail"}
-    bnode = AsISNode(name="b", internal_name="b", config=bnode_config)
+    bnode = StubNode(name="b", internal_name="b", next_node="c", on_failure="fail")
 
-    cnode_config = {"next_node": "d", "on_failure": "fail"}
-    cnode = AsISNode(name="c", internal_name="c", config=cnode_config)
+    cnode = StubNode(name="c", internal_name="c", next_node="d", on_failure="fail")
 
-    dnode_config = {"next_node": "b", "on_failure": "fail"}
-    dnode = AsISNode(name="d", internal_name="d", config=dnode_config)
+    dnode = StubNode(name="d", internal_name="d", next_node="b", on_failure="fail")
 
-    fail_node = FailNode(name="fail", internal_name="fail", config={})
+    fail_node = FailNode(name="fail", internal_name="fail")
 
-    test_graph.nodes = [start_node, bnode, cnode, dnode, fail_node]
+    nodes = [start_node, bnode, cnode, dnode, fail_node]
+    test_graph = mocked_graph
+    for node in nodes:
+        test_graph.add_node(node)
 
     assert not test_graph.is_dag()
 
@@ -341,17 +274,16 @@ def test_is_dag_returns_false_when_cyclic_in_next_nodes(mocked_graph):
 def test_is_dag_returns_false_when_fail_points_to_previous_node(mocked_graph):
     test_graph = mocked_graph
 
-    start_config = {"next_node": "b", "on_failure": "fail"}
-    start_node = AsISNode(name="start", internal_name="start", config=start_config)
+    start_node = StubNode(name="start", internal_name="start", next_node="b", on_failure="fail")
+    bnode = StubNode(name="b", internal_name="b", next_node="c", on_failure="fail")
 
-    b_config = {"next_node": "c", "on_failure": "fail"}
-    bnode = AsISNode(name="b", internal_name="b", config=b_config)
+    cnode = StubNode(name="c", internal_name="c", next_node="c", on_failure="fail")
 
-    c_config = {"next_node": "c", "on_failure": "b"}
-    cnode = AsISNode(name="c", internal_name="c", config=c_config)
-
-    fail_node = FailNode(name="fail", internal_name="fail", config={})
-    test_graph.nodes = [start_node, bnode, cnode, fail_node]
+    fail_node = FailNode(name="fail", internal_name="fail")
+    nodes = [start_node, bnode, cnode, fail_node]
+    test_graph = mocked_graph
+    for node in nodes:
+        test_graph.add_node(node)
 
     assert not test_graph.is_dag()
 
@@ -359,17 +291,18 @@ def test_is_dag_returns_false_when_fail_points_to_previous_node(mocked_graph):
 def test_missing_neighbors_empty_list_no_neigbors_missing(mocked_graph):
     test_graph = mocked_graph
 
-    start_config = {"next_node": "middle", "on_failure": "fail"}
-    start_node = AsISNode(name="start", internal_name="start", config=start_config)
+    start_node = StubNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
 
-    middle_config = {"next_node": "success", "on_failure": "fail"}
-    middle_node = AsISNode(name="middle", internal_name="middle", config=middle_config)
+    middle_node = StubNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
 
-    success_node = SuccessNode(name="success", internal_name="success", config={})
+    success_node = SuccessNode(name="success", internal_name="success")
 
-    fail_node = FailNode(name="fail", internal_name="fail", config={})
+    fail_node = FailNode(name="fail", internal_name="fail")
 
-    test_graph.nodes = [start_node, middle_node, success_node, fail_node]
+    nodes = [start_node, middle_node, success_node, fail_node]
+    test_graph = mocked_graph
+    for node in nodes:
+        test_graph.add_node(node)
 
     missing_nodes = test_graph.missing_neighbors()
     assert len(missing_nodes) == 0
@@ -379,14 +312,17 @@ def test_missing_neighbors_list_of_missing_neighbor_one_missing_next(mocked_grap
     test_graph = mocked_graph
 
     start_config = {"next_node": "middle", "on_failure": "fail"}
-    start_node = AsISNode(name="start", internal_name="start", config=start_config)
+    start_node = StubNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
 
     middle_config = {"next_node": "success", "on_failure": "fail"}
-    middle_node = AsISNode(name="middle", internal_name="middle", config=middle_config)
+    middle_node = StubNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
 
-    fail_node = FailNode(name="fail", internal_name="fail", config={})
+    fail_node = FailNode(name="fail", internal_name="fail")
 
-    test_graph.nodes = [start_node, middle_node, fail_node]
+    nodes = [start_node, middle_node, fail_node]
+    test_graph = mocked_graph
+    for node in nodes:
+        test_graph.add_node(node)
 
     missing_nodes = test_graph.missing_neighbors()
     assert len(missing_nodes) == 1
@@ -396,17 +332,18 @@ def test_missing_neighbors_list_of_missing_neighbor_one_missing_next(mocked_grap
 def test_missing_list_of_missing_neighbor_one_missing_on_failure(mocked_graph):
     test_graph = mocked_graph
 
-    start_config = {"next_node": "middle", "on_failure": "fail"}
-    start_node = AsISNode(name="start", internal_name="start", config=start_config)
+    start_node = StubNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
 
-    middle_config = {"next_node": "success", "on_failure": "fail"}
-    middle_node = AsISNode(name="middle", internal_name="middle", config=middle_config)
+    middle_node = StubNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
 
-    success_node = SuccessNode(name="success", internal_name="success", config={})
+    success_node = SuccessNode(name="success", internal_name="success")
 
-    FailNode(name="fail", internal_name="fail", config={})
+    FailNode(name="fail", internal_name="fail")
 
-    test_graph.nodes = [start_node, middle_node, success_node]
+    nodes = [start_node, middle_node, success_node]
+    test_graph = mocked_graph
+    for node in nodes:
+        test_graph.add_node(node)
 
     missing_nodes = test_graph.missing_neighbors()
     assert len(missing_nodes) == 1
@@ -415,22 +352,22 @@ def test_missing_list_of_missing_neighbor_one_missing_on_failure(mocked_graph):
 
 def test_missing_list_of_missing_neighbor_two_missing(mocked_graph):
     test_graph = mocked_graph
+    start_node = StubNode(name="start", internal_name="start", next_node="middle", on_failure="fail")
 
-    start_config = {"next_node": "middle", "on_failure": "fail"}
-    start_node = AsISNode(name="start", internal_name="start", config=start_config)
+    StubNode(name="middle", internal_name="middle", next_node="success", on_failure="fail")
 
-    middle_config = {"next_node": "success", "on_failure": "fail"}
-    AsISNode(name="middle", internal_name="middle", config=middle_config)
+    success_node = SuccessNode(name="success", internal_name="success")
 
-    success_node = SuccessNode(name="success", internal_name="success", config={})
+    FailNode(name="fail", internal_name="fail")
 
-    FailNode(name="fail", internal_name="fail", config={})
-
-    test_graph.nodes = [
+    nodes = [
         start_node,
         success_node,
     ]
 
+    test_graph = mocked_graph
+    for node in nodes:
+        test_graph.add_node(node)
     missing_nodes = test_graph.missing_neighbors()
     assert len(missing_nodes) == 2
     assert "middle" in missing_nodes

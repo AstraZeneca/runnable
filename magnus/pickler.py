@@ -1,8 +1,13 @@
 import pickle
+from abc import ABC, abstractmethod
 from typing import Any
 
+from pydantic import BaseModel, ConfigDict
 
-class BasePickler:
+import magnus.context as context
+
+
+class BasePickler(ABC, BaseModel):
     """
     The base class for all picklers.
 
@@ -10,9 +15,16 @@ class BasePickler:
     For now, we are just going to use pickle.
     """
 
-    extension = ""
-    service_name = ""
+    extension: str = ""
+    service_name: str = ""
+    service_type: str = "pickler"
+    model_config = ConfigDict(extra="forbid")
 
+    @property
+    def _context(self):
+        return context.run_context
+
+    @abstractmethod
     def dump(self, data: Any, path: str):
         """
         Dump an object to the specified path.
@@ -30,6 +42,7 @@ class BasePickler:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def load(self, path: str) -> Any:
         """
         Load the object from the specified path.
@@ -51,8 +64,8 @@ class NativePickler(BasePickler):
     Uses native python pickle to load and dump files
     """
 
-    extension = ".pickle"
-    service_name = "pickle"
+    extension: str = ".pickle"
+    service_name: str = "pickle"
 
     def dump(self, data: Any, path: str):
         """

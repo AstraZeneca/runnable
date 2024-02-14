@@ -1,0 +1,26 @@
+dag:
+  description: |
+    An example pipeline to demonstrate setting experiment tracking metrics
+    using environment variables. Any environment variable with prefix
+    'MAGNUS_TRACK_' will be recorded as a metric captured during the step.
+
+    You can run this pipeline as:
+      magnus execute -f examples/concepts/experiment_tracking_env.yaml \
+      -c examples/configs/mlflow-config.yaml
+
+    The mlflow server is expected to be running at http://127.0.0.1:8080
+
+  start_at: shell
+  steps:
+    shell:
+      type: task
+      command_type: shell
+      command: |
+        export MAGNUS_TRACK_spam="hello"
+        export MAGNUS_TRACK_eggs='{"ham": "world"}'
+        export MAGNUS_TRACK_answer="42.0"
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail

@@ -1,239 +1,389 @@
+from __future__ import annotations
+
 import logging
-from logging.config import fileConfig
-from types import FunctionType
-from typing import Dict, List, Optional, Union
+import os
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Union
 
-from pkg_resources import resource_filename
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_validator, model_validator
+from rich import print
+from ruamel.yaml import YAML
+from typing_extensions import Self
 
-from magnus import defaults, graph, nodes, pipeline, utils
+from magnus import defaults, entrypoints, graph, utils
+from magnus.extensions.nodes import FailNode, MapNode, ParallelNode, StubNode, SuccessNode, TaskNode
+from magnus.nodes import TraversalNode
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
-
-# class step(object):
-
-#     def __init__(
-#             self, name: Union[str, FunctionType],
-#             catalog_config: dict = None, magnus_config: str = None,
-#             parameters_file: str = None):
-#         """
-#         This decorator could be used to make the function within the scope of magnus.
-
-#         Since we are not orchestrating, it is expected that resource management happens outside this scope.
-
-#         Args:
-#             name (str, callable): The name of the step. The step log would have the same name
-#             catalog_config (dict): The configuration of the catalog per step.
-#             magnus_config (str): The name of the file having the magnus config, defaults to None.
-#         """
-#         if isinstance(name, FunctionType):
-#             name = name()
-
-#         self.name = name
-#         self.catalog_config = catalog_config
-#         self.active = True  # Check if we are executing the function via pipeline
-
-#         if pipeline.global_executor \
-#                 and pipeline.global_executor.execution_plan == defaults.EXECUTION_PLAN.CHAINED.value:
-#             self.active = False
-#             return
-
-#         self.executor = pipeline.prepare_configurations(
-#             configuration_file=magnus_config, parameters_file=parameters_file)
-
-#         self.executor.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-#         run_id = self.executor.step_decorator_run_id
-#         if not run_id:
-#             msg = (
-#                 f'Step decorator expects run id from environment.'
-#             )
-#             raise Exception(msg)
-
-#         self.executor.run_id = run_id
-#         utils.set_magnus_environment_variables(run_id=run_id, configuration_file=magnus_config, tag=get_tag())
-
-#         try:
-#             # Try to get it if previous steps have created it
-#             # TODO: Can call the set_up_runlog now.
-#             run_log = self.executor.run_log_store.get_run_log_by_id(self.executor.run_id)
-#             if run_log.status in [defaults.FAIL, defaults.SUCCESS]:  # TODO: Remove this in preference to defaults
-#                 """
-#                 This check is mostly useless as we do not know when the graph ends as they are created dynamically.
-#                 This only prevents from using a run_id which has reached a final state.
-#                 #TODO: There is a need to create a status called step_success
-#                 """
-#                 msg = (
-#                     f'The run_log for run_id: {run_id} already exists and is in {run_log.status} state.'
-#                     ' Make sure that this was not run before.'
-#                 )
-#                 raise Exception(msg)
-#         except exceptions.RunLogNotFoundError:
-#             # Create one if they are not created
-#             self.executor._set_up_run_log()
-
-#     def __call__(self, func):
-#         """
-#         The function is converted into a node and called via the magnus framework.
-#         """
-#         @functools.wraps(func)
-#         def wrapped_f(*args, **kwargs):
-#             if not self.active:
-#                 # If we are not running via decorator, execute the function
-#                 return func(*args, **kwargs)
-
-#             step_config = {
-#                 'command': func,
-#                 'command_type': 'python-function',
-#                 'type': 'task',
-#                 'next': 'not defined',
-#                 'catalog': self.catalog_config
-#             }
-#             node = graph.create_node(name=self.name, step_config=step_config)
-#             self.executor.execute_from_graph(node=node)
-#             run_log = self.executor.run_log_store.get_run_log_by_id(run_id=self.executor.run_id, full=False)
-#             # TODO: If the previous step succeeded, make the status of the run log step_success
-#             print(json.dumps(run_log.dict(), indent=4))
-#         return wrapped_f
+StepType = Union["Stub", "Task", "Success", "Fail", "Parallel", "Map"]
+TraversalTypes = Union["Stub", "Task", "Parallel", "Map"]
 
 
-class Task:
-    """A exposed magnus task to be used in SDK."""
-
-    def __init__(
-        self,
-        name: str,
-        command: Union[str, FunctionType],
-        command_type: str = defaults.COMMAND_TYPE,
-        command_config: Optional[dict] = None,
-        catalog: Optional[dict] = None,
-        executor_config: Optional[dict] = None,
-        retry: int = 1,
-        on_failure: str = "",
-        next_node: str = "",
-    ):
-        self.name = name
-        self.command = command
-        self.command_type = command_type
-        self.command_config = command_config or {}
-        self.catalog = catalog or {}
-        self.executor_config = executor_config or {}
-        self.retry = retry
-        self.on_failure = on_failure
-        self.next_node = next_node or "success"
-        self.node: Optional[nodes.BaseNode] = None
-
-    def _construct_node(self):
-        """Construct a node of the graph."""
-        # TODO: The below has issues if the function and the pipeline are in the same module
-        # Something to do with __main__ being present
-        if isinstance(self.command, FunctionType):
-            self.command = utils.get_module_and_func_from_function(self.command)
-
-        node_config = {
-            "type": "task",
-            "next_node": self.next_node,
-            "command": self.command,
-            "command_type": self.command_type,
-            "command_config": self.command_config,
-            "catalog": self.catalog,
-            "executor_config": self.executor_config,
-            "retry": self.retry,
-            "on_failure": self.on_failure,
-        }
-        # The node will temporarily have invalid branch names
-        self.node = graph.create_node(name=self.name, step_config=node_config, internal_branch_name="")
-
-    def _fix_internal_name(self):
-        """Should be done after the parallel's are implemented."""
-        pass
+ALLOWED_COMMAND_TYPES = ["shell", "python", "notebook"]
 
 
-class AsIs:
-    """An exposed magnus as-is task to be used in SDK."""
+class Catalog(BaseModel):
+    """
+    Use to instruct a task to sync data from/to the central catalog.
+    Please refer to [concepts](../../concepts/catalog) for more information.
 
-    def __init__(
-        self,
-        name: str,
-        mode_config: Optional[dict] = None,
-        retry: int = 1,
-        on_failure: str = "",
-        next_node: str = "",
-        **kwargs
-    ):
-        self.name = name
-        self.mode_config = mode_config or {}
-        self.retry = retry
-        self.on_failure = on_failure
-        self.next_node = next_node or "success"
-        self.additional_kwargs = kwargs or {}
-        self.node: Optional[nodes.BaseNode] = None
+    Attributes:
+        get (List[str]): List of glob patterns to get from central catalog to the compute data folder.
+        put (List[str]): List of glob patterns to put into central catalog from the compute data folder.
 
-    def _construct_node(self):
-        node_config = {
-            "type": "as-is",
-            "next_node": self.next_node,
-            "mode_config": self.mode_config,
-            "retry": self.retry,
-            "on_failure": self.on_failure,
-        }
-        node_config.update(self.additional_kwargs)
-        # The node will temporarily have invalid branch names
-        self.node = graph.create_node(name=self.name, step_config=node_config, internal_branch_name="")
+    Examples:
+        >>> from magnus import Catalog, Task
+        >>> catalog = Catalog(compute_data_folder="/path/to/data", get=["*.csv"], put=["*.csv"])
 
-    def _fix_internal_name(self):
-        """Should be done after the parallel's are implemented."""
-        pass
+        >>> task = Task(name="task", catalog=catalog, command="echo 'hello'")
+
+    """
+
+    model_config = ConfigDict(extra="forbid")  # Need to be for command, would be validated later
+    # Note: compute_data_folder was confusing to explain, might be introduced later.
+    # compute_data_folder: str = Field(default="", alias="compute_data_folder")
+    get: List[str] = Field(default_factory=list, alias="get")
+    put: List[str] = Field(default_factory=list, alias="put")
 
 
-class Pipeline:
-    # A way for the user to define a pipeline
-    # TODO: Allow for nodes other than Task, AsIs
-    """An exposed magnus pipeline to be used in SDK."""
+class BaseTraversal(ABC, BaseModel):
+    name: str
+    next_node: str = Field(default="", alias="next")
+    terminate_with_success: bool = Field(default=False, exclude=True)
+    terminate_with_failure: bool = Field(default=False, exclude=True)
+    on_failure: str = Field(default="", alias="on_failure")
 
-    def __init__(
-        self,
-        start_at: Union[Task, AsIs],
-        name: str = "",
-        description: str = "",
-        max_time: int = defaults.MAX_TIME,
-        internal_branch_name: str = "",
-    ):
-        self.start_at = start_at
-        self.name = name
-        self.description = description
-        self.max_time = max_time
-        self.internal_branch_name = internal_branch_name
-        self.dag: Optional[graph.Graph] = None
+    model_config = ConfigDict(extra="forbid")
 
-    def construct(self, steps: List[Task]):
-        """Construct a pipeline from a list of tasks."""
-        graph_config: Dict[str, Union[str, int]] = {
-            "description": self.description,
-            "name": self.name,
-            "max_time": self.max_time,
-            "internal_branch_name": self.internal_branch_name,
-        }
-        messages: List[str] = []
-        for step in steps:
-            step._construct_node()
-            print(step.node.__dict__)
-            messages.extend(step.node.validate())  # type: ignore
+    @computed_field  # type: ignore
+    @property
+    def internal_name(self) -> str:
+        return self.name
 
-        if not steps:
-            raise Exception("A dag needs at least one step")
+    def __rshift__(self, other: StepType) -> StepType:
+        if self.next_node:
+            raise Exception(f"The node {self} already has a next node: {self.next_node}")
+        self.next_node = other.name
 
-        if messages:
-            raise Exception(", ".join(messages))
+        return other
 
-        graph_config["start_at"] = self.start_at.node.name  # type: ignore
+    def __lshift__(self, other: TraversalNode) -> TraversalNode:
+        if other.next_node:
+            raise Exception(f"The {other} node already has a next node: {other.next_node}")
+        other.next_node = self.name
 
-        dag = graph.Graph(**graph_config)  # type: ignore
-        dag.nodes = [step.node for step in steps]  # type: ignore
+        return other
 
-        dag.add_terminal_nodes()
+    def depends_on(self, node: StepType) -> Self:
+        assert not isinstance(node, Success)
+        assert not isinstance(node, Fail)
 
-        dag.validate()
-        self.dag = dag
+        if node.next_node:
+            raise Exception(f"The {node} node already has a next node: {node.next_node}")
+
+        node.next_node = self.name
+        return self
+
+    @model_validator(mode="after")
+    def validate_terminations(self) -> Self:
+        if self.terminate_with_failure and self.terminate_with_success:
+            raise AssertionError("A node cannot terminate with success and failure")
+
+        if self.terminate_with_failure or self.terminate_with_success:
+            if self.next_node and self.next_node not in ["success", "fail"]:
+                raise AssertionError("A node being terminated cannot have a user defined next node")
+
+        if self.terminate_with_failure:
+            self.next_node = "fail"
+
+        if self.terminate_with_success:
+            self.next_node = "success"
+
+        return self
+
+    @abstractmethod
+    def create_node(self) -> TraversalNode:
+        ...
+
+
+class Task(BaseTraversal):
+    """
+    An execution node of the pipeline.
+    Please refer to [concepts](../../concepts/task) for more information.
+
+    Attributes:
+        name (str): The name of the node.
+        command (str): The command to execute.
+
+            - For python functions, [dotted path](../../concepts/task/#python_functions) to the function.
+            - For shell commands: command to execute in the shell.
+            - For notebooks: path to the notebook.
+        command_type (str): The type of command to execute.
+            Can be one of "shell", "python", or "notebook".
+        catalog (Optional[Catalog]): The catalog to sync data from/to.
+            Please see Catalog about the structure of the catalog.
+        overrides (Dict[str, Any]): Any overrides to the command.
+            Individual tasks can override the global configuration config by referring to the
+            specific override.
+
+            For example,
+            ### Global configuration
+            ```yaml
+            executor:
+              type: local-container
+              config:
+                docker_image: "magnus/magnus:latest"
+                overrides:
+                  custom_docker_image:
+                    docker_image: "magnus/magnus:custom"
+            ```
+            ### Task specific configuration
+            ```python
+            task = Task(name="task", command="echo 'hello'", command_type="shell",
+                    overrides={'local-container': custom_docker_image})
+            ```
+        notebook_output_path (Optional[str]): The path to save the notebook output.
+            Only used when command_type is 'notebook', defaults to command+_out.ipynb
+        optional_ploomber_args (Optional[Dict[str, Any]]): Any optional ploomber args.
+            Only used when command_type is 'notebook', defaults to {}
+        output_cell_tag (Optional[str]): The tag of the output cell.
+            Only used when command_type is 'notebook', defaults to "magnus_output"
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+        on_failure (str): The name of the node to execute if the step fails.
+
+    """
+
+    command: str = Field(alias="command")
+    command_type: str = Field(default="python")
+    catalog: Optional[Catalog] = Field(default=None, alias="catalog")
+    overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
+
+    notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path")
+    optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
+    output_cell_tag: Optional[str] = Field(default=None, alias="output_cell_tag")
+
+    @field_validator("command_type", mode="before")
+    @classmethod
+    def validate_command_type(cls, value: str) -> str:
+        if value not in ALLOWED_COMMAND_TYPES:
+            raise ValueError(f"Invalid command_type: {value}")
+        return value
+
+    @model_validator(mode="after")
+    def check_notebook_args(self) -> "Task":
+        if self.command_type != "notebook":
+            assert (
+                self.notebook_output_path is None
+            ), "Only command_types of 'notebook' can be used with notebook_output_path"
+
+            assert (
+                self.optional_ploomber_args is None
+            ), "Only command_types of 'notebook' can be used with optional_ploomber_args"
+
+            assert self.output_cell_tag is None, "Only command_types of 'notebook' can be used with output_cell_tag"
+        return self
+
+    def create_node(self) -> TaskNode:
+        if not self.next_node:
+            if not (self.terminate_with_failure or self.terminate_with_success):
+                raise AssertionError("A node not being terminated must have a user defined next node")
+        return TaskNode.parse_from_config(self.model_dump(exclude_none=True))
+
+
+class Stub(BaseTraversal):
+    """
+    A node that does nothing.
+
+    A stub node can tak arbitrary number of arguments.
+    Please refer to [concepts](../../concepts/stub) for more information.
+
+    Attributes:
+        name (str): The name of the node.
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+
+    """
+
+    model_config = ConfigDict(extra="allow")
+    catalog: Optional[Catalog] = Field(default=None, alias="catalog")
+
+    def create_node(self) -> StubNode:
+        if not self.next_node:
+            if not (self.terminate_with_failure or self.terminate_with_success):
+                raise AssertionError("A node not being terminated must have a user defined next node")
+
+        return StubNode.parse_from_config(self.model_dump(exclude_none=True))
+
+
+class Parallel(BaseTraversal):
+    """
+    A node that executes multiple branches in parallel.
+    Please refer to [concepts](../../concepts/parallel) for more information.
+
+    Attributes:
+        name (str): The name of the node.
+        branches (Dict[str, Pipeline]): A dictionary of branches to execute in parallel.
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+        on_failure (str): The name of the node to execute if any of the branches fail.
+    """
+
+    branches: Dict[str, "Pipeline"]
+
+    @computed_field  # type: ignore
+    @property
+    def graph_branches(self) -> Dict[str, graph.Graph]:
+        return {name: pipeline._dag.model_copy() for name, pipeline in self.branches.items()}
+
+    def create_node(self) -> ParallelNode:
+        if not self.next_node:
+            if not (self.terminate_with_failure or self.terminate_with_success):
+                raise AssertionError("A node not being terminated must have a user defined next node")
+
+        node = ParallelNode(name=self.name, branches=self.graph_branches, internal_name="", next_node=self.next_node)
+        return node
+
+
+class Map(BaseTraversal):
+    """
+    A node that iterates over a list of items and executes a pipeline for each item.
+    Please refer to [concepts](../../concepts/map) for more information.
+
+    Attributes:
+        branch: The pipeline to execute for each item.
+
+        iterate_on: The name of the parameter to iterate over.
+            The parameter should be defined either by previous steps or statically at the start of execution.
+
+        iterate_as: The name of the iterable to be passed to functions.
+
+
+        overrides (Dict[str, Any]): Any overrides to the command.
+
+    """
+
+    branch: "Pipeline"
+    iterate_on: str
+    iterate_as: str
+    overrides: Dict[str, Any] = Field(default_factory=dict)
+
+    @computed_field  # type: ignore
+    @property
+    def graph_branch(self) -> graph.Graph:
+        return self.branch._dag.model_copy()
+
+    def create_node(self) -> MapNode:
+        if not self.next_node:
+            if not (self.terminate_with_failure or self.terminate_with_success):
+                raise AssertionError("A node not being terminated must have a user defined next node")
+
+        node = MapNode(
+            name=self.name,
+            branch=self.graph_branch,
+            internal_name="",
+            next_node=self.next_node,
+            iterate_on=self.iterate_on,
+            iterate_as=self.iterate_as,
+            overrides=self.overrides,
+        )
+
+        return node
+
+
+class Success(BaseModel):
+    """
+    A node that represents a successful execution of the pipeline.
+
+    Most often, there is no need to use this node as nodes can be instructed to
+    terminate_with_success and pipeline with add_terminal_nodes=True.
+
+    Attributes:
+        name (str): The name of the node.
+    """
+
+    name: str = "success"
+
+    @computed_field  # type: ignore
+    @property
+    def internal_name(self) -> str:
+        return self.name
+
+    def create_node(self) -> SuccessNode:
+        return SuccessNode.parse_from_config(self.model_dump())
+
+
+class Fail(BaseModel):
+    """
+    A node that represents a failed execution of the pipeline.
+
+    Most often, there is no need to use this node as nodes can be instructed to
+    terminate_with_failure and pipeline with add_terminal_nodes=True.
+
+    Attributes:
+        name (str): The name of the node.
+    """
+
+    name: str = "fail"
+
+    @computed_field  # type: ignore
+    @property
+    def internal_name(self) -> str:
+        return self.name
+
+    def create_node(self) -> FailNode:
+        return FailNode.parse_from_config(self.model_dump())
+
+
+class Pipeline(BaseModel):
+    """
+    A Pipeline is a directed acyclic graph of Steps that define a workflow.
+
+    Attributes:
+        steps (List[Stub | Task | Parallel | Map | Success | Fail]): A list of Steps that make up the Pipeline.
+        start_at (Stub | Task | Parallel | Map): The name of the first Step in the Pipeline.
+        name (str, optional): The name of the Pipeline. Defaults to "".
+        description (str, optional): A description of the Pipeline. Defaults to "".
+        add_terminal_nodes (bool, optional): Whether to add terminal nodes to the Pipeline. Defaults to True.
+
+    The default behavior is to add "success" and "fail" nodes to the Pipeline.
+    To add custom success and fail nodes, set add_terminal_nodes=False and create success
+    and fail nodes manually.
+
+    """
+
+    steps: List[StepType]
+    start_at: TraversalTypes
+    name: str = ""
+    description: str = ""
+    add_terminal_nodes: bool = True  # Adds "success" and "fail" nodes
+
+    internal_branch_name: str = ""
+
+    _dag: graph.Graph = PrivateAttr()
+    model_config = ConfigDict(extra="forbid")
+
+    def model_post_init(self, __context: Any) -> None:
+        self.steps = [model.model_copy(deep=True) for model in self.steps]
+
+        self._dag = graph.Graph(
+            start_at=self.start_at.name,
+            description=self.description,
+            internal_branch_name=self.internal_branch_name,
+        )
+
+        for step in self.steps:
+            if step.name == self.start_at.name:
+                if isinstance(step, Success) or isinstance(step, Fail):
+                    raise Exception("A success or fail node cannot be the start_at of the graph")
+                assert step.next_node
+            self._dag.add_node(step.create_node())
+
+        if self.add_terminal_nodes:
+            self._dag.add_terminal_nodes()
+
+        self._dag.check_graph()
 
     def execute(
         self,
@@ -241,32 +391,80 @@ class Pipeline:
         run_id: str = "",
         tag: str = "",
         parameters_file: str = "",
+        use_cached: str = "",
         log_level: str = defaults.LOG_LEVEL,
+        output_pipeline_definition: str = "magnus-pipeline.yaml",
     ):
-        """Execute the pipeline.
-
-        This method should be beefed up as the use cases grow.
         """
-        fileConfig(resource_filename(__name__, "log_config.ini"))
-        logger = logging.getLogger(defaults.NAME)
+        *Execute* the Pipeline.
+
+        Execution of pipeline could either be:
+
+        Traverse and execute all the steps of the pipeline, eg. [local execution](../../configurations/executors/local).
+
+        Or create the ```yaml``` representation of the pipeline for other executors.
+
+        Please refer to [concepts](../../concepts/executor) for more information.
+
+        Args:
+            configuration_file (str, optional): The path to the configuration file. Defaults to "".
+                The configuration file can be overridden by the environment variable MAGNUS_CONFIGURATION_FILE.
+
+            run_id (str, optional): The ID of the run. Defaults to "".
+            tag (str, optional): The tag of the run. Defaults to "".
+                Use to group multiple runs.
+
+            parameters_file (str, optional): The path to the parameters file. Defaults to "".
+            use_cached (str, optional): Whether to use cached results. Defaults to "".
+                Provide the run_id of the older execution to recover.
+
+            log_level (str, optional): The log level. Defaults to defaults.LOG_LEVEL.
+            output_pipeline_definition (str, optional): The path to the output pipeline definition file.
+                Defaults to "magnus-pipeline.yaml".
+
+                Only applicable for the execution via SDK for non ```local``` executors.
+        """
+        from magnus.extensions.executor.local.implementation import LocalExecutor
+        from magnus.extensions.executor.mocked.implementation import MockedExecutor
+
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)
-        mode_executor = pipeline.prepare_configurations(
+        configuration_file = os.environ.get("MAGNUS_CONFIGURATION_FILE", configuration_file)
+        run_context = entrypoints.prepare_configurations(
             configuration_file=configuration_file,
             run_id=run_id,
             tag=tag,
             parameters_file=parameters_file,
+            use_cached=use_cached,
         )
 
-        mode_executor.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
+        run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
         utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-        mode_executor.dag = self.dag
+        dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
+
+        run_context.dag = graph.create_graph(dag_definition)
+
+        print("Working with context:")
+        print(run_context)
+
+        if not (isinstance(run_context.executor, LocalExecutor) or isinstance(run_context.executor, MockedExecutor)):
+            logger.debug(run_context.dag.model_dump(by_alias=True))
+            yaml = YAML()
+
+            with open(output_pipeline_definition, "w", encoding="utf-8") as f:
+                yaml.dump(
+                    {"dag": run_context.dag.model_dump(by_alias=True, exclude_none=True)},
+                    f,
+                )
+
+            return
+
         # Prepare for graph execution
-        mode_executor.prepare_for_graph_execution()
+        run_context.executor.prepare_for_graph_execution()
 
         logger.info("Executing the graph")
-        mode_executor.execute_graph(dag=mode_executor.dag)
+        run_context.executor.execute_graph(dag=run_context.dag)
 
-        mode_executor.send_return_code()
+        return run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id)

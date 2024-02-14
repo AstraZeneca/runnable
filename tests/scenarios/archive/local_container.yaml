@@ -1,8 +1,0 @@
-executor:
-  type: local-container
-  config:
-    enable_parallel: "False"
-    docker_image: magnus_app
-
-run_log_store:
-  type: file-system

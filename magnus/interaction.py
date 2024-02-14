@@ -3,204 +3,240 @@ from __future__ import annotations
 import json
 import logging
 import os
-from pathlib import Path
-from typing import Any, Union, cast
+from functools import wraps
+from typing import Any, ContextManager, Dict, Optional, TypeVar, Union, cast, overload
 
-from magnus import defaults, exceptions, pickler, pipeline, utils
+from pydantic import BaseModel
 
-logger = logging.getLogger(defaults.NAME)
+import magnus.context as context
+from magnus import defaults, exceptions, parameters, pickler, utils
+from magnus.datastore import RunLog, StepLog
+
+logger = logging.getLogger(defaults.LOGGER_NAME)
+
+CastT = TypeVar("CastT")
 
 
+def check_context(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not context.run_context.executor:
+            msg = (
+                "There are no active executor and services. This should not have happened and is a bug."
+                " Please raise a bug report."
+            )
+            raise Exception(msg)
+        result = func(*args, **kwargs)
+        return result
+
+    return wrapper
+
+
+@check_context
 def track_this(step: int = 0, **kwargs):
     """
-    Set up the keyword args as environment variables for tracking purposes as
-    part of the run.
+    Tracks key-value pairs to the experiment tracker.
 
-    For every key-value pair found in kwargs, we set up an environmental variable of
-    MAGNUS_TRACK_key_{step} = json.dumps(value)
-
-    If step=0, we ignore step for magnus purposes.
+    The value is dumped as a dict, by alias, if it is a pydantic model.
 
     Args:
-        kwargs (dict): The dictionary of key value pairs to track.
+        step (int, optional): The step to track the data at. Defaults to 0.
+        **kwargs (dict): The key-value pairs to track.
+
+    Examples:
+        >>> track_this(step=0, my_int_param=123, my_float_param=123.45, my_str_param='hello world')
+        >>> track_this(step=1, my_int_param=456, my_float_param=456.78, my_str_param='goodbye world')
     """
-    from magnus import context  # pylint: disable=import-outside-toplevel
-
-    if not context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
     prefix = defaults.TRACK_PREFIX
-
-    if step:
-        prefix += f"{str(step)}_"
 
     for key, value in kwargs.items():
         logger.info(f"Tracking {key} with value: {value}")
-        os.environ[prefix + key] = json.dumps(value)
-        context.executor.experiment_tracker.set_metric(key, value, step=step)  # type: ignore
+
+        if isinstance(value, BaseModel):
+            value = value.model_dump(by_alias=True)
+
+        os.environ[prefix + key + f"{defaults.STEP_INDICATOR}{step}"] = json.dumps(value)
 
 
-def store_parameter(update: bool = True, **kwargs: dict):
+@check_context
+def set_parameter(**kwargs) -> None:
     """
-    Set up the keyword args as environment variables for parameters tracking
-    purposes as part pf the run.
+    Store a set of parameters.
 
-    If update_existing is True, we override the current value if the parameter already exists.
+    !!! note
+        The parameters are not stored in run log at this point in time.
+        They are collected now and stored in the run log after completion of the task.
 
-    For every key-value pair found in kwargs, we set up an environmental variable of
-    MAGNUS_PRM_key = json.dumps(value)
-    """
-    for key, value in kwargs.items():
-        logger.info(f"Storing parameter {key} with value: {value}")
-        environ_key = defaults.PARAMETER_PREFIX + key
-
-        if environ_key in os.environ and not update:
-            continue
-
-        os.environ[environ_key] = json.dumps(value)
-
-
-def get_parameter(key=None) -> Union[str, dict]:
-    """
-    Get the parameter set as part of the user convenience function.
-
-    We do not remove the parameter from the environment in this phase as
-    as the function execution has not been completed.
-
-    Returns all the parameters, if no key was provided.
-
-    Args:
-        key (str, optional): The parameter key to retrieve. Defaults to None.
-
-    Raises:
-        Exception: If the mentioned key was not part of the paramters
+    Parameters:
+        **kwargs (dict): A dictionary of key-value pairs to store as parameters.
 
     Returns:
-        Union[str, dict]: A single value of str or a dictionary if no key was specified
+        None
+
+    Examples:
+        >>> set_parameter(my_int_param=123, my_float_param=123.45, my_bool_param=True, my_str_param='hello world')
+        >>> get_parameter('my_int_param', int)
+        123
+        >>> get_parameter('my_float_param', float)
+        123.45
+        >>> get_parameter('my_bool_param', bool)
+        True
+        >>> get_parameter('my_str_param', str)
+        'hello world'
+
+        >>> # Example of using Pydantic models
+        >>> class MyModel(BaseModel):
+        ...     field1: str
+        ...     field2: int
+        >>> set_parameter(my_model_param=MyModel(field1='value1', field2=2))
+        >>> get_parameter('my_model_param', MyModel)
+        MyModel(field1='value1', field2=2)
+
     """
-    parameters = utils.get_user_set_parameters(remove=False)
+    parameters.set_user_defined_params_as_environment_variables(kwargs)
+
+
+@overload
+def get_parameter(key: str, cast_as: Optional[CastT]) -> CastT:
+    ...
+
+
+@overload
+def get_parameter(cast_as: Optional[CastT]) -> CastT:
+    ...
+
+
+@check_context
+def get_parameter(key: Optional[str] = None, cast_as: Optional[CastT] = None) -> Union[Dict[str, Any], CastT]:
+    """
+    Get a parameter by its key.
+    If the key is not provided, all parameters will be returned.
+
+    cast_as is not required for JSON supported type (int, float, bool, str).
+    For complex nested parameters, cast_as could package them into a pydantic model.
+    If cast_as is not provided, the type will remain as dict for nested structures.
+
+    Note that the cast_as pydantic model is the class, not an instance.
+
+    Args:
+        key (str, optional): The key of the parameter to retrieve. If not provided, all parameters will be returned.
+        cast_as (Type, optional): The type to cast the parameter to. If not provided, the type will remain as it is
+            for simple data types (int, float, bool, str). For nested parameters, it would be a dict.
+
+    Raises:
+        Exception: If the parameter does not exist and key is not provided.
+        ValidationError: If the parameter cannot be cast as pydantic model, when cast_as is provided.
+
+    Examples:
+        >>> get_parameter('my_int_param', int)
+        123
+        >>> get_parameter('my_float_param', float)
+        123.45
+        >>> get_parameter('my_bool_param', bool)
+        True
+        >>> get_parameter('my_str_param', str)
+        'hello world'
+        >>> get_parameter('my_model_param', MyModel)
+        MyModel(field1='value1', field2=2)
+        >>> get_parameter(cast_as=MyModel)
+        MyModel(field1='value1', field2=2)
+
+    """
+    params = parameters.get_user_set_parameters(remove=False)
+
     if not key:
-        return parameters
-    if key not in parameters:
+        # Return all parameters
+        return cast(CastT, parameters.cast_parameters_as_type(params, cast_as))  # type: ignore
+
+    if key not in params:
         raise Exception(f"Parameter {key} is not set before")
-    return parameters[key]
+
+    # Return the parameter value, casted as asked.
+    return cast(CastT, parameters.cast_parameters_as_type(params[key], cast_as))  # type: ignore
 
 
-def get_secret(secret_name: str = None) -> str:
+@check_context
+def get_secret(secret_name: str) -> str:
     """
-    Get a secret by the name from the secrets manager
+    Retrieve a secret from the secret store.
 
     Args:
-        secret_name (str): The name of the secret to get. Defaults to None.
-
-    Returns:
-        str: The secret from the secrets manager, if exists. If the requested secret was None, we return all.
-        Otherwise, raises exception.
+        secret_name (str): The name of the secret to retrieve.
 
     Raises:
-        exceptions.SecretNotFoundError: Secret not found in the secrets manager.
+        SecretNotFoundError: If the secret does not exist in the store.
+
+    Returns:
+        str: The secret value.
     """
-    from magnus import context  # pylint: disable=import-outside-toplevel
-
-    if not context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
-    secrets_handler = context.executor.secrets_handler  # type: ignore
+    secrets_handler = context.run_context.secrets_handler
     try:
-        return secrets_handler.get(name=secret_name)  # type: ignore
+        return secrets_handler.get(name=secret_name)
     except exceptions.SecretNotFoundError:
         logger.exception(f"No secret by the name {secret_name} found in the store")
         raise
 
 
-def get_from_catalog(name: str, destination_folder: str = None):
+@check_context
+def get_from_catalog(name: str, destination_folder: str = ""):
     """
-    A convenience interaction function to get file from the catalog and place it in the destination folder
+    Get data from the catalog.
 
-    Note: We do not perform any kind of serialization/deserialization in this way.
+    The name can be a wildcard pattern following globing rules.
+
     Args:
-        name (str): The name of the file to get from the catalog
-        destination_folder (None): The place to put the file. defaults to compute data folder
-
+        name (str): The name of the data catalog entry.
+        destination_folder (str, optional): The destination folder to download the data to.
+            If not provided, the default destination folder set in the catalog will be used.
     """
-    from magnus import context  # pylint: disable=import-outside-toplevel
-    from magnus.catalog import BaseCatalog
-
-    if not context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
     if not destination_folder:
-        destination_folder = context.executor.catalog_handler.compute_data_folder  # type: ignore
+        destination_folder = context.run_context.catalog_handler.compute_data_folder
 
-    data_catalog = cast(BaseCatalog, context.executor.catalog_handler).get(
+    data_catalog = context.run_context.catalog_handler.get(
         name,
-        run_id=context.executor.run_id,  # type: ignore
-        compute_data_folder=destination_folder,
+        run_id=context.run_context.run_id,
     )
 
-    if not data_catalog:
-        logger.warn(f"No catalog was obtained by the {name}")
-
-    if context.executor.context_step_log:  # type: ignore
-        context.executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
+    if context.run_context.executor._context_step_log:
+        context.run_context.executor._context_step_log.add_data_catalogs(data_catalog)
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
 
+@check_context
 def put_in_catalog(filepath: str):
     """
-    A convenience interaction function to put the file in the catalog.
-
-    Note: We do not perform any kind of serialization/deserialization in this way.
+    Add a file or folder to the data catalog.
+    You can use wild cards following globing rules.
 
     Args:
-        filepath (str): The path of the file to put in the catalog
+        filepath (str): The path to the file or folder added to the catalog
     """
-    from magnus import context  # pylint: disable=import-outside-toplevel
-    from magnus.catalog import BaseCatalog
 
-    if not context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
-    file_path = Path(filepath)
-
-    data_catalog = cast(BaseCatalog, context.executor.catalog_handler).put(
-        file_path.name,
-        run_id=context.executor.run_id,  # type: ignore
-        compute_data_folder=file_path.parent,
+    data_catalog = context.run_context.catalog_handler.put(
+        filepath,
+        run_id=context.run_context.run_id,
     )
     if not data_catalog:
-        logger.warn(f"No catalog was done by the {filepath}")
+        logger.warning(f"No catalog was done by the {filepath}")
 
-    if context.executor.context_step_log:  # type: ignore
-        context.executor.context_step_log.add_data_catalogs(data_catalog)  # type: ignore
+    if context.run_context.executor._context_step_log:
+        context.run_context.executor._context_step_log.add_data_catalogs(data_catalog)
     else:
         logger.warning("Step log context was not found during interaction! The step log will miss the record")
 
 
+@check_context
 def put_object(data: Any, name: str):
     """
-    A convenient interaction function to serialize and store the object in catalog.
+    Serialize and store a python object in the data catalog.
+
+    This function behaves the same as `put_in_catalog`
+    but with python objects.
 
     Args:
-        data (Any): The data object to add to catalog
-        name (str): The name to give to the object
+        data (Any): The python data object to store.
+        name (str): The name to store it against.
     """
     native_pickler = pickler.NativePickler()
 
@@ -211,12 +247,13 @@ def put_object(data: Any, name: str):
     os.remove(f"{name}{native_pickler.extension}")
 
 
+@check_context
 def get_object(name: str) -> Any:
     """
-    A convenient interaction function to deserialize and retrieve the object from the catalog.
+    Retrieve and deserialize a python object from the data catalog.
 
-    Args:
-        name (str): The name of the object to retrieve
+    This function behaves the same as `get_from_catalog` but with
+    python objects.
 
     Returns:
         Any : The object
@@ -237,13 +274,30 @@ def get_object(name: str) -> Any:
         raise e
 
 
+@check_context
 def get_run_id() -> str:
     """
-    Returns the run_id of the current run
+    Returns the run_id of the current run.
+
+    You can also access this from the environment variable `MAGNUS_RUN_ID`.
     """
-    return os.environ.get(defaults.ENV_RUN_ID, "")
+    return context.run_context.run_id
 
 
+@check_context
+def get_run_log() -> RunLog:
+    """
+    Returns the run_log of the current run.
+
+    The return is a deep copy of the run log to prevent any modification.
+    """
+    return context.run_context.run_log_store.get_run_log_by_id(
+        context.run_context.run_id,
+        full=True,
+    ).copy(deep=True)
+
+
+@check_context
 def get_tag() -> str:
     """
     Returns the tag from the environment.
@@ -251,32 +305,17 @@ def get_tag() -> str:
     Returns:
         str: The tag if provided for the run, otherwise None
     """
-    return os.environ.get(defaults.MAGNUS_RUN_TAG, "")
+    return context.run_context.tag
 
 
-def get_experiment_tracker_context():
+@check_context
+def get_experiment_tracker_context() -> ContextManager:
     """
     Return a context session of the experiment tracker.
 
-    You can start to use the context with the python with statement.
-
-    eg:
-    with get_experiment_tracker_context() as ctx:
-        pass
-
-    Returns:
-        _type_: _description_
+    You can start to use the context with the python ```with``` statement.
     """
-    from magnus import context  # pylint: disable=import-outside-toplevel
-
-    if not context.executor:
-        msg = (
-            "There are no active executor and services. This should not have happened and is a bug."
-            " Please raise a bug report."
-        )
-        raise Exception(msg)
-
-    experiment_tracker = context.executor.experiment_tracker
+    experiment_tracker = context.run_context.experiment_tracker
     return experiment_tracker.client_context
 
 
@@ -293,17 +332,15 @@ def start_interactive_session(run_id: str = "", config_file: str = "", tag: str 
         tag (str, optional): The tag to attach to the run. Defaults to "".
         parameters_file (str, optional): The parameters file to use. Defaults to "".
     """
-    from magnus import (
-        context,  # pylint: disable=import-outside-toplevel
-        graph,
-    )
 
-    if context.executor:
+    from magnus import entrypoints, graph  # pylint: disable=import-outside-toplevel
+
+    if context.run_context.executor:
         logger.warn("This is not an interactive session or a session has already been activated.")
         return
 
     run_id = utils.generate_run_id(run_id=run_id)
-    executor = pipeline.prepare_configurations(
+    context.run_context = entrypoints.prepare_configurations(
         configuration_file=config_file,
         run_id=run_id,
         tag=tag,
@@ -311,9 +348,11 @@ def start_interactive_session(run_id: str = "", config_file: str = "", tag: str 
         force_local_executor=True,
     )
 
+    executor = context.run_context.executor
+
     utils.set_magnus_environment_variables(run_id=run_id, configuration_file=config_file, tag=tag)
 
-    executor.execution_plan = defaults.EXECUTION_PLAN.INTERACTIVE.value
+    context.run_context.execution_plan = defaults.EXECUTION_PLAN.INTERACTIVE.value
     executor.prepare_for_graph_execution()
     step_config = {
         "command": "interactive",
@@ -323,12 +362,12 @@ def start_interactive_session(run_id: str = "", config_file: str = "", tag: str 
     }
 
     node = graph.create_node(name="interactive", step_config=step_config)
-    step_log = executor.run_log_store.create_step_log("interactive", node._get_step_log_name())
+    step_log = context.run_context.run_log_store.create_step_log("interactive", node._get_step_log_name())
     executor.add_code_identities(node=node, step_log=step_log)
 
     step_log.step_type = node.node_type
     step_log.status = defaults.PROCESSING
-    executor.context_step_log = step_log
+    executor._context_step_log = step_log
 
 
 def end_interactive_session():
@@ -337,25 +376,24 @@ def end_interactive_session():
 
     Does nothing if the executor is not interactive.
     """
-    from magnus import context  # pylint: disable=import-outside-toplevel
 
-    if not context.executor:
+    if not context.run_context.executor:
         logger.warn("There is no active session in play, doing nothing!")
         return
 
-    if context.executor.execution_plan != defaults.EXECUTION_PLAN.INTERACTIVE.value:
+    if context.run_context.execution_plan != defaults.EXECUTION_PLAN.INTERACTIVE.value:
         logger.warn("There is not an interactive session, doing nothing!")
         return
 
     tracked_data = utils.get_tracked_data()
-    parameters = utils.get_user_set_parameters(remove=True)
+    set_parameters = parameters.get_user_set_parameters(remove=True)
 
-    step_log = context.executor.context_step_log
+    step_log = cast(StepLog, context.run_context.executor._context_step_log)
     step_log.user_defined_metrics = tracked_data
-    context.executor.run_log_store.add_step_log(step_log, context.executor.run_id)
+    context.run_context.run_log_store.add_step_log(step_log, context.run_context.run_id)
 
-    context.executor.run_log_store.set_parameters(context.executor.run_id, parameters)
+    context.run_context.run_log_store.set_parameters(context.run_context.run_id, set_parameters)
 
-    context.executor.context_step_log = None
-    context.executor.execution_plan = ""
-    context.executor = None
+    context.run_context.executor._context_step_log = None
+    context.run_context.execution_plan = ""
+    context.run_context.executor = None  # type: ignore

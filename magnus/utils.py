@@ -5,26 +5,26 @@ import json
 import logging
 import os
 import subprocess
-import sys
 from collections import OrderedDict
 from datetime import datetime
-from inspect import signature
 from pathlib import Path
 from string import Template as str_template
-from types import FunctionType
-from typing import TYPE_CHECKING, Callable, List, Mapping, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Tuple, Union
 
-from ruamel.yaml import YAML  # type: ignore
+from ruamel.yaml import YAML
 from stevedore import driver
 
+import magnus.context as context
 from magnus import defaults, names
+from magnus.defaults import TypeMapVariable
 
-if TYPE_CHECKING:
-    from magnus.executor import BaseExecutor
+if TYPE_CHECKING:  # pragma: no cover
+    from magnus.extensions.nodes import TaskNode
     from magnus.nodes import BaseNode
 
 
-logger = logging.getLogger(defaults.NAME)
+logger = logging.getLogger(defaults.LOGGER_NAME)
+logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
 def does_file_exist(file_path: str) -> bool:
@@ -65,7 +65,7 @@ def safe_make_dir(directory: Union[str, Path]):
     Path(directory).mkdir(parents=True, exist_ok=True)
 
 
-def generate_run_id(run_id: str = None) -> str:
+def generate_run_id(run_id: str = "") -> str:
     """Generate a new run_id.
 
     If the input run_id is none, we create one based on time stamp.
@@ -84,7 +84,7 @@ def generate_run_id(run_id: str = None) -> str:
     return run_id
 
 
-def apply_variables(apply_to: dict, variables: dict) -> dict:
+def apply_variables(apply_to: Dict[str, Any], variables: Dict[str, str]) -> Dict[str, Any]:
     """Safely applies the variables to a config.
 
     For example: For config:
@@ -106,11 +106,11 @@ def apply_variables(apply_to: dict, variables: dict) -> dict:
         raise Exception("Argument Variables should be dict")
 
     json_d = json.dumps(apply_to)
-    transformed = str_template(json_d).safe_substitute(**variables)
+    transformed = str_template(json_d).substitute(**variables)
     return json.loads(transformed)
 
 
-def get_module_and_func_names(command: str) -> Tuple[str, str]:
+def get_module_and_attr_names(command: str) -> Tuple[str, str]:
     """Given a string of module.function, this functions returns the module name and func names.
 
     It also checks to make sure that the string is of expected 'module.func' format
@@ -132,21 +132,7 @@ def get_module_and_func_names(command: str) -> Tuple[str, str]:
     return module, func
 
 
-def get_module_and_func_from_function(command: FunctionType) -> str:
-    """Given a function, this function returns the module name and func names.
-
-    Args:
-        command (FunctionType): The function to extract the module and func names from
-
-    Returns:
-        str: the module and function in module.func format.
-    """
-    module_name = sys.modules[command.__module__]
-    func_name = command.__name__
-    return f"{module_name}.{func_name}"
-
-
-def get_dag_hash(dag: dict) -> str:
+def get_dag_hash(dag: Dict[str, Any]) -> str:
     """Generates the hash of the dag definition.
 
     Args:
@@ -159,7 +145,7 @@ def get_dag_hash(dag: dict) -> str:
     return hashlib.sha1(dag_str.encode("utf-8")).hexdigest()
 
 
-def load_yaml(file_path: str, load_type: str = "safe") -> dict:
+def load_yaml(file_path: str, load_type: str = "safe") -> Dict[str, Any]:
     """Loads an yaml and returns the dictionary.
 
     Args:
@@ -291,7 +277,7 @@ def get_local_docker_image_id(image_name: str) -> str:
     return ""
 
 
-def get_git_code_identity(run_log_store):
+def get_git_code_identity():
     """Returns a code identity object for version controlled code.
 
     Args:
@@ -300,7 +286,7 @@ def get_git_code_identity(run_log_store):
     Returns:
         magnus.datastore.CodeIdentity: The code identity used by the run log store.
     """
-    code_identity = run_log_store.create_code_identity()
+    code_identity = context.run_context.run_log_store.create_code_identity()
     try:
         code_identity.code_identifier = get_current_code_commit()
         code_identity.code_identifier_type = "git"
@@ -329,7 +315,7 @@ def remove_prefix(text: str, prefix: str) -> str:
     return text  # or whatever is given
 
 
-def get_tracked_data() -> dict:
+def get_tracked_data() -> Dict[str, str]:
     """Scans the environment variables to find any user tracked variables that have a prefix MAGNUS_TRACK_
     Removes the environment variable to prevent any clashes in the future steps.
 
@@ -340,37 +326,19 @@ def get_tracked_data() -> dict:
     for env_var, value in os.environ.items():
         if env_var.startswith(defaults.TRACK_PREFIX):
             key = remove_prefix(env_var, defaults.TRACK_PREFIX)
-            tracked_data[key.lower()] = json.loads(value)
+            try:
+                tracked_data[key.lower()] = json.loads(value)
+            except json.decoder.JSONDecodeError:
+                logger.warning(f"Tracker {key} could not be JSON decoded, adding the literal value")
+                tracked_data[key.lower()] = value
+
             del os.environ[env_var]
     return tracked_data
 
 
-def get_user_set_parameters(remove: bool = False) -> dict:
-    """Scans the environment variables for any user returned parameters that have a prefix MAGNUS_PRM_.
-
-    Args:
-        remove (bool, optional): Flag to remove the parameter if needed. Defaults to False.
-
-    Returns:
-        dict: The dictionary of found user returned parameters
+def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
     """
-    parameters = {}
-    for env_var, value in os.environ.items():
-        if env_var.startswith(defaults.PARAMETER_PREFIX):
-            key = remove_prefix(env_var, defaults.PARAMETER_PREFIX)
-            try:
-                parameters[key.lower()] = json.loads(value)
-            except json.decoder.JSONDecodeError:
-                logger.error(f"Parameter {key} could not be JSON decoded, adding the literal value")
-                parameters[key.lower()] = value
-
-            if remove:
-                del os.environ[env_var]
-    return parameters
-
-
-def diff_dict(d1: dict, d2: dict) -> dict:
-    """Given two dicts d1 and d2, return a new dict that has upsert items from d1.
+    Given two dicts d1 and d2, return a new dict that has upsert items from d1.
 
     Args:
         d1 (reference): The reference dict.
@@ -422,58 +390,9 @@ def get_data_hash(file_name: str):
     return hash_bytestr_iter(file_as_blockiter(open(file_name, "rb")), hashlib.sha256())  # pragma: no cover
 
 
-def filter_arguments_for_func(func: Callable, parameters: dict, map_variable: dict = None) -> dict:
-    """Inspects the function to be called as part of the pipeline to find the arguments of the function.
-    Matches the function arguments to the parameters available either by command line or by up stream steps.
-
-    Args:
-        func (Callable): The function to inspect
-        parameters (dict): The parameters available for the run
-
-    Returns:
-        dict: The parameters matching the function signature
-    """
-    sign = signature(func)
-    return filter_arguments_from_parameters(
-        parameters=parameters,
-        signature_parameters=sign.parameters,
-        map_variable=map_variable,
-    )
-
-
-def filter_arguments_from_parameters(
-    parameters: dict,
-    signature_parameters: Union[List, Mapping],
-    map_variable: dict = None,
-) -> dict:
-    """Filters the given parameters based on the signature of the function.
-
-    Args:
-        parameters (dict): All the parameters available for the run
-        signature_parameters (Union[List, Mapping]): The arguments of the function signature
-        map_variable (dict, optional): If the function is part of a map step. Defaults to None.
-
-    Returns:
-        dict: The filtered parameters of the function.
-    """
-    arguments = {}
-
-    for param, value in parameters.items():
-        if param in signature_parameters:
-            arguments[param] = value
-
-    if map_variable:
-        for iterate_as, value in map_variable.items():
-            if iterate_as in signature_parameters:
-                arguments[iterate_as] = value
-
-    return arguments
-
-
 def get_node_execution_command(
-    executor: BaseExecutor,
     node: BaseNode,
-    map_variable: dict = None,
+    map_variable: TypeMapVariable = None,
     over_write_run_id: str = "",
 ) -> str:
     """A utility function to standardize execution call to a node via command line.
@@ -486,7 +405,7 @@ def get_node_execution_command(
     Returns:
         str: The execution command to run a node via command line.
     """
-    run_id = executor.run_id
+    run_id = context.run_context.run_id
 
     if over_write_run_id:
         run_id = over_write_run_id
@@ -495,30 +414,29 @@ def get_node_execution_command(
 
     action = f"magnus execute_single_node {run_id} " f"{node._command_friendly_name()}" f" --log-level {log_level}"
 
-    if executor.pipeline_file:
-        action = action + f" --file {executor.pipeline_file}"
+    if context.run_context.pipeline_file:
+        action = action + f" --file {context.run_context.pipeline_file}"
 
     if map_variable:
         action = action + f" --map-variable '{json.dumps(map_variable)}'"
 
-    if executor.configuration_file:
-        action = action + f" --config-file {executor.configuration_file}"
+    if context.run_context.configuration_file:
+        action = action + f" --config-file {context.run_context.configuration_file}"
 
-    if executor.parameters_file:
-        action = action + f" --parameters-file {executor.parameters_file}"
+    if context.run_context.parameters_file:
+        action = action + f" --parameters-file {context.run_context.parameters_file}"
 
-    if executor.tag:
-        action = action + f" --tag {executor.tag}"
+    if context.run_context.tag:
+        action = action + f" --tag {context.run_context.tag}"
 
     return action
 
 
 def get_fan_command(
-    executor: BaseExecutor,
     mode: str,
     node: BaseNode,
     run_id: str,
-    map_variable: dict = None,
+    map_variable: TypeMapVariable = None,
 ) -> str:
     """
     An utility function to return the fan "in or out" command
@@ -538,25 +456,25 @@ def get_fan_command(
         f"magnus fan {run_id} "
         f"{node._command_friendly_name()} "
         f"--mode {mode} "
-        f"--file {executor.pipeline_file} "
+        f"--file {context.run_context.pipeline_file} "
         f"--log-level {log_level} "
     )
-    if executor.configuration_file:
-        action = action + f" --config-file {executor.configuration_file} "
+    if context.run_context.configuration_file:
+        action = action + f" --config-file {context.run_context.configuration_file} "
 
-    if executor.parameters_file:
-        action = action + f" --parameters-file {executor.parameters_file}"
+    if context.run_context.parameters_file:
+        action = action + f" --parameters-file {context.run_context.parameters_file}"
 
     if map_variable:
         action = action + f" --map-variable '{json.dumps(map_variable)}'"
 
-    if executor.tag:
-        action = action + f" --tag {executor.tag}"
+    if context.run_context.tag:
+        action = action + f" --tag {context.run_context.tag}"
 
     return action
 
 
-def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write_run_id: str = "") -> str:
+def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> str:
     """Get the execution command to run a job via command line.
 
     This function should be used by all executors to submit jobs in remote environment
@@ -569,40 +487,36 @@ def get_job_execution_command(executor: BaseExecutor, node: BaseNode, over_write
     Returns:
         str: The execution command to run a job via command line.
     """
-    run_id = executor.run_id
+
+    run_id = context.run_context.run_id
 
     if over_write_run_id:
         run_id = over_write_run_id
 
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
-    action = f"magnus execute_nb_or_func {run_id} " f" --log-level {log_level}"
+    cli_command, cli_options = node.executable.get_cli_options()
 
-    action = action + f" {node.config.command}"
+    action = f"magnus execute_{cli_command} {run_id} " f" --log-level {log_level}"
 
-    if executor.configuration_file:
-        action = action + f" --config-file {executor.configuration_file}"
+    action = action + f" --entrypoint {defaults.ENTRYPOINT.SYSTEM.value}"
 
-    if executor.parameters_file:
-        action = action + f" --parameters-file {executor.parameters_file}"
+    if context.run_context.configuration_file:
+        action = action + f" --config-file {context.run_context.configuration_file}"
 
-    if executor.tag:
-        action = action + f" --tag {executor.tag}"
+    if context.run_context.parameters_file:
+        action = action + f" --parameters-file {context.run_context.parameters_file}"
 
-    catalog_config = node._get_catalog_settings() or {}
+    if context.run_context.tag:
+        action = action + f" --tag {context.run_context.tag}"
 
-    data_folder = catalog_config.get("compute_data_folder", None)
-    if data_folder:
-        action = action + f" --data-folder {data_folder}"
-
-    put_in_catalog = catalog_config.get("put", []) or []  # The put itself can be None
-    for every_put in put_in_catalog:
-        action = action + f" --put-in-catalog {every_put}"
+    for key, value in cli_options.items():
+        action = action + f" --{key} {value}"
 
     return action
 
 
-def get_provider_by_name_and_type(service_type: str, service_details: dict):
+def get_provider_by_name_and_type(service_type: str, service_details: defaults.ServiceConfig):
     """Given a service type, one of executor, run_log_store, catalog, secrets and the config
     return the exact child class implementing the service.
     We use stevedore to do the work for us.
@@ -620,7 +534,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: dict):
     namespace = service_type
 
     service_name = service_details["type"]
-    service_config = {}
+    service_config: Mapping[str, Any] = {}
     if "config" in service_details:
         service_config = service_details.get("config", {})
 
@@ -630,7 +544,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: dict):
             namespace=namespace,
             name=service_name,
             invoke_on_load=True,
-            invoke_kwds={"config": service_config},
+            invoke_kwds={**service_config},
         )
         return mgr.driver
     except Exception as _e:
@@ -652,7 +566,7 @@ def get_duration_between_datetime_strings(start_time: str, end_time: str) -> str
     return str(end - start)
 
 
-def get_run_config(executor: BaseExecutor) -> dict:
+def get_run_config() -> dict:
     """Given an executor with assigned services, return the run_config.
 
     Args:
@@ -661,41 +575,12 @@ def get_run_config(executor: BaseExecutor) -> dict:
     Returns:
         dict: The run_config.
     """
-    from magnus.catalog import BaseCatalog
 
-    run_config = {}
-
-    run_config["executor"] = {"type": executor.service_name, "config": executor.config}
-
-    run_config["run_log_store"] = {
-        "type": executor.run_log_store.service_name,
-        "config": executor.run_log_store.config,
-    }
-
-    run_config["catalog"] = {
-        "type": cast(BaseCatalog, executor.catalog_handler).service_name,
-        "config": cast(BaseCatalog, executor.catalog_handler).config,
-    }
-
-    run_config["secrets"] = {
-        "type": executor.secrets_handler.service_name,
-        "config": executor.secrets_handler.config,
-    }
-
-    run_config["experiment_tracker"] = {
-        "type": executor.experiment_tracker.service_name,
-        "config": executor.experiment_tracker.config,
-    }
-    run_config["variables"] = executor.variables  # type: ignore
-
-    if executor.dag:
-        # Some executions do not define a dag
-        run_config["pipeline"] = executor.dag._to_dict()
-
+    run_config = context.run_context.model_dump(by_alias=True)
     return run_config
 
 
-def json_to_ordered_dict(json_str: str) -> OrderedDict:
+def json_to_ordered_dict(json_str: str) -> TypeMapVariable:
     """Decode a JSON str into OrderedDict.
 
     Args:
@@ -710,7 +595,7 @@ def json_to_ordered_dict(json_str: str) -> OrderedDict:
     return OrderedDict()
 
 
-def set_magnus_environment_variables(run_id: str = None, configuration_file: str = None, tag: str = None):
+def set_magnus_environment_variables(run_id: str = "", configuration_file: str = "", tag: str = "") -> None:
     """Set the environment variables used by magnus. This function should be called during the prepare configurations
     by all executors.
 

@@ -1,0 +1,175 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: magnus-dag-
+  annotations: {}
+  labels: {}
+spec:
+  activeDeadlineSeconds: 172800
+  entrypoint: magnus-dag
+  podGC:
+    strategy: OnPodCompletion
+  retryStrategy:
+    limit: '0'
+    retryPolicy: Always
+    backoff:
+      duration: '120'
+      factor: 2
+      maxDuration: '3600'
+  serviceAccountName: default-editor
+  templates:
+    - name: magnus-dag
+      failFast: true
+      dag:
+        tasks:
+          - name: Acquire-data-stub-zl7utt
+            template: Acquire-data-stub-zl7utt
+            depends: ''
+          - name: Prepare-data-stub-jkn77g
+            template: Prepare-data-stub-jkn77g
+            depends: Acquire-data-stub-zl7utt.Succeeded
+          - name: Extract-features-stub-jdonf3
+            template: Extract-features-stub-jdonf3
+            depends: Prepare-data-stub-jkn77g.Succeeded
+          - name: Model-stub-42qnma
+            template: Model-stub-42qnma
+            depends: Extract-features-stub-jdonf3.Succeeded
+          - name: success-success-mk4nqv
+            template: success-success-mk4nqv
+            depends: Model-stub-42qnma.Succeeded
+    - name: Acquire-data-stub-zl7utt
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - Acquire%data
+          - --log-level
+          - WARNING
+          - --file
+          - examples/contrived.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: Prepare-data-stub-jkn77g
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - Prepare%data
+          - --log-level
+          - WARNING
+          - --file
+          - examples/contrived.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: Extract-features-stub-jdonf3
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - Extract%features
+          - --log-level
+          - WARNING
+          - --file
+          - examples/contrived.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: Model-stub-42qnma
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - Model
+          - --log-level
+          - WARNING
+          - --file
+          - examples/contrived.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+    - name: success-success-mk4nqv
+      container:
+        image: magnus:demo
+        command:
+          - magnus
+          - execute_single_node
+          - '{{workflow.parameters.run_id}}'
+          - success
+          - --log-level
+          - WARNING
+          - --file
+          - examples/contrived.yaml
+          - --config-file
+          - examples/configs/argo-config.yaml
+        volumeMounts:
+          - name: executor-0
+            mountPath: /mnt
+        imagePullPolicy: ''
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+  templateDefaults:
+    activeDeadlineSeconds: 7200
+    timeout: 10800s
+  arguments:
+    parameters:
+      - name: run_id
+        value: '{{workflow.uid}}'
+  volumes:
+    - name: executor-0
+      persistentVolumeClaim:
+        claimName: magnus-volume

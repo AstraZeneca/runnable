@@ -1,0 +1,26 @@
+dag:
+  description: |
+    This is a simple pipeline that does 3 steps in sequence.
+    In this example:
+      1. First step: returns a "parameter" x as a Pydantic model
+      2. Second step: Consumes that parameter and prints it
+
+    This pipeline demonstrates one way to pass small data from one step to another.
+
+    You can run this pipeline by: magnus execute -f examples/python-tasks.yaml
+  start_at: step 1
+  steps:
+    step 1:
+      type: task
+      command_type: python # (2)
+      command: examples.functions.return_parameter # (1)
+      next: step 2
+    step 2:
+      type: task
+      command_type: python
+      command: examples.functions.display_parameter
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail

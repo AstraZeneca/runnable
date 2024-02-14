@@ -1,0 +1,22 @@
+executor:
+  type: "argo" # (1)
+  config:
+    image: magnus:demo # (2)
+    service_account_name: default-editor
+    persistent_volumes: # (3)
+      - name: magnus-volume
+        mount_path: /mnt
+
+run_log_store: # (4)
+  type: file-system
+  config:
+    log_folder: /mnt/run_log_store
+
+catalog:
+  type: do-nothing
+
+secrets:
+  type: do-nothing
+
+experiment_tracker:
+  type: do-nothing

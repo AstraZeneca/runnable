@@ -1,6 +1,19 @@
+# mypy: ignore-errors
+# The above should be done until https://github.com/python/mypy/issues/8823
 from enum import Enum
+from typing import Any, Dict, Mapping, Optional, Union
+
+from typing_extensions import TypeAlias
+
+# TODO: This is not the correct way to do this.
+try:  # pragma: no cover
+    from typing import TypedDict  # type: ignore[unused-ignore]
+except ImportError:  # pragma: no cover
+    from typing_extensions import TypedDict  # type: ignore[unused-ignore]
+
 
 NAME = "magnus"
+LOGGER_NAME = "magnus"
 
 # CLI settings
 LOG_LEVEL = "WARNING"
@@ -16,13 +29,32 @@ class EXECUTION_PLAN(Enum):
     INTERACTIVE = "interactive"  # used for interactive sessions
 
 
+# Type definitions
+class ServiceConfig(TypedDict):
+    type: str
+    config: Mapping[str, Any]
+
+
+class MagnusConfig(TypedDict, total=False):
+    run_log_store: Optional[ServiceConfig]
+    secrets: Optional[ServiceConfig]
+    catalog: Optional[ServiceConfig]
+    executor: Optional[ServiceConfig]
+    experiment_tracker: Optional[ServiceConfig]
+
+
+TypeMapVariable: TypeAlias = Optional[Dict[str, Union[str, int, float]]]
+
+
 # Config file environment variable
 MAGNUS_CONFIG_FILE = "MAGNUS_CONFIG_FILE"
 MAGNUS_RUN_TAG = "MAGNUS_RUN_TAG"
 
 # Interaction settings
 TRACK_PREFIX = "MAGNUS_TRACK_"
+STEP_INDICATOR = "_STEP_"
 PARAMETER_PREFIX = "MAGNUS_PRM_"
+MAP_VARIABLE = "MAGNUS_MAP_VARIABLE"
 VARIABLE_PREFIX = "MAGNUS_VAR_"
 ENV_RUN_ID = "MAGNUS_RUN_ID"
 ATTEMPT_NUMBER = "MAGNUS_STEP_ATTEMPT"
@@ -40,13 +72,16 @@ TRIGGERED = "TRIGGERED"
 COMMAND_TYPE = "python"
 NODE_SPEC_FILE = "node_spec.yaml"
 COMMAND_FRIENDLY_CHARACTER = "%"
+DEFAULT_CONTAINER_CONTEXT_PATH = "/opt/magnus/"
+DEFAULT_CONTAINER_DATA_PATH = "data/"
+DEFAULT_CONTAINER_OUTPUT_PARAMETERS = "parameters.json"
 
 # Default services
-DEFAULT_EXECUTOR = {"type": "local"}
-DEFAULT_RUN_LOG_STORE = {"type": "buffered"}
-DEFAULT_CATALOG = {"type": "file-system"}
-DEFAULT_SECRETS = {"type": "do-nothing"}
-DEFAULT_EXPERIMENT_TRACKER = {"type": "do-nothing"}
+DEFAULT_EXECUTOR = ServiceConfig(type="local", config={})
+DEFAULT_RUN_LOG_STORE = ServiceConfig(type="buffered", config={})
+DEFAULT_CATALOG = ServiceConfig(type="file-system", config={})
+DEFAULT_SECRETS = ServiceConfig(type="do-nothing", config={})
+DEFAULT_EXPERIMENT_TRACKER = ServiceConfig(type="do-nothing", config={})
 
 # Map state
 MAP_PLACEHOLDER = "map_variable_placeholder"
@@ -72,13 +107,11 @@ DAG_BRANCH_NAME = "dag"
 
 # Data catalog settings
 CATALOG_LOCATION_FOLDER = ".catalog"
-COMPUTE_DATA_FOLDER = "data"
+COMPUTE_DATA_FOLDER = "."
 
 # Secrets settings
 DOTENV_FILE_LOCATION = ".env"
 
-# AWS settings
-AWS_REGION = "eu-west-1"
 
 # Docker settings
 DOCKERFILE_NAME = "Dockerfile"
@@ -104,3 +137,43 @@ ${INSTALL_REQUIREMENTS}
 """
 GIT_ARCHIVE_NAME = "git_tracked"
 LEN_SHA_FOR_TAG = 8
+
+
+class ENTRYPOINT(Enum):
+    """
+    The possible container entrypoint types.
+    """
+
+    USER = "user"
+    SYSTEM = "system"
+
+
+## Logging settings
+
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": True,
+    "formatters": {
+        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
+        "magnus_formatter": {"format": "%(message)s", "datefmt": "[%X]"},
+    },
+    "handlers": {
+        "default": {
+            "formatter": "standard",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",  # Default is stderr
+        },
+        "magnus_handler": {
+            "formatter": "magnus_formatter",
+            "class": "rich.logging.RichHandler",
+            "rich_tracebacks": True,
+        },
+    },
+    "loggers": {
+        "": {
+            "handlers": ["default"],
+            "propagate": True,
+        },  # Root logger
+        LOGGER_NAME: {"handlers": ["magnus_handler"], "propagate": False},
+    },
+}

@@ -3,6 +3,8 @@ site_description: "Pipelines made easy"
 strict: true
 repo_url: https://github.com/AstraZeneca/magnus-core
 
+# TODO: Set up versioning
+
 docs_dir: "docs"
 theme:
   logo: assets/logo.png
@@ -30,89 +32,122 @@ theme:
         icon: material/lightbulb
         name: Switch to light mode
   features:
-    - tabs
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - header.autohide
     - navigation.top
     - toc.integrate
+    - toc.follow
     - search.suggest
     - navigation.tabs
     - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
 
 # Extensions
 markdown_extensions:
+  - mkdocs-click
+  - admonition
+  - def_list
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - footnotes
+  - tables
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.snippets:
       base_path: "."
-  - admonition
-  - codehilite
-  - footnotes
-  - pymdownx.highlight
-  - pymdownx.superfences
+      dedent_subsections: true
+  - pymdownx.inlinehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
   - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - toc:
       permalink: true
       separator: "_"
       toc_depth: 2
-  - attr_list
-  - md_in_html
 
 plugins:
   - search
   - section-index
+  - mkdocstrings:
+      enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_source: false
+            docstring_section_style: list
+            allow_inspection: false
+            show_signature_annotations: true
+            separate_signature: true
+
+# extra_javascript:
+#   - https://unpkg.com/mermaid@9.2/dist/mermaid.min.js
+
+extra_css:
+  - css/extra.css
 
 nav:
-  - "Home": "index.md"
-  - "Getting started":
-      - "getting_started/installation.md"
-      - "Example Run": "getting_started/example.md"
-      - "Explanation - input": "getting_started/brief-concepts-input.md"
-      - "Explanation - output": "getting_started/brief-concepts-output.md"
-      - "Example Deployment": "getting_started/example-deployment.md"
-      - "Wrap up": "getting_started/wrap-up.md"
-      - "Why magnus": "getting_started/why-magnus.md"
-  # - "Tutorial":
-  #     - "Overview": "tutorial/overview.md"
-  #     - "Single notebook": "tutorial/single-notebook.md"
-  #     - "Modular notebooks": "tutorial/modular-notebooks.md"
-  #     - "Switching configs": "tutorial/switching-configs.md"
-  #     - "Using parallels": "tutorial/using-parallel.md"
-  #     - "Dynamic looping": "tutorial/dynamic-looping.md"
-  #     - "Modular pipelines": "tutorial/modular-dags.md"
-  #     - "Script based": "tutorial/script-based.md"
-  #     - "What next?": "tutorial/wrap-up.md"
+  - "Magnus":
+      - "Introduction": "index.md"
+      - "Usage": "usage.md"
+      - "Example":
+          - "Pipeline Definition": "example/example.md"
+          - "Steps": "example/steps.md"
+          - "Flow of data": "example/dataflow.md"
+          - "Reproducibility": "example/reproducibility.md"
+          - "Experiment tracking": "example/experiment-tracking.md"
+          - "Secrets": "example/secrets.md"
+          - "Retry failures": "example/retry-after-failure.md"
+      - "Why magnus?": "why-magnus.md"
   - "Concepts":
-      - "Node": "concepts/nodes.md"
-      - "Command types": "concepts/command-types.md"
-      - "Dag": "concepts/dag.md"
-      - "Catalog":
-          - "concepts/catalog.md"
-          - "Do Nothing Catalog": "concepts/catalog-implementations/do-nothing.md"
-          - "File System": "concepts/catalog-implementations/file-system.md"
-      - "Secrets":
-          - "concepts/secrets.md"
-          - "Dot Env": "concepts/secrets-implementations/dot-env.md"
-          - "Do Nothing": "concepts/secrets-implementations/do-nothing.md"
-          - "Env Secrets Manager": "concepts/secrets-implementations/env-secrets-manager.md"
-      - "Run Log":
-          - "concepts/run-log.md"
-          - "Buffered": "concepts/run-log-implementations/bufferred.md"
-          - "File System": "concepts/run-log-implementations/file-system.md"
-          - "Chunked File System": "concepts/run-log-implementations/chunked-fs.md"
-      - "Experiment Tracking":
-          - "concepts/experiment-tracking.md"
-      - "Integration":
-          - "concepts/integration.md"
-      - "Executors":
-          - "concepts/executor.md"
-          - "Local": "concepts/executor-implementations/local.md"
-          - "Local Container": "concepts/executor-implementations/local-container.md"
-          - "Demo Renderer": "concepts/executor-implementations/demo-renderer.md"
-  - "Command Line":
-      - "command-line.md"
-  - "How do I?":
-      - "how-do-i.md"
-  - "Examples":
-      - "examples.md"
-  - "Extensions":
-      - "extensions/extensions.md"
-  - "Releases": "RELEASES.md"
+      - "tl;dr": "concepts/the-big-picture.md"
+      - "Pipeline": "concepts/pipeline.md"
+      - "Executor": "concepts/executor.md"
+      - "Parameters": "concepts/parameters.md"
+      - "Run log": "concepts/run-log.md"
+      - "Catalog": "concepts/catalog.md"
+      - "Experiment tracking": "concepts/experiment-tracking.md"
+      - "Secrets": "concepts/secrets.md"
+      - "Nodes":
+          - "Stub": "concepts/stub.md"
+          - "Task": "concepts/task.md"
+          - "Parallel": "concepts/parallel.md"
+          - "Map": "concepts/map.md"
+          - "Nesting": "concepts/nesting.md"
+  - "Configurations":
+      - "Overview": "configurations/overview.md"
+      - "Executor":
+          - "local": "configurations/executors/local.md"
+          - "mocked": "configurations/executors/mocked.md"
+          - "local-container": "configurations/executors/local-container.md"
+          - "argo workflows": "configurations/executors/argo.md"
+          - "container environments": "configurations/executors/container-environments.md"
+      - "Run log": "configurations/run-log.md"
+      - "Catalog": "configurations/catalog.md"
+      - "Secrets": "configurations/secrets.md"
+      - "Experiment tracking": "configurations/experiment-tracking.md"
+  - "Python API": "interactions.md"
+  - "Python SDK": "sdk.md"
+  - "Extensions": "extensions.md"
+  - "Roadmap": "roadmap.md"

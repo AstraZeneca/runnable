@@ -1,0 +1,35 @@
+dag:
+  description: |
+    An example to demonstrate overriding global configuration for a step.
+
+    step 1 runs in the docker image specified in the executor config and uses the environment
+    value for key to be "value"
+
+    step 2 overrides the config and executes the command in the configuration defined
+    in overrides section of executor config.
+
+    You can execute the pipeline by:
+    magnus execute -f examples/executors/step_overrides_container.yaml \
+     -c examples/executors/local-container-override.yaml
+  start_at: step 1
+  steps:
+    step 1:
+      type: task
+      command_type: shell # (2)
+      command: |
+        python --version &&
+        env | grep key
+      next: step 2
+    step 2:
+      type: task
+      command_type: shell
+      command: |
+        python --version &&
+        env | grep key
+      overrides:
+        local-container: custom_docker_image
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail

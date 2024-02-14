@@ -1,0 +1,31 @@
+dag:
+  description: |
+    This is a simple pipeline to demonstrate failure in a step.
+
+    The default behavior is to traverse to step type fail and mark the run as failed.
+    But you can control it by providing on_failure.
+
+    In this example: step 1 fails and moves to step 3 skipping step 2. The pipeline status
+    is considered to be success.
+
+    step 1 (FAIL) >> step 3 >> success
+
+    You can run this pipeline by magnus execute -f examples/on-failure.yaml
+  start_at: step 1
+  steps:
+    step 1:
+      type: task
+      command_type: shell
+      command: exit 1 # This will fail!
+      next: step 2
+      on_failure: step 3
+    step 2:
+      type: stub # This step will never reach
+      next: step 3
+    step 3:
+      type: stub
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail
