@@ -56,12 +56,12 @@ jobs:
           echo "New: $VERSION"
 
           if [ "$CURRENT" == "$VERSION" ]; then
-            echo "version="" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
             exit 1
           fi
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          exit 1 # change this
+          exit 0
 
       - name: Apply new tag
         if: steps.last_tag.outcome == 'success'
