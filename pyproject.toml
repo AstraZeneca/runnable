@@ -191,6 +191,10 @@ tag_format = "{version}"
 [tool.semantic_release.branches.main]
 match = "main"
 
+# Remove this
+[tool.semantic_release.branches.release]
+match = "release"
+
 [tool.semantic_release.branches."rc"]
 match = "rc"
 prerelease = true
