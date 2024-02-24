@@ -5,7 +5,7 @@ Run this pipeline by:
     python examples/concepts/simple.py
 """
 
-from magnus import Pipeline, Task
+from runnable import Pipeline, Task
 
 
 def simple_function():

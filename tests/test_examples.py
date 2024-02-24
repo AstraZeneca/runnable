@@ -5,8 +5,8 @@ import os
 import importlib
 import subprocess
 
-from magnus.entrypoints import execute
-from magnus import exceptions
+from runnable.entrypoints import execute
+from runnable import exceptions
 
 # (file, is_fail?, kwargs)
 examples = [

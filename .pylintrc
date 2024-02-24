@@ -1,4 +1,4 @@
 [MASTER]
-ignore-patterns=**/tests/magnus/*.py
+ignore-patterns=**/tests/runnable/*.py
 disable=
     C0114,W1202,W1203

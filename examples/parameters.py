@@ -62,7 +62,7 @@ python or yaml without cluttering your application code.
 
 
 def main():
-    from magnus import Pipeline, Task
+    from runnable import Pipeline, Task
 
     display = Task(name="display", command="examples.parameters.display")
     return_parameters = Task(

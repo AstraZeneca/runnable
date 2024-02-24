@@ -8,7 +8,7 @@ You can run this pipeline by: python examples/catalog_api.py
 
 from pathlib import Path
 
-from magnus import Pipeline, Task, get_from_catalog, put_in_catalog
+from runnable import Pipeline, Task, get_from_catalog, put_in_catalog
 
 
 def create_content():

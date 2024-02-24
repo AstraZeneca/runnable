@@ -9,7 +9,7 @@ You can run this pipeline by:
 
 from pydantic import BaseModel
 
-from magnus import Pipeline, Task, get_parameter, set_parameter
+from runnable import Pipeline, Task, get_parameter, set_parameter
 
 
 class EggsModel(BaseModel):

@@ -11,7 +11,7 @@ This is a stubbed pipeline that demonstrates parallel
        python examples/concepts/parallel.py
 """
 
-from magnus import Parallel, Pipeline, Stub
+from runnable import Parallel, Pipeline, Stub
 
 
 def main():

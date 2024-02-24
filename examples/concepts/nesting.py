@@ -11,7 +11,7 @@ from typing import List
 
 from pydantic import create_model
 
-from magnus import Map, Parallel, Pipeline, Stub, Task
+from runnable import Map, Parallel, Pipeline, Stub, Task
 
 
 def generate_list():

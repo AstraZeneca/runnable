@@ -8,7 +8,7 @@ You can run this pipeline by:
 
 from pydantic import BaseModel
 
-from magnus import Pipeline, Task, track_this
+from runnable import Pipeline, Task, track_this
 
 
 class EggsModel(BaseModel):

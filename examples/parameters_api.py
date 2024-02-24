@@ -55,7 +55,7 @@ def set_and_get():
     set_parameter can be used to set a parameter/model.
 
     """
-    from magnus import get_parameter, set_parameter
+    from runnable import get_parameter, set_parameter
 
     # You can also get all the parameters as a pydantic model.
     all_parameters = get_parameter(cast_as=NestedModel)  # (1)
@@ -81,7 +81,7 @@ either in python or yaml without cluttering your application code.
 
 
 def main():
-    from magnus import Pipeline, Task
+    from runnable import Pipeline, Task
 
     display = Task(name="display", command="examples.parameters.display")
 

@@ -23,7 +23,7 @@ An example to demonstrate overriding global configuration for a step.
 
 """
 
-from magnus import Pipeline, Task
+from runnable import Pipeline, Task
 
 
 def main():

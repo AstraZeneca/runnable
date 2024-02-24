@@ -7,7 +7,7 @@ flesh out the steps later.
 You can run this pipeline by python run examples/pipelines/traversal.py
 """
 
-from magnus import Pipeline, Stub
+from runnable import Pipeline, Stub
 
 
 def main():
