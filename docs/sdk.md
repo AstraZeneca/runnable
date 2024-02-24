@@ -1,26 +1,18 @@
-::: magnus.Catalog
+::: runnable.Catalog
     options:
         show_root_heading: true
         show_bases: false
 
 <hr style="border:2px dotted orange">
 
-::: magnus.Stub
+::: runnable.Stub
     options:
         show_root_heading: true
         show_bases: false
 
 <hr style="border:2px dotted orange">
 
-::: magnus.Task
-    options:
-        show_root_heading: true
-        show_bases: false
-        show_docstring_description: true
-
-<hr style="border:2px dotted orange">
-
-::: magnus.Parallel
+::: runnable.Task
     options:
         show_root_heading: true
         show_bases: false
@@ -28,7 +20,7 @@
 
 <hr style="border:2px dotted orange">
 
-::: magnus.Map
+::: runnable.Parallel
     options:
         show_root_heading: true
         show_bases: false
@@ -36,7 +28,7 @@
 
 <hr style="border:2px dotted orange">
 
-::: magnus.Success
+::: runnable.Map
     options:
         show_root_heading: true
         show_bases: false
@@ -44,7 +36,7 @@
 
 <hr style="border:2px dotted orange">
 
-::: magnus.Fail
+::: runnable.Success
     options:
         show_root_heading: true
         show_bases: false
@@ -52,7 +44,15 @@
 
 <hr style="border:2px dotted orange">
 
-::: magnus.Pipeline
+::: runnable.Fail
+    options:
+        show_root_heading: true
+        show_bases: false
+        show_docstring_description: true
+
+<hr style="border:2px dotted orange">
+
+::: runnable.Pipeline
     options:
         show_root_heading: true
         show_bases: false

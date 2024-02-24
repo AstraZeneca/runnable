@@ -1,37 +1,37 @@
-# API Reference of Magnus functions
+# API Reference of runnable functions
 
 
-::: magnus.get_parameter
+::: runnable.get_parameter
     options:
         show_root_heading: true
 
 <hr style="border:2px dotted orange">
 
-::: magnus.set_parameter
+::: runnable.set_parameter
     options:
         show_root_heading: true
 
 <hr style="border:2px dotted orange">
 
-::: magnus.get_from_catalog
+::: runnable.get_from_catalog
     options:
         show_root_heading: true
 
 <hr style="border:2px dotted orange">
 
-::: magnus.put_in_catalog
+::: runnable.put_in_catalog
     options:
         show_root_heading: true
 
 <hr style="border:2px dotted orange">
 
-::: magnus.get_object
+::: runnable.get_object
     options:
         show_root_heading: true
 
 <hr style="border:2px dotted orange">
 
-::: magnus.put_object
+::: runnable.put_object
     options:
         show_root_heading: true
 
@@ -39,33 +39,33 @@
 
 <hr style="border:2px dotted orange">
 
-::: magnus.get_secret
-    options:
-        show_root_heading: true
-
-
-<hr style="border:2px dotted orange">
-
-::: magnus.get_run_log
+::: runnable.get_secret
     options:
         show_root_heading: true
 
 
 <hr style="border:2px dotted orange">
 
-::: magnus.get_run_id
-    options:
-        show_root_heading: true
-
-<hr style="border:2px dotted orange">
-
-::: magnus.track_this
+::: runnable.get_run_log
     options:
         show_root_heading: true
 
 
 <hr style="border:2px dotted orange">
 
-::: magnus.get_experiment_tracker_context
+::: runnable.get_run_id
+    options:
+        show_root_heading: true
+
+<hr style="border:2px dotted orange">
+
+::: runnable.track_this
+    options:
+        show_root_heading: true
+
+
+<hr style="border:2px dotted orange">
+
+::: runnable.get_experiment_tracker_context
     options:
         show_root_heading: true
