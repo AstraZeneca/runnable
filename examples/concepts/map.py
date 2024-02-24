@@ -54,7 +54,7 @@ def main():
         process_chunk(chunks.stride, start_index)
 
     """
-    from magnus import Map, Pipeline, Task
+    from runnable import Map, Pipeline, Task
 
     execute = Task(
         name="execute",

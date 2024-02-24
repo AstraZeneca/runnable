@@ -13,8 +13,7 @@ This is a simple pipeline that does 3 steps in sequence.
        python examples/mocking.py
 """
 
-
-from magnus import Pipeline, Stub
+from runnable import Pipeline, Stub
 
 
 def main():

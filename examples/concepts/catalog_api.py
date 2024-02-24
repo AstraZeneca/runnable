@@ -8,7 +8,7 @@ You can run this pipeline by:
 
 from pathlib import Path
 
-from magnus import get_from_catalog, put_in_catalog
+from runnable import get_from_catalog, put_in_catalog
 
 
 def create_content_in_data_folder():
@@ -52,7 +52,7 @@ def retrieve_content_from_both():
 
 
 def main():
-    from magnus import Pipeline, Task
+    from runnable import Pipeline, Task
 
     # This step creates a file in the data folder and syncs it to the catalog.
     data_create = Task(

@@ -54,7 +54,7 @@ def consume(eggs: EggsModel):
 
 
 def main():
-    from magnus import Pipeline, Task
+    from runnable import Pipeline, Task
 
     modify = Task(
         name="Modify",

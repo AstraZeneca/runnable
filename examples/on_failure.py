@@ -13,7 +13,7 @@ This is a simple pipeline to demonstrate failure in a step.
     python examples/on_failure.py
 """
 
-from magnus import Pipeline, Stub, Task
+from runnable import Pipeline, Stub, Task
 
 
 def main():

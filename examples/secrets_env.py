@@ -7,8 +7,7 @@ Run this pipeline by:
 
 """
 
-
-from magnus import get_secret
+from runnable import get_secret
 
 
 def show_secret():
@@ -18,7 +17,7 @@ def show_secret():
 
 
 def main():
-    from magnus import Pipeline, Task
+    from runnable import Pipeline, Task
 
     show = Task(
         name="show secret",

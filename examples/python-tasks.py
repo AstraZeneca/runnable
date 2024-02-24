@@ -8,7 +8,8 @@ This is a simple pipeline that does 2 steps in sequence.
 
     You can run this pipeline by: python examples/python-tasks.py
 """
-from magnus import Pipeline, Task
+
+from runnable import Pipeline, Task
 
 
 def main():

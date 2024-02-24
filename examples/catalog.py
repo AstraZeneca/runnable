@@ -5,7 +5,7 @@ You can run this pipeline by:
     python run examples/catalog.py
 """
 
-from magnus import Catalog, Pipeline, Stub, Task
+from runnable import Catalog, Pipeline, Stub, Task
 
 
 def main():

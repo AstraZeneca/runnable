@@ -38,7 +38,7 @@ def retrieve_content_from_both():
 
 
 def main():
-    from magnus import Catalog, Pipeline, Task
+    from runnable import Catalog, Pipeline, Task
 
     # This step creates a file in the data folder and syncs it to the catalog.
     data_catalog = Catalog(put=["data/hello.txt"])

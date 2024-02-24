@@ -1,7 +1,7 @@
-site_name: Magnus
+site_name: runnable
 site_description: "Pipelines made easy"
 strict: true
-repo_url: https://github.com/AstraZeneca/magnus-core
+repo_url: https://github.com/vijayvammi/runnable
 
 # TODO: Set up versioning
 
@@ -108,7 +108,7 @@ extra_css:
   - css/extra.css
 
 nav:
-  - "Magnus":
+  - "runnable":
       - "Introduction": "index.md"
       - "Usage": "usage.md"
       - "Example":

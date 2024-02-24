@@ -6,7 +6,7 @@ Run this pipeline by:
 
 """
 
-from magnus import Catalog, Pipeline, Task
+from runnable import Catalog, Pipeline, Task
 
 
 def main():

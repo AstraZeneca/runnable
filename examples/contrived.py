@@ -6,7 +6,7 @@ Use this pattern to define the skeleton of your pipeline and flesh out the steps
 You can run this pipeline by python run examples/contrived.py
 """
 
-from magnus import Pipeline, Stub
+from runnable import Pipeline, Stub
 
 
 def main():

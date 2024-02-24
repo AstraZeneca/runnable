@@ -9,10 +9,9 @@ An example pipeline to demonstrate setting experiment tracking metrics
     The mlflow server is expected to be running at http://127.0.0.1:8080
 """
 
-
 from pydantic import BaseModel
 
-from magnus import Pipeline, Task, track_this
+from runnable import Pipeline, Task, track_this
 
 
 class EggsModel(BaseModel):

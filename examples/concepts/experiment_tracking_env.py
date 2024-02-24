@@ -3,7 +3,7 @@ import os
 
 from pydantic import BaseModel
 
-from magnus import Pipeline, Task
+from runnable import Pipeline, Task
 
 
 class EggsModel(BaseModel):

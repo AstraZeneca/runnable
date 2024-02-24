@@ -1,7 +1,7 @@
 import pytest
 from rich import print
 
-from magnus import Stub, Pipeline, Parallel
+from runnable import Stub, Pipeline, Parallel
 
 
 @pytest.mark.no_cover

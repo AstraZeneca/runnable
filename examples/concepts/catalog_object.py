@@ -7,7 +7,7 @@ You can run this pipeline by:
 
 from pydantic import BaseModel
 
-from magnus import get_object, put_object
+from runnable import get_object, put_object
 
 
 class EggsModel(BaseModel):
@@ -44,7 +44,7 @@ def retrieve_object():
 
 
 def main():
-    from magnus import Pipeline, Task
+    from runnable import Pipeline, Task
 
     # This step creates an object and stores it in the catalog.
     object_put = Task(
