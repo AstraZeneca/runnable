@@ -192,10 +192,10 @@ class NotebookTaskType(BaseTaskType):
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
     notebook_output_path: str = Field(default="", validate_default=True)
-    output_cell_tag: str = Field(default="magnus_output", validate_default=True)
+    output_cell_tag: str = Field(default="runnable_output", validate_default=True)
     optional_ploomber_args: dict = {}
 
-    _output_tag: str = "magnus_output"
+    _output_tag: str = "runnable_output"
 
     @field_validator("command")
     @classmethod
@@ -321,7 +321,7 @@ class ShellTaskType(BaseTaskType):
         if map_variable:
             subprocess_env[defaults.MAP_VARIABLE] = json.dumps(map_variable)
 
-        command = self.command.strip() + " && env | grep MAGNUS"
+        command = self.command.strip() + " && env | grep runnable"
         logger.info(f"Executing shell command: {command}")
 
         output_parameters = {}

@@ -16,7 +16,7 @@ def create_content():
     dir_path.mkdir(parents=True, exist_ok=True)  # Make data folder if it doesn't exist
 
     with open(dir_path / "hello.txt", "w") as f:
-        f.write("Hello from magnus!!")
+        f.write("Hello from runnable!!")
 
     # Put the created file in the catalog
     put_in_catalog("data/hello.txt")

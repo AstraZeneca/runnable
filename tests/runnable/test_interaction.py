@@ -167,7 +167,7 @@ def test_get_from_catalog_raises_warning_if_no_context_step_log(mocker, monkeypa
     mock_catalog_handler.compute_data_folder = "compute_folder"
     monkeypatch.setattr(interaction, "context", mock_context)
 
-    with caplog.at_level(logging.WARNING, logger="magnus"):
+    with caplog.at_level(logging.WARNING, logger="runnable"):
         interaction.get_from_catalog("this")
 
     assert "Step log context was not found during interaction" in caplog.text

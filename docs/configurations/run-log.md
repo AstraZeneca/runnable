@@ -62,11 +62,11 @@ run_log_store:
 === "sdk pipeline"
 
     The configuration can be provided dynamically by setting the environment variable
-    ```MAGNUS_CONFIGURATION_FILE```.
+    ```runnable_CONFIGURATION_FILE```.
 
     Executing the pipeline with:
 
-    ```MAGNUS_CONFIGURATION_FILE=examples/configs/fs-run_log.yaml python examples/concepts/simple.py```
+    ```runnable_CONFIGURATION_FILE=examples/configs/fs-run_log.yaml python examples/concepts/simple.py```
 
     ```python linenums="1"
     --8<-- "examples/concepts/simple.py"
@@ -97,7 +97,7 @@ run_log_store:
                         "code_identifier": "39cd98770cb2fd6994d8ac08ae4c5506e5ce694a",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -136,7 +136,7 @@ run_log_store:
                         "code_identifier": "39cd98770cb2fd6994d8ac08ae4c5506e5ce694a",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -264,11 +264,11 @@ run_log_store:
 === "sdk pipeline"
 
     The configuration can be provided dynamically by setting the environment variable
-    ```MAGNUS_CONFIGURATION_FILE```.
+    ```runnable_CONFIGURATION_FILE```.
 
     Executing the pipeline with:
 
-    ```MAGNUS_CONFIGURATION_FILE=examples/configs/chunked-fs-run_log.yaml python examples/concepts/simple.py```
+    ```runnable_CONFIGURATION_FILE=examples/configs/chunked-fs-run_log.yaml python examples/concepts/simple.py```
 
     ```python linenums="1"
     --8<-- "examples/concepts/simple.py"
@@ -363,7 +363,7 @@ run_log_store:
         Contains only the information of the single step ```simple```.
         The name of the file follows the pattern:
 
-        ```StepLog-<Step name>-<timestamp>.json```. The timestamp allows magnus to infer
+        ```StepLog-<Step name>-<timestamp>.json```. The timestamp allows runnable to infer
         the order of execution of the steps.
 
         ```json linenums="1"
@@ -379,7 +379,7 @@ run_log_store:
                     "code_identifier": "39cd98770cb2fd6994d8ac08ae4c5506e5ce694a",
                     "code_identifier_type": "git",
                     "code_identifier_dependable": true,
-                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                     "code_identifier_message": ""
                 }
             ],

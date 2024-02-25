@@ -7,7 +7,7 @@ dag:
     The step display_again displays the updated parameters from modify_initial and updates them.
 
     You can run this pipeline as:
-      magnus execute -f examples/concepts/task_shell_parameters.yaml  -p examples/concepts/parameters.yaml
+      runnable execute -f examples/concepts/task_shell_parameters.yaml  -p examples/concepts/parameters.yaml
 
   start_at: access initial
   steps:
@@ -15,27 +15,27 @@ dag:
       type: task
       command_type: shell
       command: |
-        env | grep 'MAGNUS_PRM_'
-      # MAGNUS_PRM_spam="Hello"
-      # MAGNUS_PRM_eggs={"ham": "Yes, please!!"}
+        env | grep 'runnable_PRM_'
+      # runnable_PRM_spam="Hello"
+      # runnable_PRM_eggs={"ham": "Yes, please!!"}
       next: modify initial
     modify initial:
       type: task
       command_type: shell
       command: |
-        export MAGNUS_PRM_spam='World' && \
-        export MAGNUS_PRM_eggs='{"ham": "No, Thank you!!"}'
+        export runnable_PRM_spam='World' && \
+        export runnable_PRM_eggs='{"ham": "No, Thank you!!"}'
       next: display again
     display again:
       type: task
       command_type: shell
       command: |
-        env | grep 'MAGNUS_PRM_' && \
-        export MAGNUS_PRM_spam='Universe' && \
-        export MAGNUS_PRM_eggs='{"ham": "Maybe, one more.."}'
+        env | grep 'runnable_PRM_' && \
+        export runnable_PRM_spam='Universe' && \
+        export runnable_PRM_eggs='{"ham": "Maybe, one more.."}'
       # prints
-      # MAGNUS_PRM_spam="World"
-      # MAGNUS_PRM_eggs={"ham": "No, Thank you!!"}
+      # runnable_PRM_spam="World"
+      # runnable_PRM_eggs={"ham": "No, Thank you!!"}
       # and sets new values
       next: success
     success:

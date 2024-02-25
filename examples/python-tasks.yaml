@@ -1,26 +1,28 @@
 dag:
   description: |
-    This is a simple pipeline that does 3 steps in sequence.
+    This is a simple pipeline that does 3 steps
+    in sequence.
+
     In this example:
-      1. First step: returns a "parameter" x as a Pydantic model
-      2. Second step: Consumes that parameter and prints it
+      1. First step: returns a "parameter" x
+      as a Pydantic model
+      2. Second step: Consumes that parameter
+      and prints it
 
-    This pipeline demonstrates one way to pass small data from one step to another.
-
-    You can run this pipeline by: magnus execute -f examples/python-tasks.yaml
-  start_at: step 1
+    You can run this pipeline by:
+    runnable execute -f examples/python-tasks.yaml
+  start_at: step 1 # (1)
   steps:
-    step 1:
+    step 1: # (2)
       type: task
-      command_type: python # (2)
-      command: examples.functions.return_parameter # (1)
-      next: step 2
+      command: examples.functions.return_parameter # (3)
+      next: step 2 # (4)
     step 2:
       type: task
       command_type: python
       command: examples.functions.display_parameter
-      next: success
+      next: success # (5)
     success:
-      type: success
+      type: success # (6)
     fail:
       type: fail

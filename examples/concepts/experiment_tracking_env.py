@@ -14,17 +14,17 @@ def emit_metrics():
     """
     A function that populates environment variables with metrics.
 
-    Any environment variable with prefix "MAGNUS_TRACK_" will be
+    Any environment variable with prefix "runnable_TRACK_" will be
     understood as a metric.
 
     Numeric metrics can be set as strings but would be stored to
     int/float. Boolean metrics are not supported.
     """
-    os.environ["MAGNUS_TRACK_spam"] = "hello"
-    os.environ["MAGNUS_TRACK_eggs"] = json.dumps(
+    os.environ["runnable_TRACK_spam"] = "hello"
+    os.environ["runnable_TRACK_eggs"] = json.dumps(
         EggsModel(ham="world").model_dump(by_alias=True),
     )
-    os.environ["MAGNUS_TRACK_answer"] = "42.0"  # Would be stored as float(42)
+    os.environ["runnable_TRACK_answer"] = "42.0"  # Would be stored as float(42)
 
 
 def main():

@@ -4,10 +4,10 @@
 
 # from pydantic import BaseModel
 
-# from magnus import defaults, integration, utils
-# from magnus.executor import BaseExecutor
-# from magnus.graph import Graph
-# from magnus.nodes import BaseNode
+# from runnable import defaults, integration, utils
+# from runnable.executor import BaseExecutor
+# from runnable.graph import Graph
+# from runnable.nodes import BaseNode
 
 # logger = logging.getLogger(defaults.NAME)
 

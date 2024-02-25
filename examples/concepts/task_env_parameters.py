@@ -28,16 +28,16 @@ def modify_initial():
     """
     Access initial parameters by the keys.
     """
-    spam = os.environ["MAGNUS_PRM_spam"]
-    eggs = EggsModel.model_validate_json(os.environ["MAGNUS_PRM_eggs"])
+    spam = os.environ["runnable_PRM_spam"]
+    eggs = EggsModel.model_validate_json(os.environ["runnable_PRM_eggs"])
     print(spam)
     ">>> Hello"
     print(eggs)
     ">>> ham='Yes, please!!'"
 
     # modify parameters
-    os.environ["MAGNUS_PRM_spam"] = "World"
-    os.environ["MAGNUS_PRM_eggs"] = json.dumps(eggs.model_dump(by_alias=True))
+    os.environ["runnable_PRM_spam"] = "World"
+    os.environ["runnable_PRM_eggs"] = json.dumps(eggs.model_dump(by_alias=True))
 
 
 def consume():
@@ -46,11 +46,11 @@ def consume():
     """
     # the value is set by the modify_initial function.
     # Use cast_as to type hint the return value.
-    eggs = EggsModel.model_validate_json(os.environ["MAGNUS_PRM_eggs"])
+    eggs = EggsModel.model_validate_json(os.environ["runnable_PRM_eggs"])
     print(eggs)
     ">>> ham='No, Thank you!!'"
 
-    os.environ["MAGNUS_PRM_eggs"] = json.dumps(EggsModel(ham="May be one more!!").model_dump_json(by_alias=True))
+    os.environ["runnable_PRM_eggs"] = json.dumps(EggsModel(ham="May be one more!!").model_dump_json(by_alias=True))
 
 
 def main():

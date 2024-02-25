@@ -1,7 +1,7 @@
 """
 An example pipeline to demonstrate setting experiment tracking metrics
     using environment variables. Any environment variable with prefix
-    'MAGNUS_TRACK_' will be recorded as a metric captured during the step.
+    'runnable_TRACK_' will be recorded as a metric captured during the step.
 
     You can run this pipeline as:
       python examples/experiment_tracking_api.py

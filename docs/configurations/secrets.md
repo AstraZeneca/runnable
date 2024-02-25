@@ -1,5 +1,5 @@
-**Magnus** provides an interface to secrets managers
-[via the API](../interactions.md/#magnus.get_secret).
+**runnable** provides an interface to secrets managers
+[via the API](../interactions.md/#runnable.get_secret).
 
 Please refer to [Secrets in concepts](../concepts/secrets.md) for more information.
 
@@ -49,7 +49,7 @@ The actual key while calling the secrets manager via the API, ```get_secret(secr
     Below is a simple pipeline to demonstrate the use of secrets.
 
     The configuration file to use can be dynamically specified via the environment variable
-    ```MAGNUS_CONFIGURATION_FILE```.
+    ```runnable_CONFIGURATION_FILE```.
 
     The example can be found in ```examples/secrets_env.py```
 
@@ -60,7 +60,7 @@ The actual key while calling the secrets manager via the API, ```get_secret(secr
 === "Default Configuration"
 
     We can execute the pipeline using this configuration by:
-    ```secret="secret_value" MAGNUS_CONFIGURATION_FILE=examples/configs/secrets-env-default.yaml python examples/secrets_env.py```
+    ```secret="secret_value" runnable_CONFIGURATION_FILE=examples/configs/secrets-env-default.yaml python examples/secrets_env.py```
 
     The configuration file is located at ```examples/configs/secrets-env-default.yaml```
 
@@ -71,7 +71,7 @@ The actual key while calling the secrets manager via the API, ```get_secret(secr
 === "Prefixed and Suffixed Configuration"
 
     We can execute the pipeline using this configuration by:
-    ```magnus_secret="secret_value" MAGNUS_CONFIGURATION_FILE=examples/configs/secrets-env-ps.yaml python examples/secrets_env.py```
+    ```runnable_secret="secret_value" runnable_CONFIGURATION_FILE=examples/configs/secrets-env-ps.yaml python examples/secrets_env.py```
 
     The configuration file is located at ```examples/configs/secrets-env-ps.yaml```
 
@@ -83,7 +83,7 @@ The actual key while calling the secrets manager via the API, ```get_secret(secr
 
 ## dotenv
 
-```.env``` files are routinely used to provide configuration parameters and secrets during development phase. Magnus can dotenv files as a secret store and can surface them to tasks.
+```.env``` files are routinely used to provide configuration parameters and secrets during development phase. runnable can dotenv files as a secret store and can surface them to tasks.
 
 
 ### Configuration

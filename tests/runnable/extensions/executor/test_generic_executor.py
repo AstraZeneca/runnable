@@ -469,7 +469,7 @@ def test_step_attempt_returns_one_by_default():
 def test_step_attempt_returns_from_env(monkeypatch):
     test_executor = GenericExecutor()
 
-    monkeypatch.setenv("MAGNUS_STEP_ATTEMPT", "2")
+    monkeypatch.setenv("runnable_STEP_ATTEMPT", "2")
 
     assert test_executor.step_attempt_number == 2
 
@@ -614,10 +614,10 @@ def test_execute_node_raises_exception_if_node_execute_raises_one(mocker, monkey
     mock_node = mocker.MagicMock()
     mock_node.execute.side_effect = Exception()
 
-    with caplog.at_level(logging.ERROR, logger="magnus") and pytest.raises(Exception):
+    with caplog.at_level(logging.ERROR, logger="runnable") and pytest.raises(Exception):
         test_executor._execute_node(mock_node)
 
-    assert "This is clearly magnus fault, " in caplog.text
+    assert "This is clearly runnable fault, " in caplog.text
 
 
 def test_execute_node_sets_step_log_status_to_fail_if_node_fails(mocker, monkeypatch, mock_run_context):

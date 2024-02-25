@@ -9,7 +9,7 @@ from runnable import defaults, entrypoints
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-@with_plugins(iter_entry_points("magnus.cli_plugins"))
+@with_plugins(iter_entry_points("runnable.cli_plugins"))
 @click.group()
 @click.version_option()
 def cli():
@@ -46,7 +46,7 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cach
     """
     Execute a pipeline
 
-    Usage: magnus execute [OPTIONS]
+    Usage: runnable execute [OPTIONS]
 
     Options:
     -f, --file TEXT               The pipeline definition file [default: pipeline.yaml]
@@ -97,9 +97,9 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cach
 @click.option("--tag", default="", help="A tag attached to the run")
 def execute_single_node(run_id, step_name, map_variable, file, config_file, parameters_file, log_level, tag):
     """
-    Internal entrypoint for magnus to execute a single node.
+    Internal entrypoint for runnable to execute a single node.
 
-    Other than local executor, every other executor uses this entry point to execute a step in the context of magnus.
+    Other than local executor, every other executor uses this entry point to execute a step in the context of runnable.
     Only chained executions should use this method. Unchained executions should use execute_
     """
     logger.setLevel(log_level)
@@ -248,7 +248,7 @@ def execute_function(
 @click.option("--tag", default="", help="A tag attached to the run")
 def fan(run_id, step_name, mode, map_variable, file, config_file, parameters_file, log_level, tag):
     """
-    Internal entrypoint for magnus to fan in or out a composite node.
+    Internal entrypoint for runnable to fan in or out a composite node.
 
     Only 3rd party orchestrators should use this entry point.
     """

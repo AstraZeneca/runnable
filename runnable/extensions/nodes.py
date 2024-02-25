@@ -46,7 +46,7 @@ class TaskNode(ExecutableNode):
 
     def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
         """
-        All that we do in magnus is to come to this point where we actually execute the command.
+        All that we do in runnable is to come to this point where we actually execute the command.
 
         Args:
             executor (_type_): The executor class

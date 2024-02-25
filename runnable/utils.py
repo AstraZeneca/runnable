@@ -281,10 +281,10 @@ def get_git_code_identity():
     """Returns a code identity object for version controlled code.
 
     Args:
-        run_log_store (magnus.datastore.BaseRunLogStore): The run log store used in this process
+        run_log_store (runnable.datastore.BaseRunLogStore): The run log store used in this process
 
     Returns:
-        magnus.datastore.CodeIdentity: The code identity used by the run log store.
+        runnable.datastore.CodeIdentity: The code identity used by the run log store.
     """
     code_identity = context.run_context.run_log_store.create_code_identity()
     try:
@@ -316,7 +316,7 @@ def remove_prefix(text: str, prefix: str) -> str:
 
 
 def get_tracked_data() -> Dict[str, str]:
-    """Scans the environment variables to find any user tracked variables that have a prefix MAGNUS_TRACK_
+    """Scans the environment variables to find any user tracked variables that have a prefix runnable_TRACK_
     Removes the environment variable to prevent any clashes in the future steps.
 
     Returns:
@@ -412,7 +412,7 @@ def get_node_execution_command(
 
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
-    action = f"magnus execute_single_node {run_id} " f"{node._command_friendly_name()}" f" --log-level {log_level}"
+    action = f"runnable execute_single_node {run_id} " f"{node._command_friendly_name()}" f" --log-level {log_level}"
 
     if context.run_context.pipeline_file:
         action = action + f" --file {context.run_context.pipeline_file}"
@@ -453,7 +453,7 @@ def get_fan_command(
     """
     log_level = logging.getLevelName(logger.getEffectiveLevel())
     action = (
-        f"magnus fan {run_id} "
+        f"runnable fan {run_id} "
         f"{node._command_friendly_name()} "
         f"--mode {mode} "
         f"--file {context.run_context.pipeline_file} "
@@ -497,7 +497,7 @@ def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> st
 
     cli_command, cli_options = node.executable.get_cli_options()
 
-    action = f"magnus execute_{cli_command} {run_id} " f" --log-level {log_level}"
+    action = f"runnable execute_{cli_command} {run_id} " f" --log-level {log_level}"
 
     action = action + f" --entrypoint {defaults.ENTRYPOINT.SYSTEM.value}"
 
@@ -595,8 +595,8 @@ def json_to_ordered_dict(json_str: str) -> TypeMapVariable:
     return OrderedDict()
 
 
-def set_magnus_environment_variables(run_id: str = "", configuration_file: str = "", tag: str = "") -> None:
-    """Set the environment variables used by magnus. This function should be called during the prepare configurations
+def set_runnable_environment_variables(run_id: str = "", configuration_file: str = "", tag: str = "") -> None:
+    """Set the environment variables used by runnable. This function should be called during the prepare configurations
     by all executors.
 
     Args:
@@ -608,14 +608,14 @@ def set_magnus_environment_variables(run_id: str = "", configuration_file: str =
         os.environ[defaults.ENV_RUN_ID] = run_id
 
     if configuration_file:
-        os.environ[defaults.MAGNUS_CONFIG_FILE] = configuration_file
+        os.environ[defaults.runnable_CONFIG_FILE] = configuration_file
 
     if tag:
-        os.environ[defaults.MAGNUS_RUN_TAG] = tag
+        os.environ[defaults.runnable_RUN_TAG] = tag
 
 
 def gather_variables() -> dict:
-    """Gather all the environment variables used by magnus. All the variables start with MAGNUS_VAR_.
+    """Gather all the environment variables used by runnable. All the variables start with runnable_VAR_.
 
     Returns:
         dict: All the environment variables present in the environment.

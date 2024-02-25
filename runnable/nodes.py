@@ -64,7 +64,7 @@ class BaseNode(ABC, BaseModel):
     @classmethod
     def _get_internal_name_from_command_name(cls, command_name: str) -> str:
         """
-        Replace Magnus specific character (%) with whitespace.
+        Replace runnable specific character (%) with whitespace.
         The opposite of _command_friendly_name.
 
         Args:
@@ -282,7 +282,7 @@ class BaseNode(ABC, BaseModel):
         composite nodes.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor class
+            executor (runnable.executor.BaseExecutor): The executor class
             mock (bool, optional): Don't run, just pretend. Defaults to False.
             map_variable (str, optional): The value of the map iteration variable, if part of a map node.
                 Defaults to ''.
@@ -301,7 +301,7 @@ class BaseNode(ABC, BaseModel):
         Function should only be implemented for composite nodes like dag, map, parallel.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor.
+            executor (runnable.executor.BaseExecutor): The executor.
 
         Raises:
             NotImplementedError: Base class, hence not implemented.
@@ -317,7 +317,7 @@ class BaseNode(ABC, BaseModel):
         Function should only be implemented for composite nodes like dag, map, parallel.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor.
+            executor (runnable.executor.BaseExecutor): The executor.
             map_variable (str, optional): The value of the map iteration variable, if part of a map node.
 
         Raises:
@@ -334,7 +334,7 @@ class BaseNode(ABC, BaseModel):
         Function should only be implemented for composite nodes like dag, map, parallel.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor.
+            executor (runnable.executor.BaseExecutor): The executor.
             map_variable (str, optional): The value of the map iteration variable, if part of a map node.
 
         Raises:

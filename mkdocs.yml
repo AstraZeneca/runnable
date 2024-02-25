@@ -37,8 +37,8 @@ theme:
     - content.tabs.link
     - header.autohide
     - navigation.top
-    - toc.integrate
     - toc.follow
+    - toc.integrate
     - search.suggest
     - navigation.tabs
     - navigation.tabs.sticky
@@ -47,6 +47,7 @@ theme:
     - navigation.instant
     - navigation.instant.progress
     - navigation.tracking
+    # - navigation.indexes
 
 # Extensions
 markdown_extensions:
@@ -111,15 +112,15 @@ nav:
   - "runnable":
       - "Introduction": "index.md"
       - "Usage": "usage.md"
-      - "Example":
-          - "Pipeline Definition": "example/example.md"
-          - "Steps": "example/steps.md"
-          - "Flow of data": "example/dataflow.md"
-          - "Reproducibility": "example/reproducibility.md"
-          - "Experiment tracking": "example/experiment-tracking.md"
-          - "Secrets": "example/secrets.md"
-          - "Retry failures": "example/retry-after-failure.md"
-      - "Why magnus?": "why-magnus.md"
+      # - "Example":
+      #     - "Pipeline Definition": "example/example.md"
+      #     - "Steps": "example/steps.md"
+      #     - "Flow of data": "example/dataflow.md"
+      #     - "Reproducibility": "example/reproducibility.md"
+      #     - "Experiment tracking": "example/experiment-tracking.md"
+      #     - "Secrets": "example/secrets.md"
+      #     - "Retry failures": "example/retry-after-failure.md"
+      - "Why runnable?": "why-runnable.md"
   - "Concepts":
       - "tl;dr": "concepts/the-big-picture.md"
       - "Pipeline": "concepts/pipeline.md"

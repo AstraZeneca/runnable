@@ -91,7 +91,7 @@ def test_yaml_examples_container(example):
         full_file_path = examples_path / file_path
         kwargs.pop("configuration_file", "")
         configuration_file = "examples/configs/local-container.yaml"
-        os.environ["MAGNUS_VAR_default_docker_image"] = "magnus:3.8"
+        os.environ["runnable_VAR_default_docker_image"] = "runnable:3.8"
         execute(configuration_file=configuration_file, pipeline_file=str(full_file_path), **kwargs)
     except exceptions.ExecutionFailedError:
         if not status:
@@ -101,10 +101,10 @@ def test_yaml_examples_container(example):
 @contextmanager
 def secrets_env_context():
     os.environ["secret"] = "secret_value"
-    os.environ["MAGNUS_CONFIGURATION_FILE"] = "examples/configs/secrets-env-default.yaml"
+    os.environ["runnable_CONFIGURATION_FILE"] = "examples/configs/secrets-env-default.yaml"
     yield
     del os.environ["secret"]
-    del os.environ["MAGNUS_CONFIGURATION_FILE"]
+    del os.environ["runnable_CONFIGURATION_FILE"]
 
 
 # function, success, context

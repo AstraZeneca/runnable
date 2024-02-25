@@ -1,30 +1,30 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: magnus-dag-
+  generateName: runnable-dag-
   annotations: {}
   labels: {}
 spec:
   activeDeadlineSeconds: 172800
-  entrypoint: magnus-dag
+  entrypoint: runnable-dag
   podGC:
     strategy: OnPodCompletion
   retryStrategy:
-    limit: '0'
+    limit: "0"
     retryPolicy: Always
     backoff:
-      duration: '120'
+      duration: "120"
       factor: 2
-      maxDuration: '3600'
+      maxDuration: "3600"
   serviceAccountName: default-editor
   templates:
-    - name: magnus-dag
+    - name: runnable-dag
       failFast: true
       dag:
         tasks:
           - name: Acquire-data-stub-zl7utt
             template: Acquire-data-stub-zl7utt
-            depends: ''
+            depends: ""
           - name: Prepare-data-stub-jkn77g
             template: Prepare-data-stub-jkn77g
             depends: Acquire-data-stub-zl7utt.Succeeded
@@ -39,11 +39,11 @@ spec:
             depends: Model-stub-42qnma.Succeeded
     - name: Acquire-data-stub-zl7utt
       container:
-        image: magnus:demo
+        image: runnable:demo
         command:
-          - magnus
+          - runnable
           - execute_single_node
-          - '{{workflow.parameters.run_id}}'
+          - "{{workflow.parameters.run_id}}"
           - Acquire%data
           - --log-level
           - WARNING
@@ -54,7 +54,7 @@ spec:
         volumeMounts:
           - name: executor-0
             mountPath: /mnt
-        imagePullPolicy: ''
+        imagePullPolicy: ""
         resources:
           limits:
             memory: 1Gi
@@ -64,11 +64,11 @@ spec:
             cpu: 250m
     - name: Prepare-data-stub-jkn77g
       container:
-        image: magnus:demo
+        image: runnable:demo
         command:
-          - magnus
+          - runnable
           - execute_single_node
-          - '{{workflow.parameters.run_id}}'
+          - "{{workflow.parameters.run_id}}"
           - Prepare%data
           - --log-level
           - WARNING
@@ -79,7 +79,7 @@ spec:
         volumeMounts:
           - name: executor-0
             mountPath: /mnt
-        imagePullPolicy: ''
+        imagePullPolicy: ""
         resources:
           limits:
             memory: 1Gi
@@ -89,11 +89,11 @@ spec:
             cpu: 250m
     - name: Extract-features-stub-jdonf3
       container:
-        image: magnus:demo
+        image: runnable:demo
         command:
-          - magnus
+          - runnable
           - execute_single_node
-          - '{{workflow.parameters.run_id}}'
+          - "{{workflow.parameters.run_id}}"
           - Extract%features
           - --log-level
           - WARNING
@@ -104,7 +104,7 @@ spec:
         volumeMounts:
           - name: executor-0
             mountPath: /mnt
-        imagePullPolicy: ''
+        imagePullPolicy: ""
         resources:
           limits:
             memory: 1Gi
@@ -114,11 +114,11 @@ spec:
             cpu: 250m
     - name: Model-stub-42qnma
       container:
-        image: magnus:demo
+        image: runnable:demo
         command:
-          - magnus
+          - runnable
           - execute_single_node
-          - '{{workflow.parameters.run_id}}'
+          - "{{workflow.parameters.run_id}}"
           - Model
           - --log-level
           - WARNING
@@ -129,7 +129,7 @@ spec:
         volumeMounts:
           - name: executor-0
             mountPath: /mnt
-        imagePullPolicy: ''
+        imagePullPolicy: ""
         resources:
           limits:
             memory: 1Gi
@@ -139,11 +139,11 @@ spec:
             cpu: 250m
     - name: success-success-mk4nqv
       container:
-        image: magnus:demo
+        image: runnable:demo
         command:
-          - magnus
+          - runnable
           - execute_single_node
-          - '{{workflow.parameters.run_id}}'
+          - "{{workflow.parameters.run_id}}"
           - success
           - --log-level
           - WARNING
@@ -154,7 +154,7 @@ spec:
         volumeMounts:
           - name: executor-0
             mountPath: /mnt
-        imagePullPolicy: ''
+        imagePullPolicy: ""
         resources:
           limits:
             memory: 1Gi
@@ -168,8 +168,8 @@ spec:
   arguments:
     parameters:
       - name: run_id
-        value: '{{workflow.uid}}'
+        value: "{{workflow.uid}}"
   volumes:
     - name: executor-0
       persistentVolumeClaim:
-        claimName: magnus-volume
+        claimName: runnable-volume

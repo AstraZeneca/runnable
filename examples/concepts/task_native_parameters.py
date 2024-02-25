@@ -41,7 +41,7 @@ def consume(eggs: EggsModel):
     print(eggs)
     ">>> ham='No, Thank you!!'"
 
-    # Magnus supports only pydantic models as return types.
+    # runnable supports only pydantic models as return types.
     # You can modify a subset of the parameters by creating a dynamic pydantic model.
     # https://docs.pydantic.dev/latest/concepts/models/#dynamic-model-creation
 

@@ -25,7 +25,7 @@ class BaseExecutor(ABC, BaseModel):
     The skeleton of an executor class.
     Any implementation of an executor should inherit this class and over-ride accordingly.
 
-    There is a extension available in magnus/extensions/executor/__init__.py
+    There is a extension available in runnable/extensions/executor/__init__.py
     which implements the most common functionality which is easier to
     extend/override in most scenarios.
 
@@ -251,7 +251,7 @@ class BaseExecutor(ABC, BaseModel):
     @abstractmethod
     def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
-        Executor specific way of triggering jobs when magnus does both traversal and execution
+        Executor specific way of triggering jobs when runnable does both traversal and execution
 
         Transpilers will NEVER use this method and will NEVER call them.
         Only interactive executors who need execute_from_graph will ever implement it.

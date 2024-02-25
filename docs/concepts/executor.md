@@ -1,4 +1,4 @@
-Executors are the heart of magnus, they traverse the workflow and execute the tasks within the
+Executors are the heart of runnable, they traverse the workflow and execute the tasks within the
 workflow while coordinating with different services
 (eg. [run log](../concepts/run-log.md), [catalog](../concepts/catalog.md), [secrets](../concepts/secrets.md) etc)
 
@@ -23,7 +23,7 @@ any workflow engine.
 
 ## Graph Traversal
 
-In magnus, the graph traversal can be performed by magnus itself or can be handed over to other
+In runnable, the graph traversal can be performed by runnable itself or can be handed over to other
 orchestration frameworks (e.g Argo workflows, AWS step functions).
 
 ### Example
@@ -44,7 +44,7 @@ translated to argo specification just by changing the configuration.
 
     You can execute the pipeline in default configuration by:
 
-    ```magnus execute -f examples/concepts/task_shell_simple.yaml```
+    ```runnable execute -f examples/concepts/task_shell_simple.yaml```
 
     ``` yaml linenums="1"
     --8<-- "examples/configs/default.yaml"
@@ -60,16 +60,16 @@ translated to argo specification just by changing the configuration.
 
     In this configuration, we are using [argo workflows](https://argoproj.github.io/argo-workflows/)
     as our workflow engine. We are also instructing the workflow engine to use a docker image,
-    ```magnus:demo``` defined in line #4, as our execution environment. Please read
+    ```runnable:demo``` defined in line #4, as our execution environment. Please read
     [containerised environments](../configurations/executors/container-environments.md) for more information.
 
-    Since magnus needs to track the execution status of the workflow, we are using a ```run log```
+    Since runnable needs to track the execution status of the workflow, we are using a ```run log```
     which is persistent and available in for jobs in kubernetes environment.
 
 
     You can execute the pipeline in argo configuration by:
 
-    ```magnus execute -f examples/concepts/task_shell_simple.yaml -c examples/configs/argo-config.yaml```
+    ```runnable execute -f examples/concepts/task_shell_simple.yaml -c examples/configs/argo-config.yaml```
 
     ``` yaml linenums="1"
     --8<-- "examples/configs/argo-config.yaml"
@@ -78,7 +78,7 @@ translated to argo specification just by changing the configuration.
     1. Use argo workflows as the execution engine to run the pipeline.
     2. Run this docker image for every step of the pipeline. The docker image should have the same directory structure
     as the project directory.
-    3. Mount the volume from Kubernetes persistent volumes (magnus-volume) to /mnt directory.
+    3. Mount the volume from Kubernetes persistent volumes (runnable-volume) to /mnt directory.
     4. Resource constraints for the container runtime.
     5. Since every step runs in a container, the run log should be persisted. Here we are using the file-system as our
     run log store.
@@ -94,7 +94,7 @@ translated to argo specification just by changing the configuration.
     - The graph traversal rules follow the the same rules as our workflow. The
     step ```success-success-ou7qlf``` in line #15 only happens if the step ```shell-task-dz3l3t```
     defined in line #12 succeeds.
-    - The execution fails if any of the tasks fail. Both argo workflows and magnus ```run log```
+    - The execution fails if any of the tasks fail. Both argo workflows and runnable ```run log```
     mark the execution as failed.
 
 
@@ -102,12 +102,12 @@ translated to argo specification just by changing the configuration.
     apiVersion: argoproj.io/v1alpha1
     kind: Workflow
     metadata:
-      generateName: magnus-dag-
+      generateName: runnable-dag-
       annotations: {}
       labels: {}
     spec:
       activeDeadlineSeconds: 172800
-      entrypoint: magnus-dag
+      entrypoint: runnable-dag
       podGC:
         strategy: OnPodCompletion
       retryStrategy:
@@ -119,7 +119,7 @@ translated to argo specification just by changing the configuration.
           maxDuration: '3600'
       serviceAccountName: default-editor
       templates:
-        - name: magnus-dag
+        - name: runnable-dag
           failFast: true
           dag:
             tasks:
@@ -131,9 +131,9 @@ translated to argo specification just by changing the configuration.
                 depends: shell-task-4jy8pl.Succeeded
         - name: shell-task-4jy8pl
           container:
-            image: magnus:demo
+            image: runnable:demo
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - '{{workflow.parameters.run_id}}'
               - shell
@@ -156,9 +156,9 @@ translated to argo specification just by changing the configuration.
                 cpu: 250m
         - name: success-success-djhm6j
           container:
-            image: magnus:demo
+            image: runnable:demo
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - '{{workflow.parameters.run_id}}'
               - success
@@ -189,13 +189,13 @@ translated to argo specification just by changing the configuration.
       volumes:
         - name: executor-0
           persistentVolumeClaim:
-            claimName: magnus-volume
+            claimName: runnable-volume
 
 
     ```
 
 
-As seen from the above example, once a [pipeline is defined in magnus](../concepts/pipeline.md) either via yaml or SDK, we can
+As seen from the above example, once a [pipeline is defined in runnable](../concepts/pipeline.md) either via yaml or SDK, we can
 run the pipeline in different environments just by providing a different configuration. Most often, there is
 no need to change the code or deviate from standard best practices while coding.
 
@@ -204,11 +204,11 @@ no need to change the code or deviate from standard best practices while coding.
 
 !!! note
 
-    This section is to understand the internal mechanism of magnus and not required if you just want to
+    This section is to understand the internal mechanism of runnable and not required if you just want to
     use different executors.
 
 
-Independent of traversal, all the tasks are executed within the ```context``` of magnus.
+Independent of traversal, all the tasks are executed within the ```context``` of runnable.
 
 A closer look at the actual task implemented as part of transpiled workflow in argo
 specification details the inner workings. Below is a snippet of the argo specification from
@@ -217,9 +217,9 @@ lines 18 to 34.
 ```yaml linenums="18"
 - name: shell-task-dz3l3t
   container:
-    image: magnus-example:latest
+    image: runnable-example:latest
     command:
-    - magnus
+    - runnable
     - execute_single_node
     - '{{workflow.parameters.run_id}}'
     - shell
@@ -235,17 +235,17 @@ lines 18 to 34.
 ```
 
 The actual ```command``` to run is not the ```command``` defined in the workflow,
-i.e ```echo hello world```, but a command in the CLI of magnus which specifies the workflow file,
+i.e ```echo hello world```, but a command in the CLI of runnable which specifies the workflow file,
 the step name and the configuration file.
 
-### Context of magnus
+### Context of runnable
 
 Any ```task``` defined by the user as part of the workflow always runs as a *sub-command* of
-magnus. In that sense, magnus follows the
+runnable. In that sense, runnable follows the
 [decorator pattern](https://en.wikipedia.org/wiki/Decorator_pattern) without being part of the
 application codebase.
 
-In a very simplistic sense, the below stubbed-code explains the context of magnus during
+In a very simplistic sense, the below stubbed-code explains the context of runnable during
 execution of a task.
 
 ```python linenums="1"

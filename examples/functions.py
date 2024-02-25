@@ -1,14 +1,4 @@
-"""
-Utility functions used in examples.
-"""
-
-import logging
-
 from pydantic import BaseModel
-
-# Magnus logging levels are different to your logging levels.
-logger = logging.getLogger("application")
-logger.setLevel(logging.DEBUG)
 
 
 class InnerModel(BaseModel):
@@ -46,32 +36,30 @@ def return_parameter() -> Parameter:
 
 def display_parameter(x: int, y: InnerModel):
     """
-    An example python task that does something interesting with input parameters.
+    An example python task that does something interesting with
+    input parameters.
 
     Annotating the arguments of the function is important for
-    magnus to understand the type of parameters you want.
+    runnable to understand the type of parameters you want.
 
-    Without annotations, magnus would return a python dictionary.
+    Without annotations, runnable would inject a python dictionary.
 
-    Input args can be a pydantic model or the individual attributes of the non-nested model
+    Input args can be a pydantic model or the individual attributes
+    of the non-nested model
     """
     print(x)
     # >>> prints 1
     print(y)
     # >>> prints InnerModel(foo=10, bar="hello world")
-    logger.info(f"I got a parameter: {x}")
-    logger.info(f"I got another parameter: {y}")
 
 
 """
-Without any framework, the "driver" code would be the main function.
+Without any framework, the "driver" code would be the
+main function.
 """
 
 
 def main():
-    """
-    This is not required for magnus to run!
-    """
     my_param = return_parameter()
     display_parameter(my_param.x, my_param.y)
 

@@ -3,14 +3,14 @@ dag:
     This is a sample pipeline with one step that executes a notebook.
 
     The step name "notebook" has the "command_type" to be notebook to
-    let magnus know to execute a notebook while the command is the
+    let runnable know to execute a notebook while the command is the
     path to the notebook relative to the project root.
 
     The notebook is executed in the same environment as the current
     project, you can import any module that was installed for the project.
 
     You can run this pipeline as:
-      magnus execute -f examples/concepts/simple_notebook.yaml
+      runnable execute -f examples/concepts/simple_notebook.yaml
 
   start_at: notebook
   steps:

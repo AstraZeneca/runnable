@@ -144,7 +144,8 @@ class FileSystemCatalog(BaseCatalog):
         if not utils.does_dir_exist(copy_from):
             msg = (
                 f"Expected compute data folder to be present at: {compute_data_folder} but not found. \n"
-                "Note: Magnus does not create the compute data folder for you. Please ensure that the folder exists.\n"
+                "Note: runnable does not create the compute data folder for you. Please ensure that the "
+                "folder exists.\n"
             )
             raise Exception(msg)
 

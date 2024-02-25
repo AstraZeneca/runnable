@@ -1,4 +1,4 @@
-Magnus revolves around the concept of pipelines or workflows and tasks that happen within them.
+runnable revolves around the concept of pipelines or workflows and tasks that happen within them.
 
 ---
 
@@ -188,12 +188,12 @@ To be useful, it can:
 
 All the above functionality is possible either via:
 
-- Non intrusive ways: Your code does not have anything specific to magnus.
+- Non intrusive ways: Your code does not have anything specific to runnable.
 
     - Application native way.
     - Or via environment variables.
 
-- Or via the [python API](../interactions.md) which involves ```importing magnus``` in your code.
+- Or via the [python API](../interactions.md) which involves ```importing runnable``` in your code.
 
 ---
 

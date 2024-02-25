@@ -1,4 +1,4 @@
-Parallel nodes in magnus allows you to run multiple pipelines in parallel and use your compute resources efficiently.
+Parallel nodes in runnable allows you to run multiple pipelines in parallel and use your compute resources efficiently.
 
 ## Example
 
@@ -98,7 +98,7 @@ ensemble model happens only after both models are (successfully) trained.
                         "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -129,7 +129,7 @@ ensemble model happens only after both models are (successfully) trained.
                         "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -152,7 +152,7 @@ ensemble model happens only after both models are (successfully) trained.
                                         "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -183,7 +183,7 @@ ensemble model happens only after both models are (successfully) trained.
                                         "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -214,7 +214,7 @@ ensemble model happens only after both models are (successfully) trained.
                                         "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -251,7 +251,7 @@ ensemble model happens only after both models are (successfully) trained.
                                         "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -282,7 +282,7 @@ ensemble model happens only after both models are (successfully) trained.
                                         "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -318,7 +318,7 @@ ensemble model happens only after both models are (successfully) trained.
                         "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -349,7 +349,7 @@ ensemble model happens only after both models are (successfully) trained.
                         "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -380,7 +380,7 @@ ensemble model happens only after both models are (successfully) trained.
                         "code_identifier": "f0a2719001de9be30c27069933e4b4a64a065e2b",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],

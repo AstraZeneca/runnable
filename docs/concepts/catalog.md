@@ -20,7 +20,7 @@ The directory structure within a partition is the same as the project directory 
 get/put data in the catalog as if you are working with local directory structure. Every interaction with the catalog
 (either by API or configuration) results in an entry in the [```run log```](../concepts/run-log.md/#step_log)
 
-Internally, magnus also uses the catalog to store execution logs of tasks i.e stdout and stderr from
+Internally, runnable also uses the catalog to store execution logs of tasks i.e stdout and stderr from
 [python](../concepts/task.md/#python) or [shell](../concepts/task.md/#shell) and executed notebook
 from [notebook tasks](../concepts/task.md/#notebook).
 
@@ -153,7 +153,7 @@ The execution results in the ```catalog``` populated with the artifacts and the 
                     "code_identifier": "6029841c3737fe1163e700b4324d22a469993bb0",
                     "code_identifier_type": "git",
                     "code_identifier_dependable": true,
-                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                     "code_identifier_message": ""
                 }
             ],
@@ -199,7 +199,7 @@ The execution results in the ```catalog``` populated with the artifacts and the 
                     "code_identifier": "6029841c3737fe1163e700b4324d22a469993bb0",
                     "code_identifier_type": "git",
                     "code_identifier_dependable": true,
-                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                     "code_identifier_message": ""
                 }
             ],
@@ -245,7 +245,7 @@ The execution results in the ```catalog``` populated with the artifacts and the 
                     "code_identifier": "6029841c3737fe1163e700b4324d22a469993bb0",
                     "code_identifier_type": "git",
                     "code_identifier_dependable": true,
-                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                     "code_identifier_message": ""
                 }
             ],
@@ -284,7 +284,7 @@ The execution results in the ```catalog``` populated with the artifacts and the 
                     "code_identifier": "6029841c3737fe1163e700b4324d22a469993bb0",
                     "code_identifier_type": "git",
                     "code_identifier_dependable": true,
-                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                     "code_identifier_message": ""
                 }
             ],
@@ -337,7 +337,7 @@ The execution results in the ```catalog``` populated with the artifacts and the 
                     "code_identifier": "6029841c3737fe1163e700b4324d22a469993bb0",
                     "code_identifier_type": "git",
                     "code_identifier_dependable": true,
-                    "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                    "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                     "code_identifier_message": ""
                 }
             ],
@@ -467,7 +467,7 @@ and [notebook](../concepts/task.md/#notebook) tasks.
 Data objects can be shared between [python](../concepts/task.md/#python_functions) or
 [notebook](../concepts/task.md/#notebook) tasks,
 instead of serializing data and deserializing to file structure, using
-[get_object](../interactions.md/#magnus.get_object) and [put_object](../interactions.md/#magnus.put_object).
+[get_object](../interactions.md/#runnable.get_object) and [put_object](../interactions.md/#runnable.put_object).
 
 Internally, we use [pickle](https:/docs.python.org/3/library/pickle.html) to serialize and
 deserialize python objects. Please ensure that the object can be serialized via pickle.

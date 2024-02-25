@@ -3,11 +3,11 @@ dag:
     This is a sample pipeline with one step that executes a shell command.
 
     The step name "shell" has the "command_type" to be shell to
-    let magnus know to execute a shell while the command is directly
+    let runnable know to execute a shell while the command is directly
     executed in the current environment.
 
     You can run this pipeline as:
-      magnus execute -f examples/concepts/task_shell_simple.yaml
+      runnable execute -f examples/concepts/task_shell_simple.yaml
 
   start_at: shell
   steps:

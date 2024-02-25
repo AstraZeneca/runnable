@@ -18,7 +18,7 @@ def main():
     # to put the file into the catalog.
     create = Task(
         name="Create Content",
-        command='echo "Hello from magnus" >> data/hello.txt',
+        command='echo "Hello from runnable" >> data/hello.txt',
         command_type="shell",
         catalog=create_catalog,
     )

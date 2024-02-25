@@ -12,7 +12,7 @@ dag:
     parameter name per chunk is set to be "start_index".
 
     Run this example by:
-      magnus execute -f examples/concepts/map.yaml
+      runnable execute -f examples/concepts/map.yaml
   start_at: chunk files
   steps:
     chunk files:

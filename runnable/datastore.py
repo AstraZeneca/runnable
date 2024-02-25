@@ -12,7 +12,7 @@ from runnable import defaults, exceptions
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 # Once defined these classes are sealed to any additions unless a default is provided
-# Breaking this rule might make magnus backwardly incompatible
+# Breaking this rule might make runnable backwardly incompatible
 
 
 class DataCatalog(BaseModel, extra="allow"):

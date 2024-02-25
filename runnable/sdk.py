@@ -33,7 +33,7 @@ class Catalog(BaseModel):
         put (List[str]): List of glob patterns to put into central catalog from the compute data folder.
 
     Examples:
-        >>> from magnus import Catalog, Task
+        >>> from runnable import Catalog, Task
         >>> catalog = Catalog(compute_data_folder="/path/to/data", get=["*.csv"], put=["*.csv"])
 
         >>> task = Task(name="task", catalog=catalog, command="echo 'hello'")
@@ -133,10 +133,10 @@ class Task(BaseTraversal):
             executor:
               type: local-container
               config:
-                docker_image: "magnus/magnus:latest"
+                docker_image: "runnable/runnable:latest"
                 overrides:
                   custom_docker_image:
-                    docker_image: "magnus/magnus:custom"
+                    docker_image: "runnable/runnable:custom"
             ```
             ### Task specific configuration
             ```python
@@ -148,7 +148,7 @@ class Task(BaseTraversal):
         optional_ploomber_args (Optional[Dict[str, Any]]): Any optional ploomber args.
             Only used when command_type is 'notebook', defaults to {}
         output_cell_tag (Optional[str]): The tag of the output cell.
-            Only used when command_type is 'notebook', defaults to "magnus_output"
+            Only used when command_type is 'notebook', defaults to "runnable_output"
         terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
         terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
         on_failure (str): The name of the node to execute if the step fails.
@@ -393,7 +393,7 @@ class Pipeline(BaseModel):
         parameters_file: str = "",
         use_cached: str = "",
         log_level: str = defaults.LOG_LEVEL,
-        output_pipeline_definition: str = "magnus-pipeline.yaml",
+        output_pipeline_definition: str = "runnable-pipeline.yaml",
     ):
         """
         *Execute* the Pipeline.
@@ -408,7 +408,7 @@ class Pipeline(BaseModel):
 
         Args:
             configuration_file (str, optional): The path to the configuration file. Defaults to "".
-                The configuration file can be overridden by the environment variable MAGNUS_CONFIGURATION_FILE.
+                The configuration file can be overridden by the environment variable runnable_CONFIGURATION_FILE.
 
             run_id (str, optional): The ID of the run. Defaults to "".
             tag (str, optional): The tag of the run. Defaults to "".
@@ -420,7 +420,7 @@ class Pipeline(BaseModel):
 
             log_level (str, optional): The log level. Defaults to defaults.LOG_LEVEL.
             output_pipeline_definition (str, optional): The path to the output pipeline definition file.
-                Defaults to "magnus-pipeline.yaml".
+                Defaults to "runnable-pipeline.yaml".
 
                 Only applicable for the execution via SDK for non ```local``` executors.
         """
@@ -430,7 +430,7 @@ class Pipeline(BaseModel):
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)
-        configuration_file = os.environ.get("MAGNUS_CONFIGURATION_FILE", configuration_file)
+        configuration_file = os.environ.get("runnable_CONFIGURATION_FILE", configuration_file)
         run_context = entrypoints.prepare_configurations(
             configuration_file=configuration_file,
             run_id=run_id,
@@ -440,7 +440,7 @@ class Pipeline(BaseModel):
         )
 
         run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-        utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+        utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
         dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
 

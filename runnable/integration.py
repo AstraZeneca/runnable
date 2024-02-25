@@ -84,7 +84,7 @@ def get_integration_handler(executor: "BaseExecutor", service: object) -> BaseIn
             logger.info(f"Identified an integration pattern {kls.obj}")
             integrations.append(kls.obj)
 
-    # Get all the implementations defined by the magnus package
+    # Get all the implementations defined by the runnable package
     for kls in BaseIntegration.__subclasses__():
         # Match the exact service type
         if kls.service_type == service_type and kls.service_provider == service_name:
@@ -95,7 +95,7 @@ def get_integration_handler(executor: "BaseExecutor", service: object) -> BaseIn
     if len(integrations) > 1:
         msg = (
             f"Multiple integrations between {executor.service_name} and {service_name} of type {service_type} found. "
-            "If you defined an integration pattern, please ensure it is specific and does not conflict with magnus "
+            "If you defined an integration pattern, please ensure it is specific and does not conflict with runnable "
             " implementations."
         )
         logger.exception(msg)

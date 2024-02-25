@@ -47,12 +47,12 @@ class GenericExecutor(BaseExecutor):
 
         This function is used by the decorator function.
         The design idea is we can over-ride this method in different implementations to retrieve the run_id.
-        But is it really intrusive to ask to set the environmental variable MAGNUS_RUN_ID?
+        But is it really intrusive to ask to set the environmental variable runnable_RUN_ID?
 
         Returns:
             _type_: _description_
         """
-        return os.environ.get("MAGNUS_RUN_ID", None)
+        return os.environ.get("runnable_RUN_ID", None)
 
     def _get_parameters(self) -> Dict[str, Any]:
         """
@@ -313,8 +313,8 @@ class GenericExecutor(BaseExecutor):
         try:
             attempt_log = node.execute(executor=self, mock=step_log.mock, map_variable=map_variable, **kwargs)
         except Exception as e:
-            # Any exception here is a magnus exception as node suppresses exceptions.
-            msg = "This is clearly magnus fault, please report a bug and the logs"
+            # Any exception here is a runnable exception as node suppresses exceptions.
+            msg = "This is clearly runnable fault, please report a bug and the logs"
             logger.exception(msg)
             raise Exception(msg) from e
         finally:

@@ -1,11 +1,11 @@
 As seen from the definitions of [parallel](../concepts/parallel.md) or
 [map](../concepts/map.md), the branches are pipelines
-themselves. This allows for deeply nested workflows in **magnus**.
+themselves. This allows for deeply nested workflows in **runnable**.
 
 Technically there is no limit in the depth of nesting but there are some practical considerations.
 
 
-- Not all workflow engines that magnus can transpile the workflow to support deeply nested workflows.
+- Not all workflow engines that runnable can transpile the workflow to support deeply nested workflows.
 AWS Step functions and Argo workflows support them.
 
 - Deeply nested workflows are complex to understand and debug during errors.
@@ -25,7 +25,7 @@ AWS Step functions and Argo workflows support them.
 
 === "yaml"
 
-    You can run this pipeline by ```magnus execute examples/concepts/nesting.yaml```
+    You can run this pipeline by ```runnable execute examples/concepts/nesting.yaml```
 
     ```yaml linenums="1"
     --8<-- "examples/concepts/nesting.yaml"
@@ -57,7 +57,7 @@ AWS Step functions and Argo workflows support them.
                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -96,7 +96,7 @@ AWS Step functions and Argo workflows support them.
                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -119,7 +119,7 @@ AWS Step functions and Argo workflows support them.
                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -142,7 +142,7 @@ AWS Step functions and Argo workflows support them.
                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                         "code_identifier_type": "git",
                                                         "code_identifier_dependable": true,
-                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                         "code_identifier_message": ""
                                                     }
                                                 ],
@@ -165,7 +165,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -201,7 +201,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -243,7 +243,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -279,7 +279,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -320,7 +320,7 @@ AWS Step functions and Argo workflows support them.
                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                         "code_identifier_type": "git",
                                                         "code_identifier_dependable": true,
-                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                         "code_identifier_message": ""
                                                     }
                                                 ],
@@ -362,7 +362,7 @@ AWS Step functions and Argo workflows support them.
                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                         "code_identifier_type": "git",
                                                         "code_identifier_dependable": true,
-                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                         "code_identifier_message": ""
                                                     }
                                                 ],
@@ -385,7 +385,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -421,7 +421,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -463,7 +463,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -499,7 +499,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -540,7 +540,7 @@ AWS Step functions and Argo workflows support them.
                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                         "code_identifier_type": "git",
                                                         "code_identifier_dependable": true,
-                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                         "code_identifier_message": ""
                                                     }
                                                 ],
@@ -581,7 +581,7 @@ AWS Step functions and Argo workflows support them.
                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -623,7 +623,7 @@ AWS Step functions and Argo workflows support them.
                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -646,7 +646,7 @@ AWS Step functions and Argo workflows support them.
                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                         "code_identifier_type": "git",
                                                         "code_identifier_dependable": true,
-                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                         "code_identifier_message": ""
                                                     }
                                                 ],
@@ -669,7 +669,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -705,7 +705,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -747,7 +747,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -783,7 +783,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -824,7 +824,7 @@ AWS Step functions and Argo workflows support them.
                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                         "code_identifier_type": "git",
                                                         "code_identifier_dependable": true,
-                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                         "code_identifier_message": ""
                                                     }
                                                 ],
@@ -866,7 +866,7 @@ AWS Step functions and Argo workflows support them.
                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                         "code_identifier_type": "git",
                                                         "code_identifier_dependable": true,
-                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                         "code_identifier_message": ""
                                                     }
                                                 ],
@@ -889,7 +889,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -925,7 +925,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -967,7 +967,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -1003,7 +1003,7 @@ AWS Step functions and Argo workflows support them.
                                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                                         "code_identifier_type": "git",
                                                                         "code_identifier_dependable": true,
-                                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                                         "code_identifier_message": ""
                                                                     }
                                                                 ],
@@ -1044,7 +1044,7 @@ AWS Step functions and Argo workflows support them.
                                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                                         "code_identifier_type": "git",
                                                         "code_identifier_dependable": true,
-                                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                                         "code_identifier_message": ""
                                                     }
                                                 ],
@@ -1085,7 +1085,7 @@ AWS Step functions and Argo workflows support them.
                                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -1126,7 +1126,7 @@ AWS Step functions and Argo workflows support them.
                         "code_identifier": "99139c3507898c60932ad5d35c08b395399a19f6",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],

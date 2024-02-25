@@ -193,7 +193,7 @@ def test_shell_task_type_can_gather_env_vars_on_return(mocker, monkeypatch):
     monkeypatch.setattr(tasks.ShellTaskType, "_set_parameters", mock_set_params)
     monkeypatch.setattr(tasks.ShellTaskType, "output_to_file", mock_output_to_file)
 
-    shell_task = tasks.ShellTaskType(command="export MAGNUS_PRM_x=1", node_name="dummy")
+    shell_task = tasks.ShellTaskType(command="export runnable_PRM_x=1", node_name="dummy")
 
     shell_task.execute_command()
 
@@ -214,7 +214,7 @@ def test_shell_task_type_can_gather_env_vars_on_return(mocker, monkeypatch):
     monkeypatch.setattr(tasks.ShellTaskType, "output_to_file", mock_output_to_file)
 
     shell_task = tasks.ShellTaskType(
-        command="export MAGNUS_PRM_x=1",
+        command="export runnable_PRM_x=1",
         node_name="dummy",
     )
 

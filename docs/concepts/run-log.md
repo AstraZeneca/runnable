@@ -1,6 +1,6 @@
 # Run Log
 
-Internally, magnus uses a ```run log``` to keep track of the execution of the pipeline. It
+Internally, runnable uses a ```run log``` to keep track of the execution of the pipeline. It
 also stores the parameters, experiment tracking metrics and reproducibility information captured during the execution.
 
 It should not be confused with application logs generated during the execution of a ```task``` i.e the stdout and stderr
@@ -43,7 +43,7 @@ when running the ```command``` of a task.
                       "code_identifier": "ca4c5fbff4148d3862a4738942d4607a9c4f0d88",
                       "code_identifier_type": "git",
                       "code_identifier_dependable": true,
-                      "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                      "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                       "code_identifier_message": ""
                   }
               ],
@@ -87,7 +87,7 @@ when running the ```command``` of a task.
                       "code_identifier": "ca4c5fbff4148d3862a4738942d4607a9c4f0d88",
                       "code_identifier_type": "git",
                       "code_identifier_dependable": true,
-                      "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                      "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                       "code_identifier_message": ""
                   }
               ],
@@ -131,7 +131,7 @@ when running the ```command``` of a task.
                       "code_identifier": "ca4c5fbff4148d3862a4738942d4607a9c4f0d88",
                       "code_identifier_type": "git",
                       "code_identifier_dependable": true,
-                      "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                      "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                       "code_identifier_message": ""
                   }
               ],
@@ -175,7 +175,7 @@ when running the ```command``` of a task.
                       "code_identifier": "ca4c5fbff4148d3862a4738942d4607a9c4f0d88",
                       "code_identifier_type": "git",
                       "code_identifier_dependable": true,
-                      "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                      "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                       "code_identifier_message": ""
                   }
               ],
@@ -247,7 +247,7 @@ when running the ```command``` of a task.
               the parameters and sets them back as environment variables.\nThe step
               display_again displays the updated parameters from modify_initial and updates
               them.\n\n
-              You can run this pipeline as:\n  magnus execute -f
+              You can run this pipeline as:\n  runnable execute -f
               examples/concepts/task_shell_parameters.yaml  -p examples/concepts/parameters.
               yaml\n",
               "internal_branch_name": "",
@@ -350,7 +350,7 @@ A snippet from the above example:
               "code_identifier": "ca4c5fbff4148d3862a4738942d4607a9c4f0d88",
               "code_identifier_type": "git",
               "code_identifier_dependable": true,
-              "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+              "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
               "code_identifier_message": ""
           }
       ],
@@ -509,7 +509,7 @@ reproduced in local environments and fixed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -548,7 +548,7 @@ reproduced in local environments and fixed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -594,7 +594,7 @@ reproduced in local environments and fixed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -640,7 +640,7 @@ reproduced in local environments and fixed.
                 "expose_parameters_as_inputs": true,
                 "secrets_from_k8s": [],
                 "output_file": "argo-pipeline.yaml",
-                "name": "magnus-dag-",
+                "name": "runnable-dag-",
                 "annotations": {},
                 "labels": {},
                 "activeDeadlineSeconds": 172800,
@@ -661,7 +661,7 @@ reproduced in local environments and fixed.
                 "service_account_name": "default-editor",
                 "persistent_volumes": [
                     {
-                        "name": "magnus-volume",
+                        "name": "runnable-volume",
                         "mount_path": "/mnt"
                     }
                 ],
@@ -696,7 +696,7 @@ reproduced in local environments and fixed.
             "dag": {
                 "start_at": "Setup",
                 "name": "",
-                "description": "This is a simple pipeline that demonstrates retrying failures.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
+                "description": "This is a simple pipeline that demonstrates retrying failures.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   runnable execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
                 "steps": {
                     "Setup": {
                         "type": "task",
@@ -724,7 +724,7 @@ reproduced in local environments and fixed.
                         },
                         "max_attempts": 1,
                         "command_type": "shell",
-                        "command": "echo \"Hello from magnus\" >> data/hello.txt\n",
+                        "command": "echo \"Hello from runnable\" >> data/hello.txt\n",
                         "node_name": "Create Content"
                     },
                     "Retrieve Content": {
@@ -794,7 +794,7 @@ reproduced in local environments and fixed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -815,7 +815,7 @@ reproduced in local environments and fixed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -836,7 +836,7 @@ reproduced in local environments and fixed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -882,7 +882,7 @@ reproduced in local environments and fixed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -934,7 +934,7 @@ reproduced in local environments and fixed.
             "tag": "",
             "run_id": "polynomial-bartik-2226",
             "variables": {
-                "argo_docker_image": "harbor.csis.astrazeneca.net/mlops/magnus:latest"
+                "argo_docker_image": "harbor.csis.astrazeneca.net/mlops/runnable:latest"
             },
             "use_cached": true,
             "original_run_id": "toFail",
@@ -945,7 +945,7 @@ reproduced in local environments and fixed.
     present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Clean up to get again: We remove the data folder. Note that this is stubbed
     to prevent\n  accidental deletion of your contents. You can change type to task to make really run.\n4. Retrieve Content: We \"get\" the file \"hello.txt\" from the
     catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n
-    magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
+    runnable execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
                 "steps": {
                     "Setup": {
                         "type": "task",
@@ -973,7 +973,7 @@ reproduced in local environments and fixed.
                         },
                         "max_attempts": 1,
                         "command_type": "shell",
-                        "command": "echo \"Hello from magnus\" >> data/hello.txt\n",
+                        "command": "echo \"Hello from runnable\" >> data/hello.txt\n",
                         "node_name": "Create Content"
                     },
                     "Retrieve Content": {
@@ -1065,7 +1065,7 @@ reproduced in local environments and fixed.
     >                     "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
     >                     "code_identifier_type": "git",
     >                     "code_identifier_dependable": true,
-    >                     "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+    >                     "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
     >                     "code_identifier_message": ""
     >                 }
     >             ],
@@ -1163,7 +1163,7 @@ reproduced in local environments and fixed.
     <             "expose_parameters_as_inputs": true,
     <             "secrets_from_k8s": [],
     <             "output_file": "argo-pipeline.yaml",
-    <             "name": "magnus-dag-",
+    <             "name": "runnable-dag-",
     <             "annotations": {},
     <             "labels": {},
     <             "activeDeadlineSeconds": 172800,
@@ -1184,7 +1184,7 @@ reproduced in local environments and fixed.
     <             "service_account_name": "default-editor",
     <             "persistent_volumes": [
     <                 {
-    <                     "name": "magnus-volume",
+    <                     "name": "runnable-volume",
     <                     "mount_path": "/mnt"
     <                 }
     <             ],
@@ -1215,14 +1215,14 @@ reproduced in local environments and fixed.
     ---
     >         "run_id": "polynomial-bartik-2226",
     >         "variables": {
-    >             "argo_docker_image": "harbor.csis.astrazeneca.net/mlops/magnus:latest"
+    >             "argo_docker_image": "harbor.csis.astrazeneca.net/mlops/runnable:latest"
     >         },
     >         "use_cached": true,
     >         "original_run_id": "toFail",
     208c168
-    <             "description": "This is a simple pipeline that demonstrates retrying failures.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
+    <             "description": "This is a simple pipeline that demonstrates retrying failures.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   runnable execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
     ---
-    >             "description": "This is a simple pipeline that demonstrates passing data between steps.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Clean up to get again: We remove the data folder. Note that this is stubbed to prevent\n  accidental deletion of your contents. You can change type to task to make really run.\n4. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
+    >             "description": "This is a simple pipeline that demonstrates passing data between steps.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Clean up to get again: We remove the data folder. Note that this is stubbed to prevent\n  accidental deletion of your contents. You can change type to task to make really run.\n4. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   runnable execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
     253c213
     <                     "command": "cat data/hello1.txt",
     ---
@@ -1237,10 +1237,10 @@ reproduced in local environments and fixed.
 ## API
 
 Tasks can access the ```run log``` during the execution of the step
-[using the API](../interactions.md/#magnus.get_run_log). The run log returned by this method is a deep copy
+[using the API](../interactions.md/#runnable.get_run_log). The run log returned by this method is a deep copy
 to prevent any modifications.
 
 
 Tasks can also access the ```run_id``` of the current execution either by
-[using the API](../interactions.md/#magnus.get_run_id) or by the environment
-variable ```MAGNUS_RUN_ID```.
+[using the API](../interactions.md/#runnable.get_run_id) or by the environment
+variable ```runnable_RUN_ID```.

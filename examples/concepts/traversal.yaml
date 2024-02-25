@@ -6,7 +6,7 @@ dag:
     and flesh out the steps later.
 
     You can run this pipeline by:
-    magnus execute -f examples/pipelines/traversal.yaml
+    runnable execute -f examples/pipelines/traversal.yaml
 
   start_at: step 1
   steps:

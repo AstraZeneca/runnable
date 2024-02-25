@@ -131,7 +131,7 @@ class LocalContainerExecutor(GenericExecutor):
 
 
         If the config has "run_in_local: True", we compute it on local system instead of container.
-        In local container execution, we just spin the container to execute magnus execute_single_node.
+        In local container execution, we just spin the container to execute runnable execute_single_node.
 
         Args:
             node (BaseNode): The node we are currently executing

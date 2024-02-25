@@ -292,7 +292,7 @@ class ContainerTemplate(BaseModel):
 
 class DagTemplate(BaseModel):
     # These are used for parallel, map nodes dag definition
-    name: str = "magnus-dag"
+    name: str = "runnable-dag"
     tasks: List[DagTaskTemplate] = Field(default=[], exclude=True)
     inputs: Optional[List[Parameter]] = Field(default=None, serialization_alias="inputs")
     parallelism: Optional[int] = None
@@ -561,7 +561,7 @@ def get_renderer(node):
 
 
 class MetaData(BaseModel):
-    generate_name: str = Field(default="magnus-dag-", serialization_alias="generateName")
+    generate_name: str = Field(default="runnable-dag-", serialization_alias="generateName")
     annotations: Optional[Dict[str, str]] = Field(default_factory=dict)
     labels: Optional[Dict[str, str]] = Field(default_factory=dict)
     namespace: Optional[str] = Field(default=None)
@@ -569,7 +569,7 @@ class MetaData(BaseModel):
 
 class Spec(BaseModel):
     active_deadline_seconds: int = Field(serialization_alias="activeDeadlineSeconds")
-    entrypoint: str = Field(default="magnus-dag")
+    entrypoint: str = Field(default="runnable-dag")
     node_selector: Optional[Dict[str, str]] = Field(default_factory=dict, serialization_alias="nodeSelector")
     tolerations: Optional[List[Toleration]] = Field(default=None, serialization_alias="tolerations")
     parallelism: Optional[int] = Field(default=None, serialization_alias="parallelism")
@@ -674,7 +674,7 @@ class ArgoExecutor(GenericExecutor):
     output_file: str = "argo-pipeline.yaml"
 
     # Metadata related fields
-    name: str = Field(default="magnus-dag-", description="Used as an identifier for the workflow")
+    name: str = Field(default="runnable-dag-", description="Used as an identifier for the workflow")
     annotations: Dict[str, str] = Field(default_factory=dict)
     labels: Dict[str, str] = Field(default_factory=dict)
 
@@ -994,7 +994,7 @@ class ArgoExecutor(GenericExecutor):
         return DagTaskTemplate(name=f"{clean_name}-fan-in", template=f"{clean_name}-fan-in")
 
     def _gather_task_templates_of_dag(
-        self, dag: Graph, dag_name="magnus-dag", list_of_iter_values: Optional[List] = None
+        self, dag: Graph, dag_name="runnable-dag", list_of_iter_values: Optional[List] = None
     ):
         current_node = dag.start_at
         previous_node = None

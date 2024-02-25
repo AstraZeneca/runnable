@@ -1,87 +1,80 @@
----
-title: Welcome
-sidebarDepth: 0
----
+:runner: Orchestrate python functions, notebooks or scripts on your local machine by just adding
+*one file*.
 
-<figure markdown>
-  ![Image title](assets/logo1.png){ width="400" height="300"}
-  <figcaption></figcaption>
-</figure>
+:runner: + :cloud: Move to any cloud by adding *one more file*.
 
----
+## functions
 
-Magnus is a simplified workflow definition language that helps in:
+The below content is assumed to be ```examples/functions.py```
 
-- **Streamlined Design Process:** Magnus enables users to efficiently plan their pipelines with
-[stubbed nodes](concepts/stub.md), along with offering support for various structures such as
-[tasks](concepts/task.md), [parallel branches](concepts/parallel.md), and [loops or map branches](concepts/map.md)
-in both [yaml](concepts/pipeline.md) or a [python SDK](sdk.md) for maximum flexibility.
+!!! note inline end "pydantic models"
 
-- **Incremental Development:** Build your pipeline piece by piece with Magnus, which allows for the
-implementation of tasks as [python functions](concepts/task.md/#python_functions),
-[notebooks](concepts/task.md/#notebooks), or [shell scripts](concepts/task.md/#shell),
-adapting to the developer's preferred tools and methods.
+    The functions should use pydantic models as their input and outputs.
 
-- **Robust Testing:** Ensure your pipeline performs as expected with the ability to test using sampled data. Magnus
-also provides the capability to [mock and patch tasks](configurations/executors/mocked.md)
-for thorough evaluation before full-scale deployment.
+    Pydantic models offer better representations of the input and output, inspired by
+    [FastAPI's implementation](https://fastapi.tiangolo.com/features/#pydantic-features).
 
-- **Seamless Deployment:** Transition from the development stage to production with ease.
-Magnus simplifies the process by requiring
-[only configuration changes](configurations/overview.md)
-to adapt to different environments, including support for [argo workflows](configurations/executors/argo.md).
-
-- **Efficient Debugging:** Quickly identify and resolve issues in pipeline execution with Magnus's local
-debugging features. Retrieve data from failed tasks and [retry failures](concepts/run-log.md/#retrying_failures)
-using your chosen debugging tools to maintain a smooth development experience.
+```python linenums="1"
+--8<-- "examples/functions.py"
+```
 
 
-Along with the developer friendly features, magnus also acts as an interface to production grade concepts
-such as [data catalog](concepts/catalog.md), [reproducibility](concepts/run-log.md),
-[experiment tracking](concepts/experiment-tracking.md)
-and secure [access to secrets](concepts/secrets.md).
+There is nothing special about the functions, they are *plain old python functions*.
 
-## Motivation
 
-Successful data science projects require a varied set of skills from data scientists, ML engineers, and infrastructure
-teams. Often, the roles and responsibilities of these personas are blurred leading to projects that are difficult to
-maintain, test, reproduce or run at scale.
+## local :runner:
 
-We build __**Magnus**__ to separate those concerns and create a clear boundary of the personas.
 
-## Design principles
+Replace the "driver" function with a *runnable* definition in either ```python sdk```
+or ```yaml```.
 
-- [x] Code should not be mixed with implementation details of underlying platform.
+!!! note inline end "steps"
 
-**Example**: Data and parameters are often shared between different steps of the pipeline.
-The platform implementation should not add additional code to make this happen.
+    The steps are essentially a representation of the "driver" function.
+
+    The gains by this definition for local executions are clearer by the metadata gathered
+    during the exeuction.
+
+=== "yaml"
+
+    ``` yaml linenums="1"
+    --8<-- "examples/python-tasks.yaml"
+    ```
+
+    1. Start the pipeline execution at step1
+    2. The name of the step.
+    3. The path to the python function
+    4. Go to step2, if successful
+    5. Go to success node, if successful
+    6. Mark the execution as success
 
 
 
-- [x] Interactive development/debugging should be a first-class citizen.
+=== "python"
 
+    ```python linenums="1"
+    --8<-- "examples/python-tasks.py"
+    ```
 
-**Example**: Data science teams thrive in environments with quick debug loop. Able to use their preferred tools
-and iterate without constraints of the platform aids development/debugging.
+    1. The name of the step.
+    2. The path to the python function
+    3. ```terminate_with_success``` indicates that the pipeline is completed successfully. You can also use ```terminate_with_failure``` to indicate the pipeline fail.
+    4. There are many ways to define dependencies within nodes, step1 >> step2, step1 << step2 or using depends_on.
+    5. Start the pipeline execution at step1
+    6. The list of steps to be executed, the order does not matter.
+    7. Add ```success``` and ```fail``` nodes to the pipeline.
+    8. Returns the metadata captured during the execution.
 
+=== "metadata"
 
-- [x] Align the best practices even during development phase.
+    Add the run log here
 
-**Example**: All projects require secrets to access secure content. The concept of secret should be
-available even during development phase and there should be no change in code when it is run in production set up.
+:sparkles: Thats it!! :sparkles:
 
+By adding *one file* you created a pipeline. Your application code
+did not change at all.
 
+There is no boilerplate code, no adherence to structure, no intrusion into the
+application code.
 
-
-## What does it do?
-
-Magnus is a thin abstraction layer over the services typically provided by production grade infrastructures. Independent
-of the provider, it exposes a consistent interface to those services, **this holds true even for the local environment**.
-
-<figure markdown>
-  ![Image title](assets/whatdo.png){ width="1200" height="800"}
-  <figcaption></figcaption>
-</figure>
-
-The scope of magnus is intentionally limited to aid during the model development phase.
-It does not boast of end to end development. The heavy lifting is always done by the providers.
+## cloud :runner:
