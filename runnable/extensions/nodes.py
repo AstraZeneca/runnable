@@ -1,10 +1,11 @@
+import copy
 import json
 import logging
 import multiprocessing
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, cast
+from typing import Any, Dict, Optional, cast
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_validator
 from typing_extensions import Annotated
@@ -44,7 +45,13 @@ class TaskNode(ExecutableNode):
         executable = create_task(task_config)
         return cls(executable=executable, **node_config, **task_config)
 
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         """
         All that we do in runnable is to come to this point where we actually execute the command.
 
@@ -62,9 +69,11 @@ class TaskNode(ExecutableNode):
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
+            attempt_log.input_parameters = copy.deepcopy(params)
             if not mock:
                 # Do not run if we are mocking the execution, could be useful for caching and dry runs
-                self.executable.execute_command(map_variable=map_variable)
+                output_parameters = self.executable.execute_command(map_variable=map_variable, params=params)
+                attempt_log.output_parameters = output_parameters
         except Exception as _e:  # pylint: disable=W0703
             logger.exception("Task failed")
             attempt_log.status = defaults.FAIL
@@ -88,7 +97,13 @@ class FailNode(TerminalNode):
     def parse_from_config(cls, config: Dict[str, Any]) -> "FailNode":
         return cast("FailNode", super().parse_from_config(config))
 
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         """
         Execute the failure node.
         Set the run or branch log status to failure.
@@ -105,6 +120,7 @@ class FailNode(TerminalNode):
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
+            attempt_log.input_parameters = params
             #  could be a branch or run log
             run_or_branch_log = self._context.run_log_store.get_branch_log(
                 self._get_branch_log_name(map_variable), self._context.run_id
@@ -133,7 +149,13 @@ class SuccessNode(TerminalNode):
     def parse_from_config(cls, config: Dict[str, Any]) -> "SuccessNode":
         return cast("SuccessNode", super().parse_from_config(config))
 
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         """
         Execute the success node.
         Set the run or branch log status to success.
@@ -150,6 +172,7 @@ class SuccessNode(TerminalNode):
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
+            attempt_log.input_parameters = params
             #  could be a branch or run log
             run_or_branch_log = self._context.run_log_store.get_branch_log(
                 self._get_branch_log_name(map_variable), self._context.run_id
@@ -264,6 +287,7 @@ class ParallelNode(CompositeNode):
         jobs = []
         # Given that we can have nesting and complex graphs, controlling the number of processes is hard.
         # A better way is to actually submit the job to some process scheduler which does resource management
+        # TODO: Remove this, we do not want parallel jobs in local.
         for internal_branch_name, branch in self.branches.items():
             if self._context.executor._is_parallel_execution():
                 # Trigger parallel jobs
@@ -652,7 +676,13 @@ class StubNode(ExecutableNode):
     def parse_from_config(cls, config: Dict[str, Any]) -> "StubNode":
         return cls(**config)
 
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         """
         Do Nothing node.
         We just send an success attempt log back to the caller
@@ -666,6 +696,7 @@ class StubNode(ExecutableNode):
             [type]: [description]
         """
         attempt_log = self._context.run_log_store.create_attempt_log()
+        attempt_log.input_parameters = params
 
         attempt_log.start_time = str(datetime.now())
         attempt_log.status = defaults.SUCCESS  # This is a dummy node and always will be success

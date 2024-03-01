@@ -1,33 +1,69 @@
 # Why runnable
 
-The scope of **runnable** is intentionally limited as an aid to author workflows for
-production grade orchestrators like AWS Step functions or Argo Workflows. It is designed
-to complement them, **NOT** replace them.
+**runnable** allows the data scientists/engineers to hook into production stack without
+explicit knowledge of them. It offers a simpler abstraction of the concepts found in
+production stack thereby aligning to the production standards even during development.
 
-### Simplified flow of data
+**runnable** is not a end to end deployment platform but limited to be an aid during
+the developement phase without modifying the production stack or application code.
 
-Production-grade orchestrators excel at managing a series of independent tasks, offering
-straightforward implementation for task orchestration. Nonetheless, due to their general-purpose
-design, orchestrating the flow of data—whether parameters or artifacts—can introduce complexity and
-require careful handling.
+<div class="grid cards" markdown>
 
-runnable simplifies this aspect by introducing an [intuitive mechanism for data flow](example/dataflow.md),
-thereby streamlining data management. This approach allows the orchestrators to focus on their core
-competency: allocating the necessary computational resources for task execution.
+-   :material-clock-fast:{ .lg .middle } __Easy to pickup, its mostly your code__
 
-### Local first
+    ---
 
-In the context of the project's proof-of-concept (PoC) phase, the utilization of production-level
- orchestration systems is not optimal due to their complexity and potential constraints on rapid
- experimentation. Data scientists require an environment that aligns with their established workflows,
- which is most effectively achieved through the use of local development tools.
+    Adding **runnable** to your application is as simple as adding 2 files to your
+    application without changing your application code.
 
-runnable serves as an intermediary stage, simulating the production environment by offering [local
-versions](configurations/overview.md/) of essential services—such as execution engines, data catalogs, secret management, and
-experiment tracking—without necessitating intricate configuration. As the project transitions into the
-production phase, these local stand-ins are replaced with their robust, production-grade counterparts.
+    [:octicons-arrow-right-24: Getting started](#)
 
-### Reduce refactoring
+-   :fontawesome-brands-markdown:{ .lg .middle } __It's just Markdown__
+
+    ---
+
+    Focus on your content and generate a responsive and searchable static site
+
+    [:octicons-arrow-right-24: Reference](#)
+
+-   :material-format-font:{ .lg .middle } __Made to measure__
+
+    ---
+
+    Change the colors, fonts, language, icons, logo and more with a few lines
+
+    [:octicons-arrow-right-24: Customization](#)
+
+-   :material-scale-balance:{ .lg .middle } __Open Source, MIT__
+
+    ---
+
+    Material for MkDocs is licensed under MIT and available on [GitHub]
+
+    [:octicons-arrow-right-24: License](#)
+
+</div>
+
+#### Simplified flow of data
+
+Passing parameters or data artifacts between steps in airflow, argo or aws step step functions
+is not trivial and requires code to be structured in a specific way. **runnable** handles
+that for you in a fashion similar to code written without any orchestration detail.
+
+#### Local first
+
+Production stacks are ideal for the end state of the application. They are painful to use
+during proof-of-concept (PoC) phase. **runnable** bridges the local setup to production stack
+by adding just one file.
+
+
+#### Bring your own stack
+
+**runnable** can be used to bridge your application code into most commonly used production
+stacks. It does not impose a change to either your production stack or application code.
+
+
+#### Reduce refactoring
 
 Transitioning from the proof of concept (PoC) phase to production often necessitates extensive code
 refactoring, which presents significant challenges:

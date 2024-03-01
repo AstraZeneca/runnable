@@ -47,17 +47,20 @@ TypeMapVariable: TypeAlias = Optional[Dict[str, Union[str, int, float]]]
 
 
 # Config file environment variable
-runnable_CONFIG_FILE = "runnable_CONFIG_FILE"
-runnable_RUN_TAG = "runnable_RUN_TAG"
+RUNNABLE_CONFIG_FILE = "RUNNABLE_CONFIG_FILE"
+RUNNABLE_RUN_TAG = "RUNNABLE_RUN_TAG"
 
 # Interaction settings
-TRACK_PREFIX = "runnable_TRACK_"
+TRACK_PREFIX = "RUNNABLE_TRACK_"
 STEP_INDICATOR = "_STEP_"
-PARAMETER_PREFIX = "runnable_PRM_"
-MAP_VARIABLE = "runnable_MAP_VARIABLE"
-VARIABLE_PREFIX = "runnable_VAR_"
-ENV_RUN_ID = "runnable_RUN_ID"
-ATTEMPT_NUMBER = "runnable_STEP_ATTEMPT"
+PARAMETER_PREFIX = "RUNNABLE_PRM_"
+MAP_VARIABLE = "RUNNABLE_MAP_VARIABLE"
+VARIABLE_PREFIX = "RUNNABLE_VAR_"
+ENV_RUN_ID = "RUNNABLE_RUN_ID"
+ATTEMPT_NUMBER = "RUNNABLE_STEP_ATTEMPT"
+
+## Generated pipeline file
+GENERATED_PIPELINE_FILE = "generated_pipeline.yaml"
 
 # STATUS progression
 # For Branch, CREATED -> PROCESSING -> SUCCESS OR FAIL

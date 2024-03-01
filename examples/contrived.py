@@ -29,6 +29,8 @@ def main():
     run_log = pipeline.execute()  # (5)
     print(run_log)
 
+    return pipeline
+
 
 if __name__ == "__main__":
     main()

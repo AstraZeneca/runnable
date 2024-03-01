@@ -53,7 +53,8 @@ class StepAttempt(BaseModel):
     duration: str = ""  #  end_time - start_time
     status: str = "FAIL"
     message: str = ""
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    input_parameters: Dict[str, Any] = Field(default_factory=dict)
+    output_parameters: Dict[str, Any] = Field(default_factory=dict)
 
 
 class CodeIdentity(BaseModel, extra="allow"):

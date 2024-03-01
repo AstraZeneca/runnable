@@ -121,14 +121,13 @@ nav:
       #     - "Secrets": "example/secrets.md"
       #     - "Retry failures": "example/retry-after-failure.md"
       - "Why runnable?": "why-runnable.md"
-  - "Concepts":
+  - "Define pipeline":
       - "tl;dr": "concepts/the-big-picture.md"
       - "Pipeline": "concepts/pipeline.md"
-      - "Executor": "concepts/executor.md"
-      - "Parameters": "concepts/parameters.md"
-      - "Run log": "concepts/run-log.md"
+      # - "Executor": "concepts/executor.md"
+      #- "Parameters": "concepts/parameters.md"
       - "Catalog": "concepts/catalog.md"
-      - "Experiment tracking": "concepts/experiment-tracking.md"
+      # - "Experiment tracking": "concepts/experiment-tracking.md"
       - "Secrets": "concepts/secrets.md"
       - "Nodes":
           - "Stub": "concepts/stub.md"
@@ -136,19 +135,21 @@ nav:
           - "Parallel": "concepts/parallel.md"
           - "Map": "concepts/map.md"
           - "Nesting": "concepts/nesting.md"
-  - "Configurations":
+      - "Reproducibility": "concepts/run-log.md"
+  - "Run pipeline":
       - "Overview": "configurations/overview.md"
       - "Executor":
           - "local": "configurations/executors/local.md"
           - "mocked": "configurations/executors/mocked.md"
+          - "retry": "configurations/executors/mocked.md"
           - "local-container": "configurations/executors/local-container.md"
           - "argo workflows": "configurations/executors/argo.md"
           - "container environments": "configurations/executors/container-environments.md"
       - "Run log": "configurations/run-log.md"
       - "Catalog": "configurations/catalog.md"
       - "Secrets": "configurations/secrets.md"
-      - "Experiment tracking": "configurations/experiment-tracking.md"
+      # - "Experiment tracking": "configurations/experiment-tracking.md"
   - "Python API": "interactions.md"
   - "Python SDK": "sdk.md"
   - "Extensions": "extensions.md"
-  - "Roadmap": "roadmap.md"
+  # - "Roadmap": "roadmap.md"

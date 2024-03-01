@@ -25,7 +25,9 @@ def create_executable(params: Dict[str, Any], model: Type[BaseTaskType], node_na
 
 class MockedExecutor(GenericExecutor):
     service_name: str = "mocked"
+    _local_executor: bool = True
 
+    # TODO: This needs to go away
     enable_parallel: bool = defaults.ENABLE_PARALLEL
 
     patches: Dict[str, Any] = Field(default_factory=dict)
@@ -119,6 +121,7 @@ class MockedExecutor(GenericExecutor):
         self.prepare_for_node_execution()
         self.execute_node(node=node, map_variable=map_variable, **kwargs)
 
+    # TODO: This needs to go away
     def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
@@ -195,7 +198,7 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
     Integration between local container and file system run log store
     """
 
-    executor_type = "local-container"
+    executor_type = "mocked"
     service_type = "run_log_store"  # One of secret, catalog, datastore
     service_provider = "file-system"  # The actual implementation of the service
 
@@ -210,7 +213,7 @@ class LocalContainerComputeChunkedFSRunLogstore(BaseIntegration):
     Integration between local container and file system run log store
     """
 
-    executor_type = "local-container"
+    executor_type = "mocked"
     service_type = "run_log_store"  # One of secret, catalog, datastore
     service_provider = "chunked-fs"  # The actual implementation of the service
 

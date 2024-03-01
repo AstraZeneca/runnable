@@ -83,11 +83,11 @@ either in python or yaml without cluttering your application code.
 def main():
     from runnable import Pipeline, Task
 
-    display = Task(name="display", command="examples.parameters.display")
+    display = Task(name="display", command="examples.parameters_api.display")
 
     set_and_get = Task(
         name="set_and_get",
-        command="examples.parameters.set_and_get",
+        command="examples.parameters_api.set_and_get",
         terminate_with_success=True,
     )
 

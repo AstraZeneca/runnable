@@ -665,6 +665,7 @@ class Override(BaseModel):
 
 class ArgoExecutor(GenericExecutor):
     service_name: str = "argo"
+    _local: bool = False
 
     model_config = ConfigDict(extra="forbid")
 

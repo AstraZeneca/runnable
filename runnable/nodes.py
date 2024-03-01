@@ -274,7 +274,13 @@ class BaseNode(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         """
         The actual function that does the execution of the command in the config.
 
@@ -449,7 +455,13 @@ class CompositeNode(TraversalNode):
     def _get_max_attempts(self) -> int:
         raise Exception("This is a composite node and does not have a max_attempts")
 
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         raise Exception("This is a composite node and does not have an execute function")
 
 

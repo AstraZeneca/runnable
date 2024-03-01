@@ -15,28 +15,28 @@ dag:
       type: task
       command_type: shell
       command: |
-        env | grep 'runnable_PRM_'
-      # runnable_PRM_spam="Hello"
-      # runnable_PRM_eggs={"ham": "Yes, please!!"}
+        env
       next: modify initial
     modify initial:
       type: task
       command_type: shell
+      returns:
+        - spam
+        - eggs
       command: |
-        export runnable_PRM_spam='World' && \
-        export runnable_PRM_eggs='{"ham": "No, Thank you!!"}'
+        export spam='World'
+        export eggs='{"ham": "No, Thank you!!"}'
       next: display again
     display again:
       type: task
       command_type: shell
+      returns:
+        - spam
+        - eggs
       command: |
-        env | grep 'runnable_PRM_' && \
-        export runnable_PRM_spam='Universe' && \
-        export runnable_PRM_eggs='{"ham": "Maybe, one more.."}'
-      # prints
-      # runnable_PRM_spam="World"
-      # runnable_PRM_eggs={"ham": "No, Thank you!!"}
-      # and sets new values
+        env && \
+        export spam='Universe' && \
+        export eggs='{"ham": "Maybe, one more.."}'
       next: success
     success:
       type: success

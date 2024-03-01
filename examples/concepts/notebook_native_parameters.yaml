@@ -18,6 +18,9 @@ dag:
       type: task
       command_type: notebook
       command: examples/concepts/notebook_native_parameters.ipynb
+      returns:
+        - spam
+        - eggs
       next: success
     success:
       type: success

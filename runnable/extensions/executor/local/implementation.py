@@ -25,6 +25,7 @@ class LocalExecutor(GenericExecutor):
     """
 
     service_name: str = "local"
+    _local: bool = True
 
     def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """

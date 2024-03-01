@@ -117,6 +117,7 @@ class GenericExecutor(BaseExecutor):
         # Consolidate and get the parameters
         parameters = self._get_parameters()
 
+        # TODO: This needs to go away
         if self._context.use_cached:
             self._set_up_for_re_run(parameters=parameters)
 
@@ -300,6 +301,8 @@ class GenericExecutor(BaseExecutor):
         We set them as environment variables, serialized as json strings.
         """
         params = self._context.run_log_store.get_parameters(run_id=self._context.run_id)
+        params_copy = copy.deepcopy(params)
+        # This is only for the API to work.
         parameters.set_user_defined_params_as_environment_variables(params)
 
         attempt = self.step_attempt_number
@@ -311,7 +314,13 @@ class GenericExecutor(BaseExecutor):
 
         data_catalogs_get: Optional[List[DataCatalog]] = self._sync_catalog(step_log, stage="get")
         try:
-            attempt_log = node.execute(executor=self, mock=step_log.mock, map_variable=map_variable, **kwargs)
+            attempt_log = node.execute(
+                executor=self,
+                mock=step_log.mock,
+                map_variable=map_variable,
+                params=params,
+                **kwargs,
+            )
         except Exception as e:
             # Any exception here is a runnable exception as node suppresses exceptions.
             msg = "This is clearly runnable fault, please report a bug and the logs"
@@ -319,14 +328,12 @@ class GenericExecutor(BaseExecutor):
             raise Exception(msg) from e
         finally:
             attempt_log.attempt_number = attempt
-            attempt_log.parameters = params.copy()
             step_log.attempts.append(attempt_log)
 
             tracked_data = get_tracked_data()
 
             self._context.experiment_tracker.publish_data(tracked_data)
-            # By this point, the updated parameters are deserialized as json strings.
-            parameters_out = parameters.get_user_set_parameters(remove=True)
+            parameters_out = attempt_log.output_parameters
 
             if attempt_log.status == defaults.FAIL:
                 logger.exception(f"Node: {node} failed")
@@ -339,10 +346,12 @@ class GenericExecutor(BaseExecutor):
                 step_log.status = defaults.SUCCESS
                 self._sync_catalog(step_log, stage="put", synced_catalogs=data_catalogs_get)
                 step_log.user_defined_metrics = tracked_data
-                diff_parameters = utils.diff_dict(params, parameters_out)
+
+                diff_parameters = utils.diff_dict(params_copy, parameters_out)
                 self._context.run_log_store.set_parameters(self._context.run_id, diff_parameters)
 
             # Remove the step context
+            parameters.get_user_set_parameters(remove=True)
             self._context_step_log = None
             self._context_node = None  # type: ignore
             self._context_metrics = {}  # type: ignore
@@ -400,6 +409,7 @@ class GenericExecutor(BaseExecutor):
             self._execute_node(node, map_variable=map_variable, **kwargs)
             return
 
+        # TODO: This needs to go away
         # In single step
         if (self._single_step and not node.name == self._single_step) or not self._is_step_eligible_for_rerun(
             node, map_variable=map_variable
@@ -533,6 +543,7 @@ class GenericExecutor(BaseExecutor):
             run_log = self._context.run_log_store.get_run_log_by_id(run_id=self._context.run_id, full=True)
         print(json.dumps(run_log.model_dump(), indent=4))
 
+    # TODO: This needs to go away
     def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is

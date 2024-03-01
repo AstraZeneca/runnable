@@ -1,5 +1,8 @@
+import importlib
 import json
 import logging
+import os
+import sys
 from typing import Optional, cast
 
 from rich import print
@@ -113,20 +116,36 @@ def prepare_configurations(
     )
 
     if pipeline_file:
-        # There are use cases where we are only preparing the executor
-        pipeline_config = utils.load_yaml(pipeline_file)
+        if pipeline_file.endswith(".py"):
+            # There are use cases where we are only preparing the executor
+            module_file = pipeline_file.strip(".py")
+            module, func = utils.get_module_and_attr_names(module_file)
+            sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
+            imported_module = importlib.import_module(module)
 
-        logger.info("The input pipeline:")
-        logger.info(json.dumps(pipeline_config, indent=4))
+            os.environ["RUNNABLE_PY_TO_YAML"] = "true"
+            dag = getattr(imported_module, func)().return_dag()
 
-        # Create the graph
-        dag_config = pipeline_config["dag"]
-        dag_hash = utils.get_dag_hash(dag_config)
-        dag = graph.create_graph(dag_config)
+        else:
+            pipeline_config = utils.load_yaml(pipeline_file)
+
+            logger.info("The input pipeline:")
+            logger.info(json.dumps(pipeline_config, indent=4))
+
+            dag_config = pipeline_config["dag"]
+
+            dag_hash = utils.get_dag_hash(dag_config)
+            dag = graph.create_graph(dag_config)
+            run_context.dag_hash = dag_hash
+
+        print("#######")
+        print(type(dag))
+        print(dag)
+
+        print("#######")
 
         run_context.pipeline_file = pipeline_file
         run_context.dag = dag
-        run_context.dag_hash = dag_hash
 
     run_context.use_cached = False
     if use_cached:
@@ -247,6 +266,8 @@ def execute_single_node(
     executor.send_return_code(stage="execution")
 
 
+# TODO: If we remove run parallel, we can delete this function.
+# TODO: This needs to go away
 def execute_single_brach(
     configuration_file: str,
     pipeline_file: str,

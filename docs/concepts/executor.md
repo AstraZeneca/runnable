@@ -1,3 +1,6 @@
+
+## TODO: Simplify
+
 Executors are the heart of runnable, they traverse the workflow and execute the tasks within the
 workflow while coordinating with different services
 (eg. [run log](../concepts/run-log.md), [catalog](../concepts/catalog.md), [secrets](../concepts/secrets.md) etc)

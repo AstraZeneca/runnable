@@ -34,11 +34,14 @@ class BaseExecutor(ABC, BaseModel):
     service_name: str = ""
     service_type: str = "executor"
 
+    # TODO: This needs to go away
     enable_parallel: bool = defaults.ENABLE_PARALLEL
     overrides: dict = {}
 
+    # TODO: This needs to go away
     _previous_run_log: Optional[RunLog] = None
     _single_step: str = ""
+    _local: bool = False  # This is a flag to indicate whether the executor is local or not.
 
     _context_step_log = None  # type : StepLog
     _context_node = None  # type: BaseNode
@@ -48,6 +51,7 @@ class BaseExecutor(ABC, BaseModel):
     def _context(self):
         return context.run_context
 
+    # TODO: This needs to go away
     def _is_parallel_execution(self) -> bool:
         """
         Controls the parallelization of branches in map and parallel state.
@@ -72,6 +76,7 @@ class BaseExecutor(ABC, BaseModel):
         """
         ...
 
+    # TODO: This needs to go away
     @abstractmethod
     def _set_up_for_re_run(self, parameters: Dict[str, Any]) -> None:
         """
@@ -304,6 +309,7 @@ class BaseExecutor(ABC, BaseModel):
         """
         ...
 
+    # TODO: This needs to go away
     @abstractmethod
     def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """

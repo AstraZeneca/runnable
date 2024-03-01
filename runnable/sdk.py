@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_validator, model_validator
 from rich import print
-from ruamel.yaml import YAML
 from typing_extensions import Self
 
 from runnable import defaults, entrypoints, graph, utils
@@ -105,6 +104,9 @@ class BaseTraversal(ABC, BaseModel):
     @abstractmethod
     def create_node(self) -> TraversalNode:
         ...
+
+
+## TODO: Add python task, shell task, and notebook task.
 
 
 class Task(BaseTraversal):
@@ -385,6 +387,9 @@ class Pipeline(BaseModel):
 
         self._dag.check_graph()
 
+    def return_dag(self) -> graph.Graph:
+        return self._dag
+
     def execute(
         self,
         configuration_file: str = "",
@@ -393,7 +398,6 @@ class Pipeline(BaseModel):
         parameters_file: str = "",
         use_cached: str = "",
         log_level: str = defaults.LOG_LEVEL,
-        output_pipeline_definition: str = "runnable-pipeline.yaml",
     ):
         """
         *Execute* the Pipeline.
@@ -424,13 +428,17 @@ class Pipeline(BaseModel):
 
                 Only applicable for the execution via SDK for non ```local``` executors.
         """
-        from runnable.extensions.executor.local.implementation import LocalExecutor
-        from runnable.extensions.executor.mocked.implementation import MockedExecutor
+
+        # py_to_yaml is used by non local executors to generate the yaml representation of the pipeline.
+        py_to_yaml = os.environ.get("RUNNABLE_PY_TO_YAML", "false")
+
+        if py_to_yaml == "true":
+            return
 
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)
-        configuration_file = os.environ.get("runnable_CONFIGURATION_FILE", configuration_file)
+        configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
         run_context = entrypoints.prepare_configurations(
             configuration_file=configuration_file,
             run_id=run_id,
@@ -449,17 +457,14 @@ class Pipeline(BaseModel):
         print("Working with context:")
         print(run_context)
 
-        if not (isinstance(run_context.executor, LocalExecutor) or isinstance(run_context.executor, MockedExecutor)):
-            logger.debug(run_context.dag.model_dump(by_alias=True))
-            yaml = YAML()
+        if not run_context.executor._local:
+            # We are working with non local executor
+            import inspect
 
-            with open(output_pipeline_definition, "w", encoding="utf-8") as f:
-                yaml.dump(
-                    {"dag": run_context.dag.model_dump(by_alias=True, exclude_none=True)},
-                    f,
-                )
+            caller_stack = inspect.stack()[1]
+            module_to_call = f"{caller_stack.filename.replace('/', '.').replace('.py', '')}.{caller_stack.function}"
 
-            return
+            run_context.pipeline_file = f"{module_to_call}.py"
 
         # Prepare for graph execution
         run_context.executor.prepare_for_graph_execution()
@@ -467,4 +472,5 @@ class Pipeline(BaseModel):
         logger.info("Executing the graph")
         run_context.executor.execute_graph(dag=run_context.dag)
 
-        return run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id)
+        if run_context.executor._local:
+            return run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id)

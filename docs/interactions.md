@@ -1,7 +1,7 @@
 # API Reference of runnable functions
 
 
-::: runnable.get_parameter
+<!-- ::: runnable.get_parameter
     options:
         show_root_heading: true
 
@@ -11,7 +11,7 @@
     options:
         show_root_heading: true
 
-<hr style="border:2px dotted orange">
+<hr style="border:2px dotted orange"> -->
 
 ::: runnable.get_from_catalog
     options:
@@ -57,7 +57,7 @@
     options:
         show_root_heading: true
 
-<hr style="border:2px dotted orange">
+<!-- <hr style="border:2px dotted orange">
 
 ::: runnable.track_this
     options:
@@ -68,4 +68,4 @@
 
 ::: runnable.get_experiment_tracker_context
     options:
-        show_root_heading: true
+        show_root_heading: true -->

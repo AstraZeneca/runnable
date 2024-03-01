@@ -608,10 +608,10 @@ def set_runnable_environment_variables(run_id: str = "", configuration_file: str
         os.environ[defaults.ENV_RUN_ID] = run_id
 
     if configuration_file:
-        os.environ[defaults.runnable_CONFIG_FILE] = configuration_file
+        os.environ[defaults.RUNNABLE_CONFIG_FILE] = configuration_file
 
     if tag:
-        os.environ[defaults.runnable_RUN_TAG] = tag
+        os.environ[defaults.RUNNABLE_RUN_TAG] = tag
 
 
 def gather_variables() -> dict:

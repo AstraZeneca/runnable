@@ -58,6 +58,11 @@ def track_this(step: int = 0, **kwargs):
         os.environ[prefix + key + f"{defaults.STEP_INDICATOR}{step}"] = json.dumps(value)
 
 
+# TODO: Do we need the API for parameters?
+# If we still want them, what takes precedence? API or returns?
+# Once we decide that, collect the parameters and update them in tasks
+
+
 @check_context
 def set_parameter(**kwargs) -> None:
     """
