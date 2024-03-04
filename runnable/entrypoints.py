@@ -117,7 +117,7 @@ def prepare_configurations(
 
     if pipeline_file:
         if pipeline_file.endswith(".py"):
-            # There are use cases where we are only preparing the executor
+            # converting a pipeline defined in python to a dag in yaml
             module_file = pipeline_file.strip(".py")
             module, func = utils.get_module_and_attr_names(module_file)
             sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
@@ -137,12 +137,6 @@ def prepare_configurations(
             dag_hash = utils.get_dag_hash(dag_config)
             dag = graph.create_graph(dag_config)
             run_context.dag_hash = dag_hash
-
-        print("#######")
-        print(type(dag))
-        print(dag)
-
-        print("#######")
 
         run_context.pipeline_file = pipeline_file
         run_context.dag = dag
@@ -264,57 +258,6 @@ def execute_single_node(
     executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
 
     executor.send_return_code(stage="execution")
-
-
-# TODO: If we remove run parallel, we can delete this function.
-# TODO: This needs to go away
-def execute_single_brach(
-    configuration_file: str,
-    pipeline_file: str,
-    branch_name: str,
-    map_variable: str,
-    run_id: str,
-    tag: str,
-):
-    """
-    The entry point into executing a branch of the graph. Interactive modes in parallel runs use this to execute
-    branches in parallel.
-
-    This entry point is never used by its own but rather from a node. So the arguments sent into this are fewer.
-
-    Args:
-        variables_file (str): The variables file, if used or None
-        branch_name : The name of the branch to execute, in dot.path.convention
-        pipeline_file (str): The config/dag file
-        run_id (str): The run id of the run.
-        tag (str): If a tag is provided at the run time
-    """
-    from runnable import nodes
-
-    run_context = prepare_configurations(
-        configuration_file=configuration_file,
-        pipeline_file=pipeline_file,
-        run_id=run_id,
-        tag=tag,
-        use_cached="",
-    )
-    print("Working with context:")
-    print(run_context)
-
-    executor = run_context.executor
-    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
-
-    branch_internal_name = nodes.BaseNode._get_internal_name_from_command_name(branch_name)
-
-    map_variable_dict = utils.json_to_ordered_dict(map_variable)
-
-    branch_to_execute = graph.search_branch_by_internal_name(run_context.dag, branch_internal_name)  # type: ignore
-
-    logger.info("Executing the single branch of %s", branch_to_execute)
-    executor.execute_graph(dag=branch_to_execute, map_variable=map_variable_dict)
-
-    executor.send_return_code()
 
 
 def execute_notebook(

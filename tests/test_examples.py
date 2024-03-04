@@ -11,33 +11,22 @@ from runnable import exceptions
 # (file, is_fail?, kwargs)
 examples = [
     ("concepts/catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
-    # ("concepts/experiment_tracking_env.yaml", False, {}),
-    # ("concepts/experiment_tracking_env_step.yaml", False, {}),
     ("concepts/map.yaml", False, {}),
     ("concepts/map_shell.yaml", False, {}),
     ("concepts/nesting.yaml", False, {}),
-    # ("concepts/notebook_api_parameters.yaml", False, {"parameters_file": "examples/concepts/parameters.yaml"}),
-    # ("concepts/notebook_env_parameters.yaml", False, {"parameters_file": "examples/concepts/parameters.yaml"}),
     ("concepts/notebook_native_parameters.yaml", False, {"parameters_file": "examples/concepts/parameters.yaml"}),
     ("concepts/parallel.yaml", False, {}),
     ("concepts/simple_notebook.yaml", False, {}),
     ("concepts/simple.yaml", False, {}),
-    # ("concepts/task_shell_parameters.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
-    # ("concepts/task_shell_simple.yaml", False, {}),
     ("concepts/traversal.yaml", False, {}),
     ("catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
-    # ("contrived.yaml", False, {}),
     ("default-fail.yaml", True, {}),
-    # ("experiment_tracking_env.yaml", True, {}),
     ("logging.yaml", False, {}),
     ("mocking.yaml", False, {}),
     ("on-failure.yaml", False, {}),
     ("parallel-fail.yaml", True, {}),
-    # ("parameters_env.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
     ("parameters_flow.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
     ("python-tasks.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
-    # ("retry-fail.yaml", True, {"configuration_file": "examples/configs/fs-catalog-run_log.yaml"}),
-    # ("retry-fixed.yaml", False, {"configuration_file": "examples/configs/fs-catalog-run_log.yaml"}),
 ]
 
 
@@ -112,26 +101,18 @@ python_examples = [
     ("catalog", False, None),
     ("catalog_api", False, None),
     ("catalog_simple", False, None),
-    # ("contrived", False, None),
     ("mocking", False, None),
     ("on_failure", False, None),
-    # ("parameters_api", False, None),
     ("parameters", False, None),
     ("python-tasks", False, None),
     ("secrets", False, None),
-    # ("secrets_env", False, secrets_env_context),
     ("concepts.catalog", False, None),
     ("concepts.catalog_api", False, None),
     ("concepts.catalog_object", False, None),
-    # ("concepts.experiment_tracking_api", False, None),
-    # ("concepts.experiment_tracking_env", False, None),
-    # ("concepts.experiment_tracking_step", False, None),
     ("concepts.map", False, None),
     ("concepts.nesting", False, None),
     ("concepts.parallel", False, None),
     ("concepts.simple", False, None),
-    # ("concepts.task_api_parameters", False, None),
-    # ("concepts.task_env_parameters", False, None),
     ("concepts.task_native_parameters", False, None),
     ("concepts.traversal", False, None),
 ]
@@ -143,7 +124,7 @@ def list_python_examples():
 
 
 @pytest.mark.parametrize("example", list_python_examples())
-# @pytest.mark.no_cover
+@pytest.mark.no_cover
 @pytest.mark.e2e
 def test_python_examples(example):
     print(f"Testing {example}...")

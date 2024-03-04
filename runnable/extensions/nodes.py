@@ -1,7 +1,5 @@
 import copy
-import json
 import logging
-import multiprocessing
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
@@ -280,36 +278,11 @@ class ParallelNode(CompositeNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-        from runnable import entrypoints
 
         self.fan_out(map_variable=map_variable, **kwargs)
 
-        jobs = []
-        # Given that we can have nesting and complex graphs, controlling the number of processes is hard.
-        # A better way is to actually submit the job to some process scheduler which does resource management
-        # TODO: Remove this, we do not want parallel jobs in local.
-        for internal_branch_name, branch in self.branches.items():
-            if self._context.executor._is_parallel_execution():
-                # Trigger parallel jobs
-                action = entrypoints.execute_single_brach
-                kwargs = {
-                    "configuration_file": self._context.configuration_file,
-                    "pipeline_file": self._context.pipeline_file,
-                    "branch_name": internal_branch_name.replace(" ", defaults.COMMAND_FRIENDLY_CHARACTER),
-                    "run_id": self._context.run_id,
-                    "map_variable": json.dumps(map_variable),
-                    "tag": self._context.tag,
-                }
-                process = multiprocessing.Process(target=action, kwargs=kwargs)
-                jobs.append(process)
-                process.start()
-
-            else:
-                # If parallel is not enabled, execute them sequentially
-                self._context.executor.execute_graph(branch, map_variable=map_variable, **kwargs)
-
-        for job in jobs:
-            job.join()  # Find status of the branches
+        for _, branch in self.branches.items():
+            self._context.executor.execute_graph(branch, map_variable=map_variable, **kwargs)
 
         self.fan_in(map_variable=map_variable, **kwargs)
 
@@ -442,7 +415,6 @@ class MapNode(CompositeNode):
             map_variable (dict): The map variables the graph belongs to
             **kwargs: Optional kwargs passed around
         """
-        from runnable import entrypoints
 
         iterate_on = None
         try:
@@ -457,34 +429,11 @@ class MapNode(CompositeNode):
 
         self.fan_out(map_variable=map_variable, **kwargs)
 
-        jobs = []
-        # Given that we can have nesting and complex graphs, controlling the number of processess is hard.
-        # A better way is to actually submit the job to some process scheduler which does resource management
         for iter_variable in iterate_on:
             effective_map_variable = map_variable or OrderedDict()
             effective_map_variable[self.iterate_as] = iter_variable
 
-            if self._context.executor._is_parallel_execution():
-                # Trigger parallel jobs
-                action = entrypoints.execute_single_brach
-                kwargs = {
-                    "configuration_file": self._context.configuration_file,
-                    "pipeline_file": self._context.pipeline_file,
-                    "branch_name": self.branch.internal_branch_name.replace(" ", defaults.COMMAND_FRIENDLY_CHARACTER),
-                    "run_id": self._context.run_id,
-                    "map_variable": json.dumps(effective_map_variable),
-                    "tag": self._context.tag,
-                }
-                process = multiprocessing.Process(target=action, kwargs=kwargs)
-                jobs.append(process)
-                process.start()
-
-            else:
-                # If parallel is not enabled, execute them sequentially
-                self._context.executor.execute_graph(self.branch, map_variable=effective_map_variable, **kwargs)
-
-        for job in jobs:
-            job.join()
+            self._context.executor.execute_graph(self.branch, map_variable=effective_map_variable, **kwargs)
 
         self.fan_in(map_variable=map_variable, **kwargs)
 

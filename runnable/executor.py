@@ -34,8 +34,6 @@ class BaseExecutor(ABC, BaseModel):
     service_name: str = ""
     service_type: str = "executor"
 
-    # TODO: This needs to go away
-    enable_parallel: bool = defaults.ENABLE_PARALLEL
     overrides: dict = {}
 
     # TODO: This needs to go away
@@ -50,20 +48,6 @@ class BaseExecutor(ABC, BaseModel):
     @property
     def _context(self):
         return context.run_context
-
-    # TODO: This needs to go away
-    def _is_parallel_execution(self) -> bool:
-        """
-        Controls the parallelization of branches in map and parallel state.
-        Defaults to False and left for the compute modes to decide.
-
-        Interactive executors like local and local-container need decisions.
-        For most transpilers it is inconsequential as its always True and supported by platforms.
-
-        Returns:
-            bool: True if the execution allows parallel execution of branches.
-        """
-        return self.enable_parallel
 
     @abstractmethod
     def _get_parameters(self) -> Dict[str, Any]:
