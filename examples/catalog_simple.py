@@ -6,21 +6,20 @@ Run this pipeline by:
 
 """
 
-from runnable import Catalog, Pipeline, Task
+from runnable import Catalog, Pipeline, ShellTask
 
 
 def main():
     # Make the data folder if it does not exist
-    set_up = Task(name="Setup", command="mkdir -p data", command_type="shell")
+    set_up = ShellTask(name="Setup", command="mkdir -p data")
 
     # create a catalog instruction to put a file into the catalog
     create_catalog = Catalog(put=["data/hello.txt"])
     # This task will create a file in the data folder and attaches the instruction
     # to put the file into the catalog.
-    create = Task(
+    create = ShellTask(
         name="Create Content",
         command='echo "Hello from runnable" >> data/hello.txt',
-        command_type="shell",
         catalog=create_catalog,
         terminate_with_success=True,
     )

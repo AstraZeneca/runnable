@@ -54,23 +54,23 @@ def consume(eggs: EggsModel):
 
 
 def main():
-    from runnable import Pipeline, Task
+    from runnable import Pipeline, PythonTask
 
-    modify = Task(
+    modify = PythonTask(
         name="Modify",
-        command="examples.concepts.task_native_parameters.modify_initial",
+        function=modify_initial,
     )
 
-    consume = Task(
+    consume_parameters = PythonTask(
         name="Consume",
-        command="examples.concepts.task_native_parameters.consume",
+        function=consume,
         terminate_with_success=True,
     )
 
-    modify >> consume
+    modify >> consume_parameters
 
     pipeline = Pipeline(
-        steps=[modify, consume],
+        steps=[modify, consume_parameters],
         start_at=modify,
         add_terminal_nodes=True,
     )

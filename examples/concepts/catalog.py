@@ -38,37 +38,36 @@ def retrieve_content_from_both():
 
 
 def main():
-    from runnable import Catalog, Pipeline, Task
+    from runnable import Catalog, Pipeline, PythonTask, ShellTask
 
     # This step creates a file in the data folder and syncs it to the catalog.
     data_catalog = Catalog(put=["data/hello.txt"])
-    data_create = Task(
+    data_create = PythonTask(
         name="create_content_in_data_folder",
-        command="examples.concepts.catalog.create_content_in_data_folder",
+        function=create_content_in_data_folder,
         catalog=data_catalog,
     )
 
     # This step creates a file in the another folder and syncs it to the catalog.
     another_catalog = Catalog(put=["another/world.txt"])
-    another_create = Task(
+    another_create = PythonTask(
         name="create_content_in_another_folder",
-        command="examples.concepts.catalog.create_content_in_another_folder",
+        function=create_content_in_another_folder,
         catalog=another_catalog,
     )
 
     # Delete the another folder to showcase that the folder will be recreated
     # when we run the retrieve task.
-    delete_another_folder = Task(
+    delete_another_folder = ShellTask(
         name="delete_another_folder",
         command="rm -rf another/",
-        command_type="shell",
     )
 
     # This step retrieves the file from the catalog and prints its content.
     all_catalog = Catalog(get=["**/*"])
-    retrieve = Task(
+    retrieve = PythonTask(
         name="retrieve_content_from_both",
-        command="examples.concepts.catalog.retrieve_content_from_both",
+        function=retrieve_content_from_both,
         catalog=all_catalog,
         terminate_with_success=True,
     )

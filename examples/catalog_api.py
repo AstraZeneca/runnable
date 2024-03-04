@@ -8,7 +8,7 @@ You can run this pipeline by: python examples/catalog_api.py
 
 from pathlib import Path
 
-from runnable import Pipeline, Task, get_from_catalog, put_in_catalog
+from runnable import Pipeline, PythonTask, get_from_catalog, put_in_catalog
 
 
 def create_content():
@@ -32,11 +32,12 @@ def retrieve_content():
 
 def main():
     # This step creates a file and syncs it to the catalog.
-    create = Task(name="create_content", command="examples.catalog_api.create_content")
+    create = PythonTask(name="create_content", function=create_content)
     # This step retrieves the file from the catalog and prints its content.
-    retrieve = Task(
+
+    retrieve = PythonTask(
         name="retrieve_content",
-        command="examples.catalog_api.retrieve_content",
+        function=retrieve_content,
         terminate_with_success=True,
     )
 

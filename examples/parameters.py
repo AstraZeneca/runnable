@@ -62,20 +62,21 @@ python or yaml without cluttering your application code.
 
 
 def main():
-    from runnable import Pipeline, Task
+    from runnable import Pipeline, PythonTask
 
-    display = Task(name="display", command="examples.parameters.display")
-    return_parameters = Task(
+    display_task = PythonTask(name="display", function=display)
+
+    return_parameters_task = PythonTask(
         name="return_parameters",
-        command="examples.parameters.return_parameters",
+        function=return_parameters,
         terminate_with_success=True,
     )
 
-    display >> return_parameters
+    display_task >> return_parameters_task
 
     pipeline = Pipeline(
-        start_at=display,
-        steps=[display, return_parameters],
+        start_at=display_task,
+        steps=[display_task, return_parameters_task],
         add_terminal_nodes=True,
     )
 

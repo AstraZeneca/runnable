@@ -24,7 +24,18 @@ from runnable.interaction import (
     set_parameter,
     track_this,
 )  # noqa
-from runnable.sdk import Stub, Pipeline, Task, Parallel, Map, Catalog, Success, Fail  # noqa
+from runnable.sdk import (
+    Stub,
+    Pipeline,
+    Parallel,
+    Map,
+    Catalog,
+    Success,
+    Fail,
+    PythonTask,
+    NotebookTask,
+    ShellTask,
+)  # noqa
 
 
 # TODO: Think of model registry as a central place to store models.

@@ -44,18 +44,15 @@ def retrieve_object():
 
 
 def main():
-    from runnable import Pipeline, Task
+    from runnable import Pipeline, PythonTask
 
     # This step creates an object and stores it in the catalog.
-    object_put = Task(
-        name="create_content_in_data_folder",
-        command="examples.concepts.catalog_object.put_data_object",
-    )
+    object_put = PythonTask(name="create_content_in_data_folder", function=put_data_object)
 
     # This step retrieves the object from the catalog and prints its content.
-    object_get = Task(
+    object_get = PythonTask(
         name="retrieve_content_from_both",
-        command="examples.concepts.catalog_object.retrieve_object",
+        function=retrieve_object,
         terminate_with_success=True,
     )
 

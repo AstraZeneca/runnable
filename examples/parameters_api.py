@@ -81,21 +81,21 @@ either in python or yaml without cluttering your application code.
 
 
 def main():
-    from runnable import Pipeline, Task
+    from runnable import Pipeline, PythonTask
 
-    display = Task(name="display", command="examples.parameters_api.display")
+    display_task = PythonTask(name="display", function=display)
 
-    set_and_get = Task(
+    set_and_get_task = PythonTask(
         name="set_and_get",
-        command="examples.parameters_api.set_and_get",
+        function=set_and_get,
         terminate_with_success=True,
     )
 
-    display >> set_and_get
+    display_task >> set_and_get_task
 
     pipeline = Pipeline(
-        start_at=display,
-        steps=[display, set_and_get],
+        start_at=display_task,
+        steps=[display_task, set_and_get_task],
         add_terminal_nodes=True,
     )
 

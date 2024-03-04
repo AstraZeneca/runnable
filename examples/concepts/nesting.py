@@ -11,7 +11,7 @@ from typing import List
 
 from pydantic import create_model
 
-from runnable import Map, Parallel, Pipeline, Stub, Task
+from runnable import Map, Parallel, Pipeline, PythonTask, Stub
 
 
 def generate_list():
@@ -50,7 +50,7 @@ def main():
     # A pipeline with one nested parallel step
     nested_parallel_pipeline = Pipeline(steps=[nested_parallel], start_at=nested_parallel, add_terminal_nodes=True)
 
-    list_generator = Task(name="generate list", command="examples.concepts.nesting.generate_list")
+    list_generator = PythonTask(name="generate list", function=generate_list)
 
     # A map step that iterates over array and executes nested_parallel_pipeline
     # The total number of workflows is 50 by this time (2 X 2 X 2 = 8)

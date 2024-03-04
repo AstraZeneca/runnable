@@ -104,7 +104,7 @@ python_examples = [
     ("mocking", False, None),
     ("on_failure", False, None),
     ("parameters", False, None),
-    ("python-tasks", False, None),
+    ("python_tasks", False, None),
     ("secrets", False, None),
     ("concepts.catalog", False, None),
     ("concepts.catalog_api", False, None),

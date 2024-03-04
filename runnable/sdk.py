@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, model_validator
 from rich import print
 from typing_extensions import Self
 
@@ -15,11 +15,8 @@ from runnable.nodes import TraversalNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-StepType = Union["Stub", "Task", "Success", "Fail", "Parallel", "Map"]
-TraversalTypes = Union["Stub", "Task", "Parallel", "Map"]
-
-
-ALLOWED_COMMAND_TYPES = ["shell", "python", "notebook"]
+StepType = Union["Stub", "PythonTask", "NotebookTask", "ShellTask", "Success", "Fail", "Parallel", "Map"]
+TraversalTypes = Union["Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map"]
 
 
 class Catalog(BaseModel):
@@ -106,10 +103,7 @@ class BaseTraversal(ABC, BaseModel):
         ...
 
 
-## TODO: Add python task, shell task, and notebook task.
-
-
-class Task(BaseTraversal):
+class BaseTask(BaseTraversal):
     """
     An execution node of the pipeline.
     Please refer to [concepts](concepts/task.md) for more information.
@@ -157,41 +151,166 @@ class Task(BaseTraversal):
 
     """
 
-    command: str = Field(alias="command")
-    command_type: str = Field(default="python")
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
     overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
-
-    notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path")
-    optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
-    output_cell_tag: Optional[str] = Field(default=None, alias="output_cell_tag")
-
-    @field_validator("command_type", mode="before")
-    @classmethod
-    def validate_command_type(cls, value: str) -> str:
-        if value not in ALLOWED_COMMAND_TYPES:
-            raise ValueError(f"Invalid command_type: {value}")
-        return value
-
-    @model_validator(mode="after")
-    def check_notebook_args(self) -> "Task":
-        if self.command_type != "notebook":
-            assert (
-                self.notebook_output_path is None
-            ), "Only command_types of 'notebook' can be used with notebook_output_path"
-
-            assert (
-                self.optional_ploomber_args is None
-            ), "Only command_types of 'notebook' can be used with optional_ploomber_args"
-
-            assert self.output_cell_tag is None, "Only command_types of 'notebook' can be used with output_cell_tag"
-        return self
 
     def create_node(self) -> TaskNode:
         if not self.next_node:
             if not (self.terminate_with_failure or self.terminate_with_success):
                 raise AssertionError("A node not being terminated must have a user defined next node")
+
+        print(self.model_dump(exclude_none=True))
         return TaskNode.parse_from_config(self.model_dump(exclude_none=True))
+
+
+class PythonTask(BaseTask):
+    """
+    An execution node of the pipeline of python functions.
+    Please refer to [concepts](concepts/task.md) for more information.
+
+    Attributes:
+        name (str): The name of the node.
+        function (callable): The function to execute.
+        catalog (Optional[Catalog]): The catalog to sync data from/to.
+            Please see Catalog about the structure of the catalog.
+        overrides (Dict[str, Any]): Any overrides to the command.
+            Individual tasks can override the global configuration config by referring to the
+            specific override.
+
+            For example,
+            ### Global configuration
+            ```yaml
+            executor:
+              type: local-container
+              config:
+                docker_image: "runnable/runnable:latest"
+                overrides:
+                  custom_docker_image:
+                    docker_image: "runnable/runnable:custom"
+            ```
+            ### Task specific configuration
+            ```python
+            task = PythonTask(name="task", function="function'",
+                    overrides={'local-container': custom_docker_image})
+            ```
+
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+        on_failure (str): The name of the node to execute if the step fails.
+
+    """
+
+    function: Callable = Field(exclude=True)
+
+    @computed_field
+    def command_type(self) -> str:
+        return "python"
+
+    @computed_field
+    def command(self) -> str:
+        module = self.function.__module__
+        name = self.function.__name__
+
+        return f"{module}.{name}"
+
+
+class NotebookTask(BaseTask):
+    """
+    An execution node of the pipeline of type notebook.
+    Please refer to [concepts](concepts/task.md) for more information.
+
+    Attributes:
+        name (str): The name of the node.
+        notebook: The path to the notebook
+        catalog (Optional[Catalog]): The catalog to sync data from/to.
+            Please see Catalog about the structure of the catalog.
+        returns: A list of the names of variables to return from the notebook.
+        overrides (Dict[str, Any]): Any overrides to the command.
+            Individual tasks can override the global configuration config by referring to the
+            specific override.
+
+            For example,
+            ### Global configuration
+            ```yaml
+            executor:
+              type: local-container
+              config:
+                docker_image: "runnable/runnable:latest"
+                overrides:
+                  custom_docker_image:
+                    docker_image: "runnable/runnable:custom"
+            ```
+            ### Task specific configuration
+            ```python
+            task = NotebookTask(name="task", notebook="evaluation.ipynb",
+                    overrides={'local-container': custom_docker_image})
+            ```
+        notebook_output_path (Optional[str]): The path to save the notebook output.
+            Only used when command_type is 'notebook', defaults to command+_out.ipynb
+        optional_ploomber_args (Optional[Dict[str, Any]]): Any optional ploomber args.
+            Only used when command_type is 'notebook', defaults to {}
+
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+        on_failure (str): The name of the node to execute if the step fails.
+
+    """
+
+    notebook: str = Field(alias="command")
+
+    notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path")
+    optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
+    returns: List[str] = Field(default_factory=list, alias="returns")
+
+    @computed_field
+    def command_type(self) -> str:
+        return "notebook"
+
+
+class ShellTask(BaseTask):
+    """
+    An execution node of the pipeline of type shell.
+    Please refer to [concepts](concepts/task.md) for more information.
+
+    Attributes:
+        name (str): The name of the node.
+        command: The shell command to execute.
+        catalog (Optional[Catalog]): The catalog to sync data from/to.
+            Please see Catalog about the structure of the catalog.
+        returns: A list of the names of variables to capture from environment variables of shell.
+        overrides (Dict[str, Any]): Any overrides to the command.
+            Individual tasks can override the global configuration config by referring to the
+            specific override.
+
+            For example,
+            ### Global configuration
+            ```yaml
+            executor:
+              type: local-container
+              config:
+                docker_image: "runnable/runnable:latest"
+                overrides:
+                  custom_docker_image:
+                    docker_image: "runnable/runnable:custom"
+            ```
+            ### Task specific configuration
+            ```python
+            task = ShellTask(name="task", command="exit 0",
+                    overrides={'local-container': custom_docker_image})
+            ```
+
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+        on_failure (str): The name of the node to execute if the step fails.
+
+    """
+
+    command: str = Field(alias="command")
+    returns: List[str] = Field(default_factory=list, alias="returns")
+
+    @computed_field
+    def command_type(self) -> str:
+        return "shell"
 
 
 class Stub(BaseTraversal):
@@ -343,7 +462,8 @@ class Pipeline(BaseModel):
     A Pipeline is a directed acyclic graph of Steps that define a workflow.
 
     Attributes:
-        steps (List[Stub | Task | Parallel | Map | Success | Fail]): A list of Steps that make up the Pipeline.
+        steps (List[Stub | PythonTask | NotebookTask | ShellTask | Parallel | Map | Success | Fail]):
+            A list of Steps that make up the Pipeline.
         start_at (Stub | Task | Parallel | Map): The name of the first Step in the Pipeline.
         name (str, optional): The name of the Pipeline. Defaults to "".
         description (str, optional): A description of the Pipeline. Defaults to "".
