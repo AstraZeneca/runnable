@@ -28,7 +28,7 @@ class BaseTaskType(BaseModel):
 
     task_type: str = Field(serialization_alias="command_type")
     node_name: str = Field(exclude=True)
-    secrets: Optional[Dict[str, str]] = Field(default_factory=dict)
+    secrets: Dict[str, str] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -52,12 +52,14 @@ class BaseTaskType(BaseModel):
 
     def set_secrets_as_env_variables(self):
         for key, value in self.secrets.items():
-            os.environ[value] = context.run_context.secrets_handler.get(key)
+            secret_value = context.run_context.secrets_handler.get(key)
+            self.secrets[value] = secret_value
+            os.environ[value] = secret_value
 
     def delete_secrets_from_env_variables(self):
-        for key in self.secrets.items():
-            if key in os.environ:
-                del os.environ[key]
+        for _, value in self.secrets.items():
+            if value in os.environ:
+                del os.environ[value]
 
     def execute_command(
         self,
@@ -143,6 +145,9 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         **kwargs,
     ) -> Optional[Dict[str, Any]]:
         """Execute the notebook as defined by the command."""
+        if not params:
+            params = {}
+
         module, func = utils.get_module_and_attr_names(self.command)
         sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
         imported_module = importlib.import_module(module)
@@ -152,7 +157,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
         logger.info(f"Calling {func} from {module} with {filtered_parameters}")
 
-        with self.output_to_file(map_variable=map_variable) as _, self.expose_secrets as _:
+        with self.output_to_file(map_variable=map_variable) as _, self.expose_secrets() as _:
             try:
                 user_set_parameters = f(**filtered_parameters)
             except Exception as _e:
@@ -215,6 +220,9 @@ class NotebookTaskType(BaseTaskType):
             ImportError: If necessary dependencies are not installed
             Exception: If anything else fails
         """
+        if not params:
+            params = {}
+
         try:
             import ploomber_engine as pm
             from ploomber_engine.ipython import PloomberClient
@@ -241,7 +249,7 @@ class NotebookTaskType(BaseTaskType):
             kwds.update(ploomber_optional_args)
 
             collected_params: Dict[str, Any] = {}
-            with self.output_to_file(map_variable=map_variable) as _, self.expose_secrets as _:
+            with self.output_to_file(map_variable=map_variable) as _, self.expose_secrets() as _:
                 pm.execute_notebook(**kwds)
 
             put_in_catalog(notebook_output_path)
@@ -250,9 +258,10 @@ class NotebookTaskType(BaseTaskType):
             namespace = client.get_namespace()
 
             for key, value in namespace.items():
-                if key in self.returns:
+                if key in (self.returns or []):
                     if isinstance(value, BaseModel):
-                        value = value.model_dump(by_alias=True)
+                        collected_params[key] = value.model_dump(by_alias=True)
+                        continue
                     collected_params[key] = value
 
             return collected_params
@@ -285,6 +294,9 @@ class ShellTaskType(BaseTaskType):
         Args:
             map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
         """
+        if not params:
+            params = {}
+
         runnable_env_vars: Dict[str, Any] = {}
 
         # Expose RUNNABLE environment variables, ignoring the parameters, to be passed to the subprocess.
@@ -296,7 +308,7 @@ class ShellTaskType(BaseTaskType):
 
         # Expose map variable as environment variables
         if map_variable:
-            for key, value in map_variable.items():
+            for key, value in map_variable.items():  # type: ignore
                 subprocess_env[key] = str(value)
 
         # Expose secrets as environment variables
@@ -335,7 +347,7 @@ class ShellTaskType(BaseTaskType):
 
                 if capture:
                     key, value = line.strip().split("=", 1)
-                    if key in self.returns:
+                    if key in (self.returns or []):
                         try:
                             output_parameters[key] = json.loads(value)
                         except json.JSONDecodeError:

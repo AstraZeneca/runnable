@@ -17,6 +17,9 @@ dag:
     notebook:
       type: task
       command_type: notebook
+      returns:
+        - a
+        - b
       command: examples/concepts/simple_notebook.ipynb
       next: success
     success:

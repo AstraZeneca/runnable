@@ -469,7 +469,7 @@ def test_step_attempt_returns_one_by_default():
 def test_step_attempt_returns_from_env(monkeypatch):
     test_executor = GenericExecutor()
 
-    monkeypatch.setenv("runnable_STEP_ATTEMPT", "2")
+    monkeypatch.setenv("RUNNABLE_STEP_ATTEMPT", "2")
 
     assert test_executor.step_attempt_number == 2
 

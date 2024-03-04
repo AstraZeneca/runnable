@@ -22,9 +22,12 @@ dag:
     chunk files:
       type: task
       command_type: shell
+      returns:
+        - stride
+        - chunks
       command: |
-        export runnable_PRM_stride=10 &&
-        export runnable_PRM_chunks="[0, 10, 20, 30, 40]"
+        export stride=10 &&
+        export chunks="[0, 10, 20, 30, 40]"
       next: iterate and execute
     iterate and execute:
       type: map
@@ -38,9 +41,9 @@ dag:
             type: task
             command_type: shell
             command: |
-              echo $runnable_PRM_stride
-              echo $runnable_MAP_VARIABLE
-              # prints 10 and {"start_index": <start_index>}
+              echo stride
+              echo start_index
+              # prints 10 and 0, 10, 20, 30, 40
             next: success
           success:
             type: success

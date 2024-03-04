@@ -423,10 +423,6 @@ class Pipeline(BaseModel):
                 Provide the run_id of the older execution to recover.
 
             log_level (str, optional): The log level. Defaults to defaults.LOG_LEVEL.
-            output_pipeline_definition (str, optional): The path to the output pipeline definition file.
-                Defaults to "runnable-pipeline.yaml".
-
-                Only applicable for the execution via SDK for non ```local``` executors.
         """
 
         # py_to_yaml is used by non local executors to generate the yaml representation of the pipeline.

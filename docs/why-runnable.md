@@ -13,97 +13,61 @@ the developement phase without modifying the production stack or application cod
 
     ---
 
-    Adding **runnable** to your application is as simple as adding 2 files to your
-    application without changing your application code.
+    Does not impose any structure in your application leaving your code unchanged.
 
     [:octicons-arrow-right-24: Getting started](#)
 
--   :fontawesome-brands-markdown:{ .lg .middle } __It's just Markdown__
+-    :building_construction:{ .lg .middle } __Bring your infrastructure__
 
     ---
 
-    Focus on your content and generate a responsive and searchable static site
-
-    [:octicons-arrow-right-24: Reference](#)
-
--   :material-format-font:{ .lg .middle } __Made to measure__
-
-    ---
-
-    Change the colors, fonts, language, icons, logo and more with a few lines
-
-    [:octicons-arrow-right-24: Customization](#)
-
--   :material-scale-balance:{ .lg .middle } __Open Source, MIT__
-
-    ---
-
-    Material for MkDocs is licensed under MIT and available on [GitHub]
+    Runnable can be adapted to your infrastructure stack instead of dictating it.
 
     [:octicons-arrow-right-24: License](#)
 
+-   :memo:{ .lg .middle } __Reproducibility__
+
+    ---
+
+    Runnable tracks the
+
+    [:octicons-arrow-right-24: Reference](#)
+
+
+
+-   :repeat:{ .lg .middle } __Retry failues__
+
+    ---
+
+    Debug any failure in your local development environment
+
+    [:octicons-arrow-right-24: Reference](#)
+
+-   :microscope:{ .lg .middle } __Testing__
+
+    ---
+
+    Unit test your code and pipelines.
+
+    [:octicons-arrow-right-24: License](#)
+
+
+
+-   :broken_heart:{ .lg .middle } __Move on__
+
+    ---
+
+    Moving away from runnable is as simple as deleting relevant files.
+
+    [:octicons-arrow-right-24: License](#)
+
+
 </div>
 
-#### Simplified flow of data
-
-Passing parameters or data artifacts between steps in airflow, argo or aws step step functions
-is not trivial and requires code to be structured in a specific way. **runnable** handles
-that for you in a fashion similar to code written without any orchestration detail.
-
-#### Local first
-
-Production stacks are ideal for the end state of the application. They are painful to use
-during proof-of-concept (PoC) phase. **runnable** bridges the local setup to production stack
-by adding just one file.
-
-
-#### Bring your own stack
-
-**runnable** can be used to bridge your application code into most commonly used production
-stacks. It does not impose a change to either your production stack or application code.
-
-
-#### Reduce refactoring
-
-Transitioning from the proof of concept (PoC) phase to production often necessitates extensive code
-refactoring, which presents significant challenges:
-
-1. Refactoring demands considerable engineering resources to dissect the existing codebase and
-reconstruct it in a form that is both maintainable and amenable to testing.
-
-2. The engineered solutions that result from this process tend to exclude researchers from further
-experimentation, thus impeding iterative research and development.
-
-
-runnable is engineered to minimize the need for such extensive refactoring when operationalizing
-projects. It achieves this by allowing tasks to be defined as [simple Python functions](concepts/task.md/#python_functions)
-or [Jupyter notebooks](concepts/task.md/#notebook). This means that the research-centric components of the code
-can remain unchanged, avoiding
-the need for immediate refactoring and allowing for the postponement of these efforts until they
-become necessary for the long-term maintenance of the product.
-
-### Decouple implementations
-
-In the rapidly evolving realm of technology, the solutions and tools selected today can
-quickly become the technical debt of tomorrow. runnable addresses this inevitability by
-abstracting the implementation details from the underlying concepts. This decoupling
-enables a seamless transition to new technical architectures, reducing the process to a
-mere modification of configuration settings. Thus, runnable facilitates adaptability
-in the face of changing technological landscapes, ensuring that updates or replacements
-of the technical stack can be implemented with minimal disruption.
-
-### Non intrusive implementation
-
-A lof of design aspect of runnable is to let the task definitions, python functions or notebooks,
-remain agnostic of the orchestration process. Most often, the task orchestration can be
-achieved by writing native "driver" functions. This allows the implementation to be completely
-within the control of data scientists.
-
-Most often, it should be possible to remove runnable from the tech stack if necessary.
-
-<hr style="border:2px dotted orange">
 
 ## Alternatives
+
+**runnable** as an SDK competes with
 
 [Kedro](https://github.com/kedro-org/kedro) and [metaflow](https://metaflow.org/) are also
 based on similar ideas and have established presence in this field. We took a lot of
