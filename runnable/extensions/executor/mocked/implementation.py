@@ -8,7 +8,6 @@ from runnable import context, defaults
 from runnable.defaults import TypeMapVariable
 from runnable.extensions.executor import GenericExecutor
 from runnable.extensions.nodes import TaskNode
-from runnable.integration import BaseIntegration
 from runnable.nodes import BaseNode
 from runnable.tasks import BaseTaskType
 
@@ -26,9 +25,6 @@ def create_executable(params: Dict[str, Any], model: Type[BaseTaskType], node_na
 class MockedExecutor(GenericExecutor):
     service_name: str = "mocked"
     _local_executor: bool = True
-
-    # TODO: This needs to go away
-    enable_parallel: bool = defaults.ENABLE_PARALLEL
 
     patches: Dict[str, Any] = Field(default_factory=dict)
 
@@ -191,33 +187,3 @@ class MockedExecutor(GenericExecutor):
             map_variable (dict[str, str], optional): _description_. Defaults to None.
         """
         self._execute_node(node=node, map_variable=map_variable, **kwargs)
-
-
-class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
-    """
-    Integration between local container and file system run log store
-    """
-
-    executor_type = "mocked"
-    service_type = "run_log_store"  # One of secret, catalog, datastore
-    service_provider = "file-system"  # The actual implementation of the service
-
-    def validate(self, **kwargs):
-        if self.executor._is_parallel_execution():  # pragma: no branch
-            msg = "Mocked executor does not support parallel execution. "
-            logger.warning(msg)
-
-
-class LocalContainerComputeChunkedFSRunLogstore(BaseIntegration):
-    """
-    Integration between local container and file system run log store
-    """
-
-    executor_type = "mocked"
-    service_type = "run_log_store"  # One of secret, catalog, datastore
-    service_provider = "chunked-fs"  # The actual implementation of the service
-
-    def validate(self, **kwargs):
-        if self.executor._is_parallel_execution():  # pragma: no branch
-            msg = "Mocked executor does not support parallel execution. "
-            logger.warning(msg)
