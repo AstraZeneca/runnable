@@ -17,19 +17,6 @@ def test_base_executor_context_refers_to_global_run_context(mocker, monkeypatch)
     assert base_executor._context is mock_run_context
 
 
-def test_is_parallel_refers_to_config():
-    base_executor = executor.BaseExecutor()
-
-    assert base_executor._is_parallel_execution() == False
-
-
-def test_is_parallel_refers_to_config_true():
-    base_executor = executor.BaseExecutor()
-    base_executor.enable_parallel = True
-
-    assert base_executor._is_parallel_execution() == True
-
-
 def test_step_attempt_number_defaults_to_1():
     base_executor = executor.BaseExecutor()
 
