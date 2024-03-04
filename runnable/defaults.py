@@ -12,8 +12,8 @@ except ImportError:  # pragma: no cover
     from typing_extensions import TypedDict  # type: ignore[unused-ignore]
 
 
-NAME = "magnus"
-LOGGER_NAME = "magnus"
+NAME = "runnable"
+LOGGER_NAME = "runnable"
 
 # CLI settings
 LOG_LEVEL = "WARNING"
@@ -21,7 +21,7 @@ LOG_LEVEL = "WARNING"
 
 class EXECUTION_PLAN(Enum):
     """
-    The possible execution plans for a magnus job.
+    The possible execution plans for a runnable job.
     """
 
     CHAINED = "chained"  #  121 relationship between run log and the dag.
@@ -35,7 +35,7 @@ class ServiceConfig(TypedDict):
     config: Mapping[str, Any]
 
 
-class MagnusConfig(TypedDict, total=False):
+class runnableConfig(TypedDict, total=False):
     run_log_store: Optional[ServiceConfig]
     secrets: Optional[ServiceConfig]
     catalog: Optional[ServiceConfig]
@@ -47,17 +47,20 @@ TypeMapVariable: TypeAlias = Optional[Dict[str, Union[str, int, float]]]
 
 
 # Config file environment variable
-MAGNUS_CONFIG_FILE = "MAGNUS_CONFIG_FILE"
-MAGNUS_RUN_TAG = "MAGNUS_RUN_TAG"
+RUNNABLE_CONFIG_FILE = "RUNNABLE_CONFIG_FILE"
+RUNNABLE_RUN_TAG = "RUNNABLE_RUN_TAG"
 
 # Interaction settings
-TRACK_PREFIX = "MAGNUS_TRACK_"
+TRACK_PREFIX = "RUNNABLE_TRACK_"
 STEP_INDICATOR = "_STEP_"
-PARAMETER_PREFIX = "MAGNUS_PRM_"
-MAP_VARIABLE = "MAGNUS_MAP_VARIABLE"
-VARIABLE_PREFIX = "MAGNUS_VAR_"
-ENV_RUN_ID = "MAGNUS_RUN_ID"
-ATTEMPT_NUMBER = "MAGNUS_STEP_ATTEMPT"
+PARAMETER_PREFIX = "RUNNABLE_PRM_"
+MAP_VARIABLE = "RUNNABLE_MAP_VARIABLE"
+VARIABLE_PREFIX = "RUNNABLE_VAR_"
+ENV_RUN_ID = "RUNNABLE_RUN_ID"
+ATTEMPT_NUMBER = "RUNNABLE_STEP_ATTEMPT"
+
+## Generated pipeline file
+GENERATED_PIPELINE_FILE = "generated_pipeline.yaml"
 
 # STATUS progression
 # For Branch, CREATED -> PROCESSING -> SUCCESS OR FAIL
@@ -72,7 +75,7 @@ TRIGGERED = "TRIGGERED"
 COMMAND_TYPE = "python"
 NODE_SPEC_FILE = "node_spec.yaml"
 COMMAND_FRIENDLY_CHARACTER = "%"
-DEFAULT_CONTAINER_CONTEXT_PATH = "/opt/magnus/"
+DEFAULT_CONTAINER_CONTEXT_PATH = "/opt/runnable/"
 DEFAULT_CONTAINER_DATA_PATH = "data/"
 DEFAULT_CONTAINER_OUTPUT_PARAMETERS = "parameters.json"
 
@@ -94,7 +97,7 @@ RANDOM_RUN_ID_LEN = 6
 MAX_TIME = 86400  # 1 day in seconds
 
 # User extensions
-USER_CONFIG_FILE = "magnus-config.yaml"
+USER_CONFIG_FILE = "runnable-config.yaml"
 
 # Executor settings
 ENABLE_PARALLEL = False
@@ -155,7 +158,7 @@ LOGGING_CONFIG = {
     "disable_existing_loggers": True,
     "formatters": {
         "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
-        "magnus_formatter": {"format": "%(message)s", "datefmt": "[%X]"},
+        "runnable_formatter": {"format": "%(message)s", "datefmt": "[%X]"},
     },
     "handlers": {
         "default": {
@@ -163,8 +166,8 @@ LOGGING_CONFIG = {
             "class": "logging.StreamHandler",
             "stream": "ext://sys.stdout",  # Default is stderr
         },
-        "magnus_handler": {
-            "formatter": "magnus_formatter",
+        "runnable_handler": {
+            "formatter": "runnable_formatter",
             "class": "rich.logging.RichHandler",
             "rich_tracebacks": True,
         },
@@ -174,6 +177,6 @@ LOGGING_CONFIG = {
             "handlers": ["default"],
             "propagate": True,
         },  # Root logger
-        LOGGER_NAME: {"handlers": ["magnus_handler"], "propagate": False},
+        LOGGER_NAME: {"handlers": ["runnable_handler"], "propagate": False},
     },
 }

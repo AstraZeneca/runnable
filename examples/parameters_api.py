@@ -35,7 +35,7 @@ class NestedModel(BaseModel):
 def display(simple: int, inner: InnerModel):
     """
     The parameter "simple" and "inner" can be accessed by name.
-    Magnus understands the parameter "inner" as a pydantic model
+    runnable understands the parameter "inner" as a pydantic model
     from annotation and returns a pydantic model
     """
     print(simple)
@@ -75,7 +75,7 @@ def set_and_get():
 """
 The below code is only to provide a full working example.
 
-In the real world, you can "box magnus" in pipeline definition
+In the real world, you can "box runnable" in pipeline definition
 either in python or yaml without cluttering your application code.
 """
 
@@ -83,11 +83,11 @@ either in python or yaml without cluttering your application code.
 def main():
     from runnable import Pipeline, Task
 
-    display = Task(name="display", command="examples.parameters.display")
+    display = Task(name="display", command="examples.parameters_api.display")
 
     set_and_get = Task(
         name="set_and_get",
-        command="examples.parameters.set_and_get",
+        command="examples.parameters_api.set_and_get",
         terminate_with_success=True,
     )
 

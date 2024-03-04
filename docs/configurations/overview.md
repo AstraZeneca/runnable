@@ -1,4 +1,4 @@
-**Magnus** is designed to make effective collaborations between data scientists/researchers
+**runnable** is designed to make effective collaborations between data scientists/researchers
 and infrastructure engineers.
 
 All the features described in the [concepts](../concepts/the-big-picture.md) are
@@ -7,10 +7,10 @@ aimed at the *research* side of data science projects while configurations add *
 
 Configurations are presented during the execution:
 
-For ```yaml``` based pipeline, use the ```--config-file, -c``` option in the [magnus CLI](../usage.md/#usage).
+For ```yaml``` based pipeline, use the ```--config-file, -c``` option in the [runnable CLI](../usage.md/#usage).
 
-For [python SDK](../sdk.md/#magnus.Pipeline.execute), use the ```configuration_file``` option or via
-environment variable ```MAGNUS_CONFIGURATION_FILE```
+For [python SDK](../sdk.md/#runnable.Pipeline.execute), use the ```configuration_file``` option or via
+environment variable ```runnable_CONFIGURATION_FILE```
 
 ## Default configuration
 

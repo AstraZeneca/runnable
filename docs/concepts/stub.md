@@ -1,4 +1,4 @@
-Stub nodes in magnus are just like
+Stub nodes in runnable are just like
 [```Pass``` state](https://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-pass-state.html)
 in AWS Step Functions or ```pass``` in python code. It is a placeholder and useful when you want to debug or
 design your pipeline.

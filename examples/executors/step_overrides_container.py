@@ -10,16 +10,16 @@ An example to demonstrate overriding global configuration for a step.
     You can run this example using two steps:
         Generates yaml file:
 
-        MAGNUS_CONFIGURATION_FILE=examples/executors/local-container-override.yaml \
+        runnable_CONFIGURATION_FILE=examples/executors/local-container-override.yaml \
         python examples/executors/step_overrides_container.py
 
-        # Create the docker image with the pipeline magnus-pipeline.yaml as part of it.
+        # Create the docker image with the pipeline runnable-pipeline.yaml as part of it.
 
         Execute the pipeline using the CLI:
 
-        MAGNUS_VAR_default_docker_image=magnus:3.8 \
-        MAGNUS_VAR_custom_docker_image=magnus:3.9 \
-        magnus execute -f magnus-pipeline.yaml -c examples/executors/local-container-override.yaml
+        runnable_VAR_default_docker_image=runnable:3.8 \
+        runnable_VAR_custom_docker_image=runnable:3.9 \
+        runnable execute -f runnable-pipeline.yaml -c examples/executors/local-container-override.yaml
 
 """
 

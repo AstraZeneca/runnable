@@ -1,4 +1,3 @@
-import ast
 import contextlib
 import importlib
 import io
@@ -7,7 +6,7 @@ import logging
 import os
 import subprocess
 import sys
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 from pydantic._internal._model_construction import ModelMetaclass
@@ -29,6 +28,7 @@ class BaseTaskType(BaseModel):
 
     task_type: str = Field(serialization_alias="command_type")
     node_name: str = Field(exclude=True)
+    secrets: Dict[str, str] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -50,20 +50,23 @@ class BaseTaskType(BaseModel):
         """
         raise NotImplementedError()
 
-    def _get_parameters(self, map_variable: TypeMapVariable = None, **kwargs) -> Dict[str, Any]:
-        """
-        By this step, all the parameters are present as environment variables as json strings.
-        Return the parameters in scope for the execution.
+    def set_secrets_as_env_variables(self):
+        for key, value in self.secrets.items():
+            secret_value = context.run_context.secrets_handler.get(key)
+            self.secrets[value] = secret_value
+            os.environ[value] = secret_value
 
-        Args:
-            map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
+    def delete_secrets_from_env_variables(self):
+        for _, value in self.secrets.items():
+            if value in os.environ:
+                del os.environ[value]
 
-        Returns:
-            dict: The parameters dictionary in-scope for the task execution
-        """
-        return parameters.get_user_set_parameters(remove=False)
-
-    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_command(
+        self,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> Optional[Dict[str, Any]]:
         """The function to execute the command.
 
         And map_variable is sent in as an argument into the function.
@@ -76,20 +79,19 @@ class BaseTaskType(BaseModel):
         """
         raise NotImplementedError()
 
-    def _set_parameters(self, params: BaseModel, **kwargs):
-        """Set the parameters back to the environment variables.
+    @contextlib.contextmanager
+    def expose_secrets(self, map_variable: TypeMapVariable = None):
+        """Context manager to expose secrets to the execution.
 
         Args:
-            parameters (dict, optional): The parameters to set back as env variables. Defaults to None.
+            map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
+
         """
-        # Nothing to do
-        if not params:
-            return
-
-        if not isinstance(params, BaseModel) or isinstance(params, ModelMetaclass):
-            raise ValueError("Output variable of a function can only be a pydantic model or dynamic model.")
-
-        parameters.set_user_defined_params_as_environment_variables(params.model_dump(by_alias=True))
+        self.set_secrets_as_env_variables()
+        try:
+            yield
+        finally:
+            self.delete_secrets_from_env_variables()
 
     @contextlib.contextmanager
     def output_to_file(self, map_variable: TypeMapVariable = None):
@@ -122,31 +124,11 @@ class BaseTaskType(BaseModel):
             os.remove(log_file.name)
 
 
-class EasyModel(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-
-def make_pydantic_model(
-    variables: Dict[str, Any],
-    prefix: str = "",
-) -> BaseModel:
-    prefix_removed = {utils.remove_prefix(k, prefix): v for k, v in variables.items()}
-    return EasyModel(**prefix_removed)
-
-
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """The task class for python command."""
 
     task_type: str = Field(default="python", serialization_alias="command_type")
     command: str
-
-    @field_validator("command")
-    @classmethod
-    def validate_command(cls, command: str):
-        if not command:
-            raise Exception("Command cannot be empty for shell task")
-
-        return command
 
     def get_cli_options(self) -> Tuple[str, dict]:
         """Return the cli options for the task.
@@ -156,22 +138,26 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         """
         return "function", {"command": self.command}
 
-    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_command(
+        self,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> Optional[Dict[str, Any]]:
         """Execute the notebook as defined by the command."""
+        if not params:
+            params = {}
+
         module, func = utils.get_module_and_attr_names(self.command)
         sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
         imported_module = importlib.import_module(module)
         f = getattr(imported_module, func)
 
-        params = self._get_parameters()
         filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
-
-        if map_variable:
-            os.environ[defaults.MAP_VARIABLE] = json.dumps(map_variable)
 
         logger.info(f"Calling {func} from {module} with {filtered_parameters}")
 
-        with self.output_to_file(map_variable=map_variable) as _:
+        with self.output_to_file(map_variable=map_variable) as _, self.expose_secrets() as _:
             try:
                 user_set_parameters = f(**filtered_parameters)
             except Exception as _e:
@@ -180,10 +166,13 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                 logger.exception(_e)
                 raise
 
-            if map_variable:
-                del os.environ[defaults.MAP_VARIABLE]
+        if user_set_parameters is None:
+            return {}
 
-            self._set_parameters(user_set_parameters)
+        if not isinstance(user_set_parameters, BaseModel) or isinstance(user_set_parameters, ModelMetaclass):
+            raise ValueError("Output variable of a function can only be a pydantic model or dynamic model.")
+
+        return user_set_parameters.model_dump(by_alias=True)
 
 
 class NotebookTaskType(BaseTaskType):
@@ -192,17 +181,13 @@ class NotebookTaskType(BaseTaskType):
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
     notebook_output_path: str = Field(default="", validate_default=True)
-    output_cell_tag: str = Field(default="magnus_output", validate_default=True)
+    returns: Optional[List[str]] = Field(default_factory=list)
+    output_cell_tag: str = Field(default="runnable_output", validate_default=True)
     optional_ploomber_args: dict = {}
-
-    _output_tag: str = "magnus_output"
 
     @field_validator("command")
     @classmethod
     def notebook_should_end_with_ipynb(cls, command: str):
-        if not command:
-            raise Exception("Command should point to the ipynb file")
-
         if not command.endswith(".ipynb"):
             raise Exception("Notebook task should point to a ipynb file")
 
@@ -220,24 +205,12 @@ class NotebookTaskType(BaseTaskType):
     def get_cli_options(self) -> Tuple[str, dict]:
         return "notebook", {"command": self.command, "notebook-output-path": self.notebook_output_path}
 
-    def _parse_notebook_for_output(self, notebook: Any):
-        collected_params = {}
-
-        for cell in notebook.cells:
-            d = cell.dict()
-            # identify the tags attached to the cell.
-            tags = d.get("metadata", {}).get("tags", {})
-            if self.output_cell_tag in tags:
-                # There is a tag that has output
-                outputs = d["outputs"]
-
-                for out in outputs:
-                    params = out.get("text", "{}")
-                    collected_params.update(ast.literal_eval(params))
-
-        return collected_params
-
-    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_command(
+        self,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> Optional[Dict[str, Any]]:
         """Execute the python notebook as defined by the command.
 
         Args:
@@ -247,44 +220,51 @@ class NotebookTaskType(BaseTaskType):
             ImportError: If necessary dependencies are not installed
             Exception: If anything else fails
         """
+        if not params:
+            params = {}
+
         try:
             import ploomber_engine as pm
+            from ploomber_engine.ipython import PloomberClient
 
             from runnable import put_in_catalog  # Causes issues with cyclic import
-
-            parameters = self._get_parameters()
-            filtered_parameters = parameters
 
             notebook_output_path = self.notebook_output_path
 
             if map_variable:
-                os.environ[defaults.MAP_VARIABLE] = json.dumps(map_variable)
-
-                for _, value in map_variable.items():
+                for key, value in map_variable.items():
                     notebook_output_path += "_" + str(value)
+
+                    params[key] = value
 
             ploomber_optional_args = self.optional_ploomber_args
 
             kwds = {
                 "input_path": self.command,
                 "output_path": notebook_output_path,
-                "parameters": filtered_parameters,
+                "parameters": params,
                 "log_output": True,
                 "progress_bar": False,
             }
             kwds.update(ploomber_optional_args)
 
             collected_params: Dict[str, Any] = {}
-            with self.output_to_file(map_variable=map_variable) as _:
-                out = pm.execute_notebook(**kwds)
-                collected_params = self._parse_notebook_for_output(out)
-
-            collected_params_model = make_pydantic_model(collected_params)
-            self._set_parameters(collected_params_model)
+            with self.output_to_file(map_variable=map_variable) as _, self.expose_secrets() as _:
+                pm.execute_notebook(**kwds)
 
             put_in_catalog(notebook_output_path)
-            if map_variable:
-                del os.environ[defaults.MAP_VARIABLE]
+
+            client = PloomberClient.from_path(path=notebook_output_path)
+            namespace = client.get_namespace()
+
+            for key, value in namespace.items():
+                if key in (self.returns or []):
+                    if isinstance(value, BaseModel):
+                        collected_params[key] = value.model_dump(by_alias=True)
+                        continue
+                    collected_params[key] = value
+
+            return collected_params
 
         except ImportError as e:
             msg = (
@@ -299,32 +279,55 @@ class ShellTaskType(BaseTaskType):
     """
 
     task_type: str = Field(default="shell", serialization_alias="command_type")
+    returns: Optional[List[str]] = Field(default_factory=list)
     command: str
 
-    @field_validator("command")
-    @classmethod
-    def validate_command(cls, command: str):
-        if not command:
-            raise Exception("Command cannot be empty for shell task")
-
-        return command
-
-    def execute_command(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_command(
+        self,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> Optional[Dict[str, Any]]:
         # Using shell=True as we want to have chained commands to be executed in the same shell.
         """Execute the shell command as defined by the command.
 
         Args:
             map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
         """
-        subprocess_env = os.environ.copy()
+        if not params:
+            params = {}
 
+        runnable_env_vars: Dict[str, Any] = {}
+
+        # Expose RUNNABLE environment variables, ignoring the parameters, to be passed to the subprocess.
+        for key, value in os.environ.items():
+            if key.startswith("RUNNABLE_") and not key.startswith("RUNNABLE_PRM_"):
+                runnable_env_vars[key] = value
+
+        subprocess_env = {**params, **runnable_env_vars}
+
+        # Expose map variable as environment variables
         if map_variable:
-            subprocess_env[defaults.MAP_VARIABLE] = json.dumps(map_variable)
+            for key, value in map_variable.items():  # type: ignore
+                subprocess_env[key] = str(value)
 
-        command = self.command.strip() + " && env | grep MAGNUS"
+        # Expose secrets as environment variables
+        if self.secrets:
+            for key, value in self.secrets.items():
+                secret_value = context.run_context.secrets_handler.get(key)
+                subprocess_env[value] = secret_value
+
+        # Json dumps all runnable environment variables
+        for key, value in subprocess_env.items():
+            subprocess_env[key] = json.dumps(value)
+
+        collect_delimiter = "=== COLLECT ==="
+
+        command = self.command.strip() + f" && echo '{collect_delimiter}'  && env"
         logger.info(f"Executing shell command: {command}")
 
         output_parameters = {}
+        capture = False
 
         with subprocess.Popen(
             command,
@@ -338,27 +341,27 @@ class ShellTaskType(BaseTaskType):
                 logger.info(line)
                 print(line)
 
-                if line.startswith(defaults.PARAMETER_PREFIX):
-                    key, value = line.strip().split("=", 1)
-                    try:
-                        output_parameters[key] = json.loads(value)
-                    except json.JSONDecodeError:
-                        output_parameters[key] = value  # simple data types
+                if line.strip() == collect_delimiter:
+                    capture = True
+                    continue
 
-                if line.startswith(defaults.TRACK_PREFIX):
-                    key, value = line.split("=", 1)
-                    os.environ[key] = value.strip()
+                if capture:
+                    key, value = line.strip().split("=", 1)
+                    if key in (self.returns or []):
+                        try:
+                            output_parameters[key] = json.loads(value)
+                        except json.JSONDecodeError:
+                            output_parameters[key] = value  # simple data types
+
+                # if line.startswith(defaults.TRACK_PREFIX):
+                #     key, value = line.split("=", 1)
+                #     os.environ[key] = value.strip()
 
             proc.wait()
             if proc.returncode != 0:
                 raise Exception("Command failed")
 
-        self._set_parameters(
-            params=make_pydantic_model(
-                output_parameters,
-                defaults.PARAMETER_PREFIX,
-            )
-        )
+        return output_parameters
 
 
 def create_task(kwargs_for_init) -> BaseTaskType:

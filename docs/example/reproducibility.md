@@ -1,4 +1,4 @@
-Magnus stores a variety of information about the current execution in [run log](../concepts/run-log.md).
+runnable stores a variety of information about the current execution in [run log](../concepts/run-log.md).
 The run log is internally used
 for keeping track of the execution (status of different steps, parameters, etc) but also has rich information
 for reproducing the state at the time of pipeline execution.
@@ -85,7 +85,7 @@ Below we show an example pipeline and the different layers of the run log.
                 "code_identifier": "ff60e7fa379c38adaa03755977057cd10acc4baa",  // (3)
                 "code_identifier_type": "git",
                 "code_identifier_dependable": true, // (4)
-                "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                 "code_identifier_message": ""
             }
         ],

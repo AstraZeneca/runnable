@@ -1,4 +1,4 @@
-```map``` nodes in magnus allows you to execute a sequence of nodes (i.e a pipeline) for all the items in a list. This is similar to
+```map``` nodes in runnable allows you to execute a sequence of nodes (i.e a pipeline) for all the items in a list. This is similar to
 [Map state of AWS Step functions](https://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-map-state.html) or
 [loops in Argo workflows](https://argo-workflows.readthedocs.io/en/latest/walk-through/loops/).
 
@@ -87,8 +87,8 @@ of the files to process.
     over ```chunks```.
 
     If the argument ```start_index``` is not provided, you can still access the current
-    value by ```MAGNUS_MAP_VARIABLE``` environment variable.
-    The environment variable ```MAGNUS_MAP_VARIABLE``` is a dictionary with keys as
+    value by ```runnable_MAP_VARIABLE``` environment variable.
+    The environment variable ```runnable_MAP_VARIABLE``` is a dictionary with keys as
     ```iterate_as```
 
     This instruction is set while defining the map node.
@@ -108,7 +108,7 @@ of the files to process.
     This instruction is set while defining the map node.
     Note that the ```branch``` of the map node has a similar schema of the pipeline.
 
-    You can run this example by ```magnus execute examples/concepts/map.yaml```
+    You can run this example by ```runnable execute examples/concepts/map.yaml```
 
     ```yaml linenums="1" hl_lines="23-26"
     --8<-- "examples/concepts/map.yaml"
@@ -120,11 +120,11 @@ of the files to process.
     functions.
 
     The map branch "iterate and execute" iterates over chunks and exposes the current start_index of
-    as environment variable ```MAGNUS_MAP_VARIABLE```.
+    as environment variable ```runnable_MAP_VARIABLE```.
 
-    The environment variable ```MAGNUS_MAP_VARIABLE``` is a json string with keys of the ```iterate_as```.
+    The environment variable ```runnable_MAP_VARIABLE``` is a json string with keys of the ```iterate_as```.
 
-    You can run this example by ```magnus execute examples/concepts/map_shell.yaml```
+    You can run this example by ```runnable execute examples/concepts/map_shell.yaml```
 
     ```yaml linenums="1" hl_lines="26-27 29-32"
     --8<-- "examples/concepts/map_shell.yaml"
@@ -156,7 +156,7 @@ of the files to process.
                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -195,7 +195,7 @@ of the files to process.
                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -218,7 +218,7 @@ of the files to process.
                                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -266,7 +266,7 @@ of the files to process.
                                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -312,7 +312,7 @@ of the files to process.
                                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -360,7 +360,7 @@ of the files to process.
                                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -406,7 +406,7 @@ of the files to process.
                                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -454,7 +454,7 @@ of the files to process.
                                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -500,7 +500,7 @@ of the files to process.
                                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -548,7 +548,7 @@ of the files to process.
                                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -594,7 +594,7 @@ of the files to process.
                                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -642,7 +642,7 @@ of the files to process.
                                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                                         "code_identifier_type": "git",
                                         "code_identifier_dependable": true,
-                                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                                         "code_identifier_message": ""
                                     }
                                 ],
@@ -687,7 +687,7 @@ of the files to process.
                         "code_identifier": "30ca73bb01ac45db08b1ca75460029da142b53fa",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],

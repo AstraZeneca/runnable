@@ -1,4 +1,4 @@
-Magnus allows you to [debug and recover](../concepts/run-log.md/#retrying_failures) from a
+runnable allows you to [debug and recover](../concepts/run-log.md/#retrying_failures) from a
 failure during the execution of pipeline. The pipeline can be
 restarted in any suitable environment for debugging.
 
@@ -23,7 +23,7 @@ Below is an example of retrying a pipeline that failed.
 
         You can run this pipeline on your local machine by
 
-        ```magnus execute -f examples/retry-fail.yaml -c examples/configs/fs-catalog-run_log.yaml --run-id wrong-file-name```
+        ```runnable execute -f examples/retry-fail.yaml -c examples/configs/fs-catalog-run_log.yaml --run-id wrong-file-name```
 
         Note that we have specified the ```run_id``` to be something we can use later.
         The execution logs of the steps in the catalog will show the reason of the failure.
@@ -64,7 +64,7 @@ Below is an example of retrying a pipeline that failed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -103,7 +103,7 @@ Below is an example of retrying a pipeline that failed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -149,7 +149,7 @@ Below is an example of retrying a pipeline that failed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -195,7 +195,7 @@ Below is an example of retrying a pipeline that failed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -247,14 +247,14 @@ Below is an example of retrying a pipeline that failed.
             "tag": "",
             "run_id": "wrong-file-name",
             "variables": {
-                "argo_docker_image": "harbor.csis.astrazeneca.net/mlops/magnus:latest"
+                "argo_docker_image": "harbor.csis.astrazeneca.net/mlops/runnable:latest"
             },
             "use_cached": false,
             "original_run_id": "",
             "dag": {
                 "start_at": "Setup",
                 "name": "",
-                "description": "This is a simple pipeline that demonstrates retrying failures.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
+                "description": "This is a simple pipeline that demonstrates retrying failures.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   runnable execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
                 "steps": {
                     "Setup": {
                         "type": "task",
@@ -282,7 +282,7 @@ Below is an example of retrying a pipeline that failed.
                         },
                         "max_attempts": 1,
                         "command_type": "shell",
-                        "command": "echo \"Hello from magnus\" >> data/hello.txt\n",
+                        "command": "echo \"Hello from runnable\" >> data/hello.txt\n",
                         "node_name": "Create Content"
                     },
                     "Retrieve Content": {
@@ -325,7 +325,7 @@ Below is an example of retrying a pipeline that failed.
 
         You can run this pipeline on your local machine by
 
-        ```magnus execute -f examples/retry-fixed.yaml -c examples/configs/fs-catalog-run_log.yaml --use-cached wrong-file-name```
+        ```runnable execute -f examples/retry-fixed.yaml -c examples/configs/fs-catalog-run_log.yaml --use-cached wrong-file-name```
 
         Note that we have specified the run_id of the failed execution to be ```use-cached``` for the new execution.
 
@@ -371,7 +371,7 @@ Below is an example of retrying a pipeline that failed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -392,7 +392,7 @@ Below is an example of retrying a pipeline that failed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -413,7 +413,7 @@ Below is an example of retrying a pipeline that failed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -459,7 +459,7 @@ Below is an example of retrying a pipeline that failed.
                         "code_identifier": "f94e49a4fcecebac4d5eecbb5b691561b08e45c0",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -511,7 +511,7 @@ Below is an example of retrying a pipeline that failed.
             "tag": "",
             "run_id": "naive-wilson-0625",
             "variables": {
-                "argo_docker_image": "harbor.csis.astrazeneca.net/mlops/magnus:latest"
+                "argo_docker_image": "harbor.csis.astrazeneca.net/mlops/runnable:latest"
             },
             "use_cached": true,
             "original_run_id": "wrong-file-name",
@@ -522,7 +522,7 @@ Below is an example of retrying a pipeline that failed.
     present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Clean up to get again: We remove the data folder. Note that this is stubbed
     to prevent\n  accidental deletion of your contents. You can change type to task to make really run.\n4. Retrieve Content: We \"get\" the file \"hello.txt\" from the
     catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n
-    magnus execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
+    runnable execute -f examples/catalog.yaml -c examples/configs/fs-catalog.yaml\n",
                 "steps": {
                     "Setup": {
                         "type": "stub",
@@ -549,7 +549,7 @@ Below is an example of retrying a pipeline that failed.
                         },
                         "max_attempts": 1,
                         "command_type": "shell",
-                        "command": "echo \"Hello from magnus\" >> data/hello.txt\n"
+                        "command": "echo \"Hello from runnable\" >> data/hello.txt\n"
                     },
                     "Retrieve Content": {
                         "type": "task",
@@ -585,7 +585,7 @@ Below is an example of retrying a pipeline that failed.
     ```
 
 
-Magnus also supports [```mocked``` executor](../configurations/executors/mocked.md) which can
+runnable also supports [```mocked``` executor](../configurations/executors/mocked.md) which can
 patch and mock tasks to isolate and focus on the failed task. Since python functions and notebooks
 are run in the same shell, it is possible to use
 [python debugger](https://docs.python.org/3/library/pdb.html) and

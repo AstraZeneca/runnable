@@ -1,6 +1,6 @@
 ???+ tip inline end "Steps"
 
-    In magnus, a step can be a simple ```task``` or ```stub``` or complex nested pipelines like
+    In runnable, a step can be a simple ```task``` or ```stub``` or complex nested pipelines like
     ```parallel``` branches, embedded ```dags``` or dynamic workflows.
 
     In this section, we use ```stub``` for convenience. For more in depth information about other types,
@@ -8,7 +8,7 @@
 
 
 
-In **magnus**, we use the words
+In **runnable**, we use the words
 
 - ```dag```, ```workflows``` and ```pipeline``` interchangeably.
 - ```nodes```, ```steps``` interchangeably.
@@ -79,7 +79,7 @@ one more node.
 
 ???+ warning inline end "Step names"
 
-    In magnus, the names of steps should not have ```%``` or ```.``` in them.
+    In runnable, the names of steps should not have ```%``` or ```.``` in them.
 
     You can name them as descriptive as you want.
 
@@ -223,7 +223,7 @@ Reaching one of these states as part of traversal indicates the status of the pi
     You can, alternatively, create a ```success``` and ```fail``` state and link them together.
 
     ```python
-    from magnus import Success, Fail
+    from runnable import Success, Fail
 
     success = Success(name="Custom Success")
     fail = Fail(name="Custom Failure")

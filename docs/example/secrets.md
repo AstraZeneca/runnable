@@ -1,9 +1,9 @@
-Secrets are required assets as the complexity of the application increases. Magnus provides a
-[python API](../interactions.md/#magnus.get_secret) to get secrets from various sources.
+Secrets are required assets as the complexity of the application increases. runnable provides a
+[python API](../interactions.md/#runnable.get_secret) to get secrets from various sources.
 
-!!! info annotate inline end "from magnus import get_secret"
+!!! info annotate inline end "from runnable import get_secret"
 
-    Secrets is the only interface that you are required to "import magnus" in your python application.
+    Secrets is the only interface that you are required to "import runnable" in your python application.
 
     Native python and Jupyter notebooks can use this API. We currently do not support shell tasks with
     secrets from this interface. (1)

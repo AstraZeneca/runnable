@@ -5,11 +5,11 @@ dag:
     step 1 >> step 2 >> success
 
     Log levels:
-      magnus log level is different from your application log level. By default, it is set to WARNING but you can
+      runnable log level is different from your application log level. By default, it is set to WARNING but you can
       control it by using --log-level while calling application.
 
     To view only your application logs, you can execute this pipeline with:
-      magnus execute logging.yaml --log-level ERROR
+      runnable execute logging.yaml --log-level ERROR
 
   start_at: step 1
   steps:

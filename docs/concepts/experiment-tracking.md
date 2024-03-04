@@ -9,7 +9,7 @@ during the execution of the pipeline.
 
 === "Using the API"
 
-    The highlighted lines in the below example show how to [use the API](../interactions.md/#magnus.track_this)
+    The highlighted lines in the below example show how to [use the API](../interactions.md/#runnable.track_this)
 
     Any pydantic model as a value would be dumped as a dict, respecting the alias, before tracking it.
 
@@ -61,7 +61,7 @@ during the execution of the pipeline.
                         "code_identifier": "793b052b8b603760ff1eb843597361219832b61c",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -106,7 +106,7 @@ during the execution of the pipeline.
                         "code_identifier": "793b052b8b603760ff1eb843597361219832b61c",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -162,7 +162,7 @@ during the execution of the pipeline.
                 "start_at": "shell",
                 "name": "",
                 "description": "An example pipeline to demonstrate setting experiment tracking metrics\nusing environment variables. Any environment variable with
-                prefix\n'MAGNUS_TRACK_' will be recorded as a metric captured during the step.\n\nYou can run this pipeline as:\n  magnus execute -f
+                prefix\n'runnable_TRACK_' will be recorded as a metric captured during the step.\n\nYou can run this pipeline as:\n  runnable execute -f
                 examples/concepts/experiment_tracking_env.yaml\n",
                 "internal_branch_name": "",
                 "steps": {
@@ -207,7 +207,7 @@ The step is defaulted to be 0.
 
 === "Using the API"
 
-    The highlighted lines in the below example show how to [use the API](../interactions.md/#magnus.track_this) with
+    The highlighted lines in the below example show how to [use the API](../interactions.md/#runnable.track_this) with
     the step parameter.
 
     You can run this example by ```python run examples/concepts/experiment_tracking_step.py```
@@ -247,7 +247,7 @@ The step is defaulted to be 0.
                         "code_identifier": "858c4df44f15d81139341641c63ead45042e0d89",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -301,7 +301,7 @@ The step is defaulted to be 0.
                         "code_identifier": "858c4df44f15d81139341641c63ead45042e0d89",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -393,14 +393,14 @@ The step is defaulted to be 0.
 !!! note "Opt out"
 
     Pipelines need not use the ```experiment-tracking``` if the preferred tools of choice is
-    not implemented in magnus. The default configuration of ```do-nothing``` is no-op by design.
+    not implemented in runnable. The default configuration of ```do-nothing``` is no-op by design.
     We kindly request to raise a feature request to make us aware of the eco-system.
 
 
-The default experiment tracking tool of magnus is a no-op as the ```run log``` captures all the
+The default experiment tracking tool of runnable is a no-op as the ```run log``` captures all the
 required details. To make it compatible with other experiment tracking tools like
 [mlflow](https://mlflow.org/docs/latest/tracking.html) or
-[Weights and Biases](https://wandb.ai/site/experiment-tracking), we map attributes of magnus
+[Weights and Biases](https://wandb.ai/site/experiment-tracking), we map attributes of runnable
 to the underlying tool.
 
 For example, for mlflow:
@@ -420,7 +420,7 @@ Since mlflow does not support step wise logging of parameters, the key name is f
 
 !!! note inline end "Shortcomings"
 
-    Experiment tracking capabilities of magnus are inferior in integration with
+    Experiment tracking capabilities of runnable are inferior in integration with
     popular python frameworks like pytorch and tensorflow as compared to other
     experiment tracking tools.
 
@@ -453,7 +453,7 @@ Since mlflow does not support step wise logging of parameters, the key name is f
 
     <figure markdown>
         ![Image](../assets/screenshots/mlflow.png){ width="800" height="600"}
-        <figcaption>mlflow UI for the execution. The run_id remains the same as the run_id of magnus</figcaption>
+        <figcaption>mlflow UI for the execution. The run_id remains the same as the run_id of runnable</figcaption>
     </figure>
 
     <figure markdown>
@@ -464,5 +464,5 @@ Since mlflow does not support step wise logging of parameters, the key name is f
 
 
 To provide implementation specific capabilities, we also provide a
-[python API](../interactions.md/#magnus.get_experiment_tracker_context) to obtain the client context. The default
+[python API](../interactions.md/#runnable.get_experiment_tracker_context) to obtain the client context. The default
 client context is a [null context manager](https://docs.python.org/3/library/contextlib.html#contextlib.nullcontext).

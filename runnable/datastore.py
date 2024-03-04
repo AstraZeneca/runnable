@@ -12,7 +12,7 @@ from runnable import defaults, exceptions
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 # Once defined these classes are sealed to any additions unless a default is provided
-# Breaking this rule might make magnus backwardly incompatible
+# Breaking this rule might make runnable backwardly incompatible
 
 
 class DataCatalog(BaseModel, extra="allow"):
@@ -53,7 +53,8 @@ class StepAttempt(BaseModel):
     duration: str = ""  #  end_time - start_time
     status: str = "FAIL"
     message: str = ""
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    input_parameters: Dict[str, Any] = Field(default_factory=dict)
+    output_parameters: Dict[str, Any] = Field(default_factory=dict)
 
 
 class CodeIdentity(BaseModel, extra="allow"):

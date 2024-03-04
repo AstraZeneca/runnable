@@ -55,6 +55,8 @@ class LocalContainerExecutor(GenericExecutor):
     run_in_local: bool = False
     environment: Dict[str, str] = Field(default_factory=dict)
 
+    _local: bool = False
+
     _container_log_location = "/tmp/run_logs/"
     _container_catalog_location = "/tmp/catalog/"
     _container_secrets_location = "/tmp/dotenv"
@@ -131,7 +133,7 @@ class LocalContainerExecutor(GenericExecutor):
 
 
         If the config has "run_in_local: True", we compute it on local system instead of container.
-        In local container execution, we just spin the container to execute magnus execute_single_node.
+        In local container execution, we just spin the container to execute runnable execute_single_node.
 
         Args:
             node (BaseNode): The node we are currently executing
@@ -198,6 +200,7 @@ class LocalContainerExecutor(GenericExecutor):
 
         try:
             logger.info(f"Running the command {command}")
+            print(command)
             #  Overrides global config with local
             executor_config = self._resolve_executor_config(node)
 

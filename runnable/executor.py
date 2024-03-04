@@ -25,7 +25,7 @@ class BaseExecutor(ABC, BaseModel):
     The skeleton of an executor class.
     Any implementation of an executor should inherit this class and over-ride accordingly.
 
-    There is a extension available in magnus/extensions/executor/__init__.py
+    There is a extension available in runnable/extensions/executor/__init__.py
     which implements the most common functionality which is easier to
     extend/override in most scenarios.
 
@@ -34,11 +34,12 @@ class BaseExecutor(ABC, BaseModel):
     service_name: str = ""
     service_type: str = "executor"
 
-    enable_parallel: bool = defaults.ENABLE_PARALLEL
     overrides: dict = {}
 
+    # TODO: This needs to go away
     _previous_run_log: Optional[RunLog] = None
     _single_step: str = ""
+    _local: bool = False  # This is a flag to indicate whether the executor is local or not.
 
     _context_step_log = None  # type : StepLog
     _context_node = None  # type: BaseNode
@@ -47,19 +48,6 @@ class BaseExecutor(ABC, BaseModel):
     @property
     def _context(self):
         return context.run_context
-
-    def _is_parallel_execution(self) -> bool:
-        """
-        Controls the parallelization of branches in map and parallel state.
-        Defaults to False and left for the compute modes to decide.
-
-        Interactive executors like local and local-container need decisions.
-        For most transpilers it is inconsequential as its always True and supported by platforms.
-
-        Returns:
-            bool: True if the execution allows parallel execution of branches.
-        """
-        return self.enable_parallel
 
     @abstractmethod
     def _get_parameters(self) -> Dict[str, Any]:
@@ -72,6 +60,7 @@ class BaseExecutor(ABC, BaseModel):
         """
         ...
 
+    # TODO: This needs to go away
     @abstractmethod
     def _set_up_for_re_run(self, parameters: Dict[str, Any]) -> None:
         """
@@ -251,7 +240,7 @@ class BaseExecutor(ABC, BaseModel):
     @abstractmethod
     def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
-        Executor specific way of triggering jobs when magnus does both traversal and execution
+        Executor specific way of triggering jobs when runnable does both traversal and execution
 
         Transpilers will NEVER use this method and will NEVER call them.
         Only interactive executors who need execute_from_graph will ever implement it.
@@ -304,6 +293,7 @@ class BaseExecutor(ABC, BaseModel):
         """
         ...
 
+    # TODO: This needs to go away
     @abstractmethod
     def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """

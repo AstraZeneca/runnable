@@ -89,7 +89,7 @@ def test_cast_parameters_as_type_with_invalid_value():
 
 def test_cast_parameters_as_type_with_invalid_type(caplog):
     value = "test"
-    with caplog.at_level(logging.WARNING, logger="magnus"):
+    with caplog.at_level(logging.WARNING, logger="runnable"):
         cast_parameters_as_type(value, list)
 
     assert f"Casting {value} of {type(value)} to {list} seems wrong!!" in caplog.text

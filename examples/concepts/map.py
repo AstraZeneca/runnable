@@ -5,7 +5,7 @@ parameter.
 The start_index argument for the function process_chunk is dynamically set by iterating over chunks.
 
 If the argument start_index is not provided, you can still access the current value by
-MAGNUS_MAP_VARIABLE environment variable. The environment variable MAGNUS_MAP_VARIABLE
+runnable_MAP_VARIABLE environment variable. The environment variable runnable_MAP_VARIABLE
 is a dictionary with keys as iterate_as.
 
 Run this pipeline by:

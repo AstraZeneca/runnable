@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: magnus-dag
+  generateName: runnable-dag
 spec:
   activeDeadlineSeconds: int # max run time of the workflow
   entrypoint: str

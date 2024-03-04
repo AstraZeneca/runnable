@@ -64,7 +64,7 @@ class BaseNode(ABC, BaseModel):
     @classmethod
     def _get_internal_name_from_command_name(cls, command_name: str) -> str:
         """
-        Replace Magnus specific character (%) with whitespace.
+        Replace runnable specific character (%) with whitespace.
         The opposite of _command_friendly_name.
 
         Args:
@@ -274,7 +274,13 @@ class BaseNode(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         """
         The actual function that does the execution of the command in the config.
 
@@ -282,7 +288,7 @@ class BaseNode(ABC, BaseModel):
         composite nodes.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor class
+            executor (runnable.executor.BaseExecutor): The executor class
             mock (bool, optional): Don't run, just pretend. Defaults to False.
             map_variable (str, optional): The value of the map iteration variable, if part of a map node.
                 Defaults to ''.
@@ -301,7 +307,7 @@ class BaseNode(ABC, BaseModel):
         Function should only be implemented for composite nodes like dag, map, parallel.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor.
+            executor (runnable.executor.BaseExecutor): The executor.
 
         Raises:
             NotImplementedError: Base class, hence not implemented.
@@ -317,7 +323,7 @@ class BaseNode(ABC, BaseModel):
         Function should only be implemented for composite nodes like dag, map, parallel.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor.
+            executor (runnable.executor.BaseExecutor): The executor.
             map_variable (str, optional): The value of the map iteration variable, if part of a map node.
 
         Raises:
@@ -334,7 +340,7 @@ class BaseNode(ABC, BaseModel):
         Function should only be implemented for composite nodes like dag, map, parallel.
 
         Args:
-            executor (magnus.executor.BaseExecutor): The executor.
+            executor (runnable.executor.BaseExecutor): The executor.
             map_variable (str, optional): The value of the map iteration variable, if part of a map node.
 
         Raises:
@@ -449,7 +455,13 @@ class CompositeNode(TraversalNode):
     def _get_max_attempts(self) -> int:
         raise Exception("This is a composite node and does not have a max_attempts")
 
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         raise Exception("This is a composite node and does not have an execute function")
 
 

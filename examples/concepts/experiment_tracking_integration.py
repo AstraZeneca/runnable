@@ -46,7 +46,7 @@ def main():
         add_terminal_nodes=True,
     )
 
-    pipeline.execute(configuration_file="examples/configs/mlflow-config.yaml", tag="demo-magnus")
+    pipeline.execute(configuration_file="examples/configs/mlflow-config.yaml", tag="demo-runnable")
 
 
 if __name__ == "__main__":

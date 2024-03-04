@@ -58,6 +58,11 @@ def track_this(step: int = 0, **kwargs):
         os.environ[prefix + key + f"{defaults.STEP_INDICATOR}{step}"] = json.dumps(value)
 
 
+# TODO: Do we need the API for parameters?
+# If we still want them, what takes precedence? API or returns?
+# Once we decide that, collect the parameters and update them in tasks
+
+
 @check_context
 def set_parameter(**kwargs) -> None:
     """
@@ -279,7 +284,7 @@ def get_run_id() -> str:
     """
     Returns the run_id of the current run.
 
-    You can also access this from the environment variable `MAGNUS_RUN_ID`.
+    You can also access this from the environment variable `runnable_RUN_ID`.
     """
     return context.run_context.run_id
 
@@ -321,14 +326,14 @@ def get_experiment_tracker_context() -> ContextManager:
 
 def start_interactive_session(run_id: str = "", config_file: str = "", tag: str = "", parameters_file: str = ""):
     """
-    During interactive python coding, either via notebooks or ipython, you can start a magnus session by calling
+    During interactive python coding, either via notebooks or ipython, you can start a runnable session by calling
     this function. The executor would always be local executor as its interactive.
 
     If this was called during a pipeline/function/notebook execution, it will be ignored.
 
     Args:
         run_id (str, optional): The run id to use. Defaults to "" and would be created if not provided.
-        config_file (str, optional): The configuration file to use. Defaults to "" and magnus defaults.
+        config_file (str, optional): The configuration file to use. Defaults to "" and runnable defaults.
         tag (str, optional): The tag to attach to the run. Defaults to "".
         parameters_file (str, optional): The parameters file to use. Defaults to "".
     """
@@ -350,7 +355,7 @@ def start_interactive_session(run_id: str = "", config_file: str = "", tag: str 
 
     executor = context.run_context.executor
 
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=config_file, tag=tag)
+    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=config_file, tag=tag)
 
     context.run_context.execution_plan = defaults.EXECUTION_PLAN.INTERACTIVE.value
     executor.prepare_for_graph_execution()

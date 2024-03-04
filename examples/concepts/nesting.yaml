@@ -3,14 +3,16 @@ dag:
     An example of nesting pipelines within pipelines.
 
     Run this pipeline by:
-      magnus execute -f example/concepts/nesting.yaml
+      runnable execute -f examples/concepts/nesting.yaml
 
   start_at: generate_list
   steps:
     generate_list:
       type: task
       command_type: shell
-      command: export MAGNUS_PRM_array="[0, 1]"
+      returns:
+        - array
+      command: export array="[0, 1]"
       next: outer most map
     outer most map:
       type: map

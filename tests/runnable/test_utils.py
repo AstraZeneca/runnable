@@ -365,7 +365,7 @@ def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch
         assert utils.get_local_docker_image_id("test") == ""
 
 
-def test_get_node_execution_command_returns_magnus_execute(mocker, monkeypatch):
+def test_get_node_execution_command_returns_runnable_execute(mocker, monkeypatch):
     import logging
 
     mock_context = mocker.MagicMock()
@@ -377,7 +377,7 @@ def test_get_node_execution_command_returns_magnus_execute(mocker, monkeypatch):
 
     monkeypatch.setattr(utils, "context", mock_context)
 
-    logger = logging.getLogger(name="magnus")
+    logger = logging.getLogger(name="runnable")
     old_level = logger.level
     logger.setLevel(defaults.LOG_LEVEL)
 
@@ -390,7 +390,7 @@ def test_get_node_execution_command_returns_magnus_execute(mocker, monkeypatch):
     test_map_variable = {"a": "b"}
     try:
         assert utils.get_node_execution_command(MockNode(), map_variable=test_map_variable) == (
-            "magnus execute_single_node test_run_id test_node_id "
+            "runnable execute_single_node test_run_id test_node_id "
             f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
             "--parameters-file test_parameters_file --tag test_tag"
         )
@@ -416,7 +416,7 @@ def test_get_node_execution_command_overwrites_run_id_if_asked(mocker, monkeypat
         def _command_friendly_name(self):
             return "test_node_id"
 
-    logger = logging.getLogger(name="magnus")
+    logger = logging.getLogger(name="runnable")
     old_level = logger.level
     logger.setLevel(defaults.LOG_LEVEL)
 
@@ -425,7 +425,7 @@ def test_get_node_execution_command_overwrites_run_id_if_asked(mocker, monkeypat
         assert utils.get_node_execution_command(
             MockNode(), map_variable=test_map_variable, over_write_run_id="this"
         ) == (
-            "magnus execute_single_node this test_node_id "
+            "runnable execute_single_node this test_node_id "
             f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
             "--parameters-file test_parameters_file --tag test_tag"
         )

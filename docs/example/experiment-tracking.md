@@ -1,7 +1,7 @@
 Metrics in data science projects summarize important information about the execution and performance of the
 experiment.
 
-Magnus captures [this information as part of the run log](../concepts/experiment-tracking.md) and also provides
+runnable captures [this information as part of the run log](../concepts/experiment-tracking.md) and also provides
 an [interface to experiment tracking tools](../concepts/experiment-tracking.md/#experiment_tracking_tools)
 like [mlflow](https://mlflow.org/docs/latest/tracking.html) or
 [Weights and Biases](https://wandb.ai/site/experiment-tracking).
@@ -58,7 +58,7 @@ like [mlflow](https://mlflow.org/docs/latest/tracking.html) or
                         "code_identifier": "0b62e4c661a4b4a2187afdf44a7c64520374202d",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -104,7 +104,7 @@ like [mlflow](https://mlflow.org/docs/latest/tracking.html) or
                         "code_identifier": "0b62e4c661a4b4a2187afdf44a7c64520374202d",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -198,5 +198,5 @@ like [mlflow](https://mlflow.org/docs/latest/tracking.html) or
 
     <figure markdown>
         ![Image](../assets/screenshots/mlflow_example.png){ width="800" height="600"}
-        <figcaption>mlflow UI for the execution. The run_id remains the same as the run_id of magnus</figcaption>
+        <figcaption>mlflow UI for the execution. The run_id remains the same as the run_id of runnable</figcaption>
     </figure>

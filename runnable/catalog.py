@@ -43,7 +43,7 @@ class BaseCatalog(ABC, BaseModel):
         Args:
             name (str): The name of the catalog item
             run_id (str): The run_id of the run.
-            compute_data_folder (str, optional): The compute data folder. Defaults to magnus default (data/)
+            compute_data_folder (str, optional): The compute data folder. Defaults to runnable default (data/)
 
         Raises:
             NotImplementedError: Base class, hence not implemented
@@ -70,7 +70,7 @@ class BaseCatalog(ABC, BaseModel):
         Args:
             name (str): The name of the catalog item.
             run_id (str): The run_id of the run.
-            compute_data_folder (str, optional): The compute data folder. Defaults to magnus default (data/)
+            compute_data_folder (str, optional): The compute data folder. Defaults to runnable default (data/)
             synced_catalogs (dict, optional): Any previously synced catalogs. Defaults to None.
 
         Raises:

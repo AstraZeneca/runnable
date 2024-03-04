@@ -16,7 +16,7 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 
 def get_user_set_parameters(remove: bool = False) -> Dict[str, Any]:
     """
-    Scans the environment variables for any user returned parameters that have a prefix MAGNUS_PRM_.
+    Scans the environment variables for any user returned parameters that have a prefix runnable_PRM_.
 
     This function does not deal with any type conversion of the parameters.
     It just deserializes the parameters and returns them as a dictionary.

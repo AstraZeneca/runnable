@@ -6,7 +6,7 @@ dag:
     Note that the branches schema is same as dag schema.
 
     You can run this pipeline by:
-       magnus execute -f examples/parallel-fail.yaml
+       runnable execute -f examples/parallel-fail.yaml
   start_at: step 1
   steps:
     step 1:

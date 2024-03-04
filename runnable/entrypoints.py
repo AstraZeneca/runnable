@@ -1,19 +1,22 @@
+import importlib
 import json
 import logging
+import os
+import sys
 from typing import Optional, cast
 
 from rich import print
 
 import runnable.context as context
 from runnable import defaults, graph, utils
-from runnable.defaults import MagnusConfig, ServiceConfig
+from runnable.defaults import ServiceConfig, runnableConfig
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-def get_default_configs() -> MagnusConfig:
+def get_default_configs() -> runnableConfig:
     """
-    User can provide extensions as part of their code base, magnus-config.yaml provides the place to put them.
+    User can provide extensions as part of their code base, runnable-config.yaml provides the place to put them.
     """
     user_configs = {}
     if utils.does_file_exist(defaults.USER_CONFIG_FILE):
@@ -53,7 +56,7 @@ def prepare_configurations(
     Returns:
         executor.BaseExecutor : A prepared executor as per the dag/config
     """
-    magnus_defaults = get_default_configs()
+    runnable_defaults = get_default_configs()
 
     variables = utils.gather_variables()
 
@@ -61,31 +64,31 @@ def prepare_configurations(
     if configuration_file:
         templated_configuration = utils.load_yaml(configuration_file) or {}
 
-    configuration: MagnusConfig = cast(MagnusConfig, templated_configuration)
+    configuration: runnableConfig = cast(runnableConfig, templated_configuration)
 
     # Run log settings, configuration over-rides everything
     run_log_config: Optional[ServiceConfig] = configuration.get("run_log_store", None)
     if not run_log_config:
-        run_log_config = cast(ServiceConfig, magnus_defaults.get("run_log_store", defaults.DEFAULT_RUN_LOG_STORE))
+        run_log_config = cast(ServiceConfig, runnable_defaults.get("run_log_store", defaults.DEFAULT_RUN_LOG_STORE))
     run_log_store = utils.get_provider_by_name_and_type("run_log_store", run_log_config)
 
     # Catalog handler settings, configuration over-rides everything
     catalog_config: Optional[ServiceConfig] = configuration.get("catalog", None)
     if not catalog_config:
-        catalog_config = cast(ServiceConfig, magnus_defaults.get("catalog", defaults.DEFAULT_CATALOG))
+        catalog_config = cast(ServiceConfig, runnable_defaults.get("catalog", defaults.DEFAULT_CATALOG))
     catalog_handler = utils.get_provider_by_name_and_type("catalog", catalog_config)
 
     # Secret handler settings, configuration over-rides everything
     secrets_config: Optional[ServiceConfig] = configuration.get("secrets", None)
     if not secrets_config:
-        secrets_config = cast(ServiceConfig, magnus_defaults.get("secrets", defaults.DEFAULT_SECRETS))
+        secrets_config = cast(ServiceConfig, runnable_defaults.get("secrets", defaults.DEFAULT_SECRETS))
     secrets_handler = utils.get_provider_by_name_and_type("secrets", secrets_config)
 
     # experiment tracker settings, configuration over-rides everything
     tracker_config: Optional[ServiceConfig] = configuration.get("experiment_tracker", None)
     if not tracker_config:
         tracker_config = cast(
-            ServiceConfig, magnus_defaults.get("experiment_tracker", defaults.DEFAULT_EXPERIMENT_TRACKER)
+            ServiceConfig, runnable_defaults.get("experiment_tracker", defaults.DEFAULT_EXPERIMENT_TRACKER)
         )
     tracker_handler = utils.get_provider_by_name_and_type("experiment_tracker", tracker_config)
 
@@ -95,7 +98,7 @@ def prepare_configurations(
         executor_config = ServiceConfig(type="local", config={})
 
     if not executor_config:
-        executor_config = cast(ServiceConfig, magnus_defaults.get("executor", defaults.DEFAULT_EXECUTOR))
+        executor_config = cast(ServiceConfig, runnable_defaults.get("executor", defaults.DEFAULT_EXECUTOR))
     configured_executor = utils.get_provider_by_name_and_type("executor", executor_config)
 
     # Construct the context
@@ -113,20 +116,30 @@ def prepare_configurations(
     )
 
     if pipeline_file:
-        # There are use cases where we are only preparing the executor
-        pipeline_config = utils.load_yaml(pipeline_file)
+        if pipeline_file.endswith(".py"):
+            # converting a pipeline defined in python to a dag in yaml
+            module_file = pipeline_file.strip(".py")
+            module, func = utils.get_module_and_attr_names(module_file)
+            sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
+            imported_module = importlib.import_module(module)
 
-        logger.info("The input pipeline:")
-        logger.info(json.dumps(pipeline_config, indent=4))
+            os.environ["RUNNABLE_PY_TO_YAML"] = "true"
+            dag = getattr(imported_module, func)().return_dag()
 
-        # Create the graph
-        dag_config = pipeline_config["dag"]
-        dag_hash = utils.get_dag_hash(dag_config)
-        dag = graph.create_graph(dag_config)
+        else:
+            pipeline_config = utils.load_yaml(pipeline_file)
+
+            logger.info("The input pipeline:")
+            logger.info(json.dumps(pipeline_config, indent=4))
+
+            dag_config = pipeline_config["dag"]
+
+            dag_hash = utils.get_dag_hash(dag_config)
+            dag = graph.create_graph(dag_config)
+            run_context.dag_hash = dag_hash
 
         run_context.pipeline_file = pipeline_file
         run_context.dag = dag
-        run_context.dag_hash = dag_hash
 
     run_context.use_cached = False
     if use_cached:
@@ -148,7 +161,7 @@ def execute(
 ):
     # pylint: disable=R0914,R0913
     """
-    The entry point to magnus execution. This method would prepare the configurations and delegates traversal to the
+    The entry point to runnable execution. This method would prepare the configurations and delegates traversal to the
     executor
 
     Args:
@@ -176,7 +189,7 @@ def execute(
 
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
 
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     # Prepare for graph execution
     executor.prepare_for_graph_execution()
@@ -197,7 +210,7 @@ def execute_single_node(
     parameters_file: str = "",
 ):
     """
-    The entry point into executing a single node of magnus. Orchestration modes should extensively use this
+    The entry point into executing a single node of runnable. Orchestration modes should extensively use this
     entry point.
 
     It should have similar set up of configurations to execute because orchestrator modes can initiate the execution.
@@ -226,7 +239,7 @@ def execute_single_node(
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     executor.prepare_for_node_execution()
 
@@ -247,55 +260,6 @@ def execute_single_node(
     executor.send_return_code(stage="execution")
 
 
-def execute_single_brach(
-    configuration_file: str,
-    pipeline_file: str,
-    branch_name: str,
-    map_variable: str,
-    run_id: str,
-    tag: str,
-):
-    """
-    The entry point into executing a branch of the graph. Interactive modes in parallel runs use this to execute
-    branches in parallel.
-
-    This entry point is never used by its own but rather from a node. So the arguments sent into this are fewer.
-
-    Args:
-        variables_file (str): The variables file, if used or None
-        branch_name : The name of the branch to execute, in dot.path.convention
-        pipeline_file (str): The config/dag file
-        run_id (str): The run id of the run.
-        tag (str): If a tag is provided at the run time
-    """
-    from runnable import nodes
-
-    run_context = prepare_configurations(
-        configuration_file=configuration_file,
-        pipeline_file=pipeline_file,
-        run_id=run_id,
-        tag=tag,
-        use_cached="",
-    )
-    print("Working with context:")
-    print(run_context)
-
-    executor = run_context.executor
-    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
-
-    branch_internal_name = nodes.BaseNode._get_internal_name_from_command_name(branch_name)
-
-    map_variable_dict = utils.json_to_ordered_dict(map_variable)
-
-    branch_to_execute = graph.search_branch_by_internal_name(run_context.dag, branch_internal_name)  # type: ignore
-
-    logger.info("Executing the single branch of %s", branch_to_execute)
-    executor.execute_graph(dag=branch_to_execute, map_variable=map_variable_dict)
-
-    executor.send_return_code()
-
-
 def execute_notebook(
     entrypoint: str,
     notebook_file: str,
@@ -307,7 +271,7 @@ def execute_notebook(
     parameters_file: str = "",
 ):
     """
-    The entry point to magnus execution of a notebook. This method would prepare the configurations and
+    The entry point to runnable execution of a notebook. This method would prepare the configurations and
     delegates traversal to the executor
     """
     run_id = utils.generate_run_id(run_id=run_id)
@@ -321,7 +285,7 @@ def execute_notebook(
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     print("Working with context:")
     print(run_context)
@@ -368,7 +332,7 @@ def execute_function(
     parameters_file: str = "",
 ):
     """
-    The entry point to magnus execution of a function. This method would prepare the configurations and
+    The entry point to runnable execution of a function. This method would prepare the configurations and
     delegates traversal to the executor
     """
     run_id = utils.generate_run_id(run_id=run_id)
@@ -383,7 +347,7 @@ def execute_function(
     executor = run_context.executor
 
     run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     print("Working with context:")
     print(run_context)
@@ -460,7 +424,7 @@ def fan(
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_magnus_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
     executor.prepare_for_node_execution()
 

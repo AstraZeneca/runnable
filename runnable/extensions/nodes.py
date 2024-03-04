@@ -1,10 +1,9 @@
-import json
+import copy
 import logging
-import multiprocessing
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, cast
+from typing import Any, Dict, Optional, cast
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_validator
 from typing_extensions import Annotated
@@ -44,9 +43,15 @@ class TaskNode(ExecutableNode):
         executable = create_task(task_config)
         return cls(executable=executable, **node_config, **task_config)
 
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         """
-        All that we do in magnus is to come to this point where we actually execute the command.
+        All that we do in runnable is to come to this point where we actually execute the command.
 
         Args:
             executor (_type_): The executor class
@@ -62,9 +67,11 @@ class TaskNode(ExecutableNode):
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
+            attempt_log.input_parameters = copy.deepcopy(params)
             if not mock:
                 # Do not run if we are mocking the execution, could be useful for caching and dry runs
-                self.executable.execute_command(map_variable=map_variable)
+                output_parameters = self.executable.execute_command(map_variable=map_variable, params=params)
+                attempt_log.output_parameters = output_parameters
         except Exception as _e:  # pylint: disable=W0703
             logger.exception("Task failed")
             attempt_log.status = defaults.FAIL
@@ -88,7 +95,13 @@ class FailNode(TerminalNode):
     def parse_from_config(cls, config: Dict[str, Any]) -> "FailNode":
         return cast("FailNode", super().parse_from_config(config))
 
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         """
         Execute the failure node.
         Set the run or branch log status to failure.
@@ -105,6 +118,7 @@ class FailNode(TerminalNode):
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
+            attempt_log.input_parameters = params
             #  could be a branch or run log
             run_or_branch_log = self._context.run_log_store.get_branch_log(
                 self._get_branch_log_name(map_variable), self._context.run_id
@@ -133,7 +147,13 @@ class SuccessNode(TerminalNode):
     def parse_from_config(cls, config: Dict[str, Any]) -> "SuccessNode":
         return cast("SuccessNode", super().parse_from_config(config))
 
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         """
         Execute the success node.
         Set the run or branch log status to success.
@@ -150,6 +170,7 @@ class SuccessNode(TerminalNode):
         try:
             attempt_log.start_time = str(datetime.now())
             attempt_log.status = defaults.SUCCESS
+            attempt_log.input_parameters = params
             #  could be a branch or run log
             run_or_branch_log = self._context.run_log_store.get_branch_log(
                 self._get_branch_log_name(map_variable), self._context.run_id
@@ -257,35 +278,11 @@ class ParallelNode(CompositeNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-        from runnable import entrypoints
 
         self.fan_out(map_variable=map_variable, **kwargs)
 
-        jobs = []
-        # Given that we can have nesting and complex graphs, controlling the number of processes is hard.
-        # A better way is to actually submit the job to some process scheduler which does resource management
-        for internal_branch_name, branch in self.branches.items():
-            if self._context.executor._is_parallel_execution():
-                # Trigger parallel jobs
-                action = entrypoints.execute_single_brach
-                kwargs = {
-                    "configuration_file": self._context.configuration_file,
-                    "pipeline_file": self._context.pipeline_file,
-                    "branch_name": internal_branch_name.replace(" ", defaults.COMMAND_FRIENDLY_CHARACTER),
-                    "run_id": self._context.run_id,
-                    "map_variable": json.dumps(map_variable),
-                    "tag": self._context.tag,
-                }
-                process = multiprocessing.Process(target=action, kwargs=kwargs)
-                jobs.append(process)
-                process.start()
-
-            else:
-                # If parallel is not enabled, execute them sequentially
-                self._context.executor.execute_graph(branch, map_variable=map_variable, **kwargs)
-
-        for job in jobs:
-            job.join()  # Find status of the branches
+        for _, branch in self.branches.items():
+            self._context.executor.execute_graph(branch, map_variable=map_variable, **kwargs)
 
         self.fan_in(map_variable=map_variable, **kwargs)
 
@@ -418,7 +415,6 @@ class MapNode(CompositeNode):
             map_variable (dict): The map variables the graph belongs to
             **kwargs: Optional kwargs passed around
         """
-        from runnable import entrypoints
 
         iterate_on = None
         try:
@@ -433,34 +429,11 @@ class MapNode(CompositeNode):
 
         self.fan_out(map_variable=map_variable, **kwargs)
 
-        jobs = []
-        # Given that we can have nesting and complex graphs, controlling the number of processess is hard.
-        # A better way is to actually submit the job to some process scheduler which does resource management
         for iter_variable in iterate_on:
             effective_map_variable = map_variable or OrderedDict()
             effective_map_variable[self.iterate_as] = iter_variable
 
-            if self._context.executor._is_parallel_execution():
-                # Trigger parallel jobs
-                action = entrypoints.execute_single_brach
-                kwargs = {
-                    "configuration_file": self._context.configuration_file,
-                    "pipeline_file": self._context.pipeline_file,
-                    "branch_name": self.branch.internal_branch_name.replace(" ", defaults.COMMAND_FRIENDLY_CHARACTER),
-                    "run_id": self._context.run_id,
-                    "map_variable": json.dumps(effective_map_variable),
-                    "tag": self._context.tag,
-                }
-                process = multiprocessing.Process(target=action, kwargs=kwargs)
-                jobs.append(process)
-                process.start()
-
-            else:
-                # If parallel is not enabled, execute them sequentially
-                self._context.executor.execute_graph(self.branch, map_variable=effective_map_variable, **kwargs)
-
-        for job in jobs:
-            job.join()
+            self._context.executor.execute_graph(self.branch, map_variable=effective_map_variable, **kwargs)
 
         self.fan_in(map_variable=map_variable, **kwargs)
 
@@ -652,7 +625,13 @@ class StubNode(ExecutableNode):
     def parse_from_config(cls, config: Dict[str, Any]) -> "StubNode":
         return cls(**config)
 
-    def execute(self, mock=False, map_variable: TypeMapVariable = None, **kwargs) -> StepAttempt:
+    def execute(
+        self,
+        mock=False,
+        params: Optional[Dict[str, Any]] = None,
+        map_variable: TypeMapVariable = None,
+        **kwargs,
+    ) -> StepAttempt:
         """
         Do Nothing node.
         We just send an success attempt log back to the caller
@@ -666,6 +645,7 @@ class StubNode(ExecutableNode):
             [type]: [description]
         """
         attempt_log = self._context.run_log_store.create_attempt_log()
+        attempt_log.input_parameters = params
 
         attempt_log.start_time = str(datetime.now())
         attempt_log.status = defaults.SUCCESS  # This is a dummy node and always will be success

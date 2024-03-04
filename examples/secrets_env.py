@@ -2,7 +2,7 @@
 An example pipeline to demonstrate how to use the secrets manager.
 
 Run this pipeline by:
-    secret="secret_value" MAGNUS_CONFIGURATION_FILE=examples/configs/secrets-env-default.yaml \
+    secret="secret_value" runnable_CONFIGURATION_FILE=examples/configs/secrets-env-default.yaml \
     python examples/secrets_env.py
 
 """

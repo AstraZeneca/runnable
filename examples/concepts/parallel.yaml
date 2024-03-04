@@ -9,7 +9,7 @@ dag:
     flesh out the steps later.
 
     You can run this pipeline by:
-       magnus execute -f examples/concepts/parallel.yaml
+       runnable execute -f examples/concepts/parallel.yaml
   start_at: Get Features
   steps:
     Get Features:

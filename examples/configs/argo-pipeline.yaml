@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: magnus-dag-
+  generateName: runnable-dag-
   annotations: {}
   labels: {}
 spec:
   activeDeadlineSeconds: 172800
-  entrypoint: magnus-dag
+  entrypoint: runnable-dag
   podGC:
     strategy: OnPodCompletion
   retryStrategy:
@@ -17,7 +17,7 @@ spec:
       factor: 2
       maxDuration: "3600"
   templates:
-    - name: magnus-dag
+    - name: runnable-dag
       failFast: true
       dag:
         tasks:
@@ -29,9 +29,9 @@ spec:
             depends: simple-task-6mn2ll.Succeeded
     - name: simple-task-6mn2ll
       container:
-        image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
-          - magnus
+          - runnable
           - execute_single_node
           - "{{workflow.parameters.run_id}}"
           - simple
@@ -54,9 +54,9 @@ spec:
             cpu: 250m
     - name: success-success-0uvo9r
       container:
-        image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
-          - magnus
+          - runnable
           - execute_single_node
           - "{{workflow.parameters.run_id}}"
           - success
@@ -87,4 +87,4 @@ spec:
   volumes:
     - name: executor-0
       persistentVolumeClaim:
-        claimName: magnus-volume
+        claimName: runnable-volume

@@ -1,7 +1,7 @@
 
 
-Magnus revolves around the concept of [pipelines or workflows](../concepts/pipeline.md).
-Pipelines defined in magnus are translated into
+runnable revolves around the concept of [pipelines or workflows](../concepts/pipeline.md).
+Pipelines defined in runnable are translated into
 other workflow engine definitions like [Argo workflows](https://argoproj.github.io/workflows/) or
 [AWS step functions](https://aws.amazon.com/step-functions/).
 
@@ -30,7 +30,7 @@ flowchart TD
 ```
 
 
-This pipeline can be represented in **magnus** as below:
+This pipeline can be represented in **runnable** as below:
 
 
 === "yaml"
@@ -83,7 +83,7 @@ This pipeline can be represented in **magnus** as below:
                         "code_identifier": "399b0d42f4f28aaeeb2e062bb0b938d50ff1595c", // (4)
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -114,7 +114,7 @@ This pipeline can be represented in **magnus** as below:
                         "code_identifier": "399b0d42f4f28aaeeb2e062bb0b938d50ff1595c",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -145,7 +145,7 @@ This pipeline can be represented in **magnus** as below:
                         "code_identifier": "399b0d42f4f28aaeeb2e062bb0b938d50ff1595c",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -176,7 +176,7 @@ This pipeline can be represented in **magnus** as below:
                         "code_identifier": "399b0d42f4f28aaeeb2e062bb0b938d50ff1595c",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -207,7 +207,7 @@ This pipeline can be represented in **magnus** as below:
                         "code_identifier": "399b0d42f4f28aaeeb2e062bb0b938d50ff1595c",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -365,14 +365,14 @@ To run the pipeline in different environments, we just provide the
 
     yaml:
 
-    ```magnus execute -f examples/contrived.yaml -c examples/configs/argo-config.yaml```
+    ```runnable execute -f examples/contrived.yaml -c examples/configs/argo-config.yaml```
 
 
     python:
 
     Please refer to [containerised environments](../configurations/executors/container-environments.md) for more information.
 
-    MAGNUS_CONFIGURATION_FILE=examples/configs/argo-config.yaml python examples/contrived.py && magnus execute -f magnus-pipeline.yaml -c examples/configs/argo-config.yaml
+    runnable_CONFIGURATION_FILE=examples/configs/argo-config.yaml python examples/contrived.py && runnable execute -f runnable-pipeline.yaml -c examples/configs/argo-config.yaml
 
     ``` yaml linenums="1" title="Argo Configuration"
     --8<-- "examples/configs/argo-config.yaml"
@@ -381,7 +381,7 @@ To run the pipeline in different environments, we just provide the
     1. Use argo workflows as the execution engine to run the pipeline.
     2. Run this docker image for every step of the pipeline. Please refer to
     [containerised environments](../configurations/executors/container-environments.md) for more details.
-    3. Mount the volume from Kubernetes persistent volumes (magnus-volume) to /mnt directory.
+    3. Mount the volume from Kubernetes persistent volumes (runnable-volume) to /mnt directory.
     4. Resource constraints for the container runtime.
     5. Since every step runs in a container, the run log should be persisted. Here we are using the file-system as our
     run log store.

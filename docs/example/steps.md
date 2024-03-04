@@ -1,4 +1,4 @@
-Magnus provides a rich definition of of step types.
+runnable provides a rich definition of of step types.
 
 <div class="annotate" markdown>
 

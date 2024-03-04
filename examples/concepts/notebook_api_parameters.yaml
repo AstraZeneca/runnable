@@ -6,7 +6,7 @@ dag:
     project, you can import any module that was installed for the project.
 
     You can run this pipeline as:
-      magnus execute -f examples/concepts/notebook_api_parameters.yaml -p examples/concepts/parameters.yaml
+      runnable execute -f examples/concepts/notebook_api_parameters.yaml -p examples/concepts/parameters.yaml
 
   start_at: native notebook
   steps:
