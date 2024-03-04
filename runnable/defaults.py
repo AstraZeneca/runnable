@@ -35,7 +35,7 @@ class ServiceConfig(TypedDict):
     config: Mapping[str, Any]
 
 
-class runnableConfig(TypedDict, total=False):
+class RunnableConfig(TypedDict, total=False):
     run_log_store: Optional[ServiceConfig]
     secrets: Optional[ServiceConfig]
     catalog: Optional[ServiceConfig]

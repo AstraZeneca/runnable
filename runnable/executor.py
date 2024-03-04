@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 import runnable.context as context
 from runnable import defaults
-from runnable.datastore import DataCatalog, RunLog, StepLog
+from runnable.datastore import DataCatalog, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph
 
@@ -36,9 +36,6 @@ class BaseExecutor(ABC, BaseModel):
 
     overrides: dict = {}
 
-    # TODO: This needs to go away
-    _previous_run_log: Optional[RunLog] = None
-    _single_step: str = ""
     _local: bool = False  # This is a flag to indicate whether the executor is local or not.
 
     _context_step_log = None  # type : StepLog
@@ -59,21 +56,6 @@ class BaseExecutor(ABC, BaseModel):
             Dict[str, Any]: The parameters for the execution.
         """
         ...
-
-    # TODO: This needs to go away
-    @abstractmethod
-    def _set_up_for_re_run(self, parameters: Dict[str, Any]) -> None:
-        """
-        Set up the executor for using a previous execution.
-
-        Retrieve the older run log, error out if it does not exist.
-        Sync the catalogs from the previous run log with the current one.
-
-        Update the parameters of this execution with the previous one. The previous one take precedence.
-
-        Args:
-            parameters (Dict[str, Any]): The parameters for the current execution.
-        """
 
     @abstractmethod
     def _set_up_run_log(self, exists_ok=False):
@@ -290,28 +272,6 @@ class BaseExecutor(ABC, BaseModel):
             dag (Graph): The directed acyclic graph to traverse and execute.
             map_variable (dict, optional): If the node if of a map state, this corresponds to the value of the iterable.
                     Defaults to None.
-        """
-        ...
-
-    # TODO: This needs to go away
-    @abstractmethod
-    def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: TypeMapVariable = None):
-        """
-        In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
-        necessary.
-            * True: If its not a re-run.
-            * True: If its a re-run and we failed in the last run or the corresponding logs do not exist.
-            * False: If its a re-run and we succeeded in the last run.
-
-        Most cases, this logic need not be touched
-
-        Args:
-            node (Node): The node to check against re-run
-            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable..
-                        Defaults to None.
-
-        Returns:
-            bool: Eligibility for re-run. True means re-run, False means skip to the next step.
         """
         ...
 

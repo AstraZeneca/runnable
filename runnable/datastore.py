@@ -169,9 +169,7 @@ class RunLog(BaseModel):
 
     run_id: str
     dag_hash: Optional[str] = None
-    use_cached: bool = False
     tag: Optional[str] = ""
-    original_run_id: Optional[str] = ""
     status: str = defaults.FAIL
     steps: OrderedDict[str, StepLog] = Field(default_factory=OrderedDict)
     parameters: Dict[str, Any] = Field(default_factory=dict)
@@ -659,9 +657,7 @@ class BufferRunLogstore(BaseRunLogStore):
         self.run_log = RunLog(
             run_id=run_id,
             dag_hash=dag_hash,
-            use_cached=use_cached,
             tag=tag,
-            original_run_id=original_run_id,
             status=status,
         )
         return self.run_log

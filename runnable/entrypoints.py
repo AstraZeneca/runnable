@@ -9,12 +9,12 @@ from rich import print
 
 import runnable.context as context
 from runnable import defaults, graph, utils
-from runnable.defaults import ServiceConfig, runnableConfig
+from runnable.defaults import RunnableConfig, ServiceConfig
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-def get_default_configs() -> runnableConfig:
+def get_default_configs() -> RunnableConfig:
     """
     User can provide extensions as part of their code base, runnable-config.yaml provides the place to put them.
     """
@@ -37,7 +37,6 @@ def prepare_configurations(
     configuration_file: str = "",
     pipeline_file: str = "",
     tag: str = "",
-    use_cached: str = "",
     parameters_file: str = "",
     force_local_executor: bool = False,
 ) -> context.Context:
@@ -51,7 +50,6 @@ def prepare_configurations(
         pipeline_file (str): The config/dag file
         run_id (str): The run id of the run.
         tag (str): If a tag is provided at the run time
-        use_cached (str): Provide the run_id of the older run
 
     Returns:
         executor.BaseExecutor : A prepared executor as per the dag/config
@@ -64,7 +62,7 @@ def prepare_configurations(
     if configuration_file:
         templated_configuration = utils.load_yaml(configuration_file) or {}
 
-    configuration: runnableConfig = cast(runnableConfig, templated_configuration)
+    configuration: RunnableConfig = cast(RunnableConfig, templated_configuration)
 
     # Run log settings, configuration over-rides everything
     run_log_config: Optional[ServiceConfig] = configuration.get("run_log_store", None)
@@ -141,11 +139,6 @@ def prepare_configurations(
         run_context.pipeline_file = pipeline_file
         run_context.dag = dag
 
-    run_context.use_cached = False
-    if use_cached:
-        run_context.use_cached = True
-        run_context.original_run_id = use_cached
-
     context.run_context = run_context
 
     return run_context
@@ -156,7 +149,6 @@ def execute(
     pipeline_file: str,
     tag: str = "",
     run_id: str = "",
-    use_cached: str = "",
     parameters_file: str = "",
 ):
     # pylint: disable=R0914,R0913
@@ -168,10 +160,8 @@ def execute(
         pipeline_file (str): The config/dag file
         run_id (str): The run id of the run.
         tag (str): If a tag is provided at the run time
-        use_cached (str): The previous run_id to use.
         parameters_file (str): The parameters being sent in to the application
     """
-    # Re run settings
     run_id = utils.generate_run_id(run_id=run_id)
 
     run_context = prepare_configurations(
@@ -179,7 +169,6 @@ def execute(
         pipeline_file=pipeline_file,
         run_id=run_id,
         tag=tag,
-        use_cached=use_cached,
         parameters_file=parameters_file,
     )
     print("Working with context:")
@@ -231,7 +220,6 @@ def execute_single_node(
         pipeline_file=pipeline_file,
         run_id=run_id,
         tag=tag,
-        use_cached="",
         parameters_file=parameters_file,
     )
     print("Working with context:")
@@ -416,7 +404,6 @@ def fan(
         pipeline_file=pipeline_file,
         run_id=run_id,
         tag=tag,
-        use_cached="",
         parameters_file=parameters_file,
     )
     print("Working with context:")

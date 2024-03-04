@@ -560,7 +560,6 @@ class Pipeline(BaseModel):
             run_id=run_id,
             tag=tag,
             parameters_file=parameters_file,
-            use_cached=use_cached,
         )
 
         run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value

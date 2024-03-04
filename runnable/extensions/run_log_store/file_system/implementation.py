@@ -108,9 +108,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
         run_log = RunLog(
             run_id=run_id,
             dag_hash=dag_hash,
-            use_cached=use_cached,
             tag=tag,
-            original_run_id=original_run_id,
             status=status,
         )
         self.write_to_folder(run_log)
