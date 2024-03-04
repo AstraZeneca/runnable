@@ -12,7 +12,23 @@
 
 <hr style="border:2px dotted orange">
 
-::: runnable.Task
+::: runnable.PythonTask
+    options:
+        show_root_heading: true
+        show_bases: false
+        show_docstring_description: true
+
+<hr style="border:2px dotted orange">
+
+::: runnable.ShellTask
+    options:
+        show_root_heading: true
+        show_bases: false
+        show_docstring_description: true
+
+<hr style="border:2px dotted orange">
+
+::: runnable.NotebookTask
     options:
         show_root_heading: true
         show_bases: false
