@@ -17,11 +17,11 @@ def show_secret():
 
 
 def main():
-    from runnable import Pipeline, Task
+    from runnable import Pipeline, PythonTask
 
-    show = Task(
+    show = PythonTask(
         name="show secret",
-        command="examples.secrets.show_secret",
+        function=show_secret,
         terminate_with_success=True,
     )
 

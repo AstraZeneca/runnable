@@ -11,18 +11,19 @@ In this example:
     You can run this pipeline by: python examples/python-tasks.py
 """
 
-from runnable import Pipeline, Task
+from examples.functions import display_parameter, return_parameter
+from runnable import Pipeline, PythonTask
 
 
 def main():
-    step1 = Task(
+    step1 = PythonTask(
         name="step1",  # (1)
-        command="examples.functions.return_parameter",  # (2)
+        function=return_parameter,  # (2)
     )
 
-    step2 = Task(
+    step2 = PythonTask(
         name="step2",
-        command="examples.functions.display_parameter",
+        function=display_parameter,
         terminate_with_success=True,  # (3)
     )
 

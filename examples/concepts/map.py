@@ -54,17 +54,17 @@ def main():
         process_chunk(chunks.stride, start_index)
 
     """
-    from runnable import Map, Pipeline, Task
+    from runnable import Map, Pipeline, PythonTask
 
-    execute = Task(
+    execute = PythonTask(
         name="execute",
-        command="examples.concepts.map.process_chunk",
+        function=process_chunk,
         terminate_with_success=True,
     )
 
     execute_branch = Pipeline(steps=[execute], start_at=execute, add_terminal_nodes=True)
 
-    generate = Task(name="chunk files", command="examples.concepts.map.chunk_files")
+    generate = PythonTask(name="chunk files", function=chunk_files)
     iterate_and_execute = Map(
         name="iterate and execute",
         branch=execute_branch,

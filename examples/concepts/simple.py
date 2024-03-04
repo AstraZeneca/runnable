@@ -5,7 +5,7 @@ Run this pipeline by:
     python examples/concepts/simple.py
 """
 
-from runnable import Pipeline, Task
+from runnable import Pipeline, PythonTask
 
 
 def simple_function():
@@ -16,9 +16,9 @@ def simple_function():
 
 
 def main():
-    simple_task = Task(
+    simple_task = PythonTask(
         name="simple",
-        command="examples.concepts.simple.simple_function",
+        function=simple_function,
         terminate_with_success=True,
     )
 

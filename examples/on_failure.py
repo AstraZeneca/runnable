@@ -13,11 +13,11 @@ This is a simple pipeline to demonstrate failure in a step.
     python examples/on_failure.py
 """
 
-from runnable import Pipeline, Stub, Task
+from runnable import Pipeline, ShellTask, Stub
 
 
 def main():
-    step_1 = Task(name="step 1", command="exit 1", command_type="shell")
+    step_1 = ShellTask(name="step 1", command="exit 1")
     step_2 = Stub(name="step 2")
 
     step_3 = Stub(name="step 3", terminate_with_success=True)
