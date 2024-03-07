@@ -44,8 +44,6 @@ A step in the workflow can be:
     a [shell script](task.md/#shell) or a
     [notebook](task.md/#notebook).
 
-    A task can live in isolation and be independent of the workflow.
-
     All the logs, i.e stderr and stdout or executed notebooks are stored
     in [catalog](catalog.md) for easier access and debugging.
 

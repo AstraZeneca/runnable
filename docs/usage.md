@@ -28,13 +28,6 @@ To use notebooks as tasks, install runnable with ```notebook``` functionality.
 pip install "runnable[notebook]"
 ```
 
-#### mlflow
-
-To enable ```mlflow``` as experiment tracker, install runnable with ```mlflow``` functionality
-
-```shell
-pip install "runnable[mlflow]"
-```
 
 <hr style="border:2px dotted orange">
 

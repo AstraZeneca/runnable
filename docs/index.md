@@ -1,34 +1,39 @@
-<p align="center">
+# Runnable
 
-                        ,////,
-                        /// 6|
-                        //  _|
-                       _/_,-'
-                  _.-/'/   \   ,/;,
-               ,-' /'  \_   \ / _/
-               `\ /     _/\  ` /
-                 |     /,  `\_/
-                 |     \'
-      /\_        /`      /\
-     /' /_``--.__/\  `,. /  \
-    |_/`  `-._     `\/  `\   `.
-              `-.__/'     `\   |
-                           `\  \
-                            `\ \
-                              \_\__
-                               \___)
-
-                          Runnable
-</p>
+                                                       ,////,
+                                                      /// 6|
+                                                      //  _|
+                                                    _/_,-'
+                                                _.-/'/   \   ,/;,
+                                            ,-' /'  \_   \ / _/
+                                             `\ /     _/\  ` /
+                                               |     /,  `\_/
+                                               |     \'
+                                    /\_        /`      /\
+                                  /' /_``--.__/\  `,. /  \
+                                  |_/`  `-._     `\/  `\   `.
+                                            `-.__/'     `\   |
+                                                         `\  \
+                                                          `\ \
+                                                            \_\__
+                                                              \___)
 
 
+---
 
-:runner: Orchestrate python functions, notebooks or scripts on your local machine by just adding
-*one file*.
+## What does it do?
 
-:runner: Move to any cloud by adding *one more file*.
+<figure markdown>
+  ![Image title](assets/cropped.png){ width="1200" height="800"}
+  <figcaption></figcaption>
+</figure>
 
-## functions
+---
+
+## Example
+
+
+### functions
 
 The below content is assumed to be ```examples/functions.py```
 
@@ -54,7 +59,7 @@ There is nothing special about the functions, they are *plain old python functio
 
 
 
-## local :runner:
+### local :runner:
 
 
 Replace the "driver" function with a *runnable* definition in either ```python sdk```
@@ -335,4 +340,4 @@ did not change at all.
 There is no boilerplate code, no adherence to structure, no intrusion into the
 application code.
 
-## cloud :runner:
+### cloud :runner:
