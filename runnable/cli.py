@@ -41,8 +41,7 @@ def cli():
 )
 @click.option("--tag", default="", help="A tag attached to the run")
 @click.option("--run-id", help="An optional run_id, one would be generated if not provided")
-@click.option("--use-cached", help="Provide the previous run_id to re-run.", show_default=True)
-def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cached):  # pragma: no cover
+def execute(file, config_file, parameters_file, log_level, tag, run_id):  # pragma: no cover
     """
     Execute a pipeline
 
@@ -59,7 +58,6 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cach
                                     [default: ]
     --run-id TEXT                An optional run_id, one would be generated if not
                                     provided
-    --use-cached TEXT            Provide the previous run_id to re-run.
     """
     logger.setLevel(log_level)
     entrypoints.execute(
@@ -67,7 +65,6 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id, use_cach
         pipeline_file=file,
         tag=tag,
         run_id=run_id,
-        use_cached=use_cached,
         parameters_file=parameters_file,
     )
 

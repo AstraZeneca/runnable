@@ -24,8 +24,6 @@ class Context(BaseModel):
     tag: str = ""
     run_id: str = ""
     variables: Dict[str, str] = {}
-    use_cached: bool = False
-    original_run_id: str = ""
     dag: Optional[Graph] = None
     dag_hash: str = ""
     execution_plan: str = ""

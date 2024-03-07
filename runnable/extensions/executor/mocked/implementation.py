@@ -32,9 +32,6 @@ class MockedExecutor(GenericExecutor):
     def _context(self):
         return context.run_context
 
-    def _set_up_for_re_run(self, parameters: Dict[str, Any]) -> None:
-        raise Exception("MockedExecutor does not support re-run")
-
     def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
         This is the entry point to from the graph execution.
@@ -85,7 +82,7 @@ class MockedExecutor(GenericExecutor):
             # node is not patched, so mock it
             step_log.mock = True
         else:
-            # node is mocked, change the executable to python with the
+            # node is patched
             # command as the patch value
             executable_type = node_to_send.executable.__class__
             executable = create_executable(
@@ -94,7 +91,6 @@ class MockedExecutor(GenericExecutor):
                 node_name=node.name,
             )
             node_to_send.executable = executable
-            pass
 
         # Executor specific way to trigger a job
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
@@ -116,27 +112,6 @@ class MockedExecutor(GenericExecutor):
         """
         self.prepare_for_node_execution()
         self.execute_node(node=node, map_variable=map_variable, **kwargs)
-
-    # TODO: This needs to go away
-    def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: TypeMapVariable = None):
-        """
-        In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
-        necessary.
-            * True: If its not a re-run.
-            * True: If its a re-run and we failed in the last run or the corresponding logs do not exist.
-            * False: If its a re-run and we succeeded in the last run.
-
-        Most cases, this logic need not be touched
-
-        Args:
-            node (Node): The node to check against re-run
-            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable..
-                        Defaults to None.
-
-        Returns:
-            bool: Eligibility for re-run. True means re-run, False means skip to the next step.
-        """
-        return True
 
     def _resolve_executor_config(self, node: BaseNode):
         """

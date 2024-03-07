@@ -68,6 +68,7 @@ runnable= 'runnable.cli:cli'
 "local-container" = "runnable.extensions.executor.local_container.implementation:LocalContainerExecutor"
 "argo" = "runnable.extensions.executor.argo.implementation:ArgoExecutor"
 "mocked" = "runnable.extensions.executor.mocked.implementation:MockedExecutor"
+"retry" = "runnable.extensions.executor.retry.implementation:RetryExecutor"
 
 # Plugins for Catalog
 [tool.poetry.plugins."catalog"]

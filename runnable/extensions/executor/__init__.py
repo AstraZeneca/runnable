@@ -3,12 +3,12 @@ import json
 import logging
 import os
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 from rich import print
 
 from runnable import context, defaults, exceptions, integration, parameters, utils
-from runnable.datastore import DataCatalog, RunLog, StepLog
+from runnable.datastore import DataCatalog, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.executor import BaseExecutor
 from runnable.experiment_tracker import get_tracked_data
@@ -40,20 +40,6 @@ class GenericExecutor(BaseExecutor):
     def _context(self):
         return context.run_context
 
-    @property
-    def step_decorator_run_id(self):
-        """
-        TODO: Experimental feature, design is not mature yet.
-
-        This function is used by the decorator function.
-        The design idea is we can over-ride this method in different implementations to retrieve the run_id.
-        But is it really intrusive to ask to set the environmental variable runnable_RUN_ID?
-
-        Returns:
-            _type_: _description_
-        """
-        return os.environ.get("runnable_RUN_ID", None)
-
     def _get_parameters(self) -> Dict[str, Any]:
         """
         Consolidate the parameters from the environment variables
@@ -71,28 +57,6 @@ class GenericExecutor(BaseExecutor):
         # Update these with some from the environment variables
         params.update(parameters.get_user_set_parameters())
         return params
-
-    def _set_up_for_re_run(self, parameters: Dict[str, Any]) -> None:
-        try:
-            attempt_run_log = self._context.run_log_store.get_run_log_by_id(
-                run_id=self._context.original_run_id, full=False
-            )
-        except exceptions.RunLogNotFoundError as e:
-            msg = (
-                f"Expected a run log with id: {self._context.original_run_id} "
-                "but it does not exist in the run log store. "
-                "If the original execution was in a different environment, ensure that it is available in the current "
-                "environment."
-            )
-            logger.exception(msg)
-            raise Exception(msg) from e
-
-        # Sync the previous run log catalog to this one.
-        self._context.catalog_handler.sync_between_runs(
-            previous_run_id=self._context.original_run_id, run_id=self._context.run_id
-        )
-
-        parameters.update(cast(RunLog, attempt_run_log).parameters)
 
     def _set_up_run_log(self, exists_ok=False):
         """
@@ -115,22 +79,16 @@ class GenericExecutor(BaseExecutor):
             raise
 
         # Consolidate and get the parameters
-        parameters = self._get_parameters()
-
-        # TODO: This needs to go away
-        if self._context.use_cached:
-            self._set_up_for_re_run(parameters=parameters)
+        params = self._get_parameters()
 
         self._context.run_log_store.create_run_log(
             run_id=self._context.run_id,
             tag=self._context.tag,
             status=defaults.PROCESSING,
             dag_hash=self._context.dag_hash,
-            use_cached=self._context.use_cached,
-            original_run_id=self._context.original_run_id,
         )
         # Any interaction with run log store attributes should happen via API if available.
-        self._context.run_log_store.set_parameters(run_id=self._context.run_id, parameters=parameters)
+        self._context.run_log_store.set_parameters(run_id=self._context.run_id, parameters=params)
 
         # Update run_config
         run_config = utils.get_run_config()
@@ -409,17 +367,6 @@ class GenericExecutor(BaseExecutor):
             self._execute_node(node, map_variable=map_variable, **kwargs)
             return
 
-        # TODO: This needs to go away
-        # In single step
-        if (self._single_step and not node.name == self._single_step) or not self._is_step_eligible_for_rerun(
-            node, map_variable=map_variable
-        ):
-            # If the node name does not match, we move on to the next node.
-            # If previous run was successful, move on to the next step
-            step_log.mock = True
-            step_log.status = defaults.SUCCESS
-            self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-            return
         # We call an internal function to iterate the sub graphs and execute them
         if node.is_composite:
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
@@ -542,47 +489,6 @@ class GenericExecutor(BaseExecutor):
         if branch == "graph":
             run_log = self._context.run_log_store.get_run_log_by_id(run_id=self._context.run_id, full=True)
         print(json.dumps(run_log.model_dump(), indent=4))
-
-    # TODO: This needs to go away
-    def _is_step_eligible_for_rerun(self, node: BaseNode, map_variable: TypeMapVariable = None):
-        """
-        In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
-        necessary.
-            * True: If its not a re-run.
-            * True: If its a re-run and we failed in the last run or the corresponding logs do not exist.
-            * False: If its a re-run and we succeeded in the last run.
-
-        Most cases, this logic need not be touched
-
-        Args:
-            node (Node): The node to check against re-run
-            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable..
-                        Defaults to None.
-
-        Returns:
-            bool: Eligibility for re-run. True means re-run, False means skip to the next step.
-        """
-        if self._context.use_cached:
-            node_step_log_name = node._get_step_log_name(map_variable=map_variable)
-            logger.info(f"Scanning previous run logs for node logs of: {node_step_log_name}")
-
-            try:
-                previous_node_log = self._context.run_log_store.get_step_log(
-                    internal_name=node_step_log_name, run_id=self._context.original_run_id
-                )
-            except exceptions.StepLogNotFoundError:
-                logger.warning(f"Did not find the node {node.name} in previous run log")
-                return True  # We should re-run the node.
-
-            logger.info(f"The original step status: {previous_node_log.status}")
-
-            if previous_node_log.status == defaults.SUCCESS:
-                return False  # We need not run the node
-
-            logger.info(f"The new execution should start executing graph from this node {node.name}")
-            return True
-
-        return True
 
     def send_return_code(self, stage="traversal"):
         """

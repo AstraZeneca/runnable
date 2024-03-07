@@ -55,63 +55,6 @@ def test_get_parameters_user_parameters_overwrites_parameters_from_parameters_fi
     assert test_executor._get_parameters() == {"executor": "that"}
 
 
-def test_set_up_for_rerun_throws_exception_if_run_log_not_exists(mocker, monkeypatch, mock_run_context):
-    mock_run_log_store = mocker.MagicMock()
-
-    mock_run_context.run_log_store = mock_run_log_store
-    mock_run_context.original_run_id = "original_run_id"
-    mock_run_log_store.get_run_log_by_id = mocker.MagicMock(side_effect=exceptions.RunLogNotFoundError("test"))
-
-    with pytest.raises(Exception, match="Expected a run log with id: original_run_id"):
-        GenericExecutor()._set_up_for_re_run(parameters={})
-
-
-def test_set_up_for_re_run_syncs_catalog_and_parameters(mocker, monkeypatch, mock_run_context):
-    mock_catalog_handler_sync_between_runs = mocker.MagicMock()
-    mock_catalog_handler = mocker.MagicMock()
-    mock_catalog_handler.sync_between_runs = mock_catalog_handler_sync_between_runs
-
-    mock_run_context.catalog_handler = mock_catalog_handler
-    mock_run_context.run_id = "run_id"
-    mock_run_context.original_run_id = "original_run_id"
-
-    mock_attempt_run_log = mocker.MagicMock()
-    mock_attempt_run_log.parameters = {"ghost": "from past"}
-
-    mock_run_log_store = mocker.MagicMock()
-    mock_run_log_store.get_run_log_by_id.return_value = mock_attempt_run_log
-    mock_run_context.run_log_store = mock_run_log_store
-
-    parameters = {}
-    GenericExecutor()._set_up_for_re_run(parameters=parameters)
-
-    mock_catalog_handler_sync_between_runs.assert_called_once_with(previous_run_id="original_run_id", run_id="run_id")
-    assert parameters == {"ghost": "from past"}
-
-
-def test_set_up_for_re_run_syncs_catalog_and_updates_parameters(mocker, monkeypatch, mock_run_context):
-    mock_catalog_handler_sync_between_runs = mocker.MagicMock()
-    mock_catalog_handler = mocker.MagicMock()
-    mock_catalog_handler.sync_between_runs = mock_catalog_handler_sync_between_runs
-
-    mock_run_context.catalog_handler = mock_catalog_handler
-    mock_run_context.run_id = "run_id"
-    mock_run_context.original_run_id = "original_run_id"
-
-    mock_attempt_run_log = mocker.MagicMock()
-    mock_attempt_run_log.parameters = {"ghost": "from past"}
-
-    mock_run_log_store = mocker.MagicMock()
-    mock_run_log_store.get_run_log_by_id.return_value = mock_attempt_run_log
-    mock_run_context.run_log_store = mock_run_log_store
-
-    parameters = {"present": "now"}
-    GenericExecutor()._set_up_for_re_run(parameters=parameters)
-
-    mock_catalog_handler_sync_between_runs.assert_called_once_with(previous_run_id="original_run_id", run_id="run_id")
-    assert parameters == {"present": "now", "ghost": "from past"}
-
-
 def test_set_up_run_log_throws_exception_if_run_log_already_exists(mocker, monkeypatch, mock_run_context):
     mock_run_log_store = mocker.MagicMock()
 
@@ -139,22 +82,6 @@ def test_set_up_run_log_calls_get_parameters(mocker, monkeypatch, mock_run_conte
     assert mock_get_parameters.call_count == 1
 
 
-def test_set_up_run_log_calls_set_up_for_re_run(mocker, monkeypatch, mock_run_context):
-    mock_set_up_for_re_run = mocker.MagicMock()
-    monkeypatch.setattr(GenericExecutor, "_set_up_for_re_run", mock_set_up_for_re_run)
-
-    mock_get_parameters = mocker.MagicMock()
-    monkeypatch.setattr(GenericExecutor, "_get_parameters", mock_get_parameters)
-
-    mock_run_context.run_log_store.get_run_log_by_id = mocker.MagicMock(
-        side_effect=exceptions.RunLogNotFoundError("test")
-    )
-
-    GenericExecutor()._set_up_run_log()
-
-    assert mock_set_up_for_re_run.call_count == 1
-
-
 def test_set_up_run_log_calls_create_run_log(mocker, monkeypatch, mock_run_context):
     mock_get_parameters = mocker.MagicMock()
     monkeypatch.setattr(GenericExecutor, "_get_parameters", mock_get_parameters)
@@ -169,8 +96,6 @@ def test_set_up_run_log_calls_create_run_log(mocker, monkeypatch, mock_run_conte
     mock_run_context.run_id = "test"
     mock_run_context.tag = "tag"
     mock_run_context.dag_hash = "dag_hash"
-    mock_run_context.use_cached = False
-    mock_run_context.original_run_id = "original_run_id"
 
     GenericExecutor()._set_up_run_log()
 
@@ -179,8 +104,6 @@ def test_set_up_run_log_calls_create_run_log(mocker, monkeypatch, mock_run_conte
         tag="tag",
         status=defaults.PROCESSING,
         dag_hash="dag_hash",
-        use_cached=False,
-        original_run_id="original_run_id",
     )
 
 
@@ -472,55 +395,6 @@ def test_step_attempt_returns_from_env(monkeypatch):
     monkeypatch.setenv("RUNNABLE_STEP_ATTEMPT", "2")
 
     assert test_executor.step_attempt_number == 2
-
-
-def test_base_executor__is_step_eligible_for_rerun_returns_true_if_not_use_cached(mock_run_context):
-    test_executor = GenericExecutor()
-
-    mock_run_context.use_cached = False
-
-    assert test_executor._is_step_eligible_for_rerun(node=None)
-
-
-def test_base_executor__is_step_eligible_for_rerun_returns_true_if_step_log_not_found(mocker, mock_run_context):
-    mock_run_context.use_cached = True
-
-    mock_node = mocker.MagicMock()
-    mock_node._get_step_log_name.return_value = "IdontExist"
-
-    mock_run_context.run_log_store.get_step_log.side_effect = exceptions.StepLogNotFoundError(
-        run_id="test", name="test"
-    )
-
-    test_executor = GenericExecutor()
-
-    assert test_executor._is_step_eligible_for_rerun(node=mock_node)
-
-
-def test_base_executor__is_step_eligible_for_rerun_returns_true_if_step_failed(mocker, mock_run_context):
-    mock_run_context.use_cached = True
-
-    mock_node = mocker.MagicMock()
-    mock_node._get_step_log_name.return_value = "IExist"
-
-    mock_run_context.run_log_store.get_step_log.return_value.status = defaults.FAIL
-
-    test_executor = GenericExecutor()
-
-    assert test_executor._is_step_eligible_for_rerun(node=mock_node) is True
-
-
-def test_base_executor__is_step_eligible_for_rerun_returns_false_if_step_succeeded(mocker, mock_run_context):
-    mock_run_context.use_cached = True
-
-    mock_node = mocker.MagicMock()
-    mock_node._get_step_log_name.return_value = "IExist"
-
-    mock_run_context.run_log_store.get_step_log.return_value.status = defaults.SUCCESS
-
-    test_executor = GenericExecutor()
-
-    assert test_executor._is_step_eligible_for_rerun(node=mock_node) is False
 
 
 def test_base_executor_resolve_executor_config_gives_global_config_if_node_does_not_override(mocker, mock_run_context):
