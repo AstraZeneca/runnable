@@ -1,0 +1,10 @@
+executor:
+  type: retry
+  config:
+    run_id: parallel-fail
+
+catalog:
+  type: file-system # (1)
+
+run_log_store:
+  type: file-system # (1)

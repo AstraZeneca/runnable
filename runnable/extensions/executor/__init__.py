@@ -40,20 +40,6 @@ class GenericExecutor(BaseExecutor):
     def _context(self):
         return context.run_context
 
-    @property
-    def step_decorator_run_id(self):
-        """
-        TODO: Experimental feature, design is not mature yet.
-
-        This function is used by the decorator function.
-        The design idea is we can over-ride this method in different implementations to retrieve the run_id.
-        But is it really intrusive to ask to set the environmental variable runnable_RUN_ID?
-
-        Returns:
-            _type_: _description_
-        """
-        return os.environ.get("runnable_RUN_ID", None)
-
     def _get_parameters(self) -> Dict[str, Any]:
         """
         Consolidate the parameters from the environment variables
@@ -93,7 +79,7 @@ class GenericExecutor(BaseExecutor):
             raise
 
         # Consolidate and get the parameters
-        parameters = self._get_parameters()
+        params = self._get_parameters()
 
         self._context.run_log_store.create_run_log(
             run_id=self._context.run_id,
@@ -102,7 +88,7 @@ class GenericExecutor(BaseExecutor):
             dag_hash=self._context.dag_hash,
         )
         # Any interaction with run log store attributes should happen via API if available.
-        self._context.run_log_store.set_parameters(run_id=self._context.run_id, parameters=parameters)
+        self._context.run_log_store.set_parameters(run_id=self._context.run_id, parameters=params)
 
         # Update run_config
         run_config = utils.get_run_config()

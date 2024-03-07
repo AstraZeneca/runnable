@@ -9,6 +9,3 @@ catalog:
 
 secrets:
   type: do-nothing # (4)
-
-experiment_tracker: # (5)
-  type: do-nothing
