@@ -1,21 +1,39 @@
 
 
-# Hello from runnable
 
 
 <p align="center">
-  <img src="https://github.com/AstraZeneca/runnable-core/blob/main/assets/logo-readme.png?raw=true" alt="Logo"/>
+
+                        ,////,
+                        /// 6|
+                        //  _|
+                       _/_,-'
+                  _.-/'/   \   ,/;,
+               ,-' /'  \_   \ / _/
+               `\ /     _/\  ` /
+                 |     /,  `\_/
+                 |     \'
+      /\_        /`      /\
+     /' /_``--.__/\  `,. /  \
+    |_/`  `-._     `\/  `\   `.
+              `-.__/'     `\   |
+                           `\  \
+                            `\ \
+                              \_\__
+                               \___)
+
+                          Runnable
 </p>
 <hr style="border:2px dotted orange">
 
 <p align="center">
 <a href="https://pypi.org/project/runnable/"><img alt="python:" src="https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg"></a>
 <a href="https://pypi.org/project/runnable/"><img alt="Pypi" src="https://badge.fury.io/py/runnable.svg"></a>
-<a href="https://github.com/AstraZeneca/runnable-core/blob/main/LICENSE"><img alt"License" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a>
+<a href="https://github.com/vijayvammi/runnable/blob/main/LICENSE"><img alt"License" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a>
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 <a href="https://github.com/python/mypy"><img alt="MyPy Checked" src="https://www.mypy-lang.org/static/mypy_badge.svg"></a>
-<a href="https://github.com/AstraZeneca/runnable-core/actions/workflows/release.yaml"><img alt="Tests:" src="https://github.com/AstraZeneca/runnable-core/actions/workflows/release.yaml/badge.svg">
-<a href="https://github.com/AstraZeneca/runnable-core/actions/workflows/docs.yaml"><img alt="Docs:" src="https://github.com/AstraZeneca/runnable-core/actions/workflows/docs.yaml/badge.svg">
+<a href="https://github.com/vijayvammi/runnable/actions/workflows/release.yaml"><img alt="Tests:" src="https://github.com/vijayvammi/runnable/actions/workflows/release.yaml/badge.svg">
+<a href="https://github.com/vijayvammi/runnable/actions/workflows/docs.yaml"><img alt="Docs:" src="https://github.com/vijayvammi/runnable/actions/workflows/docs.yaml/badge.svg">
 </p>
 <hr style="border:2px dotted orange">
 
