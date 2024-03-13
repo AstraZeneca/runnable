@@ -8,13 +8,14 @@ from pydantic import BaseModel, ConfigDict
 from typing_extensions import Callable
 
 from runnable import defaults
+from runnable.datastore import JsonParameter
 from runnable.defaults import TypeMapVariable
 from runnable.utils import remove_prefix
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-def get_user_set_parameters(remove: bool = False) -> Dict[str, Any]:
+def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
     """
     Scans the environment variables for any user returned parameters that have a prefix runnable_PRM_.
 
@@ -27,15 +28,15 @@ def get_user_set_parameters(remove: bool = False) -> Dict[str, Any]:
     Returns:
         dict: The dictionary of found user returned parameters
     """
-    parameters = {}
+    parameters: Dict[str, JsonParameter] = {}
     for env_var, value in os.environ.items():
         if env_var.startswith(defaults.PARAMETER_PREFIX):
             key = remove_prefix(env_var, defaults.PARAMETER_PREFIX)
             try:
-                parameters[key.lower()] = json.loads(value)
+                parameters[key.lower()] = JsonParameter(name=key.lower(), value=json.loads(value), kind="json")
             except json.decoder.JSONDecodeError:
                 logger.error(f"Parameter {key} could not be JSON decoded, adding the literal value")
-                parameters[key.lower()] = value
+                parameters[key.lower()] = JsonParameter(name=key.lower(), value=value, kind="json")
 
             if remove:
                 del os.environ[env_var]
@@ -154,7 +155,7 @@ def filter_arguments_for_func(
 
         if issubclass(value.annotation, BaseModel):
             # We try to cast it as a pydantic model.
-            named_param = params[name]
+            named_param = params[name].get_value()
 
             if not isinstance(named_param, dict):
                 # A case where the parameter is a one attribute model
@@ -165,7 +166,7 @@ def filter_arguments_for_func(
             unassigned_params = unassigned_params.difference(bound_model.model_fields.keys())
         else:
             # simple python data type.
-            bound_args[name] = cast_parameters_as_type(params[name], value.annotation)  # type: ignore
+            bound_args[name] = cast_parameters_as_type(params[name].get_value(), value.annotation)  # type: ignore
 
         unassigned_params.remove(name)
 

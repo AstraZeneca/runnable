@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 import runnable.context as context
 from runnable import defaults, exceptions
-from runnable.datastore import StepAttempt
+from runnable.datastore import StepLog
 from runnable.defaults import TypeMapVariable
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -277,10 +277,10 @@ class BaseNode(ABC, BaseModel):
     def execute(
         self,
         mock=False,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
+        attempt_number: int = 1,
         **kwargs,
-    ) -> StepAttempt:
+    ) -> StepLog:
         """
         The actual function that does the execution of the command in the config.
 
@@ -458,10 +458,10 @@ class CompositeNode(TraversalNode):
     def execute(
         self,
         mock=False,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
+        attempt_number: int = 1,
         **kwargs,
-    ) -> StepAttempt:
+    ) -> StepLog:
         raise Exception("This is a composite node and does not have an execute function")
 
 
@@ -499,3 +499,6 @@ class TerminalNode(BaseNode):
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any]) -> "TerminalNode":
         return cls(**config)
+
+
+# Avoids circular imports

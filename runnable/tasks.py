@@ -6,15 +6,17 @@ import logging
 import os
 import subprocess
 import sys
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
-from pydantic._internal._model_construction import ModelMetaclass
 from stevedore import driver
 
 import runnable.context as context
 from runnable import defaults, parameters, utils
+from runnable.datastore import JsonParameter, Parameter, StepAttempt
 from runnable.defaults import TypeMapVariable
+from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
@@ -29,6 +31,7 @@ class BaseTaskType(BaseModel):
     task_type: str = Field(serialization_alias="command_type")
     node_name: str = Field(exclude=True)
     secrets: Dict[str, str] = Field(default_factory=dict)
+    returns: List[str] = Field(default_factory=list, alias="returns")
 
     model_config = ConfigDict(extra="forbid")
 
@@ -63,10 +66,10 @@ class BaseTaskType(BaseModel):
 
     def execute_command(
         self,
-        params: Optional[Dict[str, Any]] = None,
+        node: BaseNode,
         map_variable: TypeMapVariable = None,
         **kwargs,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> StepAttempt:
         """The function to execute the command.
 
         And map_variable is sent in as an argument into the function.
@@ -80,7 +83,7 @@ class BaseTaskType(BaseModel):
         raise NotImplementedError()
 
     @contextlib.contextmanager
-    def expose_secrets(self, map_variable: TypeMapVariable = None):
+    def expose_secrets(self):
         """Context manager to expose secrets to the execution.
 
         Args:
@@ -94,14 +97,8 @@ class BaseTaskType(BaseModel):
             self.delete_secrets_from_env_variables()
 
     @contextlib.contextmanager
-    def output_to_file(self, map_variable: TypeMapVariable = None):
-        """Context manager to put the output of a function execution to catalog.
-
-        Args:
-            map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
-
-        """
-        from runnable import put_in_catalog  # Causing cyclic imports
+    def execution_context(self, map_variable: TypeMapVariable = None, allow_complex: bool = False):
+        params = self._context.run_log_store.get_parameters(run_id=self._context.run_id).copy()
 
         log_file_name = self.node_name.replace(" ", "_") + ".execution.log"
         if map_variable:
@@ -113,15 +110,18 @@ class BaseTaskType(BaseModel):
         f = io.StringIO()
         try:
             with contextlib.redirect_stdout(f):
-                yield
+                yield params
         finally:
             print(f.getvalue())  # print to console
             log_file.write(f.getvalue())  # Print to file
 
             f.close()
             log_file.close()
-            put_in_catalog(log_file.name)
+            # put_in_catalog(log_file.name)
             os.remove(log_file.name)
+
+            # Update parameters
+            self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
 
 
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
@@ -140,39 +140,48 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     def execute_command(
         self,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
         **kwargs,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> StepAttempt:
         """Execute the notebook as defined by the command."""
-        if not params:
-            params = {}
+        attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
 
-        module, func = utils.get_module_and_attr_names(self.command)
-        sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
-        imported_module = importlib.import_module(module)
-        f = getattr(imported_module, func)
+        with self.execution_context(map_variable=map_variable) as params, self.expose_secrets() as _:
+            module, func = utils.get_module_and_attr_names(self.command)
+            sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
+            imported_module = importlib.import_module(module)
+            f = getattr(imported_module, func)
 
-        filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
+            filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
 
-        logger.info(f"Calling {func} from {module} with {filtered_parameters}")
+            logger.info(f"Calling {func} from {module} with {filtered_parameters}")
 
-        with self.output_to_file(map_variable=map_variable) as _, self.expose_secrets() as _:
             try:
                 user_set_parameters = f(**filtered_parameters)
+                attempt_log.input_parameters = params.copy()
+
+                output_parameters: Dict[str, Parameter] = {}
+
+                for i, return_key in enumerate(self.returns):
+                    output_parameters[return_key] = JsonParameter(
+                        value=user_set_parameters[i],
+                        kind="json",
+                    )
+
+                if output_parameters:
+                    attempt_log.output_parameters = output_parameters
+                    params.update(output_parameters)
+
+                attempt_log.status = defaults.SUCCESS
+
             except Exception as _e:
                 msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
                 logger.exception(msg)
                 logger.exception(_e)
-                raise
 
-        if user_set_parameters is None:
-            return {}
+        attempt_log.end_time = str(datetime.now())
 
-        if not isinstance(user_set_parameters, BaseModel) or isinstance(user_set_parameters, ModelMetaclass):
-            raise ValueError("Output variable of a function can only be a pydantic model or dynamic model.")
-
-        return user_set_parameters.model_dump(by_alias=True)
+        return attempt_log
 
 
 class NotebookTaskType(BaseTaskType):
@@ -207,10 +216,10 @@ class NotebookTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        params: Optional[Dict[str, Any]] = None,
+        node: BaseNode,
         map_variable: TypeMapVariable = None,
         **kwargs,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> StepAttempt:
         """Execute the python notebook as defined by the command.
 
         Args:
@@ -220,8 +229,6 @@ class NotebookTaskType(BaseTaskType):
             ImportError: If necessary dependencies are not installed
             Exception: If anything else fails
         """
-        if not params:
-            params = {}
 
         try:
             import ploomber_engine as pm
@@ -231,28 +238,29 @@ class NotebookTaskType(BaseTaskType):
 
             notebook_output_path = self.notebook_output_path
 
-            if map_variable:
-                for key, value in map_variable.items():
-                    notebook_output_path += "_" + str(value)
+            with self.execution_context(node=node, map_variable=map_variable) as params, self.expose_secrets() as _:
+                if map_variable:
+                    for key, value in map_variable.items():
+                        notebook_output_path += "_" + str(value)
 
-                    params[key] = value
+                        params[key] = value
 
-            ploomber_optional_args = self.optional_ploomber_args
+                ploomber_optional_args = self.optional_ploomber_args
 
-            kwds = {
-                "input_path": self.command,
-                "output_path": notebook_output_path,
-                "parameters": params,
-                "log_output": True,
-                "progress_bar": False,
-            }
-            kwds.update(ploomber_optional_args)
+                kwds = {
+                    "input_path": self.command,
+                    "output_path": notebook_output_path,
+                    "parameters": params,
+                    "log_output": True,
+                    "progress_bar": False,
+                }
+                kwds.update(ploomber_optional_args)
 
-            collected_params: Dict[str, Any] = {}
-            with self.output_to_file(map_variable=map_variable) as _, self.expose_secrets() as _:
+                collected_params: Dict[str, Any] = {}
+
                 pm.execute_notebook(**kwds)
 
-            put_in_catalog(notebook_output_path)
+                put_in_catalog(notebook_output_path)
 
             client = PloomberClient.from_path(path=notebook_output_path)
             namespace = client.get_namespace()
@@ -284,18 +292,16 @@ class ShellTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        params: Optional[Dict[str, Any]] = None,
+        node: BaseNode,
         map_variable: TypeMapVariable = None,
         **kwargs,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> StepAttempt:
         # Using shell=True as we want to have chained commands to be executed in the same shell.
         """Execute the shell command as defined by the command.
 
         Args:
             map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
         """
-        if not params:
-            params = {}
 
         runnable_env_vars: Dict[str, Any] = {}
 
@@ -304,7 +310,7 @@ class ShellTaskType(BaseTaskType):
             if key.startswith("RUNNABLE_") and not key.startswith("RUNNABLE_PRM_"):
                 runnable_env_vars[key] = value
 
-        subprocess_env = {**params, **runnable_env_vars}
+        subprocess_env = {}  # {**params, **runnable_env_vars}
 
         # Expose map variable as environment variables
         if map_variable:
@@ -336,7 +342,7 @@ class ShellTaskType(BaseTaskType):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-        ) as proc, self.output_to_file(map_variable=map_variable) as _:
+        ) as proc, self.execution_context(node=node, map_variable=map_variable):
             for line in proc.stdout:  # type: ignore
                 logger.info(line)
                 print(line)
@@ -352,10 +358,6 @@ class ShellTaskType(BaseTaskType):
                             output_parameters[key] = json.loads(value)
                         except json.JSONDecodeError:
                             output_parameters[key] = value  # simple data types
-
-                # if line.startswith(defaults.TRACK_PREFIX):
-                #     key, value = line.split("=", 1)
-                #     os.environ[key] = value.strip()
 
             proc.wait()
             if proc.returncode != 0:

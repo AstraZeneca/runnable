@@ -31,26 +31,25 @@ class NestedModel(BaseModel):  # (1)
     inner: InnerModel
 
 
-def display(simple: int, inner: InnerModel):  # (2)
+def display(x: int, y: str):  # (2)
     """
     The parameter "simple" and "inner" can be accessed by name.
     runnable understands the parameter "inner" as a pydantic model from
     annotation and casts it as a pydantic model.
     """
-    print(simple)
-    print(inner)
+    print(x)
+    print(y)
 
 
-def return_parameters(simple: int, inner: InnerModel) -> NestedModel:  # (3)
+def return_parameters(x: int, y: str):
     """
     The parameter "simple" and "inner" can be accessed by name.
     You can redefine the parameters by returning a pydantic model.
     """
-    simple = 2
-    inner.x = 30
-    inner.y = "world!!"
+    x = 2
+    y = "world!!"
 
-    return NestedModel(simple=simple, inner=inner).model_dump(by_alias=True)
+    return x, y
 
 
 """
@@ -69,7 +68,7 @@ def main():
     return_parameters_task = PythonTask(
         name="return_parameters",
         function=return_parameters,
-        returns=["simple", "inner"],
+        returns=["x", "y"],
         terminate_with_success=True,
     )
 
@@ -86,8 +85,8 @@ def main():
 
     print(params)
     ## Reflects the changes done by "return_parameters" function call.
-    assert params["simple"] == 2
-    assert params["inner"] == {"x": 30, "y": "world!!"}
+    assert params["x"] == 2
+    assert params["y"] == "world"
 
 
 if __name__ == "__main__":

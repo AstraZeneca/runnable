@@ -3,15 +3,14 @@ import json
 import logging
 import os
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from rich import print
 
 from runnable import context, defaults, exceptions, integration, parameters, utils
-from runnable.datastore import DataCatalog, StepLog
+from runnable.datastore import DataCatalog, JsonParameter, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.executor import BaseExecutor
-from runnable.experiment_tracker import get_tracked_data
 from runnable.extensions.nodes import TaskNode
 from runnable.graph import Graph
 from runnable.nodes import BaseNode
@@ -40,7 +39,7 @@ class GenericExecutor(BaseExecutor):
     def _context(self):
         return context.run_context
 
-    def _get_parameters(self) -> Dict[str, Any]:
+    def _get_parameters(self) -> Dict[str, JsonParameter]:
         """
         Consolidate the parameters from the environment variables
         and the parameters file.
@@ -50,9 +49,12 @@ class GenericExecutor(BaseExecutor):
         Returns:
             _type_: _description_
         """
-        params: Dict[str, Any] = {}
+        params: Dict[str, JsonParameter] = {}
         if self._context.parameters_file:
-            params.update(utils.load_yaml(self._context.parameters_file))
+            user_defined = utils.load_yaml(self._context.parameters_file)
+
+            for key, value in user_defined.items():
+                params[key] = JsonParameter(value=value, kind="json")
 
         # Update these with some from the environment variables
         params.update(parameters.get_user_set_parameters())
@@ -139,7 +141,7 @@ class GenericExecutor(BaseExecutor):
         integration.validate(self, self._context.experiment_tracker)
         integration.configure_for_execution(self, self._context.experiment_tracker)
 
-    def _sync_catalog(self, step_log: StepLog, stage: str, synced_catalogs=None) -> Optional[List[DataCatalog]]:
+    def _sync_catalog(self, stage: str, synced_catalogs=None) -> Optional[List[DataCatalog]]:
         """
         1). Identify the catalog settings by over-riding node settings with the global settings.
         2). For stage = get:
@@ -191,13 +193,9 @@ class GenericExecutor(BaseExecutor):
                     compute_data_folder=compute_data_folder,
                     synced_catalogs=synced_catalogs,
                 )
-            else:
-                raise Exception(f"Invalid stage: {stage}")
+
             logger.info(f"Added data catalog: {data_catalog} to step log")
             data_catalogs.extend(data_catalog)
-
-        if data_catalogs:
-            step_log.add_data_catalogs(data_catalogs)
 
         return data_catalogs
 
@@ -233,7 +231,7 @@ class GenericExecutor(BaseExecutor):
         """
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
-    def _execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
+    def _execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, mock: bool = False, **kwargs):
         """
         This is the entry point when we do the actual execution of the function.
         DO NOT Over-ride this function.
@@ -253,68 +251,26 @@ class GenericExecutor(BaseExecutor):
             map_variable (dict, optional): If the node is of a map state, map_variable is the value of the iterable.
                         Defaults to None.
         """
-        step_log = self._context.run_log_store.get_step_log(node._get_step_log_name(map_variable), self._context.run_id)
-        """
-        By now, all the parameters are part of the run log as a dictionary.
-        We set them as environment variables, serialized as json strings.
-        """
-        params = self._context.run_log_store.get_parameters(run_id=self._context.run_id)
-        params_copy = copy.deepcopy(params)
-        # This is only for the API to work.
-        parameters.set_user_defined_params_as_environment_variables(params)
+        logger.info(f"Trying to execute node: {node.internal_name}, attempt : {self.step_attempt_number}")
 
-        attempt = self.step_attempt_number
-        logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}")
-
-        attempt_log = self._context.run_log_store.create_attempt_log()
-        self._context_step_log = step_log
         self._context_node = node
 
-        data_catalogs_get: Optional[List[DataCatalog]] = self._sync_catalog(step_log, stage="get")
-        try:
-            attempt_log = node.execute(
-                executor=self,
-                mock=step_log.mock,
-                map_variable=map_variable,
-                params=params,
-                **kwargs,
-            )
-        except Exception as e:
-            # Any exception here is a runnable exception as node suppresses exceptions.
-            msg = "This is clearly runnable fault, please report a bug and the logs"
-            logger.exception(msg)
-            raise Exception(msg) from e
-        finally:
-            attempt_log.attempt_number = attempt
-            step_log.attempts.append(attempt_log)
+        data_catalogs_get: Optional[List[DataCatalog]] = self._sync_catalog(stage="get")
 
-            tracked_data = get_tracked_data()
+        step_log = node.execute(
+            map_variable=map_variable,
+            attempt_number=self.step_attempt_number,
+            mock=mock,
+            **kwargs,
+        )
+        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(stage="put")
 
-            self._context.experiment_tracker.publish_data(tracked_data)
-            parameters_out = attempt_log.output_parameters
+        step_log.add_data_catalogs(data_catalogs_get or [])
+        step_log.add_data_catalogs(data_catalogs_put or [])
 
-            if attempt_log.status == defaults.FAIL:
-                logger.exception(f"Node: {node} failed")
-                step_log.status = defaults.FAIL
-            else:
-                # Mock is always set to False, bad design??
-                # TODO: Stub nodes should not sync back data
-                # TODO: Errors in catalog syncing should point to Fail step
-                # TODO: Even for a failed execution, the catalog can happen
-                step_log.status = defaults.SUCCESS
-                self._sync_catalog(step_log, stage="put", synced_catalogs=data_catalogs_get)
-                step_log.user_defined_metrics = tracked_data
+        self._context_node = None  # type: ignore
 
-                diff_parameters = utils.diff_dict(params_copy, parameters_out)
-                self._context.run_log_store.set_parameters(self._context.run_id, diff_parameters)
-
-            # Remove the step context
-            parameters.get_user_set_parameters(remove=True)
-            self._context_step_log = None
-            self._context_node = None  # type: ignore
-            self._context_metrics = {}  # type: ignore
-
-            self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
         """
@@ -360,21 +316,20 @@ class GenericExecutor(BaseExecutor):
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING
 
+        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+
         # Add the step log to the database as per the situation.
         # If its a terminal node, complete it now
         if node.node_type in ["success", "fail"]:
-            self._context.run_log_store.add_step_log(step_log, self._context.run_id)
             self._execute_node(node, map_variable=map_variable, **kwargs)
             return
 
         # We call an internal function to iterate the sub graphs and execute them
         if node.is_composite:
-            self._context.run_log_store.add_step_log(step_log, self._context.run_id)
             node.execute_as_graph(map_variable=map_variable, **kwargs)
             return
 
         # Executor specific way to trigger a job
-        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
         self.trigger_job(node=node, map_variable=map_variable, **kwargs)
 
     def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
