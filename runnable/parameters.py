@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict
 from typing_extensions import Callable
 
 from runnable import defaults
-from runnable.datastore import JsonParameter
+from runnable.datastore import JsonParameter, ObjectParameter
 from runnable.defaults import TypeMapVariable
 from runnable.utils import remove_prefix
 
@@ -41,24 +41,6 @@ def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
             if remove:
                 del os.environ[env_var]
     return parameters
-
-
-def set_user_defined_params_as_environment_variables(params: Dict[str, Any]):
-    """
-    Sets the user set parameters as environment variables.
-
-    At this point in time, the params are already in Dict or some kind of literal
-
-    Args:
-        parameters (Dict[str, Any]): The parameters to set as environment variables
-        update (bool, optional): Flag to update the environment variables. Defaults to True.
-
-    """
-    for key, value in params.items():
-        logger.info(f"Storing parameter {key} with value: {value}")
-        environ_key = defaults.PARAMETER_PREFIX + key
-
-        os.environ[environ_key] = serialize_parameter_as_str(value)
 
 
 def cast_parameters_as_type(value: Any, newT: Optional[Type] = None) -> Union[Any, BaseModel, Dict[str, Any]]:
@@ -164,6 +146,9 @@ def filter_arguments_for_func(
             bound_model = bind_args_for_pydantic_model(named_param, value.annotation)
             bound_args[name] = bound_model
             unassigned_params = unassigned_params.difference(bound_model.model_fields.keys())
+        elif isinstance(params[name], ObjectParameter):
+            # It is an object, retrieve it
+            bound_args[name] = params[name].get_value()
         else:
             # simple python data type.
             bound_args[name] = cast_parameters_as_type(params[name].get_value(), value.annotation)  # type: ignore

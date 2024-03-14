@@ -14,7 +14,7 @@ from stevedore import driver
 
 import runnable.context as context
 from runnable import defaults, parameters, utils
-from runnable.datastore import JsonParameter, Parameter, StepAttempt
+from runnable.datastore import JsonParameter, ObjectParameter, Parameter, StepAttempt
 from runnable.defaults import TypeMapVariable
 from runnable.nodes import BaseNode
 
@@ -124,6 +124,23 @@ class BaseTaskType(BaseModel):
             self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
 
 
+def classify_value_as_json_or_object(name: str, value: Any) -> Parameter:
+    try:
+        if isinstance(value, BaseModel):
+            # nested pydantic models
+            return JsonParameter(value=value.model_dump(by_alias=True), kind="json")
+
+        # simpler types
+        json_value = json.load(value)
+        return JsonParameter(json_value, kind="json")
+    except (json.JSONDecodeError, AttributeError):
+        # We cannot serialize the value as json. This has to pickled and stored.
+        # return the location of the object
+        obj = ObjectParameter(value=name, kind="object")
+        obj.put_object(data=value)
+        return obj
+
+
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     """The task class for python command."""
 
@@ -162,11 +179,19 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
                 output_parameters: Dict[str, Parameter] = {}
 
-                for i, return_key in enumerate(self.returns):
-                    output_parameters[return_key] = JsonParameter(
-                        value=user_set_parameters[i],
-                        kind="json",
-                    )
+                if isinstance(user_set_parameters, BaseModel):
+                    # Support pydantic models
+                    for key, value in dict(user_set_parameters).items():
+                        # The value could either be a simple type or object
+                        output_parameters[key] = classify_value_as_json_or_object(name=key, value=value)
+                else:
+                    # retrieve from returns
+                    for i, return_key in enumerate(self.returns):
+                        # The value could either be a simple type or object
+                        output_parameters[return_key] = classify_value_as_json_or_object(
+                            name=return_key,
+                            value=user_set_parameters[i],
+                        )
 
                 if output_parameters:
                     attempt_log.output_parameters = output_parameters
@@ -178,6 +203,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                 msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
                 logger.exception(msg)
                 logger.exception(_e)
+                attempt_log.status = defaults.FAIL
 
         attempt_log.end_time = str(datetime.now())
 

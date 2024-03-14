@@ -94,8 +94,6 @@ class RetryExecutor(GenericExecutor):
         """
         params = self._context.run_log_store.get_parameters(run_id=self._context.run_id)
         params_copy = copy.deepcopy(params)
-        # This is only for the API to work.
-        parameters.set_user_defined_params_as_environment_variables(params)
 
         attempt = self.step_attempt_number
         logger.info(f"Trying to execute node: {node.internal_name}, attempt : {attempt}")

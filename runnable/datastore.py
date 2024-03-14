@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, OrderedDict, Tuple, Union
@@ -10,7 +11,7 @@ try:
 except ImportError:
     from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 import runnable.context as context
 from runnable import defaults, exceptions
@@ -58,12 +59,31 @@ class JsonParameter(BaseModel):
 
 class ObjectParameter(BaseModel):
     kind: Literal["object"] = Field(exclude=True)
-    value: str
+    value: str  # The name of the pickled object
+
+    @property
+    def file_name(self) -> str:
+        return f"{self.value}{context.run_context.pickler.extension}"
+
+    @field_serializer("value")
+    def serialize_value(self, value: str) -> str:
+        return f"Object stored in catalog at {self.file_name}"
 
     def get_value(self) -> Any:
+        # Get the pickled object
         catalog_handler = context.run_context.catalog_handler
 
-        return catalog_handler.get(name=self.value, run_id=context.run_context.run_id)
+        catalog_handler.get(name=self.file_name, run_id=context.run_context.run_id)
+        obj = context.run_context.pickler.load(path=self.file_name)
+        os.remove(self.file_name)  # Remove after loading
+        return obj
+
+    def put_object(self, data: Any) -> None:
+        context.run_context.pickler.dump(data=data, path=self.file_name)
+
+        catalog_handler = context.run_context.catalog_handler
+        catalog_handler.put(name=self.file_name, run_id=context.run_context.run_id)
+        os.remove(self.file_name)  # Remove after loading
 
 
 Parameter = Annotated[Union[JsonParameter, ObjectParameter], Field(discriminator="kind")]

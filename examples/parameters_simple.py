@@ -41,7 +41,12 @@ def display(x: int, y: str):  # (2)
     print(y)
 
 
-def return_parameters(x: int, y: str):
+class ObjectType:
+    def __init__(self):
+        self.salute = "hello"
+
+
+def return_parameters(inner: InnerModel):
     """
     The parameter "simple" and "inner" can be accessed by name.
     You can redefine the parameters by returning a pydantic model.
@@ -49,7 +54,11 @@ def return_parameters(x: int, y: str):
     x = 2
     y = "world!!"
 
-    return x, y
+    return InnerModel(x=x, y=y), ObjectType()
+
+
+def display_object(obj: ObjectType):
+    print(obj.salute)
 
 
 """
@@ -68,25 +77,29 @@ def main():
     return_parameters_task = PythonTask(
         name="return_parameters",
         function=return_parameters,
-        returns=["x", "y"],
+        returns=["inner", "obj"],
+    )
+
+    display_object_task = PythonTask(
+        name="display_object",
+        function=display_object,
         terminate_with_success=True,
     )
 
-    display_task >> return_parameters_task
+    display_task >> return_parameters_task >> display_object_task
 
     pipeline = Pipeline(
         start_at=display_task,
-        steps=[display_task, return_parameters_task],
+        steps=[display_task, return_parameters_task, display_object_task],
         add_terminal_nodes=True,
     )
 
     run_log = pipeline.execute(parameters_file="examples/parameters_initial.yaml")
     params = run_log.parameters
 
-    print(params)
     ## Reflects the changes done by "return_parameters" function call.
-    assert params["x"] == 2
-    assert params["y"] == "world"
+    assert params["x"].value == 2
+    assert params["y"].value == "world!!"
 
 
 if __name__ == "__main__":
