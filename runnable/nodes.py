@@ -467,7 +467,7 @@ class CompositeNode(TraversalNode):
 
 class TerminalNode(BaseNode):
     def _get_on_failure_node(self) -> str:
-        raise exceptions.TerminalNodeError()
+        return ""
 
     def _get_next_node(self) -> str:
         raise exceptions.TerminalNodeError()
@@ -499,6 +499,3 @@ class TerminalNode(BaseNode):
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any]) -> "TerminalNode":
         return cls(**config)
-
-
-# Avoids circular imports

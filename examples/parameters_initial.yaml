@@ -1,7 +1,4 @@
 simple: 1
 inner:
   x: 10
-  y: "yellow"
-
-x: 1
-y: "hello"
+  y: "hello world!!"

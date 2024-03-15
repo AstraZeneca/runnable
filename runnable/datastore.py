@@ -11,7 +11,7 @@ try:
 except ImportError:
     from typing import Annotated
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, computed_field
 
 import runnable.context as context
 from runnable import defaults, exceptions
@@ -50,7 +50,7 @@ class DataCatalog(BaseModel, extra="allow"):
 
 
 class JsonParameter(BaseModel):
-    kind: Literal["json"] = Field(exclude=True)
+    kind: Literal["json"]
     value: Union[str, int, float, bool, Dict[str, Any], List[Any]]
 
     def get_value(self) -> Union[str, int, float, bool, Dict[str, Any], List[Any]]:
@@ -58,16 +58,17 @@ class JsonParameter(BaseModel):
 
 
 class ObjectParameter(BaseModel):
-    kind: Literal["object"] = Field(exclude=True)
+    kind: Literal["object"]
     value: str  # The name of the pickled object
+
+    @computed_field
+    @property
+    def description(self) -> str:
+        return f"Pickled object stored in catalog as: {self.value}"
 
     @property
     def file_name(self) -> str:
         return f"{self.value}{context.run_context.pickler.extension}"
-
-    @field_serializer("value")
-    def serialize_value(self, value: str) -> str:
-        return f"Object stored in catalog at {self.file_name}"
 
     def get_value(self) -> Any:
         # Get the pickled object

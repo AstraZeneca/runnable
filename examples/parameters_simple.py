@@ -54,7 +54,7 @@ def return_parameters(inner: InnerModel):
     x = 2
     y = "world!!"
 
-    return InnerModel(x=x, y=y), ObjectType()
+    return x, y, ObjectType()
 
 
 def display_object(obj: ObjectType):
@@ -77,7 +77,7 @@ def main():
     return_parameters_task = PythonTask(
         name="return_parameters",
         function=return_parameters,
-        returns=["inner", "obj"],
+        returns=["x", "y", "obj"],
     )
 
     display_object_task = PythonTask(

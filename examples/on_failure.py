@@ -17,13 +17,15 @@ from runnable import Pipeline, ShellTask, Stub
 
 
 def main():
-    step_1 = ShellTask(name="step 1", command="exit 1")
+    step_1 = ShellTask(name="step 1", command="exit 1")  # This will fail
+
     step_2 = Stub(name="step 2")
 
     step_3 = Stub(name="step 3", terminate_with_success=True)
 
     step_1.on_failure = step_3.name
 
+    # Step 2 will not be reached as step 1 fails
     step_1 >> step_2 >> step_3
 
     pipeline = Pipeline(

@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime
+from pickle import PicklingError
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
@@ -16,7 +17,6 @@ import runnable.context as context
 from runnable import defaults, parameters, utils
 from runnable.datastore import JsonParameter, ObjectParameter, Parameter, StepAttempt
 from runnable.defaults import TypeMapVariable
-from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
@@ -66,7 +66,6 @@ class BaseTaskType(BaseModel):
 
     def execute_command(
         self,
-        node: BaseNode,
         map_variable: TypeMapVariable = None,
         **kwargs,
     ) -> StepAttempt:
@@ -97,8 +96,11 @@ class BaseTaskType(BaseModel):
             self.delete_secrets_from_env_variables()
 
     @contextlib.contextmanager
-    def execution_context(self, map_variable: TypeMapVariable = None, allow_complex: bool = False):
+    def execution_context(self, map_variable: TypeMapVariable = None, allow_complex: bool = True):
         params = self._context.run_log_store.get_parameters(run_id=self._context.run_id).copy()
+
+        if not allow_complex:
+            params = {key: value for key, value in params.items() if isinstance(value, JsonParameter)}
 
         log_file_name = self.node_name.replace(" ", "_") + ".execution.log"
         if map_variable:
@@ -117,7 +119,10 @@ class BaseTaskType(BaseModel):
 
             f.close()
             log_file.close()
-            # put_in_catalog(log_file.name)
+
+            # Put the log file in the catalog
+            catalog_handler = context.run_context.catalog_handler
+            catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
             os.remove(log_file.name)
 
             # Update parameters
@@ -126,11 +131,19 @@ class BaseTaskType(BaseModel):
 
 def classify_value_as_json_or_object(name: str, value: Any) -> Parameter:
     try:
+        # These are simple data types and can be put directly
+        if isinstance(value, (int, float, str, bool)):
+            return JsonParameter(value=value, kind="json")
+
+        # Any of this can fail because of nested structures!!
         if isinstance(value, BaseModel):
             # nested pydantic models
             return JsonParameter(value=value.model_dump(by_alias=True), kind="json")
 
-        # simpler types
+        if isinstance(value, (dict, list)):
+            return JsonParameter(value=json.load(value), kind="json")
+
+        # Custom serializers should be accepted and tried
         json_value = json.load(value)
         return JsonParameter(json_value, kind="json")
     except (json.JSONDecodeError, AttributeError):
@@ -242,7 +255,6 @@ class NotebookTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        node: BaseNode,
         map_variable: TypeMapVariable = None,
         **kwargs,
     ) -> StepAttempt:
@@ -255,16 +267,16 @@ class NotebookTaskType(BaseTaskType):
             ImportError: If necessary dependencies are not installed
             Exception: If anything else fails
         """
-
+        attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
         try:
             import ploomber_engine as pm
             from ploomber_engine.ipython import PloomberClient
 
-            from runnable import put_in_catalog  # Causes issues with cyclic import
-
             notebook_output_path = self.notebook_output_path
 
-            with self.execution_context(node=node, map_variable=map_variable) as params, self.expose_secrets() as _:
+            with self.execution_context(
+                map_variable=map_variable, allow_complex=False
+            ) as params, self.expose_secrets() as _:
                 if map_variable:
                     for key, value in map_variable.items():
                         notebook_output_path += "_" + str(value)
@@ -282,29 +294,43 @@ class NotebookTaskType(BaseTaskType):
                 }
                 kwds.update(ploomber_optional_args)
 
-                collected_params: Dict[str, Any] = {}
-
                 pm.execute_notebook(**kwds)
-
-                put_in_catalog(notebook_output_path)
+                context.run_context.catalog_handler.put(name=notebook_output_path, run_id=context.run_context.run_id)
 
             client = PloomberClient.from_path(path=notebook_output_path)
             namespace = client.get_namespace()
 
-            for key, value in namespace.items():
-                if key in (self.returns or []):
-                    if isinstance(value, BaseModel):
-                        collected_params[key] = value.model_dump(by_alias=True)
-                        continue
-                    collected_params[key] = value
+            output_parameters: Dict[str, Parameter] = {}
+            try:
+                for key, value in namespace.items():
+                    if key in (self.returns or []):
+                        output_parameters[key] = classify_value_as_json_or_object(
+                            name=key,
+                            value=namespace[key],
+                        )
+            except PicklingError as e:
+                logger.exception("Notebooks cannot return objects")
+                logger.exception(e)
+                raise
 
-            return collected_params
+            if output_parameters:
+                attempt_log.output_parameters = output_parameters
+                params.update(output_parameters)
 
-        except ImportError as e:
+                attempt_log.status = defaults.SUCCESS
+
+        except (ImportError, Exception) as e:
             msg = (
-                "Task type of notebook requires ploomber engine to be installed. Please install via optional: notebook"
+                f"Call to the notebook command {self.command} did not succeed.\n"
+                "Ensure that you have installed runnable with notebook extras"
             )
-            raise Exception(msg) from e
+            logger.exception(msg)
+            logger.exception(e)
+            attempt_log.status = defaults.FAIL
+
+        attempt_log.end_time = str(datetime.now())
+
+        return attempt_log
 
 
 class ShellTaskType(BaseTaskType):
@@ -318,7 +344,6 @@ class ShellTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        node: BaseNode,
         map_variable: TypeMapVariable = None,
         **kwargs,
     ) -> StepAttempt:
@@ -328,15 +353,13 @@ class ShellTaskType(BaseTaskType):
         Args:
             map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
         """
+        attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
+        subprocess_env = {}
 
-        runnable_env_vars: Dict[str, Any] = {}
-
-        # Expose RUNNABLE environment variables, ignoring the parameters, to be passed to the subprocess.
+        # Expose RUNNABLE environment variables to be passed to the subprocess.
         for key, value in os.environ.items():
-            if key.startswith("RUNNABLE_") and not key.startswith("RUNNABLE_PRM_"):
-                runnable_env_vars[key] = value
-
-        subprocess_env = {}  # {**params, **runnable_env_vars}
+            if key.startswith("RUNNABLE_"):
+                subprocess_env[key] = value
 
         # Expose map variable as environment variables
         if map_variable:
@@ -349,47 +372,51 @@ class ShellTaskType(BaseTaskType):
                 secret_value = context.run_context.secrets_handler.get(key)
                 subprocess_env[value] = secret_value
 
-        # Json dumps all runnable environment variables
-        for key, value in subprocess_env.items():
-            subprocess_env[key] = json.dumps(value)
+        with self.execution_context(map_variable=map_variable, allow_complex=False) as params:
+            subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
-        collect_delimiter = "=== COLLECT ==="
+            # Json dumps all runnable environment variables
+            for key, value in subprocess_env.items():
+                subprocess_env[key] = json.dumps(value)
 
-        command = self.command.strip() + f" && echo '{collect_delimiter}'  && env"
-        logger.info(f"Executing shell command: {command}")
+            collect_delimiter = "=== COLLECT ==="
 
-        output_parameters = {}
-        capture = False
+            command = self.command.strip() + f" && echo '{collect_delimiter}'  && env"
+            logger.info(f"Executing shell command: {command}")
 
-        with subprocess.Popen(
-            command,
-            shell=True,
-            env=subprocess_env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        ) as proc, self.execution_context(node=node, map_variable=map_variable):
-            for line in proc.stdout:  # type: ignore
-                logger.info(line)
-                print(line)
+            capture = False
 
-                if line.strip() == collect_delimiter:
-                    capture = True
-                    continue
+            with subprocess.Popen(
+                command,
+                shell=True,
+                env=subprocess_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            ) as proc:
+                for line in proc.stdout:  # type: ignore
+                    logger.info(line)
+                    print(line)
 
-                if capture:
-                    key, value = line.strip().split("=", 1)
-                    if key in (self.returns or []):
-                        try:
-                            output_parameters[key] = json.loads(value)
-                        except json.JSONDecodeError:
-                            output_parameters[key] = value  # simple data types
+                    if line.strip() == collect_delimiter:
+                        # The lines from now on should be captured
+                        capture = True
+                        continue
 
-            proc.wait()
-            if proc.returncode != 0:
-                raise Exception("Command failed")
+                    if capture:
+                        key, value = line.strip().split("=", 1)
+                        if key in (self.returns or []):
+                            try:
+                                params[key] = JsonParameter(kind="json", value=json.loads(value))
+                            except json.JSONDecodeError:
+                                params[key] = JsonParameter(kind="json", value=json.loads(value))
 
-        return output_parameters
+                proc.wait()
+                if proc.returncode == 0:
+                    attempt_log.status = defaults.SUCCESS
+
+        attempt_log.end_time = str(datetime.now())
+        return attempt_log
 
 
 def create_task(kwargs_for_init) -> BaseTaskType:

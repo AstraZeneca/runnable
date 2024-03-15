@@ -119,6 +119,7 @@ def filter_arguments_for_func(
     Returns:
         dict: The parameters matching the function signature
     """
+    print(params)
     function_args = inspect.signature(func).parameters
 
     # Update parameters with the map variables
