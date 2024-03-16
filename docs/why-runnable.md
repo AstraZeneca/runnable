@@ -1,21 +1,21 @@
 # Why runnable
 
 **runnable** allows the data scientists/engineers to hook into production stack without
-explicit knowledge of them. It offers a simpler abstraction of the concepts found in
+knowledge of them. It offers a simpler abstraction of the concepts found in
 production stack thereby aligning to the production standards even during development.
 
 **runnable** is not a end to end deployment platform but limited to be an aid during
-the developement phase without modifying the production stack or application code.
+the development phase without modifying the production stack or application code.
 
 <div class="grid cards" markdown>
 
--   :material-clock-fast:{ .lg .middle } __Easy to pickup, its mostly your code__
+-   :material-clock-fast:{ .lg .middle } __Easy to adopt, its mostly your code__
 
     ---
 
-    Does not impose any structure in your application leaving your code unchanged.
+    Your application code remains as it is. Runnable exists outside of it.
 
-    [:octicons-arrow-right-24: Getting started](#)
+    [:octicons-arrow-right-24: Getting started](concepts/the-big-picture.md)
 
 -    :building_construction:{ .lg .middle } __Bring your infrastructure__
 
@@ -23,15 +23,15 @@ the developement phase without modifying the production stack or application cod
 
     Runnable can be adapted to your infrastructure stack instead of dictating it.
 
-    [:octicons-arrow-right-24: License](#)
+    [:octicons-arrow-right-24: Infrastructure](configurations/overview.md)
 
 -   :memo:{ .lg .middle } __Reproducibility__
 
     ---
 
-    Runnable tracks the
+    Runnable tracks key information to reproduce the execution.
 
-    [:octicons-arrow-right-24: Reference](#)
+    [:octicons-arrow-right-24: Run Log](concepts/run-log.md)
 
 
 
@@ -39,9 +39,9 @@ the developement phase without modifying the production stack or application cod
 
     ---
 
-    Debug any failure in your local development environment
+    Debug any failure in your local development environment.
 
-    [:octicons-arrow-right-24: Reference](#)
+    [:octicons-arrow-right-24: Retry](#)
 
 -   :microscope:{ .lg .middle } __Testing__
 
@@ -49,7 +49,7 @@ the developement phase without modifying the production stack or application cod
 
     Unit test your code and pipelines.
 
-    [:octicons-arrow-right-24: License](#)
+    [:octicons-arrow-right-24: Test](#)
 
 
 
@@ -58,8 +58,6 @@ the developement phase without modifying the production stack or application cod
     ---
 
     Moving away from runnable is as simple as deleting relevant files.
-
-    [:octicons-arrow-right-24: License](#)
 
 
 </div>
