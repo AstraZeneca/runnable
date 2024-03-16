@@ -1,14 +1,14 @@
 site_name: runnable
 site_description: "Pipelines made easy"
-strict: true
+strict: false
 repo_url: https://github.com/vijayvammi/runnable
 
 # TODO: Set up versioning
 
 docs_dir: "docs"
 theme:
-  logo: assets/cropped.png
-  favicon: assets/favicon.png
+  # logo: assets/logo.png
+  # favicon: assets/favicon.png
   name: material
   font:
     code: Roboto Mono
@@ -149,7 +149,6 @@ nav:
       - "Catalog": "configurations/catalog.md"
       - "Secrets": "configurations/secrets.md"
       # - "Experiment tracking": "configurations/experiment-tracking.md"
-  # - "Python API": "interactions.md"
   - "Python SDK": "sdk.md"
-  # - "Extensions": "extensions.md"
+  - "Extensions": "extensions.md"
   # - "Roadmap": "roadmap.md"
