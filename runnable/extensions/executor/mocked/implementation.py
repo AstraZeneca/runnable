@@ -77,13 +77,13 @@ class MockedExecutor(GenericExecutor):
             node.execute_as_graph(map_variable=map_variable, **kwargs)
             return
 
-        node_to_send: TaskNode = cast(TaskNode, node).model_copy(deep=True)
         if node.name not in self.patches:
             # node is not patched, so mock it
-            step_log.mock = True
+            self._execute_node(node, map_variable=map_variable, mock=True, **kwargs)
         else:
             # node is patched
             # command as the patch value
+            node_to_send: TaskNode = cast(TaskNode, node).model_copy(deep=True)
             executable_type = node_to_send.executable.__class__
             executable = create_executable(
                 self.patches[node.name],
@@ -91,27 +91,7 @@ class MockedExecutor(GenericExecutor):
                 node_name=node.name,
             )
             node_to_send.executable = executable
-
-        # Executor specific way to trigger a job
-        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-        self.trigger_job(node=node_to_send, map_variable=map_variable, **kwargs)
-
-    def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
-        """
-        Call this method only if we are responsible for traversing the graph via
-        execute_from_graph().
-
-        We are not prepared to execute node as of now.
-
-        Args:
-            node (BaseNode): The node to execute
-            map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
-                    Defaults to ''.
-
-        NOTE: We do not raise an exception as this method is not required by many extensions
-        """
-        self.prepare_for_node_execution()
-        self.execute_node(node=node, map_variable=map_variable, **kwargs)
+            self._execute_node(node_to_send, map_variable=map_variable, mock=False, **kwargs)
 
     def _resolve_executor_config(self, node: BaseNode):
         """
@@ -152,13 +132,3 @@ class MockedExecutor(GenericExecutor):
 
     def execute_job(self, node: TaskNode):
         pass
-
-    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
-        """
-        For local execution, we just execute the node.
-
-        Args:
-            node (BaseNode): _description_
-            map_variable (dict[str, str], optional): _description_. Defaults to None.
-        """
-        self._execute_node(node=node, map_variable=map_variable, **kwargs)

@@ -14,22 +14,30 @@ dag:
     display:
       type: task
       command_type: shell
-      command: env | grep "runnable_PRM" # (1)
-      # prints runnable_PRM_simple=1
-      # prints runnable_PRM_inner={"x": 10, "y": "hello"}
+      command: |
+        env | grep simple
+        env | grep inner
+      # prints simple=1
+      # prints inner={"x": 10, "y": "hello world!!"}
       next: update params
     update params:
       type: task
       command_type: shell
       next: display again
-      command: | # (2)
-        export runnable_PRM_simple=10 &&
-        export runnable_PRM_inner='{"x": 100, "y": "world"}'
+      command: |
+        export simple=10 &&
+        export inner='{"x": 100, "y": "hello universe!!"}'
+      returns: # collect simple and inner from environment
+        - simple
+        - inner
     display again:
       type: task
-      command: examples.parameters.display # (3)
-      # prints runnable_PRM_simple=10
-      # prints runnable_PRM_inner={"x": 100, "y": "world"}
+      command_type: shell
+      command: |
+        env | grep simple
+        env | grep inner
+      # prints simple=1
+      # prints inner={"x": 100, "y": "hello universe!!"}
       next: success
     success:
       type: success

@@ -38,7 +38,6 @@ class BaseExecutor(ABC, BaseModel):
 
     _local: bool = False  # This is a flag to indicate whether the executor is local or not.
 
-    _context_step_log = None  # type : StepLog
     _context_node = None  # type: BaseNode
     model_config = ConfigDict(extra="forbid")
 
@@ -91,7 +90,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def _sync_catalog(self, step_log: StepLog, stage: str, synced_catalogs=None) -> Optional[List[DataCatalog]]:
+    def _sync_catalog(self, stage: str, synced_catalogs=None) -> Optional[List[DataCatalog]]:
         """
         1). Identify the catalog settings by over-riding node settings with the global settings.
         2). For stage = get:
@@ -142,7 +141,7 @@ class BaseExecutor(ABC, BaseModel):
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
     @abstractmethod
-    def _execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
+    def _execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, mock: bool = False, **kwargs):
         """
         This is the entry point when we do the actual execution of the function.
 

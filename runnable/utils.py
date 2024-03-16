@@ -551,21 +551,6 @@ def get_provider_by_name_and_type(service_type: str, service_details: defaults.S
         raise Exception(f"Could not find the service of type: {service_type} with config: {service_details}") from _e
 
 
-def get_duration_between_datetime_strings(start_time: str, end_time: str) -> str:
-    """Given two datetime strings, compute the duration between them.
-
-    Args:
-        start_time (str): ISO format datetime string
-        end_time (str): ISO format datetime string
-    Returns:
-        The duration between the time in string format
-    """
-    start = datetime.fromisoformat(start_time)
-    end = datetime.fromisoformat(end_time)
-
-    return str(end - start)
-
-
 def get_run_config() -> dict:
     """Given an executor with assigned services, return the run_config.
 

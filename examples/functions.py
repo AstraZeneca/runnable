@@ -10,7 +10,7 @@ class InnerModel(BaseModel):
     bar: str
 
 
-class Parameter(BaseModel):
+class NestedModel(BaseModel):
     """
     A pydantic model representing the parameters of the whole pipeline.
     """
@@ -19,7 +19,7 @@ class Parameter(BaseModel):
     y: InnerModel
 
 
-def return_parameter() -> Parameter:
+def return_parameter() -> NestedModel:
     """
     A example python task that does something interesting and returns
     a parameter to be used in downstream steps.
@@ -28,10 +28,10 @@ def return_parameter() -> Parameter:
     but it is a good practice.
 
     Returns:
-        Parameter: The parameters that should be used in downstream steps.
+        NestedModel: The parameters that should be used in downstream steps.
     """
     # Return type of a function should be a pydantic model
-    return Parameter(x=1, y=InnerModel(foo=10, bar="hello world"))
+    return NestedModel(x=1, y=InnerModel(foo=10, bar="hello world"))
 
 
 def display_parameter(x: int, y: InnerModel):

@@ -82,6 +82,10 @@ def prepare_configurations(
         secrets_config = cast(ServiceConfig, runnable_defaults.get("secrets", defaults.DEFAULT_SECRETS))
     secrets_handler = utils.get_provider_by_name_and_type("secrets", secrets_config)
 
+    # pickler
+    pickler_config = cast(ServiceConfig, runnable_defaults.get("pickler", defaults.DEFAULT_PICKLER))
+    pickler_handler = utils.get_provider_by_name_and_type("pickler", pickler_config)
+
     # experiment tracker settings, configuration over-rides everything
     tracker_config: Optional[ServiceConfig] = configuration.get("experiment_tracker", None)
     if not tracker_config:
@@ -105,6 +109,7 @@ def prepare_configurations(
         run_log_store=run_log_store,
         catalog_handler=catalog_handler,
         secrets_handler=secrets_handler,
+        pickler=pickler_handler,
         experiment_tracker=tracker_handler,
         variables=variables,
         tag=tag,
