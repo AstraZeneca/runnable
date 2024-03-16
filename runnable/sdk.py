@@ -153,13 +153,13 @@ class BaseTask(BaseTraversal):
 
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
     overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
+    returns: List[str] = Field(default_factory=list, alias="returns")
 
     def create_node(self) -> TaskNode:
         if not self.next_node:
             if not (self.terminate_with_failure or self.terminate_with_success):
                 raise AssertionError("A node not being terminated must have a user defined next node")
 
-        print(self.model_dump(exclude_none=True))
         return TaskNode.parse_from_config(self.model_dump(exclude_none=True))
 
 

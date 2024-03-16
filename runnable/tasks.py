@@ -6,14 +6,16 @@ import logging
 import os
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from pickle import PicklingError
+from typing import Any, Dict, List, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
-from pydantic._internal._model_construction import ModelMetaclass
 from stevedore import driver
 
 import runnable.context as context
 from runnable import defaults, parameters, utils
+from runnable.datastore import JsonParameter, ObjectParameter, Parameter, StepAttempt
 from runnable.defaults import TypeMapVariable
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -29,6 +31,7 @@ class BaseTaskType(BaseModel):
     task_type: str = Field(serialization_alias="command_type")
     node_name: str = Field(exclude=True)
     secrets: Dict[str, str] = Field(default_factory=dict)
+    returns: List[str] = Field(default_factory=list, alias="returns")
 
     model_config = ConfigDict(extra="forbid")
 
@@ -63,10 +66,9 @@ class BaseTaskType(BaseModel):
 
     def execute_command(
         self,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
         **kwargs,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> StepAttempt:
         """The function to execute the command.
 
         And map_variable is sent in as an argument into the function.
@@ -80,7 +82,7 @@ class BaseTaskType(BaseModel):
         raise NotImplementedError()
 
     @contextlib.contextmanager
-    def expose_secrets(self, map_variable: TypeMapVariable = None):
+    def expose_secrets(self):
         """Context manager to expose secrets to the execution.
 
         Args:
@@ -94,14 +96,11 @@ class BaseTaskType(BaseModel):
             self.delete_secrets_from_env_variables()
 
     @contextlib.contextmanager
-    def output_to_file(self, map_variable: TypeMapVariable = None):
-        """Context manager to put the output of a function execution to catalog.
+    def execution_context(self, map_variable: TypeMapVariable = None, allow_complex: bool = True):
+        params = self._context.run_log_store.get_parameters(run_id=self._context.run_id).copy()
 
-        Args:
-            map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
-
-        """
-        from runnable import put_in_catalog  # Causing cyclic imports
+        if not allow_complex:
+            params = {key: value for key, value in params.items() if isinstance(value, JsonParameter)}
 
         log_file_name = self.node_name.replace(" ", "_") + ".execution.log"
         if map_variable:
@@ -113,15 +112,42 @@ class BaseTaskType(BaseModel):
         f = io.StringIO()
         try:
             with contextlib.redirect_stdout(f):
-                yield
+                yield params
         finally:
             print(f.getvalue())  # print to console
             log_file.write(f.getvalue())  # Print to file
 
             f.close()
             log_file.close()
-            put_in_catalog(log_file.name)
+
+            # Put the log file in the catalog
+            catalog_handler = context.run_context.catalog_handler
+            catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
             os.remove(log_file.name)
+
+            # Update parameters
+            self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
+
+
+def classify_value_as_json_or_object(name: str, value: Any) -> Parameter:
+    try:
+        # This can fail because of nested models
+        if isinstance(value, BaseModel):
+            # nested pydantic models
+            return JsonParameter(value=value.model_dump(by_alias=True), kind="json")
+
+        # Test if the value can be serialized as json
+        try:
+            json.dumps(value)
+            return JsonParameter(value=value, kind="json")
+        except (TypeError, OverflowError):
+            raise AttributeError(f"Cannot serialize {value} as json")
+    except (json.JSONDecodeError, AttributeError):
+        # We cannot serialize the value as json. This has to pickled and stored.
+        # return the location of the object
+        obj = ObjectParameter(value=name, kind="object")
+        obj.put_object(data=value)
+        return obj
 
 
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
@@ -140,39 +166,59 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     def execute_command(
         self,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
         **kwargs,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> StepAttempt:
         """Execute the notebook as defined by the command."""
-        if not params:
-            params = {}
+        attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
 
-        module, func = utils.get_module_and_attr_names(self.command)
-        sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
-        imported_module = importlib.import_module(module)
-        f = getattr(imported_module, func)
+        with self.execution_context(map_variable=map_variable) as params, self.expose_secrets() as _:
+            module, func = utils.get_module_and_attr_names(self.command)
+            sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
+            imported_module = importlib.import_module(module)
+            f = getattr(imported_module, func)
 
-        filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
+            filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
 
-        logger.info(f"Calling {func} from {module} with {filtered_parameters}")
+            logger.info(f"Calling {func} from {module} with {filtered_parameters}")
 
-        with self.output_to_file(map_variable=map_variable) as _, self.expose_secrets() as _:
             try:
                 user_set_parameters = f(**filtered_parameters)
+                attempt_log.input_parameters = params.copy()
+
+                output_parameters: Dict[str, Parameter] = {}
+
+                print(user_set_parameters)
+
+                if isinstance(user_set_parameters, BaseModel):
+                    # Support pydantic models
+                    for key, value in dict(user_set_parameters).items():
+                        # The value could either be a simple type or object
+                        output_parameters[key] = classify_value_as_json_or_object(name=key, value=value)
+                else:
+                    # retrieve from returns
+                    for i, return_key in enumerate(self.returns):
+                        # The value could either be a simple type or object
+                        output_parameters[return_key] = classify_value_as_json_or_object(
+                            name=return_key,
+                            value=user_set_parameters[return_key],
+                        )
+
+                if output_parameters:
+                    attempt_log.output_parameters = output_parameters
+                    params.update(output_parameters)
+
+                attempt_log.status = defaults.SUCCESS
+
             except Exception as _e:
                 msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
                 logger.exception(msg)
                 logger.exception(_e)
-                raise
+                attempt_log.status = defaults.FAIL
 
-        if user_set_parameters is None:
-            return {}
+        attempt_log.end_time = str(datetime.now())
 
-        if not isinstance(user_set_parameters, BaseModel) or isinstance(user_set_parameters, ModelMetaclass):
-            raise ValueError("Output variable of a function can only be a pydantic model or dynamic model.")
-
-        return user_set_parameters.model_dump(by_alias=True)
+        return attempt_log
 
 
 class NotebookTaskType(BaseTaskType):
@@ -181,7 +227,7 @@ class NotebookTaskType(BaseTaskType):
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
     notebook_output_path: str = Field(default="", validate_default=True)
-    returns: Optional[List[str]] = Field(default_factory=list)
+    returns: List[str] = Field(default_factory=list)
     output_cell_tag: str = Field(default="runnable_output", validate_default=True)
     optional_ploomber_args: dict = {}
 
@@ -207,10 +253,9 @@ class NotebookTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
         **kwargs,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> StepAttempt:
         """Execute the python notebook as defined by the command.
 
         Args:
@@ -220,57 +265,72 @@ class NotebookTaskType(BaseTaskType):
             ImportError: If necessary dependencies are not installed
             Exception: If anything else fails
         """
-        if not params:
-            params = {}
-
+        attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
         try:
             import ploomber_engine as pm
             from ploomber_engine.ipython import PloomberClient
 
-            from runnable import put_in_catalog  # Causes issues with cyclic import
-
             notebook_output_path = self.notebook_output_path
 
-            if map_variable:
-                for key, value in map_variable.items():
-                    notebook_output_path += "_" + str(value)
+            with self.execution_context(
+                map_variable=map_variable, allow_complex=False
+            ) as params, self.expose_secrets() as _:
+                if map_variable:
+                    for key, value in map_variable.items():
+                        notebook_output_path += "_" + str(value)
 
-                    params[key] = value
+                        params[key] = value
 
-            ploomber_optional_args = self.optional_ploomber_args
+                notebook_params = {k: v.get_value() for k, v in params.items()}
 
-            kwds = {
-                "input_path": self.command,
-                "output_path": notebook_output_path,
-                "parameters": params,
-                "log_output": True,
-                "progress_bar": False,
-            }
-            kwds.update(ploomber_optional_args)
+                ploomber_optional_args = self.optional_ploomber_args
 
-            collected_params: Dict[str, Any] = {}
-            with self.output_to_file(map_variable=map_variable) as _, self.expose_secrets() as _:
+                kwds = {
+                    "input_path": self.command,
+                    "output_path": notebook_output_path,
+                    "parameters": notebook_params,
+                    "log_output": True,
+                    "progress_bar": False,
+                }
+                kwds.update(ploomber_optional_args)
+
                 pm.execute_notebook(**kwds)
-
-            put_in_catalog(notebook_output_path)
+                context.run_context.catalog_handler.put(name=notebook_output_path, run_id=context.run_context.run_id)
 
             client = PloomberClient.from_path(path=notebook_output_path)
             namespace = client.get_namespace()
 
-            for key, value in namespace.items():
-                if key in (self.returns or []):
-                    if isinstance(value, BaseModel):
-                        collected_params[key] = value.model_dump(by_alias=True)
-                        continue
-                    collected_params[key] = value
+            output_parameters: Dict[str, Parameter] = {}
+            try:
+                for key, value in namespace.items():
+                    if key in (self.returns or []):
+                        output_parameters[key] = classify_value_as_json_or_object(
+                            name=key,
+                            value=namespace[key],
+                        )
+            except PicklingError as e:
+                logger.exception("Notebooks cannot return objects")
+                logger.exception(e)
+                raise
 
-            return collected_params
+            if output_parameters:
+                attempt_log.output_parameters = output_parameters
+                params.update(output_parameters)
 
-        except ImportError as e:
+                attempt_log.status = defaults.SUCCESS
+
+        except (ImportError, Exception) as e:
             msg = (
-                "Task type of notebook requires ploomber engine to be installed. Please install via optional: notebook"
+                f"Call to the notebook command {self.command} did not succeed.\n"
+                "Ensure that you have installed runnable with notebook extras"
             )
-            raise Exception(msg) from e
+            logger.exception(msg)
+            logger.exception(e)
+            attempt_log.status = defaults.FAIL
+
+        attempt_log.end_time = str(datetime.now())
+
+        return attempt_log
 
 
 class ShellTaskType(BaseTaskType):
@@ -279,32 +339,27 @@ class ShellTaskType(BaseTaskType):
     """
 
     task_type: str = Field(default="shell", serialization_alias="command_type")
-    returns: Optional[List[str]] = Field(default_factory=list)
+    returns: List[str] = Field(default_factory=list)
     command: str
 
     def execute_command(
         self,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
         **kwargs,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> StepAttempt:
         # Using shell=True as we want to have chained commands to be executed in the same shell.
         """Execute the shell command as defined by the command.
 
         Args:
             map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
         """
-        if not params:
-            params = {}
+        attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
+        subprocess_env = {}
 
-        runnable_env_vars: Dict[str, Any] = {}
-
-        # Expose RUNNABLE environment variables, ignoring the parameters, to be passed to the subprocess.
+        # Expose RUNNABLE environment variables to be passed to the subprocess.
         for key, value in os.environ.items():
-            if key.startswith("RUNNABLE_") and not key.startswith("RUNNABLE_PRM_"):
-                runnable_env_vars[key] = value
-
-        subprocess_env = {**params, **runnable_env_vars}
+            if key.startswith("RUNNABLE_"):
+                subprocess_env[key] = value
 
         # Expose map variable as environment variables
         if map_variable:
@@ -317,51 +372,51 @@ class ShellTaskType(BaseTaskType):
                 secret_value = context.run_context.secrets_handler.get(key)
                 subprocess_env[value] = secret_value
 
-        # Json dumps all runnable environment variables
-        for key, value in subprocess_env.items():
-            subprocess_env[key] = json.dumps(value)
+        with self.execution_context(map_variable=map_variable, allow_complex=False) as params:
+            subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
-        collect_delimiter = "=== COLLECT ==="
+            # Json dumps all runnable environment variables
+            for key, value in subprocess_env.items():
+                subprocess_env[key] = json.dumps(value)
 
-        command = self.command.strip() + f" && echo '{collect_delimiter}'  && env"
-        logger.info(f"Executing shell command: {command}")
+            collect_delimiter = "=== COLLECT ==="
 
-        output_parameters = {}
-        capture = False
+            command = self.command.strip() + f" && echo '{collect_delimiter}'  && env"
+            logger.info(f"Executing shell command: {command}")
 
-        with subprocess.Popen(
-            command,
-            shell=True,
-            env=subprocess_env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        ) as proc, self.output_to_file(map_variable=map_variable) as _:
-            for line in proc.stdout:  # type: ignore
-                logger.info(line)
-                print(line)
+            capture = False
 
-                if line.strip() == collect_delimiter:
-                    capture = True
-                    continue
+            with subprocess.Popen(
+                command,
+                shell=True,
+                env=subprocess_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            ) as proc:
+                for line in proc.stdout:  # type: ignore
+                    logger.info(line)
+                    print(line)
 
-                if capture:
-                    key, value = line.strip().split("=", 1)
-                    if key in (self.returns or []):
-                        try:
-                            output_parameters[key] = json.loads(value)
-                        except json.JSONDecodeError:
-                            output_parameters[key] = value  # simple data types
+                    if line.strip() == collect_delimiter:
+                        # The lines from now on should be captured
+                        capture = True
+                        continue
 
-                # if line.startswith(defaults.TRACK_PREFIX):
-                #     key, value = line.split("=", 1)
-                #     os.environ[key] = value.strip()
+                    if capture:
+                        key, value = line.strip().split("=", 1)
+                        if key in (self.returns or []):
+                            try:
+                                params[key] = JsonParameter(kind="json", value=json.loads(value))
+                            except json.JSONDecodeError:
+                                params[key] = JsonParameter(kind="json", value=value)
 
-            proc.wait()
-            if proc.returncode != 0:
-                raise Exception("Command failed")
+                proc.wait()
+                if proc.returncode == 0:
+                    attempt_log.status = defaults.SUCCESS
 
-        return output_parameters
+        attempt_log.end_time = str(datetime.now())
+        return attempt_log
 
 
 def create_task(kwargs_for_init) -> BaseTaskType:

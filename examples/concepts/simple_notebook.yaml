@@ -20,6 +20,7 @@ dag:
       returns:
         - a
         - b
+        - c
       command: examples/concepts/simple_notebook.ipynb
       next: success
     success:

@@ -1,15 +1,14 @@
-import copy
 import logging
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, cast
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_validator
 from typing_extensions import Annotated
 
-from runnable import defaults, utils
-from runnable.datastore import StepAttempt
+from runnable import datastore, defaults, utils
+from runnable.datastore import StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode, ExecutableNode, TerminalNode
@@ -46,10 +45,10 @@ class TaskNode(ExecutableNode):
     def execute(
         self,
         mock=False,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
+        attempt_number: int = 1,
         **kwargs,
-    ) -> StepAttempt:
+    ) -> StepLog:
         """
         All that we do in runnable is to come to this point where we actually execute the command.
 
@@ -62,26 +61,25 @@ class TaskNode(ExecutableNode):
             StepAttempt: The attempt object
         """
         print("Executing task:", self._context.executor._context_node)
-        # Here is where the juice is
-        attempt_log = self._context.run_log_store.create_attempt_log()
-        try:
-            attempt_log.start_time = str(datetime.now())
-            attempt_log.status = defaults.SUCCESS
-            attempt_log.input_parameters = copy.deepcopy(params)
-            if not mock:
-                # Do not run if we are mocking the execution, could be useful for caching and dry runs
-                output_parameters = self.executable.execute_command(map_variable=map_variable, params=params)
-                attempt_log.output_parameters = output_parameters
-        except Exception as _e:  # pylint: disable=W0703
-            logger.exception("Task failed")
-            attempt_log.status = defaults.FAIL
-            attempt_log.message = str(_e)
-        finally:
-            attempt_log.end_time = str(datetime.now())
-            attempt_log.duration = utils.get_duration_between_datetime_strings(
-                attempt_log.start_time, attempt_log.end_time
+
+        step_log = self._context.run_log_store.get_step_log(self._get_step_log_name(map_variable), self._context.run_id)
+        if not mock:
+            # Do not run if we are mocking the execution, could be useful for caching and dry runs
+            attempt_log = self.executable.execute_command(map_variable=map_variable)
+            attempt_log.attempt_number = attempt_number
+        else:
+            attempt_log = datastore.StepAttempt(
+                status=defaults.SUCCESS,
+                start_time=str(datetime.now()),
+                end_time=str(datetime.now()),
+                attempt_number=attempt_number,
             )
-        return attempt_log
+
+        step_log.status = attempt_log.status
+
+        step_log.attempts.append(attempt_log)
+
+        return step_log
 
 
 class FailNode(TerminalNode):
@@ -98,10 +96,10 @@ class FailNode(TerminalNode):
     def execute(
         self,
         mock=False,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
+        attempt_number: int = 1,
         **kwargs,
-    ) -> StepAttempt:
+    ) -> StepLog:
         """
         Execute the failure node.
         Set the run or branch log status to failure.
@@ -114,26 +112,26 @@ class FailNode(TerminalNode):
         Returns:
             StepAttempt: The step attempt object
         """
-        attempt_log = self._context.run_log_store.create_attempt_log()
-        try:
-            attempt_log.start_time = str(datetime.now())
-            attempt_log.status = defaults.SUCCESS
-            attempt_log.input_parameters = params
-            #  could be a branch or run log
-            run_or_branch_log = self._context.run_log_store.get_branch_log(
-                self._get_branch_log_name(map_variable), self._context.run_id
-            )
-            run_or_branch_log.status = defaults.FAIL
-            self._context.run_log_store.add_branch_log(run_or_branch_log, self._context.run_id)
-        except BaseException:  # pylint: disable=W0703
-            logger.exception("Fail node execution failed")
-        finally:
-            attempt_log.status = defaults.SUCCESS  # This is a dummy node, so we ignore errors and mark SUCCESS
-            attempt_log.end_time = str(datetime.now())
-            attempt_log.duration = utils.get_duration_between_datetime_strings(
-                attempt_log.start_time, attempt_log.end_time
-            )
-        return attempt_log
+        step_log = self._context.run_log_store.get_step_log(self._get_step_log_name(map_variable), self._context.run_id)
+
+        attempt_log = datastore.StepAttempt(
+            status=defaults.FAIL,
+            start_time=str(datetime.now()),
+            end_time=str(datetime.now()),
+            attempt_number=attempt_number,
+        )
+
+        run_or_branch_log = self._context.run_log_store.get_branch_log(
+            self._get_branch_log_name(map_variable), self._context.run_id
+        )
+        run_or_branch_log.status = defaults.FAIL
+        self._context.run_log_store.add_branch_log(run_or_branch_log, self._context.run_id)
+
+        step_log.status = attempt_log.status
+
+        step_log.attempts.append(attempt_log)
+
+        return step_log
 
 
 class SuccessNode(TerminalNode):
@@ -150,10 +148,10 @@ class SuccessNode(TerminalNode):
     def execute(
         self,
         mock=False,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
+        attempt_number: int = 1,
         **kwargs,
-    ) -> StepAttempt:
+    ) -> StepLog:
         """
         Execute the success node.
         Set the run or branch log status to success.
@@ -166,26 +164,26 @@ class SuccessNode(TerminalNode):
         Returns:
             StepAttempt: The step attempt object
         """
-        attempt_log = self._context.run_log_store.create_attempt_log()
-        try:
-            attempt_log.start_time = str(datetime.now())
-            attempt_log.status = defaults.SUCCESS
-            attempt_log.input_parameters = params
-            #  could be a branch or run log
-            run_or_branch_log = self._context.run_log_store.get_branch_log(
-                self._get_branch_log_name(map_variable), self._context.run_id
-            )
-            run_or_branch_log.status = defaults.SUCCESS
-            self._context.run_log_store.add_branch_log(run_or_branch_log, self._context.run_id)
-        except BaseException:  # pylint: disable=W0703
-            logger.exception("Success node execution failed")
-        finally:
-            attempt_log.status = defaults.SUCCESS  # This is a dummy node and we make sure we mark it as success
-            attempt_log.end_time = str(datetime.now())
-            attempt_log.duration = utils.get_duration_between_datetime_strings(
-                attempt_log.start_time, attempt_log.end_time
-            )
-        return attempt_log
+        step_log = self._context.run_log_store.get_step_log(self._get_step_log_name(map_variable), self._context.run_id)
+
+        attempt_log = datastore.StepAttempt(
+            status=defaults.SUCCESS,
+            start_time=str(datetime.now()),
+            end_time=str(datetime.now()),
+            attempt_number=attempt_number,
+        )
+
+        run_or_branch_log = self._context.run_log_store.get_branch_log(
+            self._get_branch_log_name(map_variable), self._context.run_id
+        )
+        run_or_branch_log.status = defaults.SUCCESS
+        self._context.run_log_store.add_branch_log(run_or_branch_log, self._context.run_id)
+
+        step_log.status = attempt_log.status
+
+        step_log.attempts.append(attempt_log)
+
+        return step_log
 
 
 class ParallelNode(CompositeNode):
@@ -278,7 +276,6 @@ class ParallelNode(CompositeNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-
         self.fan_out(map_variable=map_variable, **kwargs)
 
         for _, branch in self.branches.items():
@@ -378,7 +375,7 @@ class MapNode(CompositeNode):
             executor (BaseExecutor): The executor class as defined by the config
             map_variable (dict, optional): If the node is part of map. Defaults to None.
         """
-        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on]
+        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on].get_value()
 
         # Prepare the branch logs
         for iter_variable in iterate_on:
@@ -418,7 +415,7 @@ class MapNode(CompositeNode):
 
         iterate_on = None
         try:
-            iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on]
+            iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on].get_value()
         except KeyError:
             raise Exception(
                 f"Expected parameter {self.iterate_on} not present in Run Log parameters, was it ever set before?"
@@ -447,7 +444,7 @@ class MapNode(CompositeNode):
             executor (BaseExecutor): The executor class as defined by the config
             map_variable (dict, optional): If the node is part of map node. Defaults to None.
         """
-        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on]
+        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on].get_value()
         # # Find status of the branches
         step_success_bool = True
 
@@ -628,10 +625,10 @@ class StubNode(ExecutableNode):
     def execute(
         self,
         mock=False,
-        params: Optional[Dict[str, Any]] = None,
         map_variable: TypeMapVariable = None,
+        attempt_number: int = 1,
         **kwargs,
-    ) -> StepAttempt:
+    ) -> StepLog:
         """
         Do Nothing node.
         We just send an success attempt log back to the caller
@@ -644,12 +641,17 @@ class StubNode(ExecutableNode):
         Returns:
             [type]: [description]
         """
-        attempt_log = self._context.run_log_store.create_attempt_log()
-        attempt_log.input_parameters = params
+        step_log = self._context.run_log_store.get_step_log(self._get_step_log_name(map_variable), self._context.run_id)
 
-        attempt_log.start_time = str(datetime.now())
-        attempt_log.status = defaults.SUCCESS  # This is a dummy node and always will be success
+        attempt_log = datastore.StepAttempt(
+            status=defaults.SUCCESS,
+            start_time=str(datetime.now()),
+            end_time=str(datetime.now()),
+            attempt_number=attempt_number,
+        )
 
-        attempt_log.end_time = str(datetime.now())
-        attempt_log.duration = utils.get_duration_between_datetime_strings(attempt_log.start_time, attempt_log.end_time)
-        return attempt_log
+        step_log.status = attempt_log.status
+
+        step_log.attempts.append(attempt_log)
+
+        return step_log

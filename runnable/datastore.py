@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import logging
+import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, OrderedDict, Tuple, Union
+from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional, OrderedDict, Tuple, Union
 
-from pydantic import BaseModel, Field
+try:
+    from typing_extensions import Annotated
+except ImportError:
+    from typing import Annotated  # type: ignore
+
+from pydantic import BaseModel, Field, computed_field
 
 import runnable.context as context
 from runnable import defaults, exceptions
@@ -42,19 +49,66 @@ class DataCatalog(BaseModel, extra="allow"):
         return other.name == self.name
 
 
+class JsonParameter(BaseModel):
+    kind: Literal["json"]
+    value: Union[str, int, float, bool, Dict[str, Any], List[Any]]
+
+    def get_value(self) -> Union[str, int, float, bool, Dict[str, Any], List[Any]]:
+        return self.value
+
+
+class ObjectParameter(BaseModel):
+    kind: Literal["object"]
+    value: str  # The name of the pickled object
+
+    @computed_field  # type: ignore
+    @property
+    def description(self) -> str:
+        return f"Pickled object stored in catalog as: {self.value}"
+
+    @property
+    def file_name(self) -> str:
+        return f"{self.value}{context.run_context.pickler.extension}"
+
+    def get_value(self) -> Any:
+        # Get the pickled object
+        catalog_handler = context.run_context.catalog_handler
+
+        catalog_handler.get(name=self.file_name, run_id=context.run_context.run_id)
+        obj = context.run_context.pickler.load(path=self.file_name)
+        os.remove(self.file_name)  # Remove after loading
+        return obj
+
+    def put_object(self, data: Any) -> None:
+        context.run_context.pickler.dump(data=data, path=self.file_name)
+
+        catalog_handler = context.run_context.catalog_handler
+        catalog_handler.put(name=self.file_name, run_id=context.run_context.run_id)
+        os.remove(self.file_name)  # Remove after loading
+
+
+Parameter = Annotated[Union[JsonParameter, ObjectParameter], Field(discriminator="kind")]
+
+
 class StepAttempt(BaseModel):
     """
     The captured attributes of an Attempt of a step.
     """
 
-    attempt_number: int = 0
+    attempt_number: int = 1
     start_time: str = ""
     end_time: str = ""
-    duration: str = ""  #  end_time - start_time
     status: str = "FAIL"
     message: str = ""
-    input_parameters: Dict[str, Any] = Field(default_factory=dict)
-    output_parameters: Dict[str, Any] = Field(default_factory=dict)
+    input_parameters: Dict[str, Parameter] = Field(default_factory=dict)
+    output_parameters: Dict[str, Parameter] = Field(default_factory=dict)
+
+    @property
+    def duration(self):
+        start = datetime.fromisoformat(self.start_time)
+        end = datetime.fromisoformat(self.end_time)
+
+        return str(end - start)
 
 
 class CodeIdentity(BaseModel, extra="allow"):
@@ -172,7 +226,7 @@ class RunLog(BaseModel):
     tag: Optional[str] = ""
     status: str = defaults.FAIL
     steps: OrderedDict[str, StepLog] = Field(default_factory=OrderedDict)
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    parameters: Dict[str, Parameter] = Field(default_factory=dict)
     run_config: Dict[str, Any] = Field(default_factory=dict)
 
     def get_data_catalogs_by_stage(self, stage: str = "put") -> List[DataCatalog]:
@@ -372,7 +426,7 @@ class BaseRunLogStore(ABC, BaseModel):
         run_log.status = status
         self.put_run_log(run_log)
 
-    def get_parameters(self, run_id: str, **kwargs) -> dict:
+    def get_parameters(self, run_id: str, **kwargs) -> Dict[str, Parameter]:
         """
         Get the parameters from the Run log defined by the run_id
 
@@ -391,7 +445,7 @@ class BaseRunLogStore(ABC, BaseModel):
         run_log = self.get_run_log_by_id(run_id=run_id)
         return run_log.parameters
 
-    def set_parameters(self, run_id: str, parameters: dict, **kwargs):
+    def set_parameters(self, run_id: str, parameters: Dict[str, Parameter], **kwargs):
         """
         Update the parameters of the Run log with the new parameters
 
@@ -578,16 +632,7 @@ class BaseRunLogStore(ABC, BaseModel):
         step.branches[internal_branch_name] = branch_log  # type: ignore
         self.put_run_log(run_log)
 
-    def create_attempt_log(self, **kwargs) -> StepAttempt:
-        """
-        Returns an uncommitted step attempt log.
-
-        Returns:
-            StepAttempt: An uncommitted step attempt log
-        """
-        logger.info(f"{self.service_name} Creating an attempt log")
-        return StepAttempt()
-
+    #
     def create_code_identity(self, **kwargs) -> CodeIdentity:
         """
         Creates an uncommitted Code identity class

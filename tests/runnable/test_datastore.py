@@ -321,14 +321,6 @@ def test_base_run_log_store_create_branch_log_returns_a_branch_log_object():
     assert isinstance(branch_log, datastore.BranchLog)
 
 
-def test_base_run_log_store_create_attempt_log_returns_a_attempt_log_object():
-    run_log_store = datastore.BaseRunLogStore()
-
-    attempt_log = run_log_store.create_attempt_log()
-
-    assert isinstance(attempt_log, datastore.StepAttempt)
-
-
 def test_base_run_log_store_create_code_identity_object():
     run_log_store = datastore.BaseRunLogStore()
 

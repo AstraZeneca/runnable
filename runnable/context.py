@@ -7,6 +7,7 @@ from runnable.datastore import BaseRunLogStore
 from runnable.executor import BaseExecutor
 from runnable.experiment_tracker import BaseExperimentTracker
 from runnable.graph import Graph
+from runnable.pickler import BasePickler
 from runnable.secrets import BaseSecrets
 
 
@@ -16,6 +17,7 @@ class Context(BaseModel):
     secrets_handler: SerializeAsAny[BaseSecrets]
     catalog_handler: SerializeAsAny[BaseCatalog]
     experiment_tracker: SerializeAsAny[BaseExperimentTracker]
+    pickler: SerializeAsAny[BasePickler]
 
     pipeline_file: Optional[str] = ""
     parameters_file: Optional[str] = ""

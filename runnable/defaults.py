@@ -41,6 +41,7 @@ class RunnableConfig(TypedDict, total=False):
     catalog: Optional[ServiceConfig]
     executor: Optional[ServiceConfig]
     experiment_tracker: Optional[ServiceConfig]
+    pickler: Optional[ServiceConfig]
 
 
 TypeMapVariable: TypeAlias = Optional[Dict[str, Union[str, int, float]]]
@@ -81,10 +82,11 @@ DEFAULT_CONTAINER_OUTPUT_PARAMETERS = "parameters.json"
 
 # Default services
 DEFAULT_EXECUTOR = ServiceConfig(type="local", config={})
-DEFAULT_RUN_LOG_STORE = ServiceConfig(type="buffered", config={})
+DEFAULT_RUN_LOG_STORE = ServiceConfig(type="file-system", config={})
 DEFAULT_CATALOG = ServiceConfig(type="file-system", config={})
 DEFAULT_SECRETS = ServiceConfig(type="do-nothing", config={})
 DEFAULT_EXPERIMENT_TRACKER = ServiceConfig(type="do-nothing", config={})
+DEFAULT_PICKLER = ServiceConfig(type="pickle", config={})
 
 # Map state
 MAP_PLACEHOLDER = "map_variable_placeholder"
