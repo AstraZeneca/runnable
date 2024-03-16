@@ -8,7 +8,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pickle import PicklingError
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 from stevedore import driver
@@ -131,21 +131,17 @@ class BaseTaskType(BaseModel):
 
 def classify_value_as_json_or_object(name: str, value: Any) -> Parameter:
     try:
-        # These are simple data types and can be put directly
-        if isinstance(value, (int, float, str, bool)):
-            return JsonParameter(value=value, kind="json")
-
-        # Any of this can fail because of nested structures!!
+        # This can fail because of nested models
         if isinstance(value, BaseModel):
             # nested pydantic models
             return JsonParameter(value=value.model_dump(by_alias=True), kind="json")
 
-        if isinstance(value, (dict, list)):
-            return JsonParameter(value=json.load(value), kind="json")
-
-        # Custom serializers should be accepted and tried
-        json_value = json.load(value)
-        return JsonParameter(json_value, kind="json")
+        # Test if the value can be serialized as json
+        try:
+            json.dumps(value)
+            return JsonParameter(value=value, kind="json")
+        except (TypeError, OverflowError):
+            raise AttributeError(f"Cannot serialize {value} as json")
     except (json.JSONDecodeError, AttributeError):
         # We cannot serialize the value as json. This has to pickled and stored.
         # return the location of the object
@@ -192,6 +188,8 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
                 output_parameters: Dict[str, Parameter] = {}
 
+                print(user_set_parameters)
+
                 if isinstance(user_set_parameters, BaseModel):
                     # Support pydantic models
                     for key, value in dict(user_set_parameters).items():
@@ -203,7 +201,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                         # The value could either be a simple type or object
                         output_parameters[return_key] = classify_value_as_json_or_object(
                             name=return_key,
-                            value=user_set_parameters[i],
+                            value=user_set_parameters[return_key],
                         )
 
                 if output_parameters:
@@ -229,7 +227,7 @@ class NotebookTaskType(BaseTaskType):
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
     notebook_output_path: str = Field(default="", validate_default=True)
-    returns: Optional[List[str]] = Field(default_factory=list)
+    returns: List[str] = Field(default_factory=list)
     output_cell_tag: str = Field(default="runnable_output", validate_default=True)
     optional_ploomber_args: dict = {}
 
@@ -283,12 +281,14 @@ class NotebookTaskType(BaseTaskType):
 
                         params[key] = value
 
+                notebook_params = {k: v.get_value() for k, v in params.items()}
+
                 ploomber_optional_args = self.optional_ploomber_args
 
                 kwds = {
                     "input_path": self.command,
                     "output_path": notebook_output_path,
-                    "parameters": params,
+                    "parameters": notebook_params,
                     "log_output": True,
                     "progress_bar": False,
                 }
@@ -339,7 +339,7 @@ class ShellTaskType(BaseTaskType):
     """
 
     task_type: str = Field(default="shell", serialization_alias="command_type")
-    returns: Optional[List[str]] = Field(default_factory=list)
+    returns: List[str] = Field(default_factory=list)
     command: str
 
     def execute_command(
@@ -409,7 +409,7 @@ class ShellTaskType(BaseTaskType):
                             try:
                                 params[key] = JsonParameter(kind="json", value=json.loads(value))
                             except json.JSONDecodeError:
-                                params[key] = JsonParameter(kind="json", value=json.loads(value))
+                                params[key] = JsonParameter(kind="json", value=value)
 
                 proc.wait()
                 if proc.returncode == 0:

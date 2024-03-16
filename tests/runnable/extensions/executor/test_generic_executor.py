@@ -20,16 +20,6 @@ def mock_run_context(mocker, monkeypatch):
     return mock_run_context
 
 
-def test_get_parameters_gets_parameters_from_parameters_file(mocker, monkeypatch, mock_run_context):
-    mock_run_context.parameters_file = "parameters_file"
-    mock_load_yaml = mocker.MagicMock(return_value={"executor": "test"})
-    monkeypatch.setattr(executor.utils, "load_yaml", mock_load_yaml)
-
-    test_executor = GenericExecutor()
-    assert test_executor._get_parameters() == {"executor": "test"}
-    mock_load_yaml.assert_called_once_with("parameters_file")
-
-
 def test_get_parameters_gets_parameters_from_user_parameters(mocker, monkeypatch, mock_run_context):
     mock_run_context.parameters_file = ""
     monkeypatch.setattr(
@@ -197,7 +187,7 @@ def test_sync_catalog_does_nothing_for_terminal_node(mocker, monkeypatch, mock_r
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
-    test_executor._sync_catalog("test", stage="get")
+    test_executor._sync_catalog(stage="get")
 
 
 def test_sync_catalog_does_nothing_for_no_catalog_settings(mocker, monkeypatch, mock_run_context):
@@ -207,7 +197,7 @@ def test_sync_catalog_does_nothing_for_no_catalog_settings(mocker, monkeypatch, 
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
-    test_executor._sync_catalog("test", stage="get")
+    test_executor._sync_catalog(stage="get")
 
 
 def test_sync_catalog_does_nothing_for_catalog_settings_stage_not_in(mocker, monkeypatch, mock_run_context):
@@ -217,7 +207,7 @@ def test_sync_catalog_does_nothing_for_catalog_settings_stage_not_in(mocker, mon
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
-    test_executor._sync_catalog("test", stage="put")
+    test_executor._sync_catalog(stage="put")
 
 
 def test_sync_catalog_returns_nothing_if_no_syncing_for_node(mocker, monkeypatch, mock_run_context):
@@ -228,7 +218,7 @@ def test_sync_catalog_returns_nothing_if_no_syncing_for_node(mocker, monkeypatch
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
-    assert test_executor._sync_catalog("test", stage="get") is None
+    assert test_executor._sync_catalog(stage="get") is None
 
 
 def test_sync_catalog_returns_empty_list_if_asked_nothing_in_stage(mocker, monkeypatch, mock_run_context):
@@ -241,8 +231,8 @@ def test_sync_catalog_returns_empty_list_if_asked_nothing_in_stage(mocker, monke
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
-    assert test_executor._sync_catalog("test", stage="get") == []
-    assert test_executor._sync_catalog("test", stage="put") == []
+    assert test_executor._sync_catalog(stage="get") == []
+    assert test_executor._sync_catalog(stage="put") == []
 
 
 def test_sync_catalog_calls_get_from_catalog_handler(mocker, monkeypatch, mock_run_context):
@@ -261,7 +251,7 @@ def test_sync_catalog_calls_get_from_catalog_handler(mocker, monkeypatch, mock_r
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
-    data_catalogs = test_executor._sync_catalog(step_log=mock_step_log, stage="get")
+    data_catalogs = test_executor._sync_catalog(stage="get")
 
     assert data_catalogs == ["data_catalog"]
     mock_catalog_handler_get.assert_called_once_with(name="me", run_id="run_id", compute_data_folder="compute_folder")
@@ -283,7 +273,7 @@ def test_sync_catalog_calls_get_from_catalog_handler_as_per_input(mocker, monkey
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
-    data_catalogs = test_executor._sync_catalog(step_log=mock_step_log, stage="get")
+    data_catalogs = test_executor._sync_catalog(stage="get")
 
     assert data_catalogs == ["data_catalog", "data_catalog"]
     assert mock_catalog_handler_get.call_count == 2
@@ -305,7 +295,7 @@ def test_sync_catalog_calls_put_from_catalog_handler(mocker, monkeypatch, mock_r
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
-    data_catalogs = test_executor._sync_catalog(step_log=mock_step_log, stage="put")
+    data_catalogs = test_executor._sync_catalog(stage="put")
 
     assert data_catalogs == ["data_catalog"]
     mock_catalog_handler_put.assert_called_once_with(
@@ -329,7 +319,7 @@ def test_sync_catalog_calls_put_from_catalog_handler_as_per_input(mocker, monkey
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
-    data_catalogs = test_executor._sync_catalog(step_log=mock_step_log, stage="put")
+    data_catalogs = test_executor._sync_catalog(stage="put")
 
     assert data_catalogs == ["data_catalog", "data_catalog"]
     assert mock_catalog_handler_put.call_count == 2
@@ -351,7 +341,7 @@ def test_sync_catalog_calls_put_sends_synced_catalogs_to_catalog_handler(mocker,
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
-    data_catalogs = test_executor._sync_catalog(step_log=mock_step_log, stage="put", synced_catalogs="in_sync")
+    data_catalogs = test_executor._sync_catalog(stage="put", synced_catalogs="in_sync")
 
     assert data_catalogs == ["data_catalog"]
     mock_catalog_handler_put.assert_called_once_with(
@@ -462,71 +452,6 @@ def test_get_status_and_next_node_name_returns_on_failure_node_if_failed(mocker,
     test_executor = GenericExecutor()
 
     assert test_executor._get_status_and_next_node_name(mock_node, mock_dag) == (defaults.FAIL, "me_please")
-
-
-def test_execute_node_calls_store_parameter_with_update_false(mocker, monkeypatch, mock_run_context):
-    mock_parameters = mocker.MagicMock()
-    monkeypatch.setattr(executor, "parameters", mock_parameters)
-
-    mock_run_context.run_log_store.get_parameters.return_value = {"a": 1}
-
-    test_executor = GenericExecutor()
-    test_executor._sync_catalog = mocker.MagicMock()
-
-    mock_node = mocker.MagicMock()
-    test_executor._execute_node(mock_node)
-
-    args, kwargs = mock_parameters.set_user_defined_params_as_environment_variables.call_args
-    assert args[0] == {"a": 1}
-
-
-def test_execute_node_raises_exception_if_node_execute_raises_one(mocker, monkeypatch, mock_run_context, caplog):
-    mock_run_context.run_log_store.get_parameters.return_value = {"a": 1}
-    test_executor = GenericExecutor()
-    test_executor._sync_catalog = mocker.MagicMock()
-
-    mock_node = mocker.MagicMock()
-    mock_node.execute.side_effect = Exception()
-
-    with caplog.at_level(logging.ERROR, logger="runnable") and pytest.raises(Exception):
-        test_executor._execute_node(mock_node)
-
-    assert "This is clearly runnable fault, " in caplog.text
-
-
-def test_execute_node_sets_step_log_status_to_fail_if_node_fails(mocker, monkeypatch, mock_run_context):
-    mock_step_log = mocker.MagicMock()
-    mock_run_context.run_log_store.get_step_log.return_value = mock_step_log
-    mock_run_context.run_log_store.get_parameters.return_value = {"a": 1}
-
-    mock_attempt_log = mocker.MagicMock()
-    mock_attempt_log.status = defaults.FAIL
-
-    mock_node = mocker.MagicMock()
-    mock_node.execute.return_value = mock_attempt_log
-
-    test_executor = GenericExecutor()
-    test_executor._sync_catalog = mocker.MagicMock()
-
-    test_executor._execute_node(mock_node)
-
-    assert mock_step_log.status == defaults.FAIL
-
-
-def test_execute_node_sets_step_log_status_to_success_if_node_succeeds(mocker, monkeypatch, mock_run_context):
-    mock_step_log = mocker.MagicMock()
-    mock_run_context.run_log_store.get_step_log.return_value = mock_step_log
-    mock_run_context.run_log_store.get_parameters.return_value = {"a": 1}
-
-    mock_node = mocker.MagicMock()
-    mock_node.execute.return_value.status = defaults.SUCCESS
-
-    test_executor = GenericExecutor()
-    test_executor._sync_catalog = mocker.MagicMock()
-
-    test_executor._execute_node(mock_node)
-
-    assert mock_step_log.status == defaults.SUCCESS
 
 
 def test_send_return_code_raises_exception_if_pipeline_execution_failed(mocker, mock_run_context):

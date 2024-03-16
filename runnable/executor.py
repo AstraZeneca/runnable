@@ -90,7 +90,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def _sync_catalog(self, step_log: StepLog, stage: str, synced_catalogs=None) -> Optional[List[DataCatalog]]:
+    def _sync_catalog(self, stage: str, synced_catalogs=None) -> Optional[List[DataCatalog]]:
         """
         1). Identify the catalog settings by over-riding node settings with the global settings.
         2). For stage = get:

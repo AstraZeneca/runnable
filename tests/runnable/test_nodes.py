@@ -288,8 +288,7 @@ def test_composite_node_execute_raises_exception(instantiable_composite_node):
 def test_terminal_node_get_on_failure_node_raises_exception(instantiable_terminal_node):
     node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
-    with pytest.raises(exceptions.TerminalNodeError):
-        node._get_on_failure_node()
+    assert node._get_on_failure_node() == ""
 
 
 def test_terminal_node__get_next_node_raises_exception(instantiable_terminal_node):

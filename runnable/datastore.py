@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Literal, Optional, OrderedDict, Tuple, Union
 try:
     from typing_extensions import Annotated
 except ImportError:
-    from typing import Annotated
+    from typing import Annotated  # type: ignore
 
 from pydantic import BaseModel, Field, computed_field
 
@@ -61,7 +61,7 @@ class ObjectParameter(BaseModel):
     kind: Literal["object"]
     value: str  # The name of the pickled object
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def description(self) -> str:
         return f"Pickled object stored in catalog as: {self.value}"

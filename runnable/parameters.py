@@ -33,10 +33,10 @@ def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
         if env_var.startswith(defaults.PARAMETER_PREFIX):
             key = remove_prefix(env_var, defaults.PARAMETER_PREFIX)
             try:
-                parameters[key.lower()] = JsonParameter(name=key.lower(), value=json.loads(value), kind="json")
+                parameters[key.lower()] = JsonParameter(kind="json", value=json.loads(value))
             except json.decoder.JSONDecodeError:
                 logger.error(f"Parameter {key} could not be JSON decoded, adding the literal value")
-                parameters[key.lower()] = JsonParameter(name=key.lower(), value=value, kind="json")
+                parameters[key.lower()] = JsonParameter(kind="json", value=value)
 
             if remove:
                 del os.environ[env_var]
@@ -119,11 +119,11 @@ def filter_arguments_for_func(
     Returns:
         dict: The parameters matching the function signature
     """
-    print(params)
     function_args = inspect.signature(func).parameters
 
     # Update parameters with the map variables
-    params.update(map_variable or {})
+    for key, v in (map_variable or {}).items():
+        params[key] = JsonParameter(kind="json", value=v)
 
     unassigned_params = set(params.keys())
     bound_args = {}

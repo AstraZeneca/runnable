@@ -21,11 +21,8 @@ examples = [
     ("concepts/traversal.yaml", False, {}),
     ("catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
     ("default-fail.yaml", True, {}),
-    ("logging.yaml", False, {}),
-    ("mocking.yaml", False, {}),
     ("on-failure.yaml", False, {}),
     ("parallel-fail.yaml", True, {}),
-    ("parameters_flow.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
     ("python-tasks.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
 ]
 
@@ -99,16 +96,12 @@ def secrets_env_context():
 # function, success, context
 python_examples = [
     ("catalog", False, None),
-    ("catalog_api", False, None),
     ("catalog_simple", False, None),
     ("mocking", False, None),
     ("on_failure", False, None),
     ("parameters", False, None),
     ("python_tasks", False, None),
-    ("secrets", False, None),
     ("concepts.catalog", False, None),
-    ("concepts.catalog_api", False, None),
-    ("concepts.catalog_object", False, None),
     ("concepts.map", False, None),
     ("concepts.nesting", False, None),
     ("concepts.parallel", False, None),

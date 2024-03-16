@@ -276,7 +276,6 @@ class ParallelNode(CompositeNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-
         self.fan_out(map_variable=map_variable, **kwargs)
 
         for _, branch in self.branches.items():
@@ -376,7 +375,7 @@ class MapNode(CompositeNode):
             executor (BaseExecutor): The executor class as defined by the config
             map_variable (dict, optional): If the node is part of map. Defaults to None.
         """
-        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on]
+        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on].get_value()
 
         # Prepare the branch logs
         for iter_variable in iterate_on:
@@ -416,7 +415,7 @@ class MapNode(CompositeNode):
 
         iterate_on = None
         try:
-            iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on]
+            iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on].get_value()
         except KeyError:
             raise Exception(
                 f"Expected parameter {self.iterate_on} not present in Run Log parameters, was it ever set before?"
@@ -445,7 +444,7 @@ class MapNode(CompositeNode):
             executor (BaseExecutor): The executor class as defined by the config
             map_variable (dict, optional): If the node is part of map node. Defaults to None.
         """
-        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on]
+        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on].get_value()
         # # Find status of the branches
         step_success_bool = True
 

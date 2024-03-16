@@ -48,7 +48,7 @@ def return_parameters(simple: int, inner: InnerModel) -> NestedModel:  # (3)
     """
     simple = 2
     inner.x = 30
-    inner.y = "world!!"
+    inner.y = "Hello Universe!!"
 
     return NestedModel(simple=simple, inner=inner).model_dump(by_alias=True)
 
@@ -84,10 +84,9 @@ def main():
     run_log = pipeline.execute(parameters_file="examples/parameters_initial.yaml")
     params = run_log.parameters
 
-    print(params)
     ## Reflects the changes done by "return_parameters" function call.
-    assert params["simple"] == 2
-    assert params["inner"] == {"x": 30, "y": "world!!"}
+    assert params["simple"].value == 2
+    assert params["inner"].value == {"x": 30, "y": "Hello Universe!!"}
 
 
 if __name__ == "__main__":
