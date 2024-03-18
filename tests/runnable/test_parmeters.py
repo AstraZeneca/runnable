@@ -1,5 +1,4 @@
 import os
-import logging
 
 import pytest
 
@@ -10,7 +9,6 @@ from runnable import defaults
 from runnable.datastore import JsonParameter
 from runnable.parameters import (
     get_user_set_parameters,
-    cast_parameters_as_type,
     bind_args_for_pydantic_model,
     filter_arguments_for_func,
 )
@@ -30,59 +28,6 @@ def test_get_user_set_parameters_removes_the_parameter_if_prefix_match_remove(mo
     get_user_set_parameters(remove=True)
 
     assert defaults.PARAMETER_PREFIX + "key" not in os.environ
-
-
-def test_cast_parameters_as_type_with_pydantic_model():
-    class MyModel(BaseModel):
-        a: int
-        b: str
-
-    value = {"a": 1, "b": "test"}
-    cast_value = cast_parameters_as_type(value, MyModel)
-
-    assert isinstance(cast_value, MyModel)
-    assert cast_value.a == 1
-    assert cast_value.b == "test"
-
-
-def test_cast_parameters_as_type_with_dict():
-    value = {"a": 1, "b": "test"}
-    cast_value = cast_parameters_as_type(value, dict)
-
-    assert isinstance(cast_value, dict)
-    assert cast_value == value
-
-
-def test_cast_parameters_as_type_with_non_special_type():
-    value = "1"
-    cast_value = cast_parameters_as_type(value, int)
-
-    assert isinstance(cast_value, int)
-    assert cast_value == 1
-
-
-def test_cast_parameters_as_type_with_none():
-    value = None
-    cast_value = cast_parameters_as_type(value, None)
-
-    assert cast_value is None
-
-
-def test_cast_parameters_as_type_with_invalid_value():
-    class MyModel(BaseModel):
-        a: int
-
-    value = {"a": "test"}
-    with pytest.raises(ValidationError):
-        cast_parameters_as_type(value, MyModel)
-
-
-def test_cast_parameters_as_type_with_invalid_type(caplog):
-    value = "test"
-    with caplog.at_level(logging.WARNING, logger="runnable"):
-        cast_parameters_as_type(value, list)
-
-    assert f"Casting {value} of {type(value)} to {list} seems wrong!!" in caplog.text
 
 
 def test_bind_args_for_pydantic_model_with_correct_params():

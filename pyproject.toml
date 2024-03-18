@@ -10,25 +10,25 @@ repository = "https://github.com/vijayvammi/runnable"
 documentation = "https://github.com/vijayvammi/runnable"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.13"
+python = ">=3.9,<3.13"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 pydantic = "^2.5"
 stevedore = "^3.5.0"
 "click" = "*"
 click-plugins = "^1.1.1"
-typing-extensions ={ version= "*", python = "<3.8" }
-docker ={ version = "*", optional = true }
-sqlalchemy ={ version = "*", optional = true }
+typing-extensions = { version = "*", python = "<3.8" }
+docker = { version = "*", optional = true }
+sqlalchemy = { version = "*", optional = true }
 rich = "^13.5.2"
-mlflow-skinny ={ version = "*", optional = true }
+mlflow-skinny = { version = "*", optional = true }
 ploomber-engine = "^0.0.31"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "*"
 mkdocs-material = "*"
 mkdocs-section-index = "^0.3.5"
-mkdocstrings = {extras = ["python"], version = "^0.24.0"}
+mkdocstrings = { extras = ["python"], version = "^0.24.0" }
 nbconvert = "^7.13.1"
 mkdocs-click = "^0.8.1"
 
@@ -59,7 +59,7 @@ gitlint = "^0.19.1"
 
 
 [tool.poetry.scripts]
-runnable= 'runnable.cli:cli'
+runnable = 'runnable.cli:cli'
 
 
 # Plugins for Executors
@@ -123,7 +123,7 @@ line-length = 120
 
 [tool.ruff]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F","W","I001"]
+select = ["E", "F", "W", "I001"]
 
 ignore = []
 
@@ -158,7 +158,7 @@ per-file-ignores = {}
 
 # Builtins
 
-builtins=["__version__"]
+builtins = ["__version__"]
 
 # Same as Black.
 line-length = 120
@@ -205,9 +205,7 @@ branch = true
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
-exclude_lines = [
-    "pragma: no cover"
-]
+exclude_lines = ["pragma: no cover"]
 
 include_namespace_packages = true
 show_missing = true
@@ -219,10 +217,10 @@ exclude_also = [
 
     # Don't complain about abstract methods, they aren't run:
     "@(abc\\.)?abstractmethod",
-    ]
+]
 
-omit =[
+omit = [
     "runnable/cli.py",
     "runnable/extensions/executor/demo_renderer/*",
-    "*FF.py"
-    ]
+    "*FF.py",
+]
