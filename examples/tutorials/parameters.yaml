@@ -1,0 +1,9 @@
+url: https://raw.githubusercontent.com/axsauze/reddit-classification-exploration/master/data/reddit_train.csv
+encoding: ISO-8859-1
+features_column: BODY
+labels_column: REMOVED
+
+max_features: 1000
+ngram_range: 3
+
+c_param: 0.1

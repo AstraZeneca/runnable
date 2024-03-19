@@ -5,18 +5,23 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_validator, model_validator
 from rich import print
 from typing_extensions import Self
 
 from runnable import defaults, entrypoints, graph, utils
 from runnable.extensions.nodes import FailNode, MapNode, ParallelNode, StubNode, SuccessNode, TaskNode
 from runnable.nodes import TraversalNode
+from runnable.tasks import TaskReturns
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 StepType = Union["Stub", "PythonTask", "NotebookTask", "ShellTask", "Success", "Fail", "Parallel", "Map"]
 TraversalTypes = Union["Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map"]
+
+
+def pickled(name: str) -> TaskReturns:
+    return TaskReturns(name=name, kind="object")
 
 
 class Catalog(BaseModel):
@@ -153,7 +158,22 @@ class BaseTask(BaseTraversal):
 
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
     overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
-    returns: List[str] = Field(default_factory=list, alias="returns")
+    returns: List[Union[str, TaskReturns]] = Field(default_factory=list, alias="returns")
+
+    @field_validator("returns", mode="before")
+    @classmethod
+    def serialize_returns(cls, returns: List[Union[str, TaskReturns]]) -> List[TaskReturns]:
+        task_returns = []
+
+        for x in returns:
+            if isinstance(x, str):
+                task_returns.append(TaskReturns(name=x, kind="json"))
+                continue
+
+            # Its already task returns
+            task_returns.append(x)
+
+        return task_returns
 
     def create_node(self) -> TaskNode:
         if not self.next_node:
@@ -260,7 +280,6 @@ class NotebookTask(BaseTask):
 
     notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path")
     optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
-    returns: List[str] = Field(default_factory=list, alias="returns")
 
     @computed_field
     def command_type(self) -> str:
@@ -306,7 +325,6 @@ class ShellTask(BaseTask):
     """
 
     command: str = Field(alias="command")
-    returns: List[str] = Field(default_factory=list, alias="returns")
 
     @computed_field
     def command_type(self) -> str:

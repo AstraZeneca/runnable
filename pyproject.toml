@@ -39,6 +39,13 @@ pyinstaller = "^5.13.2"
 # Run the performace tests poetry run python -m pyflame -p ./flamegraph.pl runnable/entrypoints.py
 pyflame = "^0.3.1"
 
+
+[tool.poetry.group.tutorial.dependencies]
+pandas = "^2.2.1"
+spacy = "^3.7.4"
+numpy = "^1.26.4"
+scikit-learn = "^1.4.1.post1"
+
 [tool.poetry.extras]
 docker = ['docker']
 notebook = ['ploomber-engine']
@@ -153,6 +160,8 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
+    "examples/kubeflow",
+    "examples/tutorials/",
 ]
 per-file-ignores = {}
 

@@ -50,7 +50,7 @@ def return_parameters(simple: int, inner: InnerModel) -> NestedModel:  # (3)
     inner.x = 30
     inner.y = "Hello Universe!!"
 
-    return NestedModel(simple=simple, inner=inner).model_dump(by_alias=True)
+    return simple, inner
 
 
 """
@@ -62,14 +62,17 @@ python or yaml without cluttering your application code.
 
 
 def main():
-    from runnable import Pipeline, PythonTask
+    from runnable import Pipeline, PythonTask, pickled
 
     display_task = PythonTask(name="display", function=display)
 
     return_parameters_task = PythonTask(
         name="return_parameters",
         function=return_parameters,
-        returns=["simple", "inner"],
+        returns=[
+            "simple",
+            pickled("inner"),
+        ],
         terminate_with_success=True,
     )
 
