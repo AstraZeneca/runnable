@@ -11,7 +11,8 @@ dag:
       type: task
       command_type: shell
       returns:
-        - array
+        - name: array
+          kind: json
       command: export array="[0, 1]"
       next: outer most map
     outer most map:

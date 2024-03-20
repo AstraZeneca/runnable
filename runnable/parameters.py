@@ -2,7 +2,7 @@ import inspect
 import json
 import logging
 import os
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, Type
 
 from pydantic import BaseModel, ConfigDict
 from typing_extensions import Callable
@@ -41,60 +41,6 @@ def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
             if remove:
                 del os.environ[env_var]
     return parameters
-
-
-def cast_parameters_as_type(value: Any, newT: Optional[Type] = None) -> Union[Any, BaseModel, Dict[str, Any]]:
-    """
-    Casts the environment variable to the given type.
-
-    Note: Only pydantic models special, everything else just goes through.
-
-    Args:
-        value (Any): The value to cast
-        newT (T): The type to cast to
-
-    Returns:
-        T: The casted value
-
-    Examples:
-        >>> class MyBaseModel(BaseModel):
-        ...     a: int
-        ...     b: str
-        >>>
-        >>> class MyDict(dict):
-        ...     pass
-        >>>
-        >>> cast_parameters_as_type({"a": 1, "b": "2"}, MyBaseModel)
-        MyBaseModel(a=1, b="2")
-        >>> cast_parameters_as_type({"a": 1, "b": "2"}, MyDict)
-        MyDict({'a': 1, 'b': '2'})
-        >>> cast_parameters_as_type(MyBaseModel(a=1, b="2"), MyBaseModel)
-        MyBaseModel(a=1, b="2")
-        >>> cast_parameters_as_type(MyDict({"a": 1, "b": "2"}), MyBaseModel)
-        MyBaseModel(a=1, b="2")
-        >>> cast_parameters_as_type({"a": 1, "b": "2"}, MyDict[str, int])
-        MyDict({'a': 1, 'b': '2'})
-        >>> cast_parameters_as_type({"a": 1, "b": "2"}, Dict[str, int])
-        MyDict({'a': 1, 'b': '2'})
-        >>> with pytest.warns(UserWarning):
-        ...     cast_parameters_as_type(1, MyBaseModel)
-        MyBaseModel(a=1, b=None)
-        >>> with pytest.raises(TypeError):
-        ...     cast_parameters_as_type(1, MyDict)
-    """
-    if not newT:
-        return value
-
-    if issubclass(newT, BaseModel):
-        return newT(**value)
-
-    if issubclass(newT, Dict):
-        return dict(value)
-
-    if type(value) != newT:
-        logger.warning(f"Casting {value} of {type(value)} to {newT} seems wrong!!")
-
-    return newT(value)
 
 
 def serialize_parameter_as_str(value: Any) -> str:
@@ -152,7 +98,7 @@ def filter_arguments_for_func(
             bound_args[name] = params[name].get_value()
         else:
             # simple python data type.
-            bound_args[name] = cast_parameters_as_type(params[name].get_value(), value.annotation)  # type: ignore
+            bound_args[name] = params[name].get_value()
 
         unassigned_params.remove(name)
 

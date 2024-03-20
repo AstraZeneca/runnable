@@ -8,7 +8,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pickle import PicklingError
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Literal, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 from stevedore import driver
@@ -25,13 +25,18 @@ logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 # TODO: Can we add memory peak, cpu usage, etc. to the metrics?
 
 
+class TaskReturns(BaseModel):
+    name: str
+    kind: Literal["json", "object"] = Field(default="json")
+
+
 class BaseTaskType(BaseModel):
     """A base task class which does the execution of command defined by the user."""
 
     task_type: str = Field(serialization_alias="command_type")
     node_name: str = Field(exclude=True)
     secrets: Dict[str, str] = Field(default_factory=dict)
-    returns: List[str] = Field(default_factory=list, alias="returns")
+    returns: List[TaskReturns] = Field(default_factory=list, alias="returns")
 
     model_config = ConfigDict(extra="forbid")
 
@@ -128,26 +133,26 @@ class BaseTaskType(BaseModel):
             # Update parameters
             self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
 
+            return True  # To suppress exceptions
 
-def classify_value_as_json_or_object(name: str, value: Any) -> Parameter:
-    try:
-        # This can fail because of nested models
-        if isinstance(value, BaseModel):
-            # nested pydantic models
-            return JsonParameter(value=value.model_dump(by_alias=True), kind="json")
 
-        # Test if the value can be serialized as json
+def task_return_to_parameter(task_return: TaskReturns, value: Any) -> Parameter:
+    # implicit support for pydantic models
+    if isinstance(value, BaseModel) and task_return.kind == "json":
         try:
-            json.dumps(value)
-            return JsonParameter(value=value, kind="json")
-        except (TypeError, OverflowError):
-            raise AttributeError(f"Cannot serialize {value} as json")
-    except (json.JSONDecodeError, AttributeError):
-        # We cannot serialize the value as json. This has to pickled and stored.
-        # return the location of the object
-        obj = ObjectParameter(value=name, kind="object")
+            return JsonParameter(kind="json", value=value.model_dump(by_alias=True))
+        except PicklingError:
+            logging.warning("Pydantic model is not serializable")
+
+    if task_return.kind == "json":
+        return JsonParameter(kind="json", value=value)
+
+    if task_return.kind == "object":
+        obj = ObjectParameter(value=task_return.name, kind="object")
         obj.put_object(data=value)
         return obj
+
+    raise Exception(f"Unknown return type: {task_return.kind}")
 
 
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
@@ -179,32 +184,27 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             f = getattr(imported_module, func)
 
             filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
-
             logger.info(f"Calling {func} from {module} with {filtered_parameters}")
 
             try:
-                user_set_parameters = f(**filtered_parameters)
+                user_set_parameters = f(**filtered_parameters)  # This is a tuple or single value
                 attempt_log.input_parameters = params.copy()
 
-                output_parameters: Dict[str, Parameter] = {}
+                if self.returns:
+                    if not isinstance(user_set_parameters, tuple):  # make it a tuple
+                        user_set_parameters = (user_set_parameters,)
 
-                print(user_set_parameters)
+                    if len(user_set_parameters) != len(self.returns):
+                        raise ValueError("Returns task signature does not match the function returns")
 
-                if isinstance(user_set_parameters, BaseModel):
-                    # Support pydantic models
-                    for key, value in dict(user_set_parameters).items():
-                        # The value could either be a simple type or object
-                        output_parameters[key] = classify_value_as_json_or_object(name=key, value=value)
-                else:
-                    # retrieve from returns
-                    for i, return_key in enumerate(self.returns):
-                        # The value could either be a simple type or object
-                        output_parameters[return_key] = classify_value_as_json_or_object(
-                            name=return_key,
-                            value=user_set_parameters[return_key],
+                    output_parameters: Dict[str, Parameter] = {}
+
+                    for i, task_return in enumerate(self.returns):
+                        output_parameters[task_return.name] = task_return_to_parameter(
+                            task_return=task_return,
+                            value=user_set_parameters[i],
                         )
 
-                if output_parameters:
                     attempt_log.output_parameters = output_parameters
                     params.update(output_parameters)
 
@@ -227,7 +227,6 @@ class NotebookTaskType(BaseTaskType):
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
     notebook_output_path: str = Field(default="", validate_default=True)
-    returns: List[str] = Field(default_factory=list)
     output_cell_tag: str = Field(default="runnable_output", validate_default=True)
     optional_ploomber_args: dict = {}
 
@@ -238,6 +237,15 @@ class NotebookTaskType(BaseTaskType):
             raise Exception("Notebook task should point to a ipynb file")
 
         return command
+
+    @field_validator("returns")
+    @classmethod
+    def returns_should_be_json(cls, returns: List[TaskReturns]):
+        for task_return in returns:
+            if task_return.kind == "object":
+                raise ValueError("Objects are not allowed in returns")
+
+        return returns
 
     @field_validator("notebook_output_path")
     @classmethod
@@ -297,27 +305,26 @@ class NotebookTaskType(BaseTaskType):
                 pm.execute_notebook(**kwds)
                 context.run_context.catalog_handler.put(name=notebook_output_path, run_id=context.run_context.run_id)
 
-            client = PloomberClient.from_path(path=notebook_output_path)
-            namespace = client.get_namespace()
+                client = PloomberClient.from_path(path=notebook_output_path)
+                namespace = client.get_namespace()
 
-            output_parameters: Dict[str, Parameter] = {}
-            try:
-                for key, value in namespace.items():
-                    if key in (self.returns or []):
-                        output_parameters[key] = classify_value_as_json_or_object(
-                            name=key,
-                            value=namespace[key],
+                output_parameters: Dict[str, Parameter] = {}
+                try:
+                    for task_return in self.returns:
+                        output_parameters[task_return.name] = task_return_to_parameter(
+                            task_return=task_return,
+                            value=namespace[task_return.name],
                         )
-            except PicklingError as e:
-                logger.exception("Notebooks cannot return objects")
-                logger.exception(e)
-                raise
+                except PicklingError as e:
+                    logger.exception("Notebooks cannot return objects")
+                    logger.exception(e)
+                    raise
 
-            if output_parameters:
-                attempt_log.output_parameters = output_parameters
-                params.update(output_parameters)
+                if output_parameters:
+                    attempt_log.output_parameters = output_parameters
+                    params.update(output_parameters)
 
-                attempt_log.status = defaults.SUCCESS
+                    attempt_log.status = defaults.SUCCESS
 
         except (ImportError, Exception) as e:
             msg = (
@@ -339,8 +346,16 @@ class ShellTaskType(BaseTaskType):
     """
 
     task_type: str = Field(default="shell", serialization_alias="command_type")
-    returns: List[str] = Field(default_factory=list)
     command: str
+
+    @field_validator("returns")
+    @classmethod
+    def returns_should_be_json(cls, returns: List[TaskReturns]):
+        for task_return in returns:
+            if task_return.kind == "object" or task_return.kind == "pydantic":
+                raise ValueError("Pydantic models or Objects are not allowed in returns")
+
+        return returns
 
     def execute_command(
         self,
@@ -405,7 +420,8 @@ class ShellTaskType(BaseTaskType):
 
                     if capture:
                         key, value = line.strip().split("=", 1)
-                        if key in (self.returns or []):
+                        return_keys = [x.name for x in self.returns]
+                        if key in (return_keys or []):
                             try:
                                 params[key] = JsonParameter(kind="json", value=json.loads(value))
                             except json.JSONDecodeError:

@@ -19,6 +19,11 @@ dag:
       type: task
       command_type: python
       command: "examples.concepts.map.chunk_files"
+      returns:
+        - name: stride
+          kind: json
+        - name: chunks
+          kind: json
       next: iterate and execute
     iterate and execute:
       type: map

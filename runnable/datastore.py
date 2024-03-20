@@ -4,14 +4,10 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, OrderedDict, Tuple, Union
-
-try:
-    from typing_extensions import Annotated
-except ImportError:
-    from typing import Annotated  # type: ignore
+from typing import Annotated, Any, Dict, List, Literal, Optional, OrderedDict, Tuple, Union
 
 from pydantic import BaseModel, Field, computed_field
+from typing_extensions import TypeAliasType
 
 import runnable.context as context
 from runnable import defaults, exceptions
@@ -20,6 +16,11 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 
 # Once defined these classes are sealed to any additions unless a default is provided
 # Breaking this rule might make runnable backwardly incompatible
+
+JSONType = TypeAliasType(
+    "JSONType",
+    Union[bool, int, float, str, None, List["JSONType"], Dict[str, "JSONType"]],  # type: ignore
+)
 
 
 class DataCatalog(BaseModel, extra="allow"):
@@ -51,9 +52,9 @@ class DataCatalog(BaseModel, extra="allow"):
 
 class JsonParameter(BaseModel):
     kind: Literal["json"]
-    value: Union[str, int, float, bool, Dict[str, Any], List[Any]]
+    value: JSONType  # type: ignore
 
-    def get_value(self) -> Union[str, int, float, bool, Dict[str, Any], List[Any]]:
+    def get_value(self) -> JSONType:  # type: ignore
         return self.value
 
 

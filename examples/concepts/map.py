@@ -12,10 +12,6 @@ Run this pipeline by:
     python examples/concepts/map.py
 """
 
-from typing import List
-
-from pydantic import create_model
-
 
 def chunk_files():
     """
@@ -25,11 +21,12 @@ def chunk_files():
     Set the parameter "stride" to be the number of files to
     execute per batch.
     """
-    return create_model(
-        "DynamicModel",
-        chunks=(List[int], list(range(0, 50, 10))),
-        stride=(int, 10),
-    )()
+    return 10, list(range(0, 50, 10))
+    # create_model(
+    #     "DynamicModel",
+    #     chunks=(List[int], list(range(0, 50, 10))),
+    #     stride=(int, 10),
+    # )()
 
 
 def process_chunk(stride: int, start_index: int):
@@ -64,7 +61,11 @@ def main():
 
     execute_branch = Pipeline(steps=[execute], start_at=execute, add_terminal_nodes=True)
 
-    generate = PythonTask(name="chunk files", function=chunk_files)
+    generate = PythonTask(
+        name="chunk files",
+        function=chunk_files,
+        returns=["stride", "chunks"],
+    )
     iterate_and_execute = Map(
         name="iterate and execute",
         branch=execute_branch,

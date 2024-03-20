@@ -31,7 +31,7 @@ def return_parameter() -> NestedModel:
         NestedModel: The parameters that should be used in downstream steps.
     """
     # Return type of a function should be a pydantic model
-    return NestedModel(x=1, y=InnerModel(foo=10, bar="hello world"))
+    return 1, InnerModel(foo=10, bar="hello world")
 
 
 def display_parameter(x: int, y: InnerModel):

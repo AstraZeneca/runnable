@@ -4,6 +4,7 @@ on:
       - "docs/**"
       - "**.md"
       - "examples/**"
+      - "mkdocs.yml"
     branches:
       - "main"
 

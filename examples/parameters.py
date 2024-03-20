@@ -50,7 +50,7 @@ def return_parameters(simple: int, inner: InnerModel) -> NestedModel:  # (3)
     inner.x = 30
     inner.y = "Hello Universe!!"
 
-    return NestedModel(simple=simple, inner=inner).model_dump(by_alias=True)
+    return simple, inner
 
 
 """
@@ -69,7 +69,10 @@ def main():
     return_parameters_task = PythonTask(
         name="return_parameters",
         function=return_parameters,
-        returns=["simple", "inner"],
+        returns=[
+            "simple",
+            "inner",
+        ],
         terminate_with_success=True,
     )
 
