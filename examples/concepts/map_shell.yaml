@@ -23,8 +23,10 @@ dag:
       type: task
       command_type: shell
       returns:
-        - stride
-        - chunks
+        - name: stride
+          kind: json
+        - name: chunks
+          kind: json
       command: |
         export stride=10 &&
         export chunks="[0, 10, 20, 30, 40]"

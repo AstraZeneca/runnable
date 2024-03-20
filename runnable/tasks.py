@@ -27,7 +27,7 @@ logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 class TaskReturns(BaseModel):
     name: str
-    kind: Literal["json", "object", "pydantic"]
+    kind: Literal["json", "object"] = Field(default="json")
 
 
 class BaseTaskType(BaseModel):
@@ -133,17 +133,19 @@ class BaseTaskType(BaseModel):
             # Update parameters
             self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
 
+            return True  # To suppress exceptions
+
 
 def task_return_to_parameter(task_return: TaskReturns, value: Any) -> Parameter:
-    if task_return.kind == "json":
-        return JsonParameter(kind="json", value=value)
-
     # implicit support for pydantic models
-    if isinstance(value, BaseModel):
+    if isinstance(value, BaseModel) and task_return.kind == "json":
         try:
             return JsonParameter(kind="json", value=value.model_dump(by_alias=True))
         except PicklingError:
             logging.warning("Pydantic model is not serializable")
+
+    if task_return.kind == "json":
+        return JsonParameter(kind="json", value=value)
 
     if task_return.kind == "object":
         obj = ObjectParameter(value=task_return.name, kind="object")
@@ -182,7 +184,6 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             f = getattr(imported_module, func)
 
             filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
-
             logger.info(f"Calling {func} from {module} with {filtered_parameters}")
 
             try:
@@ -241,8 +242,8 @@ class NotebookTaskType(BaseTaskType):
     @classmethod
     def returns_should_be_json(cls, returns: List[TaskReturns]):
         for task_return in returns:
-            if task_return.kind == "object" or task_return.kind == "pydantic":
-                raise ValueError("Pydantic models or Objects are not allowed in returns")
+            if task_return.kind == "object":
+                raise ValueError("Objects are not allowed in returns")
 
         return returns
 
@@ -304,26 +305,26 @@ class NotebookTaskType(BaseTaskType):
                 pm.execute_notebook(**kwds)
                 context.run_context.catalog_handler.put(name=notebook_output_path, run_id=context.run_context.run_id)
 
-            client = PloomberClient.from_path(path=notebook_output_path)
-            namespace = client.get_namespace()
+                client = PloomberClient.from_path(path=notebook_output_path)
+                namespace = client.get_namespace()
 
-            output_parameters: Dict[str, Parameter] = {}
-            try:
-                for task_return in self.returns:
-                    output_parameters[task_return.name] = task_return_to_parameter(
-                        task_return=task_return,
-                        value=namespace[task_return.name],
-                    )
-            except PicklingError as e:
-                logger.exception("Notebooks cannot return objects")
-                logger.exception(e)
-                raise
+                output_parameters: Dict[str, Parameter] = {}
+                try:
+                    for task_return in self.returns:
+                        output_parameters[task_return.name] = task_return_to_parameter(
+                            task_return=task_return,
+                            value=namespace[task_return.name],
+                        )
+                except PicklingError as e:
+                    logger.exception("Notebooks cannot return objects")
+                    logger.exception(e)
+                    raise
 
-            if output_parameters:
-                attempt_log.output_parameters = output_parameters
-                params.update(output_parameters)
+                if output_parameters:
+                    attempt_log.output_parameters = output_parameters
+                    params.update(output_parameters)
 
-                attempt_log.status = defaults.SUCCESS
+                    attempt_log.status = defaults.SUCCESS
 
         except (ImportError, Exception) as e:
             msg = (
@@ -419,7 +420,8 @@ class ShellTaskType(BaseTaskType):
 
                     if capture:
                         key, value = line.strip().split("=", 1)
-                        if key in (self.returns or []):
+                        return_keys = [x.name for x in self.returns]
+                        if key in (return_keys or []):
                             try:
                                 params[key] = JsonParameter(kind="json", value=json.loads(value))
                             except json.JSONDecodeError:

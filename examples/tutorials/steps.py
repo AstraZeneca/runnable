@@ -48,11 +48,10 @@ class TokenizeTransformer:
     __symbols = set("!$%^&*()_+|~-=`{}[]:\";'<>?,./-")
 
     def predict(self, X, feature_names=[]):
-        print(X)
-        # logging.warning(X)
+        logging.warning(X)
         f = np.vectorize(TokenizeTransformer.transform_to_token, otypes=[object])
         X_tokenized = f(X)
-        # logging.warning(X_tokenized)
+        logging.warning(X_tokenized)
         return X_tokenized
 
     def fit(self, X, y=None, **fit_params):

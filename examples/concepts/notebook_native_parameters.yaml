@@ -19,8 +19,10 @@ dag:
       command_type: notebook
       command: examples/concepts/notebook_native_parameters.ipynb
       returns:
-        - spam
-        - eggs
+        - name: spam
+          kind: json
+        - name: eggs
+          kind: json
       next: success
     success:
       type: success

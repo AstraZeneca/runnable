@@ -17,7 +17,10 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 # Once defined these classes are sealed to any additions unless a default is provided
 # Breaking this rule might make runnable backwardly incompatible
 
-JSONType = TypeAliasType("JSONType", Union[bool, int, float, str, None, List["JSONType"], Dict[str, "JSONType"]])
+JSONType = TypeAliasType(
+    "JSONType",
+    Union[bool, int, float, str, None, List["JSONType"], Dict[str, "JSONType"]],  # type: ignore
+)
 
 
 class DataCatalog(BaseModel, extra="allow"):
@@ -49,9 +52,9 @@ class DataCatalog(BaseModel, extra="allow"):
 
 class JsonParameter(BaseModel):
     kind: Literal["json"]
-    value: JSONType
+    value: JSONType  # type: ignore
 
-    def get_value(self) -> JSONType:
+    def get_value(self) -> JSONType:  # type: ignore
         return self.value
 
 

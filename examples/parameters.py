@@ -62,7 +62,7 @@ python or yaml without cluttering your application code.
 
 
 def main():
-    from runnable import Pipeline, PythonTask, pickled
+    from runnable import Pipeline, PythonTask
 
     display_task = PythonTask(name="display", function=display)
 
@@ -71,7 +71,7 @@ def main():
         function=return_parameters,
         returns=[
             "simple",
-            pickled("inner"),
+            "inner",
         ],
         terminate_with_success=True,
     )
