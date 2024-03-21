@@ -23,7 +23,7 @@ sqlalchemy = { version = "*", optional = true }
 rich = "^13.5.2"
 mlflow-skinny = { version = "*", optional = true }
 ploomber-engine = "^0.0.31"
-en-core-web-sm = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz"}
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz" }
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "*"
@@ -41,12 +41,12 @@ pyinstaller = "^5.13.2"
 pyflame = "^0.3.1"
 
 
-[tool.poetry.group.tutorial.dependencies]
-pandas = "^2.2.1"
-spacy = "^3.7.4"
-numpy = "^1.26.4"
-scikit-learn = "^1.4.1.post1"
-en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz" }
+# [tool.poetry.group.tutorial.dependencies]
+# pandas = "^2.2.1"
+# spacy = "^3.7.4"
+# numpy = "^1.26.4"
+# scikit-learn = "^1.4.1.post1"
+# en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz" }
 
 [tool.poetry.extras]
 docker = ['docker']
