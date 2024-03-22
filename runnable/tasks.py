@@ -8,6 +8,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pickle import PicklingError
+from string import Template
 from typing import Any, Dict, List, Literal, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
@@ -183,7 +184,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             imported_module = importlib.import_module(module)
             f = getattr(imported_module, func)
 
-            filtered_parameters = parameters.filter_arguments_for_func(f, params, map_variable)
+            filtered_parameters = parameters.filter_arguments_for_func(f, params.copy(), map_variable)
             logger.info(f"Calling {func} from {module} with {filtered_parameters}")
 
             try:
@@ -200,7 +201,8 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     output_parameters: Dict[str, Parameter] = {}
 
                     for i, task_return in enumerate(self.returns):
-                        output_parameters[task_return.name] = task_return_to_parameter(
+                        param_name = Template(task_return.name).safe_substitute(map_variable)  # type: ignore
+                        output_parameters[param_name] = task_return_to_parameter(
                             task_return=task_return,
                             value=user_set_parameters[i],
                         )
@@ -311,7 +313,8 @@ class NotebookTaskType(BaseTaskType):
                 output_parameters: Dict[str, Parameter] = {}
                 try:
                     for task_return in self.returns:
-                        output_parameters[task_return.name] = task_return_to_parameter(
+                        param_name = Template(task_return.name).safe_substitute(map_variable)  # type: ignore
+                        output_parameters[param_name] = task_return_to_parameter(
                             task_return=task_return,
                             value=namespace[task_return.name],
                         )
@@ -400,6 +403,7 @@ class ShellTaskType(BaseTaskType):
             logger.info(f"Executing shell command: {command}")
 
             capture = False
+            return_keys = [x.name for x in self.returns]
 
             with subprocess.Popen(
                 command,
@@ -420,12 +424,12 @@ class ShellTaskType(BaseTaskType):
 
                     if capture:
                         key, value = line.strip().split("=", 1)
-                        return_keys = [x.name for x in self.returns]
                         if key in (return_keys or []):
+                            param_name = Template(key).safe_substitute(map_variable)  # type: ignore
                             try:
-                                params[key] = JsonParameter(kind="json", value=json.loads(value))
+                                params[param_name] = JsonParameter(kind="json", value=json.loads(value))
                             except json.JSONDecodeError:
-                                params[key] = JsonParameter(kind="json", value=value)
+                                params[param_name] = JsonParameter(kind="json", value=value)
 
                 proc.wait()
                 if proc.returncode == 0:
