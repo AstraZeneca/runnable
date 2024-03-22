@@ -201,7 +201,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     output_parameters: Dict[str, Parameter] = {}
 
                     for i, task_return in enumerate(self.returns):
-                        param_name = Template(task_return.name).safe_substitute(map_variable)
+                        param_name = Template(task_return.name).safe_substitute(map_variable)  # type: ignore
                         output_parameters[param_name] = task_return_to_parameter(
                             task_return=task_return,
                             value=user_set_parameters[i],
@@ -313,7 +313,7 @@ class NotebookTaskType(BaseTaskType):
                 output_parameters: Dict[str, Parameter] = {}
                 try:
                     for task_return in self.returns:
-                        param_name = Template(task_return.name).safe_substitute(map_variable)
+                        param_name = Template(task_return.name).safe_substitute(map_variable)  # type: ignore
                         output_parameters[param_name] = task_return_to_parameter(
                             task_return=task_return,
                             value=namespace[task_return.name],
@@ -425,7 +425,7 @@ class ShellTaskType(BaseTaskType):
                     if capture:
                         key, value = line.strip().split("=", 1)
                         if key in (return_keys or []):
-                            param_name = Template(key).safe_substitute(map_variable)
+                            param_name = Template(key).safe_substitute(map_variable)  # type: ignore
                             try:
                                 params[param_name] = JsonParameter(kind="json", value=json.loads(value))
                             except json.JSONDecodeError:
