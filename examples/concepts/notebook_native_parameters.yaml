@@ -23,6 +23,13 @@ dag:
           kind: json
         - name: eggs
           kind: json
+        - name: custom
+          kind: object
+      next: consume_notebook
+    consume_notebook:
+      type: task
+      command_type: notebook
+      command: examples/concepts/notebook_native_parameters_consume.ipynb
       next: success
     success:
       type: success

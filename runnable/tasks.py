@@ -240,15 +240,6 @@ class NotebookTaskType(BaseTaskType):
 
         return command
 
-    @field_validator("returns")
-    @classmethod
-    def returns_should_be_json(cls, returns: List[TaskReturns]):
-        for task_return in returns:
-            if task_return.kind == "object":
-                raise ValueError("Objects are not allowed in returns")
-
-        return returns
-
     @field_validator("notebook_output_path")
     @classmethod
     def correct_notebook_output_path(cls, notebook_output_path: str, info: ValidationInfo):
@@ -283,7 +274,7 @@ class NotebookTaskType(BaseTaskType):
             notebook_output_path = self.notebook_output_path
 
             with self.execution_context(
-                map_variable=map_variable, allow_complex=False
+                map_variable=map_variable, allow_complex=True
             ) as params, self.expose_secrets() as _:
                 if map_variable:
                     for key, value in map_variable.items():
@@ -327,7 +318,7 @@ class NotebookTaskType(BaseTaskType):
                     attempt_log.output_parameters = output_parameters
                     params.update(output_parameters)
 
-                    attempt_log.status = defaults.SUCCESS
+                attempt_log.status = defaults.SUCCESS
 
         except (ImportError, Exception) as e:
             msg = (
