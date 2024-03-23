@@ -1,7 +1,7 @@
-import pickle
 from abc import ABC, abstractmethod
 from typing import Any
 
+import dill as pickle
 from pydantic import BaseModel, ConfigDict
 
 import runnable.context as context
@@ -64,7 +64,7 @@ class NativePickler(BasePickler):
     Uses native python pickle to load and dump files
     """
 
-    extension: str = ".pickle"
+    extension: str = ".dill"
     service_name: str = "pickle"
 
     def dump(self, data: Any, path: str):
