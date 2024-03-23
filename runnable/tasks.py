@@ -274,7 +274,7 @@ class NotebookTaskType(BaseTaskType):
             notebook_output_path = self.notebook_output_path
 
             with self.execution_context(
-                map_variable=map_variable, allow_complex=True
+                map_variable=map_variable, allow_complex=False
             ) as params, self.expose_secrets() as _:
                 if map_variable:
                     for key, value in map_variable.items():
