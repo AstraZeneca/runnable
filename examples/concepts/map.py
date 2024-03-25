@@ -80,6 +80,8 @@ def main():
 
     _ = pipeline.execute(configuration_file="examples/configs/fs-catalog-run_log.yaml")
 
+    return pipeline
+
 
 if __name__ == "__main__":
     main()

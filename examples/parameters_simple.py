@@ -70,14 +70,14 @@ python or yaml without cluttering your application code.
 
 
 def main():
-    from runnable import Pipeline, PythonTask
+    from runnable import Pipeline, PythonTask, pickled
 
     display_task = PythonTask(name="display", function=display)
 
     return_parameters_task = PythonTask(
         name="return_parameters",
         function=return_parameters,
-        returns=["x", "y", "obj"],
+        returns=["x", "y", pickled("obj")],
     )
 
     display_object_task = PythonTask(
@@ -94,12 +94,9 @@ def main():
         add_terminal_nodes=True,
     )
 
-    run_log = pipeline.execute(parameters_file="examples/parameters_initial.yaml")
-    params = run_log.parameters
+    _ = pipeline.execute(parameters_file="examples/parameters_initial.yaml")
 
-    ## Reflects the changes done by "return_parameters" function call.
-    assert params["x"].value == 2
-    assert params["y"].value == "world!!"
+    return pipeline
 
 
 if __name__ == "__main__":

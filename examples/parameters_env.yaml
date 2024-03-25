@@ -28,8 +28,10 @@ dag:
         export simple=10 &&
         export inner='{"x": 100, "y": "hello universe!!"}'
       returns: # collect simple and inner from environment
-        - simple
-        - inner
+        - name: simple
+          kind: json
+        - name: inner
+          kind: json
     display again:
       type: task
       command_type: shell

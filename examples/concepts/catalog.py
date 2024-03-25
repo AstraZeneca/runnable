@@ -83,6 +83,8 @@ def main():
     # Override the default configuration file with the one that has file-system as the catalog.
     _ = pipeline.execute(configuration_file="examples/configs/fs-catalog.yaml")
 
+    return pipeline
+
 
 if __name__ == "__main__":
     main()

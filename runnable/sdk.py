@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_validator, model_validator
@@ -536,7 +537,6 @@ class Pipeline(BaseModel):
         run_id: str = "",
         tag: str = "",
         parameters_file: str = "",
-        use_cached: str = "",
         log_level: str = defaults.LOG_LEVEL,
     ):
         """
@@ -593,11 +593,13 @@ class Pipeline(BaseModel):
         print(run_context)
 
         if not run_context.executor._local:
-            # We are working with non local executor
+            # We are not working with non local executor
             import inspect
 
             caller_stack = inspect.stack()[1]
-            module_to_call = f"{caller_stack.filename.replace('/', '.').replace('.py', '')}.{caller_stack.function}"
+            relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
+
+            module_to_call = f"{relative_to_root.replace('/', '.').replace('.py', '')}.{caller_stack.function}"
 
             run_context.pipeline_file = f"{module_to_call}.py"
 

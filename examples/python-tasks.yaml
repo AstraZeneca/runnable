@@ -18,7 +18,9 @@ dag:
       command: examples.functions.return_parameter # (3)
       returns:
         - name: x
+          kind: json
         - name: y
+          kind: json
       next: step 2 # (4)
     step 2:
       type: task

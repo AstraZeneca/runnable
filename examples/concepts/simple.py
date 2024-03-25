@@ -30,6 +30,8 @@ def main():
 
     pipeline.execute()  # (1)
 
+    return pipeline
+
 
 if __name__ == "__main__":
     main()
