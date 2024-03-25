@@ -30,12 +30,14 @@ def process_chunk(stride: int, start_index: int):
     The files between the start_index and the start_index + stride
     are processed per chunk.
     """
-    print("stride", stride, type(stride))
-    print("start_index", start_index, type(start_index))
     for i in range(start_index, start_index + stride, stride):
         pass
 
     return f"processed {start_index} to {start_index + stride}"
+
+
+def read_processed_chunk(processed: str):
+    print(processed)
 
 
 def main():
@@ -53,11 +55,22 @@ def main():
     execute = PythonTask(
         name="execute",
         function=process_chunk,
-        returns=["processed_$start_index"],
+        returns=["processed"],
+    )
+
+    read_chunk = PythonTask(
+        name="read processed chunk",
+        function=read_processed_chunk,
         terminate_with_success=True,
     )
 
-    execute_branch = Pipeline(steps=[execute], start_at=execute, add_terminal_nodes=True)
+    execute >> read_chunk
+
+    execute_branch = Pipeline(
+        steps=[execute, read_chunk],
+        start_at=execute,
+        add_terminal_nodes=True,
+    )
 
     generate = PythonTask(
         name="chunk files",
@@ -69,6 +82,7 @@ def main():
         branch=execute_branch,
         iterate_on="chunks",  # iterate on chunks parameter set by execute step
         iterate_as="start_index",  # expose the current start_index as the iterate_as parameter
+        reducer="lambda *x: [f'reduced {y}' for y in x]",
         terminate_with_success=True,
     )
 

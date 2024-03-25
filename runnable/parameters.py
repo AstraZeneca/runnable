@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict
 from typing_extensions import Callable
 
 from runnable import defaults
-from runnable.datastore import JsonParameter, ObjectParameter
+from runnable.datastore import JsonParameter
 from runnable.defaults import TypeMapVariable
 from runnable.utils import remove_prefix
 
@@ -71,9 +71,26 @@ def filter_arguments_for_func(
     for key, v in (map_variable or {}).items():
         params[key] = JsonParameter(kind="json", value=v)
 
-    unassigned_params = set(params.keys())
     bound_args = {}
+    unassigned_params = set(params.keys())
+    # Check if VAR_KEYWORD is used, it is we send back everything
+    # If **kwargs is present in the function signature, we send back everything
     for name, value in function_args.items():
+        if value.kind != inspect.Parameter.VAR_KEYWORD:
+            continue
+        # Found VAR_KEYWORD, we send back everything as found
+        for key, value in params.items():
+            bound_args[key] = params[key].get_value()
+
+        return bound_args
+
+    # Lets return what is asked for then!!
+    for name, value in function_args.items():
+        # Ignore any *args
+        if value.kind == inspect.Parameter.VAR_POSITIONAL:
+            logger.warning(f"Ignoring parameter {name} as it is VAR_POSITIONAL")
+            continue
+
         if name not in params:
             # No parameter of this name was provided
             if value.default == inspect.Parameter.empty:
@@ -83,7 +100,7 @@ def filter_arguments_for_func(
             continue
 
         if issubclass(value.annotation, BaseModel):
-            # We try to cast it as a pydantic model.
+            # We try to cast it as a pydantic model if asked
             named_param = params[name].get_value()
 
             if not isinstance(named_param, dict):
@@ -93,11 +110,10 @@ def filter_arguments_for_func(
             bound_model = bind_args_for_pydantic_model(named_param, value.annotation)
             bound_args[name] = bound_model
             unassigned_params = unassigned_params.difference(bound_model.model_fields.keys())
-        elif isinstance(params[name], ObjectParameter):
-            # It is an object, retrieve it
-            bound_args[name] = params[name].get_value()
+        elif value.annotation in [str, int, float, bool]:
+            # Cast it if its a primitive type. Ensure the type matches the annotation.
+            bound_args[name] = value.annotation(params[name].get_value())
         else:
-            # simple python data type.
             bound_args[name] = params[name].get_value()
 
         unassigned_params.remove(name)
