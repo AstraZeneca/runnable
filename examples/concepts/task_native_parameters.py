@@ -76,6 +76,8 @@ def main():
     )
     pipeline.execute(parameters_file="examples/concepts/parameters.yaml")
 
+    return pipeline
+
 
 if __name__ == "__main__":
     main()

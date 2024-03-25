@@ -21,8 +21,10 @@ dag:
       type: task
       command_type: shell
       returns:
-        - spam
-        - eggs
+        - name: spam
+          kind: json
+        - name: eggs
+          kind: json
       command: |
         export spam='World'
         export eggs='{"ham": "No, Thank you!!"}'
@@ -31,8 +33,11 @@ dag:
       type: task
       command_type: shell
       returns:
-        - spam
-        - eggs
+        - name: spam
+          kind: json
+        - name: eggs
+          kind: json
+
       command: |
         env && \
         export spam='Universe' && \

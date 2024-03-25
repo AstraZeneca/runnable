@@ -51,7 +51,7 @@ class GenericExecutor(BaseExecutor):
         """
         params: Dict[str, JsonParameter] = {}
         if self._context.parameters_file:
-            user_defined = utils.load_yaml(self._context.parameters_file)
+            user_defined = utils.load_yaml(self._context.parameters_file) or {}
 
             for key, value in user_defined.items():
                 params[key] = JsonParameter(value=value, kind="json")

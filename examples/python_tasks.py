@@ -38,6 +38,8 @@ def main():
     run_log = pipeline.execute()  # (8)
     print(run_log)
 
+    return pipeline
+
 
 if __name__ == "__main__":
     main()
