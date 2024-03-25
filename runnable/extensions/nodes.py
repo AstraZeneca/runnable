@@ -1,14 +1,17 @@
+import importlib
 import logging
+import os
+import sys
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, cast
+from typing import Any, Dict, Optional, cast
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_validator
 from typing_extensions import Annotated
 
 from runnable import datastore, defaults, utils
-from runnable.datastore import StepLog
+from runnable.datastore import JsonParameter, ObjectParameter, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode, ExecutableNode, TerminalNode
@@ -327,11 +330,34 @@ class MapNode(CompositeNode):
     The internal naming convention creates branches dynamically based on the iteration value
     """
 
+    # TODO: Should it be one function or a dict of functions indexed by the return name
+
     node_type: str = Field(default="map", serialization_alias="type")
     iterate_on: str
     iterate_as: str
+    reducer: Optional[str] = Field(default=None)
     branch: Graph
     is_composite: bool = True
+
+    def get_reducer_function(self):
+        if not self.reducer:
+            return lambda *x: list(x)  # returns a list of the args
+
+        # try a lambda function
+        try:
+            f = eval(self.reducer)
+            if callable(f):
+                return f
+        except SyntaxError:
+            logger.info(f"{self.reducer} is not a lambda function")
+
+        # Load the reducer function from dotted path
+        mod, func = utils.get_module_and_attr_names(self.reducer)
+        sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
+        imported_module = importlib.import_module(mod)
+        f = getattr(imported_module, func)
+
+        return f
 
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any]) -> "MapNode":
@@ -346,6 +372,30 @@ class MapNode(CompositeNode):
             internal_branch_name=internal_name + "." + defaults.MAP_PLACEHOLDER,
         )
         return cls(branch=branch, **config)
+
+    @property
+    def branch_returns(self):
+        branch_returns = []
+        for _, node in self.branch.nodes.items():
+            if isinstance(node, TaskNode):
+                for task_return in node.executable.returns:
+                    if task_return.kind == "json":
+                        branch_returns.append((task_return.name, JsonParameter(kind="json", value=None, reduced=False)))
+                    elif task_return.kind == "object":
+                        branch_returns.append(
+                            (
+                                task_return.name,
+                                ObjectParameter(
+                                    kind="object",
+                                    value="Will be reduced",
+                                    reduced=False,
+                                ),
+                            )  # type: ignore
+                        )
+                    else:
+                        raise Exception("kind should be either json or object")
+
+        return branch_returns
 
     def _get_branch_by_name(self, branch_name: str) -> Graph:
         """
@@ -385,6 +435,21 @@ class MapNode(CompositeNode):
             branch_log = self._context.run_log_store.create_branch_log(effective_branch_name)
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
+
+        # Gather all the returns of the task nodes and create parameters in reduced=False state.
+        raw_parameters = {}
+        if map_variable:
+            # If we are in a map state already, the param should have an index of the map variable.
+            for _, v in map_variable.items():
+                for branch_return in self.branch_returns:
+                    param_name, param_type = branch_return
+                    raw_parameters[f"{param_name}_{v}"] = param_type.copy()
+        else:
+            for branch_return in self.branch_returns:
+                param_name, param_type = branch_return
+                raw_parameters[f"{param_name}"] = param_type.copy()
+
+        self._context.run_log_store.set_parameters(parameters=raw_parameters, run_id=self._context.run_id)
 
     def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
         """
@@ -444,7 +509,8 @@ class MapNode(CompositeNode):
             executor (BaseExecutor): The executor class as defined by the config
             map_variable (dict, optional): If the node is part of map node. Defaults to None.
         """
-        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on].get_value()
+        params = self._context.run_log_store.get_parameters(self._context.run_id)
+        iterate_on = params[self.iterate_on].get_value()
         # # Find status of the branches
         step_success_bool = True
 
@@ -466,6 +532,35 @@ class MapNode(CompositeNode):
             step_log.status = defaults.FAIL
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+
+        # Apply the reduce function and reduce the returns of the task nodes.
+        # The final value of the parameter is the result of the reduce function.
+        reducer_f = self.get_reducer_function()
+
+        if map_variable:
+            # If we are in a map state already, the param should have an index of the map variable.
+            for _, v in map_variable.items():
+                for branch_return in self.branch_returns:
+                    param_name, _ = branch_return
+                    to_reduce = []
+                    for iter_variable in iterate_on:
+                        to_reduce.append(params[f"{param_name}_{iter_variable}"].get_value())
+
+                    param_name = f"{param_name}_{v}"
+                    params[param_name].value = reducer_f(to_reduce)
+                    params[param_name].reduced = True
+        else:
+            for branch_return in self.branch_returns:
+                param_name, _ = branch_return
+
+                to_reduce = []
+                for iter_variable in iterate_on:
+                    to_reduce.append(params[f"{param_name}_{iter_variable}"].get_value())
+
+                params[param_name].value = reducer_f(*to_reduce)
+                params[param_name].reduced = True
+
+        self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
 
 
 class DagNode(CompositeNode):

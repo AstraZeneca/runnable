@@ -406,6 +406,7 @@ class Map(BaseTraversal):
     branch: "Pipeline"
     iterate_on: str
     iterate_as: str
+    reducer: Optional[str] = Field(default=None, alias="reducer")
     overrides: Dict[str, Any] = Field(default_factory=dict)
 
     @computed_field  # type: ignore
@@ -426,6 +427,7 @@ class Map(BaseTraversal):
             iterate_on=self.iterate_on,
             iterate_as=self.iterate_as,
             overrides=self.overrides,
+            reducer=self.reducer,
         )
 
         return node

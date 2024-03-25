@@ -105,6 +105,19 @@ class BaseTaskType(BaseModel):
     def execution_context(self, map_variable: TypeMapVariable = None, allow_complex: bool = True):
         params = self._context.run_log_store.get_parameters(run_id=self._context.run_id).copy()
 
+        for param_name, param in params.items():
+            # Any access to unreduced param should be replaced.
+            # The replacement is the context param
+            # It is possible that the unreduced param is not created as no upstream step
+            # has created it yet.
+            if param.reduced is False:
+                context_param = param_name
+                for _, v in map_variable.items():  # type: ignore
+                    context_param = f"{context_param}_{v}"
+
+                if context_param in params:
+                    params[param_name].value = params[context_param].value
+
         if not allow_complex:
             params = {key: value for key, value in params.items() if isinstance(value, JsonParameter)}
 
@@ -201,17 +214,22 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     output_parameters: Dict[str, Parameter] = {}
 
                     for i, task_return in enumerate(self.returns):
-                        param_name = Template(task_return.name).safe_substitute(map_variable)  # type: ignore
-                        output_parameters[param_name] = task_return_to_parameter(
+                        output_parameter = task_return_to_parameter(
                             task_return=task_return,
                             value=user_set_parameters[i],
                         )
+
+                        param_name = task_return.name
+                        if map_variable:
+                            for _, v in map_variable.items():
+                                param_name = f"{param_name}_{v}"
+
+                        output_parameters[param_name] = output_parameter
 
                     attempt_log.output_parameters = output_parameters
                     params.update(output_parameters)
 
                 attempt_log.status = defaults.SUCCESS
-
             except Exception as _e:
                 msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
                 logger.exception(msg)
@@ -229,7 +247,6 @@ class NotebookTaskType(BaseTaskType):
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
     notebook_output_path: str = Field(default="", validate_default=True)
-    output_cell_tag: str = Field(default="runnable_output", validate_default=True)
     optional_ploomber_args: dict = {}
 
     @field_validator("command")
