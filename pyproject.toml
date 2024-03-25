@@ -133,6 +133,8 @@ line-length = 120
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
 select = ["E", "F", "W", "I001"]
 
+extend-select = ["I"]
+
 ignore = []
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
