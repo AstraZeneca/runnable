@@ -11,11 +11,11 @@ from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_
 from typing_extensions import Annotated
 
 from runnable import datastore, defaults, utils
-from runnable.datastore import JsonParameter, ObjectParameter, StepLog
+from runnable.datastore import JsonParameter, ObjectParameter, Parameter, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode, ExecutableNode, TerminalNode
-from runnable.tasks import BaseTaskType, TaskReturns, create_task
+from runnable.tasks import BaseTaskType, create_task
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -374,8 +374,8 @@ class MapNode(CompositeNode):
         return cls(branch=branch, **config)
 
     @property
-    def branch_returns(self) -> List[TaskReturns]:
-        branch_returns = []
+    def branch_returns(self) -> List[(str, Parameter)]:  # type: ignore
+        branch_returns: List[(str, Parameter)] = []  # type: ignore
         for _, node in self.branch.nodes.items():
             if isinstance(node, TaskNode):
                 for task_return in node.executable.returns:
@@ -383,7 +383,7 @@ class MapNode(CompositeNode):
                         branch_returns.append((task_return.name, JsonParameter(kind="json", value=None, reduced=False)))
                     elif task_return.kind == "object":
                         branch_returns.append(
-                            (task_return.name, ObjectParameter(kind="object", value=None, reduced=False))
+                            (task_return.name, ObjectParameter(kind="object", value="Will be reduced", reduced=False))
                         )
                     else:
                         raise Exception("kind should be either json or object")

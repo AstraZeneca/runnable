@@ -112,7 +112,7 @@ class BaseTaskType(BaseModel):
             # has created it yet.
             if param.reduced is False:
                 context_param = param_name
-                for _, v in map_variable.items():
+                for _, v in map_variable.items():  # type: ignore
                     context_param = f"{context_param}_{v}"
 
                 if context_param in params:
