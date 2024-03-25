@@ -131,9 +131,9 @@ line-length = 120
 
 [tool.ruff]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "W", "I001"]
+select = ["E", "F", "W"]
 
-extend-select = ["I"]
+# extend-select = ["I"]
 
 ignore = []
 

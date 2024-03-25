@@ -5,13 +5,13 @@ import sys
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, Optional, cast
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_validator
 from typing_extensions import Annotated
 
 from runnable import datastore, defaults, utils
-from runnable.datastore import JsonParameter, ObjectParameter, Parameter, StepLog
+from runnable.datastore import JsonParameter, ObjectParameter, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode, ExecutableNode, TerminalNode
@@ -374,8 +374,8 @@ class MapNode(CompositeNode):
         return cls(branch=branch, **config)
 
     @property
-    def branch_returns(self) -> List[(str, Parameter)]:  # type: ignore
-        branch_returns: List[(str, Parameter)] = []  # type: ignore
+    def branch_returns(self):
+        branch_returns = []
         for _, node in self.branch.nodes.items():
             if isinstance(node, TaskNode):
                 for task_return in node.executable.returns:
@@ -383,7 +383,14 @@ class MapNode(CompositeNode):
                         branch_returns.append((task_return.name, JsonParameter(kind="json", value=None, reduced=False)))
                     elif task_return.kind == "object":
                         branch_returns.append(
-                            (task_return.name, ObjectParameter(kind="object", value="Will be reduced", reduced=False))
+                            (
+                                task_return.name,
+                                ObjectParameter(
+                                    kind="object",
+                                    value="Will be reduced",
+                                    reduced=False,
+                                ),
+                            )  # type: ignore
                         )
                     else:
                         raise Exception("kind should be either json or object")
