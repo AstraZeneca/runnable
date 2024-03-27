@@ -17,21 +17,8 @@ def main():
 
     step_3 = Stub(name="Step 3", terminate_with_success=True)
 
-    # link nodes
-    step_1 >> step_2 >> step_3
-
-    """
-            or
-    step_1 << step_2 << step_3
-            or
-
-    step_2.depends_on(step_1)
-    step_3.depends_on(step_2)
-    """
-
     pipeline = Pipeline(
         steps=[step_1, step_2, step_3],
-        start_at=step_1,
         add_terminal_nodes=True,
     )
 

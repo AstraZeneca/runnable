@@ -54,12 +54,8 @@ def main():
         terminate_with_success=True,
     )
 
-    # link all the steps of the pipeline
-    set_up >> create >> first_clean >> retrieve >> clean_up
-
     pipeline = Pipeline(
         steps=[set_up, create, first_clean, retrieve, clean_up],
-        start_at=set_up,
         add_terminal_nodes=True,
     )
 

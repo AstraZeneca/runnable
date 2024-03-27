@@ -59,7 +59,7 @@ def main():
         terminate_with_success=True,
     )
 
-    execute_branch = Pipeline(steps=[execute], start_at=execute, add_terminal_nodes=True)
+    execute_branch = Pipeline(steps=[execute], add_terminal_nodes=True)
 
     generate = PythonTask(
         name="chunk files",
@@ -74,9 +74,7 @@ def main():
         terminate_with_success=True,
     )
 
-    generate >> iterate_and_execute
-
-    pipeline = Pipeline(steps=[generate, iterate_and_execute], start_at=generate, add_terminal_nodes=True)
+    pipeline = Pipeline(steps=[generate, iterate_and_execute], add_terminal_nodes=True)
 
     _ = pipeline.execute(configuration_file="examples/configs/fs-catalog-run_log.yaml")
 

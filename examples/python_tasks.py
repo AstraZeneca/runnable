@@ -27,10 +27,7 @@ def main():
         terminate_with_success=True,  # (3)
     )
 
-    step1 >> step2  # (4)
-
     pipeline = Pipeline(
-        start_at=step1,  # (5)
         steps=[step1, step2],  # (6)
         add_terminal_nodes=True,  # (7)
     )

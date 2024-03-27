@@ -24,7 +24,6 @@ def main():
 
     pipeline = Pipeline(
         steps=[simple_task],
-        start_at=simple_task,
         add_terminal_nodes=True,
     )
 
