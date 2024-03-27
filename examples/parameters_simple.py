@@ -86,10 +86,7 @@ def main():
         terminate_with_success=True,
     )
 
-    display_task >> return_parameters_task >> display_object_task
-
     pipeline = Pipeline(
-        start_at=display_task,
         steps=[display_task, return_parameters_task, display_object_task],
         add_terminal_nodes=True,
     )

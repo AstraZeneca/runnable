@@ -19,13 +19,13 @@ def main():
     prepare_xgboost = Stub(name="Prepare for XGBoost")
     train_xgboost = Stub(name="Train XGBoost", terminate_with_success=True)
 
-    prepare_xgboost >> train_xgboost
+    # prepare_xgboost >> train_xgboost
 
     # The pipeline for XGBoost training
     xgboost = Pipeline(
         name="XGBoost",
         steps=[prepare_xgboost, train_xgboost],
-        start_at=prepare_xgboost,
+        # start_at=prepare_xgboost,
         add_terminal_nodes=True,
     )
 
@@ -33,7 +33,7 @@ def main():
     train_rf = Stub(name="Train RF", terminate_with_success=True)
     rfmodel = Pipeline(
         steps=[train_rf],
-        start_at=train_rf,
+        # start_at=train_rf,
         add_terminal_nodes=True,
     )
 
@@ -48,12 +48,12 @@ def main():
     ensemble_model = Stub(name="Ensemble Modelling")
     run_inference = Stub(name="Run Inference", terminate_with_success=True)
 
-    get_features >> train_models >> ensemble_model >> run_inference
+    # get_features >> train_models >> ensemble_model >> run_inference
 
     # The parent pipeline
     pipeline = Pipeline(
         steps=[get_features, train_models, ensemble_model, run_inference],
-        start_at=get_features,
+        # start_at=get_features,
         add_terminal_nodes=True,
     )
 

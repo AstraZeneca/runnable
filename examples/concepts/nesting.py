@@ -19,7 +19,7 @@ def generate_list():
 def main():
     stub = Stub(name="executable", terminate_with_success=True)
     # A dummy pipeline that does nothing interesting
-    stubbed_pipeline = Pipeline(steps=[stub], start_at=stub, add_terminal_nodes=True)
+    stubbed_pipeline = Pipeline(steps=[stub], add_terminal_nodes=True)
 
     # A map step that executes the stubbed pipeline dynamically
     # This step represents 2 parallel workflows when executed.
@@ -32,7 +32,7 @@ def main():
     )
 
     # A pipeline with map state.
-    map_pipeline = Pipeline(steps=[inner_most_map], start_at=inner_most_map, add_terminal_nodes=True)
+    map_pipeline = Pipeline(steps=[inner_most_map], add_terminal_nodes=True)
 
     # A parallel step that executes a map_pipeline and stubbed pipeline
     # By nesting a map within the parallel step, the total number of workflows is 4  (2 X 2 = 4)
@@ -43,7 +43,7 @@ def main():
     )
 
     # A pipeline with one nested parallel step
-    nested_parallel_pipeline = Pipeline(steps=[nested_parallel], start_at=nested_parallel, add_terminal_nodes=True)
+    nested_parallel_pipeline = Pipeline(steps=[nested_parallel], add_terminal_nodes=True)
 
     list_generator = PythonTask(name="generate list", function=generate_list, returns=["array"])
 
@@ -57,9 +57,7 @@ def main():
         terminate_with_success=True,
     )
 
-    list_generator >> outer_most_map
-
-    root_pipeline = Pipeline(steps=[list_generator, outer_most_map], start_at=list_generator, add_terminal_nodes=True)
+    root_pipeline = Pipeline(steps=[list_generator, outer_most_map], add_terminal_nodes=True)
 
     _ = root_pipeline.execute(configuration_file="examples/configs/fs-catalog-run_log.yaml")
 

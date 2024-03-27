@@ -25,12 +25,8 @@ def main():
 
     step_1.on_failure = step_3.name
 
-    # Step 2 will not be reached as step 1 fails
-    step_1 >> step_2 >> step_3
-
     pipeline = Pipeline(
         steps=[step_1, step_2, step_3],
-        start_at=step_1,
         add_terminal_nodes=True,
     )
     pipeline.execute()

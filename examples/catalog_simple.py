@@ -24,11 +24,8 @@ def main():
         terminate_with_success=True,
     )
 
-    set_up >> create
-
     pipeline = Pipeline(
         steps=[set_up, create],
-        start_at=set_up,
         add_terminal_nodes=True,
     )
 

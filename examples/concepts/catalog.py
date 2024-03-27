@@ -72,11 +72,8 @@ def main():
         terminate_with_success=True,
     )
 
-    data_create >> another_create >> delete_another_folder >> retrieve
-
     pipeline = Pipeline(
-        steps=[data_create, another_create, retrieve, delete_another_folder],
-        start_at=data_create,
+        steps=[data_create, another_create, delete_another_folder, retrieve],
         add_terminal_nodes=True,
     )
 

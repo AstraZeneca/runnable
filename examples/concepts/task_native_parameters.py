@@ -67,11 +67,8 @@ def main():
         terminate_with_success=True,
     )
 
-    modify >> consume_parameters
-
     pipeline = Pipeline(
         steps=[modify, consume_parameters],
-        start_at=modify,
         add_terminal_nodes=True,
     )
     pipeline.execute(parameters_file="examples/concepts/parameters.yaml")

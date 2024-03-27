@@ -41,10 +41,7 @@ def main():
         overrides={"local-container": "custom_docker_image"},
     )
 
-    step1 >> step2
-
     pipeline = Pipeline(
-        start_at=step1,
         steps=[step1, step2],
         add_terminal_nodes=True,
     )
