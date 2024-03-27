@@ -121,4 +121,4 @@ def model_fit(vectorised_x: pd.DataFrame, labels: pd.Series, c_param: float):
 
     y_probabilities = lr_model.predict_proba(vectorised_x)
 
-    return y_probabilities
+    return y_probabilities, lr_model

@@ -1,4 +1,10 @@
-from examples.tutorials.steps import clean, extract_text, model_fit, tfidf, tokenize
+from examples.tutorials.reddit_text_classification.steps import (
+    clean,
+    extract_text,
+    model_fit,
+    tfidf,
+    tokenize,
+)
 from runnable import Pipeline, PythonTask, pickled
 
 
@@ -27,7 +33,7 @@ def runnable_pipeline():
     model_fit_task = PythonTask(
         name="model_fit",
         function=model_fit,
-        returns=[pickled("y_probabilities")],
+        returns=[pickled("y_probabilities"), pickled("lr_model")],
         terminate_with_success=True,
     )
 
@@ -39,7 +45,7 @@ def runnable_pipeline():
         add_terminal_nodes=True,
     )
 
-    pipeline.execute(parameters_file="examples/tutorials/parameters.yaml")
+    pipeline.execute(parameters_file="examples/tutorials/reddit_text_classification/parameters.yaml")
 
     return pipeline
 

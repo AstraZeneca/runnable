@@ -7,8 +7,8 @@ repo_url: https://github.com/vijayvammi/runnable
 
 docs_dir: "docs"
 theme:
-  # logo: assets/logo.png
-  # favicon: assets/favicon.png
+  logo: assets/sport.png
+  favicon: assets/sport.png
   name: material
   font:
     code: Roboto Mono
@@ -47,6 +47,7 @@ theme:
     - navigation.instant
     - navigation.instant.progress
     - navigation.tracking
+    - navigation.footer
     # - navigation.indexes
 
 # Extensions

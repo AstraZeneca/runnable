@@ -46,6 +46,7 @@ pandas = "^2.2.1"
 numpy = "^1.26.4"
 scikit-learn = "^1.4.1.post1"
 en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz" }
+matplotlib = "^3.8.3"
 
 [tool.poetry.extras]
 docker = ['docker']
