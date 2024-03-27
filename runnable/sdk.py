@@ -6,19 +6,33 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, computed_field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 from rich import print
 from typing_extensions import Self
 
 from runnable import defaults, entrypoints, graph, utils
-from runnable.extensions.nodes import FailNode, MapNode, ParallelNode, StubNode, SuccessNode, TaskNode
+from runnable.extensions.nodes import (
+    FailNode,
+    MapNode,
+    ParallelNode,
+    StubNode,
+    SuccessNode,
+    TaskNode,
+)
 from runnable.nodes import TraversalNode
 from runnable.tasks import TaskReturns
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-StepType = Union["Stub", "PythonTask", "NotebookTask", "ShellTask", "Success", "Fail", "Parallel", "Map"]
-TraversalTypes = Union["Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map"]
+StepType = Union["Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map"]
 
 
 def pickled(name: str) -> TaskReturns:
@@ -496,8 +510,7 @@ class Pipeline(BaseModel):
 
     """
 
-    steps: List[StepType]
-    start_at: TraversalTypes
+    steps: List[Union[StepType, List[StepType]]]
     name: str = ""
     description: str = ""
     add_terminal_nodes: bool = True  # Adds "success" and "fail" nodes
@@ -507,20 +520,87 @@ class Pipeline(BaseModel):
     _dag: graph.Graph = PrivateAttr()
     model_config = ConfigDict(extra="forbid")
 
+    def _validate_path(self, path: List[StepType]) -> None:
+        # Check if one and only one step terminates with success
+        # Check no more than one step terminates with failure
+
+        reached_success = False
+        reached_failure = False
+
+        for step in path:
+            if step.terminate_with_success:
+                if reached_success:
+                    raise Exception("A pipeline cannot have more than one step that terminates with success")
+                reached_success = True
+                continue
+            if step.terminate_with_failure:
+                if reached_failure:
+                    raise Exception("A pipeline cannot have more than one step that terminates with failure")
+                reached_failure = True
+
+        if not reached_success:
+            raise Exception("A pipeline must have at least one step that terminates with success")
+
+    def _construct_path(self, path: List[StepType]) -> None:
+        prev_step = path[0]
+
+        for step in path:
+            if step == prev_step:
+                continue
+
+            if prev_step.terminate_with_success or prev_step.terminate_with_failure:
+                raise Exception(f"A step that terminates with success/failure cannot have a next step: {prev_step}")
+
+            if prev_step.next_node and prev_step.next_node not in ["success", "fail"]:
+                raise Exception(f"Step already has a next node: {prev_step} ")
+
+            prev_step.next_node = step.name
+            prev_step = step
+
     def model_post_init(self, __context: Any) -> None:
-        self.steps = [model.model_copy(deep=True) for model in self.steps]
+        """
+        The sequence of steps can either be:
+            [step1, step2,..., stepN, [step11, step12,..., step1N], [step21, step22,...,]]
+            indicates:
+                - step1 > step2 > ... > stepN
+                - We expect terminate with success or fail to be explicitly stated on a step.
+                    - If it is stated, the step cannot have a next step defined apart from "success" and "fail".
+
+                The inner list of steps is only to accommodate on-failure behaviors.
+                    - For sake of simplicity, lets assume that it has the same behavior as the happy pipeline.
+                    - A task which was already seen should not be part of this.
+                    - There should be at least one step which terminates with success
+
+                Any definition of pipeline should have one node that terminates with success.
+        """
+
+        success_path: List[StepType] = []
+        on_failure_paths: List[List[StepType]] = []
+
+        for step in self.steps:
+            if isinstance(step, (Stub, PythonTask, NotebookTask, ShellTask, Parallel, Map)):
+                success_path.append(step)
+                continue
+            on_failure_paths.append(step)
+
+        if not success_path:
+            raise Exception("There should be some success path")
+
+        # Check all paths are valid and construct the path
+        paths = [success_path] + on_failure_paths
+        for path in paths:
+            self._validate_path(path)
+            self._construct_path(path)
+
+        all_steps: List[StepType] = [step for step in success_path + on_failure_paths]  # type: ignore
 
         self._dag = graph.Graph(
-            start_at=self.start_at.name,
+            start_at=all_steps[0].name,
             description=self.description,
             internal_branch_name=self.internal_branch_name,
         )
 
-        for step in self.steps:
-            if step.name == self.start_at.name:
-                if isinstance(step, Success) or isinstance(step, Fail):
-                    raise Exception("A success or fail node cannot be the start_at of the graph")
-                assert step.next_node
+        for step in all_steps:
             self._dag.add_node(step.create_node())
 
         if self.add_terminal_nodes:
@@ -569,7 +649,7 @@ class Pipeline(BaseModel):
         py_to_yaml = os.environ.get("RUNNABLE_PY_TO_YAML", "false")
 
         if py_to_yaml == "true":
-            return
+            return {}
 
         logger.setLevel(log_level)
 

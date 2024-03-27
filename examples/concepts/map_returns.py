@@ -64,11 +64,8 @@ def main():
         terminate_with_success=True,
     )
 
-    execute >> read_chunk
-
     execute_branch = Pipeline(
         steps=[execute, read_chunk],
-        start_at=execute,
         add_terminal_nodes=True,
     )
 
@@ -86,9 +83,7 @@ def main():
         terminate_with_success=True,
     )
 
-    generate >> iterate_and_execute
-
-    pipeline = Pipeline(steps=[generate, iterate_and_execute], start_at=generate, add_terminal_nodes=True)
+    pipeline = Pipeline(steps=[generate, iterate_and_execute], add_terminal_nodes=True)
 
     _ = pipeline.execute(configuration_file="examples/configs/fs-catalog-run_log.yaml")
 
