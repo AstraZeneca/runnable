@@ -84,12 +84,8 @@ def runnable_pipeline():
         catalog=Catalog(put=["iris_logistic.png"]),  # (2)
     )
 
-    # The sequence of tasks
-    load_data_task >> model_fit_task >> generate_plots_task  # (3)
-
     pipeline = Pipeline(
         steps=[load_data_task, model_fit_task, generate_plots_task],
-        start_at=load_data_task,
     )  # (4)
 
     pipeline.execute()

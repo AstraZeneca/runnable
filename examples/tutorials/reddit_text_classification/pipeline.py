@@ -37,10 +37,7 @@ def runnable_pipeline():
         terminate_with_success=True,
     )
 
-    extract_task >> clean_task >> tokenize_task >> vectorise_task >> model_fit_task
-
     pipeline = Pipeline(
-        start_at=extract_task,
         steps=[extract_task, clean_task, tokenize_task, vectorise_task, model_fit_task],
         add_terminal_nodes=True,
     )
