@@ -32,6 +32,7 @@ mkdocs-section-index = "^0.3.5"
 mkdocstrings = { extras = ["python"], version = "^0.24.0" }
 nbconvert = "^7.13.1"
 mkdocs-click = "^0.8.1"
+tensorflow = "^2.16.1"
 
 [tool.poetry.group.binary.dependencies]
 pyinstaller = "^5.13.2"
@@ -96,10 +97,6 @@ runnable = 'runnable.cli:cli'
 "file-system" = "runnable.extensions.run_log_store.file_system.implementation:FileSystemRunLogstore"
 "chunked-fs" = "runnable.extensions.run_log_store.chunked_file_system.implementation:ChunkedFileSystemRunLogStore"
 
-# Plugins for Experiment tracker
-[tool.poetry.plugins."experiment_tracker"]
-"do-nothing" = "runnable.experiment_tracker:DoNothingTracker"
-"mlflow" = "runnable.extensions.experiment_tracker.mlflow.implementation:MLFlowExperimentTracker"
 
 # Plugins for Pickler
 [tool.poetry.plugins."pickler"]

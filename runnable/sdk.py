@@ -360,7 +360,7 @@ class Stub(BaseTraversal):
 
     """
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
 
     def create_node(self) -> StubNode:

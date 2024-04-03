@@ -116,9 +116,6 @@ class GenericExecutor(BaseExecutor):
         integration.validate(self, self._context.secrets_handler)
         integration.configure_for_traversal(self, self._context.secrets_handler)
 
-        integration.validate(self, self._context.experiment_tracker)
-        integration.configure_for_traversal(self, self._context.experiment_tracker)
-
         self._set_up_run_log()
 
     def prepare_for_node_execution(self):
@@ -137,9 +134,6 @@ class GenericExecutor(BaseExecutor):
 
         integration.validate(self, self._context.secrets_handler)
         integration.configure_for_execution(self, self._context.secrets_handler)
-
-        integration.validate(self, self._context.experiment_tracker)
-        integration.configure_for_execution(self, self._context.experiment_tracker)
 
     def _sync_catalog(self, stage: str, synced_catalogs=None) -> Optional[List[DataCatalog]]:
         """

@@ -86,14 +86,6 @@ def prepare_configurations(
     pickler_config = cast(ServiceConfig, runnable_defaults.get("pickler", defaults.DEFAULT_PICKLER))
     pickler_handler = utils.get_provider_by_name_and_type("pickler", pickler_config)
 
-    # experiment tracker settings, configuration over-rides everything
-    tracker_config: Optional[ServiceConfig] = configuration.get("experiment_tracker", None)
-    if not tracker_config:
-        tracker_config = cast(
-            ServiceConfig, runnable_defaults.get("experiment_tracker", defaults.DEFAULT_EXPERIMENT_TRACKER)
-        )
-    tracker_handler = utils.get_provider_by_name_and_type("experiment_tracker", tracker_config)
-
     # executor configurations, configuration over rides everything
     executor_config: Optional[ServiceConfig] = configuration.get("executor", None)
     if force_local_executor:
@@ -110,7 +102,6 @@ def prepare_configurations(
         catalog_handler=catalog_handler,
         secrets_handler=secrets_handler,
         pickler=pickler_handler,
-        experiment_tracker=tracker_handler,
         variables=variables,
         tag=tag,
         run_id=run_id,
@@ -437,4 +428,4 @@ def fan(
 
 if __name__ == "__main__":
     # This is only for perf testing purposes.
-    prepare_configurations(run_id="abc", pipeline_file="example/mocking.yaml")
+    prepare_configurations(run_id="abc", pipeline_file="examples/mocking.yaml")

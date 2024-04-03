@@ -4,6 +4,7 @@ import logging
 import os
 from typing import Any, Dict, Type
 
+import pydantic
 from pydantic import BaseModel, ConfigDict
 from typing_extensions import Callable
 
@@ -99,7 +100,7 @@ def filter_arguments_for_func(
             # default value is given in the function signature, nothing further to do.
             continue
 
-        if issubclass(value.annotation, BaseModel):
+        if type(value.annotation) in [BaseModel, pydantic._internal._model_construction.ModelMetaclass]:
             # We try to cast it as a pydantic model if asked
             named_param = params[name].get_value()
 
@@ -110,6 +111,7 @@ def filter_arguments_for_func(
             bound_model = bind_args_for_pydantic_model(named_param, value.annotation)
             bound_args[name] = bound_model
             unassigned_params = unassigned_params.difference(bound_model.model_fields.keys())
+
         elif value.annotation in [str, int, float, bool]:
             # Cast it if its a primitive type. Ensure the type matches the annotation.
             bound_args[name] = value.annotation(params[name].get_value())

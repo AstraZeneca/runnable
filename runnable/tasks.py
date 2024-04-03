@@ -101,6 +101,8 @@ class BaseTaskType(BaseModel):
         finally:
             self.delete_secrets_from_env_variables()
 
+        # return True  # To suppress exceptions
+
     @contextlib.contextmanager
     def execution_context(self, map_variable: TypeMapVariable = None, allow_complex: bool = True):
         params = self._context.run_log_store.get_parameters(run_id=self._context.run_id).copy()
@@ -140,14 +142,13 @@ class BaseTaskType(BaseModel):
             log_file.close()
 
             # Put the log file in the catalog
-            catalog_handler = context.run_context.catalog_handler
-            catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
+            # catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
             os.remove(log_file.name)
 
             # Update parameters
             self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
 
-            return True  # To suppress exceptions
+            # return True  # To suppress exceptions
 
 
 def task_return_to_parameter(task_return: TaskReturns, value: Any) -> Parameter:
@@ -197,10 +198,11 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             imported_module = importlib.import_module(module)
             f = getattr(imported_module, func)
 
-            filtered_parameters = parameters.filter_arguments_for_func(f, params.copy(), map_variable)
-            logger.info(f"Calling {func} from {module} with {filtered_parameters}")
-
             try:
+                filtered_parameters = parameters.filter_arguments_for_func(f, params.copy(), map_variable)
+
+                logger.info(f"Calling {func} from {module} with {filtered_parameters}")
+
                 user_set_parameters = f(**filtered_parameters)  # This is a tuple or single value
                 attempt_log.input_parameters = params.copy()
 
@@ -231,10 +233,13 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
                 attempt_log.status = defaults.SUCCESS
             except Exception as _e:
-                msg = f"Call to the function {self.command} with {filtered_parameters} did not succeed.\n"
+                msg = f"Call to the function {self.command} did not succeed.\n"
                 logger.exception(msg)
                 logger.exception(_e)
                 attempt_log.status = defaults.FAIL
+                attempt_log.message = msg
+
+                print(_e)
 
         attempt_log.end_time = str(datetime.now())
 

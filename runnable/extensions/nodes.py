@@ -7,7 +7,13 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, Optional, cast
 
-from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_validator
+from pydantic import (
+    ConfigDict,
+    Field,
+    ValidationInfo,
+    field_serializer,
+    field_validator,
+)
 from typing_extensions import Annotated
 
 from runnable import datastore, defaults, utils
@@ -711,7 +717,7 @@ class StubNode(ExecutableNode):
     """
 
     node_type: str = Field(default="stub", serialization_alias="type")
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     @classmethod
     def parse_from_config(cls, config: Dict[str, Any]) -> "StubNode":
