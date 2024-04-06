@@ -4,10 +4,15 @@
 import logging
 from logging.config import dictConfig
 
+from rich.console import Console
+
 from runnable import defaults
 
 dictConfig(defaults.LOGGING_CONFIG)
 logger = logging.getLogger(defaults.LOGGER_NAME)
+
+console = Console()
+console.print(":runner: Lets go!!")
 
 from runnable.sdk import (  # noqa
     Catalog,
@@ -20,6 +25,7 @@ from runnable.sdk import (  # noqa
     ShellTask,
     Stub,
     Success,
+    metric,
     pickled,
 )
 

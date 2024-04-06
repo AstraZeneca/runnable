@@ -1,13 +1,18 @@
 import copy
-import json
 import logging
 import os
 from abc import abstractmethod
 from typing import Dict, List, Optional
 
-from rich import print
-
-from runnable import context, defaults, exceptions, integration, parameters, utils
+from runnable import (
+    console,
+    context,
+    defaults,
+    exceptions,
+    integration,
+    parameters,
+    utils,
+)
 from runnable.datastore import DataCatalog, JsonParameter, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.executor import BaseExecutor
@@ -58,6 +63,7 @@ class GenericExecutor(BaseExecutor):
 
         # Update these with some from the environment variables
         params.update(parameters.get_user_set_parameters())
+        logger.debug(f"parameters as seen by executor: {params}")
         return params
 
     def _set_up_run_log(self, exists_ok=False):
@@ -69,7 +75,7 @@ class GenericExecutor(BaseExecutor):
         try:
             attempt_run_log = self._context.run_log_store.get_run_log_by_id(run_id=self._context.run_id, full=False)
 
-            logger.warning(f"The run log by id: {self._context.run_id} already exists")
+            logger.warning(f"The run log by id: {self._context.run_id} already exists, is this designed?")
             raise exceptions.RunLogExistsError(
                 f"The run log by id: {self._context.run_id} already exists and is {attempt_run_log.status}"
             )
@@ -94,6 +100,7 @@ class GenericExecutor(BaseExecutor):
 
         # Update run_config
         run_config = utils.get_run_config()
+        logger.debug(f"run_config as seen by executor: {run_config}")
         self._context.run_log_store.set_run_config(run_id=self._context.run_id, run_config=run_config)
 
     def prepare_for_graph_execution(self):
@@ -160,6 +167,7 @@ class GenericExecutor(BaseExecutor):
                 "Catalog service only accepts get/put possible actions as part of node execution."
                 f"Sync catalog of the executor: {self.service_name} asks for {stage} which is not accepted"
             )
+            logger.exception(msg)
             raise Exception(msg)
 
         try:
@@ -177,10 +185,14 @@ class GenericExecutor(BaseExecutor):
         data_catalogs = []
         for name_pattern in node_catalog_settings.get(stage) or []:
             if stage == "get":
+                get_catalog_progress = self._context.progress.add_task(f"Getting from catalog {name_pattern}", total=1)
                 data_catalog = self._context.catalog_handler.get(
                     name=name_pattern, run_id=self._context.run_id, compute_data_folder=compute_data_folder
                 )
+                self._context.progress.update(get_catalog_progress, completed=True, visible=False, refresh=True)
+
             elif stage == "put":
+                put_catalog_progress = self._context.progress.add_task(f"Putting in catalog {name_pattern}", total=1)
                 data_catalog = self._context.catalog_handler.put(
                     name=name_pattern,
                     run_id=self._context.run_id,
@@ -188,7 +200,9 @@ class GenericExecutor(BaseExecutor):
                     synced_catalogs=synced_catalogs,
                 )
 
-            logger.info(f"Added data catalog: {data_catalog} to step log")
+                self._context.progress.update(put_catalog_progress, completed=True, visible=False)
+
+            logger.debug(f"Added data catalog: {data_catalog} to step log")
             data_catalogs.extend(data_catalog)
 
         return data_catalogs
@@ -250,6 +264,7 @@ class GenericExecutor(BaseExecutor):
         self._context_node = node
 
         data_catalogs_get: Optional[List[DataCatalog]] = self._sync_catalog(stage="get")
+        logger.debug(f"data_catalogs_get: {data_catalogs_get}")
 
         step_log = node.execute(
             map_variable=map_variable,
@@ -257,10 +272,15 @@ class GenericExecutor(BaseExecutor):
             mock=mock,
             **kwargs,
         )
+
         data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(stage="put")
+        logger.debug(f"data_catalogs_put: {data_catalogs_put}")
 
         step_log.add_data_catalogs(data_catalogs_get or [])
         step_log.add_data_catalogs(data_catalogs_put or [])
+
+        console.print(f"Summary of the step: {step_log.internal_name}")
+        console.print(step_log.get_summary(), style=defaults.info_style)
 
         self._context_node = None  # type: ignore
 
@@ -312,6 +332,8 @@ class GenericExecutor(BaseExecutor):
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
+        logger.info(f"Executing node: {node.get_summary()}")
+
         # Add the step log to the database as per the situation.
         # If its a terminal node, complete it now
         if node.node_type in ["success", "fail"]:
@@ -323,7 +345,8 @@ class GenericExecutor(BaseExecutor):
             node.execute_as_graph(map_variable=map_variable, **kwargs)
             return
 
-        # Executor specific way to trigger a job
+        task_name = node._resolve_map_placeholders(node.internal_name, map_variable)
+        console.print(f":runner: Executing the node {task_name} ... ", style="bold color(208)")
         self.trigger_job(node=node, map_variable=map_variable, **kwargs)
 
     def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
@@ -399,30 +422,61 @@ class GenericExecutor(BaseExecutor):
         previous_node = None
         logger.info(f"Running the execution with {current_node}")
 
+        branch_execution_task = None
+        if dag.internal_branch_name != "":
+            branch_task_name = BaseNode._resolve_map_placeholders(dag.internal_branch_name, map_variable)
+            branch_execution_task = self._context.progress.add_task(
+                f"Executing {branch_task_name}", total=1
+            )  # type ignore
+
         while True:
             working_on = dag.get_node_by_name(current_node)
+            task_name = working_on._resolve_map_placeholders(working_on.internal_name, map_variable)
 
             if previous_node == current_node:
                 raise Exception("Potentially running in a infinite loop")
 
             previous_node = current_node
 
-            logger.info(f"Creating execution log for {working_on}")
-            self.execute_from_graph(working_on, map_variable=map_variable, **kwargs)
+            logger.debug(f"Creating execution log for {working_on}")
 
-            status, next_node_name = self._get_status_and_next_node_name(
-                current_node=working_on, dag=dag, map_variable=map_variable
-            )
+            depth = " " * ((task_name.count(".")) or 1 - 1)
 
-            if status == defaults.TRIGGERED:
-                # Some nodes go into triggered state and self traverse
-                logger.info(f"Triggered the job to execute the node {current_node}")
-                break
+            task_execution = self._context.progress.add_task(f"{depth}Executing {task_name}", total=1)  # type ignore
+            try:
+                self.execute_from_graph(working_on, map_variable=map_variable, **kwargs)
+                status, next_node_name = self._get_status_and_next_node_name(
+                    current_node=working_on, dag=dag, map_variable=map_variable
+                )
+
+                if status == defaults.SUCCESS:
+                    self._context.progress.update(
+                        task_execution,
+                        description=f"{depth}[green] {task_name} Completed",
+                        completed=True,
+                        overflow="fold",
+                    )  # type ignore
+                else:
+                    self._context.progress.update(
+                        task_execution, description=f"{depth}[red] {task_name} Failed", completed=True
+                    )  # type ignore
+            except:  # noqa: E722
+                self._context.progress.update(
+                    task_execution,
+                    description=f"{depth}[red] {task_name} Errored",
+                    completed=True,
+                )  # type ignore
 
             if working_on.node_type in ["success", "fail"]:
                 break
 
             current_node = next_node_name
+
+        if branch_execution_task:
+            branch_task_name = BaseNode._resolve_map_placeholders(dag.internal_branch_name, map_variable)
+            self._context.progress.update(
+                branch_execution_task, description=f"[green3] {branch_task_name} completed", completed=True
+            )  # type ignore
 
         run_log = self._context.run_log_store.get_branch_log(
             working_on._get_branch_log_name(map_variable), self._context.run_id
@@ -433,11 +487,6 @@ class GenericExecutor(BaseExecutor):
             branch = working_on.internal_branch_name
 
         logger.info(f"Finished execution of the {branch} with status {run_log.status}")
-
-        # get the final run log
-        if branch == "graph":
-            run_log = self._context.run_log_store.get_run_log_by_id(run_id=self._context.run_id, full=True)
-        print(json.dumps(run_log.model_dump(), indent=4))
 
     def send_return_code(self, stage="traversal"):
         """

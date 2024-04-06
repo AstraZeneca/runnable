@@ -362,6 +362,15 @@ class BaseNode(ABC, BaseModel):
         """
         ...
 
+    @abstractmethod
+    def get_summary(self) -> Dict[str, Any]:
+        """
+        Return the summary of the node
+
+        Returns:
+            Dict[str, Any]: _description_
+        """
+
 
 # --8<-- [end:docs]
 class TraversalNode(BaseNode):

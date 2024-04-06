@@ -4,7 +4,17 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, Optional, OrderedDict, Tuple, Union
+from typing import (
+    Annotated,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    OrderedDict,
+    Tuple,
+    Union,
+)
 
 from pydantic import BaseModel, Field, computed_field
 from typing_extensions import TypeAliasType
@@ -65,8 +75,17 @@ class JsonParameter(BaseModel):
     value: JSONType  # type: ignore
     reduced: bool = True
 
+    @computed_field  # type: ignore
+    @property
+    def description(self) -> JSONType:
+        return self.value
+
     def get_value(self) -> JSONType:  # type: ignore
         return self.value
+
+
+class MetricParameter(JsonParameter):
+    kind: Literal["metric"]
 
 
 class ObjectParameter(BaseModel):
@@ -100,7 +119,7 @@ class ObjectParameter(BaseModel):
         os.remove(self.file_name)  # Remove after loading
 
 
-Parameter = Annotated[Union[JsonParameter, ObjectParameter], Field(discriminator="kind")]
+Parameter = Annotated[Union[JsonParameter, ObjectParameter, MetricParameter], Field(discriminator="kind")]
 
 
 class StepAttempt(BaseModel):
@@ -115,6 +134,7 @@ class StepAttempt(BaseModel):
     message: str = ""
     input_parameters: Dict[str, Parameter] = Field(default_factory=dict)
     output_parameters: Dict[str, Parameter] = Field(default_factory=dict)
+    user_defined_metrics: Dict[str, Any] = Field(default_factory=dict)
 
     @property
     def duration(self):
@@ -149,9 +169,42 @@ class StepLog(BaseModel):
     mock: bool = False
     code_identities: List[CodeIdentity] = Field(default_factory=list)
     attempts: List[StepAttempt] = Field(default_factory=list)
-    user_defined_metrics: Dict[str, Any] = Field(default_factory=dict)
     branches: Dict[str, BranchLog] = Field(default_factory=dict)
     data_catalog: List[DataCatalog] = Field(default_factory=list)
+
+    def get_summary(self) -> Dict[str, Any]:
+        """
+        Summarize the step log to log
+        """
+        summary = {}
+
+        summary["Name"] = self.internal_name
+        summary["Input catalog content"] = [dc.name for dc in self.data_catalog if dc.stage == "get"]
+        summary["Available parameters"] = [
+            (p, v.description) for attempt in self.attempts for p, v in attempt.input_parameters.items()
+        ]
+
+        summary["Output catalog content"] = [dc.name for dc in self.data_catalog if dc.stage == "put"]
+        summary["Output parameters"] = [
+            (p, v.description) for attempt in self.attempts for p, v in attempt.output_parameters.items()
+        ]
+
+        summary["Metrics"] = [
+            (p, v.description) for attempt in self.attempts for p, v in attempt.user_defined_metrics.items()
+        ]
+
+        cis = []
+        for ci in self.code_identities:
+            message = f"{ci.code_identifier_type}:{ci.code_identifier}"
+            if not ci.code_identifier_dependable:
+                message += " but is not dependable"
+            cis.append(message)
+
+        summary["Code identities"] = cis
+
+        summary["status"] = self.status
+
+        return summary
 
     def get_data_catalogs_by_stage(self, stage="put") -> List[DataCatalog]:
         """

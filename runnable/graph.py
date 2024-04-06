@@ -26,6 +26,17 @@ class Graph(BaseModel):
     internal_branch_name: str = Field(default="", exclude=True)
     nodes: SerializeAsAny[Dict[str, "BaseNode"]] = Field(default_factory=dict, serialization_alias="steps")
 
+    def get_summary(self) -> Dict[str, Any]:
+        """
+        Return a summary of the graph
+        """
+        return {
+            "name": self.name,
+            "description": self.description,
+            "start_at": self.start_at,
+            "nodes": [node.get_summary() for node in list(self.nodes.values())],
+        }
+
     def get_node_by_name(self, name: str) -> "BaseNode":
         """
         Return the Node object by the name

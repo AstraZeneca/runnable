@@ -538,7 +538,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: defaults.S
     if "config" in service_details:
         service_config = service_details.get("config", {})
 
-    logger.info(f"Trying to get a service of {service_type} of the name {service_name} with config: {service_config}")
+    logger.debug(f"Trying to get a service of {service_type} of the name {service_name} with config: {service_config}")
     try:
         mgr = driver.DriverManager(
             namespace=namespace,
@@ -548,6 +548,7 @@ def get_provider_by_name_and_type(service_type: str, service_details: defaults.S
         )
         return mgr.driver
     except Exception as _e:
+        logger.exception(f"Could not find the service of type: {service_type} with config: {service_details}")
         raise Exception(f"Could not find the service of type: {service_type} with config: {service_details}") from _e
 
 

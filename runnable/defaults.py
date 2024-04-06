@@ -1,16 +1,9 @@
-# mypy: ignore-errors
-# The above should be done until https://github.com/python/mypy/issues/8823
 from enum import Enum
+from typing import TypedDict  # type: ignore[unused-ignore]
 from typing import Any, Dict, Mapping, Optional, Union
 
+from rich.style import Style
 from typing_extensions import TypeAlias
-
-# TODO: This is not the correct way to do this.
-try:  # pragma: no cover
-    from typing import TypedDict  # type: ignore[unused-ignore]
-except ImportError:  # pragma: no cover
-    from typing_extensions import TypedDict  # type: ignore[unused-ignore]
-
 
 NAME = "runnable"
 LOGGER_NAME = "runnable"
@@ -182,3 +175,10 @@ LOGGING_CONFIG = {
         LOGGER_NAME: {"handlers": ["runnable_handler"], "propagate": False},
     },
 }
+
+
+# styles
+error_style = Style(color="red", bold=True)
+warning_style = Style(color="yellow", bold=True)
+success_style = Style(color="green", bold=True)
+info_style = Style(color="blue", bold=True)

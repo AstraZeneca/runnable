@@ -60,6 +60,7 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id):  # prag
                                     provided
     """
     logger.setLevel(log_level)
+
     entrypoints.execute(
         configuration_file=config_file,
         pipeline_file=file,

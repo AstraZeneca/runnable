@@ -1,9 +1,6 @@
 from typing import List
 
-import keras
 import numpy as np
-from keras import layers
-from pydantic import BaseModel
 
 num_classes: int = 10
 input_shape: tuple = (28, 28, 1)
@@ -24,6 +21,8 @@ validation_split: float = 0.1
 
 
 def load_data():
+    import keras
+
     (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
 
     return x_train, y_train, x_test, y_test
@@ -40,6 +39,8 @@ def scale_data(x_train: np.ndarray, x_test: np.ndarray):
 
 
 def convert_to_categorically(y_train: np.ndarray, y_test: np.ndarray):
+    import keras
+
     y_train = keras.utils.to_categorical(y_train, num_classes)
     y_test = keras.utils.to_categorical(y_test, num_classes)
 
@@ -47,6 +48,9 @@ def convert_to_categorically(y_train: np.ndarray, y_test: np.ndarray):
 
 
 def build_model():
+    import keras
+    from keras import layers
+
     model = keras.Sequential(
         [
             keras.Input(shape=input_shape),
@@ -66,6 +70,8 @@ def build_model():
 
 
 def train_model(x_train: np.ndarray, y_train: np.ndarray):
+    import keras
+
     model = keras.models.load_model("model.keras")
     model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
@@ -81,6 +87,8 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray):
 
 
 def evaluate_model(x_test: np.ndarray, y_test: np.ndarray):
+    import keras
+
     trained_model = keras.models.load_model("trained_model.keras")
 
     score = trained_model.evaluate(x_test, y_test, verbose=0)
@@ -91,7 +99,7 @@ def evaluate_model(x_test: np.ndarray, y_test: np.ndarray):
 
 
 def main():
-    from runnable import Catalog, Pipeline, PythonTask, pickled
+    from runnable import Catalog, Pipeline, PythonTask, metric, pickled
 
     # x_train, y_train, x_test, y_test
     load_data_task = PythonTask(
@@ -134,6 +142,7 @@ def main():
         catalog=Catalog(
             get=["trained_model.keras"],
         ),
+        returns=[metric("score")],
         terminate_with_success=True,
     )
 

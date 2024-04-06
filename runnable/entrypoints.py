@@ -5,10 +5,8 @@ import os
 import sys
 from typing import Optional, cast
 
-from rich import print
-
 import runnable.context as context
-from runnable import defaults, graph, utils
+from runnable import console, defaults, graph, utils
 from runnable.defaults import RunnableConfig, ServiceConfig
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -63,6 +61,8 @@ def prepare_configurations(
         templated_configuration = utils.load_yaml(configuration_file) or {}
 
     configuration: RunnableConfig = cast(RunnableConfig, templated_configuration)
+
+    logger.info(f"Resolved configurations: {configuration}")
 
     # Run log settings, configuration over-rides everything
     run_log_config: Optional[ServiceConfig] = configuration.get("run_log_store", None)
@@ -167,8 +167,8 @@ def execute(
         tag=tag,
         parameters_file=parameters_file,
     )
-    print("Working with context:")
-    print(run_context)
+    console.print("Working with context:")
+    console.print(run_context)
 
     executor = run_context.executor
 
@@ -179,7 +179,7 @@ def execute(
     # Prepare for graph execution
     executor.prepare_for_graph_execution()
 
-    logger.info("Executing the graph")
+    logger.info(f"Executing the graph: {run_context.dag}")
     executor.execute_graph(dag=run_context.dag)  # type: ignore
 
     executor.send_return_code()
@@ -218,8 +218,8 @@ def execute_single_node(
         tag=tag,
         parameters_file=parameters_file,
     )
-    print("Working with context:")
-    print(run_context)
+    console.print("Working with context:")
+    console.print(run_context)
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
@@ -271,8 +271,8 @@ def execute_notebook(
     run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-    print("Working with context:")
-    print(run_context)
+    console.print("Working with context:")
+    console.print(run_context)
 
     step_config = {
         "command": notebook_file,
@@ -333,8 +333,8 @@ def execute_function(
     run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
-    print("Working with context:")
-    print(run_context)
+    console.print("Working with context:")
+    console.print(run_context)
 
     # Prepare the graph with a single node
     step_config = {
@@ -402,8 +402,8 @@ def fan(
         tag=tag,
         parameters_file=parameters_file,
     )
-    print("Working with context:")
-    print(run_context)
+    console.print("Working with context:")
+    console.print(run_context)
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value

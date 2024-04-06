@@ -1,8 +1,6 @@
 from typing import List
 
-import keras
 import numpy as np
-from keras import layers
 from pydantic import BaseModel
 
 
@@ -40,6 +38,8 @@ class BaseLineParams(BaseModel):
 
 
 def load_data():
+    import keras
+
     (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
 
     return x_train, y_train, x_test, y_test
@@ -56,6 +56,8 @@ def scale_data(x_train: np.ndarray, x_test: np.ndarray):
 
 
 def convert_to_categorically(y_train: np.ndarray, y_test: np.ndarray, num_classes: int):
+    import keras
+
     y_train = keras.utils.to_categorical(y_train, num_classes)
     y_test = keras.utils.to_categorical(y_test, num_classes)
 
@@ -63,6 +65,9 @@ def convert_to_categorically(y_train: np.ndarray, y_test: np.ndarray, num_classe
 
 
 def build_model(train_params: TrainParams, num_classes: int):
+    import keras
+    from keras import layers
+
     model = keras.Sequential(
         [
             keras.Input(shape=train_params.input_shape),
@@ -82,6 +87,8 @@ def build_model(train_params: TrainParams, num_classes: int):
 
 
 def build_baseline_model(baseline_params: BaseLineParams, num_classes: int):
+    import keras
+
     model = keras.Sequential()
     model.add(
         keras.layers.Dense(
@@ -106,6 +113,8 @@ def build_baseline_model(baseline_params: BaseLineParams, num_classes: int):
 
 
 def train_model(x_train: np.ndarray, y_train: np.ndarray, train_params: TrainParams):
+    import keras
+
     model = keras.models.load_model("model.keras")
     model.compile(loss=train_params.loss, optimizer=train_params.optimizer, metrics=train_params.metrics)
 
@@ -121,6 +130,8 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, train_params: TrainPar
 
 
 def train_baseline_model(x_train: np.ndarray, y_train: np.ndarray, train_params: BaseLineParams):
+    import keras
+
     model = keras.models.load_model("baseline_model.keras")
     model.compile(loss=train_params.loss, optimizer=train_params.optimizer, metrics=train_params.metrics)
 
@@ -139,6 +150,8 @@ def train_baseline_model(x_train: np.ndarray, y_train: np.ndarray, train_params:
 
 
 def evaluate_model(x_test: np.ndarray, y_test: np.ndarray):
+    import keras
+
     trained_model = keras.models.load_model("trained_model.keras")
 
     score = trained_model.evaluate(x_test, y_test, verbose=0)
@@ -149,6 +162,8 @@ def evaluate_model(x_test: np.ndarray, y_test: np.ndarray):
 
 
 def evaluate_baseline_model(x_test: np.ndarray, y_test: np.ndarray, train_params: BaseLineParams):
+    import keras
+
     trained_model = keras.models.load_model("trained_baseline_model.keras")
 
     _x_test = x_test.reshape(x_test.shape[0], train_params.num_pixels).astype("float32")

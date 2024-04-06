@@ -1,6 +1,7 @@
 from typing import Dict, Optional
 
-from pydantic import BaseModel, SerializeAsAny
+from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
+from rich.progress import Progress
 
 from runnable.catalog import BaseCatalog
 from runnable.datastore import BaseRunLogStore
@@ -16,6 +17,9 @@ class Context(BaseModel):
     secrets_handler: SerializeAsAny[BaseSecrets]
     catalog_handler: SerializeAsAny[BaseCatalog]
     pickler: SerializeAsAny[BasePickler]
+    progress: SerializeAsAny[Optional[Progress]] = Field(default=None, exclude=True)
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     pipeline_file: Optional[str] = ""
     parameters_file: Optional[str] = ""

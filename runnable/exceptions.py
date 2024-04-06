@@ -92,3 +92,7 @@ class ExecutionFailedError(Exception):  # pragma: no cover
     def __init__(self, run_id: str):
         super().__init__()
         self.message = f"Execution failed for run id: {run_id}"
+
+
+class CommandCallError(Exception):  # pragma: no cover
+    "An exception during the call of the command"

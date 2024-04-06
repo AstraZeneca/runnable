@@ -10,16 +10,19 @@ from sklearn.linear_model import LogisticRegression
 
 nlp = spacy.load("en_core_web_sm")
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
+
 
 class CleanTransformer:
     __uplus_pattern = re.compile("\<[uU]\+(?P<digit>[a-zA-Z0-9]+)\>")
     __markup_link_pattern = re.compile("\[(.*)\]\((.*)\)")
 
     def predict(self, X, feature_names=[]):
-        logging.warning(X)
+        logger.warning(X)
         f = np.vectorize(CleanTransformer.transform_clean_text)
         X_clean = f(X)
-        logging.warning(X_clean)
+        logger.warning(X_clean)
         return X_clean
 
     def fit(self, X, y=None, **fit_params):
@@ -48,10 +51,10 @@ class TokenizeTransformer:
     __symbols = set("!$%^&*()_+|~-=`{}[]:\";'<>?,./-")
 
     def predict(self, X, feature_names=[]):
-        logging.warning(X)
+        logger.warning(X)
         f = np.vectorize(TokenizeTransformer.transform_to_token, otypes=[object])
         X_tokenized = f(X)
-        logging.warning(X_tokenized)
+        logger.warning(X_tokenized)
         return X_tokenized
 
     def fit(self, X, y=None, **fit_params):

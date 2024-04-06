@@ -16,9 +16,11 @@ from pydantic import (
     model_validator,
 )
 from rich import print
+from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
+from rich.table import Column
 from typing_extensions import Self
 
-from runnable import defaults, entrypoints, graph, utils
+from runnable import console, defaults, entrypoints, graph, utils
 from runnable.extensions.nodes import (
     FailNode,
     MapNode,
@@ -37,6 +39,10 @@ StepType = Union["Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", 
 
 def pickled(name: str) -> TaskReturns:
     return TaskReturns(name=name, kind="object")
+
+
+def metric(name: str) -> TaskReturns:
+    return TaskReturns(name=name, kind="metric")
 
 
 class Catalog(BaseModel):
@@ -686,8 +692,32 @@ class Pipeline(BaseModel):
         # Prepare for graph execution
         run_context.executor.prepare_for_graph_execution()
 
-        logger.info("Executing the graph")
-        run_context.executor.execute_graph(dag=run_context.dag)
+        progress = Progress(
+            TextColumn("[progress.description]{task.description}", table_column=Column(ratio=2)),
+            BarColumn(table_column=Column(ratio=1)),
+            TimeElapsedColumn(table_column=Column(ratio=1)),
+            console=console,
+            expand=True,
+        ).__enter__()
+
+        try:
+            run_context.progress = progress
+            logger.info("Executing the graph")
+
+            pipeline_execution_task = progress.add_task("Executing the pipeline .. ", total=None)
+
+            run_context.executor.execute_graph(dag=run_context.dag)
+
+            run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
+
+            if run_log.status == defaults.SUCCESS:
+                progress.update(pipeline_execution_task, description="[green] Success", completed=True)
+            else:
+                progress.update(pipeline_execution_task, description="[red] Failed", completed=True)
+        except:  # noqa: E722
+            progress.update(pipeline_execution_task, description="[red] Errored execution", completed=True)
+        finally:
+            progress.__exit__(None, None, None)
 
         if run_context.executor._local:
             return run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id)
