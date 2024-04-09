@@ -1,7 +1,8 @@
 site_name: runnable
 site_description: "Pipelines made easy"
 strict: false
-repo_url: https://github.com/vijayvammi/runnable
+repo_url: https://github.com/AstraZeneca/runnable
+
 
 # TODO: Set up versioning
 
@@ -151,5 +152,4 @@ nav:
       - "Secrets": "configurations/secrets.md"
       # - "Experiment tracking": "configurations/experiment-tracking.md"
   - "Python SDK": "sdk.md"
-  - "Extensions": "extensions.md"
   # - "Roadmap": "roadmap.md"
