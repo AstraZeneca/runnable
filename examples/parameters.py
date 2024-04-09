@@ -9,6 +9,8 @@ You can execute this pipeline by: python examples/parameters.py
 
 """
 
+from typing import Tuple
+
 from pydantic import BaseModel
 
 
@@ -34,57 +36,48 @@ class NestedModel(BaseModel):  # (1)
 def display(simple: int, inner: InnerModel):  # (2)
     """
     The parameter "simple" and "inner" can be accessed by name.
-    Magnus understands the parameter "inner" as a pydantic model from
+    runnable understands the parameter "inner" as a pydantic model from
     annotation and casts it as a pydantic model.
     """
     print(simple)
     print(inner)
 
 
-def return_parameters(simple: int, inner: InnerModel) -> NestedModel:  # (3)
+def return_parameters(simple: int, inner: InnerModel) -> Tuple[int, InnerModel]:  # (3)
     """
     The parameter "simple" and "inner" can be accessed by name.
     You can redefine the parameters by returning a pydantic model.
     """
     simple = 2
     inner.x = 30
-    inner.y = "world!!"
+    inner.y = "Hello Universe!!"
 
-    return NestedModel(simple=simple, inner=inner)
-
-
-"""
-The below code is only to provide a full working example.
-
-In the real world, you can "box magnus" in pipeline definition either in
-python or yaml without cluttering your application code.
-"""
+    return simple, inner
 
 
 def main():
-    from magnus import Pipeline, Task
+    from runnable import Pipeline, PythonTask
 
-    display = Task(name="display", command="examples.parameters.display")
-    return_parameters = Task(
+    display_task = PythonTask(name="display", function=display)
+
+    return_parameters_task = PythonTask(
         name="return_parameters",
-        command="examples.parameters.return_parameters",
+        function=return_parameters,
+        returns=[
+            "simple",
+            "inner",
+        ],
         terminate_with_success=True,
     )
 
-    display >> return_parameters
-
     pipeline = Pipeline(
-        start_at=display,
-        steps=[display, return_parameters],
+        steps=[display_task, return_parameters_task],
         add_terminal_nodes=True,
     )
 
-    run_log = pipeline.execute(parameters_file="examples/parameters_initial.yaml")
-    params = run_log.parameters
+    _ = pipeline.execute(parameters_file="examples/parameters_initial.yaml")
 
-    ## Reflects the changes done by "return_parameters" function call.
-    assert params["simple"] == 2
-    assert params["inner"] == {"x": 30, "y": "world!!"}
+    return pipeline
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ Bring in native AWS services to orchestrate workflows. The stack should be:
 
 ## Better integrations with experiment tracking tools.
 
-Currently, the implementation of experiment tracking tools within magnus is limited. It might be better to
+Currently, the implementation of experiment tracking tools within runnable is limited. It might be better to
 choose a good open source implementation and stick with it.
 
 

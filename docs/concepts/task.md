@@ -1,6 +1,6 @@
 Task nodes are the execution units of the pipeline.
 
-In magnus, a ```command``` in a task node can be [python functions](#python_functions),
+In runnable, a ```command``` in a task node can be [python functions](#python_functions),
 [Jupyter notebooks](#notebook) or a [shell scripts](#shell).
 All task nodes  can take arguments, retrieve and create files/objects and return
 arguments, though their access patterns are different.
@@ -57,7 +57,7 @@ should be the dotted path to the python function.
 
 === "yaml"
 
-    You can execute this by magnus execute -f examples/concepts/simple.yaml
+    You can execute this by runnable execute -f examples/concepts/simple.yaml
 
     ```yaml linenums="1"
     --8<-- "examples/concepts/simple.yaml"
@@ -88,10 +88,10 @@ is to execute this function.
 
 !!! tip "Mutability"
 
-    Functions mutating the input parameters is idiomatic is python. However, functions as part of magnus
+    Functions mutating the input parameters is idiomatic is python. However, functions as part of runnable
     pipeline should return the mutated parameters for downstream steps to have access to them.
 
-    For example, unless the function ```mutating_function``` returns the updated parameters, magnus will
+    For example, unless the function ```mutating_function``` returns the updated parameters, runnable will
     not know about the change.
 
 
@@ -125,7 +125,7 @@ Lets assume that the initial parameters are:
 
 === "Natively"
 
-    Internally, magnus stores the parameters in serialised json format.
+    Internally, runnable stores the parameters in serialised json format.
 
     ### ^^Input arguments to the function^^
 
@@ -139,7 +139,7 @@ Lets assume that the initial parameters are:
 
     !!! warning "Annotation"
 
-         Without annotations, magnus cannot determine the type and can cause unexpected behavior.
+         Without annotations, runnable cannot determine the type and can cause unexpected behavior.
 
          This is especially true in distributed executors (eg: argo workflows).
 
@@ -177,14 +177,14 @@ Lets assume that the initial parameters are:
 
 === "Using the API"
 
-    Magnus also has [python API](../interactions.md) to access parameters.
+    runnable also has [python API](../interactions.md) to access parameters.
 
-    Use [get_parameter](../interactions.md/#magnus.get_parameter) to access a parameter at the root level.
+    Use [get_parameter](../interactions.md/#runnable.get_parameter) to access a parameter at the root level.
     You can optionally specify the ```type``` by using ```cast_as``` argument to the API.
     For example, line 19 would cast ```eggs```parameter into ```EggsModel```.
     Native python types do not need any explicit ```cast_as``` argument.
 
-    Use [set_parameter](../interactions.md/#magnus.set_parameter) to set parameters at the root level.
+    Use [set_parameter](../interactions.md/#runnable.set_parameter) to set parameters at the root level.
     Multiple parameters can be set at the same time, for example, line 26 would set both the ```spam```
     and ```eggs``` in a single call.
 
@@ -200,14 +200,14 @@ Lets assume that the initial parameters are:
 
 === "Using environment variables"
 
-    Any environment variable with ```MAGNUS_PRM_``` is understood to be a parameter in magnus.
+    Any environment variable with ```runnable_PRM_``` is understood to be a parameter in runnable.
 
     Before the execution of the ```command```, all the parameters at the root level are set as environment variables
-    with the key prefixed by ```MAGNUS_PRM_```. Python functions that are called during the execution of the command
+    with the key prefixed by ```runnable_PRM_```. Python functions that are called during the execution of the command
     can also access them as environment variables.
 
     After the execution of the ```command```, the environment is "scanned" again to identify changes to the existing
-    variables prefixed by ```MAGNUS_PRM_```. All updated variables are stored at the root level.
+    variables prefixed by ```runnable_PRM_```. All updated variables are stored at the root level.
 
     Parameters set by environment variables over-ride the parameters defined by the initial parameters which can be
     handy to quickly experiment without modifying code or to dynamically adjust behavior when running in
@@ -373,7 +373,7 @@ Assume that the initial parameters are:
     Similar to the input parameters, outputs from the notebook ca be indicated by tagging the cell. Please
     ensure The tagged cell should ```print``` the dictionary as the output and nothing else.
 
-    The default ```tag``` to indicate output parameters is ```magnus_output``` but can be configured by
+    The default ```tag``` to indicate output parameters is ```runnable_output``` but can be configured by
     ```output_cell_tag``` while defining the task in both SDK and yaml.
 
 
@@ -417,7 +417,7 @@ Assume that the initial parameters are:
 === "Using environment variables"
 
     As seen in [python tasks](#python_functions), you can get/set the parameters by using environment variables.
-    Any variable with prefix ```MAGNUS_PRM_``` is identified to be a parameter.
+    Any variable with prefix ```runnable_PRM_``` is identified to be a parameter.
 
     === "pipeline definition"
 
@@ -484,10 +484,10 @@ Assuming the initial parameters are:
 - [x] Passing parameters between steps
 
 The only way ```shell``` commands can pass parameters between steps is via the ```environment``` variables.
-Any environment variable with prefix ```MAGNUS_PRM_``` should be understood as a parameter inside the shell
+Any environment variable with prefix ```runnable_PRM_``` should be understood as a parameter inside the shell
 script/command. Nested parameters are set in json string format.
 
-To pass parameter to downstream steps, set/update environment variables with ```MAGNUS_PRM_``` prefix. The
+To pass parameter to downstream steps, set/update environment variables with ```runnable_PRM_``` prefix. The
 execution environment is "scanned" for updated environment variables and stored for downstream steps.
 
 ```yaml linenums="1"
@@ -496,7 +496,7 @@ execution environment is "scanned" for updated environment variables and stored 
 
 In the above example, the execution is specified with initial parameters by the ```-p``` option.
 
-In line 18, we just display the parameters prefixed by ```MAGNUS_PRM_``. The next step ```modify_initial```
+In line 18, we just display the parameters prefixed by ```runnable_PRM_``. The next step ```modify_initial```
 updates the parameters by setting new environment variables in line 26 and 27.
 
 The next step ```display_again``` displays the updated parameters and updates them for downstream steps in
@@ -505,8 +505,8 @@ lines 33-35.
 
 !!! note "Output"
 
-    You might notice that the output might have a few extra lines starting with ```MAGNUS```. You can ignore
-    them as they are generated by internal mechanisms of magnus.
+    You might notice that the output might have a few extra lines starting with ```runnable```. You can ignore
+    them as they are generated by internal mechanisms of runnable.
 
 
 

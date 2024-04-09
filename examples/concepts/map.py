@@ -5,16 +5,12 @@ parameter.
 The start_index argument for the function process_chunk is dynamically set by iterating over chunks.
 
 If the argument start_index is not provided, you can still access the current value by
-MAGNUS_MAP_VARIABLE environment variable. The environment variable MAGNUS_MAP_VARIABLE
+runnable_MAP_VARIABLE environment variable. The environment variable runnable_MAP_VARIABLE
 is a dictionary with keys as iterate_as.
 
 Run this pipeline by:
     python examples/concepts/map.py
 """
-
-from typing import List
-
-from pydantic import create_model
 
 
 def chunk_files():
@@ -25,11 +21,12 @@ def chunk_files():
     Set the parameter "stride" to be the number of files to
     execute per batch.
     """
-    return create_model(
-        "DynamicModel",
-        chunks=(List[int], list(range(0, 50, 10))),
-        stride=(int, 10),
-    )()
+    return 10, list(range(0, 50, 10))
+    # create_model(
+    #     "DynamicModel",
+    #     chunks=(List[int], list(range(0, 50, 10))),
+    #     stride=(int, 10),
+    # )()
 
 
 def process_chunk(stride: int, start_index: int):
@@ -54,17 +51,21 @@ def main():
         process_chunk(chunks.stride, start_index)
 
     """
-    from magnus import Map, Pipeline, Task
+    from runnable import Map, Pipeline, PythonTask
 
-    execute = Task(
+    execute = PythonTask(
         name="execute",
-        command="examples.concepts.map.process_chunk",
+        function=process_chunk,
         terminate_with_success=True,
     )
 
-    execute_branch = Pipeline(steps=[execute], start_at=execute, add_terminal_nodes=True)
+    execute_branch = Pipeline(steps=[execute], add_terminal_nodes=True)
 
-    generate = Task(name="chunk files", command="examples.concepts.map.chunk_files")
+    generate = PythonTask(
+        name="chunk files",
+        function=chunk_files,
+        returns=["stride", "chunks"],
+    )
     iterate_and_execute = Map(
         name="iterate and execute",
         branch=execute_branch,
@@ -73,11 +74,11 @@ def main():
         terminate_with_success=True,
     )
 
-    generate >> iterate_and_execute
-
-    pipeline = Pipeline(steps=[generate, iterate_and_execute], start_at=generate, add_terminal_nodes=True)
+    pipeline = Pipeline(steps=[generate, iterate_and_execute], add_terminal_nodes=True)
 
     _ = pipeline.execute(configuration_file="examples/configs/fs-catalog-run_log.yaml")
+
+    return pipeline
 
 
 if __name__ == "__main__":

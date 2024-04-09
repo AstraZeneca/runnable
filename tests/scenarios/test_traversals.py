@@ -7,7 +7,7 @@ from rich import print
 import pytest
 import ruamel.yaml
 
-from magnus import defaults, entrypoints, utils
+from runnable import defaults, entrypoints, utils
 
 yaml = ruamel.yaml.YAML()
 

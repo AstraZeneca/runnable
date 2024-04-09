@@ -1,11 +1,11 @@
 
 ## Installation
 
-**magnus** is a python package and should be installed like any other python package. The minimum python version
+**runnable** is a python package and should be installed like any other python package. The minimum python version
 is ```3.8```
 
 ```shell
-pip install magnus
+pip install runnable
 ```
 
 We recommend the installation in a virtual environment using ```poetry``` or any other package manager.
@@ -14,35 +14,28 @@ We recommend the installation in a virtual environment using ```poetry``` or any
 
 #### Docker
 
-To run the pipelines/functions/notebooks in a container, install magnus with docker functionality.
+To run the pipelines/functions/notebooks in a container, install runnable with docker functionality.
 
 ```shell
-pip install "magnus[docker]"
+pip install "runnable[docker]"
 ```
 
 #### Notebook
 
-To use notebooks as tasks, install magnus with ```notebook``` functionality.
+To use notebooks as tasks, install runnable with ```notebook``` functionality.
 
 ```shell
-pip install "magnus[notebook]"
+pip install "runnable[notebook]"
 ```
 
-#### mlflow
-
-To enable ```mlflow``` as experiment tracker, install magnus with ```mlflow``` functionality
-
-```shell
-pip install "magnus[mlflow]"
-```
 
 <hr style="border:2px dotted orange">
 
 ## Usage
 
-Pipelines defined in **magnus** can be either via [python sdk](sdk.md) or ```yaml``` based definitions.
+Pipelines defined in **runnable** can be either via [python sdk](sdk.md) or ```yaml``` based definitions.
 
-To execute a pipeline, defined in ```yaml```, use the **magnus** cli.
+To execute a pipeline, defined in ```yaml```, use the **runnable** cli.
 The options are detailed below:
 
 - ```-f, --file``` (str): The pipeline definition file, defaults to pipeline.yaml
@@ -58,6 +51,6 @@ The options are detailed below:
 ## Examples
 
 All the examples in the documentation are present in the ```examples``` directory of
-[the repo](https://github.com/AstraZeneca/magnus-core) with instructions on how to run them.
+[the repo](https://github.com/AstraZeneca/runnable-core) with instructions on how to run them.
 
 All the examples are tested, with multiple configurations, as part of our CI test suite.

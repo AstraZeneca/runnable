@@ -1,4 +1,4 @@
-Magnus revolves around the concept of pipelines or workflows and tasks that happen within them.
+runnable revolves around the concept of pipelines or workflows and tasks that happen within them.
 
 ---
 
@@ -21,7 +21,7 @@ flowchart LR
 To define a workflow, we need:
 
 - [List of steps](pipeline.md/#steps)
-- [starting step](pipeline.md/#start_at)
+- a [starting step](pipeline.md/#start_at)
 - Next step
 
     - [In case of success](pipeline.md/#linking)
@@ -63,7 +63,7 @@ A step in the workflow can be:
 
 === "parallel"
 
-    A step that has a defined number of [parallel workflows](parallel.md) executing
+    A step that has a definite number of [parallel workflows](parallel.md) executing
      simultaneously.
 
      In the below visualisation, the green lined steps happen in sequence and wait for the previous step to
@@ -183,24 +183,17 @@ To be useful, it can:
     - Or by [upstream steps](parameters.md/#parameters_flow)
 
 - [Publish or retrieve artifacts](catalog.md) from/to other steps.
-- [Publish metrics](experiment-tracking.md) that are interesting.
+<!-- - [Publish metrics](experiment-tracking.md) that are interesting. -->
 - Have [access to secrets](secrets.md).
 
-All the above functionality is possible either via:
-
-- Non intrusive ways: Your code does not have anything specific to magnus.
-
-    - Application native way.
-    - Or via environment variables.
-
-- Or via the [python API](../interactions.md) which involves ```importing magnus``` in your code.
+All the above functionality is possible naturally with no intrusion into code base.
 
 ---
 
 All executions of the pipeline should be:
 
 - [Reproducible](run-log.md) for audit and data lineage purposes.
-- Runnable at local environments for
+- Runnable in local environments for
 [debugging failed runs](run-log.md/#retrying_failures).
 
 ---
@@ -208,17 +201,5 @@ All executions of the pipeline should be:
 Executions of pipeline should be scalable and use the infrastructure at
 your disposal efficiently.
 
-Pipelines should be portable between different infrastructure patterns.
-Infrastructure patterns change all the time and
-so are the demands from the infrastructure.
-
-We achieve this by [changing configurations](../configurations/overview.md), rather than
+We achieve this by adding [one configuration file](../configurations/overview.md), rather than
 changing the application code.
-
-For example a pipeline should be able to run:
-
-- Local machines + local file system for data + database for logs + mlflow for experiment
-tracking.
-- argo executor + cloud accessible storage for data and logs + mlflow for experiment tracking
-
-without any change in the code.

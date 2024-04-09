@@ -1,5 +1,10 @@
 on:
   pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - "examples/**"
+      - "mkdocs.yml"
     branches:
       - "main"
 

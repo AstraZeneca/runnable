@@ -1,0 +1,31 @@
+num_classes: 10
+
+train_params:
+  hidden_conv_layer_sizes: [32, 64]
+  loss: 'categorical_crossentropy'
+  optimizer: 'adam'
+  kernel_initializer: "normal"
+  metrics: ['accuracy']
+  num_pixels: 784
+  input_shape: [28, 28, 1]
+  kernel_size: [3, 3]
+  pool_size: [2, 2]
+  p_dropout: 0.5
+  epochs: 6
+  batch_size: 64
+
+baseline_params:
+  num_pixels: 784
+  kernel_initializer: "normal"
+  pixels_activation: relu
+  classes_activation: softmax
+  optimizer: "adam"
+
+  metrics: ['accuracy']
+
+hpt:
+  - [16, 32]
+  - [16, 64]
+  # - [32, 64]
+  # - [32, 128]
+  # - [64, 128]

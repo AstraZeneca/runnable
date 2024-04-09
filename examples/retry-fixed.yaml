@@ -11,7 +11,7 @@ dag:
 
 
     You can run this pipeline by:
-       magnus execute -f examples/retry-fixed.yaml -c examples/configs/fs-catalog-run_log.yaml \
+       runnable execute -f examples/retry-fixed.yaml -c examples/configs/fs-catalog-run_log.yaml \
        --use-cached wrong-file-name
 
   start_at: Setup
@@ -25,7 +25,7 @@ dag:
       type: stub # (2)
       command_type: shell
       command: |
-        echo "Hello from magnus" >> data/hello.txt
+        echo "Hello from runnable" >> data/hello.txt
       next: Retrieve Content
       catalog:
         put:

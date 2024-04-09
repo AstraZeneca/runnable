@@ -4,7 +4,7 @@ executor:
     image: $argo_docker_image # (2)
     service_account_name: default-editor
     persistent_volumes: # (3)
-      - name: magnus-volume
+      - name: runnable-volume
         mount_path: /mnt
 
 run_log_store: # (4)

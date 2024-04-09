@@ -36,7 +36,7 @@ The following example shows the simple case of mocking all the steps of the pipe
 === "pipeline in yaml"
 
     You can execute the mocked pipeline by:
-    ```magnus execute -f examples/concepts/simple.yaml -c examples/configs/mocked-config-simple.yaml```
+    ```runnable execute -f examples/concepts/simple.yaml -c examples/configs/mocked-config-simple.yaml```
 
     ```yaml linenums="1"
     --8<-- "examples/concepts/simple.yaml"
@@ -46,7 +46,7 @@ The following example shows the simple case of mocking all the steps of the pipe
 
     You can execute the mocked pipeline by:
 
-    ```MAGNUS_CONFIGURATION_FILE=examples/configs/mocked-config-simple.yaml python examples/concepts/simple.py```
+    ```runnable_CONFIGURATION_FILE=examples/configs/mocked-config-simple.yaml python examples/concepts/simple.py```
 
     ```python linenums="1"
     --8<-- "examples/concepts/simple.py"
@@ -84,7 +84,7 @@ The following example shows the simple case of mocking all the steps of the pipe
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -115,7 +115,7 @@ The following example shows the simple case of mocking all the steps of the pipe
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -218,7 +218,7 @@ and ```step 1 >> step3``` in case of failure. The traversal is
 
     The run log is a simple json file that can be parsed and validated against designed
     behaviors. You can also create the ```RunLog``` object by deserializing
-    ```magnus.datastore.RunLog``` from the json.
+    ```runnable.datastore.RunLog``` from the json.
 
     This can be handy when validating complex pipelines.
 
@@ -262,7 +262,7 @@ and ```step 1 >> step3``` in case of failure. The traversal is
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -301,7 +301,7 @@ and ```step 1 >> step3``` in case of failure. The traversal is
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -332,7 +332,7 @@ and ```step 1 >> step3``` in case of failure. The traversal is
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -444,9 +444,9 @@ and ```step 1 >> step3``` in case of failure. The traversal is
 
     Running the pipeline with mocked configuration:
 
-    for yaml: ```magnus execute -f examples/on-failure.yaml -c examples/configs/mocked-config-unittest.yaml```
+    for yaml: ```runnable execute -f examples/on-failure.yaml -c examples/configs/mocked-config-unittest.yaml```
 
-    for python: ```MAGNUS_CONFIGURATION_FILE=examples/configs/mocked-config-unittest.yaml python examples/on_failure.py```
+    for python: ```runnable_CONFIGURATION_FILE=examples/configs/mocked-config-unittest.yaml python examples/on_failure.py```
 
     ```yaml linenums="1"
     --8<-- "examples/configs/mocked-config-unittest.yaml"
@@ -479,7 +479,7 @@ and ```step 1 >> step3``` in case of failure. The traversal is
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -518,7 +518,7 @@ and ```step 1 >> step3``` in case of failure. The traversal is
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -549,7 +549,7 @@ and ```step 1 >> step3``` in case of failure. The traversal is
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -580,7 +580,7 @@ and ```step 1 >> step3``` in case of failure. The traversal is
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -644,7 +644,7 @@ and ```step 1 >> step3``` in case of failure. The traversal is
                 "name": "",
                 "description": "This is a simple pipeline to demonstrate failure in a step.\n\nThe default behavior is to traverse to step type fail and mark the run as
     failed.\nBut you can control it by providing on_failure.\n\nIn this example: step 1 fails and moves to step 3 skipping step 2. The pipeline status\nis considered to be
-    success.\n\nstep 1 (FAIL) >> step 3 >> success\n\nYou can run this pipeline by magnus execute -f examples/on-failure.yaml\n",
+    success.\n\nstep 1 (FAIL) >> step 3 >> success\n\nYou can run this pipeline by runnable execute -f examples/on-failure.yaml\n",
                 "steps": {
                     "step 1": {
                         "type": "task",
@@ -742,7 +742,7 @@ failure which are captured by the ```run log``` and ```catalog```.
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -781,7 +781,7 @@ failure which are captured by the ```run log``` and ```catalog```.
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -827,7 +827,7 @@ failure which are captured by the ```run log``` and ```catalog```.
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -873,7 +873,7 @@ failure which are captured by the ```run log``` and ```catalog```.
                         "code_identifier": "d76cf865af2f8e03b6c1205403351cbe42e6cdc4",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -930,7 +930,7 @@ failure which are captured by the ```run log``` and ```catalog```.
             "dag": {
                 "start_at": "Setup",
                 "name": "",
-                "description": "This is a simple pipeline that demonstrates retrying failures.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   magnus execute -f examples/retry-fail.yaml -c examples/configs/fs-catalog-run_log.yaml \\\n    --run-id wrong-file-name\n",
+                "description": "This is a simple pipeline that demonstrates retrying failures.\n\n1. Setup: We setup a data folder, we ignore if it is already present\n2. Create Content: We create a \"hello.txt\" and \"put\" the file in catalog\n3. Retrieve Content: We \"get\" the file \"hello.txt\" from the catalog and show the contents\n5. Cleanup: We remove the data folder. Note that this is stubbed to prevent accidental deletion.\n\n\nYou can run this pipeline by:\n   runnable execute -f examples/retry-fail.yaml -c examples/configs/fs-catalog-run_log.yaml \\\n    --run-id wrong-file-name\n",
                 "steps": {
                     "Setup": {
                         "type": "task",
@@ -958,7 +958,7 @@ failure which are captured by the ```run log``` and ```catalog```.
                         },
                         "max_attempts": 1,
                         "command_type": "shell",
-                        "command": "echo \"Hello from magnus\" >> data/hello.txt\n",
+                        "command": "echo \"Hello from runnable\" >> data/hello.txt\n",
                         "node_name": "Create Content"
                     },
                     "Retrieve Content": {
@@ -1011,5 +1011,5 @@ failure which are captured by the ```run log``` and ```catalog```.
 
     and retry with the fix:
 
-    ```magnus execute -f examples/retry-fail.yaml -c examples/configs/mocked-config-debug.yaml
+    ```runnable execute -f examples/retry-fail.yaml -c examples/configs/mocked-config-debug.yaml
     --run-id debug-pipeline```

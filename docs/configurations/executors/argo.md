@@ -1,7 +1,7 @@
 [Argo workflows](https://argo-workflows.readthedocs.io/en/latest/) is a powerful
 container orchestration framework for Kubernetes and it can run on any Kubernetes environment.
 
-**magnus** will transpile pipeline definition to argo specification during the pipeline execution which
+**runnable** will transpile pipeline definition to argo specification during the pipeline execution which
 you can then upload to the cluster either manually or via CICD (recommended).
 
 - [x] Execute the pipeline in any cloud environment.
@@ -9,7 +9,7 @@ you can then upload to the cluster either manually or via CICD (recommended).
 - [x] Ability to provide specialized compute environments for different steps of the pipeline.
 - [ ] Expects a mature cloud kubernetes environment and expertise.
 
-Magnus provides *sensible* defaults to most of the configuration variables but it is highly advised
+runnable provides *sensible* defaults to most of the configuration variables but it is highly advised
 to get inputs from infrastructure teams or ML engineers in defining the configuration.
 
 
@@ -56,7 +56,7 @@ executor:
 
 | Parameter      | Default | Argo Field |
 | :-----------: | :-------------: | :------------: |
-| name | ```magnus-dag-``` | ```generateName``` |
+| name | ```runnable-dag-``` | ```generateName``` |
 | annotations | ```{}``` | ```annotations``` of ```metadata``` |
 | labels | ```{}``` | ```labels``` |
 | pod_gc       | ```OnPodCompletion```  | ```podGC``` |
@@ -109,11 +109,11 @@ You can attach multiple persistent volumes to the pods as long as there are no c
 
 
 
-The following adds the volume ```magnus-volume``` to every container of the workflow at ```/mnt```
+The following adds the volume ```runnable-volume``` to every container of the workflow at ```/mnt```
 
 ```yaml
 persistent_volumes:
-  - name: magnus-volume
+  - name: runnable-volume
     mount_path: /mnt
 ```
 
@@ -154,7 +154,7 @@ as inputs to the workflow. This allows for changing the parameters at runtime.
 === "pipeline"
 
     Execute the pipeline as:
-    ```magnus execute -f examples/concepts/task_shell_parameters.yaml  -p examples/concepts/parameters.yaml -c examples/configs/argo-config.yaml```
+    ```runnable execute -f examples/concepts/task_shell_parameters.yaml  -p examples/concepts/parameters.yaml -c examples/configs/argo-config.yaml```
 
     ```yaml linenums="1"
     --8<-- "examples/concepts/task_shell_parameters.yaml"
@@ -169,12 +169,12 @@ as inputs to the workflow. This allows for changing the parameters at runtime.
     apiVersion: argoproj.io/v1alpha1
     kind: Workflow
     metadata:
-      generateName: magnus-dag-
+      generateName: runnable-dag-
       annotations: {}
       labels: {}
     spec:
       activeDeadlineSeconds: 172800
-      entrypoint: magnus-dag
+      entrypoint: runnable-dag
       podGC:
         strategy: OnPodCompletion
       retryStrategy:
@@ -186,7 +186,7 @@ as inputs to the workflow. This allows for changing the parameters at runtime.
           maxDuration: '3600'
       serviceAccountName: default-editor
       templates:
-        - name: magnus-dag
+        - name: runnable-dag
           failFast: true
           dag:
             tasks:
@@ -204,9 +204,9 @@ as inputs to the workflow. This allows for changing the parameters at runtime.
                 depends: display-again-task-6d1ofy.Succeeded
         - name: access-initial-task-cybkoa
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - '{{workflow.parameters.run_id}}'
               - access%initial
@@ -230,13 +230,13 @@ as inputs to the workflow. This allows for changing the parameters at runtime.
                 memory: 1Gi
                 cpu: 250m
             env:
-              - name: MAGNUS_PRM_spam
+              - name: runnable_PRM_spam
                 value: '{{workflow.parameters.spam}}'
         - name: modify-initial-task-6lka8g
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - '{{workflow.parameters.run_id}}'
               - modify%initial
@@ -261,9 +261,9 @@ as inputs to the workflow. This allows for changing the parameters at runtime.
                 cpu: 250m
         - name: display-again-task-6d1ofy
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - '{{workflow.parameters.run_id}}'
               - display%again
@@ -288,9 +288,9 @@ as inputs to the workflow. This allows for changing the parameters at runtime.
                 cpu: 250m
         - name: success-success-igw6ct
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - '{{workflow.parameters.run_id}}'
               - success
@@ -325,7 +325,7 @@ as inputs to the workflow. This allows for changing the parameters at runtime.
       volumes:
         - name: executor-0
           persistentVolumeClaim:
-            claimName: magnus-volume
+            claimName: runnable-volume
 
     ```
 
@@ -357,7 +357,7 @@ as inputs to the workflow. This allows for changing the parameters at runtime.
               "code_identifier": "39cd98770cb2fd6994d8ac08ae4c5506e5ce694a",
               "code_identifier_type": "git",
               "code_identifier_dependable": true,
-              "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+              "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
               "code_identifier_message": ""
           }
       ],
@@ -548,8 +548,8 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
     1. Use ```argo``` executor type to execute the pipeline.
     2. By default, all the tasks are executed in the docker image . Please
     refer to [building docker images](container-environments.md)
-    3. Mount the persistent volume ```magnus-volume``` to all the containers as ```/mnt```.
-    4. Store the run logs in the file-system. As all containers have access to ```magnus-volume```
+    3. Mount the persistent volume ```runnable-volume``` to all the containers as ```/mnt```.
+    4. Store the run logs in the file-system. As all containers have access to ```runnable-volume```
     as ```/mnt```. We use that to mounted folder as run log store.
 
 
@@ -559,10 +559,10 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
     multi-stage process](container-environments.md).
 
     1. Generate the ```yaml``` definition file by:
-    ```MAGNUS_CONFIGURATION_FILE=examples/configs/argo-config.yaml python examples/concepts/simple.py```
-    2. Build the docker image with yaml definition in it, called magnus:latest in current example.
-    3. Execute the pipeline via the magnus CLI,
-    ```MAGNUS_VAR_argo_docker_image=magnus:latest  magnus execute -f magnus-pipeline.yaml -c examples/configs/argo-config.yaml```
+    ```runnable_CONFIGURATION_FILE=examples/configs/argo-config.yaml python examples/concepts/simple.py```
+    2. Build the docker image with yaml definition in it, called runnable:latest in current example.
+    3. Execute the pipeline via the runnable CLI,
+    ```runnable_VAR_argo_docker_image=runnable:latest  runnable execute -f runnable-pipeline.yaml -c examples/configs/argo-config.yaml```
 
 
     ```python linenums="1" hl_lines="24"
@@ -570,16 +570,16 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
     ```
 
     1. You can provide a configuration file dynamically by using the environment
-    variable ```MAGNUS_CONFIGURATION_FILE```. Please see [SDK for more details](../../sdk.md).
+    variable ```runnable_CONFIGURATION_FILE```. Please see [SDK for more details](../../sdk.md).
 
 
 === "yaml"
 
     For yaml based definitions, the execution order is to:
 
-    1. Build the docker image with the yaml definition in it, called magnus:latest in current example.
-    2. Execute the pipeline via the magnus CLI:
-    ```MAGNUS_VAR_argo_docker_image=magnus:latest magnus execute -f examples/concepts/simple.yaml -c examples/configs/argo-config.yaml```
+    1. Build the docker image with the yaml definition in it, called runnable:latest in current example.
+    2. Execute the pipeline via the runnable CLI:
+    ```runnable_VAR_argo_docker_image=runnable:latest runnable execute -f examples/concepts/simple.yaml -c examples/configs/argo-config.yaml```
 
     ```yaml linenums="1"
     --8<-- "examples/concepts/simple.yaml"
@@ -630,7 +630,7 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
                       "code_identifier": "39cd98770cb2fd6994d8ac08ae4c5506e5ce694a",
                       "code_identifier_type": "git",
                       "code_identifier_dependable": true,
-                      "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                      "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                       "code_identifier_message": ""
                   }
               ],
@@ -661,7 +661,7 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
                       "code_identifier": "39cd98770cb2fd6994d8ac08ae4c5506e5ce694a",
                       "code_identifier_type": "git",
                       "code_identifier_dependable": false,
-                      "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                      "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                       "code_identifier_message": ""
                   }
               ],
@@ -691,7 +691,7 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
               "image": "$argo_docker_image",
               "expose_parameters_as_inputs": true,
               "output_file": "argo-pipeline.yaml",
-              "name": "magnus-dag-",
+              "name": "runnable-dag-",
               "annotations": {},
               "labels": {},
               "namespace": null,
@@ -715,7 +715,7 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
               "secrets_from_k8s": [],
               "persistent_volumes": [
                   {
-                      "name": "magnus-volume",
+                      "name": "runnable-volume",
                       "mount_path": "/mnt"
                   }
               ],
@@ -782,7 +782,7 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
 
 ## Nesting
 
-Magnus compiled argo workflows support deeply nested workflows.
+runnable compiled argo workflows support deeply nested workflows.
 
 ### Example
 
@@ -809,8 +809,8 @@ Magnus compiled argo workflows support deeply nested workflows.
     1. Use ```argo``` executor type to execute the pipeline.
     2. By default, all the tasks are executed in the docker image . Please
     refer to [building docker images](container-environments.md)
-    3. Mount the persistent volume ```magnus-volume``` to all the containers as ```/mnt```.
-    4. Store the run logs in the file-system. As all containers have access to ```magnus-volume```
+    3. Mount the persistent volume ```runnable-volume``` to all the containers as ```/mnt```.
+    4. Store the run logs in the file-system. As all containers have access to ```runnable-volume```
     as ```/mnt```. We use that to mounted folder as run log store.
 
 
@@ -820,12 +820,12 @@ Magnus compiled argo workflows support deeply nested workflows.
     apiVersion: argoproj.io/v1alpha1
     kind: Workflow
     metadata:
-      generateName: magnus-dag-
+      generateName: runnable-dag-
       annotations: {}
       labels: {}
     spec:
       activeDeadlineSeconds: 172800
-      entrypoint: magnus-dag
+      entrypoint: runnable-dag
       retryStrategy:
         limit: "0"
         retryPolicy: Always
@@ -1072,7 +1072,7 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: outer-most-map-map-0ukhr5-fan-in
                 template: outer-most-map-map-0ukhr5-fan-in
                 depends: outer-most-map-map-0ukhr5-map.Succeeded || outer-most-map-map-0ukhr5-map.Failed
-        - name: magnus-dag
+        - name: runnable-dag
           failFast: true
           dag:
             tasks:
@@ -1087,9 +1087,9 @@ Magnus compiled argo workflows support deeply nested workflows.
                 depends: outer-most-map-map-0ukhr5.Succeeded
         - name: generate-list-task-s7za4e
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - "{{workflow.parameters.run_id}}"
               - generate_list
@@ -1112,9 +1112,9 @@ Magnus compiled argo workflows support deeply nested workflows.
                 cpu: 250m
         - name: outer-most-map-map-0ukhr5-fan-out
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - fan
               - "{{workflow.parameters.run_id}}"
               - outer%most%map
@@ -1144,9 +1144,9 @@ Magnus compiled argo workflows support deeply nested workflows.
                   path: /tmp/output.txt
         - name: outer-most-map-map-0ukhr5-fan-in
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - fan
               - "{{workflow.parameters.run_id}}"
               - outer%most%map
@@ -1171,9 +1171,9 @@ Magnus compiled argo workflows support deeply nested workflows.
                 cpu: 250m
         - name: nested-parallel-parallel-wje1o4-fan-out
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - fan
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel
@@ -1203,9 +1203,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: xarg
         - name: nested-parallel-parallel-wje1o4-fan-in
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - fan
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel
@@ -1235,9 +1235,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: xarg
         - name: inner-most-map-map-yeslqe-fan-out
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - fan
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel.a.inner%most%map
@@ -1272,9 +1272,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: xarg
         - name: inner-most-map-map-yeslqe-fan-in
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - fan
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel.a.inner%most%map
@@ -1304,9 +1304,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: xarg
         - name: executable-stub-blnf25
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel.a.inner%most%map.map_variable_placeholder.executable
@@ -1335,9 +1335,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: yarg
         - name: success-success-trvgst
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel.a.inner%most%map.map_variable_placeholder.success
@@ -1366,9 +1366,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: yarg
         - name: success-success-y1yr7v
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel.a.success
@@ -1396,9 +1396,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: xarg
         - name: inner-most-map-map-b206p5-fan-out
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - fan
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel.b.inner%most%map
@@ -1433,9 +1433,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: xarg
         - name: inner-most-map-map-b206p5-fan-in
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - fan
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel.b.inner%most%map
@@ -1465,9 +1465,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: xarg
         - name: executable-stub-8ui1yv
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel.b.inner%most%map.map_variable_placeholder.executable
@@ -1496,9 +1496,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: yarg
         - name: success-success-h4j0k9
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel.b.inner%most%map.map_variable_placeholder.success
@@ -1527,9 +1527,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: yarg
         - name: success-success-dvma7h
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.nested%parallel.b.success
@@ -1557,9 +1557,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: xarg
         - name: success-success-e4lb2k
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - "{{workflow.parameters.run_id}}"
               - outer%most%map.map_variable_placeholder.success
@@ -1587,9 +1587,9 @@ Magnus compiled argo workflows support deeply nested workflows.
               - name: xarg
         - name: success-success-2v62uq
           container:
-            image: harbor.csis.astrazeneca.net/mlops/magnus:latest
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             command:
-              - magnus
+              - runnable
               - execute_single_node
               - "{{workflow.parameters.run_id}}"
               - success
@@ -1620,7 +1620,7 @@ Magnus compiled argo workflows support deeply nested workflows.
       volumes:
         - name: executor-0
           persistentVolumeClaim:
-            claimName: magnus-volume
+            claimName: runnable-volume
 
     ```
 

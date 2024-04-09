@@ -1,7 +1,7 @@
 executor:
   type: "local-container" # (1)
   config:
-    docker_image: $default_docker_image # (2)
+    docker_image: runnable:latest # (2)
     environment:
       key: value # (3)
 
@@ -12,7 +12,4 @@ catalog:
   type: file-system
 
 secrets:
-  type: do-nothing
-
-experiment_tracker:
   type: do-nothing

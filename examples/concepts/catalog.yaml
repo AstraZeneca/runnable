@@ -9,7 +9,7 @@ dag:
     retrieve_content_from_both: Retrieves the content from both "data" and "another
 
     You can run this pipeline by:
-    magnus execute -f examples/concepts/catalog.yaml -c examples/configs/fs-catalog.yaml
+    runnable execute -f examples/concepts/catalog.yaml -c examples/configs/fs-catalog.yaml
 
   start_at: create_content_in_data_folder
   steps:

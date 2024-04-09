@@ -74,7 +74,7 @@ the patterns.
     2. By default, all the tasks are executed in the docker image . Please
     refer to [building docker images](container-environments.md/#dynamic_name_of_the_image)
     3. Pass any environment variables that are needed for the container.
-    4. Store the run logs in the file-system. Magnus will handle the access to them
+    4. Store the run logs in the file-system. runnable will handle the access to them
     by mounting the file system into the container.
 
 
@@ -84,10 +84,10 @@ the patterns.
     multi-stage process](container-environments.md).
 
     1. Generate the ```yaml``` definition file by:
-    ```MAGNUS_CONFIGURATION_FILE=examples/configs/local-container.yaml python examples/concepts/simple.py```
-    2. Build the docker image with yaml definition in it, called magnus:demo in current example.
-    3. Execute the pipeline via the magnus CLI,
-    ```MAGNUS_VAR_default_docker_image=magnus:demo  magnus execute -f magnus-pipeline.yaml -c examples/configs/local-container.yaml```
+    ```runnable_CONFIGURATION_FILE=examples/configs/local-container.yaml python examples/concepts/simple.py```
+    2. Build the docker image with yaml definition in it, called runnable:demo in current example.
+    3. Execute the pipeline via the runnable CLI,
+    ```runnable_VAR_default_docker_image=runnable:demo  runnable execute -f runnable-pipeline.yaml -c examples/configs/local-container.yaml```
 
 
     ```python linenums="1" hl_lines="24"
@@ -95,7 +95,7 @@ the patterns.
     ```
 
     1. You can provide a configuration file dynamically by using the environment
-    variable ```MAGNUS_CONFIGURATION_FILE```. Please see [SDK for more details](../../sdk.md).
+    variable ```runnable_CONFIGURATION_FILE```. Please see [SDK for more details](../../sdk.md).
 
 
 
@@ -103,9 +103,9 @@ the patterns.
 
     For yaml based definitions, the execution order is to:
 
-    1. Build the docker image with the yaml definition in it, called magnus:demo in current example.
-    2. Execute the pipeline via the magnus CLI:
-    ```MAGNUS_VAR_default_docker_image=magnus:demo magnus execute -f examples/concepts/simple.yaml -c examples/configs/local-container.yaml```
+    1. Build the docker image with the yaml definition in it, called runnable:demo in current example.
+    2. Execute the pipeline via the runnable CLI:
+    ```runnable_VAR_default_docker_image=runnable:demo runnable execute -f examples/concepts/simple.yaml -c examples/configs/local-container.yaml```
 
     ```yaml linenums="1"
     --8<-- "examples/concepts/simple.yaml"
@@ -138,7 +138,7 @@ the patterns.
                       "code_identifier": "ef142998dc315ddbd9aa10e016128c872de6e6e1",
                       "code_identifier_type": "git",
                       "code_identifier_dependable": true,
-                      "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                      "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                       "code_identifier_message": ""
                   },
                   {
@@ -184,7 +184,7 @@ the patterns.
                       "code_identifier": "ef142998dc315ddbd9aa10e016128c872de6e6e1",
                       "code_identifier_type": "git",
                       "code_identifier_dependable": true,
-                      "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                      "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                       "code_identifier_message": ""
                   }
               ],
@@ -234,7 +234,7 @@ the patterns.
           "tag": "",
           "run_id": "shortest-stallman-2113",
           "variables": {
-              "default_docker_image": "magnus:demo"
+              "default_docker_image": "runnable:demo"
           },
           "use_cached": false,
           "original_run_id": "",
@@ -305,17 +305,17 @@ executor.
     multi-stage process](container-environments.md).
 
     1. Generate the ```yaml``` definition file by:
-    ```MAGNUS_CONFIGURATION_FILE=examples/executors/local-container-override.yaml python examples/executors/step_overrides_container.py```
+    ```runnable_CONFIGURATION_FILE=examples/executors/local-container-override.yaml python examples/executors/step_overrides_container.py```
     2. Build the docker image with yaml definition in it. In this example, we build
     two docker images.
 
-        * magnus:3.8 as the default_docker_image.
-        * magnus:3.9 as the custom_docker_image.
+        * runnable:3.8 as the default_docker_image.
+        * runnable:3.9 as the custom_docker_image.
 
       Both the docker images are same except for the python version.
 
-    3. Execute the pipeline via the magnus CLI,
-    ```MAGNUS_VAR_default_docker_image=magnus:3.8  MAGNUS_VAR_custom_docker_image=magnus:3.9 magnus execute -f magnus-pipeline.yaml -c examples/executors/local-container-override.yaml```
+    3. Execute the pipeline via the runnable CLI,
+    ```runnable_VAR_default_docker_image=runnable:3.8  runnable_VAR_custom_docker_image=runnable:3.9 runnable execute -f runnable-pipeline.yaml -c examples/executors/local-container-override.yaml```
 
 
     You should see the console output of the ```step 1``` to be ```3.8``` and key to be "value"
@@ -334,15 +334,15 @@ executor.
     two docker images.
 
 
-        * magnus:3.8 as the default_docker_image.
-        * magnus:3.9 as the custom_docker_image.
+        * runnable:3.8 as the default_docker_image.
+        * runnable:3.9 as the custom_docker_image.
 
 
         Both the docker images are same except for the python version.
 
 
-    2. Execute the pipeline via the magnus CLI:
-    ```MAGNUS_VAR_default_docker_image=magnus:3.8 MAGNUS_VAR_custom_docker_image=magnus:3.9 magnus execute -f examples/executors/step_overrides_container.yaml -c examples/executors/local-container-override.yaml```
+    2. Execute the pipeline via the runnable CLI:
+    ```runnable_VAR_default_docker_image=runnable:3.8 runnable_VAR_custom_docker_image=runnable:3.9 runnable execute -f examples/executors/step_overrides_container.yaml -c examples/executors/local-container-override.yaml```
 
     You should see the console output of the ```step 1``` to be ```3.8``` and key to be "value"
     while the python version for ```step 2``` to be 3.9 and key to be "not-value".

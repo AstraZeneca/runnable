@@ -22,7 +22,7 @@ executor:
     tolerations: # apply to spec
     image_pull_policy: "" # apply to template
     persistent_volumes: # (3)
-      - name: magnus-volume
+      - name: runnable-volume
         mount_path: /mnt
 
     # overrides:

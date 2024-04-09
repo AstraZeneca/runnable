@@ -91,7 +91,7 @@ catalog:
                         "code_identifier": "39cd98770cb2fd6994d8ac08ae4c5506e5ce694a",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -130,7 +130,7 @@ catalog:
                         "code_identifier": "39cd98770cb2fd6994d8ac08ae4c5506e5ce694a",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -176,7 +176,7 @@ catalog:
                         "code_identifier": "39cd98770cb2fd6994d8ac08ae4c5506e5ce694a",
                         "code_identifier_type": "git",
                         "code_identifier_dependable": true,
-                        "code_identifier_url": "https://github.com/AstraZeneca/magnus-core.git",
+                        "code_identifier_url": "https://github.com/AstraZeneca/runnable-core.git",
                         "code_identifier_message": ""
                     }
                 ],
@@ -258,7 +258,7 @@ catalog:
                             ]
                         },
                         "max_attempts": 1,
-                        "command": "echo \"Hello from magnus\" >> data/hello.txt",
+                        "command": "echo \"Hello from runnable\" >> data/hello.txt",
                         "command_type": "shell",
                         "node_name": "Create Content"
                     },

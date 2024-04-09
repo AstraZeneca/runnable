@@ -12,19 +12,24 @@ dag:
     parameter name per chunk is set to be "start_index".
 
     The shell script can access the start_index as
-    MAGNUS_MAP_VARIABLE environment variable.
+    runnable_MAP_VARIABLE environment variable.
 
     Run this pipeline by:
-      magnus execute -f examples/concepts/map_shell.yaml
+      runnable execute -f examples/concepts/map_shell.yaml
 
   start_at: chunk files
   steps:
     chunk files:
       type: task
       command_type: shell
+      returns:
+        - name: stride
+          kind: json
+        - name: chunks
+          kind: json
       command: |
-        export MAGNUS_PRM_stride=10 &&
-        export MAGNUS_PRM_chunks="[0, 10, 20, 30, 40]"
+        export stride=10 &&
+        export chunks="[0, 10, 20, 30, 40]"
       next: iterate and execute
     iterate and execute:
       type: map
@@ -38,9 +43,9 @@ dag:
             type: task
             command_type: shell
             command: |
-              echo $MAGNUS_PRM_stride
-              echo $MAGNUS_MAP_VARIABLE
-              # prints 10 and {"start_index": <start_index>}
+              echo stride
+              echo start_index
+              # prints 10 and 0, 10, 20, 30, 40
             next: success
           success:
             type: success

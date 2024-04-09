@@ -9,7 +9,7 @@ dag:
     in overrides section of executor config.
 
     You can execute the pipeline by:
-    magnus execute -f examples/executors/step_overrides_container.yaml \
+    runnable execute -f examples/executors/step_overrides_container.yaml \
      -c examples/executors/local-container-override.yaml
   start_at: step 1
   steps:

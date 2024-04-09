@@ -1,43 +1,53 @@
 [tool.poetry]
-name = "magnus"
+name = "runnable"
 version = "0"
 description = "A Compute agnostic pipelining software"
 authors = ["Vijay Vammi <mesanthu@gmail.com>"]
 license = "Apache-2.0"
 readme = "README.md"
-homepage = "https://github.com/AstraZeneca/magnus-core"
-repository = "https://github.com/AstraZeneca/magnus-core"
-documentation = "https://astrazeneca.github.io/magnus-core/"
+homepage = "https://github.com/vijayvammi/runnable"
+repository = "https://github.com/vijayvammi/runnable"
+documentation = "https://github.com/vijayvammi/runnable"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.13"
+python = ">=3.9,<3.13"
 "ruamel.yaml" = "*"
 "ruamel.yaml.clib" = "*"
 pydantic = "^2.5"
 stevedore = "^3.5.0"
 "click" = "*"
 click-plugins = "^1.1.1"
-typing-extensions ={ version= "*", python = "<3.8" }
-docker ={ version = "*", optional = true }
-sqlalchemy ={ version = "*", optional = true }
+typing-extensions = { version = "*", python = "<3.8" }
+docker = { version = "*", optional = true }
+sqlalchemy = { version = "*", optional = true }
 rich = "^13.5.2"
-mlflow-skinny ={ version = "*", optional = true }
+mlflow-skinny = { version = "*", optional = true }
 ploomber-engine = "^0.0.31"
+dill = "^0.3.8"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "*"
 mkdocs-material = "*"
 mkdocs-section-index = "^0.3.5"
-mkdocstrings = {extras = ["python"], version = "^0.24.0"}
+mkdocstrings = { extras = ["python"], version = "^0.24.0" }
 nbconvert = "^7.13.1"
 mkdocs-click = "^0.8.1"
+tensorflow = "^2.16.1"
 
 [tool.poetry.group.binary.dependencies]
 pyinstaller = "^5.13.2"
 
 [tool.poetry.group.perf.dependencies]
-# Run the performace tests poetry run python -m pyflame -p ./flamegraph.pl magnus/entrypoints.py
+# Run the performace tests poetry run python -m pyflame -p ./flamegraph.pl runnable/entrypoints.py
 pyflame = "^0.3.1"
+
+
+[tool.poetry.group.tutorial.dependencies]
+pandas = "^2.2.1"
+numpy = "^1.26.4"
+scikit-learn = "^1.4.1.post1"
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz" }
+matplotlib = "^3.8.3"
 
 [tool.poetry.extras]
 docker = ['docker']
@@ -59,41 +69,38 @@ gitlint = "^0.19.1"
 
 
 [tool.poetry.scripts]
-magnus= 'magnus.cli:cli'
+runnable = 'runnable.cli:cli'
 
 
 # Plugins for Executors
 [tool.poetry.plugins."executor"]
-"local" = "magnus.extensions.executor.local.implementation:LocalExecutor"
-"local-container" = "magnus.extensions.executor.local_container.implementation:LocalContainerExecutor"
-"argo" = "magnus.extensions.executor.argo.implementation:ArgoExecutor"
-"mocked" = "magnus.extensions.executor.mocked.implementation:MockedExecutor"
+"local" = "runnable.extensions.executor.local.implementation:LocalExecutor"
+"local-container" = "runnable.extensions.executor.local_container.implementation:LocalContainerExecutor"
+"argo" = "runnable.extensions.executor.argo.implementation:ArgoExecutor"
+"mocked" = "runnable.extensions.executor.mocked.implementation:MockedExecutor"
+"retry" = "runnable.extensions.executor.retry.implementation:RetryExecutor"
 
 # Plugins for Catalog
 [tool.poetry.plugins."catalog"]
-"do-nothing" = "magnus.catalog:DoNothingCatalog"
-"file-system" = "magnus.extensions.catalog.file_system.implementation:FileSystemCatalog"
+"do-nothing" = "runnable.catalog:DoNothingCatalog"
+"file-system" = "runnable.extensions.catalog.file_system.implementation:FileSystemCatalog"
 
 # Plugins for Secrets
 [tool.poetry.plugins."secrets"]
-"do-nothing" = "magnus.secrets:DoNothingSecretManager"
-"dotenv" = "magnus.extensions.secrets.dotenv.implementation:DotEnvSecrets"
-"env-secrets-manager" = "magnus.extensions.secrets.env_secrets.implementation:EnvSecretsManager"
+"do-nothing" = "runnable.secrets:DoNothingSecretManager"
+"dotenv" = "runnable.extensions.secrets.dotenv.implementation:DotEnvSecrets"
+"env-secrets-manager" = "runnable.extensions.secrets.env_secrets.implementation:EnvSecretsManager"
 
 # Plugins for Run Log store
 [tool.poetry.plugins."run_log_store"]
-"buffered" = "magnus.datastore:BufferRunLogstore"
-"file-system" = "magnus.extensions.run_log_store.file_system.implementation:FileSystemRunLogstore"
-"chunked-fs" = "magnus.extensions.run_log_store.chunked_file_system.implementation:ChunkedFileSystemRunLogStore"
+"buffered" = "runnable.datastore:BufferRunLogstore"
+"file-system" = "runnable.extensions.run_log_store.file_system.implementation:FileSystemRunLogstore"
+"chunked-fs" = "runnable.extensions.run_log_store.chunked_file_system.implementation:ChunkedFileSystemRunLogStore"
 
-# Plugins for Experiment tracker
-[tool.poetry.plugins."experiment_tracker"]
-"do-nothing" = "magnus.experiment_tracker:DoNothingTracker"
-"mlflow" = "magnus.extensions.experiment_tracker.mlflow.implementation:MLFlowExperimentTracker"
 
 # Plugins for Pickler
 [tool.poetry.plugins."pickler"]
-"pickle" = "magnus.pickler:NativePickler"
+"pickle" = "runnable.pickler:NativePickler"
 
 
 # Plugins for Integration
@@ -102,19 +109,19 @@ magnus= 'magnus.cli:cli'
 
 # Plugins for Tasks
 [tool.poetry.plugins."tasks"]
-"python" = "magnus.tasks:PythonTaskType"
-"shell" = "magnus.tasks:ShellTaskType"
-"notebook" = "magnus.tasks:NotebookTaskType"
+"python" = "runnable.tasks:PythonTaskType"
+"shell" = "runnable.tasks:ShellTaskType"
+"notebook" = "runnable.tasks:NotebookTaskType"
 
 # Plugins for Nodes
 [tool.poetry.plugins."nodes"]
-"task" = "magnus.extensions.nodes:TaskNode"
-"fail" = "magnus.extensions.nodes:FailNode"
-"success" = "magnus.extensions.nodes:SuccessNode"
-"parallel" = "magnus.extensions.nodes:ParallelNode"
-"map" = "magnus.extensions.nodes:MapNode"
-"dag" = "magnus.extensions.nodes:DagNode"
-"stub" = "magnus.extensions.nodes:StubNode"
+"task" = "runnable.extensions.nodes:TaskNode"
+"fail" = "runnable.extensions.nodes:FailNode"
+"success" = "runnable.extensions.nodes:SuccessNode"
+"parallel" = "runnable.extensions.nodes:ParallelNode"
+"map" = "runnable.extensions.nodes:MapNode"
+"dag" = "runnable.extensions.nodes:DagNode"
+"stub" = "runnable.extensions.nodes:StubNode"
 
 
 [tool.black]
@@ -122,7 +129,9 @@ line-length = 120
 
 [tool.ruff]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F","W","I001"]
+select = ["E", "F", "W"]
+
+# extend-select = ["I"]
 
 ignore = []
 
@@ -152,12 +161,14 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
+    "examples/kubeflow",
+    "examples/tutorials/",
 ]
 per-file-ignores = {}
 
 # Builtins
 
-builtins=["__version__"]
+builtins = ["__version__"]
 
 # Same as Black.
 line-length = 120
@@ -204,9 +215,7 @@ branch = true
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
-exclude_lines = [
-    "pragma: no cover"
-]
+exclude_lines = ["pragma: no cover"]
 
 include_namespace_packages = true
 show_missing = true
@@ -218,10 +227,10 @@ exclude_also = [
 
     # Don't complain about abstract methods, they aren't run:
     "@(abc\\.)?abstractmethod",
-    ]
+]
 
-omit =[
-    "magnus/cli.py",
-    "magnus/extensions/executor/demo_renderer/*",
-    "*FF.py"
-    ]
+omit = [
+    "runnable/cli.py",
+    "runnable/extensions/executor/demo_renderer/*",
+    "*FF.py",
+]

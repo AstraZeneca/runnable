@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: runnable-dag
+spec:
+  activeDeadlineSeconds: int # max run time of the workflow
+  entrypoint: str
+  nodeSelector: Dict[str, str] # global node selector
+  parallelism: # global level
+  podGC: OnPodCompletion
+  resources: # Should be converted to podSpecPath
+    limits:
+    requests:
+  podSpecPatch: json str representation of resources for defaults
+  retryStrategy: # global level for all templates
+    limit: int
+    retryPolicy: # global level for all templates
+    backoff:
+      duration: str
+      factor: int
+      maxDuration: str
+  serviceAccountName: str # Optionally required
+  templateDefaults:
+    activeDeadlineSeconds: int, for a template
+    timeout: str # max time including the wait time
+    failFast: true
+    volumes:
+  templates:
+    activeDeadlineSeconds: # override
+    nodeSelector: # override
+    retryStrategy: # override
+    tolerations: # override
+    container:
+      command:
+      env:
+      image:
+      imagePullPolicy:
+      volumeMounts:
+      resources:
+        limits:
+        requests:
+    dag:
+      tasks:
+        depends:
+        continueOn:
+  tolerations: # global level for all templates
+    effect: str
+    key: str
+    operator: str
+    value: str
+  volumes:
