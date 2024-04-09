@@ -9,6 +9,8 @@ You can execute this pipeline by: python examples/parameters.py
 
 """
 
+from typing import Tuple
+
 from pydantic import BaseModel
 
 
@@ -41,7 +43,7 @@ def display(simple: int, inner: InnerModel):  # (2)
     print(inner)
 
 
-def return_parameters(simple: int, inner: InnerModel) -> NestedModel:  # (3)
+def return_parameters(simple: int, inner: InnerModel) -> Tuple[int, InnerModel]:  # (3)
     """
     The parameter "simple" and "inner" can be accessed by name.
     You can redefine the parameters by returning a pydantic model.
@@ -51,14 +53,6 @@ def return_parameters(simple: int, inner: InnerModel) -> NestedModel:  # (3)
     inner.y = "Hello Universe!!"
 
     return simple, inner
-
-
-"""
-The below code is only to provide a full working example.
-
-In the real world, you can "box runnable" in pipeline definition either in
-python or yaml without cluttering your application code.
-"""
 
 
 def main():

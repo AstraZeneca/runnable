@@ -5,6 +5,9 @@ import os
 import sys
 from typing import Optional, cast
 
+from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
+from rich.table import Column
+
 import runnable.context as context
 from runnable import console, defaults, graph, utils
 from runnable.defaults import RunnableConfig, ServiceConfig
@@ -180,7 +183,27 @@ def execute(
     executor.prepare_for_graph_execution()
 
     logger.info(f"Executing the graph: {run_context.dag}")
-    executor.execute_graph(dag=run_context.dag)  # type: ignore
+    with Progress(
+        TextColumn("[progress.description]{task.description}", table_column=Column(ratio=2)),
+        BarColumn(table_column=Column(ratio=1), style="dark_orange"),
+        TimeElapsedColumn(table_column=Column(ratio=1)),
+        console=console,
+        expand=True,
+    ) as progress:
+        pipeline_execution_task = progress.add_task("[dark_orange] Starting execution .. ", total=1)
+        try:
+            run_context.progress = progress
+            executor.execute_graph(dag=run_context.dag)  # type: ignore
+
+            run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
+
+            if run_log.status == defaults.SUCCESS:
+                progress.update(pipeline_execution_task, description="[green] Success", completed=True)
+            else:
+                progress.update(pipeline_execution_task, description="[red] Failed", completed=True)
+        except Exception as e:  # noqa: E722
+            console.print(e, style=defaults.error_style)
+            progress.update(pipeline_execution_task, description="[red] Errored execution", completed=True)
 
     executor.send_return_code()
 

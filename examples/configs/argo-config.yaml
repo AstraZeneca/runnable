@@ -17,6 +17,3 @@ catalog:
 
 secrets:
   type: do-nothing
-
-experiment_tracker:
-  type: do-nothing

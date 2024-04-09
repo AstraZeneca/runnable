@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 from string import Template
-from typing import Optional, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 from runnable import defaults, utils
 from runnable.extensions.run_log_store.generic_chunked import ChunkedRunLogStore
@@ -20,6 +20,11 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
 
     service_name: str = "chunked-fs"
     log_folder: str = defaults.LOG_LOCATION_FOLDER
+
+    def get_summary(self) -> Dict[str, Any]:
+        summary = {"Type": self.service_name, "Location": self.log_folder}
+
+        return summary
 
     def get_matches(self, run_id: str, name: str, multiple_allowed: bool = False) -> Optional[Union[Sequence[T], T]]:
         """

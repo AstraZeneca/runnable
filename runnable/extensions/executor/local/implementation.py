@@ -35,6 +35,7 @@ class LocalExecutor(GenericExecutor):
             node (BaseNode): [description]
             map_variable (str, optional): [description]. Defaults to ''.
         """
+
         self.prepare_for_node_execution()
         self.execute_node(node=node, map_variable=map_variable, **kwargs)
 

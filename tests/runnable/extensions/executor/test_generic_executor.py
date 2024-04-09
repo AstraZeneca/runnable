@@ -1,10 +1,11 @@
-import pytest
 import logging
 
-from runnable import defaults, exceptions
-from runnable.extensions.executor import GenericExecutor
-from runnable.extensions import executor
+import pytest
+
 import runnable.extensions.executor as executor
+from runnable import defaults, exceptions
+from runnable.extensions import executor
+from runnable.extensions.executor import GenericExecutor
 
 
 @pytest.fixture(autouse=True)
@@ -149,8 +150,8 @@ def test_base_executor_prepare_for_graph_execution_calls(mocker, monkeypatch, mo
 
     base_executor.prepare_for_graph_execution()
 
-    assert mock_configure_for_traversal.call_count == 4
-    assert mock_validate.call_count == 4
+    assert mock_configure_for_traversal.call_count == 3
+    assert mock_validate.call_count == 3
 
 
 def test_base_execution_prepare_for_node_calls(mocker, monkeypatch, mock_run_context):
@@ -170,8 +171,8 @@ def test_base_execution_prepare_for_node_calls(mocker, monkeypatch, mock_run_con
 
     base_executor.prepare_for_node_execution()
 
-    assert mock_configure_for_execution.call_count == 4
-    assert mock_validate.call_count == 4
+    assert mock_configure_for_execution.call_count == 3
+    assert mock_validate.call_count == 3
 
 
 def test_base_executor__sync_catalog_raises_exception_if_stage_not_in_get_or_put(mocker, monkeypatch):

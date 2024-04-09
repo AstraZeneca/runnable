@@ -156,7 +156,7 @@ class BaseTaskType(BaseModel):
             log_file.close()
 
             # Put the log file in the catalog
-            # catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
+            # self._context.catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
             os.remove(log_file.name)
 
             # Update parameters

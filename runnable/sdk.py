@@ -692,32 +692,27 @@ class Pipeline(BaseModel):
         # Prepare for graph execution
         run_context.executor.prepare_for_graph_execution()
 
-        progress = Progress(
+        with Progress(
             TextColumn("[progress.description]{task.description}", table_column=Column(ratio=2)),
-            BarColumn(table_column=Column(ratio=1)),
+            BarColumn(table_column=Column(ratio=1), style="dark_orange"),
             TimeElapsedColumn(table_column=Column(ratio=1)),
             console=console,
             expand=True,
-        ).__enter__()
+        ) as progress:
+            try:
+                run_context.progress = progress
+                pipeline_execution_task = progress.add_task("[dark_orange] Starting execution .. ", total=1)
+                run_context.executor.execute_graph(dag=run_context.dag)
 
-        try:
-            run_context.progress = progress
-            logger.info("Executing the graph")
+                run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
 
-            pipeline_execution_task = progress.add_task("Executing the pipeline .. ", total=None)
-
-            run_context.executor.execute_graph(dag=run_context.dag)
-
-            run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
-
-            if run_log.status == defaults.SUCCESS:
-                progress.update(pipeline_execution_task, description="[green] Success", completed=True)
-            else:
-                progress.update(pipeline_execution_task, description="[red] Failed", completed=True)
-        except:  # noqa: E722
-            progress.update(pipeline_execution_task, description="[red] Errored execution", completed=True)
-        finally:
-            progress.__exit__(None, None, None)
+                if run_log.status == defaults.SUCCESS:
+                    progress.update(pipeline_execution_task, description="[green] Success", completed=True)
+                else:
+                    progress.update(pipeline_execution_task, description="[red] Failed", completed=True)
+            except Exception as e:  # noqa: E722
+                console.print(e, style=defaults.error_style)
+                progress.update(pipeline_execution_task, description="[red] Errored execution", completed=True)
 
         if run_context.executor._local:
             return run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id)

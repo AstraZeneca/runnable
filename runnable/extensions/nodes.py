@@ -5,7 +5,7 @@ import sys
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from pydantic import (
     ConfigDict,
@@ -17,7 +17,7 @@ from pydantic import (
 from typing_extensions import Annotated
 
 from runnable import datastore, defaults, utils
-from runnable.datastore import JsonParameter, ObjectParameter, StepLog
+from runnable.datastore import JsonParameter, MetricParameter, ObjectParameter, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode, ExecutableNode, TerminalNode
@@ -379,6 +379,7 @@ class MapNode(CompositeNode):
     node_type: str = Field(default="map", serialization_alias="type")
     iterate_on: str
     iterate_as: str
+    iterate_index: bool = Field(default=False)  # TODO: Need to design this
     reducer: Optional[str] = Field(default=None)
     branch: Graph
     is_composite: bool = True
@@ -390,6 +391,7 @@ class MapNode(CompositeNode):
             "branch": self.branch.get_summary(),
             "iterate_on": self.iterate_on,
             "iterate_as": self.iterate_as,
+            "iterate_index": self.iterate_index,
             "reducer": self.reducer,
         }
 
@@ -431,12 +433,12 @@ class MapNode(CompositeNode):
 
     @property
     def branch_returns(self):
-        branch_returns = []
+        branch_returns: List[Tuple[str, Union[ObjectParameter, MetricParameter, JsonParameter]]] = []
         for _, node in self.branch.nodes.items():
             if isinstance(node, TaskNode):
                 for task_return in node.executable.returns:
                     if task_return.kind == "json":
-                        branch_returns.append((task_return.name, JsonParameter(kind="json", value=None, reduced=False)))
+                        branch_returns.append((task_return.name, JsonParameter(kind="json", value="", reduced=False)))
                     elif task_return.kind == "object":
                         branch_returns.append(
                             (
@@ -446,7 +448,11 @@ class MapNode(CompositeNode):
                                     value="Will be reduced",
                                     reduced=False,
                                 ),
-                            )  # type: ignore
+                            )
+                        )
+                    elif task_return.kind == "metric":
+                        branch_returns.append(
+                            (task_return.name, MetricParameter(kind="metric", value="", reduced=False))
                         )
                     else:
                         raise Exception("kind should be either json or object")

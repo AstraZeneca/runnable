@@ -17,20 +17,16 @@ from typing import (
 )
 
 from pydantic import BaseModel, Field, computed_field
-from typing_extensions import TypeAliasType
 
 import runnable.context as context
 from runnable import defaults, exceptions
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-# Once defined these classes are sealed to any additions unless a default is provided
-# Breaking this rule might make runnable backwardly incompatible
 
-JSONType = TypeAliasType(
-    "JSONType",
-    Union[bool, int, float, str, None, List["JSONType"], Dict[str, "JSONType"]],  # type: ignore
-)
+JSONType = Union[
+    str, int, float, bool, List[Any], Dict[str, Any]
+]  # This is actually JSONType, but pydantic doesn't support TypeAlias yet
 
 
 class DataCatalog(BaseModel, extra="allow"):
@@ -72,7 +68,7 @@ The theory behind reduced:
 
 class JsonParameter(BaseModel):
     kind: Literal["json"]
-    value: JSONType  # type: ignore
+    value: JSONType
     reduced: bool = True
 
     @computed_field  # type: ignore
@@ -80,12 +76,22 @@ class JsonParameter(BaseModel):
     def description(self) -> JSONType:
         return self.value
 
-    def get_value(self) -> JSONType:  # type: ignore
+    def get_value(self) -> JSONType:
         return self.value
 
 
-class MetricParameter(JsonParameter):
+class MetricParameter(BaseModel):
     kind: Literal["metric"]
+    value: JSONType
+    reduced: bool = True
+
+    @computed_field  # type: ignore
+    @property
+    def description(self) -> JSONType:
+        return self.value
+
+    def get_value(self) -> JSONType:
+        return self.value
 
 
 class ObjectParameter(BaseModel):
@@ -134,7 +140,7 @@ class StepAttempt(BaseModel):
     message: str = ""
     input_parameters: Dict[str, Parameter] = Field(default_factory=dict)
     output_parameters: Dict[str, Parameter] = Field(default_factory=dict)
-    user_defined_metrics: Dict[str, Any] = Field(default_factory=dict)
+    user_defined_metrics: Dict[str, Parameter] = Field(default_factory=dict)
 
     @property
     def duration(self):
@@ -176,7 +182,7 @@ class StepLog(BaseModel):
         """
         Summarize the step log to log
         """
-        summary = {}
+        summary: Dict[str, Any] = {}
 
         summary["Name"] = self.internal_name
         summary["Input catalog content"] = [dc.name for dc in self.data_catalog if dc.stage == "get"]
@@ -295,6 +301,22 @@ class RunLog(BaseModel):
     parameters: Dict[str, Parameter] = Field(default_factory=dict)
     run_config: Dict[str, Any] = Field(default_factory=dict)
 
+    def get_summary(self) -> Dict[str, Any]:
+        summary: Dict[str, Any] = {}
+
+        _context = context.run_context
+
+        summary["Unique execution id"] = self.run_id
+        summary["status"] = self.status
+
+        summary["Catalog Location"] = _context.catalog_handler.get_summary()
+        summary["Full Run log present at: "] = _context.run_log_store.get_summary()
+
+        summary["Final Parameters"] = {p: v.description for p, v in self.parameters.items()}
+        summary["Collected metrics"] = {p: v.description for p, v in self.parameters.items() if v.kind == "metric"}
+
+        return summary
+
     def get_data_catalogs_by_stage(self, stage: str = "put") -> List[DataCatalog]:
         """
         Return all the cataloged data by the stage at which they were cataloged.
@@ -412,6 +434,10 @@ class BaseRunLogStore(ABC, BaseModel):
 
     service_name: str = ""
     service_type: str = "run_log_store"
+
+    @abstractmethod
+    def get_summary(self) -> Dict[str, Any]:
+        ...
 
     @property
     def _context(self):
@@ -745,6 +771,11 @@ class BufferRunLogstore(BaseRunLogStore):
 
     service_name: str = "buffered"
     run_log: Optional[RunLog] = Field(default=None, exclude=True)  # For a buffered Run Log, this is the database
+
+    def get_summary(self) -> Dict[str, Any]:
+        summary = {"Type": self.service_name, "Location": "Not persisted"}
+
+        return summary
 
     def create_run_log(
         self,

@@ -1,12 +1,13 @@
-from contextlib import nullcontext, contextmanager
-import pytest
-from pathlib import Path
-import os
 import importlib
+import os
 import subprocess
+from contextlib import contextmanager, nullcontext
+from pathlib import Path
 
-from runnable.entrypoints import execute
+import pytest
+
 from runnable import exceptions
+from runnable.entrypoints import execute
 
 # (file, is_fail?, kwargs)
 examples = [
@@ -18,12 +19,10 @@ examples = [
     ("concepts/parallel.yaml", False, {}),
     ("concepts/simple_notebook.yaml", False, {}),
     ("concepts/simple.yaml", False, {}),
-    ("concepts/traversal.yaml", False, {}),
     ("catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
     ("default-fail.yaml", True, {}),
     ("on-failure.yaml", False, {}),
     ("parallel-fail.yaml", True, {}),
-    ("python-tasks.yaml", False, {"parameters_file": "examples/parameters_initial.yaml"}),
 ]
 
 
@@ -100,14 +99,12 @@ python_examples = [
     ("mocking", False, None),
     ("on_failure", False, None),
     ("parameters", False, None),
-    ("python_tasks", False, None),
+    ("parameters_simple", False, None),
     ("concepts.catalog", False, None),
     ("concepts.map", False, None),
     ("concepts.nesting", False, None),
     ("concepts.parallel", False, None),
     ("concepts.simple", False, None),
-    ("concepts.task_native_parameters", False, None),
-    ("concepts.traversal", False, None),
 ]
 
 

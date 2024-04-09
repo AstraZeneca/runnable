@@ -109,7 +109,7 @@ def evaluate_model(x_test: np.ndarray, y_test: np.ndarray, hp: List[int]):
 
 
 def main():
-    from runnable import Catalog, Map, Pipeline, PythonTask, Stub, pickled
+    from runnable import Catalog, Map, Pipeline, PythonTask, metric, pickled
 
     # x_train, y_train, x_test, y_test
     load_data_task = PythonTask(
@@ -149,7 +149,7 @@ def main():
     evaluate_model_task = PythonTask(
         function=evaluate_model,
         name="evaluate_model",
-        returns=["score"],
+        returns=[metric("score")],
         catalog=Catalog(
             get=["*.keras"],
         ),
@@ -163,6 +163,7 @@ def main():
         branch=train_pipeline,
         iterate_on="hpt",
         iterate_as="hp",
+        reducer="lambda *x: max(x, key=lambda x: x[1])",
         terminate_with_success=True,
     )
 

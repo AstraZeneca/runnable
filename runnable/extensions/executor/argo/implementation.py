@@ -7,7 +7,14 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union, cast
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_serializer,
+    field_validator,
+)
 from pydantic.functional_serializers import PlainSerializer
 from ruamel.yaml import YAML
 from typing_extensions import Annotated
@@ -772,9 +779,6 @@ class ArgoExecutor(GenericExecutor):
 
         integration.validate(self, self._context.secrets_handler)
         integration.configure_for_traversal(self, self._context.secrets_handler)
-
-        integration.validate(self, self._context.experiment_tracker)
-        integration.configure_for_traversal(self, self._context.experiment_tracker)
 
     def prepare_for_node_execution(self):
         """

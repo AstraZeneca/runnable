@@ -2,7 +2,7 @@ import copy
 import logging
 import os
 from abc import abstractmethod
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 
 from runnable import (
     console,
@@ -13,7 +13,7 @@ from runnable import (
     parameters,
     utils,
 )
-from runnable.datastore import DataCatalog, JsonParameter, StepLog
+from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.executor import BaseExecutor
 from runnable.extensions.nodes import TaskNode
@@ -423,11 +423,16 @@ class GenericExecutor(BaseExecutor):
         logger.info(f"Running the execution with {current_node}")
 
         branch_execution_task = None
-        if dag.internal_branch_name != "":
-            branch_task_name = BaseNode._resolve_map_placeholders(dag.internal_branch_name, map_variable)
+        branch_task_name: str = ""
+        if dag.internal_branch_name:
+            branch_task_name = BaseNode._resolve_map_placeholders(
+                dag.internal_branch_name or "Graph",
+                map_variable,
+            )
             branch_execution_task = self._context.progress.add_task(
-                f"Executing {branch_task_name}", total=1
-            )  # type ignore
+                f"[dark_orange]Executing {branch_task_name}",
+                total=1,
+            )
 
         while True:
             working_on = dag.get_node_by_name(current_node)
@@ -442,7 +447,8 @@ class GenericExecutor(BaseExecutor):
 
             depth = " " * ((task_name.count(".")) or 1 - 1)
 
-            task_execution = self._context.progress.add_task(f"{depth}Executing {task_name}", total=1)  # type ignore
+            task_execution = self._context.progress.add_task(f"{depth}Executing {task_name}", total=1)
+
             try:
                 self.execute_from_graph(working_on, map_variable=map_variable, **kwargs)
                 status, next_node_name = self._get_status_and_next_node_name(
@@ -455,17 +461,20 @@ class GenericExecutor(BaseExecutor):
                         description=f"{depth}[green] {task_name} Completed",
                         completed=True,
                         overflow="fold",
-                    )  # type ignore
+                    )
                 else:
                     self._context.progress.update(
                         task_execution, description=f"{depth}[red] {task_name} Failed", completed=True
                     )  # type ignore
-            except:  # noqa: E722
+            except Exception as e:  # noqa: E722
                 self._context.progress.update(
                     task_execution,
                     description=f"{depth}[red] {task_name} Errored",
                     completed=True,
-                )  # type ignore
+                )
+                console.print(e, style=defaults.error_style)
+                logger.exception(e)
+                raise
 
             if working_on.node_type in ["success", "fail"]:
                 break
@@ -473,10 +482,9 @@ class GenericExecutor(BaseExecutor):
             current_node = next_node_name
 
         if branch_execution_task:
-            branch_task_name = BaseNode._resolve_map_placeholders(dag.internal_branch_name, map_variable)
             self._context.progress.update(
                 branch_execution_task, description=f"[green3] {branch_task_name} completed", completed=True
-            )  # type ignore
+            )
 
         run_log = self._context.run_log_store.get_branch_log(
             working_on._get_branch_log_name(map_variable), self._context.run_id
@@ -487,6 +495,11 @@ class GenericExecutor(BaseExecutor):
             branch = working_on.internal_branch_name
 
         logger.info(f"Finished execution of the {branch} with status {run_log.status}")
+
+        if dag == self._context.dag:
+            run_log = cast(RunLog, run_log)
+            console.print("Completed Execution, Summary:", style="bold color(208)")
+            console.print(run_log.get_summary(), style=defaults.info_style)
 
     def send_return_code(self, stage="traversal"):
         """

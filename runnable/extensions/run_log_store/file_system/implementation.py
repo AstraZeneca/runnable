@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+from typing import Any, Dict
 
 from runnable import defaults, exceptions, utils
 from runnable.datastore import BaseRunLogStore, RunLog
@@ -36,6 +37,11 @@ class FileSystemRunLogstore(BaseRunLogStore):
     @property
     def log_folder_name(self):
         return self.log_folder
+
+    def get_summary(self) -> Dict[str, Any]:
+        summary = {"Type": self.service_name, "Location": self.log_folder}
+
+        return summary
 
     def write_to_folder(self, run_log: RunLog):
         """

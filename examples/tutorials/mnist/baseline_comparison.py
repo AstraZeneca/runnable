@@ -176,7 +176,7 @@ def evaluate_baseline_model(x_test: np.ndarray, y_test: np.ndarray, train_params
 
 
 def main():
-    from runnable import Catalog, Parallel, Pipeline, PythonTask, Stub, pickled
+    from runnable import Catalog, Parallel, Pipeline, PythonTask, metric, pickled
 
     # x_train, y_train, x_test, y_test
     load_data_task = PythonTask(
@@ -234,6 +234,7 @@ def main():
         catalog=Catalog(
             get=["trained_model.keras"],
         ),
+        returns=[metric("keras_score")],
         terminate_with_success=True,
     )
 
@@ -243,6 +244,7 @@ def main():
         catalog=Catalog(
             get=["trained_baseline_model.keras"],
         ),
+        returns=[metric("baseline_score")],
         terminate_with_success=True,
     )
 

@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from runnable import defaults, utils
 from runnable.catalog import BaseCatalog
@@ -33,6 +33,13 @@ class FileSystemCatalog(BaseCatalog):
 
     def get_catalog_location(self):
         return self.catalog_location
+
+    def get_summary(self) -> Dict[str, Any]:
+        summary = {
+            "Catalog Location": self.get_catalog_location(),
+        }
+
+        return summary
 
     def get(self, name: str, run_id: str, compute_data_folder: str = "", **kwargs) -> List[DataCatalog]:
         """

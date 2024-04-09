@@ -49,6 +49,8 @@ def generate_plots(X: np.ndarray, Y: np.ndarray, logreg: LogisticRegression):
 
     plt.savefig("iris_logistic.png")
 
+    return 0.6
+
 
 ## Without any orchestration
 def main():
@@ -60,7 +62,7 @@ def main():
 ## With runnable orchestration
 def runnable_pipeline():
     # The below code can be anywhere
-    from runnable import Catalog, Pipeline, PythonTask, pickled
+    from runnable import Catalog, Pipeline, PythonTask, metric, pickled
 
     # X, Y = load_data()
     load_data_task = PythonTask(
@@ -82,6 +84,7 @@ def runnable_pipeline():
         name="generate_plots",
         terminate_with_success=True,
         catalog=Catalog(put=["iris_logistic.png"]),  # (2)
+        returns=[metric("score")],
     )
 
     pipeline = Pipeline(

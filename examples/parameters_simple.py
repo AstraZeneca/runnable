@@ -31,14 +31,15 @@ class NestedModel(BaseModel):  # (1)
     inner: InnerModel
 
 
-def display(x: int, y: str):  # (2)
+def display(simple: int, inner: InnerModel):  # (2)
     """
     The parameter "simple" and "inner" can be accessed by name.
     runnable understands the parameter "inner" as a pydantic model from
     annotation and casts it as a pydantic model.
     """
-    print(x)
-    print(y)
+    assert simple == 1
+    assert inner.x == 10
+    assert inner.y == "hello world!!"
 
 
 class ObjectType:
@@ -46,27 +47,19 @@ class ObjectType:
         self.salute = "hello"
 
 
-def return_parameters(inner: InnerModel):
+def return_parameters():
     """
     The parameter "simple" and "inner" can be accessed by name.
     You can redefine the parameters by returning a pydantic model.
     """
     x = 2
-    y = "world!!"
+    y = "hello Universe!!"
 
     return x, y, ObjectType()
 
 
 def display_object(obj: ObjectType):
     print(obj.salute)
-
-
-"""
-The below code is only to provide a full working example.
-
-In the real world, you can "box runnable" in pipeline definition either in
-python or yaml without cluttering your application code.
-"""
 
 
 def main():

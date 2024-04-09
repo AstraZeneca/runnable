@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -24,6 +24,10 @@ class BaseCatalog(ABC, BaseModel):
     service_name: str = ""
     service_type: str = "catalog"
     model_config = ConfigDict(extra="forbid")
+
+    @abstractmethod
+    def get_summary(self) -> Dict[str, Any]:
+        ...
 
     @property
     def _context(self):
@@ -111,6 +115,9 @@ class DoNothingCatalog(BaseCatalog):
     """
 
     service_name: str = "do-nothing"
+
+    def get_summary(self) -> Dict[str, Any]:
+        return {}
 
     def get(self, name: str, run_id: str, compute_data_folder: str = "", **kwargs) -> List[DataCatalog]:
         """
