@@ -11,12 +11,19 @@ from pydantic import (
     ConfigDict,
     Field,
     PrivateAttr,
+    ValidationInfo,
     computed_field,
     field_validator,
     model_validator,
 )
 from rich import print
-from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 from rich.table import Column
 from typing_extensions import Self
 
@@ -71,7 +78,7 @@ class Catalog(BaseModel):
 
 class BaseTraversal(ABC, BaseModel):
     name: str
-    next_node: str = Field(default="", alias="next")
+    next_node: str = Field(default="", serialization_alias="next_node")
     terminate_with_success: bool = Field(default=False, exclude=True)
     terminate_with_failure: bool = Field(default=False, exclude=True)
     on_failure: str = Field(default="", alias="on_failure")
@@ -82,6 +89,12 @@ class BaseTraversal(ABC, BaseModel):
     @property
     def internal_name(self) -> str:
         return self.name
+
+    def __hash__(self):
+        """
+        Needed to Uniqueize DataCatalog objects.
+        """
+        return hash(self.name)
 
     def __rshift__(self, other: StepType) -> StepType:
         if self.next_node:
@@ -125,8 +138,7 @@ class BaseTraversal(ABC, BaseModel):
         return self
 
     @abstractmethod
-    def create_node(self) -> TraversalNode:
-        ...
+    def create_node(self) -> TraversalNode: ...
 
 
 class BaseTask(BaseTraversal):
@@ -201,7 +213,7 @@ class BaseTask(BaseTraversal):
             if not (self.terminate_with_failure or self.terminate_with_success):
                 raise AssertionError("A node not being terminated must have a user defined next node")
 
-        return TaskNode.parse_from_config(self.model_dump(exclude_none=True))
+        return TaskNode.parse_from_config(self.model_dump(exclude_none=True, by_alias=True))
 
 
 class PythonTask(BaseTask):
@@ -297,9 +309,9 @@ class NotebookTask(BaseTask):
 
     """
 
-    notebook: str = Field(alias="command")
+    notebook: str = Field(serialization_alias="command")
 
-    notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path")
+    notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path", validate_default=True)
     optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
 
     @computed_field
@@ -526,7 +538,7 @@ class Pipeline(BaseModel):
     _dag: graph.Graph = PrivateAttr()
     model_config = ConfigDict(extra="forbid")
 
-    def _validate_path(self, path: List[StepType]) -> None:
+    def _validate_path(self, path: List[StepType], failure_path: bool = False) -> None:
         # Check if one and only one step terminates with success
         # Check no more than one step terminates with failure
 
@@ -544,7 +556,7 @@ class Pipeline(BaseModel):
                     raise Exception("A pipeline cannot have more than one step that terminates with failure")
                 reached_failure = True
 
-        if not reached_success:
+        if not reached_success and not reached_failure:
             raise Exception("A pipeline must have at least one step that terminates with success")
 
     def _construct_path(self, path: List[StepType]) -> None:
@@ -594,11 +606,21 @@ class Pipeline(BaseModel):
 
         # Check all paths are valid and construct the path
         paths = [success_path] + on_failure_paths
+        failure_path = False
         for path in paths:
-            self._validate_path(path)
+            self._validate_path(path, failure_path)
             self._construct_path(path)
 
-        all_steps: List[StepType] = [step for step in success_path + on_failure_paths]  # type: ignore
+            failure_path = True
+
+        all_steps: List[StepType] = []
+
+        for path in paths:
+            for step in path:
+                all_steps.append(step)
+
+        seen = set()
+        unique = [x for x in all_steps if not (x in seen or seen.add(x))]
 
         self._dag = graph.Graph(
             start_at=all_steps[0].name,
@@ -606,7 +628,7 @@ class Pipeline(BaseModel):
             internal_branch_name=self.internal_branch_name,
         )
 
-        for step in all_steps:
+        for step in unique:
             self._dag.add_node(step.create_node())
 
         if self.add_terminal_nodes:
@@ -675,8 +697,9 @@ class Pipeline(BaseModel):
 
         run_context.dag = graph.create_graph(dag_definition)
 
-        print("Working with context:")
-        print(run_context)
+        console.print("Working with context:")
+        console.print(run_context)
+        console.rule(style="[dark orange]")
 
         if not run_context.executor._local:
             # We are not working with non local executor
@@ -693,6 +716,7 @@ class Pipeline(BaseModel):
         run_context.executor.prepare_for_graph_execution()
 
         with Progress(
+            SpinnerColumn(spinner_name="runner"),
             TextColumn("[progress.description]{task.description}", table_column=Column(ratio=2)),
             BarColumn(table_column=Column(ratio=1), style="dark_orange"),
             TimeElapsedColumn(table_column=Column(ratio=1)),

@@ -9,9 +9,10 @@ import sys
 from datetime import datetime
 from pickle import PicklingError
 from string import Template
-from typing import Any, Dict, List, Literal, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
+from rich.console import Console
 from stevedore import driver
 
 import runnable.context as context
@@ -30,6 +31,9 @@ logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
 # TODO: Can we add memory peak, cpu usage, etc. to the metrics?
+
+
+console = Console(file=io.StringIO())
 
 
 class TaskReturns(BaseModel):
@@ -135,17 +139,21 @@ class BaseTaskType(BaseModel):
         if not allow_complex:
             params = {key: value for key, value in params.items() if isinstance(value, JsonParameter)}
 
-        log_file_name = self.node_name.replace(" ", "_") + ".execution.log"
+        log_file_name = self.node_name  # + ".execution.log"
         if map_variable:
             for _, value in map_variable.items():
                 log_file_name += "_" + str(value)
+
+        log_file_name = "".join(x for x in log_file_name if x.isalnum()) + ".execution.log"
 
         log_file = open(log_file_name, "w")
 
         f = io.StringIO()
         try:
             with contextlib.redirect_stdout(f):
+                # with contextlib.nullcontext():
                 yield params
+                print(console.file.getvalue())  # type: ignore
         except Exception as e:  # pylint: disable=broad-except
             logger.exception(e)
         finally:
@@ -156,10 +164,11 @@ class BaseTaskType(BaseModel):
             log_file.close()
 
             # Put the log file in the catalog
-            # self._context.catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
+            self._context.catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
             os.remove(log_file.name)
 
             # Update parameters
+            # This should only update the parameters that are changed at the root level.
             self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
 
 
@@ -219,8 +228,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     logger.info(f"Calling {func} from {module} with {filtered_parameters}")
                     user_set_parameters = f(**filtered_parameters)  # This is a tuple or single value
                 except Exception as e:
-                    logger.exception(e)
-                    console.print(e, style=defaults.error_style)
+                    console.log(e, style=defaults.error_style, markup=False)
                     raise exceptions.CommandCallError(f"Function call: {self.command} did not succeed.\n") from e
 
                 attempt_log.input_parameters = params.copy()
@@ -263,9 +271,9 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                 attempt_log.status = defaults.SUCCESS
             except Exception as _e:
                 msg = f"Call to the function {self.command} did not succeed.\n"
-                logger.exception(_e)
                 attempt_log.message = msg
-                console.print(_e, style=defaults.error_style)
+                console.print_exception(show_locals=False)
+                console.log(_e, style=defaults.error_style)
 
         attempt_log.end_time = str(datetime.now())
 
@@ -277,7 +285,7 @@ class NotebookTaskType(BaseTaskType):
 
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
-    notebook_output_path: str = Field(default="", validate_default=True)
+    notebook_output_path: Optional[str] = Field(default=None, validate_default=True)
     optional_ploomber_args: dict = {}
 
     @field_validator("command")

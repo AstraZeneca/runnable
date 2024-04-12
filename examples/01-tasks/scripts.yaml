@@ -1,0 +1,27 @@
+dag:
+  description: |
+    This is a sample pipeline with one step that executes a shell command.
+
+    You can run this pipeline by:
+    runnable execute -f examples/01-tasks/scripts.yaml
+
+    The command can be anything that can be executed in a shell.
+    The stdout/stderr of the execution is captured as execution log and 
+    stored in the catalog.
+
+    For example:
+    .catalog
+    └── seasoned-perlman-1355
+        └── hello.execution.log
+
+  start_at: notebook
+  steps:
+    notebook:
+      type: task
+      command_type: shell
+      command: echo "hello world!!" # The path is relative to the root of the project.
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail
