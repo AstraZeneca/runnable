@@ -1,11 +1,11 @@
 dag:
   description: |
-    A pipeline can have any "tasks" as part of it. In the 
+    A pipeline can have any "tasks" as part of it. In the
     below example, we have a mix of stub, python, shell and notebook tasks.
 
-    As with simpler tasks, the stdout and stderr of each task are captured 
+    As with simpler tasks, the stdout and stderr of each task are captured
     and stored in the catalog.
-    
+
     For example, the catalog structure for this execution would be:
 
     .catalog
@@ -18,9 +18,9 @@ dag:
         └── hello_shell.execution.log
 
     4 directories, 4 files
-    
+
     The notebook simple_notebook_out.ipynb has the captured stdout of "Hello World!".
-    
+
     You can run this pipeline as:
       runnable execute -f examples/02-sequential/traversal.yaml
 
@@ -48,4 +48,3 @@ dag:
       type: success
     fail:
       type: fail
-

@@ -2,12 +2,12 @@ dag:
   description: |
     This is a sample pipeline with one step that executes a notebook.
 
-    The notebook is executed in the same environment so any installed 
+    The notebook is executed in the same environment so any installed
     packages are available for the notebook.
 
-    Upon successful execution, the output notebook with cell outputs 
+    Upon successful execution, the output notebook with cell outputs
     is stored in the catalog.
-    
+
     For example, the catalog structure for this execution would be:
 
     .catalog
@@ -16,9 +16,9 @@ dag:
         │   └── common
         │       └── simple_notebook_out.ipynb
         └── notebook.execution.log
-    
+
     The notebook simple_notebook_out.ipynb has the captured stdout of "Hello World!".
-    
+
     You can run this pipeline as:
       runnable execute -f examples/01-tasks/notebook.yaml
 
@@ -33,4 +33,3 @@ dag:
       type: success
     fail:
       type: fail
-

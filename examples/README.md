@@ -9,7 +9,7 @@ Please use this as an index to find specific example.
 - 01-tasks: Examples of the tasks that can be part of the pipeline.
 
     - [stub.py](./01-tasks/stub.py), [stub.yaml](./01-tasks/stub.yaml): demonstrates the concept of a stub.
-    
+
     - [python_tasks.py](./01-tasks/python_tasks.py), [python_tasks.yaml](./01-tasks/python_tasks.yaml): uses python functions as tasks.
         The stdout/stderr of all the tasks are captured and stored in the catalog.
     - [notebook.py](./01-tasks/notebook.py), [notebook.yaml](./01-tasks/notebook.yaml): uses notebooks as tasks
@@ -23,7 +23,7 @@ The next section has examples on stitching these tasks together for complex oper
 
 - 02-sequential: Examples of stitching tasks together including behavior in case of failures.
 
-    - traversal: A pipeline which is a mixed bag of notebooks, python functions and 
+    - traversal: A pipeline which is a mixed bag of notebooks, python functions and
     shell scripts.
     - default_failure: The default failure behavior.
     - on_failure_fail: On failure of a step, do some action and fail
@@ -31,8 +31,6 @@ The next section has examples on stitching these tasks together for complex oper
 
 
 The above examples show stitching complex operations of the pipeline.
-The next section has examples on 
+The next section has examples on
 
 - 03: Examples of passing parameters between tasks
-
-

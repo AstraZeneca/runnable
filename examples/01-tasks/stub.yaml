@@ -18,7 +18,7 @@ dag:
       type: stub # This will always succeed
       next: step 2
     step 2:
-      type: stub 
+      type: stub
       what: is this thing? # It takes arbitrary keys
       It: does not matter!!
       next: step 3

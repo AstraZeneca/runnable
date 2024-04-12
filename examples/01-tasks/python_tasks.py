@@ -21,7 +21,6 @@ from runnable import Pipeline, PythonTask
 
 
 def main():
-
     # Create a tasks which calls the function "hello"
     # If this step executes successfully, the pipeline will terminate with success
     hello_task = PythonTask(

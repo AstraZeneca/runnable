@@ -3,10 +3,10 @@ You can execute this pipeline by:
 
     python examples/02-sequential/traversal.py
 
-    A pipeline can have any "tasks" as part of it. In the 
+    A pipeline can have any "tasks" as part of it. In the
     below example, we have a mix of stub, python, shell and notebook tasks.
 
-    As with simpler tasks, the stdout and stderr of each task are captured 
+    As with simpler tasks, the stdout and stderr of each task are captured
     and stored in the catalog.
 
     .catalog
@@ -27,7 +27,6 @@ from runnable import NotebookTask, Pipeline, PythonTask, ShellTask, Stub
 
 
 def main():
-
     stub_task = Stub(name="hello stub")
 
     python_task = PythonTask(

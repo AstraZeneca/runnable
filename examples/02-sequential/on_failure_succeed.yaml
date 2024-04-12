@@ -10,10 +10,10 @@ dag:
     and then eventually fail.
     step_1 -> step_4 -> success
 
-    This pattern is handy when you are expecting a failure of a step 
+    This pattern is handy when you are expecting a failure of a step
     and have ways to handle it.
 
-    Run this pipeline as: 
+    Run this pipeline as:
       runnable execute -f examples/02-sequential/on_failure_succeed.yaml
   start_at: step_1
   steps:

@@ -11,12 +11,10 @@ from pydantic import (
     ConfigDict,
     Field,
     PrivateAttr,
-    ValidationInfo,
     computed_field,
     field_validator,
     model_validator,
 )
-from rich import print
 from rich.progress import (
     BarColumn,
     Progress,
@@ -138,7 +136,8 @@ class BaseTraversal(ABC, BaseModel):
         return self
 
     @abstractmethod
-    def create_node(self) -> TraversalNode: ...
+    def create_node(self) -> TraversalNode:
+        ...
 
 
 class BaseTask(BaseTraversal):

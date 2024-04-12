@@ -9,7 +9,7 @@ And we can instruct the pipeline to execute step_4 if step_1 fails
 and then eventually succeed too.
 step_1 -> step_4 -> success
 
-This pattern is handy when you are expecting a failure of a step 
+This pattern is handy when you are expecting a failure of a step
 and have ways to handle it.
 
 Run this pipeline: python examples/02-sequential/on_failure_succeed.py
