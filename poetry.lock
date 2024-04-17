@@ -5089,4 +5089,4 @@ notebook = ["ploomber-engine"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.13"
-content-hash = "a9bc74ff425950808d219978ae6bfcff2af20314ecb495e9f51b125ac7dde7c3"
+content-hash = "71f1a8bb7b0160366361d8b5f853bde97d25e807cd5506748a9e78c2ea69b5f2"
