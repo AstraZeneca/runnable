@@ -57,8 +57,10 @@ jobs:
           CURRENT=${python -m poetry run semantic-release --noop version --print-last-released}
           echo "Current: $CURRENT"
 
-          VERSION=${python -m poetry run semantic-release -vv version --print --tag --push}
-          echo "New: $VERSION"
+          python -m poetry run semantic-release -vv version --tag --push
+
+          VERSION=${python -m poetry run semantic-release --noop version --print-last-released}
+          echo "new: $VERSION"
 
           if [ "$CURRENT" == "$VERSION" ]; then
             echo "version=$VERSION" >> $GITHUB_OUTPUT
