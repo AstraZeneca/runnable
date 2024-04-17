@@ -24,6 +24,7 @@ rich = "^13.5.2"
 mlflow-skinny = { version = "*", optional = true }
 ploomber-engine = "^0.0.31"
 dill = "^0.3.8"
+python-semantic-release = "^9.4.2"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "*"
