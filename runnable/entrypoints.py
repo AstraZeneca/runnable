@@ -172,6 +172,7 @@ def execute(
     )
     console.print("Working with context:")
     console.print(run_context)
+    console.rule(style="[dark orange]")
 
     executor = run_context.executor
 
@@ -243,6 +244,7 @@ def execute_single_node(
     )
     console.print("Working with context:")
     console.print(run_context)
+    console.rule(style="[dark orange]")
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
@@ -296,6 +298,7 @@ def execute_notebook(
 
     console.print("Working with context:")
     console.print(run_context)
+    console.rule(style="[dark orange]")
 
     step_config = {
         "command": notebook_file,
@@ -358,6 +361,7 @@ def execute_function(
 
     console.print("Working with context:")
     console.print(run_context)
+    console.rule(style="[dark orange]")
 
     # Prepare the graph with a single node
     step_config = {
@@ -427,6 +431,7 @@ def fan(
     )
     console.print("Working with context:")
     console.print(run_context)
+    console.rule(style="[dark orange]")
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value

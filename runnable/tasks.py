@@ -9,13 +9,14 @@ import sys
 from datetime import datetime
 from pickle import PicklingError
 from string import Template
-from typing import Any, Dict, List, Literal, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
+from rich.console import Console
 from stevedore import driver
 
 import runnable.context as context
-from runnable import console, defaults, exceptions, parameters, utils
+from runnable import defaults, exceptions, parameters, utils
 from runnable.datastore import (
     JsonParameter,
     MetricParameter,
@@ -32,6 +33,9 @@ logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 # TODO: Can we add memory peak, cpu usage, etc. to the metrics?
 
 
+console = Console(file=io.StringIO())
+
+
 class TaskReturns(BaseModel):
     name: str
     kind: Literal["json", "object", "metric"] = Field(default="json")
@@ -42,7 +46,7 @@ class BaseTaskType(BaseModel):
 
     task_type: str = Field(serialization_alias="command_type")
     node_name: str = Field(exclude=True)
-    secrets: Dict[str, str] = Field(default_factory=dict)
+    secrets: List[str] = Field(default_factory=list)
     returns: List[TaskReturns] = Field(default_factory=list, alias="returns")
 
     model_config = ConfigDict(extra="forbid")
@@ -69,15 +73,14 @@ class BaseTaskType(BaseModel):
         raise NotImplementedError()
 
     def set_secrets_as_env_variables(self):
-        for key, value in self.secrets.items():
+        for key in self.secrets:
             secret_value = context.run_context.secrets_handler.get(key)
-            self.secrets[value] = secret_value
-            os.environ[value] = secret_value
+            os.environ[key] = secret_value
 
     def delete_secrets_from_env_variables(self):
-        for _, value in self.secrets.items():
-            if value in os.environ:
-                del os.environ[value]
+        for key in self.secrets:
+            if key in os.environ:
+                del os.environ[key]
 
     def execute_command(
         self,
@@ -135,17 +138,21 @@ class BaseTaskType(BaseModel):
         if not allow_complex:
             params = {key: value for key, value in params.items() if isinstance(value, JsonParameter)}
 
-        log_file_name = self.node_name.replace(" ", "_") + ".execution.log"
+        log_file_name = self.node_name  # + ".execution.log"
         if map_variable:
             for _, value in map_variable.items():
                 log_file_name += "_" + str(value)
+
+        log_file_name = "".join(x for x in log_file_name if x.isalnum()) + ".execution.log"
 
         log_file = open(log_file_name, "w")
 
         f = io.StringIO()
         try:
             with contextlib.redirect_stdout(f):
+                # with contextlib.nullcontext():
                 yield params
+                print(console.file.getvalue())  # type: ignore
         except Exception as e:  # pylint: disable=broad-except
             logger.exception(e)
         finally:
@@ -156,10 +163,11 @@ class BaseTaskType(BaseModel):
             log_file.close()
 
             # Put the log file in the catalog
-            # self._context.catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
+            self._context.catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
             os.remove(log_file.name)
 
             # Update parameters
+            # This should only update the parameters that are changed at the root level.
             self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
 
 
@@ -219,8 +227,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     logger.info(f"Calling {func} from {module} with {filtered_parameters}")
                     user_set_parameters = f(**filtered_parameters)  # This is a tuple or single value
                 except Exception as e:
-                    logger.exception(e)
-                    console.print(e, style=defaults.error_style)
+                    console.log(e, style=defaults.error_style, markup=False)
                     raise exceptions.CommandCallError(f"Function call: {self.command} did not succeed.\n") from e
 
                 attempt_log.input_parameters = params.copy()
@@ -263,9 +270,9 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                 attempt_log.status = defaults.SUCCESS
             except Exception as _e:
                 msg = f"Call to the function {self.command} did not succeed.\n"
-                logger.exception(_e)
                 attempt_log.message = msg
-                console.print(_e, style=defaults.error_style)
+                console.print_exception(show_locals=False)
+                console.log(_e, style=defaults.error_style)
 
         attempt_log.end_time = str(datetime.now())
 
@@ -277,7 +284,7 @@ class NotebookTaskType(BaseTaskType):
 
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
-    notebook_output_path: str = Field(default="", validate_default=True)
+    notebook_output_path: Optional[str] = Field(default=None, validate_default=True)
     optional_ploomber_args: dict = {}
 
     @field_validator("command")
@@ -319,7 +326,7 @@ class NotebookTaskType(BaseTaskType):
             import ploomber_engine as pm
             from ploomber_engine.ipython import PloomberClient
 
-            notebook_output_path = self.notebook_output_path
+            notebook_output_path = self.notebook_output_path or ""
 
             with self.execution_context(
                 map_variable=map_variable, allow_complex=False
@@ -424,15 +431,17 @@ class ShellTaskType(BaseTaskType):
 
         # Expose secrets as environment variables
         if self.secrets:
-            for key, value in self.secrets.items():
+            for key in self.secrets:
                 secret_value = context.run_context.secrets_handler.get(key)
-                subprocess_env[value] = secret_value
+                subprocess_env[key] = secret_value
 
         with self.execution_context(map_variable=map_variable, allow_complex=False) as params:
             subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
             # Json dumps all runnable environment variables
             for key, value in subprocess_env.items():
+                if isinstance(value, str):
+                    continue
                 subprocess_env[key] = json.dumps(value)
 
             collect_delimiter = "=== COLLECT ==="
@@ -441,37 +450,80 @@ class ShellTaskType(BaseTaskType):
             logger.info(f"Executing shell command: {command}")
 
             capture = False
-            return_keys = [x.name for x in self.returns]
+            return_keys = {x.name: x for x in self.returns}
 
-            with subprocess.Popen(
+            proc = subprocess.Popen(
                 command,
                 shell=True,
                 env=subprocess_env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-            ) as proc:
-                for line in proc.stdout:  # type: ignore
-                    logger.info(line)
-                    print(line)
+            )
+            result = proc.communicate()
+            logger.debug(result)
+            logger.info(proc.returncode)
 
-                    if line.strip() == collect_delimiter:
-                        # The lines from now on should be captured
-                        capture = True
-                        continue
+            if proc.returncode != 0:
+                msg = ",".join(result[1].split("\n"))
+                attempt_log.status = defaults.FAIL
+                attempt_log.end_time = str(datetime.now())
+                attempt_log.message = msg
+                console.print(msg, style=defaults.error_style)
+                return attempt_log
 
-                    if capture:
-                        key, value = line.strip().split("=", 1)
-                        if key in (return_keys or []):
-                            param_name = Template(key).safe_substitute(map_variable)  # type: ignore
-                            try:
-                                params[param_name] = JsonParameter(kind="json", value=json.loads(value))
-                            except json.JSONDecodeError:
-                                params[param_name] = JsonParameter(kind="json", value=value)
+            # for stderr
+            for line in result[1].split("\n"):
+                if line.strip() == "":
+                    continue
+                console.print(line, style=defaults.warning_style)
 
-                proc.wait()
-                if proc.returncode == 0:
-                    attempt_log.status = defaults.SUCCESS
+            output_parameters: Dict[str, Parameter] = {}
+            metrics: Dict[str, Parameter] = {}
+
+            # only from stdout
+            for line in result[0].split("\n"):
+                if line.strip() == "":
+                    continue
+
+                logger.info(line)
+                console.print(line)
+
+                if line.strip() == collect_delimiter:
+                    # The lines from now on should be captured
+                    capture = True
+                    continue
+
+                if capture:
+                    key, value = line.strip().split("=", 1)
+                    if key in return_keys:
+                        task_return = return_keys[key]
+
+                        try:
+                            value = json.loads(value)
+                        except json.JSONDecodeError:
+                            value = value
+
+                        output_parameter = task_return_to_parameter(
+                            task_return=task_return,
+                            value=value,
+                        )
+
+                        if task_return.kind == "metric":
+                            metrics[task_return.name] = output_parameter
+
+                        param_name = task_return.name
+                        if map_variable:
+                            for _, v in map_variable.items():
+                                param_name = f"{param_name}_{v}"
+
+                        output_parameters[param_name] = output_parameter
+
+                attempt_log.output_parameters = output_parameters
+                attempt_log.user_defined_metrics = metrics
+                params.update(output_parameters)
+
+            attempt_log.status = defaults.SUCCESS
 
         attempt_log.end_time = str(datetime.now())
         return attempt_log

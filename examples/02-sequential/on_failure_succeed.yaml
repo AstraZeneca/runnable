@@ -1,0 +1,38 @@
+dag:
+  description: |
+    This pipeline showcases handling failures in a pipeline.
+
+    The path taken if none of the steps failed:
+    step_1 -> step_2 -> step_3 -> success
+
+    step_1 is a python function that raises an exception.
+    And we can instruct the pipeline to execute step_4 if step_1 fails
+    and then eventually fail.
+    step_1 -> step_4 -> success
+
+    This pattern is handy when you are expecting a failure of a step
+    and have ways to handle it.
+
+    Run this pipeline as:
+      runnable execute -f examples/02-sequential/on_failure_succeed.yaml
+  start_at: step_1
+  steps:
+    step_1:
+      type: task
+      command_type: shell
+      command: exit 1 # This will fail!
+      next: step_2
+      on_failure: step_4
+    step_2:
+      type: stub
+      next: step_3
+    step_3:
+      type: stub
+      next: success
+    step_4:
+      type: stub
+      next: fail
+    success:
+      type: success
+    fail:
+      type: fail
