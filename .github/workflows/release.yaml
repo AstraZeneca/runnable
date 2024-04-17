@@ -54,6 +54,7 @@ jobs:
         continue-on-error: true
         id: last_tag
         run: |
+
           CURRENT=${poetry run semantic-release --noop version --print-last-released}
           echo "Current: $CURRENT"
 
