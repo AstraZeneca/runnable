@@ -46,17 +46,21 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
-      - run: python -m pip install python-semantic-release==8.0.7
+      - run: python -m pip install poetry
+      - run: |
+          python -m poetry install --only release
+
       - name: Figure version
         continue-on-error: true
         id: last_tag
         run: |
+          CURRENT=${python -m poetry run semantic-release --noop version --print-last-released}
+          echo "Current: $CURRENT"
 
-          CURRENT=$(git tag --sort=-committerdate -l | head -n 1)
-          echo "current: $CURRENT"
+          python -m poetry run semantic-release -vv version --tag --push
 
-          VERSION=$(semantic-release --noop --strict version --no-push --no-commit --print)
-          echo "New: $VERSION"
+          VERSION=${python -m poetry run semantic-release --noop version --print-last-released}
+          echo "new: $VERSION"
 
           if [ "$CURRENT" == "$VERSION" ]; then
             echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -66,28 +70,27 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           exit 0
 
-      - name: Apply new tag
-        if: steps.last_tag.outcome == 'success'
-        env:
-          VERSION: ${{ steps.last_tag.outputs.version }}
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const {VERSION} = process.env
-            const tag = `refs/tags/${VERSION}`
-            await github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: tag,
-              sha: context.sha
-            })
+      # - name: Apply new tag
+      #   if: steps.last_tag.outcome == 'success'
+      #   env:
+      #     VERSION: ${{ steps.last_tag.outputs.version }}
+      #   uses: actions/github-script@v6
+      #   with:
+      #     script: |
+      #       const {VERSION} = process.env
+      #       const tag = `refs/tags/${VERSION}`
+      #       await github.rest.git.createRef({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         ref: tag,
+      #         sha: context.sha
+      #       })
       - name: Publish to PyPI
         if: steps.last_tag.outcome == 'success'
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
           LAST_TAG: ${{ steps.last_tag.outputs.version }}
         run: |
-          python -m pip install poetry
           python scripts/update_version.py $LAST_TAG
           poetry config pypi-token.pypi $PYPI_TOKEN
           poetry publish --build
