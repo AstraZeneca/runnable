@@ -6,9 +6,7 @@ dag:
 
     The default behavior is to traverse to step type fail and mark the run as failed.
 
-    You can control the flow by using on_failure, please check example/on-failure.yaml
-
-    You can run this pipeline by runnable execute -f examples/default-fail.yaml
+    You can run this pipeline by: runnable execute -f examples/02-sequential/default_fail.yaml
   start_at: step 1
   steps:
     step 1:
@@ -16,11 +14,11 @@ dag:
       next: step 2
     step 2:
       type: task
-      command_type: shell
-      command: exit 1 # This will fail
+      command_type: python
+      command: examples.common.functions.raise_ex # This will fail
       next: step 3
     step 3:
-      type: stub
+      type: stub # This will never execute
       next: success
     success:
       type: success

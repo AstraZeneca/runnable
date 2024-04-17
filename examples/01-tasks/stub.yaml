@@ -11,15 +11,15 @@ dag:
     to mock steps within mature pipelines.
 
     You can run this pipeline by:
-       runnable execute -f examples/mocking.yaml
+       runnable execute -f examples/01-tasks/stub.yaml
   start_at: step 1
   steps:
     step 1:
-      type: stub
+      type: stub # This will always succeed
       next: step 2
     step 2:
       type: stub
-      what: is this thing?
+      what: is this thing? # It takes arbitrary keys
       It: does not matter!!
       next: step 3
     step 3:

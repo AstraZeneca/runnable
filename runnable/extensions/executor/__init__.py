@@ -476,6 +476,8 @@ class GenericExecutor(BaseExecutor):
                 logger.exception(e)
                 raise
 
+            console.rule(style="[dark orange]")
+
             if working_on.node_type in ["success", "fail"]:
                 break
 

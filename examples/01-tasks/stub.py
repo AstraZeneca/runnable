@@ -10,22 +10,27 @@ This is a simple pipeline that does 3 steps in sequence.
     to mock steps within mature pipelines.
 
     You can run this pipeline by:
-       python examples/mocking.py
+       python examples/01-tasks/stub.py
 """
 
 from runnable import Pipeline, Stub
 
 
 def main():
-    step1 = Stub(name="step1")  # (1)
+    # this will always succeed
+    step1 = Stub(name="step1")
+
+    # It takes arbitrary arguments
+    # Useful for temporarily silencing steps within mature pipelines
     step2 = Stub(name="step2", what="is this thing")
 
-    step3 = Stub(name="step3", terminate_with_success=True)  # (3)
+    step3 = Stub(name="step3", terminate_with_success=True)
 
-    pipeline = Pipeline(steps=[step1, step2, step3], add_terminal_nodes=True)  # (4)
+    pipeline = Pipeline(steps=[step1, step2, step3], add_terminal_nodes=True)
 
     pipeline.execute()
 
+    # A function that creates pipeline should always return a Pipeline object
     return pipeline
 
 

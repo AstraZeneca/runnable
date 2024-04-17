@@ -1,7 +1,7 @@
 import pytest
 
-from runnable.extensions import nodes
 from runnable import sdk
+from runnable.extensions import nodes
 
 
 def test_success_init():
@@ -26,6 +26,6 @@ def test_stub_node_makes_next_success_if_terminate_with_success():
 
 
 def test_stub_node_takes_given_next_node():
-    test_stub = sdk.Stub(name="stub", next="test")
+    test_stub = sdk.Stub(name="stub", next_node="test")
 
     assert test_stub.create_node() == nodes.StubNode(name="stub", next_node="test", internal_name="stub")
