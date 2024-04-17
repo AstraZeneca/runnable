@@ -191,6 +191,7 @@ class BaseTask(BaseTraversal):
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
     overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
     returns: List[Union[str, TaskReturns]] = Field(default_factory=list, alias="returns")
+    secrets: List[str] = Field(default_factory=list)
 
     @field_validator("returns", mode="before")
     @classmethod
@@ -619,7 +620,7 @@ class Pipeline(BaseModel):
                 all_steps.append(step)
 
         seen = set()
-        unique = [x for x in all_steps if not (x in seen or seen.add(x))]
+        unique = [x for x in all_steps if not (x in seen or seen.add(x))]  # type: ignore
 
         self._dag = graph.Graph(
             start_at=all_steps[0].name,

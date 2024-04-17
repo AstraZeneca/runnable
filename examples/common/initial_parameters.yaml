@@ -1,0 +1,6 @@
+integer: 1
+floater : 3.14
+stringer : hello
+pydantic_param:
+  x: 10
+  foo: bar

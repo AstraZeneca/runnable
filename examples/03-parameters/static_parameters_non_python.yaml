@@ -1,0 +1,41 @@
+dag:
+  description: |
+    The below example showcases setting up known initial parameters for a pipeline
+    of notebook and shell based commands.
+
+    The initial parameters as defined in the yaml file are:
+        integer: 1
+        floater : 3.14
+        stringer : hello
+        pydantic_param:
+          x: 10
+          foo: bar
+
+    runnable exposes the nested parameters as dictionary for notebook based tasks
+    as a json string for the shell based tasks.
+  start_at: read_params_in_notebook
+  steps:
+    read_params_in_notebook:
+      type: task
+      command_type: notebook
+      command: examples/common/read_parameters.ipynb
+      next: read_params_in_shell
+    read_params_in_shell:
+      type: task
+      command_type: shell
+      command: |
+        if [ "$integer" = 1 ] \
+          && [ "$floater" = 3.14 ] \
+          && [ "$stringer" = "hello" ] \
+          && [ "$pydantic_param" = '{"x": 10, "foo": "bar"}' ]; then
+              echo "yaay"
+              exit 0;
+          else
+              echo "naay"
+              exit 1;
+        fi
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail
