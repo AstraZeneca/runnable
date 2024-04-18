@@ -57,7 +57,6 @@ python-semantic-release = "^9.4.2"
 docker = ['docker']
 notebook = ['ploomber-engine']
 database = ["sqlalchemy"]
-mlflow = ["mlflow-skinny"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
