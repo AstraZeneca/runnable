@@ -54,14 +54,13 @@ jobs:
         continue-on-error: true
         id: last_tag
         run: |
-
-          CURRENT=${poetry run semantic-release --noop version --print-last-released}
+          CURRENT=$(python -m poetry run semantic-release --noop version --print-last-released)
           echo "Current: $CURRENT"
 
-          python -m poetry run semantic-release -vv version --tag --push
-
-          VERSION=${poetry run semantic-release --noop version --print-last-released}
+          VERSION=$(python -m poetry run semantic-release --noop version --print)
           echo "new: $VERSION"
+
+          python -m poetry run semantic-release -vv version --tag --push
 
           if [ "$CURRENT" == "$VERSION" ]; then
             echo "version=$VERSION" >> $GITHUB_OUTPUT
