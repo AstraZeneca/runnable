@@ -57,7 +57,6 @@ python-semantic-release = "^9.4.2"
 docker = ['docker']
 notebook = ['ploomber-engine']
 database = ["sqlalchemy"]
-mlflow = ["mlflow-skinny"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
@@ -70,6 +69,7 @@ ruff = "^0.0.259"
 commit-linter = "^1.0.2"
 black = "^23.3.0"
 gitlint = "^0.19.1"
+pandas = "^2.2.2"
 
 
 [tool.poetry.scripts]

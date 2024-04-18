@@ -34,5 +34,5 @@ jobs:
           argo version
 
       - run: |
-          python -m poetry install
+          python -m poetry install --without docs,binary,perf,tutorial
           poetry run tox
