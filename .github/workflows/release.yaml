@@ -62,7 +62,7 @@ jobs:
           VERSION=$(python -m poetry run semantic-release --noop version --print)
           echo "new: $VERSION"
 
-          python -m poetry run semantic-release version --tag --push
+          # python -m poetry run semantic-release version --tag --push
 
           if [ "$CURRENT" == "$VERSION" ]; then
             echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -72,21 +72,21 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           exit 0
 
-      # - name: Apply new tag
-      #   if: steps.last_tag.outcome == 'success'
-      #   env:
-      #     VERSION: ${{ steps.last_tag.outputs.version }}
-      #   uses: actions/github-script@v6
-      #   with:
-      #     script: |
-      #       const {VERSION} = process.env
-      #       const tag = `refs/tags/${VERSION}`
-      #       await github.rest.git.createRef({
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         ref: tag,
-      #         sha: context.sha
-      #       })
+      - name: Apply new tag
+        if: steps.last_tag.outcome == 'success'
+        env:
+          VERSION: ${{ steps.last_tag.outputs.version }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const {VERSION} = process.env
+            const tag = `refs/tags/${VERSION}`
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: tag,
+              sha: context.sha
+            })
       - name: Publish to PyPI
         if: steps.last_tag.outcome == 'success'
         env:
