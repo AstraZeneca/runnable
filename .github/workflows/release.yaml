@@ -33,7 +33,7 @@ jobs:
           argo version
       - run: python -m pip install poetry
       - run: |
-          python -m poetry install
+          # python -m poetry install
           poetry run tox
 
   Release:
@@ -52,6 +52,8 @@ jobs:
 
       - name: Figure version
         continue-on-error: true
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         id: last_tag
         run: |
           CURRENT=$(python -m poetry run semantic-release --noop version --print-last-released)
@@ -60,7 +62,7 @@ jobs:
           VERSION=$(python -m poetry run semantic-release --noop version --print)
           echo "new: $VERSION"
 
-          python -m poetry run semantic-release -vv version --tag --push
+          python -m poetry run semantic-release version --tag --push
 
           if [ "$CURRENT" == "$VERSION" ]; then
             echo "version=$VERSION" >> $GITHUB_OUTPUT
