@@ -49,11 +49,14 @@ scikit-learn = "^1.4.1.post1"
 en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz" }
 matplotlib = "^3.8.3"
 
+
+[tool.poetry.group.release.dependencies]
+python-semantic-release = "^9.4.2"
+
 [tool.poetry.extras]
 docker = ['docker']
 notebook = ['ploomber-engine']
 database = ["sqlalchemy"]
-mlflow = ["mlflow-skinny"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
@@ -66,6 +69,7 @@ ruff = "^0.0.259"
 commit-linter = "^1.0.2"
 black = "^23.3.0"
 gitlint = "^0.19.1"
+pandas = "^2.2.2"
 
 
 [tool.poetry.scripts]
@@ -191,21 +195,15 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.semantic_release]
-tag_commit = false
-major_on_zero = true
-commit_version_number = false
-upload_to_pypi = false
-upload_to_repository = false
-upload_to_release = false
+allow_zero_version = true
+major_on_zero = false
 tag_format = "{version}"
+
+[tool.semantic_release.remote.token]
+env = "GH_TOKEN"
 
 [tool.semantic_release.branches.main]
 match = "main"
-
-[tool.semantic_release.branches."rc"]
-match = "rc"
-prerelease = true
-prerelease_token = "rc"
 
 [tool.semantic_release.remote]
 ignore_token_for_push = true

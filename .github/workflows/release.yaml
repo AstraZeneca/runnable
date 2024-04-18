@@ -33,7 +33,7 @@ jobs:
           argo version
       - run: python -m pip install poetry
       - run: |
-          python -m poetry install
+          python -m poetry install --without docs,binary,perf,tutorial
           poetry run tox
 
   Release:
@@ -46,17 +46,23 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
-      - run: python -m pip install python-semantic-release==8.0.7
+      - run: python -m pip install poetry
+      - run: |
+          python -m poetry install --only release
+
       - name: Figure version
         continue-on-error: true
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         id: last_tag
         run: |
+          CURRENT=$(python -m poetry run semantic-release --noop version --print-last-released)
+          echo "Current: $CURRENT"
 
-          CURRENT=$(git tag --sort=-committerdate -l | head -n 1)
-          echo "current: $CURRENT"
+          VERSION=$(python -m poetry run semantic-release --noop version --print)
+          echo "new: $VERSION"
 
-          VERSION=$(semantic-release --noop --strict version --no-push --no-commit --print)
-          echo "New: $VERSION"
+          # python -m poetry run semantic-release version --tag --push
 
           if [ "$CURRENT" == "$VERSION" ]; then
             echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -87,7 +93,6 @@ jobs:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
           LAST_TAG: ${{ steps.last_tag.outputs.version }}
         run: |
-          python -m pip install poetry
           python scripts/update_version.py $LAST_TAG
           poetry config pypi-token.pypi $PYPI_TOKEN
           poetry publish --build
