@@ -23,6 +23,11 @@ baseline_params:
 
   metrics: ['accuracy']
 
+hpt_ids:
+  - 0
+  - 1
+
+
 hpt:
   - [16, 32]
   - [16, 64]
