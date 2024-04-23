@@ -4,7 +4,7 @@ executor:
     image: $argo_docker_image
     max_workflow_duration_in_seconds: 86400 # Apply to spec
     node_selector:
-    parallelism: 0 #apply to spec
+    parallelism: 1 #apply to spec
     service_account_name: pipeline-runner
     resources:
       limits:
@@ -45,4 +45,4 @@ run_log_store: # (5)
 catalog: # (5)
   type: file-system
   config:
-    log_folder: /mnt/catalog # (6)
+    catalog_location: /mnt/catalog # (6)

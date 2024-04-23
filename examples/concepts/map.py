@@ -35,10 +35,10 @@ def process_chunk(stride: int, start_index: int):
     The files between the start_index and the start_index + stride
     are processed per chunk.
     """
-    print("stride", stride, type(stride))
-    print("start_index", start_index, type(start_index))
     for i in range(start_index, start_index + stride, stride):
         pass
+
+    return stride * start_index
 
 
 def main():
@@ -56,6 +56,7 @@ def main():
     execute = PythonTask(
         name="execute",
         function=process_chunk,
+        returns=["me"],
         terminate_with_success=True,
     )
 
@@ -76,7 +77,7 @@ def main():
 
     pipeline = Pipeline(steps=[generate, iterate_and_execute], add_terminal_nodes=True)
 
-    _ = pipeline.execute(configuration_file="examples/configs/fs-catalog-run_log.yaml")
+    _ = pipeline.execute(configuration_file="examples/configs/fs-catalog-chunked_run_log.yaml")
 
     return pipeline
 

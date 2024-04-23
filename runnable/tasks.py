@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import importlib
 import io
 import json
@@ -99,6 +100,20 @@ class BaseTaskType(BaseModel):
         """
         raise NotImplementedError()
 
+    def _diff_parameters(
+        self, parameters_in: Dict[str, Parameter], context_params: Dict[str, Parameter]
+    ) -> Dict[str, Parameter]:
+        diff: Dict[str, Parameter] = {}
+        for param_name, param in context_params.items():
+            if param_name in parameters_in:
+                if parameters_in[param_name] != param:
+                    diff[param_name] = param
+                continue
+
+            diff[param_name] = param
+
+        return diff
+
     @contextlib.contextmanager
     def expose_secrets(self):
         """Context manager to expose secrets to the execution.
@@ -128,7 +143,7 @@ class BaseTaskType(BaseModel):
             if param.reduced is False:
                 context_param = param_name
                 for _, v in map_variable.items():  # type: ignore
-                    context_param = f"{context_param}_{v}"
+                    context_param = f"{v}_{context_param}"
 
                 if context_param in params:
                     params[param_name].value = params[context_param].value
@@ -146,6 +161,8 @@ class BaseTaskType(BaseModel):
         log_file_name = "".join(x for x in log_file_name if x.isalnum()) + ".execution.log"
 
         log_file = open(log_file_name, "w")
+
+        parameters_in = copy.deepcopy(params)
 
         f = io.StringIO()
         try:
@@ -168,7 +185,8 @@ class BaseTaskType(BaseModel):
 
             # Update parameters
             # This should only update the parameters that are changed at the root level.
-            self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
+            diff_parameters = self._diff_parameters(parameters_in=parameters_in, context_params=params)
+            self._context.run_log_store.set_parameters(parameters=diff_parameters, run_id=self._context.run_id)
 
 
 def task_return_to_parameter(task_return: TaskReturns, value: Any) -> Parameter:
@@ -259,7 +277,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                         param_name = task_return.name
                         if map_variable:
                             for _, v in map_variable.items():
-                                param_name = f"{param_name}_{v}"
+                                param_name = f"{v}_{param_name}"
 
                         output_parameters[param_name] = output_parameter
 

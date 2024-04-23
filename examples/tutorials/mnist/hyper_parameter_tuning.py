@@ -47,7 +47,8 @@ def convert_to_categorically(y_train: np.ndarray, y_test: np.ndarray, num_classe
     return y_train, y_test
 
 
-def build_model(train_params: TrainParams, hp: List[int], num_classes: int):
+def build_model(train_params: TrainParams, hpt_id: int, hpt: List[List[int]], num_classes: int):
+    hp = hpt[hpt_id]
     hp_id = "_".join(map(str, hp))
     print(hp_id)
 
@@ -81,7 +82,8 @@ def build_model(train_params: TrainParams, hp: List[int], num_classes: int):
     model.save(f"model{hp_id}.keras")
 
 
-def train_model(x_train: np.ndarray, y_train: np.ndarray, train_params: TrainParams, hp: List[int]):
+def train_model(x_train: np.ndarray, y_train: np.ndarray, hpt_id: int, train_params: TrainParams, hpt: List[List[int]]):
+    hp = hpt[hpt_id]
     hp_id = "_".join(map(str, hp))
     model = keras.models.load_model(f"model{hp_id}.keras")
     model.compile(loss=train_params.loss, optimizer=train_params.optimizer, metrics=train_params.metrics)
@@ -97,7 +99,8 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, train_params: TrainPar
     model.save(f"trained_model{hp_id}.keras")
 
 
-def evaluate_model(x_test: np.ndarray, y_test: np.ndarray, hp: List[int]):
+def evaluate_model(x_test: np.ndarray, y_test: np.ndarray, hpt: List[List[int]], hpt_id: int):
+    hp = hpt[hpt_id]
     hp_id = "_".join(map(str, hp))
     trained_model = keras.models.load_model(f"trained_model{hp_id}.keras")
 
@@ -161,8 +164,8 @@ def main():
     hpt_step = Map(
         name="hpt",
         branch=train_pipeline,
-        iterate_on="hpt",
-        iterate_as="hp",
+        iterate_on="hpt_ids",
+        iterate_as="hpt_id",
         reducer="lambda *x: max(x, key=lambda x: x[1])",
         terminate_with_success=True,
     )

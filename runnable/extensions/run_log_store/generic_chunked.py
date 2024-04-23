@@ -7,7 +7,16 @@ from string import Template
 from typing import Any, Dict, Optional, Sequence, Union
 
 from runnable import defaults, exceptions
-from runnable.datastore import BaseRunLogStore, BranchLog, RunLog, StepLog
+from runnable.datastore import (
+    BaseRunLogStore,
+    BranchLog,
+    JsonParameter,
+    MetricParameter,
+    ObjectParameter,
+    Parameter,
+    RunLog,
+    StepLog,
+)
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -164,7 +173,9 @@ class ChunkedRunLogStore(BaseRunLogStore):
             raise Exception(f"Name is required during retrieval for {log_type}")
 
         naming_pattern = self.naming_pattern(log_type=log_type, name=name)
+
         matches = self.get_matches(run_id=run_id, name=naming_pattern, multiple_allowed=multiple_allowed)
+
         if matches:
             if not multiple_allowed:
                 contents = self._retrieve(name=matches)  # type: ignore
@@ -370,10 +381,17 @@ class ChunkedRunLogStore(BaseRunLogStore):
         Raises:
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
         """
-        parameters = {}
+        parameters: Dict[str, Parameter] = {}
         try:
             parameters_list = self.retrieve(run_id=run_id, log_type=self.LogTypes.PARAMETER, multiple_allowed=True)
-            parameters = {key: value for param in parameters_list for key, value in param.items()}
+            for param in parameters_list:
+                for key, value in param.items():
+                    if value["kind"] == "json":
+                        parameters[key] = JsonParameter(**value)
+                    if value["kind"] == "metric":
+                        parameters[key] = MetricParameter(**value)
+                    if value["kind"] == "object":
+                        parameters[key] = ObjectParameter(**value)
         except EntityNotFoundError:
             # No parameters are set
             pass
@@ -401,7 +419,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
             self.store(
                 run_id=run_id,
                 log_type=self.LogTypes.PARAMETER,
-                contents={key: value},
+                contents={key: value.model_dump(by_alias=True)},
                 name=key,
             )
 

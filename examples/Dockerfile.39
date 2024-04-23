@@ -28,4 +28,4 @@ WORKDIR /app
 RUN poetry config repositories.FPHO https://files.pythonhosted.org \
     && poetry config certificates.FPHO.cert false
 
-RUN poetry install --all-extras --without dev --without tutorial
+RUN poetry install --all-extras --without dev,docs,binary,tutorial,perf,release && poetry cache clear --all .

@@ -312,8 +312,10 @@ class RunLog(BaseModel):
         summary["Catalog Location"] = _context.catalog_handler.get_summary()
         summary["Full Run log present at: "] = _context.run_log_store.get_summary()
 
-        summary["Final Parameters"] = {p: v.description for p, v in self.parameters.items()}
-        summary["Collected metrics"] = {p: v.description for p, v in self.parameters.items() if v.kind == "metric"}
+        run_log = _context.run_log_store.get_run_log_by_id(run_id=_context.run_id, full=True)
+
+        summary["Final Parameters"] = {p: v.description for p, v in run_log.parameters.items()}
+        summary["Collected metrics"] = {p: v.description for p, v in run_log.parameters.items() if v.kind == "metric"}
 
         return summary
 
