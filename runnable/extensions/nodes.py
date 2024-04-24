@@ -505,7 +505,7 @@ class MapNode(CompositeNode):
             for _, v in map_variable.items():
                 for branch_return in self.branch_returns:
                     param_name, param_type = branch_return
-                    raw_parameters[f"{param_name}_{v}"] = param_type.copy()
+                    raw_parameters[f"{v}_{param_name}"] = param_type.copy()
         else:
             for branch_return in self.branch_returns:
                 param_name, param_type = branch_return
@@ -606,9 +606,9 @@ class MapNode(CompositeNode):
                     param_name, _ = branch_return
                     to_reduce = []
                     for iter_variable in iterate_on:
-                        to_reduce.append(params[f"{param_name}_{iter_variable}"].get_value())
+                        to_reduce.append(params[f"{iter_variable}_{param_name}"].get_value())
 
-                    param_name = f"{param_name}_{v}"
+                    param_name = f"{v}_{param_name}"
                     params[param_name].value = reducer_f(to_reduce)
                     params[param_name].reduced = True
         else:
@@ -617,7 +617,7 @@ class MapNode(CompositeNode):
 
                 to_reduce = []
                 for iter_variable in iterate_on:
-                    to_reduce.append(params[f"{param_name}_{iter_variable}"].get_value())
+                    to_reduce.append(params[f"{iter_variable}_{param_name}"].get_value())
 
                 params[param_name].value = reducer_f(*to_reduce)
                 params[param_name].reduced = True

@@ -53,6 +53,10 @@ matplotlib = "^3.8.3"
 [tool.poetry.group.release.dependencies]
 python-semantic-release = "^9.4.2"
 
+
+[tool.poetry.group.examples.dependencies]
+pandas = "^2.2.2"
+
 [tool.poetry.extras]
 docker = ['docker']
 notebook = ['ploomber-engine']

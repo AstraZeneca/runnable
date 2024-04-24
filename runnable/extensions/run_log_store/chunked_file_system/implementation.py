@@ -35,10 +35,10 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
             name (str): The suffix of the file name to check in the run log store.
         """
         log_folder = self.log_folder_with_run_id(run_id=run_id)
-
         sub_name = Template(name).safe_substitute({"creation_time": ""})
 
         matches = list(log_folder.glob(f"{sub_name}*"))
+
         if matches:
             if not multiple_allowed:
                 if len(matches) > 1:

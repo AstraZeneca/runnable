@@ -38,3 +38,4 @@ from runnable.sdk import (  # noqa
 
 
 # TODO: Think of way of generating dag hash without executor configuration
+# TODO: Add examples of map parameters and task types
