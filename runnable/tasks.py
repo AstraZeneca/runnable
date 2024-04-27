@@ -34,7 +34,7 @@ logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 # TODO: Can we add memory peak, cpu usage, etc. to the metrics?
 
 
-console = Console(file=io.StringIO())
+task_console = Console(file=io.StringIO())
 
 
 class TaskReturns(BaseModel):
@@ -169,10 +169,11 @@ class BaseTaskType(BaseModel):
             with contextlib.redirect_stdout(f):
                 # with contextlib.nullcontext():
                 yield params
-                print(console.file.getvalue())  # type: ignore
+                print(task_console.file.getvalue())  # type: ignore
         except Exception as e:  # pylint: disable=broad-except
             logger.exception(e)
         finally:
+            task_console.clear()
             print(f.getvalue())  # print to console
             log_file.write(f.getvalue())  # Print to file
 
@@ -245,7 +246,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     logger.info(f"Calling {func} from {module} with {filtered_parameters}")
                     user_set_parameters = f(**filtered_parameters)  # This is a tuple or single value
                 except Exception as e:
-                    console.log(e, style=defaults.error_style, markup=False)
+                    task_console.log(e, style=defaults.error_style, markup=False)
                     raise exceptions.CommandCallError(f"Function call: {self.command} did not succeed.\n") from e
 
                 attempt_log.input_parameters = params.copy()
@@ -289,8 +290,8 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             except Exception as _e:
                 msg = f"Call to the function {self.command} did not succeed.\n"
                 attempt_log.message = msg
-                console.print_exception(show_locals=False)
-                console.log(_e, style=defaults.error_style)
+                task_console.print_exception(show_locals=False)
+                task_console.log(_e, style=defaults.error_style)
 
         attempt_log.end_time = str(datetime.now())
 
@@ -487,14 +488,14 @@ class ShellTaskType(BaseTaskType):
                 attempt_log.status = defaults.FAIL
                 attempt_log.end_time = str(datetime.now())
                 attempt_log.message = msg
-                console.print(msg, style=defaults.error_style)
+                task_console.print(msg, style=defaults.error_style)
                 return attempt_log
 
             # for stderr
             for line in result[1].split("\n"):
                 if line.strip() == "":
                     continue
-                console.print(line, style=defaults.warning_style)
+                task_console.print(line, style=defaults.warning_style)
 
             output_parameters: Dict[str, Parameter] = {}
             metrics: Dict[str, Parameter] = {}
@@ -505,7 +506,7 @@ class ShellTaskType(BaseTaskType):
                     continue
 
                 logger.info(line)
-                console.print(line)
+                task_console.print(line)
 
                 if line.strip() == collect_delimiter:
                     # The lines from now on should be captured

@@ -25,7 +25,7 @@ from rich.progress import (
 from rich.table import Column
 from typing_extensions import Self
 
-from runnable import console, defaults, entrypoints, graph, utils
+from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.extensions.nodes import (
     FailNode,
     MapNode,
@@ -690,6 +690,7 @@ class Pipeline(BaseModel):
             parameters_file=parameters_file,
         )
 
+        print("sdk", configuration_file)
         run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
         utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
@@ -734,9 +735,11 @@ class Pipeline(BaseModel):
                     progress.update(pipeline_execution_task, description="[green] Success", completed=True)
                 else:
                     progress.update(pipeline_execution_task, description="[red] Failed", completed=True)
+                    raise exceptions.ExecutionFailedError(run_context.run_id)
             except Exception as e:  # noqa: E722
                 console.print(e, style=defaults.error_style)
                 progress.update(pipeline_execution_task, description="[red] Errored execution", completed=True)
+                raise
 
         if run_context.executor._local:
             return run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id)

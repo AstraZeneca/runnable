@@ -1,0 +1,39 @@
+dag:
+  description: |
+    The below example showcases setting up known initial parameters for a pipeline
+    of only python tasks
+
+    The initial parameters as defined in the yaml file are:
+        simple: 1
+        complex_param:
+            x: 10
+            y: "hello world!!"
+
+    runnable allows using pydantic models for deeply nested parameters and
+    casts appropriately based on annotation. eg: read_initial_params_as_pydantic
+
+    If no annotation is provided, the parameter is assumed to be a dictionary.
+    eg: read_initial_params_as_json
+  start_at: write_parameters
+  steps:
+    write_parameters:
+      type: task
+      command: examples.common.functions.write_parameter
+      returns:
+        - name: df
+          kind: object
+        - name: integer
+        - name: floater
+        - name: stringer
+        - name: pydantic_param
+        - name: score
+
+      next: read_parameters
+    read_parameters:
+      type: task
+      command: examples.common.functions.read_parameter
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail

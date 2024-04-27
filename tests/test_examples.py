@@ -1,29 +1,27 @@
 import importlib
 import os
-import subprocess
 from contextlib import contextmanager, nullcontext
-from pathlib import Path
 
 import pytest
 
 from runnable import exceptions
 from runnable.entrypoints import execute
 
-# # (file, is_fail?, kwargs)
+# # (file, is_fail?)
 python_examples = [
-    ("01-tasks/notebook", False, None),
-    ("01-tasks/python_tasks", False, None),
-    ("01-tasks/scripts", False, None),
-    ("01-tasks/stub", False, None),
-    ("02-sequential/default_fail", False, None),
-    ("02-sequential/on_failure_fail", False, None),
-    ("02-sequential/on_failure_succeed", False, None),
-    ("02-sequential/traversal", False, None),
-    ("03-parameters/passing_parameters_notebook", False, None),
-    ("03-parameters/passing_parameters_python", False, None),
-    ("03-parameters/passing_parameters_shell", False, None),
-    ("03-parameters/static_parameters_non_python", False, None),
-    ("03-parameters/static_parameters_python", False, None),
+    ("01-tasks/notebook", False),
+    ("01-tasks/python_tasks", False),
+    ("01-tasks/scripts", False),
+    ("01-tasks/stub", False),
+    ("02-sequential/default_fail", True),
+    ("02-sequential/on_failure_fail", True),
+    ("02-sequential/on_failure_succeed", False),
+    ("02-sequential/traversal", False),
+    ("03-parameters/passing_parameters_notebook", False),
+    ("03-parameters/passing_parameters_python", False),
+    ("03-parameters/passing_parameters_shell", False),
+    ("03-parameters/static_parameters_non_python", False),
+    ("03-parameters/static_parameters_python", False),
 ]
 
 
@@ -32,13 +30,25 @@ def list_python_examples():
         yield example
 
 
+@contextmanager
+def chunked_fs_context():
+    os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/chunked-fs-run_log.yaml"
+    yield
+    del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+
+
+contexts = [None, chunked_fs_context]
+configurations = [None, "examples/configs/chunked-fs-run_log.yaml"]
+
+
 @pytest.mark.parametrize("example", list_python_examples())
-# @pytest.mark.no_cover
+@pytest.mark.parametrize("context", contexts)
+@pytest.mark.no_cover
 @pytest.mark.e2e
-def test_python_examples(example):
+def test_python_examples(example, context):
     print(f"Testing {example}...")
 
-    mod, status, context = example
+    mod, status = example
 
     if not context:
         context = nullcontext()
@@ -47,135 +57,29 @@ def test_python_examples(example):
 
     imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
     f = getattr(imported_module, "main")
-    try:
-        with context:
+    with context:
+        try:
             f()
+        except exceptions.ExecutionFailedError:
+            print("Example failed")
+            if not status:
+                raise
+
+
+@pytest.mark.parametrize("example", list_python_examples())
+@pytest.mark.parametrize("configuration", configurations)
+@pytest.mark.no_cover
+@pytest.mark.e2e
+def test_yaml_examples(example, configuration):
+    print(f"Testing {example}...")
+    file, status = example
+    example_file = f"examples/{file}.yaml"
+    parameters_file = "examples/common/initial_parameters.yaml"
+    try:
+        execute(configuration_file=configuration, pipeline_file=example_file, parameters_file=parameters_file)
     except exceptions.ExecutionFailedError:
         if not status:
             raise
 
 
-# examples = [
-#     ("concepts/catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
-#     ("concepts/map.yaml", False, {}),
-#     ("concepts/map_shell.yaml", False, {}),
-#     ("concepts/nesting.yaml", False, {}),
-#     ("concepts/notebook_native_parameters.yaml", False, {"parameters_file": "examples/concepts/parameters.yaml"}),
-#     ("concepts/parallel.yaml", False, {}),
-#     ("concepts/simple_notebook.yaml", False, {}),
-#     ("concepts/simple.yaml", False, {}),
-#     ("catalog.yaml", False, {"configuration_file": "examples/configs/fs-catalog.yaml"}),
-#     ("default-fail.yaml", True, {}),
-#     ("on-failure.yaml", False, {}),
-#     ("parallel-fail.yaml", True, {}),
-# ]
-
-
-# def list_examples():
-#     for example in examples:
-#         yield example
-
-
-# @pytest.mark.parametrize("example", list_examples())
-# @pytest.mark.no_cover
-# @pytest.mark.e2e
-# def test_yaml_examples(example):
-#     print(f"Testing {example}...")
-#     examples_path = Path("examples")
-#     file_path, status, kwargs = example
-#     try:
-#         full_file_path = examples_path / file_path
-#         configuration_file = kwargs.pop("configuration_file", "")
-#         execute(configuration_file=configuration_file, pipeline_file=str(full_file_path.resolve()), **kwargs)
-#     except exceptions.ExecutionFailedError:
-#         if not status:
-#             raise
-
-
-# @pytest.mark.parametrize("example", list_examples())
-# @pytest.mark.no_cover
-# @pytest.mark.e2e
-# def test_yaml_examples_argo(example):
-#     print(f"Testing {example}...")
-#     examples_path = Path("examples")
-#     file_path, status, kwargs = example
-#     try:
-#         full_file_path = examples_path / file_path
-#         kwargs.pop("configuration_file", "")
-#         configuration_file = "examples/configs/argo-config.yaml"
-#         execute(configuration_file=configuration_file, pipeline_file=str(full_file_path.resolve()), **kwargs)
-#         subprocess.run(["argo", "lint", "--offline", "argo-pipeline.yaml"], check=True)
-#     except exceptions.ExecutionFailedError:
-#         if not status:
-#             raise
-
-
-# @pytest.mark.parametrize("example", list_examples())
-# @pytest.mark.no_cover
-# @pytest.mark.e2e_container
-# def test_yaml_examples_container(example):
-#     print(f"Testing {example}...")
-#     examples_path = Path("examples")
-#     file_path, status, kwargs = example
-#     try:
-#         full_file_path = examples_path / file_path
-#         kwargs.pop("configuration_file", "")
-#         configuration_file = "examples/configs/local-container.yaml"
-#         os.environ["runnable_VAR_default_docker_image"] = "runnable:3.8"
-#         execute(configuration_file=configuration_file, pipeline_file=str(full_file_path), **kwargs)
-#     except exceptions.ExecutionFailedError:
-#         if not status:
-#             raise
-
-
-# @contextmanager
-# def secrets_env_context():
-#     os.environ["secret"] = "secret_value"
-#     os.environ["runnable_CONFIGURATION_FILE"] = "examples/configs/secrets-env-default.yaml"
-#     yield
-#     del os.environ["secret"]
-#     del os.environ["runnable_CONFIGURATION_FILE"]
-
-
-# # function, success, context
-# python_examples = [
-#     ("catalog", False, None),
-#     ("catalog_simple", False, None),
-#     ("mocking", False, None),
-#     ("on_failure", False, None),
-#     ("parameters", False, None),
-#     ("parameters_simple", False, None),
-#     ("concepts.catalog", False, None),
-#     ("concepts.map", False, None),
-#     ("concepts.nesting", False, None),
-#     ("concepts.parallel", False, None),
-#     ("concepts.simple", False, None),
-# ]
-
-
-# def list_python_examples():
-#     for example in python_examples:
-#         yield example
-
-
-# @pytest.mark.parametrize("example", list_python_examples())
-# @pytest.mark.no_cover
-# @pytest.mark.e2e
-# def test_python_examples(example):
-#     print(f"Testing {example}...")
-
-#     mod, status, context = example
-
-#     if not context:
-#         context = nullcontext()
-#     else:
-#         context = context()
-
-#     imported_module = importlib.import_module(f"examples.{mod}")
-#     f = getattr(imported_module, "main")
-#     try:
-#         with context:
-#             f()
-#     except exceptions.ExecutionFailedError:
-#         if not status:
-#             raise
+# TODO: Need to test argo and local container

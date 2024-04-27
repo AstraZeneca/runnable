@@ -28,6 +28,8 @@ def main():
         terminate_with_success=True,
     )
 
+    # There should be read parameters using shell
+
     pipeline = Pipeline(
         steps=[write_parameters_in_shell, read_parameters],
     )
