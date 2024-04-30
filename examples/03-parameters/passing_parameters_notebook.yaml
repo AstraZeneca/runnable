@@ -1,19 +1,13 @@
 dag:
   description: |
-    The below example showcases setting up known initial parameters for a pipeline
-    of only python tasks
+    Demonstrates passing parameters to and from a notebook.
 
-    The initial parameters as defined in the yaml file are:
-        simple: 1
-        complex_param:
-            x: 10
-            y: "hello world!!"
+    We can extract json, pydantic, objects from notebook.
+    eg: write_parameters_from_notebook
 
-    runnable allows using pydantic models for deeply nested parameters and
-    casts appropriately based on annotation. eg: read_initial_params_as_pydantic
-
-    If no annotation is provided, the parameter is assumed to be a dictionary.
-    eg: read_initial_params_as_json
+    But can only inject json type parameters to a notebook.
+    eg: read_parameters_in_notebook
+    pydantic parameters are injected as dict.
   start_at: write_parameters_from_notebook
   steps:
     write_parameters_from_notebook:

@@ -46,8 +46,6 @@ class TaskNode(ExecutableNode):
         task_config = {k: v for k, v in config.items() if k not in TaskNode.model_fields.keys()}
         node_config = {k: v for k, v in config.items() if k in TaskNode.model_fields.keys()}
 
-        task_config["node_name"] = config.get("name")
-
         executable = create_task(task_config)
         return cls(executable=executable, **node_config, **task_config)
 

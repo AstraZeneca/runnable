@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict, Union
 
 import pandas as pd
@@ -24,12 +25,14 @@ def read_initial_params_as_pydantic(
     floater: float,
     stringer: str,
     pydantic_param: ComplexParams,
+    envvar: str,
 ):
     assert integer == 1
     assert floater == 3.14
     assert stringer == "hello"
     assert pydantic_param.x == 10
     assert pydantic_param.foo == "bar"
+    assert envvar == "from env"
 
 
 def read_initial_params_as_json(
@@ -87,3 +90,24 @@ def read_unpickled_parameter(
     assert pydantic_param.x == 10
     assert pydantic_param.foo == "bar"
     assert score == 0.9
+
+
+def write_files():
+    data = {"calories": [420, 380, 390], "duration": [50, 40, 45]}
+    df = pd.DataFrame(data)
+
+    df.to_csv("df.csv", index=False)
+
+    Path("data_folder").mkdir(parents=True, exist_ok=True)
+    with open("data_folder/data.txt", "w", encoding="utf-8") as f:
+        f.write("hello world")
+
+
+def read_files():
+    df = pd.read_csv("df.csv")
+    assert df.shape == (3, 2)
+
+    with open("data_folder/data.txt", "r", encoding="utf-8") as f:
+        data = f.read()
+
+    assert data.strip() == "hello world"

@@ -1,3 +1,15 @@
+"""
+Demonstrates passing parameters to and from a notebook.
+
+We can extract json, pydantic, objects from notebook.
+eg: write_parameters_from_notebook
+
+But can only inject json type parameters to a notebook.
+eg: read_parameters_in_notebook
+pydantic parameters are injected as dict.
+
+"""
+
 from examples.common.functions import read_parameter
 from runnable import NotebookTask, Pipeline, PythonTask, metric, pickled
 

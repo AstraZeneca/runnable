@@ -1,19 +1,18 @@
 dag:
   description: |
-    The below example showcases setting up known initial parameters for a pipeline
-    of only python tasks
+    The below example shows how to set/get parameters in python
+    tasks of the pipeline.
 
-    The initial parameters as defined in the yaml file are:
-        simple: 1
-        complex_param:
-            x: 10
-            y: "hello world!!"
+    The function, set_parameter, returns
+        - simple python data types (int, float, str)
+        - pydantic models
+        - pandas dataframe, any "object" type
 
-    runnable allows using pydantic models for deeply nested parameters and
-    casts appropriately based on annotation. eg: read_initial_params_as_pydantic
+    pydantic models are implicitly handled by runnable
+    but "object" types should be marked as "pickled".
 
-    If no annotation is provided, the parameter is assumed to be a dictionary.
-    eg: read_initial_params_as_json
+    Use pickled even for python data types is advised for
+    reasonably large collections.
   start_at: write_parameters
   steps:
     write_parameters:

@@ -1,6 +1,6 @@
 import importlib
 import os
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 
 import pytest
 
@@ -22,6 +22,7 @@ python_examples = [
     ("03-parameters/passing_parameters_shell", False),
     ("03-parameters/static_parameters_non_python", False),
     ("03-parameters/static_parameters_python", False),
+    ("04-catalog/catalog", False),
 ]
 
 
@@ -33,12 +34,20 @@ def list_python_examples():
 @contextmanager
 def chunked_fs_context():
     os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/chunked-fs-run_log.yaml"
+    os.environ["RUNNABLE_PRM_envvar"] = "from env"
     yield
     del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+    del os.environ["RUNNABLE_PRM_envvar"]
 
 
-contexts = [None, chunked_fs_context]
-configurations = [None, "examples/configs/chunked-fs-run_log.yaml"]
+@contextmanager
+def default_context():
+    os.environ["RUNNABLE_PRM_envvar"] = "from env"
+    yield
+    del os.environ["RUNNABLE_PRM_envvar"]
+
+
+contexts = [default_context, chunked_fs_context]
 
 
 @pytest.mark.parametrize("example", list_python_examples())
@@ -49,11 +58,7 @@ def test_python_examples(example, context):
     print(f"Testing {example}...")
 
     mod, status = example
-
-    if not context:
-        context = nullcontext()
-    else:
-        context = context()
+    context = context()
 
     imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
     f = getattr(imported_module, "main")
@@ -67,19 +72,22 @@ def test_python_examples(example, context):
 
 
 @pytest.mark.parametrize("example", list_python_examples())
-@pytest.mark.parametrize("configuration", configurations)
+@pytest.mark.parametrize("context", contexts)
 @pytest.mark.no_cover
 @pytest.mark.e2e
-def test_yaml_examples(example, configuration):
+def test_yaml_examples(example, context):
     print(f"Testing {example}...")
     file, status = example
+    context = context()
     example_file = f"examples/{file}.yaml"
     parameters_file = "examples/common/initial_parameters.yaml"
-    try:
-        execute(configuration_file=configuration, pipeline_file=example_file, parameters_file=parameters_file)
-    except exceptions.ExecutionFailedError:
-        if not status:
-            raise
+
+    with context:
+        try:
+            execute(pipeline_file=example_file, parameters_file=parameters_file)
+        except exceptions.ExecutionFailedError:
+            if not status:
+                raise
 
 
 # TODO: Need to test argo and local container

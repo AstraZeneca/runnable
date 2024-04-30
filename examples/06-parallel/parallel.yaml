@@ -1,0 +1,46 @@
+# This example demonstrates the use of the Parallel step.
+
+# The branches of the parallel step are themselves pipelines and can be defined
+# as shown in 02-sequential/traversal.yaml
+branch: &branch
+  description: |
+    Use this pattern to define repeatable branch
+  start_at: hello stub
+  steps:
+    hello stub:
+      type: stub
+      next: hello python
+    hello python:
+      type: task
+      command_type: python
+      command: examples.common.functions.hello # dotted path to the function.
+      next: hello shell
+    hello shell:
+      type: task
+      command_type: shell
+      command: echo "Hello World!" # Command to run
+      next: hello notebook
+    hello notebook:
+      type: task
+      command_type: notebook
+      command: examples/common/simple_notebook.ipynb # The path is relative to the root of the project.
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail
+
+
+dag:
+  start_at: parallel_step
+  steps:
+    parallel_step:
+      type: parallel
+      next: success
+      branches:
+        branch1: *branch
+        branch2: *branch
+    success:
+      type: success
+    failure:
+      type: fail

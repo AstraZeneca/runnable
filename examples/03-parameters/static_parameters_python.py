@@ -14,7 +14,12 @@ casts appropriately based on annotation. eg: read_initial_params_as_pydantic
 If no annotation is provided, the parameter is assumed to be a dictionary.
 eg: read_initial_params_as_json
 
+You can set the initial parameters from environment variables as well.
+eg: Any environment variable prefixed by "RUNNABLE_PRM_" will be picked up by runnable
+
 """
+
+import os
 
 from examples.common.functions import (
     read_initial_params_as_json,
@@ -46,4 +51,6 @@ def main():
 
 
 if __name__ == "__main__":
+    # Any parameter prefixed by "RUNNABLE_PRM_" will be picked up by runnable
+    os.environ["RUNNABLE_PRM_envvar"] = "from env"
     main()

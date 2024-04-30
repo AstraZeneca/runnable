@@ -8,11 +8,12 @@ import os
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 from pickle import PicklingError
 from string import Template
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Tuple
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from rich.console import Console
 from stevedore import driver
 
@@ -34,9 +35,6 @@ logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 # TODO: Can we add memory peak, cpu usage, etc. to the metrics?
 
 
-task_console = Console(file=io.StringIO())
-
-
 class TaskReturns(BaseModel):
     name: str
     kind: Literal["json", "object", "metric"] = Field(default="json")
@@ -46,7 +44,6 @@ class BaseTaskType(BaseModel):
     """A base task class which does the execution of command defined by the user."""
 
     task_type: str = Field(serialization_alias="command_type")
-    node_name: str = Field(exclude=True)
     secrets: List[str] = Field(default_factory=list)
     returns: List[TaskReturns] = Field(default_factory=list, alias="returns")
 
@@ -153,7 +150,7 @@ class BaseTaskType(BaseModel):
         if not allow_complex:
             params = {key: value for key, value in params.items() if isinstance(value, JsonParameter)}
 
-        log_file_name = self.node_name  # + ".execution.log"
+        log_file_name = self._context.executor._context_node.internal_name
         if map_variable:
             for _, value in map_variable.items():
                 log_file_name += "_" + str(value)
@@ -165,15 +162,16 @@ class BaseTaskType(BaseModel):
         parameters_in = copy.deepcopy(params)
 
         f = io.StringIO()
+        task_console = Console(file=io.StringIO())
         try:
             with contextlib.redirect_stdout(f):
                 # with contextlib.nullcontext():
-                yield params
+                yield params, task_console
                 print(task_console.file.getvalue())  # type: ignore
         except Exception as e:  # pylint: disable=broad-except
             logger.exception(e)
         finally:
-            task_console.clear()
+            task_console = None
             print(f.getvalue())  # print to console
             log_file.write(f.getvalue())  # Print to file
 
@@ -234,7 +232,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         """Execute the notebook as defined by the command."""
         attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
 
-        with self.execution_context(map_variable=map_variable) as params, self.expose_secrets() as _:
+        with self.execution_context(map_variable=map_variable) as (params, task_console), self.expose_secrets() as _:
             module, func = utils.get_module_and_attr_names(self.command)
             sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
             imported_module = importlib.import_module(module)
@@ -303,25 +301,22 @@ class NotebookTaskType(BaseTaskType):
 
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
-    notebook_output_path: Optional[str] = Field(default=None, validate_default=True)
     optional_ploomber_args: dict = {}
 
     @field_validator("command")
     @classmethod
-    def notebook_should_end_with_ipynb(cls, command: str):
+    def notebook_should_end_with_ipynb(cls, command: str) -> str:
         if not command.endswith(".ipynb"):
             raise Exception("Notebook task should point to a ipynb file")
 
         return command
 
-    @field_validator("notebook_output_path")
-    @classmethod
-    def correct_notebook_output_path(cls, notebook_output_path: str, info: ValidationInfo):
-        if notebook_output_path:
-            return notebook_output_path
+    @property
+    def notebook_output_path(self) -> str:
+        output_path = Path(self.command)
+        file_name = output_path.resolve() / (output_path.stem + "_out.ipynb")
 
-        command = info.data["command"]
-        return "".join(command.split(".")[:-1]) + "_out.ipynb"
+        return str(file_name)
 
     def get_cli_options(self) -> Tuple[str, dict]:
         return "notebook", {"command": self.command, "notebook-output-path": self.notebook_output_path}
@@ -347,13 +342,20 @@ class NotebookTaskType(BaseTaskType):
 
             notebook_output_path = self.notebook_output_path or ""
 
-            with self.execution_context(
-                map_variable=map_variable, allow_complex=False
-            ) as params, self.expose_secrets() as _:
+            with self.execution_context(map_variable=map_variable, allow_complex=False) as (
+                params,
+                _,
+            ), self.expose_secrets() as _:
                 if map_variable:
                     for key, value in map_variable.items():
                         notebook_output_path += "_" + str(value)
                         params[key] = value
+
+                node_name = self._context.executor._context_node.internal_name
+                "".join(x for x in node_name if x.isalnum()) + ".execution.log"
+                new_notebook_output_path = notebook_output_path
+                print(notebook_output_path)
+                print(new_notebook_output_path)
 
                 notebook_params = {k: v.get_value() for k, v in params.items()}
 
@@ -454,95 +456,98 @@ class ShellTaskType(BaseTaskType):
                 secret_value = context.run_context.secrets_handler.get(key)
                 subprocess_env[key] = secret_value
 
-        with self.execution_context(map_variable=map_variable, allow_complex=False) as params:
-            subprocess_env.update({k: v.get_value() for k, v in params.items()})
+        try:
+            with self.execution_context(map_variable=map_variable, allow_complex=False) as (params, task_console):
+                subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
-            # Json dumps all runnable environment variables
-            for key, value in subprocess_env.items():
-                if isinstance(value, str):
-                    continue
-                subprocess_env[key] = json.dumps(value)
+                # Json dumps all runnable environment variables
+                for key, value in subprocess_env.items():
+                    if isinstance(value, str):
+                        continue
+                    subprocess_env[key] = json.dumps(value)
 
-            collect_delimiter = "=== COLLECT ==="
+                collect_delimiter = "=== COLLECT ==="
 
-            command = self.command.strip() + f" && echo '{collect_delimiter}'  && env"
-            logger.info(f"Executing shell command: {command}")
+                command = self.command.strip() + f" && echo '{collect_delimiter}'  && env"
+                logger.info(f"Executing shell command: {command}")
 
-            capture = False
-            return_keys = {x.name: x for x in self.returns}
+                capture = False
+                return_keys = {x.name: x for x in self.returns}
 
-            proc = subprocess.Popen(
-                command,
-                shell=True,
-                env=subprocess_env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-            result = proc.communicate()
-            logger.debug(result)
-            logger.info(proc.returncode)
+                proc = subprocess.Popen(
+                    command,
+                    shell=True,
+                    env=subprocess_env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+                result = proc.communicate()
+                logger.debug(result)
+                logger.info(proc.returncode)
 
-            if proc.returncode != 0:
-                msg = ",".join(result[1].split("\n"))
-                attempt_log.status = defaults.FAIL
-                attempt_log.end_time = str(datetime.now())
-                attempt_log.message = msg
-                task_console.print(msg, style=defaults.error_style)
-                return attempt_log
+                if proc.returncode != 0:
+                    msg = ",".join(result[1].split("\n"))
+                    task_console.print(msg, style=defaults.error_style)
+                    raise exceptions.CommandCallError(msg)
 
-            # for stderr
-            for line in result[1].split("\n"):
-                if line.strip() == "":
-                    continue
-                task_console.print(line, style=defaults.warning_style)
+                # for stderr
+                for line in result[1].split("\n"):
+                    if line.strip() == "":
+                        continue
+                    task_console.print(line, style=defaults.warning_style)
 
-            output_parameters: Dict[str, Parameter] = {}
-            metrics: Dict[str, Parameter] = {}
+                output_parameters: Dict[str, Parameter] = {}
+                metrics: Dict[str, Parameter] = {}
 
-            # only from stdout
-            for line in result[0].split("\n"):
-                if line.strip() == "":
-                    continue
+                # only from stdout
+                for line in result[0].split("\n"):
+                    if line.strip() == "":
+                        continue
 
-                logger.info(line)
-                task_console.print(line)
+                    logger.info(line)
+                    task_console.print(line)
 
-                if line.strip() == collect_delimiter:
-                    # The lines from now on should be captured
-                    capture = True
-                    continue
+                    if line.strip() == collect_delimiter:
+                        # The lines from now on should be captured
+                        capture = True
+                        continue
 
-                if capture:
-                    key, value = line.strip().split("=", 1)
-                    if key in return_keys:
-                        task_return = return_keys[key]
+                    if capture:
+                        key, value = line.strip().split("=", 1)
+                        if key in return_keys:
+                            task_return = return_keys[key]
 
-                        try:
-                            value = json.loads(value)
-                        except json.JSONDecodeError:
-                            value = value
+                            try:
+                                value = json.loads(value)
+                            except json.JSONDecodeError:
+                                value = value
 
-                        output_parameter = task_return_to_parameter(
-                            task_return=task_return,
-                            value=value,
-                        )
+                            output_parameter = task_return_to_parameter(
+                                task_return=task_return,
+                                value=value,
+                            )
 
-                        if task_return.kind == "metric":
-                            metrics[task_return.name] = output_parameter
+                            if task_return.kind == "metric":
+                                metrics[task_return.name] = output_parameter
 
-                        param_name = task_return.name
-                        if map_variable:
-                            for _, v in map_variable.items():
-                                param_name = f"{param_name}_{v}"
+                            param_name = task_return.name
+                            if map_variable:
+                                for _, v in map_variable.items():
+                                    param_name = f"{param_name}_{v}"
 
-                        output_parameters[param_name] = output_parameter
+                            output_parameters[param_name] = output_parameter
 
-                attempt_log.output_parameters = output_parameters
-                attempt_log.user_defined_metrics = metrics
-                params.update(output_parameters)
+                    attempt_log.output_parameters = output_parameters
+                    attempt_log.user_defined_metrics = metrics
+                    params.update(output_parameters)
 
-            attempt_log.status = defaults.SUCCESS
+                attempt_log.status = defaults.SUCCESS
+        except exceptions.CommandCallError as e:
+            msg = f"Call to the command {self.command} did not succeed"
+            logger.exception(msg)
+            logger.exception(e)
+            attempt_log.status = defaults.FAIL
 
         attempt_log.end_time = str(datetime.now())
         return attempt_log

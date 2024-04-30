@@ -1,0 +1,116 @@
+dag:
+  description: |
+    Demonstrates moving files within tasks.
+
+    - generate_data: creates df.csv and data_folder/data.txt
+
+    - delete_local_after_generate: deletes df.csv and data_folder/data.txt
+        This step ensures that the local files are deleted after the step
+
+    - read_data_py: reads df.csv and data_folder/data.txt
+
+    - delete_local_after_python_get: deletes df.csv and data_folder/data.txt
+        This step ensures that the local files are deleted after the step
+
+    - read_data_shell: reads df.csv and data_folder/data.txt
+
+    - delete_local_after_shell_get: deletes df.csv and data_folder/data.txt
+        This step ensures that the local files are deleted after the step
+
+    - read_data_notebook: reads df.csv and data_folder/data.txt
+
+    - delete_local_after_notebook_get: deletes df.csv and data_folder/data.txt
+
+    Use this pattern to move files that are not dill friendly.
+
+    All the files are stored in catalog.
+
+    .catalog
+    └── silly-joliot-0610
+        ├── data_folder
+        │   └── data.txt
+        ├── deleteaftergenerate.execution.log
+        ├── deleteaftergeneratenotebook.execution.log
+        ├── deleteaftergeneratepython.execution.log
+        ├── deleteaftergenerateshell.execution.log
+        ├── df.csv
+        ├── examples
+        │   └── common
+        │       └── read_files_out.ipynb
+        ├── generatedata.execution.log
+        ├── readdatanotebook.execution.log
+        ├── readdatapy.execution.log
+        └── readdatashell.execution.log
+
+    5 directories, 11 files
+  start_at: generate_data
+  steps:
+    generate_data:
+      type: task
+      command: examples.common.functions.write_files
+      catalog:
+        put:
+          - df.csv
+          - data_folder/data.txt
+      next: delete_files_after_generate
+    delete_files_after_generate:
+      type: task
+      command_type: shell
+      command: |
+        rm df.csv && \
+        rm data_folder/data.txt
+      next: read_data_python
+    read_data_python:
+      type: task
+      command_type: python
+      command: examples.common.functions.read_files
+      catalog:
+        get:
+          - df.csv
+          - data_folder/data.txt
+      next: delete_local_after_python_get
+    delete_local_after_python_get:
+      type: task
+      command_type: shell
+      command: |
+        rm df.csv && \
+        rm data_folder/data.txt
+      next: read_data_shell
+    read_data_shell:
+      type: task
+      command_type: shell
+      command: |
+        (ls df.csv >> /dev/null 2>&1 && echo yes) || exit 1 && \
+        (ls data_folder/data.txt >> /dev/null 2>&1 && echo yes) || exit 1
+      catalog:
+        get:
+          - df.csv
+          - data_folder/data.txt
+      next: delete_local_after_shell_get
+    delete_local_after_shell_get:
+      type: task
+      command_type: shell
+      command: |
+        rm df.csv && \
+        rm data_folder/data.txt
+      next: read_data_notebook
+    read_data_notebook:
+      type: task
+      command_type: notebook
+      command: "examples/common/read_files.ipynb"
+      catalog:
+        get:
+          - df.csv
+          - data_folder/data.txt
+      next: delete_local_after_notebook_get
+    delete_local_after_notebook_get:
+      type: task
+      command_type: shell
+      command: |
+        rm df.csv && \
+        rm data_folder/data.txt
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail

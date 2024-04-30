@@ -60,6 +60,8 @@ def prepare_configurations(
     variables = utils.gather_variables()
 
     templated_configuration = {}
+    configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
+
     if configuration_file:
         templated_configuration = utils.load_yaml(configuration_file) or {}
 
@@ -144,8 +146,8 @@ def prepare_configurations(
 
 
 def execute(
-    configuration_file: str,
     pipeline_file: str,
+    configuration_file: str = "",
     tag: str = "",
     run_id: str = "",
     parameters_file: str = "",
@@ -234,6 +236,8 @@ def execute_single_node(
 
     """
     from runnable import nodes
+
+    configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
 
     run_context = prepare_configurations(
         configuration_file=configuration_file,
@@ -421,6 +425,8 @@ def fan(
 
     """
     from runnable import nodes
+
+    configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
 
     run_context = prepare_configurations(
         configuration_file=configuration_file,

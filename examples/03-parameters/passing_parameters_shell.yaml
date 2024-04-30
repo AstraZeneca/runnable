@@ -1,19 +1,14 @@
 dag:
   description: |
-    The below example showcases setting up known initial parameters for a pipeline
-    of only python tasks
+    Demonstrates passing parameters to and from shell scripts.
 
-    The initial parameters as defined in the yaml file are:
-        simple: 1
-        complex_param:
-            x: 10
-            y: "hello world!!"
+    We can extract only json style parameters from shell scripts.
+    eg: write_parameters_in_shell
 
-    runnable allows using pydantic models for deeply nested parameters and
-    casts appropriately based on annotation. eg: read_initial_params_as_pydantic
+    We can only read json style parameters from shell scripts.
+    eg: read_parameters_in_shell
+    pydantic parameters are injected as json.
 
-    If no annotation is provided, the parameter is assumed to be a dictionary.
-    eg: read_initial_params_as_json
   start_at: write_parameters_in_shell
   steps:
     write_parameters_in_shell:
@@ -35,6 +30,21 @@ dag:
     read_parameters:
       type: task
       command: examples.common.functions.read_unpickled_parameter
+      next: read_parameters_in_shell
+    read_parameters_in_shell:
+      type: task
+      command_type: shell
+      command: |
+        if [ "$integer" = 1 ] \
+          && [ "$floater" = 3.14 ] \
+          && [ "$stringer" = "hello" ] \
+          && [ "$pydantic_param" = '{"x": 10, "foo": "bar"}' ]; then
+              echo "yaay"
+              exit 0;
+        else
+              echo "naay"
+              exit 1;
+        fi
       next: success
     success:
       type: success

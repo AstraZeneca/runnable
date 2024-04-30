@@ -310,8 +310,6 @@ class NotebookTask(BaseTask):
     """
 
     notebook: str = Field(serialization_alias="command")
-
-    notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path", validate_default=True)
     optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
 
     @computed_field
@@ -591,6 +589,7 @@ class Pipeline(BaseModel):
 
                 Any definition of pipeline should have one node that terminates with success.
         """
+        # TODO: Bug with repeat names
 
         success_path: List[StepType] = []
         on_failure_paths: List[List[StepType]] = []
@@ -690,7 +689,6 @@ class Pipeline(BaseModel):
             parameters_file=parameters_file,
         )
 
-        print("sdk", configuration_file)
         run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
         utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
 
