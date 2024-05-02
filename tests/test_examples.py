@@ -23,6 +23,9 @@ python_examples = [
     ("03-parameters/static_parameters_non_python", False),
     ("03-parameters/static_parameters_python", False),
     ("04-catalog/catalog", False),
+    ("06-parallel/parallel", False),
+    ("06-parallel/nesting", False),
+    ("07-map/map_python", False),
 ]
 
 

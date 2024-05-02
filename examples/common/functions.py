@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 import pandas as pd
 from pydantic import BaseModel
@@ -111,3 +111,39 @@ def read_files():
         data = f.read()
 
     assert data.strip() == "hello world"
+
+
+def process_chunk(chunk: int):
+    """
+    An example function that processes a chunk of data.
+    We are multiplying the chunk by 10.
+    """
+    return chunk * 10
+
+
+def read_processed_chunk(chunk: int, processed_python: int, processed_notebook: int, processed_shell: int):
+    """
+    A downstream step of process_chunk of map state which reads the processed chunk.
+    Since the process_chunk returns the chunk multiplied by 10, we assert that.
+    """
+    assert chunk * 10 == processed_python
+    assert processed_python * 10 == processed_notebook
+    assert processed_notebook * 10 == processed_shell
+
+
+def assert_default_reducer(
+    processed_python: List[int], processed_notebook: List[int], processed_shell: List[int], chunks: List[int]
+) -> int:
+    """
+    Demonstrates the default reducer which just returns the list of processed chunks.
+    """
+    assert processed_python == [chunk * 10 for chunk in chunks]
+    assert processed_notebook == [chunk * 100 for chunk in chunks]
+    assert processed_shell == [chunk * 1000 for chunk in chunks]
+
+
+def assert_custom_reducer(processed: int, chunks: List[int]) -> int:
+    """
+    Asserts the custom reducer returns the max of all the processed chunks.
+    """
+    assert processed == max(chunk * 10 for chunk in chunks)

@@ -1,12 +1,15 @@
 """
 Demonstrates passing parameters to and from shell scripts.
 
-We can extract only json style parameters from shell scripts.
+We can extract only JSON serializable parameters from shell scripts.
 eg: write_parameters_in_shell
 
 We can only read json style parameters from shell scripts.
 eg: read_parameters_in_shell
 pydantic parameters are injected as json.
+
+Run the below example as:
+    python examples/03-parameters/passing_parameters_shell.py
 
 """
 

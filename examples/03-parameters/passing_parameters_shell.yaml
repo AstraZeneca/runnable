@@ -9,6 +9,9 @@ dag:
     eg: read_parameters_in_shell
     pydantic parameters are injected as json.
 
+    Run the pipeline as:
+      runnable execute -f examples/03-parameters/passing_parameters_shell.yaml
+
   start_at: write_parameters_in_shell
   steps:
     write_parameters_in_shell:

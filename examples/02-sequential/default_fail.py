@@ -8,7 +8,8 @@ In the below example, the progression would be as follows:
   step 1 >> step 2 >> fail
 
 
-You can run this example by: python examples/02-sequential/default_fail.py
+You can run this example by:
+  python examples/02-sequential/default_fail.py
 """
 
 from examples.common.functions import raise_ex

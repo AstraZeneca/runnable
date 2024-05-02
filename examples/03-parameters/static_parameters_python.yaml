@@ -14,6 +14,13 @@ dag:
 
     If no annotation is provided, the parameter is assumed to be a dictionary.
     eg: read_initial_params_as_json
+
+    You can set the initial parameters from environment variables as well.
+    eg: Any environment variable prefixed by "RUNNABLE_PRM_" will be picked up by runnable
+
+    Run this pipeline by:
+      runnable execute -f 03-parameters/static_parameters_python.yaml \
+        -p examples/common/initial_parameters.yaml
   start_at: read_params_as_pydantic
   steps:
     read_params_as_pydantic:

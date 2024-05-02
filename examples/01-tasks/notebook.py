@@ -16,7 +16,7 @@ For example, the catalog structure for this execution would be:
     │       └── simple_notebook_out.ipynb
     └── notebook.execution.log
 
-The notebook simple_notebook_out.ipynb has the captured stdout of "Hello World!".
+The notebook simple_notebook_<step name>_out.ipynb has the captured stdout of "Hello World!".
 """
 
 from runnable import NotebookTask, Pipeline

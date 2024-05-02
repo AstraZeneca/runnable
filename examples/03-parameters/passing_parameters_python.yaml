@@ -4,7 +4,7 @@ dag:
     tasks of the pipeline.
 
     The function, set_parameter, returns
-        - simple python data types (int, float, str)
+        - JSON serializable
         - pydantic models
         - pandas dataframe, any "object" type
 
@@ -13,6 +13,9 @@ dag:
 
     Use pickled even for python data types is advised for
     reasonably large collections.
+
+    Run the pipeline as:
+      runnable execute -f examples/03-parameters/passing_parameters_python.yaml
   start_at: write_parameters
   steps:
     write_parameters:

@@ -43,6 +43,9 @@ All the files are stored in catalog.
 
 5 directories, 11 files
 
+Run this pipeline as:
+    python examples/04-catalog/catalog.py
+
 """
 
 from examples.common.functions import read_files, write_files

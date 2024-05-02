@@ -14,6 +14,8 @@ from string import Template
 from typing import Any, Dict, List, Literal, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+# from rich import print
 from rich.console import Console
 from stevedore import driver
 
@@ -160,7 +162,6 @@ class BaseTaskType(BaseModel):
         log_file = open(log_file_name, "w")
 
         parameters_in = copy.deepcopy(params)
-
         f = io.StringIO()
         task_console = Console(file=io.StringIO())
         try:
@@ -313,8 +314,11 @@ class NotebookTaskType(BaseTaskType):
 
     @property
     def notebook_output_path(self) -> str:
-        output_path = Path(self.command)
-        file_name = output_path.resolve() / (output_path.stem + "_out.ipynb")
+        node_name = self._context.executor._context_node.internal_name
+        sane_name = "".join(x for x in node_name if x.isalnum())
+
+        output_path = Path(".", self.command)
+        file_name = output_path.parent / (output_path.stem + f"{sane_name}_out.ipynb")
 
         return str(file_name)
 
@@ -340,7 +344,7 @@ class NotebookTaskType(BaseTaskType):
             import ploomber_engine as pm
             from ploomber_engine.ipython import PloomberClient
 
-            notebook_output_path = self.notebook_output_path or ""
+            notebook_output_path = self.notebook_output_path
 
             with self.execution_context(map_variable=map_variable, allow_complex=False) as (
                 params,
@@ -349,15 +353,17 @@ class NotebookTaskType(BaseTaskType):
                 if map_variable:
                     for key, value in map_variable.items():
                         notebook_output_path += "_" + str(value)
-                        params[key] = value
+                        params[key] = JsonParameter(kind="json", value=value)
 
-                node_name = self._context.executor._context_node.internal_name
-                "".join(x for x in node_name if x.isalnum()) + ".execution.log"
-                new_notebook_output_path = notebook_output_path
-                print(notebook_output_path)
-                print(new_notebook_output_path)
+                # Remove any {v}_unreduced parameters from the parameters
+                copy_params = copy.deepcopy(params)
+                unprocessed_params = [k for k, v in copy_params.items() if not v.reduced]
 
-                notebook_params = {k: v.get_value() for k, v in params.items()}
+                for key in list(copy_params.keys()):
+                    if any(key.endswith(f"_{k}") for k in unprocessed_params):
+                        del copy_params[key]
+
+                notebook_params = {k: v.get_value() for k, v in copy_params.items()}
 
                 ploomber_optional_args = self.optional_ploomber_args
 
@@ -380,6 +386,11 @@ class NotebookTaskType(BaseTaskType):
                 try:
                     for task_return in self.returns:
                         param_name = Template(task_return.name).safe_substitute(map_variable)  # type: ignore
+
+                        if map_variable:
+                            for _, v in map_variable.items():
+                                param_name = f"{v}_{param_name}"
+
                         output_parameters[param_name] = task_return_to_parameter(
                             task_return=task_return,
                             value=namespace[task_return.name],
@@ -534,7 +545,7 @@ class ShellTaskType(BaseTaskType):
                             param_name = task_return.name
                             if map_variable:
                                 for _, v in map_variable.items():
-                                    param_name = f"{param_name}_{v}"
+                                    param_name = f"{v}_{param_name}"
 
                             output_parameters[param_name] = output_parameter
 

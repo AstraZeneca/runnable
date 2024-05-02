@@ -6,7 +6,8 @@ dag:
 
     The default behavior is to traverse to step type fail and mark the run as failed.
 
-    You can run this pipeline by: runnable execute -f examples/02-sequential/default_fail.yaml
+    You can run this pipeline by:
+      runnable execute -f examples/02-sequential/default_fail.yaml
   start_at: step 1
   steps:
     step 1:

@@ -1,14 +1,12 @@
 """
-This example demonstrates the use of the Parallel step.
+Example to show case nesting of parallel steps.
 
-The branches of the parallel step are themselves pipelines and can be defined
-as shown in 02-sequential/traversal.py.
-
-WARNING, the function returning the pipeline should not executed
-during the definition of the branch in parallel steps.
+runnable does not put a limit on the nesting of parallel steps.
+Deeply nested pipelines can be hard to read and not all
+executors support it.
 
 Run this pipeline as:
-    python examples/06-parallel/parallel.py
+    python examples/06-parallel/nesting.py
 """
 
 from examples.common.functions import hello
@@ -52,7 +50,7 @@ def traversal(execute: bool = True):
     return pipeline
 
 
-def main():
+def parallel_pipeline(execute: bool = True):
     parallel_step = Parallel(
         name="parallel step",
         terminate_with_success=True,
@@ -61,6 +59,20 @@ def main():
 
     pipeline = Pipeline(steps=[parallel_step])
 
+    if execute:
+        pipeline.execute()
+    return pipeline
+
+
+def main():
+    # Create a parallel step with parallel steps as branches.
+    parallel_step = Parallel(
+        name="nested_parallel",
+        terminate_with_success=True,
+        branches={"branch1": parallel_pipeline(execute=False), "branch2": parallel_pipeline(execute=False)},
+    )
+
+    pipeline = Pipeline(steps=[parallel_step])
     pipeline.execute()
     return pipeline
 

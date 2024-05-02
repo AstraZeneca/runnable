@@ -43,6 +43,9 @@ dag:
         └── readdatashell.execution.log
 
     5 directories, 11 files
+
+    Run this pipeline as:
+      runnable execute -f examples/04-catalog/catalog.yaml
   start_at: generate_data
   steps:
     generate_data:

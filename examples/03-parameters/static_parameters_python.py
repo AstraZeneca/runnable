@@ -17,6 +17,9 @@ eg: read_initial_params_as_json
 You can set the initial parameters from environment variables as well.
 eg: Any environment variable prefixed by "RUNNABLE_PRM_" will be picked up by runnable
 
+Run this pipeline as:
+    python examples/03-parameters/static_parameters_python.py
+
 """
 
 import os
