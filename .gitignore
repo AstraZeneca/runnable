@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# examples run time
+*_out*
+
 # Distribution / packaging
 .Python
 build/
@@ -152,5 +155,3 @@ cov.xml
 .DS_Store
 
 data/
-
- *_out*
