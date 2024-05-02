@@ -24,7 +24,7 @@ from examples.common.functions import (
     process_chunk,
     read_processed_chunk,
 )
-from runnable import Map, Pipeline, PythonTask
+from runnable import Map, NotebookTask, Pipeline, PythonTask, ShellTask
 
 
 def iterable_branch(execute: bool = True):
@@ -38,16 +38,45 @@ def iterable_branch(execute: bool = True):
     """
     # The python function to process a single chunk of data.
     # In the example, we are multiplying the chunk by 10.
-    process_chunk_task = PythonTask(
-        name="execute",
+    process_chunk_task_python = PythonTask(
+        name="execute_python",
         function=process_chunk,
-        returns=["processed"],
+        returns=["processed_python"],
     )
 
-    # A downstream step of process_chunk which reads the parameter "processed".
+    # return parameters within a map branch have to be unique
+    # The notebook takes in the value of processed_python as an argument.
+    # and returns a new parameter "processed_notebook" which is 10*processed_python
+    process_chunk_task_notebook = NotebookTask(
+        name="execute_notebook",
+        notebook="examples/common/process_chunk.ipynb",
+        returns=["processed_notebook"],
+    )
+
+    # following the pattern, the shell takes in the value of processed_notebook as an argument.
+    # and returns a new parameter "processed_shell" which is 10*processed_notebook.
+    shell_command = """
+    if [ "$processed_python" = $( expr 10 '*' "$chunk" ) ] \
+        && [ "$processed_notebook" = $( expr 10 '*' "$processed_python" ) ] ; then
+            echo "yaay"
+        else
+            echo "naay"
+            exit 1;
+    fi
+    export processed_shell=$( expr 10 '*' "$processed_notebook")
+    """
+
+    process_chunk_task_shell = ShellTask(
+        name="execute_shell",
+        command=shell_command,
+        returns=["processed_shell"],
+    )
+
+    # A downstream step of process_<python, notebook, shell> which reads the parameter "processed".
     # The value of processed is within the context of the branch.
-    # For example, for the value of chunk = 1, processed will be 10.
-    # read_processed_chunk will receive the value of 10.
+    # For example, for chunk=1, the value of processed_python is chunk*10 = 10
+    # the value of processed_notebook is processed_python*10 = 100
+    # the value of processed_shell is processed_notebook*10 = 1000
     read_chunk = PythonTask(
         name="read processed chunk",
         function=read_processed_chunk,
@@ -55,7 +84,7 @@ def iterable_branch(execute: bool = True):
     )
 
     pipeline = Pipeline(
-        steps=[process_chunk_task, read_chunk],
+        steps=[process_chunk_task_python, process_chunk_task_notebook, process_chunk_task_shell, read_chunk],
         add_terminal_nodes=True,
     )
 

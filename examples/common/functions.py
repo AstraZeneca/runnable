@@ -142,8 +142,12 @@ def assert_default_reducer(
     assert processed_shell == [chunk * 1000 for chunk in chunks]
 
 
-def assert_custom_reducer(processed: int, chunks: List[int]) -> int:
+def assert_custom_reducer(
+    processed_python: int, processed_notebook: int, processed_shell: int, chunks: List[int]
+) -> int:
     """
     Asserts the custom reducer returns the max of all the processed chunks.
     """
-    assert processed == max(chunk * 10 for chunk in chunks)
+    assert processed_python == max(chunk * 10 for chunk in chunks)
+    assert processed_notebook == max(chunk * 100 for chunk in chunks)
+    assert processed_shell == max(chunk * 1000 for chunk in chunks)

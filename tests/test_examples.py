@@ -25,7 +25,8 @@ python_examples = [
     ("04-catalog/catalog", False),
     ("06-parallel/parallel", False),
     ("06-parallel/nesting", False),
-    ("07-map/map_python", False),
+    ("07-map/map", False),
+    ("07-map/custom_reducer", False),
 ]
 
 

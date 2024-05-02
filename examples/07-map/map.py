@@ -17,6 +17,9 @@ for chunk in chunks:
 # Outside of loop, processed is a list of all the processed chunks.
 # This is also called as the reduce pattern.
 assert processed == [chunk * 10 for chunk in chunks]
+
+Run this pipeline as:
+    python examples/07-map/map.py
 """
 
 from examples.common.functions import (
