@@ -152,3 +152,5 @@ cov.xml
 .DS_Store
 
 data/
+
+ examples/common/*_out*

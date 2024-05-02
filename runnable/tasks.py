@@ -172,7 +172,7 @@ class BaseTaskType(BaseModel):
         except Exception as e:  # pylint: disable=broad-except
             logger.exception(e)
         finally:
-            task_console = None
+            task_console = None  # type: ignore
             print(f.getvalue())  # print to console
             log_file.write(f.getvalue())  # Print to file
 

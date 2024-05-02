@@ -56,7 +56,7 @@ contexts = [default_context, chunked_fs_context]
 
 @pytest.mark.parametrize("example", list_python_examples())
 @pytest.mark.parametrize("context", contexts)
-@pytest.mark.no_cover
+# @pytest.mark.no_cover
 @pytest.mark.e2e
 def test_python_examples(example, context):
     print(f"Testing {example}...")
@@ -77,7 +77,7 @@ def test_python_examples(example, context):
 
 @pytest.mark.parametrize("example", list_python_examples())
 @pytest.mark.parametrize("context", contexts)
-@pytest.mark.no_cover
+# @pytest.mark.no_cover
 @pytest.mark.e2e
 def test_yaml_examples(example, context):
     print(f"Testing {example}...")

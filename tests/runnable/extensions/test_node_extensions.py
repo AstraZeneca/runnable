@@ -2,7 +2,6 @@ import pytest
 
 from runnable import defaults
 from runnable.extensions import nodes as nodes
-
 from runnable.tasks import BaseTaskType
 
 
@@ -13,7 +12,7 @@ def instantiable_base_class(monkeypatch):
 
 
 def test_task_node_parse_from_config_seperates_task_from_node_confifg(mocker, monkeypatch):
-    base_task = BaseTaskType(node_name="test", task_type="dummy")
+    base_task = BaseTaskType(task_type="dummy")
     mock_create_task = mocker.MagicMock(return_value=base_task)
 
     command_config = {"to_be_sent_to_task": "yes"}
@@ -26,8 +25,6 @@ def test_task_node_parse_from_config_seperates_task_from_node_confifg(mocker, mo
     monkeypatch.setattr(nodes, "create_task", mock_create_task)
     task_node = nodes.TaskNode.parse_from_config({**node_config, **command_config})
 
-    command_config["node_name"] = "test"
-
     mock_create_task.assert_called_once_with(command_config)
     assert task_node.executable == base_task
 
@@ -39,7 +36,7 @@ def test_task_node_mocks_if_mock_is_true(mocker, monkeypatch):
     monkeypatch.setattr(nodes.TaskNode, "_context", mock_context)
     mock_context.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
 
-    base_task = BaseTaskType(node_name="test", task_type="dummy")
+    base_task = BaseTaskType(task_type="dummy")
     task_node = nodes.TaskNode(name="test", internal_name="test", next_node="next_node", executable=base_task)
 
     attempt_log = task_node.execute(mock=True)
