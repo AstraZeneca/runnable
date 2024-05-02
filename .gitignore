@@ -153,4 +153,4 @@ cov.xml
 
 data/
 
- examples/common/*_out*
+ *_out*
