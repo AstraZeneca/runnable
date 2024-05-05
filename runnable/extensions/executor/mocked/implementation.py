@@ -64,6 +64,10 @@ class MockedExecutor(GenericExecutor):
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING
 
+        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+
+        logger.info(f"Executing node: {node.get_summary()}")
+
         # Add the step log to the database as per the situation.
         # If its a terminal node, complete it now
         if node.node_type in ["success", "fail"]:
@@ -132,3 +136,17 @@ class MockedExecutor(GenericExecutor):
 
     def execute_job(self, node: TaskNode):
         pass
+
+    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
+        """
+        The entry point for all executors apart from local.
+        We have already prepared for node execution.
+
+        Args:
+            node (BaseNode): The node to execute
+            map_variable (dict, optional): If the node is part of a map, send in the map dictionary. Defaults to None.
+
+        Raises:
+            NotImplementedError: _description_
+        """
+        ...

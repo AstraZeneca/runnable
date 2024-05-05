@@ -7,28 +7,6 @@ import pytest
 from runnable import exceptions
 from runnable.entrypoints import execute
 
-# # (file, is_fail?)
-python_examples = [
-    ("01-tasks/notebook", False),
-    ("01-tasks/python_tasks", False),
-    ("01-tasks/scripts", False),
-    ("01-tasks/stub", False),
-    ("02-sequential/default_fail", True),
-    ("02-sequential/on_failure_fail", True),
-    ("02-sequential/on_failure_succeed", False),
-    ("02-sequential/traversal", False),
-    ("03-parameters/passing_parameters_notebook", False),
-    ("03-parameters/passing_parameters_python", False),
-    ("03-parameters/passing_parameters_shell", False),
-    ("03-parameters/static_parameters_non_python", False),
-    ("03-parameters/static_parameters_python", False),
-    ("04-catalog/catalog", False),
-    ("06-parallel/parallel", False),
-    ("06-parallel/nesting", False),
-    ("07-map/map", False),
-    ("07-map/custom_reducer", False),
-]
-
 
 def list_python_examples():
     for example in python_examples:
@@ -36,8 +14,26 @@ def list_python_examples():
 
 
 @contextmanager
+def container_context():
+    os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/local-container.yaml"
+    os.environ["RUNNABLE_PRM_envvar"] = "from env"
+    yield
+    del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+    del os.environ["RUNNABLE_PRM_envvar"]
+
+
+@contextmanager
 def chunked_fs_context():
     os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/chunked-fs-run_log.yaml"
+    os.environ["RUNNABLE_PRM_envvar"] = "from env"
+    yield
+    del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+    del os.environ["RUNNABLE_PRM_envvar"]
+
+
+@contextmanager
+def mocked_context():
+    os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/08-mocking/default.yaml"
     os.environ["RUNNABLE_PRM_envvar"] = "from env"
     yield
     del os.environ["RUNNABLE_CONFIGURATION_FILE"]
@@ -51,7 +47,27 @@ def default_context():
     del os.environ["RUNNABLE_PRM_envvar"]
 
 
-contexts = [default_context, chunked_fs_context]
+contexts = [default_context, chunked_fs_context, mocked_context]
+python_examples = [
+    ("01-tasks/notebook", False, []),
+    ("01-tasks/python_tasks", False, []),
+    ("01-tasks/scripts", False, []),
+    ("01-tasks/stub", False, []),
+    ("02-sequential/default_fail", True, []),
+    ("02-sequential/on_failure_fail", True, []),
+    ("02-sequential/on_failure_succeed", False, []),
+    ("02-sequential/traversal", False, []),
+    ("03-parameters/passing_parameters_notebook", False, []),
+    ("03-parameters/passing_parameters_python", False, []),
+    ("03-parameters/passing_parameters_shell", False, []),
+    ("03-parameters/static_parameters_non_python", False, []),
+    ("03-parameters/static_parameters_python", False, []),
+    ("04-catalog/catalog", False, [mocked_context]),
+    ("06-parallel/parallel", False, []),
+    ("06-parallel/nesting", False, []),
+    ("07-map/map", False, []),
+    ("07-map/custom_reducer", False, []),
+]
 
 
 @pytest.mark.parametrize("example", list_python_examples())
@@ -61,7 +77,10 @@ contexts = [default_context, chunked_fs_context]
 def test_python_examples(example, context):
     print(f"Testing {example}...")
 
-    mod, status = example
+    mod, status, ignore_contexts = example
+    if context in ignore_contexts:
+        return
+
     context = context()
 
     imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
@@ -81,7 +100,11 @@ def test_python_examples(example, context):
 @pytest.mark.e2e
 def test_yaml_examples(example, context):
     print(f"Testing {example}...")
-    file, status = example
+    file, status, ignore_contexts = example
+
+    if context in ignore_contexts:
+        return
+
     context = context()
     example_file = f"examples/{file}.yaml"
     parameters_file = "examples/common/initial_parameters.yaml"
@@ -94,4 +117,42 @@ def test_yaml_examples(example, context):
                 raise
 
 
-# TODO: Need to test argo and local container
+@pytest.mark.parametrize("example", list_python_examples())
+@pytest.mark.container
+def test_python_examples_container(example):
+    print(f"Testing {example}...")
+
+    mod, status, _ = example
+    context = container_context()
+
+    imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
+    f = getattr(imported_module, "main")
+    with context:
+        try:
+            f()
+        except exceptions.ExecutionFailedError:
+            print("Example failed")
+            if not status:
+                raise
+
+
+@pytest.mark.parametrize("example", list_python_examples())
+@pytest.mark.container
+def test_yaml_examples_container(example):
+    print(f"Testing {example}...")
+    file, status, _ = example
+
+    context = container_context()
+
+    example_file = f"examples/{file}.yaml"
+    parameters_file = "examples/common/initial_parameters.yaml"
+
+    with context:
+        try:
+            execute(pipeline_file=example_file, parameters_file=parameters_file)
+        except exceptions.ExecutionFailedError:
+            if not status:
+                raise
+
+
+# TODO: Need to test argo

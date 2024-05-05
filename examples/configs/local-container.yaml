@@ -2,14 +2,6 @@ executor:
   type: "local-container" # (1)
   config:
     docker_image: runnable:latest # (2)
-    environment:
-      key: value # (3)
 
 run_log_store: # (4)
-  type: file-system
-
-catalog:
-  type: file-system
-
-secrets:
-  type: do-nothing
+  type: chunked-fs

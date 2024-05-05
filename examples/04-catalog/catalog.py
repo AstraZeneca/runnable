@@ -61,8 +61,8 @@ def main():
     )
 
     delete_files_command = """
-        rm df.csv && \
-        rm data_folder/data.txt
+        rm df.csv || true && \
+        rm data_folder/data.txt || true
     """
     # delete from local files after generate
     # since its local catalog, we delete to show "get from catalog"

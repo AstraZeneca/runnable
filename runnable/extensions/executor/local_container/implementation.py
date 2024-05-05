@@ -5,7 +5,7 @@ from typing import Dict, cast
 from pydantic import Field
 from rich import print
 
-from runnable import defaults, integration, utils
+from runnable import defaults, utils
 from runnable.datastore import StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.extensions.executor import GenericExecutor
@@ -145,16 +145,6 @@ class LocalContainerExecutor(GenericExecutor):
         logger.debug("Here is the resolved executor config")
         logger.debug(executor_config)
 
-        if executor_config.get("run_in_local", False):
-            # Do not change config but only validate the configuration.
-            # Trigger the job on local system instead of a container
-            integration.validate(self, self._context.run_log_store)
-            integration.validate(self, self._context.catalog_handler)
-            integration.validate(self, self._context.secrets_handler)
-
-            self.execute_node(node=node, map_variable=map_variable, **kwargs)
-            return
-
         command = utils.get_node_execution_command(node, map_variable=map_variable)
 
         self._spin_container(
@@ -172,7 +162,7 @@ class LocalContainerExecutor(GenericExecutor):
                 "Note: If you do not see any docker issue from your side and the code works properly on local execution"
                 "please raise a bug report."
             )
-            logger.warning(msg)
+            logger.error(msg)
             step_log.status = defaults.FAIL
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
@@ -212,6 +202,7 @@ class LocalContainerExecutor(GenericExecutor):
                     f"Please provide a docker_image using executor_config of the step {node.name} or at global config"
                 )
 
+            print("container", self._volumes)
             # TODO: Should consider using getpass.getuser() when running the docker container? Volume permissions
             container = client.containers.create(
                 image=docker_image,
@@ -260,7 +251,9 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
     service_provider = "file-system"  # The actual implementation of the service
 
     def configure_for_traversal(self, **kwargs):
-        from runnable.extensions.run_log_store.file_system.implementation import FileSystemRunLogstore
+        from runnable.extensions.run_log_store.file_system.implementation import (
+            FileSystemRunLogstore,
+        )
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(FileSystemRunLogstore, self.service)
@@ -272,10 +265,46 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
         }
 
     def configure_for_execution(self, **kwargs):
-        from runnable.extensions.run_log_store.file_system.implementation import FileSystemRunLogstore
+        from runnable.extensions.run_log_store.file_system.implementation import (
+            FileSystemRunLogstore,
+        )
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(FileSystemRunLogstore, self.service)
+
+        self.service.log_folder = self.executor._container_log_location
+
+
+class LocalContainerComputeChunkedFS(BaseIntegration):
+    """
+    Integration pattern between Local container and File System catalog
+    """
+
+    executor_type = "local-container"
+    service_type = "run_log_store"  # One of secret, catalog, datastore
+    service_provider = "chunked-fs"  # The actual implementation of the service
+
+    def configure_for_traversal(self, **kwargs):
+        from runnable.extensions.run_log_store.chunked_file_system.implementation import (
+            ChunkedFileSystemRunLogStore,
+        )
+
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(ChunkedFileSystemRunLogStore, self.service)
+
+        write_to = self.service.log_folder
+        self.executor._volumes[str(Path(write_to).resolve())] = {
+            "bind": f"{self.executor._container_log_location}",
+            "mode": "rw",
+        }
+
+    def configure_for_execution(self, **kwargs):
+        from runnable.extensions.run_log_store.chunked_file_system.implementation import (
+            ChunkedFileSystemRunLogStore,
+        )
+
+        self.executor = cast(LocalContainerExecutor, self.executor)
+        self.service = cast(ChunkedFileSystemRunLogStore, self.service)
 
         self.service.log_folder = self.executor._container_log_location
 
@@ -290,7 +319,9 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
     service_provider = "file-system"  # The actual implementation of the service
 
     def configure_for_traversal(self, **kwargs):
-        from runnable.extensions.catalog.file_system.implementation import FileSystemCatalog
+        from runnable.extensions.catalog.file_system.implementation import (
+            FileSystemCatalog,
+        )
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(FileSystemCatalog, self.service)
@@ -302,7 +333,9 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
         }
 
     def configure_for_execution(self, **kwargs):
-        from runnable.extensions.catalog.file_system.implementation import FileSystemCatalog
+        from runnable.extensions.catalog.file_system.implementation import (
+            FileSystemCatalog,
+        )
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(FileSystemCatalog, self.service)

@@ -54,7 +54,7 @@ def traversal(execute: bool = True):
 
 def main():
     parallel_step = Parallel(
-        name="parallel step",
+        name="parallel_step",
         terminate_with_success=True,
         branches={"branch1": traversal(execute=False), "branch2": traversal(execute=False)},
     )

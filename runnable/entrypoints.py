@@ -207,6 +207,10 @@ def execute(
         except Exception as e:  # noqa: E722
             console.print(e, style=defaults.error_style)
             progress.update(pipeline_execution_task, description="[red] Errored execution", completed=True)
+            run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
+            run_log.status = defaults.FAIL
+            run_context.run_log_store.add_branch_log(run_log, run_context.run_id)
+            raise e
 
     executor.send_return_code()
 

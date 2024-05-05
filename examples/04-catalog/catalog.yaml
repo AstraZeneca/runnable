@@ -60,8 +60,8 @@ dag:
       type: task
       command_type: shell
       command: |
-        rm df.csv && \
-        rm data_folder/data.txt
+        rm df.csv || true && \
+        rm data_folder/data.txt || true
       next: read_data_python
     read_data_python:
       type: task
@@ -76,8 +76,8 @@ dag:
       type: task
       command_type: shell
       command: |
-        rm df.csv && \
-        rm data_folder/data.txt
+        rm df.csv || true && \
+        rm data_folder/data.txt || true
       next: read_data_shell
     read_data_shell:
       type: task
@@ -94,8 +94,8 @@ dag:
       type: task
       command_type: shell
       command: |
-        rm df.csv && \
-        rm data_folder/data.txt
+        rm df.csv || true && \
+        rm data_folder/data.txt || true
       next: read_data_notebook
     read_data_notebook:
       type: task
@@ -110,8 +110,8 @@ dag:
       type: task
       command_type: shell
       command: |
-        rm df.csv && \
-        rm data_folder/data.txt
+        rm df.csv || true && \
+        rm data_folder/data.txt || true
       next: success
     success:
       type: success

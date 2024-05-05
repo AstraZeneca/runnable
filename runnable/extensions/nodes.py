@@ -5,7 +5,7 @@ import sys
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Annotated, Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 from pydantic import (
     ConfigDict,
@@ -14,10 +14,15 @@ from pydantic import (
     field_serializer,
     field_validator,
 )
-from typing_extensions import Annotated
 
 from runnable import datastore, defaults, utils
-from runnable.datastore import JsonParameter, MetricParameter, ObjectParameter, StepLog
+from runnable.datastore import (
+    JsonParameter,
+    MetricParameter,
+    ObjectParameter,
+    Parameter,
+    StepLog,
+)
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode, ExecutableNode, TerminalNode
@@ -541,10 +546,14 @@ class MapNode(CompositeNode):
         iterate_on = None
         try:
             iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[self.iterate_on].get_value()
-        except KeyError:
+        except KeyError as e:
             raise Exception(
-                f"Expected parameter {self.iterate_on} not present in Run Log parameters, was it ever set before?"
-            )
+                (
+                    f"Expected parameter {self.iterate_on}",
+                    "not present in Run Log parameters",
+                    "was it ever set before?",
+                )
+            ) from e
 
         if not isinstance(iterate_on, list):
             raise Exception("Only list is allowed as a valid iterator type")
@@ -597,28 +606,43 @@ class MapNode(CompositeNode):
         # The final value of the parameter is the result of the reduce function.
         reducer_f = self.get_reducer_function()
 
-        if map_variable:
-            # If we are in a map state already, the param should have an index of the map variable.
-            for _, v in map_variable.items():
-                for branch_return in self.branch_returns:
-                    param_name, _ = branch_return
-                    to_reduce = []
-                    for iter_variable in iterate_on:
-                        to_reduce.append(params[f"{iter_variable}_{param_name}"].get_value())
+        def update_param(params: Dict[str, Parameter], reducer_f: Callable, map_prefix: str = ""):
+            from runnable.extensions.executor.mocked.implementation import (
+                MockedExecutor,
+            )
 
-                    param_name = f"{v}_{param_name}"
-                    params[param_name].value = reducer_f(to_reduce)
-                    params[param_name].reduced = True
-        else:
             for branch_return in self.branch_returns:
                 param_name, _ = branch_return
 
                 to_reduce = []
                 for iter_variable in iterate_on:
-                    to_reduce.append(params[f"{iter_variable}_{param_name}"].get_value())
+                    try:
+                        to_reduce.append(params[f"{iter_variable}_{param_name}"].get_value())
+                    except KeyError as e:
+                        if isinstance(self._context.executor, MockedExecutor):
+                            pass
+                        else:
+                            raise Exception(
+                                (
+                                    f"Expected parameter {iter_variable}_{param_name}",
+                                    "not present in Run Log parameters",
+                                    "was it ever set before?",
+                                )
+                            ) from e
 
-                params[param_name].value = reducer_f(*to_reduce)
+                param_name = f"{map_prefix}{param_name}"
+                if to_reduce:
+                    params[param_name].value = reducer_f(*to_reduce)
+                else:
+                    params[param_name].value = ""
                 params[param_name].reduced = True
+
+        if map_variable:
+            # If we are in a map state already, the param should have an index of the map variable.
+            for _, v in map_variable.items():
+                update_param(params, reducer_f, map_prefix=f"{v}_")
+        else:
+            update_param(params, reducer_f)
 
         self._context.run_log_store.set_parameters(parameters=params, run_id=self._context.run_id)
 

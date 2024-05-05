@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -636,7 +637,8 @@ class Pipeline(BaseModel):
         self._dag.check_graph()
 
     def return_dag(self) -> graph.Graph:
-        return self._dag
+        dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
+        return graph.create_graph(dag_definition)
 
     def execute(
         self,
@@ -707,7 +709,8 @@ class Pipeline(BaseModel):
             caller_stack = inspect.stack()[1]
             relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
 
-            module_to_call = f"{relative_to_root.replace('/', '.').replace('.py', '')}.{caller_stack.function}"
+            module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
+            module_to_call = f"{module_name}.{caller_stack.function}"
 
             run_context.pipeline_file = f"{module_to_call}.py"
 
