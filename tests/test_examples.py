@@ -42,6 +42,15 @@ def mocked_context():
 
 
 @contextmanager
+def patched_context():
+    os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/08-mocking/patching.yaml"
+    os.environ["RUNNABLE_PRM_envvar"] = "from env"
+    yield
+    del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+    del os.environ["RUNNABLE_PRM_envvar"]
+
+
+@contextmanager
 def default_context():
     os.environ["RUNNABLE_PRM_envvar"] = "from env"
     yield

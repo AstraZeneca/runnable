@@ -1,0 +1,10 @@
+executor:
+  type: mocked
+  config:
+    patches:
+      hello python:
+        command: examples.common.functions.mocked_hello
+      hello shell:
+        command: echo "hello from mocked"
+      hello notebook:
+        command: examples/common/simple_notebook_mocked.ipynb

@@ -18,7 +18,7 @@ def create_executable(params: Dict[str, Any], model: Type[BaseTaskType], node_na
     class EasyModel(model):  # type: ignore
         model_config = ConfigDict(extra="ignore")
 
-    swallow_all = EasyModel(**params, node_name=node_name)
+    swallow_all = EasyModel(node_name=node_name, **params)
     return swallow_all
 
 

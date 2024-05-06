@@ -10,6 +10,11 @@ def hello():
     print("Hello World!")
 
 
+def mocked_hello():
+    "Mock of the hello function"
+    print("Hello from mock")
+
+
 def raise_ex():
     "A function that raises an exception"
     raise Exception("This is an exception")
