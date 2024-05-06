@@ -198,6 +198,10 @@ def execute(
             run_context.progress = progress
             executor.execute_graph(dag=run_context.dag)  # type: ignore
 
+            if not executor._local:
+                executor.send_return_code(stage="traversal")
+                return
+
             run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
 
             if run_log.status == defaults.SUCCESS:

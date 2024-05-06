@@ -1033,6 +1033,9 @@ class ArgoExecutor(GenericExecutor):
             if working_on.node_type not in ["success", "fail"] and working_on._get_on_failure_node():
                 failure_node = dag.get_node_by_name(working_on._get_on_failure_node())
 
+                render_obj = get_renderer(working_on)(executor=self, node=failure_node)
+                render_obj.render(list_of_iter_values=list_of_iter_values.copy())
+
                 failure_template_name = self.get_clean_name(failure_node)
                 # If a task template for clean name exists, retrieve it
                 failure_template = templates.get(
@@ -1040,7 +1043,6 @@ class ArgoExecutor(GenericExecutor):
                     DagTaskTemplate(name=failure_template_name, template=failure_template_name),
                 )
                 failure_template.depends.append(f"{clean_name}.Failed")
-
                 templates[failure_template_name] = failure_template
 
             # If we are in a map node, we need to add the values as arguments

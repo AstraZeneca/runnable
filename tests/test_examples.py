@@ -1,5 +1,6 @@
 import importlib
 import os
+import subprocess
 from contextlib import contextmanager
 
 import pytest
@@ -47,7 +48,16 @@ def default_context():
     del os.environ["RUNNABLE_PRM_envvar"]
 
 
-contexts = [default_context, chunked_fs_context, mocked_context]
+@contextmanager
+def argo_context():
+    os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/argo-config.yaml"
+    yield
+    subprocess.run(["argo", "lint", "--offline", "argo-pipeline.yaml"], check=True)
+    del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+
+
+contexts = [default_context, chunked_fs_context, mocked_context, argo_context]
+
 python_examples = [
     ("01-tasks/notebook", False, []),
     ("01-tasks/python_tasks", False, []),
@@ -153,6 +163,3 @@ def test_yaml_examples_container(example):
         except exceptions.ExecutionFailedError:
             if not status:
                 raise
-
-
-# TODO: Need to test argo

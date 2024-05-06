@@ -730,6 +730,9 @@ class Pipeline(BaseModel):
                 pipeline_execution_task = progress.add_task("[dark_orange] Starting execution .. ", total=1)
                 run_context.executor.execute_graph(dag=run_context.dag)
 
+                if not run_context.executor._local:
+                    return {}
+
                 run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
 
                 if run_log.status == defaults.SUCCESS:
