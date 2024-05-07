@@ -32,6 +32,7 @@ def read_initial_params_as_pydantic(
     pydantic_param: ComplexParams,
     envvar: str,
 ):
+    print(envvar)
     assert integer == 1
     assert floater == 3.14
     assert stringer == "hello"

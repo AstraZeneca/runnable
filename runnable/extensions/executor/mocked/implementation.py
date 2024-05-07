@@ -26,6 +26,8 @@ class MockedExecutor(GenericExecutor):
     service_name: str = "mocked"
     _local_executor: bool = True
 
+    model_config = ConfigDict(extra="ignore")
+
     patches: Dict[str, Any] = Field(default_factory=dict)
 
     @property

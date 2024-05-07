@@ -6,6 +6,7 @@ from runnable import context, defaults, exceptions
 from runnable.datastore import RunLog
 from runnable.defaults import TypeMapVariable
 from runnable.extensions.executor import GenericExecutor
+from runnable.extensions.nodes import TaskNode
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -31,6 +32,7 @@ class RetryExecutor(GenericExecutor):
 
     _local: bool = True
     _original_run_log: Optional[RunLog] = None
+    _restart_initiated: bool = False
 
     @property
     def _context(self):
@@ -38,7 +40,7 @@ class RetryExecutor(GenericExecutor):
 
     @cached_property
     def original_run_log(self):
-        self.original_run_log = self._context.run_log_store.get_run_log_by_id(
+        return self._context.run_log_store.get_run_log_by_id(
             run_id=self.run_id,
             full=True,
         )
@@ -140,10 +142,14 @@ class RetryExecutor(GenericExecutor):
         node_step_log_name = node._get_step_log_name(map_variable=map_variable)
         logger.info(f"Scanning previous run logs for node logs of: {node_step_log_name}")
 
+        if self._restart_initiated:
+            return True
+
         try:
             previous_attempt_log, _ = self.original_run_log.search_step_by_internal_name(node_step_log_name)
         except exceptions.StepLogNotFoundError:
             logger.warning(f"Did not find the node {node.name} in previous run log")
+            self._restart_initiated = True
             return True  # We should re-run the node.
 
         logger.info(f"The original step status: {previous_attempt_log.status}")
@@ -152,7 +158,11 @@ class RetryExecutor(GenericExecutor):
             return False  # We need not run the node
 
         logger.info(f"The new execution should start executing graph from this node {node.name}")
+        self._restart_initiated = True
         return True
 
     def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         self._execute_node(node, map_variable=map_variable, **kwargs)
+
+    def execute_job(self, node: TaskNode):
+        pass
