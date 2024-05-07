@@ -74,6 +74,7 @@ class Graph(BaseModel):
         for _, value in self.nodes.items():
             if value.internal_name == internal_name:
                 return value
+        print("graph", internal_name)
         raise exceptions.NodeNotFoundError(internal_name)
 
     def __str__(self):  # pragma: no cover

@@ -1,0 +1,19 @@
+# Mocked executors are handy to temporarily disable
+# all executions in the pipeline.
+# Traversal nodes, like task, parallel, map work
+# still function
+
+# Any executor can be made mocking by changing the type to "mocked"
+# Arbitrary key words are allowed in mocked executor.
+
+
+executor:
+  type: mocked
+  config:
+    patches:
+      hello python:
+        command: examples.common.functions.mocked_hello
+      hello shell:
+        command: echo "hello from mocked"
+      hello notebook:
+        command: examples/common/simple_notebook_mocked.ipynb

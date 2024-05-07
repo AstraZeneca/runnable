@@ -1,3 +1,18 @@
+"""
+Demonstrates passing parameters to and from a notebook.
+
+runnable can extract JSON serializable types, pydantic models, objects from notebook.
+eg: write_parameters_from_notebook
+
+But can only inject JSON type parameters to a notebook.
+eg: read_parameters_in_notebook
+pydantic parameters are injected as dictionary.
+
+Run the below example as:
+    python examples/03-parameters/passing_parameters_notebook.py
+
+"""
+
 from examples.common.functions import read_parameter
 from runnable import NotebookTask, Pipeline, PythonTask, metric, pickled
 

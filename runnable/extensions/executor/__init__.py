@@ -185,22 +185,17 @@ class GenericExecutor(BaseExecutor):
         data_catalogs = []
         for name_pattern in node_catalog_settings.get(stage) or []:
             if stage == "get":
-                get_catalog_progress = self._context.progress.add_task(f"Getting from catalog {name_pattern}", total=1)
                 data_catalog = self._context.catalog_handler.get(
                     name=name_pattern, run_id=self._context.run_id, compute_data_folder=compute_data_folder
                 )
-                self._context.progress.update(get_catalog_progress, completed=True, visible=False, refresh=True)
 
             elif stage == "put":
-                put_catalog_progress = self._context.progress.add_task(f"Putting in catalog {name_pattern}", total=1)
                 data_catalog = self._context.catalog_handler.put(
                     name=name_pattern,
                     run_id=self._context.run_id,
                     compute_data_folder=compute_data_folder,
                     synced_catalogs=synced_catalogs,
                 )
-
-                self._context.progress.update(put_catalog_progress, completed=True, visible=False)
 
             logger.debug(f"Added data catalog: {data_catalog} to step log")
             data_catalogs.extend(data_catalog)

@@ -1,2 +1,0 @@
-run_log_store:
-  type: file-system

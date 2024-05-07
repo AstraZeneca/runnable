@@ -11,8 +11,14 @@ The initial parameters as defined in the yaml file are:
         foo: bar
 
 runnable exposes the nested parameters as dictionary for notebook based tasks
-as a json string for the shell based tasks.
+and as a json string for the shell based tasks.
 
+You can set the initial parameters from environment variables as well.
+eg: Any environment variable prefixed by "RUNNABLE_PRM_" will be picked up by runnable
+
+
+Run this pipeline as:
+    python examples/03-parameters/static_parameters_non_python.py
 """
 
 from runnable import NotebookTask, Pipeline, ShellTask

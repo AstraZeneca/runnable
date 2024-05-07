@@ -57,3 +57,4 @@ if __name__ == "__main__":
     # Any parameter prefixed by "RUNNABLE_PRM_" will be picked up by runnable
     os.environ["RUNNABLE_PRM_envvar"] = "from env"
     main()
+    del os.environ["RUNNABLE_PRM_envvar"]

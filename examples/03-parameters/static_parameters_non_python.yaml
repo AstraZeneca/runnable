@@ -12,7 +12,16 @@ dag:
           foo: bar
 
     runnable exposes the nested parameters as dictionary for notebook based tasks
-    as a json string for the shell based tasks.
+    and as a json string for the shell based tasks.
+
+    You can set the initial parameters from environment variables as well.
+    eg: Any environment variable prefixed by "RUNNABLE_PRM_" will be picked up by runnable
+
+
+    Run this pipeline as:
+      runnable execute -f 03-parameters/static_parameters_non_python.yaml \
+        -p common/initial_parameters.yaml
+
   start_at: read_params_in_notebook
   steps:
     read_params_in_notebook:

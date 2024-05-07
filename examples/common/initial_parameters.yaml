@@ -4,3 +4,5 @@ stringer : hello
 pydantic_param:
   x: 10
   foo: bar
+
+chunks: [1, 2, 3]

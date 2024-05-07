@@ -12,7 +12,8 @@ step_1 -> step_4 -> success
 This pattern is handy when you are expecting a failure of a step
 and have ways to handle it.
 
-Run this pipeline: python examples/02-sequential/on_failure_succeed.py
+Run this pipeline:
+    python examples/02-sequential/on_failure_succeed.py
 """
 
 from examples.common.functions import raise_ex

@@ -17,7 +17,7 @@ dag:
         │       └── simple_notebook_out.ipynb
         └── notebook.execution.log
 
-    The notebook simple_notebook_out.ipynb has the captured stdout of "Hello World!".
+    The notebook simple_notebook_<step_name>_out.ipynb has the captured stdout of "Hello World!".
 
     You can run this pipeline as:
       runnable execute -f examples/01-tasks/notebook.yaml

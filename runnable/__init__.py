@@ -2,6 +2,7 @@
 
 # TODO: Might need to add Rich to pyinstaller part
 import logging
+import os
 from logging.config import dictConfig
 
 from rich.console import Console
@@ -28,6 +29,8 @@ from runnable.sdk import (  # noqa
     metric,
     pickled,
 )
+
+os.environ["_PLOOMBER_TELEMETRY_DEBUG"] = "false"
 
 ## TODO: Summary should be a bit better for catalog.
 ## If the execution fails, hint them about the retry executor.

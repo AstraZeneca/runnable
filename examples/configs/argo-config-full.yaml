@@ -5,12 +5,14 @@ executor:
     max_workflow_duration_in_seconds: 86400 # Apply to spec
     node_selector:
     parallelism: 1 #apply to spec
-    service_account_name: pipeline-runner
+    service_account_name1: pipeline-runner
     resources:
       limits:
         memory: 140Mi
         cpu: 100m
       requests:
+       memory: 100Mi
+       cpu: 10m
     retry_strategy:
       limit: 0 #int
       retryPolicy: "always"

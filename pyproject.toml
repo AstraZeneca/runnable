@@ -97,7 +97,6 @@ runnable = 'runnable.cli:cli'
 [tool.poetry.plugins."secrets"]
 "do-nothing" = "runnable.secrets:DoNothingSecretManager"
 "dotenv" = "runnable.extensions.secrets.dotenv.implementation:DotEnvSecrets"
-"env-secrets-manager" = "runnable.extensions.secrets.env_secrets.implementation:EnvSecretsManager"
 
 # Plugins for Run Log store
 [tool.poetry.plugins."run_log_store"]

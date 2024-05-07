@@ -402,7 +402,10 @@ class RunLog(BaseModel):
         """
         dot_path = i_name.split(".")
         if len(dot_path) == 1:
-            return self.steps[i_name], None
+            try:
+                return self.steps[i_name], None
+            except KeyError as e:
+                raise exceptions.StepLogNotFoundError(self.run_id, i_name) from e
 
         current_steps = self.steps
         current_step = None

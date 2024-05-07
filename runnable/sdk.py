@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -25,7 +26,7 @@ from rich.progress import (
 from rich.table import Column
 from typing_extensions import Self
 
-from runnable import console, defaults, entrypoints, graph, utils
+from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.extensions.nodes import (
     FailNode,
     MapNode,
@@ -310,8 +311,6 @@ class NotebookTask(BaseTask):
     """
 
     notebook: str = Field(serialization_alias="command")
-
-    notebook_output_path: Optional[str] = Field(default=None, alias="notebook_output_path", validate_default=True)
     optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
 
     @computed_field
@@ -591,6 +590,7 @@ class Pipeline(BaseModel):
 
                 Any definition of pipeline should have one node that terminates with success.
         """
+        # TODO: Bug with repeat names
 
         success_path: List[StepType] = []
         on_failure_paths: List[List[StepType]] = []
@@ -637,7 +637,8 @@ class Pipeline(BaseModel):
         self._dag.check_graph()
 
     def return_dag(self) -> graph.Graph:
-        return self._dag
+        dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
+        return graph.create_graph(dag_definition)
 
     def execute(
         self,
@@ -708,7 +709,8 @@ class Pipeline(BaseModel):
             caller_stack = inspect.stack()[1]
             relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
 
-            module_to_call = f"{relative_to_root.replace('/', '.').replace('.py', '')}.{caller_stack.function}"
+            module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
+            module_to_call = f"{module_name}.{caller_stack.function}"
 
             run_context.pipeline_file = f"{module_to_call}.py"
 
@@ -728,15 +730,20 @@ class Pipeline(BaseModel):
                 pipeline_execution_task = progress.add_task("[dark_orange] Starting execution .. ", total=1)
                 run_context.executor.execute_graph(dag=run_context.dag)
 
+                if not run_context.executor._local:
+                    return {}
+
                 run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
 
                 if run_log.status == defaults.SUCCESS:
                     progress.update(pipeline_execution_task, description="[green] Success", completed=True)
                 else:
                     progress.update(pipeline_execution_task, description="[red] Failed", completed=True)
+                    raise exceptions.ExecutionFailedError(run_context.run_id)
             except Exception as e:  # noqa: E722
                 console.print(e, style=defaults.error_style)
                 progress.update(pipeline_execution_task, description="[red] Errored execution", completed=True)
+                raise
 
         if run_context.executor._local:
             return run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id)

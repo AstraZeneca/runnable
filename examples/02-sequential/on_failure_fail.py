@@ -12,7 +12,8 @@ step_1 -> step_4 -> fail
 This pattern is handy when you need to do something before eventually
 failing (eg: sending a notification, updating status, etc...)
 
-Run this pipeline as: python examples/02-sequential/on_failure_fail.py
+Run this pipeline as:
+    python examples/02-sequential/on_failure_fail.py
 """
 
 from examples.common.functions import raise_ex

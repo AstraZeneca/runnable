@@ -1,0 +1,55 @@
+dag:
+  description: |
+    Demonstrates passing parameters to and from shell scripts.
+
+    We can extract only json style parameters from shell scripts.
+    eg: write_parameters_in_shell
+
+    We can only read json style parameters from shell scripts.
+    eg: read_parameters_in_shell
+    pydantic parameters are injected as json.
+
+    Run the pipeline as:
+      runnable execute -f examples/03-parameters/passing_parameters_shell.yaml
+
+  start_at: write_parameters_in_shell
+  steps:
+    write_parameters_in_shell:
+      type: task
+      command_type: shell
+      command: |
+        export integer=1
+        export floater=3.14
+        export stringer="hello"
+        export pydantic_param='{"x": 10, "foo": "bar"}'
+        export score=0.9
+      returns:
+        - name: integer
+        - name: floater
+        - name: stringer
+        - name: pydantic_param
+        - name: score
+      next: read_parameters
+    read_parameters:
+      type: task
+      command: examples.common.functions.read_unpickled_parameter
+      next: read_parameters_in_shell
+    read_parameters_in_shell:
+      type: task
+      command_type: shell
+      command: |
+        if [ "$integer" = 1 ] \
+          && [ "$floater" = 3.14 ] \
+          && [ "$stringer" = "hello" ] \
+          && [ "$pydantic_param" = '{"x": 10, "foo": "bar"}' ]; then
+              echo "yaay"
+              exit 0;
+        else
+              echo "naay"
+              exit 1;
+        fi
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail

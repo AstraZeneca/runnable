@@ -36,7 +36,7 @@ def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
             try:
                 parameters[key.lower()] = JsonParameter(kind="json", value=json.loads(value))
             except json.decoder.JSONDecodeError:
-                logger.error(f"Parameter {key} could not be JSON decoded, adding the literal value")
+                logger.warning(f"Parameter {key} could not be JSON decoded, adding the literal value")
                 parameters[key.lower()] = JsonParameter(kind="json", value=value)
 
             if remove:

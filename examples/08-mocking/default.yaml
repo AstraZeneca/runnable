@@ -1,0 +1,13 @@
+# Mocked executors are handy to temporarily disable
+# all executions in the pipeline.
+# Traversal nodes, like task, parallel, map work
+# still function
+
+# Any executor can be made mocking by changing the type to "mocked"
+# Arbitrary key words are allowed in mocked executor.
+
+
+executor:
+  type: mocked
+  config:
+    what: I am allowed

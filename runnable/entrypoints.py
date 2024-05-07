@@ -60,6 +60,8 @@ def prepare_configurations(
     variables = utils.gather_variables()
 
     templated_configuration = {}
+    configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
+
     if configuration_file:
         templated_configuration = utils.load_yaml(configuration_file) or {}
 
@@ -144,8 +146,8 @@ def prepare_configurations(
 
 
 def execute(
-    configuration_file: str,
     pipeline_file: str,
+    configuration_file: str = "",
     tag: str = "",
     run_id: str = "",
     parameters_file: str = "",
@@ -196,6 +198,10 @@ def execute(
             run_context.progress = progress
             executor.execute_graph(dag=run_context.dag)  # type: ignore
 
+            if not executor._local:
+                executor.send_return_code(stage="traversal")
+                return
+
             run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
 
             if run_log.status == defaults.SUCCESS:
@@ -205,6 +211,10 @@ def execute(
         except Exception as e:  # noqa: E722
             console.print(e, style=defaults.error_style)
             progress.update(pipeline_execution_task, description="[red] Errored execution", completed=True)
+            run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
+            run_log.status = defaults.FAIL
+            run_context.run_log_store.add_branch_log(run_log, run_context.run_id)
+            raise e
 
     executor.send_return_code()
 
@@ -234,6 +244,8 @@ def execute_single_node(
 
     """
     from runnable import nodes
+
+    configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
 
     run_context = prepare_configurations(
         configuration_file=configuration_file,
@@ -421,6 +433,8 @@ def fan(
 
     """
     from runnable import nodes
+
+    configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
 
     run_context = prepare_configurations(
         configuration_file=configuration_file,

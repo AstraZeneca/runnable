@@ -1,0 +1,41 @@
+dag:
+  description: |
+    The below example shows how to set/get parameters in python
+    tasks of the pipeline.
+
+    The function, set_parameter, returns
+        - JSON serializable
+        - pydantic models
+        - pandas dataframe, any "object" type
+
+    pydantic models are implicitly handled by runnable
+    but "object" types should be marked as "pickled".
+
+    Use pickled even for python data types is advised for
+    reasonably large collections.
+
+    Run the pipeline as:
+      runnable execute -f examples/03-parameters/passing_parameters_python.yaml
+  start_at: write_parameters
+  steps:
+    write_parameters:
+      type: task
+      command: examples.common.functions.write_parameter
+      returns:
+        - name: df
+          kind: object
+        - name: integer
+        - name: floater
+        - name: stringer
+        - name: pydantic_param
+        - name: score
+
+      next: read_parameters
+    read_parameters:
+      type: task
+      command: examples.common.functions.read_parameter
+      next: success
+    success:
+      type: success
+    fail:
+      type: fail
