@@ -56,10 +56,10 @@ jobs:
           GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         id: last_tag
         run: |
-          CURRENT=$(python -m poetry run semantic-release --noop version --print-last-released)
+          CURRENT=$(python -m poetry run semantic-release -v --noop version --print-last-released)
           echo "Current: $CURRENT"
 
-          VERSION=$(python -m poetry run semantic-release --noop version --print)
+          VERSION=$(python -m poetry run semantic-release -v --noop version --print)
           echo "new: $VERSION"
 
           # python -m poetry run semantic-release version --tag --push
