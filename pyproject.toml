@@ -206,7 +206,7 @@ tag_format = "{version}"
 env = "GH_TOKEN"
 
 [tool.semantic_release.branches.main]
-match = "main"
+match = ""
 
 [tool.semantic_release.remote]
 ignore_token_for_push = true
