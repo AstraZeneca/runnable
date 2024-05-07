@@ -41,4 +41,3 @@ os.environ["_PLOOMBER_TELEMETRY_DEBUG"] = "false"
 
 
 # TODO: Think of way of generating dag hash without executor configuration
-# Just working if the release is done
