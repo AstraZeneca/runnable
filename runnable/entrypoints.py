@@ -265,6 +265,8 @@ def execute_single_node(
     #     # There are a few entry points that make graph dynamically and do not have a dag defined statically.
     #     run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
     #     run_context.dag = graph.create_graph(run_log.run_config["pipeline"])
+    assert run_context.dag
+
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)

@@ -885,7 +885,7 @@ class ArgoExecutor(GenericExecutor):
 
         if working_on.name == self._context.dag.start_at and self.expose_parameters_as_inputs:
             for key, value in self._get_parameters().items():
-                value = value.get_value()
+                value = value.get_value()  # type: ignore
                 # Get the value from work flow parameters for dynamic behavior
                 if isinstance(value, int) or isinstance(value, float) or isinstance(value, str):
                     env_var = EnvVar(
@@ -1087,11 +1087,11 @@ class ArgoExecutor(GenericExecutor):
         # Expose "simple" parameters as workflow arguments for dynamic behavior
         if self.expose_parameters_as_inputs:
             for key, value in self._get_parameters().items():
-                value = value.get_value()
+                value = value.get_value()  # type: ignore
                 if isinstance(value, dict) or isinstance(value, list):
                     continue
 
-                env_var = EnvVar(name=key, value=value)
+                env_var = EnvVar(name=key, value=value)  # type: ignore
                 arguments.append(env_var)
 
         run_id_var = EnvVar(name="run_id", value="{{workflow.uid}}")
