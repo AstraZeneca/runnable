@@ -8,7 +8,7 @@ executor:
         mount_path: /mnt
 
 run_log_store: # (4)
-  type: file-system
+  type: chunked-fs
   config:
     log_folder: /mnt/run_log_store
 

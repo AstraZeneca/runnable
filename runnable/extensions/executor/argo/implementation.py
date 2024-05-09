@@ -5,7 +5,7 @@ import shlex
 import string
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, Union, cast
 
 from pydantic import (
     BaseModel,
@@ -19,7 +19,7 @@ from pydantic.functional_serializers import PlainSerializer
 from ruamel.yaml import YAML
 from typing_extensions import Annotated
 
-from runnable import defaults, exceptions, integration, parameters, utils
+from runnable import defaults, exceptions, integration, utils
 from runnable.defaults import TypeMapVariable
 from runnable.extensions.executor import GenericExecutor
 from runnable.extensions.nodes import DagNode, MapNode, ParallelNode
@@ -378,6 +378,7 @@ class ExecutionNode(NodeRenderer):
             self.node,
             over_write_run_id=self.executor._run_id_placeholder,
             map_variable=map_variable,
+            log_level=self.executor._log_level,
         )
 
         inputs = []
@@ -502,12 +503,16 @@ class MapNodeRender(NodeRenderer):
         self.node = cast(MapNode, self.node)
         task_template_arguments = []
         dag_inputs = []
-        if list_of_iter_values:
-            for value in list_of_iter_values:
-                task_template_arguments.append(Argument(name=value, value="{{inputs.parameters." + value + "}}"))
-                dag_inputs.append(Parameter(name=value))
+
+        if not list_of_iter_values:
+            list_of_iter_values = []
+
+        for value in list_of_iter_values:
+            task_template_arguments.append(Argument(name=value, value="{{inputs.parameters." + value + "}}"))
+            dag_inputs.append(Parameter(name=value))
 
         clean_name = self.executor.get_clean_name(self.node)
+
         fan_out_template = self.executor._create_fan_out_template(
             composite_node=self.node, list_of_iter_values=list_of_iter_values
         )
@@ -517,9 +522,6 @@ class MapNodeRender(NodeRenderer):
             composite_node=self.node, list_of_iter_values=list_of_iter_values
         )
         fan_in_template.arguments = task_template_arguments if task_template_arguments else None
-
-        if not list_of_iter_values:
-            list_of_iter_values = []
 
         list_of_iter_values.append(self.node.iterate_as)
 
@@ -580,8 +582,12 @@ class Spec(BaseModel):
     node_selector: Optional[Dict[str, str]] = Field(default_factory=dict, serialization_alias="nodeSelector")
     tolerations: Optional[List[Toleration]] = Field(default=None, serialization_alias="tolerations")
     parallelism: Optional[int] = Field(default=None, serialization_alias="parallelism")
+
     # TODO: This has to be user driven
-    pod_gc: Dict[str, str] = Field(default={"strategy": "OnPodCompletion"}, serialization_alias="podGC")
+    pod_gc: Dict[str, str] = Field(
+        default={"strategy": "OnPodSuccess", "deleteDelayDuration": "600s"},
+        serialization_alias="podGC",
+    )
 
     retry_strategy: Retry = Field(default=Retry(), serialization_alias="retryStrategy")
     service_account_name: Optional[str] = Field(default=None, serialization_alias="serviceAccountName")
@@ -674,6 +680,8 @@ class ArgoExecutor(GenericExecutor):
     service_name: str = "argo"
     _local: bool = False
 
+    # TODO: Add logging level as option.
+
     model_config = ConfigDict(extra="forbid")
 
     image: str
@@ -719,6 +727,7 @@ class ArgoExecutor(GenericExecutor):
     persistent_volumes: List[UserVolumeMounts] = Field(default_factory=list)
 
     _run_id_placeholder: str = "{{workflow.parameters.run_id}}"
+    _log_level: str = "{{workflow.parameters.log_level}}"
     _container_templates: List[ContainerTemplate] = []
     _dag_templates: List[DagTemplate] = []
     _clean_names: Dict[str, str] = {}
@@ -828,17 +837,7 @@ class ArgoExecutor(GenericExecutor):
             iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[node.iterate_on]
 
             with open("/tmp/output.txt", mode="w", encoding="utf-8") as myfile:
-                json.dump(iterate_on, myfile, indent=4)
-
-    def _get_parameters(self) -> Dict[str, Any]:
-        params = {}
-        if self._context.parameters_file:
-            # Parameters from the parameters file if defined
-            params.update(utils.load_yaml(self._context.parameters_file))
-        # parameters from environment variables supersede file based
-        params.update(parameters.get_user_set_parameters())
-
-        return params
+                json.dump(iterate_on.get_value(), myfile, indent=4)
 
     def sanitize_name(self, name):
         return name.replace(" ", "-").replace(".", "-").replace("_", "-")
@@ -886,6 +885,7 @@ class ArgoExecutor(GenericExecutor):
 
         if working_on.name == self._context.dag.start_at and self.expose_parameters_as_inputs:
             for key, value in self._get_parameters().items():
+                value = value.get_value()  # type: ignore
                 # Get the value from work flow parameters for dynamic behavior
                 if isinstance(value, int) or isinstance(value, float) or isinstance(value, str):
                     env_var = EnvVar(
@@ -943,6 +943,7 @@ class ArgoExecutor(GenericExecutor):
             node=composite_node,
             run_id=self._run_id_placeholder,
             map_variable=map_variable,
+            log_level=self._log_level,
         )
 
         outputs = []
@@ -984,6 +985,7 @@ class ArgoExecutor(GenericExecutor):
             node=composite_node,
             run_id=self._run_id_placeholder,
             map_variable=map_variable,
+            log_level=self._log_level,
         )
 
         step_config = {"command": command, "type": "task", "next": "dummy"}
@@ -1033,6 +1035,8 @@ class ArgoExecutor(GenericExecutor):
             if working_on.node_type not in ["success", "fail"] and working_on._get_on_failure_node():
                 failure_node = dag.get_node_by_name(working_on._get_on_failure_node())
 
+                # same logic, if a template exists, retrieve it
+                # if not, create a new one
                 render_obj = get_renderer(working_on)(executor=self, node=failure_node)
                 render_obj.render(list_of_iter_values=list_of_iter_values.copy())
 
@@ -1083,18 +1087,19 @@ class ArgoExecutor(GenericExecutor):
         # Expose "simple" parameters as workflow arguments for dynamic behavior
         if self.expose_parameters_as_inputs:
             for key, value in self._get_parameters().items():
+                value = value.get_value()  # type: ignore
                 if isinstance(value, dict) or isinstance(value, list):
                     continue
-                env_var = EnvVar(name=key, value=value)
+
+                env_var = EnvVar(name=key, value=value)  # type: ignore
                 arguments.append(env_var)
 
         run_id_var = EnvVar(name="run_id", value="{{workflow.uid}}")
+        log_level_var = EnvVar(name="log_level", value=defaults.LOG_LEVEL)
         arguments.append(run_id_var)
+        arguments.append(log_level_var)
 
-        # # TODO: Experimental feature
-
-        # original_run_id_var = EnvVar(name="original_run_id")
-        # arguments.append(original_run_id_var)
+        # TODO: Can we do reruns?
 
         for volume in self.spec.volumes:
             self._container_volumes.append(ContainerVolume(name=volume.name, mount_path=volume.mount_path))

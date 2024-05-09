@@ -12,7 +12,7 @@ from runnable import defaults
 dictConfig(defaults.LOGGING_CONFIG)
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-console = Console()
+console = Console(record=True)
 console.print(":runner: Lets go!!")
 
 from runnable.sdk import (  # noqa
@@ -30,7 +30,8 @@ from runnable.sdk import (  # noqa
     pickled,
 )
 
-os.environ["_PLOOMBER_TELEMETRY_DEBUG"] = "false"
+# Needed to disable ploomber telemetry
+os.environ["PLOOMBER_STATS_ENABLED"] = "false"
 
 ## TODO: Summary should be a bit better for catalog.
 ## If the execution fails, hint them about the retry executor.

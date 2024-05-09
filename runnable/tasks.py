@@ -14,13 +14,10 @@ from string import Template
 from typing import Any, Dict, List, Literal, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-# from rich import print
-from rich.console import Console
 from stevedore import driver
 
 import runnable.context as context
-from runnable import defaults, exceptions, parameters, utils
+from runnable import console, defaults, exceptions, parameters, utils
 from runnable.datastore import (
     JsonParameter,
     MetricParameter,
@@ -147,41 +144,26 @@ class BaseTaskType(BaseModel):
                 if context_param in params:
                     params[param_name].value = params[context_param].value
 
+        console.log("Parameters available for the execution:")
+        console.log(params)
+
         logger.debug(f"Resolved parameters: {params}")
 
         if not allow_complex:
             params = {key: value for key, value in params.items() if isinstance(value, JsonParameter)}
 
-        log_file_name = self._context.executor._context_node.internal_name
-        if map_variable:
-            for _, value in map_variable.items():
-                log_file_name += "_" + str(value)
-
-        log_file_name = "".join(x for x in log_file_name if x.isalnum()) + ".execution.log"
-
-        log_file = open(log_file_name, "w")
-
         parameters_in = copy.deepcopy(params)
         f = io.StringIO()
-        task_console = Console(file=io.StringIO())
         try:
             with contextlib.redirect_stdout(f):
                 # with contextlib.nullcontext():
-                yield params, task_console
-                print(task_console.file.getvalue())  # type: ignore
+                yield params
         except Exception as e:  # pylint: disable=broad-except
+            console.log(e, style=defaults.error_style)
             logger.exception(e)
         finally:
-            task_console = None  # type: ignore
             print(f.getvalue())  # print to console
-            log_file.write(f.getvalue())  # Print to file
-
             f.close()
-            log_file.close()
-
-            # Put the log file in the catalog
-            self._context.catalog_handler.put(name=log_file.name, run_id=context.run_context.run_id)
-            os.remove(log_file.name)
 
             # Update parameters
             # This should only update the parameters that are changed at the root level.
@@ -233,7 +215,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         """Execute the notebook as defined by the command."""
         attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
 
-        with self.execution_context(map_variable=map_variable) as (params, task_console), self.expose_secrets() as _:
+        with self.execution_context(map_variable=map_variable) as params, self.expose_secrets() as _:
             module, func = utils.get_module_and_attr_names(self.command)
             sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
             imported_module = importlib.import_module(module)
@@ -243,9 +225,10 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                 try:
                     filtered_parameters = parameters.filter_arguments_for_func(f, params.copy(), map_variable)
                     logger.info(f"Calling {func} from {module} with {filtered_parameters}")
+
                     user_set_parameters = f(**filtered_parameters)  # This is a tuple or single value
                 except Exception as e:
-                    task_console.log(e, style=defaults.error_style, markup=False)
+                    console.log(e, style=defaults.error_style, markup=False)
                     raise exceptions.CommandCallError(f"Function call: {self.command} did not succeed.\n") from e
 
                 attempt_log.input_parameters = params.copy()
@@ -289,8 +272,8 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             except Exception as _e:
                 msg = f"Call to the function {self.command} did not succeed.\n"
                 attempt_log.message = msg
-                task_console.print_exception(show_locals=False)
-                task_console.log(_e, style=defaults.error_style)
+                console.print_exception(show_locals=False)
+                console.log(_e, style=defaults.error_style)
 
         attempt_log.end_time = str(datetime.now())
 
@@ -346,17 +329,17 @@ class NotebookTaskType(BaseTaskType):
 
             notebook_output_path = self.notebook_output_path
 
-            with self.execution_context(map_variable=map_variable, allow_complex=False) as (
-                params,
-                _,
-            ), self.expose_secrets() as _:
+            with self.execution_context(
+                map_variable=map_variable, allow_complex=False
+            ) as params, self.expose_secrets() as _:
+                copy_params = copy.deepcopy(params)
+
                 if map_variable:
                     for key, value in map_variable.items():
                         notebook_output_path += "_" + str(value)
-                        params[key] = JsonParameter(kind="json", value=value)
+                        copy_params[key] = JsonParameter(kind="json", value=value)
 
                 # Remove any {v}_unreduced parameters from the parameters
-                copy_params = copy.deepcopy(params)
                 unprocessed_params = [k for k, v in copy_params.items() if not v.reduced]
 
                 for key in list(copy_params.keys()):
@@ -397,6 +380,9 @@ class NotebookTaskType(BaseTaskType):
                         )
                 except PicklingError as e:
                     logger.exception("Notebooks cannot return objects")
+                    console.log("Notebooks cannot return objects", style=defaults.error_style)
+                    console.log(e, style=defaults.error_style)
+
                     logger.exception(e)
                     raise
 
@@ -413,6 +399,9 @@ class NotebookTaskType(BaseTaskType):
             )
             logger.exception(msg)
             logger.exception(e)
+
+            console.log(msg, style=defaults.error_style)
+
             attempt_log.status = defaults.FAIL
 
         attempt_log.end_time = str(datetime.now())
@@ -468,7 +457,7 @@ class ShellTaskType(BaseTaskType):
                 subprocess_env[key] = secret_value
 
         try:
-            with self.execution_context(map_variable=map_variable, allow_complex=False) as (params, task_console):
+            with self.execution_context(map_variable=map_variable, allow_complex=False) as params:
                 subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
                 # Json dumps all runnable environment variables
@@ -499,14 +488,14 @@ class ShellTaskType(BaseTaskType):
 
                 if proc.returncode != 0:
                     msg = ",".join(result[1].split("\n"))
-                    task_console.print(msg, style=defaults.error_style)
+                    console.print(msg, style=defaults.error_style)
                     raise exceptions.CommandCallError(msg)
 
                 # for stderr
                 for line in result[1].split("\n"):
                     if line.strip() == "":
                         continue
-                    task_console.print(line, style=defaults.warning_style)
+                    console.print(line, style=defaults.warning_style)
 
                 output_parameters: Dict[str, Parameter] = {}
                 metrics: Dict[str, Parameter] = {}
@@ -517,7 +506,7 @@ class ShellTaskType(BaseTaskType):
                         continue
 
                     logger.info(line)
-                    task_console.print(line)
+                    console.print(line)
 
                     if line.strip() == collect_delimiter:
                         # The lines from now on should be captured
@@ -558,6 +547,10 @@ class ShellTaskType(BaseTaskType):
             msg = f"Call to the command {self.command} did not succeed"
             logger.exception(msg)
             logger.exception(e)
+
+            console.log(msg, style=defaults.error_style)
+            console.log(e, style=defaults.error_style)
+
             attempt_log.status = defaults.FAIL
 
         attempt_log.end_time = str(datetime.now())

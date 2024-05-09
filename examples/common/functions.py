@@ -32,7 +32,6 @@ def read_initial_params_as_pydantic(
     pydantic_param: ComplexParams,
     envvar: str,
 ):
-    print(envvar)
     assert integer == 1
     assert floater == 3.14
     assert stringer == "hello"
@@ -132,14 +131,14 @@ def read_processed_chunk(chunk: int, processed_python: int, processed_notebook: 
     A downstream step of process_chunk of map state which reads the processed chunk.
     Since the process_chunk returns the chunk multiplied by 10, we assert that.
     """
-    assert chunk * 10 == processed_python
+    assert int(chunk) * 10 == processed_python
     assert processed_python * 10 == processed_notebook
     assert processed_notebook * 10 == processed_shell
 
 
 def assert_default_reducer(
     processed_python: List[int], processed_notebook: List[int], processed_shell: List[int], chunks: List[int]
-) -> int:
+):
     """
     Demonstrates the default reducer which just returns the list of processed chunks.
     """
@@ -148,9 +147,7 @@ def assert_default_reducer(
     assert processed_shell == [chunk * 1000 for chunk in chunks]
 
 
-def assert_custom_reducer(
-    processed_python: int, processed_notebook: int, processed_shell: int, chunks: List[int]
-) -> int:
+def assert_custom_reducer(processed_python: int, processed_notebook: int, processed_shell: int, chunks: List[int]):
     """
     Asserts the custom reducer returns the max of all the processed chunks.
     """
