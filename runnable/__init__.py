@@ -42,3 +42,4 @@ os.environ["PLOOMBER_STATS_ENABLED"] = "false"
 
 
 # TODO: Think of way of generating dag hash without executor configuration
+# Try to get a release
