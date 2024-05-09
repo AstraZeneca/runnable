@@ -4,6 +4,8 @@ import hashlib
 import json
 import logging
 import os
+import random
+import string
 import subprocess
 from collections import OrderedDict
 from datetime import datetime
@@ -394,6 +396,7 @@ def get_node_execution_command(
     node: BaseNode,
     map_variable: TypeMapVariable = None,
     over_write_run_id: str = "",
+    log_level: str = "",
 ) -> str:
     """A utility function to standardize execution call to a node via command line.
 
@@ -410,7 +413,7 @@ def get_node_execution_command(
     if over_write_run_id:
         run_id = over_write_run_id
 
-    log_level = logging.getLevelName(logger.getEffectiveLevel())
+    log_level = log_level or logging.getLevelName(logger.getEffectiveLevel())
 
     action = f"runnable execute_single_node {run_id} " f"{node._command_friendly_name()}" f" --log-level {log_level}"
 
@@ -437,6 +440,7 @@ def get_fan_command(
     node: BaseNode,
     run_id: str,
     map_variable: TypeMapVariable = None,
+    log_level: str = "",
 ) -> str:
     """
     An utility function to return the fan "in or out" command
@@ -451,7 +455,7 @@ def get_fan_command(
     Returns:
         str: The fan in or out command
     """
-    log_level = logging.getLevelName(logger.getEffectiveLevel())
+    log_level = log_level or logging.getLevelName(logger.getEffectiveLevel())
     action = (
         f"runnable fan {run_id} "
         f"{node._command_friendly_name()} "
@@ -614,3 +618,17 @@ def gather_variables() -> dict:
             variables[key] = value
 
     return variables
+
+
+def make_log_file_name(node: BaseNode, map_variable: TypeMapVariable) -> str:
+    random_tag = "".join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    log_file_name = node.name
+
+    if map_variable:
+        for _, value in map_variable.items():
+            log_file_name += "_" + str(value)
+
+    log_file_name += "_" + random_tag
+    log_file_name = "".join(x for x in log_file_name if x.isalnum()) + ".execution.log"
+
+    return log_file_name

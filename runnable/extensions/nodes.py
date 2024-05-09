@@ -15,7 +15,7 @@ from pydantic import (
     field_validator,
 )
 
-from runnable import datastore, defaults, utils
+from runnable import console, datastore, defaults, utils
 from runnable.datastore import (
     JsonParameter,
     MetricParameter,
@@ -96,11 +96,10 @@ class TaskNode(ExecutableNode):
                 attempt_number=attempt_number,
             )
 
-        logger.debug(f"attempt_log: {attempt_log}")
+        logger.info(f"attempt_log: {attempt_log}")
         logger.info(f"Step {self.name} completed with status: {attempt_log.status}")
 
         step_log.status = attempt_log.status
-
         step_log.attempts.append(attempt_log)
 
         return step_log
@@ -347,6 +346,7 @@ class ParallelNode(CompositeNode):
         for internal_branch_name, _ in self.branches.items():
             effective_branch_name = self._resolve_map_placeholders(internal_branch_name, map_variable=map_variable)
             branch_log = self._context.run_log_store.get_branch_log(effective_branch_name, self._context.run_id)
+
             if branch_log.status != defaults.SUCCESS:
                 step_success_bool = False
 
@@ -498,6 +498,8 @@ class MapNode(CompositeNode):
                 self.internal_name + "." + str(iter_variable), map_variable=map_variable
             )
             branch_log = self._context.run_log_store.create_branch_log(effective_branch_name)
+
+            console.print(f"Branch log created for {effective_branch_name}: {branch_log}")
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
@@ -589,6 +591,8 @@ class MapNode(CompositeNode):
                 self.internal_name + "." + str(iter_variable), map_variable=map_variable
             )
             branch_log = self._context.run_log_store.get_branch_log(effective_branch_name, self._context.run_id)
+            # console.print(f"Branch log for {effective_branch_name}: {branch_log}")
+
             if branch_log.status != defaults.SUCCESS:
                 step_success_bool = False
 

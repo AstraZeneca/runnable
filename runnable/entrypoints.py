@@ -19,18 +19,11 @@ def get_default_configs() -> RunnableConfig:
     """
     User can provide extensions as part of their code base, runnable-config.yaml provides the place to put them.
     """
-    user_configs = {}
+    user_configs: RunnableConfig = {}
     if utils.does_file_exist(defaults.USER_CONFIG_FILE):
-        user_configs = utils.load_yaml(defaults.USER_CONFIG_FILE)
+        user_configs = cast(RunnableConfig, utils.load_yaml(defaults.USER_CONFIG_FILE))
 
-    if not user_configs:
-        return {}
-
-    user_defaults = user_configs.get("defaults", {})
-    if user_defaults:
-        return user_defaults
-
-    return {}
+    return user_configs
 
 
 def prepare_configurations(
@@ -198,6 +191,7 @@ def execute(
             run_context.progress = progress
             executor.execute_graph(dag=run_context.dag)  # type: ignore
 
+            # Non local executors have no run logs
             if not executor._local:
                 executor.send_return_code(stage="traversal")
                 return
@@ -245,6 +239,8 @@ def execute_single_node(
     """
     from runnable import nodes
 
+    console.print(f"Executing the single node: {step_name} with map variable: {map_variable}")
+
     configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
 
     run_context = prepare_configurations(
@@ -264,19 +260,30 @@ def execute_single_node(
 
     executor.prepare_for_node_execution()
 
-    if not run_context.dag:
-        # There are a few entry points that make graph dynamically and do not have a dag defined statically.
-        run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
-        run_context.dag = graph.create_graph(run_log.run_config["pipeline"])
-
-    step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
-
+    # TODO: may be make its own entry point
+    # if not run_context.dag:
+    #     # There are a few entry points that make graph dynamically and do not have a dag defined statically.
+    #     run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
+    #     run_context.dag = graph.create_graph(run_log.run_config["pipeline"])
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
+    step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
     node_to_execute, _ = graph.search_node_by_internal_name(run_context.dag, step_internal_name)
 
     logger.info("Executing the single node of : %s", node_to_execute)
-    executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
+    ## This step is where we save the log file
+    try:
+        executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
+    except Exception:  # noqa: E722
+        log_file_name = utils.make_log_file_name(
+            node=node_to_execute,
+            map_variable=map_variable_dict,
+        )
+        console.save_text(log_file_name)
+
+        # Put the log file in the catalog
+        run_context.catalog_handler.put(name=log_file_name, run_id=run_context.run_id)
+        os.remove(log_file_name)
 
     executor.send_return_code(stage="execution")
 

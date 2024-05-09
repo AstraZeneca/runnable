@@ -202,7 +202,6 @@ class LocalContainerExecutor(GenericExecutor):
                     f"Please provide a docker_image using executor_config of the step {node.name} or at global config"
                 )
 
-            print("container", self._volumes)
             # TODO: Should consider using getpass.getuser() when running the docker container? Volume permissions
             container = client.containers.create(
                 image=docker_image,
