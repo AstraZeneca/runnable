@@ -32,11 +32,30 @@ from runnable import Pipeline, PythonTask
 
 
 def main():
+    """
+    Signature of read_initial_params_as_pydantic
+    def read_initial_params_as_pydantic(
+        integer: int,
+        floater: float,
+        stringer: str,
+        pydantic_param: ComplexParams,
+        envvar: str,
+    ):
+    """
     read_params_as_pydantic = PythonTask(
         function=read_initial_params_as_pydantic,
         name="read_params_as_pydantic",
     )
 
+    """
+    Signature of read_initial_params_as_json
+    def read_initial_params_as_json(
+        integer: int,
+        floater: float,
+        stringer: str,
+        pydantic_param: Dict[str, Union[int, str]],
+    ):
+    """
     read_params_as_json = PythonTask(
         function=read_initial_params_as_json,
         terminate_with_success=True,

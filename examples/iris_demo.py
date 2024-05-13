@@ -49,6 +49,7 @@ def generate_plots(X: np.ndarray, Y: np.ndarray, logreg: LogisticRegression):
 
     plt.savefig("iris_logistic.png")
 
+    # TODO: What is the right value?
     return 0.6
 
 

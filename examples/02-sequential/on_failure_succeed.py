@@ -26,7 +26,7 @@ def main():
     step_2 = Stub(name="step 2")
 
     step_3 = Stub(name="step 3", terminate_with_success=True)
-    step_4 = Stub(name="step 4", terminate_with_success=True)
+    step_4 = Stub(name="step 4", terminate_with_success=True)  # (1)
 
     step_1.on_failure = step_4.name
 

@@ -5,10 +5,12 @@ dag:
     step 1 >> step 2 >> step 3 >> success
 
     All the steps are mocked and they will just pass through.
-    Use this pattern to define the skeleton of your pipeline and flesh out the steps later.
+    Use this pattern to define the skeleton of your pipeline
+    and flesh out the steps later.
 
-    Note that you can give any arbitrary keys to the steps (like step 2). This is handy
-    to mock steps within mature pipelines.
+    Note that you can give any arbitrary keys to the steps
+    (like step 2).
+    This is handy to mock steps within mature pipelines.
 
     You can run this pipeline by:
        runnable execute -f examples/01-tasks/stub.yaml
@@ -25,7 +27,3 @@ dag:
     step 3:
       type: stub
       next: success
-    success:
-      type: success
-    fail:
-      type: fail

@@ -113,7 +113,3 @@ dag:
         rm df.csv || true && \
         rm data_folder/data.txt || true
       next: success
-    success:
-      type: success
-    fail:
-      type: fail

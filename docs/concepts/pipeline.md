@@ -1,231 +1,171 @@
-???+ tip inline end "Steps"
-
-    In runnable, a step can be a simple ```task``` or ```stub``` or complex nested pipelines like
-    ```parallel``` branches, embedded ```dags``` or dynamic workflows.
-
-    In this section, we use ```stub``` for convenience. For more in depth information about other types,
-    please see the relevant section.
-
-
 
 In **runnable**, we use the words
 
-- ```dag```, ```workflows``` and ```pipeline``` interchangeably.
+- ```workflows``` and ```pipeline``` interchangeably.
 - ```nodes```, ```steps``` interchangeably.
 
-
-Dag or directed acyclic graphs are a way to define your pipelines.
-Its a graph representation of the list of tasks you want to perform and the order of it.
+A ```workflow``` is a sequence of ```steps``` to perform.
 
 
-<br>
+!!! info "Composite pipelines"
 
 
-## Example
-
-Below is an example pipeline.
-
-
-
-=== "yaml"
-
-    ``` yaml linenums="1"
-    --8<-- "examples/concepts/traversal.yaml"
-    ```
-
-
-=== "python"
-
-    ``` python linenums="1"
-    --8<-- "examples/concepts/traversal.py"
-    ```
+    ```runnable``` pipelines are composable. For example, a pipeline can have
+    a parallel node which in itself has many pipelines running in parallel.
 
 <br>
 
-A closer look at the example:
 
-
-## start_at
-
-- [x] start_at step is the starting node of the traversal.
-
-
-=== "yaml"
-
-    The value should be valid key in ```steps```
-
-    ```yaml linenums="10" hl_lines="1"
-    --8<-- "examples/concepts/traversal.yaml:10:12"
-    ```
-
-=== "python"
-
-    The node should be part of ```steps```
-
-    ```python linenums="32" hl_lines="3"
-    --8<-- "examples/concepts/traversal.py:32:36"
-    ```
-
-By using a ```parallel``` node as starting node, you can get the behavior of multi-root graph.
-
-<br>
-
-## Steps
-
-- [x] Apart from the terminal nodes (```success``` and ```fail```), the pipeline should have at least
-one more node.
-
-
-
-???+ warning inline end "Step names"
-
-    In runnable, the names of steps should not have ```%``` or ```.``` in them.
-
-    You can name them as descriptive as you want.
-
-
-=== "yaml"
-
-    ```yaml linenums="12"
-    --8<-- "examples/concepts/traversal.yaml:12:21"
-    ```
-
-=== "python"
-
-
-    ```python linenums="14" hl_lines="1-6 19-23"
-    --8<-- "examples/concepts/traversal.py:14:36"
-    ```
-
-<br>
-
-## Linking
-
-- [x] All nodes except for ```success``` and ```fail``` nodes need to have a ```next```
-step to execute upon successful execution.
-
-
-
-
-Visually, the above pipeline can be seen as:
-
-???+ abstract inline end "Traversal"
-
-    Start at step1.
-
-    If it is successful, go to ```next``` step of the pipeline until we reach the success state.
-
-    Any failure in execution of step would, by default, go to the fail state.
-
-
+A visual example of a workflow:
 
 ```mermaid
 stateDiagram-v2
-    state "Start at step 1" as start_at
-    state "step 2" as step_2
-    state "step 3" as step_3
+    direction lr
+    state "hello stub" as start_at
+    state "hello python" as step_2
+    state "hello notebook" as step_3
+    state "hello shell" as step_4
     state "Success" as success
-    state "Fail" as fail
 
 
     [*] --> start_at
     start_at --> step_2 : #9989;
     step_2 --> step_3 : #9989;
-    step_3 --> success : #9989;
-    start_at --> fail: #10060;
-    step_2--> fail: #10060;
-    step_3--> fail: #10060;
+    step_3 --> step_4 : #9989;
+    step_4 --> success : #9989;
     success --> [*]
-    fail --> [*]
 ```
 
+???+ abstract "Traversal"
+
+    Start at ```hello stub```.
+
+    If it is successful, go to ```next``` step of the pipeline until we reach the success state.
+
+    Any failure in execution of step would, by default, go to the ```fail``` state.
+
+
+
+## Syntax
+
+The above pipeline can be written in runnable as below. It is a mixed bag of
+[python functions](task.md/#python-functions), [notebook](task.md/#notebook), [shell](task.md/#shell)
+and [stub](task.md/#stub).
+
+[API Documentation](../reference.md/#pipeline)
+
+
+=== "sdk"
+
+    ```python linenums="1"
+    --8<-- "examples/02-sequential/traversal.py"
+    ```
+
+    1. Start the pipeline.
+    2. The order of the steps is the execution order
+
+    - [x] The first step of the ```steps``` is the start of the workflow.
+    - [x] The order of execution follows the order of the tasks in the list.
+    - [x] The terminal nodes ```success``` and ```fail``` are added automatically.
+
 
 === "yaml"
 
-    ```yaml linenums="15" hl_lines="4 7 10"
-    --8<-- "examples/concepts/traversal.yaml:12:21"
+    ```yaml linenums="1"
+    --8<-- "examples/02-sequential/traversal.yaml"
     ```
 
-=== "python"
+    1. Start the pipeline at this step.
+    2. State the ```next``` node, if it succeeds.
+    3. Add the success and fail nodes.
 
 
-    ```python linenums="14" hl_lines="7-17"
-    --8<-- "examples/concepts/traversal.py:14:36"
-    ```
-
-
-### on failure
-
-By default, any failure during the execution of step will traverse to ```fail``` node
-marking the execution as failed. You can override this behavior by using ```on_failure```
-
-=== "yaml"
-
-    ```yaml hl_lines="21"
-    --8<-- "examples/on-failure.yaml"
-    ```
-
-=== "python"
-
-    ```python hl_lines="10"
-    --8<-- "examples/on_failure.py"
-    ```
-
-=== "traversal"
-
-    ```mermaid
-    stateDiagram-v2
-        state "Start at step 1" as start_at
-        state "step 2" as step_2
-        state "step 3" as step_3
-        state "Success" as success
-
-
-        [*] --> start_at
-        start_at --> step_2 : #10060;
-        start_at --> step_3 : #9989;
-        step_3 --> success : #9989;
-        success --> [*]
-    ```
-
+    - [x] The first step  is the step corresponding to ```start_at```
+    - [x] The mapping defined in the steps.
+    - [x] The ```next``` step after a successful execution of a ```step```.
+    - [x] Needs explicit definition of ```success``` and ```fail``` nodes.
 
 <br>
 
-## Terminating
-- [x] All pipelines should have one and only one Success and Fail state
 
-Reaching one of these states as part of traversal indicates the status of the pipeline.
+## on failure
+
+By default, any failure during the execution of step will traverse to ```fail``` node
+marking the execution as failed.
+
+The ```fail``` node is implicitly added to the pipeline in python SDK while it
+has to be stated in the yaml.
+
+
+This behavior can be over-ridden to follow a different path based on expected failures.
+
+### on failure success
+
+
+```step 1``` fails as the function raises an exception.
+```step 4``` is an alternate node to a successful execution.
+
+```step 4``` is the step to execution in case of the failure.
+
+=== "pseudo code"
+
+    ```python
+
+    try:
+        raise_exception()
+    except:
+        # suppress exception
+        do_something()
+
+    ```
+
+=== "sdk"
+
+    ```python linenums="1" hl_lines="24 29 34 31"
+    --8<-- "examples/02-sequential/on_failure_succeed.py"
+    ```
+
+    1. ```terminate_with_success``` is ```true``` traverses to success node.
+
 
 === "yaml"
 
-    The type determines the node to be a ```success``` or ``fail`` state.
-
-    The name can be anything that you prefer.
-
-    ``` yaml linenums="1"
-    --8<-- "examples/concepts/traversal.yaml:22:25"
+    ```yaml linenums="1" hl_lines="23 25 32-34"
+    --8<-- "examples/02-sequential/on_failure_succeed.yaml"
     ```
 
-=== "python"
 
-    Setting ```add_terminal_nodes``` to be ```true``` during pipeline creation adds
-    ```success``` and ```fail``` states with the names success and fail.
+### On failure fail
 
-    ``` python linenums="1" hl_lines="4"
-    --8<-- "examples/concepts/traversal.py:31:35"
-    ```
+```step 1``` fails as the function raises an exception.
+```step 4``` is an alternate node to a successful execution.
 
-    Individual steps can link
+```step 4``` is the step to execution in case of the failure.
 
-    - success state by setting ```terminate_with_success``` to ```True```
-    - fail state by setting ```terminate_with_fail``` to ```True```
-
-    You can, alternatively, create a ```success``` and ```fail``` state and link them together.
+=== "pseudo code"
 
     ```python
-    from runnable import Success, Fail
 
-    success = Success(name="Custom Success")
-    fail = Fail(name="Custom Failure")
+    try:
+        raise_exception()
+    except:
+        # raise exception after doing something.
+        do_something()
+        raise
 
+    ```
+
+=== "sdk"
+
+    ```python linenums="1" hl_lines="24 29 34 31"
+    --8<-- "examples/02-sequential/on_failure_fail.py"
+    ```
+
+    1. ```terminate_with_failure``` is ```true``` traverses to fail node.
+
+
+=== "yaml"
+
+    ```yaml linenums="1" hl_lines="23 25 32-34"
+    --8<-- "examples/02-sequential/on_failure_fail.yaml"
     ```

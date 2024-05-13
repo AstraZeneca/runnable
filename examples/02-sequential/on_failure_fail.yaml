@@ -32,7 +32,3 @@ dag:
     step_4:
       type: stub
       next: fail
-    success:
-      type: success
-    fail:
-      type: fail

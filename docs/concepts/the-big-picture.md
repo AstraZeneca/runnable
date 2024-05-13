@@ -1,5 +1,17 @@
 runnable revolves around the concept of pipelines or workflows and tasks that happen within them.
 
+
+# Invert this and give examples
+
+- Explain task, python, notebook or shell.
+- Then a pipeline stitching various tasks.
+- Then flow of parameters/metrics/objects.
+- File flow.
+- secrets.
+- parallel
+- map
+
+
 ---
 
 A [workflow](pipeline.md) is simply a series of steps that you want to execute for a desired outcome.

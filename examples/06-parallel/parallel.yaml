@@ -23,10 +23,6 @@ branch: &branch
       command_type: notebook
       command: examples/common/simple_notebook.ipynb # The path is relative to the root of the project.
       next: success
-    success:
-      type: success
-    fail:
-      type: fail
 
 
 dag:
@@ -47,7 +43,3 @@ dag:
       branches:
         branch1: *branch
         branch2: *branch
-    success:
-      type: success
-    failure:
-      type: fail

@@ -342,6 +342,8 @@ def create_graph(dag_config: Dict[str, Any], internal_branch_name: str = "") -> 
         node = create_node(name, step_config=step_config, internal_branch_name=internal_branch_name)
         graph.add_node(node)
 
+    graph.add_terminal_nodes(internal_branch_name=internal_branch_name)
+
     graph.check_graph()
 
     return graph

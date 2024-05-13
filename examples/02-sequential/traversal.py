@@ -47,7 +47,14 @@ def main():
 
     # The pipeline has a mix of tasks.
     # The order of execution follows the order of the tasks in the list.
-    pipeline = Pipeline(steps=[stub_task, python_task, shell_task, notebook_task])
+    pipeline = Pipeline(
+        steps=[  # (2)
+            stub_task,  # (1)
+            python_task,
+            shell_task,
+            notebook_task,
+        ]
+    )
 
     pipeline.execute()
 

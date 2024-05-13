@@ -220,7 +220,6 @@ class BaseTask(BaseTraversal):
 class PythonTask(BaseTask):
     """
     An execution node of the pipeline of python functions.
-    Please refer to [concepts](concepts/task.md) for more information.
 
     Attributes:
         name (str): The name of the node.

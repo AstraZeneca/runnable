@@ -18,10 +18,6 @@ dag:
   start_at: hello_task
   steps:
     hello_task:
-      type: task # The functional unit of the pipeline which does the work.
+      type: task
       command: examples.common.functions.hello # dotted path to the function.
-      next: success # If this function succeeds, mark the pipeline as success
-    success:
-      type: success
-    fail:
-      type: fail
+      next: success
