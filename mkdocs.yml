@@ -114,26 +114,15 @@ nav:
   - "runnable":
       - "Introduction": "index.md"
       - "Usage": "usage.md"
-      # - "Example":
-      #     - "Pipeline Definition": "example/example.md"
-      #     - "Steps": "example/steps.md"
-      #     - "Flow of data": "example/dataflow.md"
-      #     - "Reproducibility": "example/reproducibility.md"
-      #     - "Experiment tracking": "example/experiment-tracking.md"
-      #     - "Secrets": "example/secrets.md"
-      #     - "Retry failures": "example/retry-after-failure.md"
       - "Why runnable?": "why-runnable.md"
   - "Define pipeline":
-      - "tl;dr": "concepts/the-big-picture.md"
+      - "concepts/index.md"
+      - "Tasks": concepts/task.md
       - "Pipeline": "concepts/pipeline.md"
-      # - "Executor": "concepts/executor.md"
-      #- "Parameters": "concepts/parameters.md"
+      - "Parameters": "concepts/parameters.md"
       - "Catalog": "concepts/catalog.md"
-      # - "Experiment tracking": "concepts/experiment-tracking.md"
       - "Secrets": "concepts/secrets.md"
       - "Nodes":
-          - "Stub": "concepts/stub.md"
-          - "Task": "concepts/task.md"
           - "Parallel": "concepts/parallel.md"
           - "Map": "concepts/map.md"
           - "Nesting": "concepts/nesting.md"
@@ -152,4 +141,6 @@ nav:
       - "Secrets": "configurations/secrets.md"
       # - "Experiment tracking": "configurations/experiment-tracking.md"
   - "Python SDK": "sdk.md"
+  - "YAML": "yaml.md"
+  - "Reference": "reference.md"
   # - "Roadmap": "roadmap.md"

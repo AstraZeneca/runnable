@@ -25,6 +25,7 @@ dag:
         - name: stringer
         - name: pydantic_param
         - name: score
+          kind: metric
       next: read_parameters
     read_parameters:
       type: task

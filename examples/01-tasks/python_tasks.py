@@ -3,7 +3,9 @@ You can execute this pipeline by:
 
     python examples/01-tasks/python_tasks.py
 
-The stdout of "Hello World!" would be captured as execution log and stored in the catalog.
+The stdout of "Hello World!" would be captured as execution
+log and stored in the catalog.
+
 An example of the catalog structure:
 
 .catalog
@@ -22,7 +24,8 @@ from runnable import Pipeline, PythonTask
 
 def main():
     # Create a tasks which calls the function "hello"
-    # If this step executes successfully, the pipeline will terminate with success
+    # If this step executes successfully,
+    # the pipeline will terminate with success
     hello_task = PythonTask(
         name="hello",
         function=hello,
