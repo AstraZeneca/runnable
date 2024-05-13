@@ -49,7 +49,3 @@ dag:
               exit 1;
         fi
       next: success
-    success:
-      type: success
-    fail:
-      type: fail

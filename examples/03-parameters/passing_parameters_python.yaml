@@ -36,7 +36,3 @@ dag:
       type: task
       command: examples.common.functions.read_parameter
       next: success
-    success:
-      type: success
-    fail:
-      type: fail

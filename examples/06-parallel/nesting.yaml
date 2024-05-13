@@ -24,10 +24,6 @@ branch: &simple_branch
       command_type: notebook
       command: examples/common/simple_notebook.ipynb # The path is relative to the root of the project.
       next: success
-    success:
-      type: success
-    fail:
-      type: fail
 
 
 # This branch is similar to a branch parallel.yaml
@@ -40,10 +36,6 @@ nested_branch: &nested_branch
       branches:
         branch1: *simple_branch
         branch2: *simple_branch
-    success:
-      type: success
-    failure:
-      type: fail
 
 
 # The pipeline of nested parallel branches
@@ -56,7 +48,3 @@ dag:
       branches:
         branch1: *nested_branch
         branch2: *nested_branch
-    success:
-      type: success
-    failure:
-      type: fail

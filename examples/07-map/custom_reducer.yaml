@@ -33,10 +33,6 @@ branch: &branch
       type: task
       command: examples.common.functions.read_processed_chunk
       next: success
-    success:
-      type: success
-    fail:
-      type: fail
 
 dag:
   description: |
@@ -75,7 +71,3 @@ dag:
       type: task
       command: examples.common.functions.assert_custom_reducer
       next: success
-    success:
-      type: success
-    fail:
-      type: fail

@@ -27,7 +27,3 @@ dag:
     step 3:
       type: stub
       next: success
-    success:
-      type: success
-    fail:
-      type: fail

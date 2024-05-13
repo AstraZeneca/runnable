@@ -31,7 +31,3 @@ dag:
       type: task
       command: examples.common.functions.read_initial_params_as_json
       next: success
-    success:
-      type: success
-    fail:
-      type: fail

@@ -21,7 +21,3 @@ dag:
     step 3:
       type: stub # This will never execute
       next: success
-    success:
-      type: success
-    fail:
-      type: fail

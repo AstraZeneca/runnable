@@ -36,7 +36,3 @@ dag:
       command_type: notebook
       command: examples/common/read_parameters.ipynb
       next: success
-    success:
-      type: success
-    fail:
-      type: fail

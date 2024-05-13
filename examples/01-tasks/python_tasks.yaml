@@ -21,7 +21,3 @@ dag:
       type: task
       command: examples.common.functions.hello # dotted path to the function.
       next: success
-    success:
-      type: success
-    fail:
-      type: fail
