@@ -15,6 +15,7 @@ A ```workflow``` is a sequence of ```steps``` to perform.
 
 <br>
 
+## Concept
 
 A visual example of a workflow:
 
@@ -57,6 +58,10 @@ and [stub](task.md/#stub).
 
 === "sdk"
 
+    - [x] The first step of the ```steps``` is the start of the workflow.
+    - [x] The order of execution follows the order of the tasks in the list.
+    - [x] The terminal nodes ```success``` and ```fail``` are added automatically.
+
     ```python linenums="1"
     --8<-- "examples/02-sequential/traversal.py"
     ```
@@ -64,12 +69,16 @@ and [stub](task.md/#stub).
     1. Start the pipeline.
     2. The order of the steps is the execution order
 
-    - [x] The first step of the ```steps``` is the start of the workflow.
-    - [x] The order of execution follows the order of the tasks in the list.
-    - [x] The terminal nodes ```success``` and ```fail``` are added automatically.
+
+
 
 
 === "yaml"
+
+    - [x] The first step  is the step corresponding to ```start_at```
+    - [x] The mapping defined in the steps.
+    - [x] The ```next``` step after a successful execution of a ```step```.
+    - [x] ```success``` as ```next``` node implies successful execution of the pipeline.
 
     ```yaml linenums="1"
     --8<-- "examples/02-sequential/traversal.yaml"
@@ -80,10 +89,7 @@ and [stub](task.md/#stub).
     3. Add the success and fail nodes.
 
 
-    - [x] The first step  is the step corresponding to ```start_at```
-    - [x] The mapping defined in the steps.
-    - [x] The ```next``` step after a successful execution of a ```step```.
-    - [x] Needs explicit definition of ```success``` and ```fail``` nodes.
+
 
 <br>
 
@@ -93,8 +99,7 @@ and [stub](task.md/#stub).
 By default, any failure during the execution of step will traverse to ```fail``` node
 marking the execution as failed.
 
-The ```fail``` node is implicitly added to the pipeline in python SDK while it
-has to be stated in the yaml.
+The ```fail``` node is implicitly added to the pipeline.
 
 
 This behavior can be over-ridden to follow a different path based on expected failures.

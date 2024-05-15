@@ -122,11 +122,9 @@ nav:
       - "Parameters": "concepts/parameters.md"
       - "Catalog": "concepts/catalog.md"
       - "Secrets": "concepts/secrets.md"
-      - "Nodes":
-          - "Parallel": "concepts/parallel.md"
-          - "Map": "concepts/map.md"
-          - "Nesting": "concepts/nesting.md"
-      - "Reproducibility": "concepts/run-log.md"
+      - "Parallel": "concepts/parallel.md"
+      - "Map": "concepts/map.md"
+  - "Reproducibility": "concepts/run-log.md"
   - "Run pipeline":
       - "Overview": "configurations/overview.md"
       - "Executor":
@@ -140,7 +138,7 @@ nav:
       - "Catalog": "configurations/catalog.md"
       - "Secrets": "configurations/secrets.md"
       # - "Experiment tracking": "configurations/experiment-tracking.md"
-  - "Python SDK": "sdk.md"
-  - "YAML": "yaml.md"
+  # - "Python SDK": "sdk.md"
+  # - "YAML": "yaml.md"
   - "Reference": "reference.md"
   # - "Roadmap": "roadmap.md"

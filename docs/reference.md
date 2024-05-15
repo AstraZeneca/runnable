@@ -1,3 +1,80 @@
+## PythonTask
+
+=== "sdk"
+
+    ::: runnable.PythonTask
+        options:
+            show_root_heading: true
+            show_bases: false
+            show_docstring_description: true
+            heading_level: 3
+
+=== "yaml"
+
+    Attributes:
+
+    - ```name```: the name of the task
+    - ```command```: the dotted path reference to the function.
+    - ```next```: the next node to call if the function succeeds. Use ```success``` to terminate
+    the pipeline successfully or ```fail``` to terminate with fail.
+    - ```on_failure```: The next node in case of failure.
+    - ```catalog```: mapping of cataloging items
+    - ```overrides```: mapping of step overrides from global configuration.
+
+    ```yaml
+    dag:
+      steps:
+        name: <>
+          type: task
+          command: <>
+          next: <>
+          on_failure: <>
+          catalog: # Any cataloging to be done.
+          overrides: # mapping of overrides of global configuration
+    ```
+
+<hr style="border:2px dotted orange">
+
+
+## NotebookTask
+
+=== "sdk"
+
+    ::: runnable.NotebookTask
+        options:
+            show_root_heading: true
+            show_bases: false
+            show_docstring_description: true
+            heading_level: 3
+
+=== "yaml"
+
+    Attributes:
+
+    - ```name```: the name of the task
+    - ```command```: the path to the notebook relative to the project root.
+    - ```next```: the next node to call if the function succeeds. Use ```success``` to terminate
+    the pipeline successfully or ```fail``` to terminate with fail.
+    - ```on_failure```: The next node in case of failure.
+    - ```catalog```: mapping of cataloging items
+    - ```overrides```: mapping of step overrides from global configuration.
+
+    ```yaml
+    dag:
+      steps:
+        name: <>
+          type: task
+          command: <>
+          next: <>
+          on_failure: <>
+          catalog: # Any cataloging to be done.
+          overrides: # mapping of overrides of global configuration
+    ```
+
+
+<hr style="border:2px dotted orange">
+
+
 ## Catalog
 
 === "sdk"
@@ -30,22 +107,7 @@
 
 <hr style="border:2px dotted orange">
 
-## PythonTask
 
-=== "sdk"
-
-    ::: runnable.PythonTask
-        options:
-            show_root_heading: true
-            show_bases: false
-            show_docstring_description: true
-            heading_level: 3
-
-=== "yaml"
-
-
-
-<hr style="border:2px dotted orange">
 
 ## ShellTask
 
@@ -65,21 +127,7 @@
 <hr style="border:2px dotted orange">
 
 
-## NotebookTask
 
-=== "sdk"
-
-    ::: runnable.NotebookTask
-        options:
-            show_root_heading: true
-            show_bases: false
-            show_docstring_description: true
-            heading_level: 3
-
-=== "yaml"
-
-
-<hr style="border:2px dotted orange">
 
 ## Parallel
 

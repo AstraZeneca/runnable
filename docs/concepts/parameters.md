@@ -1,5 +1,7 @@
 ```parameters``` are data that can be passed from one ```task``` to another.
 
+## Concept
+
 For example, in the below snippet, the parameters ```x``` and ```y``` are passed from
 ```generate``` to ```consume```.
 

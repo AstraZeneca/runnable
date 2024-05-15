@@ -41,7 +41,7 @@ pipeline.execute()
 ```
 
 
-- ```runnable``` exposes the functions ```generate``` and ```consume``` as [tasks](task.md).
+- ```runnable``` wraps the functions ```generate``` and ```consume``` as [tasks](task.md).
 - Tasks can [access and return](parameters.md/#access_returns) parameters.
 - Tasks can also share files between them using [catalog](catalog.md).
 - Tasks are stitched together as [pipeline](pipeline.md)
