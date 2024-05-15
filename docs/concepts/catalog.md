@@ -1,5 +1,7 @@
 [tasks](task.md) might also need to pass ```files``` between them.
 
+## Concept
+
 For example:
 
 ```python linenums="1"
@@ -20,7 +22,7 @@ consume()
 ```
 
 
-## Runnable representation
+## Syntax
 
 The same can be represented in ```runnable``` as [catalog](../reference.md/#catalog).
 

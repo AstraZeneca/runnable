@@ -12,6 +12,8 @@ the python function/notebook/shell script/stubs.
 
 ## Python functions
 
+Uses python functions as tasks.
+
 [API Documentation](../reference.md/#pythontask)
 
 ### Example
@@ -106,7 +108,7 @@ ecosystem while shell provides a interface to non-python executables.
 
 === "yaml"
 
-    ```yaml linenums="1" hl_lines="19-23"
+    ```yaml linenums="1" hl_lines="16-23"
     --8<-- "examples/01-tasks/scripts.yaml"
     ```
 

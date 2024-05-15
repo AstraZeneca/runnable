@@ -15,7 +15,7 @@ from examples.common.functions import hello
 from runnable import NotebookTask, Parallel, Pipeline, PythonTask, ShellTask, Stub
 
 
-def traversal(execute: bool = True):
+def traversal():
     """
     Use the pattern of using "execute" to control the execution of the pipeline.
 
@@ -46,9 +46,6 @@ def traversal(execute: bool = True):
     # The order of execution follows the order of the tasks in the list.
     pipeline = Pipeline(steps=[stub_task, python_task, shell_task, notebook_task])
 
-    if execute:  # Do not execute the pipeline if we are using it as a branch
-        pipeline.execute()
-
     return pipeline
 
 
@@ -56,7 +53,7 @@ def main():
     parallel_step = Parallel(
         name="parallel_step",
         terminate_with_success=True,
-        branches={"branch1": traversal(execute=False), "branch2": traversal(execute=False)},
+        branches={"branch1": traversal(), "branch2": traversal()},
     )
 
     pipeline = Pipeline(steps=[parallel_step])
