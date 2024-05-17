@@ -22,7 +22,7 @@ Below table summarizes the input/output types of different task types.
 For ex: notebooks can only take JSON serializable parameters as input
 but can return json/pydantic/objects.
 
-|          |  Input                    | Output                   |
+| Task     |  Input                    | Output                   |
 | -------- | :---------------------:  | :----------------------: |
 | python   | json, pydantic, object via function arguments  | json, pydantic, object as ```returns```  |
 | notebook | json via cell tagged with ```parameters``` | json, pydantic, object  as ```returns``` |
