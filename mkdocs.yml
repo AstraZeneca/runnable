@@ -137,8 +137,4 @@ nav:
       - "Run log": "configurations/run-log.md"
       - "Catalog": "configurations/catalog.md"
       - "Secrets": "configurations/secrets.md"
-      # - "Experiment tracking": "configurations/experiment-tracking.md"
-  # - "Python SDK": "sdk.md"
-  # - "YAML": "yaml.md"
   - "Reference": "reference.md"
-  # - "Roadmap": "roadmap.md"

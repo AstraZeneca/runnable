@@ -276,7 +276,7 @@ def execute_single_node(
     ## This step is where we save the log file
     try:
         executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
-    except Exception:  # noqa: E722
+    finally:
         log_file_name = utils.make_log_file_name(
             node=node_to_execute,
             map_variable=map_variable_dict,
@@ -287,7 +287,7 @@ def execute_single_node(
         run_context.catalog_handler.put(name=log_file_name, run_id=run_context.run_id)
         os.remove(log_file_name)
 
-    executor.send_return_code(stage="execution")
+    # executor.send_return_code(stage="execution")
 
 
 def execute_notebook(
