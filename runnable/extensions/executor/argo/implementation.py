@@ -303,7 +303,7 @@ class DagTemplate(BaseModel):
     tasks: List[DagTaskTemplate] = Field(default=[], exclude=True)
     inputs: Optional[List[Parameter]] = Field(default=None, serialization_alias="inputs")
     parallelism: Optional[int] = None
-    fail_fast: bool = Field(default=True, serialization_alias="failFast")
+    fail_fast: bool = Field(default=False, serialization_alias="failFast")
 
     @field_validator("parallelism")
     @classmethod
