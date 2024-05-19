@@ -11,6 +11,7 @@ from runnable import (
     exceptions,
     integration,
     parameters,
+    task_console,
     utils,
 )
 from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
@@ -340,9 +341,17 @@ class GenericExecutor(BaseExecutor):
             node.execute_as_graph(map_variable=map_variable, **kwargs)
             return
 
+        task_console.export_text(clear=True)
+
         task_name = node._resolve_map_placeholders(node.internal_name, map_variable)
         console.print(f":runner: Executing the node {task_name} ... ", style="bold color(208)")
         self.trigger_job(node=node, map_variable=map_variable, **kwargs)
+
+        log_file_name = utils.make_log_file_name(node=node, map_variable=map_variable)
+        task_console.save_text(log_file_name, clear=True)
+
+        self._context.catalog_handler.put(name=log_file_name, run_id=self._context.run_id)
+        os.remove(log_file_name)
 
     def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
         """
@@ -493,6 +502,7 @@ class GenericExecutor(BaseExecutor):
 
         logger.info(f"Finished execution of the {branch} with status {run_log.status}")
 
+        # We are in the root dag
         if dag == self._context.dag:
             run_log = cast(RunLog, run_log)
             console.print("Completed Execution, Summary:", style="bold color(208)")

@@ -5,7 +5,7 @@ from typing import Dict, cast
 from pydantic import Field
 from rich import print
 
-from runnable import defaults, utils
+from runnable import console, defaults, task_console, utils
 from runnable.datastore import StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.extensions.executor import GenericExecutor
@@ -95,6 +95,59 @@ class LocalContainerExecutor(GenericExecutor):
         The node is already prepared for execution.
         """
         return self._execute_node(node, map_variable, **kwargs)
+
+    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
+        """
+        This is the entry point to from the graph execution.
+
+        While the self.execute_graph is responsible for traversing the graph, this function is responsible for
+        actual execution of the node.
+
+        If the node type is:
+            * task : We can delegate to _execute_node after checking the eligibility for re-run in cases of a re-run
+            * success: We can delegate to _execute_node
+            * fail: We can delegate to _execute_node
+
+        For nodes that are internally graphs:
+            * parallel: Delegate the responsibility of execution to the node.execute_as_graph()
+            * dag: Delegate the responsibility of execution to the node.execute_as_graph()
+            * map: Delegate the responsibility of execution to the node.execute_as_graph()
+
+        Transpilers will NEVER use this method and will NEVER call ths method.
+        This method should only be used by interactive executors.
+
+        Args:
+            node (Node): The node to execute
+            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
+                    Defaults to None.
+        """
+        step_log = self._context.run_log_store.create_step_log(node.name, node._get_step_log_name(map_variable))
+
+        self.add_code_identities(node=node, step_log=step_log)
+
+        step_log.step_type = node.node_type
+        step_log.status = defaults.PROCESSING
+
+        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+
+        logger.info(f"Executing node: {node.get_summary()}")
+
+        # Add the step log to the database as per the situation.
+        # If its a terminal node, complete it now
+        if node.node_type in ["success", "fail"]:
+            self._execute_node(node, map_variable=map_variable, **kwargs)
+            return
+
+        # We call an internal function to iterate the sub graphs and execute them
+        if node.is_composite:
+            node.execute_as_graph(map_variable=map_variable, **kwargs)
+            return
+
+        task_console.export_text(clear=True)
+
+        task_name = node._resolve_map_placeholders(node.internal_name, map_variable)
+        console.print(f":runner: Executing the node {task_name} ... ", style="bold color(208)")
+        self.trigger_job(node=node, map_variable=map_variable, **kwargs)
 
     def execute_job(self, node: TaskNode):
         """

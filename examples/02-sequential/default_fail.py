@@ -12,12 +12,12 @@ You can run this example by:
   python examples/02-sequential/default_fail.py
 """
 
-from examples.common.functions import raise_ex
+from examples.common.functions import hello, raise_ex
 from runnable import Pipeline, PythonTask, Stub
 
 
 def main():
-    step1 = Stub(name="step 1")
+    step1 = PythonTask(name="step 1", function=hello)
 
     step2 = PythonTask(name="step 2", function=raise_ex)  # This will fail
 

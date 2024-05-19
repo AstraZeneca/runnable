@@ -17,7 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from stevedore import driver
 
 import runnable.context as context
-from runnable import console, defaults, exceptions, parameters, utils
+from runnable import console, defaults, exceptions, parameters, task_console, utils
 from runnable.datastore import (
     JsonParameter,
     MetricParameter,
@@ -144,8 +144,8 @@ class BaseTaskType(BaseModel):
                 if context_param in params:
                     params[param_name].value = params[context_param].value
 
-        console.log("Parameters available for the execution:")
-        console.log(params)
+        task_console.log("Parameters available for the execution:")
+        task_console.log(params)
 
         logger.debug(f"Resolved parameters: {params}")
 
@@ -153,18 +153,12 @@ class BaseTaskType(BaseModel):
             params = {key: value for key, value in params.items() if isinstance(value, JsonParameter)}
 
         parameters_in = copy.deepcopy(params)
-        f = io.StringIO()
         try:
-            with contextlib.redirect_stdout(f):
-                # with contextlib.nullcontext():
-                yield params
+            yield params
         except Exception as e:  # pylint: disable=broad-except
             console.log(e, style=defaults.error_style)
             logger.exception(e)
         finally:
-            print(f.getvalue())  # print to console
-            f.close()
-
             # Update parameters
             # This should only update the parameters that are changed at the root level.
             diff_parameters = self._diff_parameters(parameters_in=parameters_in, context_params=params)
@@ -226,9 +220,11 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     filtered_parameters = parameters.filter_arguments_for_func(f, params.copy(), map_variable)
                     logger.info(f"Calling {func} from {module} with {filtered_parameters}")
 
-                    user_set_parameters = f(**filtered_parameters)  # This is a tuple or single value
+                    out_file = io.StringIO()
+                    with contextlib.redirect_stdout(out_file):
+                        user_set_parameters = f(**filtered_parameters)  # This is a tuple or single value
+                    task_console.print(out_file.getvalue())
                 except Exception as e:
-                    console.log(e, style=defaults.error_style, markup=False)
                     raise exceptions.CommandCallError(f"Function call: {self.command} did not succeed.\n") from e
 
                 attempt_log.input_parameters = params.copy()
@@ -272,8 +268,8 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             except Exception as _e:
                 msg = f"Call to the function {self.command} did not succeed.\n"
                 attempt_log.message = msg
-                console.print_exception(show_locals=False)
-                console.log(_e, style=defaults.error_style)
+                task_console.print_exception(show_locals=False)
+                task_console.log(_e, style=defaults.error_style)
 
         attempt_log.end_time = str(datetime.now())
 
@@ -359,7 +355,11 @@ class NotebookTaskType(BaseTaskType):
                 }
                 kwds.update(ploomber_optional_args)
 
-                pm.execute_notebook(**kwds)
+                out_file = io.StringIO()
+                with contextlib.redirect_stdout(out_file):
+                    pm.execute_notebook(**kwds)
+                task_console.print(out_file.getvalue())
+
                 context.run_context.catalog_handler.put(name=notebook_output_path, run_id=context.run_context.run_id)
 
                 client = PloomberClient.from_path(path=notebook_output_path)
@@ -380,8 +380,8 @@ class NotebookTaskType(BaseTaskType):
                         )
                 except PicklingError as e:
                     logger.exception("Notebooks cannot return objects")
-                    console.log("Notebooks cannot return objects", style=defaults.error_style)
-                    console.log(e, style=defaults.error_style)
+                    # task_console.log("Notebooks cannot return objects", style=defaults.error_style)
+                    # task_console.log(e, style=defaults.error_style)
 
                     logger.exception(e)
                     raise
@@ -400,8 +400,7 @@ class NotebookTaskType(BaseTaskType):
             logger.exception(msg)
             logger.exception(e)
 
-            console.log(msg, style=defaults.error_style)
-
+            # task_console.log(msg, style=defaults.error_style)
             attempt_log.status = defaults.FAIL
 
         attempt_log.end_time = str(datetime.now())
@@ -488,14 +487,14 @@ class ShellTaskType(BaseTaskType):
 
                 if proc.returncode != 0:
                     msg = ",".join(result[1].split("\n"))
-                    console.print(msg, style=defaults.error_style)
+                    task_console.print(msg, style=defaults.error_style)
                     raise exceptions.CommandCallError(msg)
 
                 # for stderr
                 for line in result[1].split("\n"):
                     if line.strip() == "":
                         continue
-                    console.print(line, style=defaults.warning_style)
+                    task_console.print(line, style=defaults.warning_style)
 
                 output_parameters: Dict[str, Parameter] = {}
                 metrics: Dict[str, Parameter] = {}
@@ -506,7 +505,7 @@ class ShellTaskType(BaseTaskType):
                         continue
 
                     logger.info(line)
-                    console.print(line)
+                    task_console.print(line)
 
                     if line.strip() == collect_delimiter:
                         # The lines from now on should be captured
@@ -548,8 +547,8 @@ class ShellTaskType(BaseTaskType):
             logger.exception(msg)
             logger.exception(e)
 
-            console.log(msg, style=defaults.error_style)
-            console.log(e, style=defaults.error_style)
+            task_console.log(msg, style=defaults.error_style)
+            task_console.log(e, style=defaults.error_style)
 
             attempt_log.status = defaults.FAIL
 

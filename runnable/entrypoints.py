@@ -9,7 +9,7 @@ from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 from rich.table import Column
 
 import runnable.context as context
-from runnable import console, defaults, graph, utils
+from runnable import console, defaults, graph, task_console, utils
 from runnable.defaults import RunnableConfig, ServiceConfig
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -165,6 +165,7 @@ def execute(
         tag=tag,
         parameters_file=parameters_file,
     )
+
     console.print("Working with context:")
     console.print(run_context)
     console.rule(style="[dark orange]")
@@ -239,7 +240,7 @@ def execute_single_node(
     """
     from runnable import nodes
 
-    console.print(f"Executing the single node: {step_name} with map variable: {map_variable}")
+    task_console.print(f"Executing the single node: {step_name} with map variable: {map_variable}")
 
     configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
 
@@ -250,9 +251,9 @@ def execute_single_node(
         tag=tag,
         parameters_file=parameters_file,
     )
-    console.print("Working with context:")
-    console.print(run_context)
-    console.rule(style="[dark orange]")
+    task_console.print("Working with context:")
+    task_console.print(run_context)
+    task_console.rule(style="[dark orange]")
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
@@ -281,7 +282,7 @@ def execute_single_node(
             node=node_to_execute,
             map_variable=map_variable_dict,
         )
-        console.save_text(log_file_name)
+        task_console.save_text(log_file_name)
 
         # Put the log file in the catalog
         run_context.catalog_handler.put(name=log_file_name, run_id=run_context.run_id)
