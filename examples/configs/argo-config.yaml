@@ -6,10 +6,6 @@ executor:
     persistent_volumes: # (3)
       - name: magnus-volume
         mount_path: /mnt
-    secrets_from_k8s:
-      - environment_variable: AZURE_CLIENT_ID
-        secret_name: ms-graph
-        secret_key: AZURE_CLIENT_ID
 
 run_log_store: # (4)
   type: chunked-fs
@@ -20,6 +16,3 @@ catalog:
   type: file-system
   config:
    catalog_location: /mnt/catalog
-
-# secrets:
-#   type: do-nothing

@@ -15,6 +15,8 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 console = Console(record=True)
 console.print(":runner: Lets go!!")
 
+task_console = Console(record=True)
+
 from runnable.sdk import (  # noqa
     Catalog,
     Fail,
