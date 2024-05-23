@@ -61,10 +61,8 @@ class Catalog(BaseModel):
         put (List[str]): List of glob patterns to put into central catalog from the compute data folder.
 
     Examples:
-        >>> from runnable import Catalog, Task
+        >>> from runnable import Catalog
         >>> catalog = Catalog(compute_data_folder="/path/to/data", get=["*.csv"], put=["*.csv"])
-
-        >>> task = Task(name="task", catalog=catalog, command="echo 'hello'")
 
     """
 
@@ -143,50 +141,7 @@ class BaseTraversal(ABC, BaseModel):
 
 class BaseTask(BaseTraversal):
     """
-    An execution node of the pipeline.
-    Please refer to [concepts](concepts/task.md) for more information.
-
-    Attributes:
-        name (str): The name of the node.
-        command (str): The command to execute.
-
-            - For python functions, [dotted path](concepts/task.md/#python_functions) to the function.
-            - For shell commands: command to execute in the shell.
-            - For notebooks: path to the notebook.
-        command_type (str): The type of command to execute.
-            Can be one of "shell", "python", or "notebook".
-        catalog (Optional[Catalog]): The catalog to sync data from/to.
-            Please see Catalog about the structure of the catalog.
-        overrides (Dict[str, Any]): Any overrides to the command.
-            Individual tasks can override the global configuration config by referring to the
-            specific override.
-
-            For example,
-            ### Global configuration
-            ```yaml
-            executor:
-              type: local-container
-              config:
-                docker_image: "runnable/runnable:latest"
-                overrides:
-                  custom_docker_image:
-                    docker_image: "runnable/runnable:custom"
-            ```
-            ### Task specific configuration
-            ```python
-            task = Task(name="task", command="echo 'hello'", command_type="shell",
-                    overrides={'local-container': custom_docker_image})
-            ```
-        notebook_output_path (Optional[str]): The path to save the notebook output.
-            Only used when command_type is 'notebook', defaults to command+_out.ipynb
-        optional_ploomber_args (Optional[Dict[str, Any]]): Any optional ploomber args.
-            Only used when command_type is 'notebook', defaults to {}
-        output_cell_tag (Optional[str]): The tag of the output cell.
-            Only used when command_type is 'notebook', defaults to "runnable_output"
-        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
-        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
-        on_failure (str): The name of the node to execute if the step fails.
-
+    Base task type which has catalog, overrides, returns and secrets.
     """
 
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
@@ -220,12 +175,50 @@ class BaseTask(BaseTraversal):
 class PythonTask(BaseTask):
     """
     An execution node of the pipeline of python functions.
+    Please refer to [concepts](concepts/task.md/#python_functions) for more information.
 
     Attributes:
         name (str): The name of the node.
         function (callable): The function to execute.
-        catalog (Optional[Catalog]): The catalog to sync data from/to.
-            Please see Catalog about the structure of the catalog.
+
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+                Defaults to False.
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+                Defaults to False.
+
+        on_failure (str): The name of the node to execute if the step fails.
+
+        returns List[Union[str, TaskReturns]] : A list of the names of variables to return from the task.
+            The names should match the order of the variables returned by the function.
+
+            ```TaskReturns```: can be JSON friendly variables, objects or metrics.
+
+            By default, all variables are assumed to be JSON friendly and will be serialized to JSON.
+            Pydantic models are readily supported and will be serialized to JSON.
+
+            To return a python object, please use ```pickled(<name>)```.
+            It is advised to use ```pickled(<name>)``` for big JSON friendly variables.
+
+            For example,
+            ```python
+            from runnable import pickled
+
+            def f():
+                ...
+                x = 1
+                return x, df # A simple JSON friendly variable and a python object.
+
+            task = PythonTask(name="task", function=f, returns=["x", pickled(df)]))
+            ```
+
+            To mark any JSON friendly variable as a ```metric```, please use ```metric(x)```.
+            Metric variables should be JSON friendly and can be treated just like any other parameter.
+
+        catalog Optional[Catalog]: The files sync data from/to, refer to Catalog.
+
+        secrets List[str]: List of secrets to pass to the task. They are exposed as environment variables
+            and removed after execution.
+
         overrides (Dict[str, Any]): Any overrides to the command.
             Individual tasks can override the global configuration config by referring to the
             specific override.
@@ -246,11 +239,6 @@ class PythonTask(BaseTask):
             task = PythonTask(name="task", function="function'",
                     overrides={'local-container': custom_docker_image})
             ```
-
-        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
-        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
-        on_failure (str): The name of the node to execute if the step fails.
-
     """
 
     function: Callable = Field(exclude=True)
@@ -269,15 +257,52 @@ class PythonTask(BaseTask):
 
 class NotebookTask(BaseTask):
     """
-    An execution node of the pipeline of type notebook.
-    Please refer to [concepts](concepts/task.md) for more information.
+    An execution node of the pipeline of notebook.
+    Please refer to [concepts](concepts/task.md/#notebooks) for more information.
+
+    We internally use [Ploomber engine](https://github.com/ploomber/ploomber-engine) to execute the notebook.
 
     Attributes:
         name (str): The name of the node.
-        notebook: The path to the notebook
-        catalog (Optional[Catalog]): The catalog to sync data from/to.
-            Please see Catalog about the structure of the catalog.
-        returns: A list of the names of variables to return from the notebook.
+        notebook (str): The path to the notebook relative the project root.
+        optional_ploomber_args (Dict[str, Any]): Any optional ploomber args, please refer to
+            [Ploomber engine](https://github.com/ploomber/ploomber-engine) for more information.
+
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+                Defaults to False.
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+                Defaults to False.
+
+        on_failure (str): The name of the node to execute if the step fails.
+
+        returns List[Union[str, TaskReturns]] : A list of the names of variables to return from the task.
+            The names should match the order of the variables returned by the function.
+
+            ```TaskReturns```: can be JSON friendly variables, objects or metrics.
+
+            By default, all variables are assumed to be JSON friendly and will be serialized to JSON.
+            Pydantic models are readily supported and will be serialized to JSON.
+
+            To return a python object, please use ```pickled(<name>)```.
+            It is advised to use ```pickled(<name>)``` for big JSON friendly variables.
+
+            For example,
+            ```python
+            from runnable import pickled
+
+            # assume, example.ipynb is the notebook with df and x as variables in some cells.
+
+            task = Notebook(name="task", notebook="example.ipynb", returns=["x", pickled(df)]))
+            ```
+
+            To mark any JSON friendly variable as a ```metric```, please use ```metric(x)```.
+            Metric variables should be JSON friendly and can be treated just like any other parameter.
+
+        catalog Optional[Catalog]: The files sync data from/to, refer to Catalog.
+
+        secrets List[str]: List of secrets to pass to the task. They are exposed as environment variables
+        and removed after execution.
+
         overrides (Dict[str, Any]): Any overrides to the command.
             Individual tasks can override the global configuration config by referring to the
             specific override.
@@ -295,18 +320,9 @@ class NotebookTask(BaseTask):
             ```
             ### Task specific configuration
             ```python
-            task = NotebookTask(name="task", notebook="evaluation.ipynb",
+            task = NotebookTask(name="task", notebook="example.ipynb",
                     overrides={'local-container': custom_docker_image})
             ```
-        notebook_output_path (Optional[str]): The path to save the notebook output.
-            Only used when command_type is 'notebook', defaults to command+_out.ipynb
-        optional_ploomber_args (Optional[Dict[str, Any]]): Any optional ploomber args.
-            Only used when command_type is 'notebook', defaults to {}
-
-        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
-        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
-        on_failure (str): The name of the node to execute if the step fails.
-
     """
 
     notebook: str = Field(serialization_alias="command")
@@ -319,15 +335,33 @@ class NotebookTask(BaseTask):
 
 class ShellTask(BaseTask):
     """
-    An execution node of the pipeline of type shell.
-    Please refer to [concepts](concepts/task.md) for more information.
+    An execution node of the pipeline of shell script.
+    Please refer to [concepts](concepts/task.md/#shell) for more information.
+
 
     Attributes:
         name (str): The name of the node.
-        command: The shell command to execute.
-        catalog (Optional[Catalog]): The catalog to sync data from/to.
-            Please see Catalog about the structure of the catalog.
-        returns: A list of the names of variables to capture from environment variables of shell.
+        command (str): The path to the notebook relative the project root.
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+                Defaults to False.
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+                Defaults to False.
+
+        on_failure (str): The name of the node to execute if the step fails.
+
+        returns List[str] : A list of the names of environment variables to collect from the task.
+
+            The names should match the order of the variables returned by the function.
+            Shell based tasks can only return JSON friendly variables.
+
+            To mark any JSON friendly variable as a ```metric```, please use ```metric(x)```.
+            Metric variables should be JSON friendly and can be treated just like any other parameter.
+
+        catalog Optional[Catalog]: The files sync data from/to, refer to Catalog.
+
+        secrets List[str]: List of secrets to pass to the task. They are exposed as environment variables
+        and removed after execution.
+
         overrides (Dict[str, Any]): Any overrides to the command.
             Individual tasks can override the global configuration config by referring to the
             specific override.
@@ -345,13 +379,9 @@ class ShellTask(BaseTask):
             ```
             ### Task specific configuration
             ```python
-            task = ShellTask(name="task", command="exit 0",
+            task = ShellTask(name="task", command="export x=1",
                     overrides={'local-container': custom_docker_image})
             ```
-
-        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
-        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
-        on_failure (str): The name of the node to execute if the step fails.
 
     """
 
@@ -364,16 +394,20 @@ class ShellTask(BaseTask):
 
 class Stub(BaseTraversal):
     """
-    A node that does nothing.
+    A node that passes through the pipeline with no action. Just like ```pass``` in Python.
+    Please refer to [concepts](concepts/task.md/#stub) for more information.
 
     A stub node can tak arbitrary number of arguments.
-    Please refer to [concepts](concepts/stub.md) for more information.
 
     Attributes:
         name (str): The name of the node.
-        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+        command (str): The path to the notebook relative the project root.
         terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+                Defaults to False.
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+                Defaults to False.
 
+        on_failure (str): The name of the node to execute if the step fails.
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -422,12 +456,13 @@ class Map(BaseTraversal):
     Please refer to [concepts](concepts/map.md) for more information.
 
     Attributes:
-        branch: The pipeline to execute for each item.
+        branch (Pipeline): The pipeline to execute for each item.
 
-        iterate_on: The name of the parameter to iterate over.
+        iterate_on (str): The name of the parameter to iterate over.
             The parameter should be defined either by previous steps or statically at the start of execution.
 
-        iterate_as: The name of the iterable to be passed to functions.
+        iterate_as (str): The name of the iterable to be passed to functions.
+        reducer (Callable): The function to reduce the results of the branches.
 
 
         overrides (Dict[str, Any]): Any overrides to the command.
@@ -510,28 +545,43 @@ class Fail(BaseModel):
 
 class Pipeline(BaseModel):
     """
-    A Pipeline is a directed acyclic graph of Steps that define a workflow.
+    A Pipeline is a sequence of Steps.
 
     Attributes:
-        steps (List[Stub | PythonTask | NotebookTask | ShellTask | Parallel | Map | Success | Fail]):
+        steps (List[Stub | PythonTask | NotebookTask | ShellTask | Parallel | Map]]):
             A list of Steps that make up the Pipeline.
-        start_at (Stub | Task | Parallel | Map): The name of the first Step in the Pipeline.
+
+            The order of steps is important as it determines the order of execution.
+            Any on failure behavior should the first step in ```on_failure``` pipelines.
+
+
+
+        on_failure (List[List[Pipeline], optional): A list of Pipelines to execute in case of failure.
+
+            For example, for the below pipeline:
+                step1 >> step2
+                and step1 to reach step3 in case of failure.
+
+                failure_pipeline = Pipeline(steps=[step1, step3])
+
+                pipeline = Pipeline(steps=[step1, step2, on_failure=[failure_pipeline])
+
         name (str, optional): The name of the Pipeline. Defaults to "".
         description (str, optional): A description of the Pipeline. Defaults to "".
-        add_terminal_nodes (bool, optional): Whether to add terminal nodes to the Pipeline. Defaults to True.
 
-    The default behavior is to add "success" and "fail" nodes to the Pipeline.
-    To add custom success and fail nodes, set add_terminal_nodes=False and create success
-    and fail nodes manually.
+    The pipeline implicitly add success and fail nodes.
 
     """
 
-    steps: List[Union[StepType, List[StepType]]]
+    steps: List[Union[StepType, List["Pipeline"]]]
     name: str = ""
     description: str = ""
-    add_terminal_nodes: bool = True  # Adds "success" and "fail" nodes
 
     internal_branch_name: str = ""
+
+    @property
+    def add_terminal_nodes(self) -> bool:
+        return True
 
     _dag: graph.Graph = PrivateAttr()
     model_config = ConfigDict(extra="forbid")
@@ -590,6 +640,7 @@ class Pipeline(BaseModel):
                 Any definition of pipeline should have one node that terminates with success.
         """
         # TODO: Bug with repeat names
+        # TODO: https://github.com/AstraZeneca/runnable/issues/156
 
         success_path: List[StepType] = []
         on_failure_paths: List[List[StepType]] = []
@@ -598,7 +649,7 @@ class Pipeline(BaseModel):
             if isinstance(step, (Stub, PythonTask, NotebookTask, ShellTask, Parallel, Map)):
                 success_path.append(step)
                 continue
-            on_failure_paths.append(step)
+            # on_failure_paths.append(step)
 
         if not success_path:
             raise Exception("There should be some success path")
@@ -654,21 +705,19 @@ class Pipeline(BaseModel):
 
         Traverse and execute all the steps of the pipeline, eg. [local execution](configurations/executors/local.md).
 
-        Or create the ```yaml``` representation of the pipeline for other executors.
+        Or create the representation of the pipeline for other executors.
 
         Please refer to [concepts](concepts/executor.md) for more information.
 
         Args:
             configuration_file (str, optional): The path to the configuration file. Defaults to "".
-                The configuration file can be overridden by the environment variable runnable_CONFIGURATION_FILE.
+                The configuration file can be overridden by the environment variable RUNNABLE_CONFIGURATION_FILE.
 
             run_id (str, optional): The ID of the run. Defaults to "".
             tag (str, optional): The tag of the run. Defaults to "".
                 Use to group multiple runs.
 
             parameters_file (str, optional): The path to the parameters file. Defaults to "".
-            use_cached (str, optional): Whether to use cached results. Defaults to "".
-                Provide the run_id of the older execution to recover.
 
             log_level (str, optional): The log level. Defaults to defaults.LOG_LEVEL.
         """

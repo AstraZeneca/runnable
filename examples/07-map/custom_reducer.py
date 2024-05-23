@@ -85,7 +85,6 @@ def iterable_branch(execute: bool = True):
 
     pipeline = Pipeline(
         steps=[process_chunk_task_python, process_chunk_task_notebook, process_chunk_task_shell, read_chunk],
-        add_terminal_nodes=True,
     )
 
     if execute:

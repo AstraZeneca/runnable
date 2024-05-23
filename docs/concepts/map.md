@@ -12,21 +12,21 @@ to run on every hyper parameter.
     success([Success]):::green
 
     subgraph one[Parameter 1]
-        process_chunk1([Process Chunk]):::yellow
+        process_chunk1([Train model]):::yellow
         success_chunk1([Success]):::yellow
 
         process_chunk1 --> success_chunk1
     end
 
     subgraph two[Parameter ...]
-        process_chunk2([Process Chunk]):::yellow
+        process_chunk2([Train model]):::yellow
         success_chunk2([Success]):::yellow
 
         process_chunk2 --> success_chunk2
     end
 
     subgraph three[Parameter n]
-        process_chunk3([Process Chunk]):::yellow
+        process_chunk3([Train model]):::yellow
         success_chunk3([Success]):::yellow
 
         process_chunk3 --> success_chunk3
