@@ -25,42 +25,11 @@ mlflow-skinny = { version = "*", optional = true }
 ploomber-engine = "^0.0.31"
 dill = "^0.3.8"
 
-[tool.poetry.group.docs.dependencies]
-mkdocs = "*"
-mkdocs-material = "*"
-mkdocs-section-index = "^0.3.5"
-mkdocstrings = { extras = ["python"], version = "^0.24.0" }
-nbconvert = "^7.13.1"
-mkdocs-click = "^0.8.1"
-tensorflow = "^2.16.1"
-
-[tool.poetry.group.binary.dependencies]
-pyinstaller = "^5.13.2"
-
-[tool.poetry.group.perf.dependencies]
-# Run the performace tests poetry run python -m pyflame -p ./flamegraph.pl runnable/entrypoints.py
-pyflame = "^0.3.1"
-
-
-[tool.poetry.group.tutorial.dependencies]
-pandas = "^2.2.1"
-numpy = "^1.26.4"
-scikit-learn = "^1.4.1.post1"
-en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz" }
-matplotlib = "^3.8.3"
-
-
-[tool.poetry.group.release.dependencies]
-python-semantic-release = "^9.4.2"
-
-
-[tool.poetry.group.examples.dependencies]
-pandas = "^2.2.2"
-
 [tool.poetry.extras]
 docker = ['docker']
 notebook = ['ploomber-engine']
 database = ["sqlalchemy"]
+
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
@@ -73,11 +42,42 @@ ruff = "^0.0.259"
 commit-linter = "^1.0.2"
 black = "^23.3.0"
 gitlint = "^0.19.1"
-pandas = "^2.2.2"
+pandas = "^2.2.2" # for testing examples
 
+[tool.poetry.group.release.dependencies]
+python-semantic-release = "^9.4.2"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "*"
+mkdocs-material = "*"
+mkdocs-section-index = "^0.3.5"
+mkdocstrings = { extras = ["python"], version = "^0.24.0" }
+nbconvert = "^7.13.1"
+mkdocs-click = "^0.8.1"
+
+[tool.poetry.group.tutorial.dependencies]
+pandas = "^2.2.1"
+numpy = "^1.26.4"
+scikit-learn = "^1.4.1.post1"
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz" }
+matplotlib = "^3.8.3"
+
+
+[tool.poetry.group.compare.dependencies]
+torch = "^2.3.0"
+torchvision = "^0.18.0"
+tensorflow = "^2.16.1"
 
 [tool.poetry.scripts]
 runnable = 'runnable.cli:cli'
+
+
+[tool.poetry.group.binary.dependencies]
+pyinstaller = "^5.13.2"
+
+[tool.poetry.group.perf.dependencies]
+# Run the performace tests poetry run python -m pyflame -p ./flamegraph.pl runnable/entrypoints.py
+pyflame = "^0.3.1"
 
 
 # Plugins for Executors

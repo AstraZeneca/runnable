@@ -1,0 +1,46 @@
+{
+  "cuda_args": {
+    "num_workers": 1,
+    "pin_memory": true,
+    "shuffle": true
+  },
+  "train_batch_size": {
+    "num_workers": 1,
+    "pin_memory": true,
+    "shuffle": true,
+    "batch_size": 64
+  },
+  "test_batch_size": {
+    "num_workers": 1,
+    "pin_memory": true,
+    "shuffle": true,
+    "batch_size": 1000
+  },
+  "num_epochs": 14,
+  "lr": 1,
+  "gamma": 0.7,
+  "seed": 1,
+  "log_interval": 10,
+  "conv1_params": {
+    "in_channels": 1,
+    "out_channels": 32,
+    "kernel_size": 3,
+    "stride": 1
+  },
+  "conv2_params": {
+    "in_channels": 32,
+    "out_channels": 64,
+    "kernel_size": 3,
+    "stride": 1
+  },
+  "dropout1": 0.25,
+  "dropout2": 0.5,
+  "fc1": [
+    9216,
+    128
+  ],
+  "fc2": [
+    128,
+    10
+  ]
+}
