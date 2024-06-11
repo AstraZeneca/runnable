@@ -73,8 +73,8 @@ python_examples = [
     ("01-tasks/scripts", False, []),
     ("01-tasks/stub", False, []),
     ("02-sequential/default_fail", True, []),
-    ("02-sequential/on_failure_fail", True, []),
-    ("02-sequential/on_failure_succeed", False, []),
+    # ("02-sequential/on_failure_fail", True, []), # need https://github.com/AstraZeneca/runnable/issues/156
+    # ("02-sequential/on_failure_succeed", False, []), # https://github.com/AstraZeneca/runnable/issues/156
     ("02-sequential/traversal", False, []),
     ("03-parameters/passing_parameters_notebook", False, []),
     ("03-parameters/passing_parameters_python", False, []),

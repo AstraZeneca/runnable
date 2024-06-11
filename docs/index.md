@@ -79,10 +79,40 @@ The difference between native driver and runnable orchestration:
 - [x] The pipeline is `runnable` in any environment.
 
 
-## But why runnable?
+## why runnable?
 
 Obviously, there are a lot of orchestration tools. A well maintained and curated [list is
 available here](https://github.com/EthicalML/awesome-production-machine-learning/).
+
+Broadly, they could be classed into ```native``` or ```meta``` orchestrators.
+
+<figure markdown>
+  ![Image title](assets/work_light.png#only-light){ width="600" height="300"}
+  ![Image title](assets/work_dark.png#only-dark){ width="600" height="300"}
+</figure>
+
+
+### __native orchestrators__
+
+- Focus on resource management, job scheduling, robustness and scalability.
+- Have less features on domain (data engineering, data science) activities.
+- Difficult to run locally.
+- Not ideal for quick experimentation or research activities.
+
+### __meta orchestrators__
+
+- An abstraction over native orchestrators.
+- Oriented towards domain (data engineering, data science) features.
+- Easy to get started and run locally.
+- Ideal for quick experimentation or research activities.
+
+```runnable``` is a _meta_ orchestrator with simple API, geared towards data engineering, data science activities.
+It works in conjunction with _native_ orchestrators and an alternative to [kedro](https://docs.kedro.org/en/stable/index.html)
+or [metaflow](https://metaflow.org/).
+
+
+
+
 
 ```runnable``` stands out based on these design principles.
 

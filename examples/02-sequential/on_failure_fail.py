@@ -31,7 +31,7 @@ def main():
     step_1.on_failure = step_4.name
 
     pipeline = Pipeline(
-        steps=[step_1, step_2, step_3, [step_4]],
+        steps=[step_1, step_2, step_3],
     )
     pipeline.execute()
 

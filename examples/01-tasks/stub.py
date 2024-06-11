@@ -29,10 +29,7 @@ def main():
 
     step3 = Stub(name="step3", terminate_with_success=True)
 
-    pipeline = Pipeline(
-        steps=[step1, step2, step3],
-        add_terminal_nodes=True,
-    )
+    pipeline = Pipeline(steps=[step1, step2, step3])
 
     pipeline.execute()
 

@@ -126,7 +126,7 @@ nav:
       - "Map": "concepts/map.md"
   - "Reproducibility": "concepts/run-log.md"
   - "Run pipeline":
-      - "Overview": "configurations/overview.md"
+      - "configurations/overview.md"
       - "Executor":
           - "local": "configurations/executors/local.md"
           - "mocked": "configurations/executors/mocked.md"

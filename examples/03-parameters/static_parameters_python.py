@@ -64,7 +64,6 @@ def main():
 
     pipeline = Pipeline(
         steps=[read_params_as_pydantic, read_params_as_json],
-        add_terminal_nodes=True,
     )
 
     _ = pipeline.execute(parameters_file="examples/common/initial_parameters.yaml")
