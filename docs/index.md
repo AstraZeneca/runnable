@@ -8,7 +8,9 @@
 <span style="font-size:0.75em;">
 <a href="https://www.flaticon.com/free-icons/runner" title="runner icons">Runner icons created by Leremy - Flaticon</a>
 </span>
----
+
+
+<hr style="border:2px dotted orange">
 
 ## Example
 
@@ -78,8 +80,9 @@ The difference between native driver and runnable orchestration:
 - [x] Reproducible by default, runnable stores metadata about code/data/config for every execution.
 - [x] The pipeline is `runnable` in any environment.
 
+<hr style="border:2px dotted orange">
 
-## why runnable?
+## Why runnable?
 
 Obviously, there are a lot of orchestration tools. A well maintained and curated [list is
 available here](https://github.com/EthicalML/awesome-production-machine-learning/).
@@ -106,15 +109,13 @@ Broadly, they could be classed into ```native``` or ```meta``` orchestrators.
 - Easy to get started and run locally.
 - Ideal for quick experimentation or research activities.
 
-```runnable``` is a _meta_ orchestrator with simple API, geared towards data engineering, data science activities.
+```runnable``` is a _meta_ orchestrator with simple API, geared towards data engineering, data science projects.
 It works in conjunction with _native_ orchestrators and an alternative to [kedro](https://docs.kedro.org/en/stable/index.html)
 or [metaflow](https://metaflow.org/).
 
+```runnable``` could also function as an SDK for _native_ orchestrators as it always compiles pipeline definitions
+to _native_ orchestrators.
 
-
-
-
-```runnable``` stands out based on these design principles.
 
 <div class="grid cards" markdown>
 
@@ -126,13 +127,13 @@ or [metaflow](https://metaflow.org/).
 
     - No API's or decorators or any imposed structure.
 
-    [:octicons-arrow-right-24: Getting started](concepts/the-big-picture.md)
+    [:octicons-arrow-right-24: Getting started](concepts/index.md)
 
 -    :building_construction:{ .lg .middle } __Bring your infrastructure__
 
     ---
 
-    Minimal disruption to your current infrastructure patterns.
+    ```runnable``` is not a platform. It works with your platforms.
 
     - ```runnable``` composes pipeline definitions suited to your infrastructure.
 
@@ -173,7 +174,13 @@ or [metaflow](https://metaflow.org/).
 
     Moving away from runnable is as simple as deleting relevant files.
 
+    - Your application code remains as it is.
+
 
 </div>
 
-## Comparisons/alternatives
+<hr style="border:2px dotted orange">
+
+## Comparisons
+
+--8<-- "examples/comparisons/README.md"
