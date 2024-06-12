@@ -34,11 +34,17 @@ func_task = PythonTask(name="function", function=func, returns=["z"], catalog=ca
 
 Below are the implementations in alternative frameworks. Note that
 the below are the best of our understanding of the frameworks, please let us
-know if there are alternate implementations.
+know if there are better implementations.
+
+
+Along with the observations, we have implemented [MNIST example in pytorch](https://github.com/pytorch/examples/blob/main/mnist/main.py)
+in multiple frameworks for comparing actual implementations against popular examples.
+
+<hr style="border:2px dotted orange">
 
 ### metaflow
 
-The function in metaflow's step would rougly be:
+The function in metaflow's step would roughly be:
 
 ```python
 from metaflow import step, conda, FlowSpec
@@ -61,8 +67,6 @@ class Flow(FlowSpec)
 - Both support parallel branches, arbitrary nesting of pipelines.
 
 The differences:
-
-
 
 ##### dependency management:
 
@@ -99,9 +103,17 @@ pipelines themselves and can run in isolation. This is not true in ```metaflow``
 
 ##### unit testing pipelines
 
-```runnable``` pipelines are testable using ```mocked``` executor where the executables can be mocked/patched. In ```metaflow```, it depends on how the
-python function is wrapped in the pipeline.
+```runnable``` pipelines are testable using ```mocked``` executor where the executables can be mocked/patched.
+In ```metaflow```, it depends on how the python function is wrapped in the pipeline.
 
+##### distributed training
+
+```metaflow``` supports distributed training.
+
+As of now, ```runnable``` does not support distributed training but is in the works.
+
+
+<hr style="border:2px dotted orange">
 
 ### kedro
 
@@ -128,17 +140,17 @@ def create_pipeline(**kwargs) -> Pipeline:
 
 ```
 
-##### Structure
+##### Footprint
 
-Kedro needs a structure and configuration to set up a new project and provides
-a CLI to get started.
+```kedro``` has a larger footprint in the domain code by the configuration files. It is tightly structured and
+provides a CLI to get started.
 
 To use ```runnable``` as part of the project requires
 adding a pipeline definition file (in python or yaml) and an optional configuration file.
 
 ##### dataflow
 
-Kedro needs the data flowing through the pipeline via catalog.yaml which
+Kedro needs the data flowing through the pipeline via ```catalog.yaml``` which
 provides a central place to understand the data.
 
 In ```runnable```, the data is presented to the individual tasks as
@@ -147,3 +159,13 @@ requested by the ```catalog``` instruction.
 ##### notebooks
 
 Kedro supports notebooks for exploration but not as tasks of the pipeline.
+
+##### dynamic pipelines
+
+```kedro``` does not support dynamic pipelines or map state.
+
+##### distributed training
+
+```kedro``` supports distributed training via a [plugin](https://github.com/getindata/kedro-azureml).
+
+As of now, ```runnable``` does not support distributed training but is in the works.
