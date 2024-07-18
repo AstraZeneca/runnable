@@ -37,8 +37,11 @@ the below are the best of our understanding of the frameworks, please let us
 know if there are better implementations.
 
 
-Along with the observations, we have implemented [MNIST example in pytorch](https://github.com/pytorch/examples/blob/main/mnist/main.py)
-in multiple frameworks for comparing actual implementations against popular examples.
+Along with the observations,
+
+- We have implemented [MNIST example in pytorch](https://github.com/pytorch/examples/blob/main/mnist/main.py)
+in multiple frameworks for easier practical comparison.
+- The tutorials are inspired from tutorials of popular frameworks to give a flavor of ```runnable```.
 
 <hr style="border:2px dotted orange">
 

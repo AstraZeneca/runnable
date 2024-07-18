@@ -797,12 +797,27 @@ class DagNode(CompositeNode):
 class StubNode(ExecutableNode):
     """
     Stub is a convenience design node.
-
     It always returns success in the attempt log and does nothing.
 
     This node is very similar to pass state in Step functions.
 
     This node type could be handy when designing the pipeline and stubbing functions
+    --8<-- [start:stub_reference]
+    An stub execution node of the pipeline.
+    Please refer to define pipeline/tasks/stub for more information.
+
+    As part of the dag definition, a stub task is defined as follows:
+
+    dag:
+      steps:
+        stub_task: # The name of the node
+        type: stub
+        on_failure: The name of the step to traverse in case of failure
+        next: The next node to execute after this task, use "success" to terminate the pipeline successfully
+          or "fail" to terminate the pipeline with an error.
+
+    It can take arbritary number of parameters, which is handy to temporarily silence a task node.
+    --8<-- [end:stub_reference]
     """
 
     node_type: str = Field(default="stub", serialization_alias="type")

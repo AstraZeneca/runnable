@@ -67,7 +67,7 @@ markdown_extensions:
       alternate_style: true
   - pymdownx.snippets:
       base_path: "."
-      dedent_subsections: true
+      # dedent_subsections: true
   - pymdownx.inlinehilite
   - pymdownx.highlight:
       anchor_linenums: true

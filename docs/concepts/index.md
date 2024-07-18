@@ -23,7 +23,7 @@ consume(x, y)
 
 ## Runnable representation
 
-The same workflow in ```runnable``` would be:
+The workflow in ```runnable``` would be:
 
 ```python linenums="1"
 from runnable import PythonTask, pickled, catalog, Pipeline
@@ -39,6 +39,8 @@ pipeline = Pipeline(steps=[generate_task, consume_task])
 pipeline.execute()
 
 ```
+
+
 
 
 - ```runnable``` wraps the functions ```generate``` and ```consume``` as [tasks](task.md).

@@ -188,7 +188,56 @@ def task_return_to_parameter(task_return: TaskReturns, value: Any) -> Parameter:
 
 
 class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
-    """The task class for python command."""
+    """
+    --8<-- [start:python_reference]
+    An execution node of the pipeline of python functions.
+    Please refer to define pipeline/tasks/python for more information.
+
+    As part of the dag definition, a python task is defined as follows:
+
+    dag:
+      steps:
+        python_task: # The name of the node
+          type: task
+          command_type: python # this is default
+          command: my_module.my_function # the dotted path to the function. Please refer to the yaml section of
+            define pipeline/tasks/python for concrete details.
+          returns:
+            - name: # The name to assign the return value
+              kind: json # the default value is json,
+                can be object for python objects and metric for metrics
+          secrets:
+            - my_secret_key # A list of secrets to expose by secrets manager
+          catalog:
+            get:
+              - A list of glob patterns to get from the catalog to the local file system
+            put:
+              - A list of glob patterns to put to the catalog from the local file system
+          on_failure: The name of the step to traverse in case of failure
+          overrides:
+            Individual tasks can override the global configuration config by referring to the
+            specific override.
+
+            For example,
+            #Global configuration
+            executor:
+            type: local-container
+            config:
+              docker_image: "runnable/runnable:latest"
+              overrides:
+              custom_docker_image:
+                docker_image: "runnable/runnable:custom"
+
+            ## In the node definition
+            overrides:
+            local-container:
+              docker_image: "runnable/runnable:custom"
+
+            This instruction will override the docker image for the local-container executor.
+          next: The next node to execute after this task, use "success" to terminate the pipeline successfully
+            or "fail" to terminate the pipeline with an error.
+    --8<-- [end:python_reference]
+    """
 
     task_type: str = Field(default="python", serialization_alias="command_type")
     command: str
@@ -277,7 +326,56 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
 
 class NotebookTaskType(BaseTaskType):
-    """The task class for Notebook based execution."""
+    """
+    --8<-- [start:notebook_reference]
+    An execution node of the pipeline of notebook execution.
+    Please refer to define pipeline/tasks/notebook for more information.
+
+    As part of the dag definition, a notebook task is defined as follows:
+
+    dag:
+      steps:
+        notebook_task: # The name of the node
+          type: task
+          command_type: notebook
+          command: the path to the notebook relative to project root.
+          optional_ploomber_args: a dictionary of arguments to be passed to ploomber engine
+          returns:
+            - name: # The name to assign the return value
+              kind: json # the default value is json,
+                can be object for python objects and metric for metrics
+          secrets:
+            - my_secret_key # A list of secrets to expose by secrets manager
+          catalog:
+            get:
+              - A list of glob patterns to get from the catalog to the local file system
+            put:
+              - A list of glob patterns to put to the catalog from the local file system
+          on_failure: The name of the step to traverse in case of failure
+          overrides:
+            Individual tasks can override the global configuration config by referring to the
+            specific override.
+
+            For example,
+            #Global configuration
+            executor:
+            type: local-container
+            config:
+              docker_image: "runnable/runnable:latest"
+              overrides:
+                custom_docker_image:
+                  docker_image: "runnable/runnable:custom"
+
+            ## In the node definition
+            overrides:
+              local-container:
+                docker_image: "runnable/runnable:custom"
+
+            This instruction will override the docker image for the local-container executor.
+          next: The next node to execute after this task, use "success" to terminate the pipeline successfully
+            or "fail" to terminate the pipeline with an error.
+    --8<-- [end:notebook_reference]
+    """
 
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
@@ -410,7 +508,54 @@ class NotebookTaskType(BaseTaskType):
 
 class ShellTaskType(BaseTaskType):
     """
-    The task class for shell based commands.
+    --8<-- [start:shell_reference]
+    An execution node of the pipeline of shell execution.
+    Please refer to define pipeline/tasks/shell for more information.
+
+    As part of the dag definition, a shell task is defined as follows:
+
+    dag:
+      steps:
+        shell_task: # The name of the node
+          type: task
+          command_type: shell
+          command: The command to execute, it could be multiline
+          optional_ploomber_args: a dictionary of arguments to be passed to ploomber engine
+          returns:
+            - name: # The name to assign the return value
+            kind: json # the default value is json,
+                can be object for python objects and metric for metrics
+          secrets:
+            - my_secret_key # A list of secrets to expose by secrets manager
+          catalog:
+            get:
+              - A list of glob patterns to get from the catalog to the local file system
+            put:
+              - A list of glob patterns to put to the catalog from the local file system
+          on_failure: The name of the step to traverse in case of failure
+          overrides:
+            Individual tasks can override the global configuration config by referring to the
+            specific override.
+
+            For example,
+            #Global configuration
+            executor:
+            type: local-container
+            config:
+              docker_image: "runnable/runnable:latest"
+              overrides:
+                custom_docker_image:
+                  docker_image: "runnable/runnable:custom"
+
+            ## In the node definition
+            overrides:
+              local-container:
+                docker_image: "runnable/runnable:custom"
+
+            This instruction will override the docker image for the local-container executor.
+          next: The next node to execute after this task, use "success" to terminate the pipeline successfully
+            or "fail" to terminate the pipeline with an error.
+    --8<-- [end:shell_reference]
     """
 
     task_type: str = Field(default="shell", serialization_alias="command_type")

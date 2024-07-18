@@ -82,7 +82,7 @@ pyflame = "^0.3.1"
 
 # Plugins for Executors
 [tool.poetry.plugins."executor"]
-"local" = "runnable.extensions.executor.local.implementation:LocalExecutor"
+"local" = "runnable.extensions.executor.local:LocalExecutor"
 "local-container" = "runnable.extensions.executor.local_container.implementation:LocalContainerExecutor"
 "argo" = "runnable.extensions.executor.argo.implementation:ArgoExecutor"
 "mocked" = "runnable.extensions.executor.mocked.implementation:MockedExecutor"
