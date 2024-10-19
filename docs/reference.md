@@ -1,5 +1,5 @@
 Please accompany the reference with  ```examples``` from
-[the repo](https://github.com/AstraZeneca/runnable-core).
+[the repo](https://github.com/AstraZeneca/runnable).
 
 
 
@@ -16,27 +16,7 @@ Please accompany the reference with  ```examples``` from
 
 === "yaml"
 
-    Attributes:
-
-    - ```name```: the name of the task
-    - ```command```: the dotted path reference to the function.
-    - ```next```: the next node to call if the function succeeds. Use ```success``` to terminate
-    the pipeline successfully or ```fail``` to terminate with fail.
-    - ```on_failure```: The next node in case of failure.
-    - ```catalog```: mapping of cataloging items
-    - ```overrides```: mapping of step overrides from global configuration.
-
-    ```yaml
-    dag:
-      steps:
-        name: <>
-          type: task
-          command: <>
-          next: <>
-          on_failure: <>
-          catalog: # Any cataloging to be done.
-          overrides: # mapping of overrides of global configuration
-    ```
+    --8<-- "runnable/tasks.py:python_reference"
 
 <hr style="border:2px dotted orange">
 
@@ -54,27 +34,7 @@ Please accompany the reference with  ```examples``` from
 
 === "yaml"
 
-    Attributes:
-
-    - ```name```: the name of the task
-    - ```command```: the path to the notebook relative to the project root.
-    - ```next```: the next node to call if the function succeeds. Use ```success``` to terminate
-    the pipeline successfully or ```fail``` to terminate with fail.
-    - ```on_failure```: The next node in case of failure.
-    - ```catalog```: mapping of cataloging items
-    - ```overrides```: mapping of step overrides from global configuration.
-
-    ```yaml
-    dag:
-      steps:
-        name: <>
-          type: task
-          command: <>
-          next: <>
-          on_failure: <>
-          catalog: # Any cataloging to be done.
-          overrides: # mapping of overrides of global configuration
-    ```
+    --8<-- "runnable/tasks.py:notebook_reference"
 
 
 <hr style="border:2px dotted orange">
@@ -93,27 +53,7 @@ Please accompany the reference with  ```examples``` from
 
 === "yaml"
 
-    Attributes:
-
-    - ```name```: the name of the task
-    - ```command```: the path to the notebook relative to the project root.
-    - ```next```: the next node to call if the function succeeds. Use ```success``` to terminate
-    the pipeline successfully or ```fail``` to terminate with fail.
-    - ```on_failure```: The next node in case of failure.
-    - ```catalog```: mapping of cataloging items
-    - ```overrides```: mapping of step overrides from global configuration.
-
-    ```yaml
-    dag:
-      steps:
-        name: <>
-          type: task
-          command: <>
-          next: <>
-          on_failure: <>
-          catalog: # Any cataloging to be done.
-          overrides: # mapping of overrides of global configuration
-    ```
+    --8<-- "runnable/tasks.py:notebook_reference"
 
 
 <hr style="border:2px dotted orange">
@@ -129,6 +69,8 @@ Please accompany the reference with  ```examples``` from
             heading_level: 3
 
 === "yaml"
+
+    --8<-- "runnable/extensions/nodes.py:stub_reference"
 
 
 

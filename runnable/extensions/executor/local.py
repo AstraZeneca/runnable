@@ -19,8 +19,6 @@ class LocalExecutor(GenericExecutor):
     Example config:
     execution:
       type: local
-      config:
-        enable_parallel: True or False to enable parallel.
 
     """
 

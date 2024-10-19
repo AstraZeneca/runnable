@@ -116,6 +116,7 @@ or [metaflow](https://metaflow.org/).
 ```runnable``` could also function as an SDK for _native_ orchestrators as it always compiles pipeline definitions
 to _native_ orchestrators.
 
+<br>
 
 <div class="grid cards" markdown>
 
@@ -163,6 +164,9 @@ to _native_ orchestrators.
     ---
 
     Unit test your code and pipelines.
+
+    - mock/patch the steps of the pipeline
+    - test your functions as you normally do.
 
     [:octicons-arrow-right-24: Test](#)
 
