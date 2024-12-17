@@ -1,238 +1,50 @@
-[tool.poetry]
+[project]
 name = "runnable"
-version = "0"
-description = "A Compute agnostic pipelining software"
-authors = ["Vijay Vammi <mesanthu@gmail.com>"]
-license = "Apache-2.0"
+version = "0.0.0"
+description = "Add your description here"
 readme = "README.md"
-homepage = "https://github.com/vijayvammi/runnable"
-repository = "https://github.com/vijayvammi/runnable"
-documentation = "https://github.com/vijayvammi/runnable"
+authors = [
+    { name = "Vammi, Vijay", email = "vijay.vammi@astrazeneca.com" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "click-plugins>=1.1.1",
+    "click<=8.1.3",
+    "pydantic>=2.10.3",
+    "ruamel-yaml>=0.18.6",
+    "stevedore>=5.4.0",
+    "rich>=13.9.4",
+    "dill>=0.3.9",
+    "setuptools>=75.6.0",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.9,<3.13"
-"ruamel.yaml" = "*"
-"ruamel.yaml.clib" = "*"
-pydantic = "^2.5"
-stevedore = "^3.5.0"
-"click" = "*"
-click-plugins = "^1.1.1"
-typing-extensions = { version = "*", python = "<3.8" }
-docker = { version = "*", optional = true }
-sqlalchemy = { version = "*", optional = true }
-rich = "^13.5.2"
-mlflow-skinny = { version = "*", optional = true }
-ploomber-engine = "^0.0.31"
-dill = "^0.3.8"
-
-[tool.poetry.extras]
-docker = ['docker']
-notebook = ['ploomber-engine']
-database = ["sqlalchemy"]
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = "*"
-pytest-cov = "*"
-pytest-mock = "*"
-mypy = "^1.5.1"
-tox = "^3.24.5"
-pre-commit = "*"
-ruff = "^0.0.259"
-commit-linter = "^1.0.2"
-black = "^23.3.0"
-gitlint = "^0.19.1"
-pandas = "^2.2.2" # for testing examples
-
-[tool.poetry.group.release.dependencies]
-python-semantic-release = "^9.4.2"
-
-[tool.poetry.group.docs.dependencies]
-mkdocs = "*"
-mkdocs-material = "*"
-mkdocs-section-index = "^0.3.5"
-mkdocstrings = { extras = ["python"], version = "^0.24.0" }
-nbconvert = "^7.13.1"
-mkdocs-click = "^0.8.1"
-
-[tool.poetry.group.tutorial.dependencies]
-pandas = "^2.2.1"
-numpy = "^1.26.4"
-scikit-learn = "^1.4.1.post1"
-en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz" }
-matplotlib = "^3.8.3"
-
-
-[tool.poetry.group.compare.dependencies]
-torch = "^2.3.0"
-torchvision = "^0.18.0"
-tensorflow = "^2.16.1"
-
-[tool.poetry.scripts]
+[project.scripts]
 runnable = 'runnable.cli:cli'
 
-
-[tool.poetry.group.binary.dependencies]
-pyinstaller = "^5.13.2"
-
-[tool.poetry.group.perf.dependencies]
-# Run the performace tests poetry run python -m pyflame -p ./flamegraph.pl runnable/entrypoints.py
-pyflame = "^0.3.1"
-
-
-# Plugins for Executors
-[tool.poetry.plugins."executor"]
-"local" = "runnable.extensions.executor.local:LocalExecutor"
-"local-container" = "runnable.extensions.executor.local_container.implementation:LocalContainerExecutor"
-"argo" = "runnable.extensions.executor.argo.implementation:ArgoExecutor"
-"mocked" = "runnable.extensions.executor.mocked.implementation:MockedExecutor"
-"retry" = "runnable.extensions.executor.retry.implementation:RetryExecutor"
-
-# Plugins for Catalog
-[tool.poetry.plugins."catalog"]
-"do-nothing" = "runnable.catalog:DoNothingCatalog"
-"file-system" = "runnable.extensions.catalog.file_system.implementation:FileSystemCatalog"
-
-# Plugins for Secrets
-[tool.poetry.plugins."secrets"]
-"do-nothing" = "runnable.secrets:DoNothingSecretManager"
-"dotenv" = "runnable.extensions.secrets.dotenv.implementation:DotEnvSecrets"
-"env-secrets" = "runnable.secrets:EnvSecretsManager"
-
-# Plugins for Run Log store
-[tool.poetry.plugins."run_log_store"]
-"buffered" = "runnable.datastore:BufferRunLogstore"
-"file-system" = "runnable.extensions.run_log_store.file_system.implementation:FileSystemRunLogstore"
-"chunked-fs" = "runnable.extensions.run_log_store.chunked_file_system.implementation:ChunkedFileSystemRunLogStore"
-
-
-# Plugins for Pickler
-[tool.poetry.plugins."pickler"]
-"pickle" = "runnable.pickler:NativePickler"
-
-
-# Plugins for Integration
-[tool.poetry.plugins."integration"]
-# Left empty for 3rd party integrations
-
-# Plugins for Tasks
-[tool.poetry.plugins."tasks"]
-"python" = "runnable.tasks:PythonTaskType"
-"shell" = "runnable.tasks:ShellTaskType"
-"notebook" = "runnable.tasks:NotebookTaskType"
-
-# Plugins for Nodes
-[tool.poetry.plugins."nodes"]
-"task" = "runnable.extensions.nodes:TaskNode"
-"fail" = "runnable.extensions.nodes:FailNode"
-"success" = "runnable.extensions.nodes:SuccessNode"
-"parallel" = "runnable.extensions.nodes:ParallelNode"
-"map" = "runnable.extensions.nodes:MapNode"
-"dag" = "runnable.extensions.nodes:DagNode"
-"stub" = "runnable.extensions.nodes:StubNode"
-
-
-[tool.black]
-line-length = 120
-
-[tool.ruff]
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "W"]
-
-# extend-select = ["I"]
-
-ignore = []
-
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["A", "B", "C", "D", "E", "F", "I"]
-unfixable = []
-
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-    "examples/kubeflow",
-    "examples/tutorials/",
+[project.optional-dependencies]
+docker = [
+    "docker>=7.1.0",
 ]
-per-file-ignores = {}
-
-# Builtins
-
-builtins = ["__version__"]
-
-# Same as Black.
-line-length = 120
-
-# Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
-# Assume Python 3.10.
-target-version = "py310"
-
-[tool.ruff.pydocstyle]
-convention = "google"
-
-[tool.ruff.mccabe]
-# Unlike Flake8, default to a complexity level of 10.
-max-complexity = 10
+notebook = [
+    "ploomber-engine>=0.0.33",
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.semantic_release]
-allow_zero_version = true
-major_on_zero = false
-tag_format = "{version}"
-
-[tool.semantic_release.remote.token]
-env = "GH_TOKEN"
-
-[tool.semantic_release.branches.main]
-match = ""
-
-[tool.semantic_release.remote]
-ignore_token_for_push = true
-
-[tool.coverage.run]
-branch = true
-
-[tool.coverage.report]
-# Regexes for lines to exclude from consideration
-exclude_lines = ["pragma: no cover"]
-
-include_namespace_packages = true
-show_missing = true
-
-exclude_also = [
-    # Don't complain if tests don't hit defensive assertion code:
-    "raise AssertionError",
-    "raise NotImplementedError",
-
-    # Don't complain about abstract methods, they aren't run:
-    "@(abc\\.)?abstractmethod",
+[dependency-groups]
+dev = [
+    "pytest-cov>=6.0.0",
+    "pytest>=8.3.4",
+    "pytest-mock>=3.14.0",
+    "mypy>=1.13.0",
+    "pre-commit>=4.0.1",
 ]
-
-omit = [
-    "runnable/cli.py",
-    "runnable/extensions/executor/demo_renderer/*",
-    "*FF.py",
+docs = [
+    "mkdocs-section-index>=0.3.9",
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.5.49",
+    "mkdocstrings>=0.27.0",
+    "mkdocs-click>=0.8.1",
 ]
