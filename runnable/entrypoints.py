@@ -58,6 +58,10 @@ def prepare_configurations(
     if configuration_file:
         templated_configuration = utils.load_yaml(configuration_file) or {}
 
+    # Since all the services (run_log_store, catalog, secrets, executor) are
+    # dynamically loaded via stevedore, we cannot validate the configuration
+    # before they are passed to the service.
+
     configuration: RunnableConfig = cast(RunnableConfig, templated_configuration)
 
     logger.info(f"Resolved configurations: {configuration}")

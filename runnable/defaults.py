@@ -33,7 +33,6 @@ class RunnableConfig(TypedDict, total=False):
     secrets: Optional[ServiceConfig]
     catalog: Optional[ServiceConfig]
     executor: Optional[ServiceConfig]
-    experiment_tracker: Optional[ServiceConfig]
     pickler: Optional[ServiceConfig]
 
 

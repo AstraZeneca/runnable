@@ -604,7 +604,7 @@ def set_runnable_environment_variables(run_id: str = "", configuration_file: str
         os.environ[defaults.RUNNABLE_RUN_TAG] = tag
 
 
-def gather_variables() -> dict:
+def gather_variables() -> Dict[str, str]:
     """Gather all the environment variables used by runnable. All the variables start with runnable_VAR_.
 
     Returns:

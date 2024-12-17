@@ -56,14 +56,17 @@ class DataCatalog(BaseModel, extra="allow"):
         return other.name == self.name
 
 
-"""
-The theory behind reduced:
-    parameters returned by steps in map node are only reduced by the end of the map step, fan-in.
-    If they are accessed within the map step, the value should be the value returned by the step in the map step.
+class SoftDataCatalog(BaseModel, extra="forbid"):
+    source: str
+    version: Optional[str] = None
 
-    Once the map state is complete, we can set the reduce to true and have the value as
-    the reduced value. Its either a list or a custom function return.
-"""
+
+# The theory behind reduced:
+#     parameters returned by steps in map node are only reduced by the end of the map step, fan-in.
+#     If they are accessed within the map step, the value should be the value returned by the step in the map step.
+
+#     Once the map state is complete, we can set the reduce to true and have the value as
+#     the reduced value. Its either a list or a custom function return.
 
 
 class JsonParameter(BaseModel):
