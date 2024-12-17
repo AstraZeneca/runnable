@@ -22,9 +22,13 @@ def cli():
 
 
 @cli.command("execute", short_help="Execute/translate a pipeline")
-@click.option("-f", "--file", default="pipeline.yaml", help="The pipeline definition file", show_default=True)
+@click.argument("filename")
 @click.option(
-    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+    "-c",
+    "--config-file",
+    default=None,
+    help="config file, in yaml, to be used for the run",
+    show_default=True,
 )
 @click.option(
     "-p",
@@ -41,8 +45,12 @@ def cli():
     type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
 )
 @click.option("--tag", default="", help="A tag attached to the run")
-@click.option("--run-id", help="An optional run_id, one would be generated if not provided")
-def execute(file, config_file, parameters_file, log_level, tag, run_id):  # pragma: no cover
+@click.option(
+    "--run-id", help="An optional run_id, one would be generated if not provided"
+)
+def execute(
+    filename, config_file, parameters_file, log_level, tag, run_id
+):  # pragma: no cover
     """
     Execute a pipeline
 
@@ -64,20 +72,35 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id):  # prag
 
     entrypoints.execute(
         configuration_file=config_file,
-        pipeline_file=file,
+        pipeline_file=filename,
         tag=tag,
         run_id=run_id,
         parameters_file=parameters_file,
     )
 
 
-@cli.command("execute_single_node", short_help="Internal entry point to execute a single node", hidden=True)
+@cli.command(
+    "execute_single_node",
+    short_help="Internal entry point to execute a single node",
+    hidden=True,
+)
 @click.argument("run_id")
 @click.argument("step_name")
-@click.option("--map-variable", default="", help="The map variable dictionary in str", show_default=True)
-@click.option("-f", "--file", default="", help="The pipeline definition file", show_default=True)
 @click.option(
-    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+    "--map-variable",
+    default="",
+    help="The map variable dictionary in str",
+    show_default=True,
+)
+@click.option(
+    "-f", "--file", default="", help="The pipeline definition file", show_default=True
+)
+@click.option(
+    "-c",
+    "--config-file",
+    default=None,
+    help="config file, in yaml, to be used for the run",
+    show_default=True,
 )
 @click.option(
     "-p",
@@ -94,7 +117,9 @@ def execute(file, config_file, parameters_file, log_level, tag, run_id):  # prag
     type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
 )
 @click.option("--tag", default="", help="A tag attached to the run")
-def execute_single_node(run_id, step_name, map_variable, file, config_file, parameters_file, log_level, tag):
+def execute_single_node(
+    run_id, step_name, map_variable, file, config_file, parameters_file, log_level, tag
+):
     """
     Internal entrypoint for runnable to execute a single node.
 
@@ -119,7 +144,11 @@ def execute_single_node(run_id, step_name, map_variable, file, config_file, para
 @click.argument("filename")
 @click.option("--entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
 @click.option(
-    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+    "-c",
+    "--config-file",
+    default=None,
+    help="config file, in yaml, to be used for the run",
+    show_default=True,
 )
 @click.option(
     "-p",
@@ -136,10 +165,20 @@ def execute_single_node(run_id, step_name, map_variable, file, config_file, para
     type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
 )
 @click.option("--data-folder", "-d", default="data/", help="The catalog data folder")
-@click.option("--put-in-catalog", "-put", default=None, multiple=True, help="The data to put from the catalog")
-@click.option("--notebook-output-path", default="", help="The output path for the notebook")
+@click.option(
+    "--put-in-catalog",
+    "-put",
+    default=None,
+    multiple=True,
+    help="The data to put from the catalog",
+)
+@click.option(
+    "--notebook-output-path", default="", help="The output path for the notebook"
+)
 @click.option("--tag", help="A tag attached to the run")
-@click.option("--run-id", help="An optional run_id, one would be generated if not provided")
+@click.option(
+    "--run-id", help="An optional run_id, one would be generated if not provided"
+)
 def execute_notebook(
     filename,
     entrypoint,
@@ -159,7 +198,10 @@ def execute_notebook(
     The execution plan is unchained.
     """
     logger.setLevel(log_level)
-    catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
+    catalog_config = {
+        "compute_data_folder": data_folder,
+        "put": list(put_in_catalog) if put_in_catalog else None,
+    }
     if not filename.endswith(".ipynb"):
         raise Exception("A notebook should always have ipynb as the extension")
 
@@ -179,7 +221,11 @@ def execute_notebook(
 @click.argument("command")
 @click.option("--entrypoint", default=defaults.ENTRYPOINT.USER.value, hidden=True)
 @click.option(
-    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+    "-c",
+    "--config-file",
+    default=None,
+    help="config file, in yaml, to be used for the run",
+    show_default=True,
 )
 @click.option(
     "-p",
@@ -196,11 +242,27 @@ def execute_notebook(
     type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
 )
 @click.option("--data-folder", "-d", default="data/", help="The catalog data folder")
-@click.option("--put-in-catalog", "-put", default=None, multiple=True, help="The data to put from the catalog")
+@click.option(
+    "--put-in-catalog",
+    "-put",
+    default=None,
+    multiple=True,
+    help="The data to put from the catalog",
+)
 @click.option("--tag", help="A tag attached to the run")
-@click.option("--run-id", help="An optional run_id, one would be generated if not provided")
+@click.option(
+    "--run-id", help="An optional run_id, one would be generated if not provided"
+)
 def execute_function(
-    command, entrypoint, config_file, parameters_file, log_level, data_folder, put_in_catalog, tag, run_id
+    command,
+    entrypoint,
+    config_file,
+    parameters_file,
+    log_level,
+    data_folder,
+    put_in_catalog,
+    tag,
+    run_id,
 ):
     """
     External entry point to execute a python function in isolation.
@@ -209,7 +271,10 @@ def execute_function(
     The execution plan is unchained.
     """
     logger.setLevel(log_level)
-    catalog_config = {"compute_data_folder": data_folder, "put": list(put_in_catalog) if put_in_catalog else None}
+    catalog_config = {
+        "compute_data_folder": data_folder,
+        "put": list(put_in_catalog) if put_in_catalog else None,
+    }
     entrypoints.execute_function(
         entrypoint=entrypoint,
         command=command,
@@ -221,14 +286,35 @@ def execute_function(
     )
 
 
-@cli.command("fan", short_help="Internal entry point to fan in or out a composite node", hidden=True)
+@cli.command(
+    "fan",
+    short_help="Internal entry point to fan in or out a composite node",
+    hidden=True,
+)
 @click.argument("run_id")
 @click.argument("step_name")
-@click.option("-m", "--mode", help="fan in or fan out", required=True, type=click.Choice(["in", "out"]))
-@click.option("--map-variable", default="", help="The map variable dictionary in str", show_default=True)
-@click.option("-f", "--file", default="", help="The pipeline definition file", show_default=True)
 @click.option(
-    "-c", "--config-file", default=None, help="config file, in yaml, to be used for the run", show_default=True
+    "-m",
+    "--mode",
+    help="fan in or fan out",
+    required=True,
+    type=click.Choice(["in", "out"]),
+)
+@click.option(
+    "--map-variable",
+    default="",
+    help="The map variable dictionary in str",
+    show_default=True,
+)
+@click.option(
+    "-f", "--file", default="", help="The pipeline definition file", show_default=True
+)
+@click.option(
+    "-c",
+    "--config-file",
+    default=None,
+    help="config file, in yaml, to be used for the run",
+    show_default=True,
 )
 @click.option(
     "-p",
@@ -245,7 +331,17 @@ def execute_function(
     type=click.Choice(["INFO", "DEBUG", "WARNING", "ERROR", "FATAL"]),
 )
 @click.option("--tag", default="", help="A tag attached to the run")
-def fan(run_id, step_name, mode, map_variable, file, config_file, parameters_file, log_level, tag):
+def fan(
+    run_id,
+    step_name,
+    mode,
+    map_variable,
+    file,
+    config_file,
+    parameters_file,
+    log_level,
+    tag,
+):
     """
     Internal entrypoint for runnable to fan in or out a composite node.
 

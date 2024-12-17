@@ -28,6 +28,10 @@ docker = [
 notebook = [
     "ploomber-engine>=0.0.33",
 ]
+examples = [
+    "pandas>=2.2.3",
+]
+
 
 [build-system]
 requires = ["hatchling"]
@@ -48,3 +52,44 @@ docs = [
     "mkdocstrings>=0.27.0",
     "mkdocs-click>=0.8.1",
 ]
+
+[project.entry-points.'executor']
+"local" = "runnable.extensions.executor.local:LocalExecutor"
+"local-container" = "runnable.extensions.executor.local_container.implementation:LocalContainerExecutor"
+"argo" = "runnable.extensions.executor.argo.implementation:ArgoExecutor"
+"mocked" = "runnable.extensions.executor.mocked.implementation:MockedExecutor"
+"retry" = "runnable.extensions.executor.retry.implementation:RetryExecutor"
+
+[project.entry-points.'secrets']
+"do-nothing" = "runnable.secrets:DoNothingSecretManager"
+"dotenv" = "runnable.extensions.secrets.dotenv.implementation:DotEnvSecrets"
+"env-secrets" = "runnable.secrets:EnvSecretsManager"
+
+[project.entry-points.'catalog']
+"do-nothing" = "runnable.catalog:DoNothingCatalog"
+"file-system" = "runnable.extensions.catalog.file_system.implementation:FileSystemCatalog"
+
+[project.entry-points.'run_log_store']
+"buffered" = "runnable.datastore:BufferRunLogstore"
+"file-system" = "runnable.extensions.run_log_store.file_system.implementation:FileSystemRunLogstore"
+"chunked-fs" = "runnable.extensions.run_log_store.chunked_file_system.implementation:ChunkedFileSystemRunLogStore"
+
+[project.entry-points.'pickler']
+"pickle" = "runnable.pickler:NativePickler"
+
+[project.entry-points.'integration']
+# left empty for now
+
+[project.entry-points.'nodes']
+"task" = "runnable.extensions.nodes:TaskNode"
+"fail" = "runnable.extensions.nodes:FailNode"
+"success" = "runnable.extensions.nodes:SuccessNode"
+"parallel" = "runnable.extensions.nodes:ParallelNode"
+"map" = "runnable.extensions.nodes:MapNode"
+"dag" = "runnable.extensions.nodes:DagNode"
+"stub" = "runnable.extensions.nodes:StubNode"
+
+[project.entry-points.'tasks']
+"python" = "runnable.tasks:PythonTaskType"
+"shell" = "runnable.tasks:ShellTaskType"
+"notebook" = "runnable.tasks:NotebookTaskType"
