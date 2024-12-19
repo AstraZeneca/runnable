@@ -51,7 +51,9 @@ class BaseNode(ABC, BaseModel):
             raise ValueError("Node names cannot have . or '%' in them")
         return name
 
-    def _command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
+    def _command_friendly_name(
+        self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER
+    ) -> str:
         """
         Replace spaces with special character for spaces.
         Spaces in the naming of the node is convenient for the user but causes issues when used programmatically.
@@ -76,7 +78,9 @@ class BaseNode(ABC, BaseModel):
         return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, " ")
 
     @classmethod
-    def _resolve_map_placeholders(cls, name: str, map_variable: TypeMapVariable = None) -> str:
+    def _resolve_map_placeholders(
+        cls, name: str, map_variable: TypeMapVariable = None
+    ) -> str:
         """
         If there is no map step used, then we just return the name as we find it.
 
@@ -141,7 +145,9 @@ class BaseNode(ABC, BaseModel):
         Returns:
             str: The dot path name of the step log name
         """
-        return self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
+        return self._resolve_map_placeholders(
+            self.internal_name, map_variable=map_variable
+        )
 
     def _get_branch_log_name(self, map_variable: TypeMapVariable = None) -> str:
         """
@@ -158,7 +164,9 @@ class BaseNode(ABC, BaseModel):
         Returns:
             str: The dot path name of the branch log
         """
-        return self._resolve_map_placeholders(self.internal_branch_name, map_variable=map_variable)
+        return self._resolve_map_placeholders(
+            self.internal_branch_name, map_variable=map_variable
+        )
 
     def __str__(self) -> str:  # pragma: no cover
         """
@@ -471,7 +479,9 @@ class CompositeNode(TraversalNode):
         attempt_number: int = 1,
         **kwargs,
     ) -> StepLog:
-        raise Exception("This is a composite node and does not have an execute function")
+        raise Exception(
+            "This is a composite node and does not have an execute function"
+        )
 
 
 class TerminalNode(BaseNode):

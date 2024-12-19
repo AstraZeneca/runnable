@@ -25,7 +25,9 @@ def container_context():
 
 @contextmanager
 def chunked_fs_context():
-    os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/chunked-fs-run_log.yaml"
+    os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
+        "examples/configs/chunked-fs-run_log.yaml"
+    )
     os.environ["RUNNABLE_PRM_envvar"] = "from env"
     yield
     del os.environ["RUNNABLE_CONFIGURATION_FILE"]

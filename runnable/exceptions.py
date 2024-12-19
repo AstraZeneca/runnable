@@ -31,7 +31,9 @@ class StepLogNotFoundError(Exception):  # pragma: no cover
 
     def __init__(self, run_id, name):
         super().__init__()
-        self.message = f"Step log for {name} is not found in the datastore for Run id: {run_id}"
+        self.message = (
+            f"Step log for {name} is not found in the datastore for Run id: {run_id}"
+        )
 
 
 class BranchLogNotFoundError(Exception):  # pragma: no cover
@@ -43,7 +45,9 @@ class BranchLogNotFoundError(Exception):  # pragma: no cover
 
     def __init__(self, run_id, name):
         super().__init__()
-        self.message = f"Branch log for {name} is not found in the datastore for Run id: {run_id}"
+        self.message = (
+            f"Branch log for {name} is not found in the datastore for Run id: {run_id}"
+        )
 
 
 class NodeNotFoundError(Exception):  # pragma: no cover

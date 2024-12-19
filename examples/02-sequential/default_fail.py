@@ -21,7 +21,9 @@ def main():
 
     step2 = PythonTask(name="step 2", function=raise_ex)  # This will fail
 
-    step3 = Stub(name="step 3", terminate_with_success=True)  # This step will not be executed
+    step3 = Stub(
+        name="step 3", terminate_with_success=True
+    )  # This step will not be executed
 
     pipeline = Pipeline(steps=[step1, step2, step3])
 

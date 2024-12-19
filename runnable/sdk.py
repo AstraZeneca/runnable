@@ -27,7 +27,7 @@ from rich.table import Column
 from typing_extensions import Self
 
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
-from runnable.extensions.nodes import (
+from extensions.nodes.nodes import (
     FailNode,
     MapNode,
     ParallelNode,
@@ -66,7 +66,9 @@ class Catalog(BaseModel):
 
     """
 
-    model_config = ConfigDict(extra="forbid")  # Need to be for command, would be validated later
+    model_config = ConfigDict(
+        extra="forbid"
+    )  # Need to be for command, would be validated later
     # Note: compute_data_folder was confusing to explain, might be introduced later.
     # compute_data_folder: str = Field(default="", alias="compute_data_folder")
     get: List[str] = Field(default_factory=list, alias="get")
@@ -95,14 +97,18 @@ class BaseTraversal(ABC, BaseModel):
 
     def __rshift__(self, other: StepType) -> StepType:
         if self.next_node:
-            raise Exception(f"The node {self} already has a next node: {self.next_node}")
+            raise Exception(
+                f"The node {self} already has a next node: {self.next_node}"
+            )
         self.next_node = other.name
 
         return other
 
     def __lshift__(self, other: TraversalNode) -> TraversalNode:
         if other.next_node:
-            raise Exception(f"The {other} node already has a next node: {other.next_node}")
+            raise Exception(
+                f"The {other} node already has a next node: {other.next_node}"
+            )
         other.next_node = self.name
 
         return other
@@ -112,7 +118,9 @@ class BaseTraversal(ABC, BaseModel):
         assert not isinstance(node, Fail)
 
         if node.next_node:
-            raise Exception(f"The {node} node already has a next node: {node.next_node}")
+            raise Exception(
+                f"The {node} node already has a next node: {node.next_node}"
+            )
 
         node.next_node = self.name
         return self
@@ -124,7 +132,9 @@ class BaseTraversal(ABC, BaseModel):
 
         if self.terminate_with_failure or self.terminate_with_success:
             if self.next_node and self.next_node not in ["success", "fail"]:
-                raise AssertionError("A node being terminated cannot have a user defined next node")
+                raise AssertionError(
+                    "A node being terminated cannot have a user defined next node"
+                )
 
         if self.terminate_with_failure:
             self.next_node = "fail"
@@ -135,8 +145,7 @@ class BaseTraversal(ABC, BaseModel):
         return self
 
     @abstractmethod
-    def create_node(self) -> TraversalNode:
-        ...
+    def create_node(self) -> TraversalNode: ...
 
 
 class BaseTask(BaseTraversal):
@@ -146,12 +155,16 @@ class BaseTask(BaseTraversal):
 
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
     overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
-    returns: List[Union[str, TaskReturns]] = Field(default_factory=list, alias="returns")
+    returns: List[Union[str, TaskReturns]] = Field(
+        default_factory=list, alias="returns"
+    )
     secrets: List[str] = Field(default_factory=list)
 
     @field_validator("returns", mode="before")
     @classmethod
-    def serialize_returns(cls, returns: List[Union[str, TaskReturns]]) -> List[TaskReturns]:
+    def serialize_returns(
+        cls, returns: List[Union[str, TaskReturns]]
+    ) -> List[TaskReturns]:
         task_returns = []
 
         for x in returns:
@@ -167,9 +180,13 @@ class BaseTask(BaseTraversal):
     def create_node(self) -> TaskNode:
         if not self.next_node:
             if not (self.terminate_with_failure or self.terminate_with_success):
-                raise AssertionError("A node not being terminated must have a user defined next node")
+                raise AssertionError(
+                    "A node not being terminated must have a user defined next node"
+                )
 
-        return TaskNode.parse_from_config(self.model_dump(exclude_none=True, by_alias=True))
+        return TaskNode.parse_from_config(
+            self.model_dump(exclude_none=True, by_alias=True)
+        )
 
 
 class PythonTask(BaseTask):
@@ -326,7 +343,9 @@ class NotebookTask(BaseTask):
     """
 
     notebook: str = Field(serialization_alias="command")
-    optional_ploomber_args: Optional[Dict[str, Any]] = Field(default=None, alias="optional_ploomber_args")
+    optional_ploomber_args: Optional[Dict[str, Any]] = Field(
+        default=None, alias="optional_ploomber_args"
+    )
 
     @computed_field
     def command_type(self) -> str:
@@ -416,7 +435,9 @@ class Stub(BaseTraversal):
     def create_node(self) -> StubNode:
         if not self.next_node:
             if not (self.terminate_with_failure or self.terminate_with_success):
-                raise AssertionError("A node not being terminated must have a user defined next node")
+                raise AssertionError(
+                    "A node not being terminated must have a user defined next node"
+                )
 
         return StubNode.parse_from_config(self.model_dump(exclude_none=True))
 
@@ -439,14 +460,23 @@ class Parallel(BaseTraversal):
     @computed_field  # type: ignore
     @property
     def graph_branches(self) -> Dict[str, graph.Graph]:
-        return {name: pipeline._dag.model_copy() for name, pipeline in self.branches.items()}
+        return {
+            name: pipeline._dag.model_copy() for name, pipeline in self.branches.items()
+        }
 
     def create_node(self) -> ParallelNode:
         if not self.next_node:
             if not (self.terminate_with_failure or self.terminate_with_success):
-                raise AssertionError("A node not being terminated must have a user defined next node")
+                raise AssertionError(
+                    "A node not being terminated must have a user defined next node"
+                )
 
-        node = ParallelNode(name=self.name, branches=self.graph_branches, internal_name="", next_node=self.next_node)
+        node = ParallelNode(
+            name=self.name,
+            branches=self.graph_branches,
+            internal_name="",
+            next_node=self.next_node,
+        )
         return node
 
 
@@ -483,7 +513,9 @@ class Map(BaseTraversal):
     def create_node(self) -> MapNode:
         if not self.next_node:
             if not (self.terminate_with_failure or self.terminate_with_success):
-                raise AssertionError("A node not being terminated must have a user defined next node")
+                raise AssertionError(
+                    "A node not being terminated must have a user defined next node"
+                )
 
         node = MapNode(
             name=self.name,
@@ -596,16 +628,22 @@ class Pipeline(BaseModel):
         for step in path:
             if step.terminate_with_success:
                 if reached_success:
-                    raise Exception("A pipeline cannot have more than one step that terminates with success")
+                    raise Exception(
+                        "A pipeline cannot have more than one step that terminates with success"
+                    )
                 reached_success = True
                 continue
             if step.terminate_with_failure:
                 if reached_failure:
-                    raise Exception("A pipeline cannot have more than one step that terminates with failure")
+                    raise Exception(
+                        "A pipeline cannot have more than one step that terminates with failure"
+                    )
                 reached_failure = True
 
         if not reached_success and not reached_failure:
-            raise Exception("A pipeline must have at least one step that terminates with success")
+            raise Exception(
+                "A pipeline must have at least one step that terminates with success"
+            )
 
     def _construct_path(self, path: List[StepType]) -> None:
         prev_step = path[0]
@@ -615,7 +653,9 @@ class Pipeline(BaseModel):
                 continue
 
             if prev_step.terminate_with_success or prev_step.terminate_with_failure:
-                raise Exception(f"A step that terminates with success/failure cannot have a next step: {prev_step}")
+                raise Exception(
+                    f"A step that terminates with success/failure cannot have a next step: {prev_step}"
+                )
 
             if prev_step.next_node and prev_step.next_node not in ["success", "fail"]:
                 raise Exception(f"Step already has a next node: {prev_step} ")
@@ -646,7 +686,9 @@ class Pipeline(BaseModel):
         on_failure_paths: List[List[StepType]] = []
 
         for step in self.steps:
-            if isinstance(step, (Stub, PythonTask, NotebookTask, ShellTask, Parallel, Map)):
+            if isinstance(
+                step, (Stub, PythonTask, NotebookTask, ShellTask, Parallel, Map)
+            ):
                 success_path.append(step)
                 continue
             # on_failure_paths.append(step)
@@ -731,7 +773,9 @@ class Pipeline(BaseModel):
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)
-        configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
+        configuration_file = os.environ.get(
+            "RUNNABLE_CONFIGURATION_FILE", configuration_file
+        )
         run_context = entrypoints.prepare_configurations(
             configuration_file=configuration_file,
             run_id=run_id,
@@ -740,7 +784,9 @@ class Pipeline(BaseModel):
         )
 
         run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-        utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+        utils.set_runnable_environment_variables(
+            run_id=run_id, configuration_file=configuration_file, tag=tag
+        )
 
         dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
 
@@ -767,7 +813,9 @@ class Pipeline(BaseModel):
 
         with Progress(
             SpinnerColumn(spinner_name="runner"),
-            TextColumn("[progress.description]{task.description}", table_column=Column(ratio=2)),
+            TextColumn(
+                "[progress.description]{task.description}", table_column=Column(ratio=2)
+            ),
             BarColumn(table_column=Column(ratio=1), style="dark_orange"),
             TimeElapsedColumn(table_column=Column(ratio=1)),
             console=console,
@@ -775,23 +823,41 @@ class Pipeline(BaseModel):
         ) as progress:
             try:
                 run_context.progress = progress
-                pipeline_execution_task = progress.add_task("[dark_orange] Starting execution .. ", total=1)
+                pipeline_execution_task = progress.add_task(
+                    "[dark_orange] Starting execution .. ", total=1
+                )
                 run_context.executor.execute_graph(dag=run_context.dag)
 
                 if not run_context.executor._local:
                     return {}
 
-                run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
+                run_log = run_context.run_log_store.get_run_log_by_id(
+                    run_id=run_context.run_id, full=False
+                )
 
                 if run_log.status == defaults.SUCCESS:
-                    progress.update(pipeline_execution_task, description="[green] Success", completed=True)
+                    progress.update(
+                        pipeline_execution_task,
+                        description="[green] Success",
+                        completed=True,
+                    )
                 else:
-                    progress.update(pipeline_execution_task, description="[red] Failed", completed=True)
+                    progress.update(
+                        pipeline_execution_task,
+                        description="[red] Failed",
+                        completed=True,
+                    )
                     raise exceptions.ExecutionFailedError(run_context.run_id)
             except Exception as e:  # noqa: E722
                 console.print(e, style=defaults.error_style)
-                progress.update(pipeline_execution_task, description="[red] Errored execution", completed=True)
+                progress.update(
+                    pipeline_execution_task,
+                    description="[red] Errored execution",
+                    completed=True,
+                )
                 raise
 
         if run_context.executor._local:
-            return run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id)
+            return run_context.run_log_store.get_run_log_by_id(
+                run_id=run_context.run_id
+            )

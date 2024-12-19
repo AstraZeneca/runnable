@@ -58,7 +58,9 @@ def test_apply_variables_raises_exception_if_variables_is_not_dict():
 def test_apply_variables_applies_variables():
     apply_to = "${var}_${var1}"
 
-    transformed = utils.apply_variables(apply_to, variables={"var": "hello", "var1": "me"})
+    transformed = utils.apply_variables(
+        apply_to, variables={"var": "hello", "var1": "me"}
+    )
     assert transformed == "hello_me"
 
 
@@ -253,23 +255,31 @@ def test_get_git_remote_returns_calls_value(mocker, monkeypatch):
     assert utils.get_git_remote() == "test"
 
 
-def test_get_git_code_identity_returns_default_in_case_of_exception(mocker, monkeypatch):
+def test_get_git_code_identity_returns_default_in_case_of_exception(
+    mocker, monkeypatch
+):
     mock_get_current_code_commit = mocker.MagicMock(side_effect=Exception())
 
     monkeypatch.setattr(utils, "get_current_code_commit", mock_get_current_code_commit)
 
     mock_code_identity = mocker.MagicMock()
     mock_run_context = mocker.MagicMock()
-    mock_run_context.run_log_store.create_code_identity.return_value = mock_code_identity
+    mock_run_context.run_log_store.create_code_identity.return_value = (
+        mock_code_identity
+    )
 
     monkeypatch.setattr(utils.context, "run_context", mock_run_context)
 
     assert utils.get_git_code_identity() == mock_code_identity
 
 
-def test_get_git_code_identity_returns_entities_from_other_functions(monkeypatch, mocker):
+def test_get_git_code_identity_returns_entities_from_other_functions(
+    monkeypatch, mocker
+):
     mock_get_current_code_commit = mocker.MagicMock(return_value="code commit")
-    mock_is_git_clean = mocker.MagicMock(return_value=(False, "first file, second file"))
+    mock_is_git_clean = mocker.MagicMock(
+        return_value=(False, "first file, second file")
+    )
     mock_get_git_remote = mocker.MagicMock(return_value="git remote")
 
     monkeypatch.setattr(utils, "get_current_code_commit", mock_get_current_code_commit)
@@ -278,7 +288,9 @@ def test_get_git_code_identity_returns_entities_from_other_functions(monkeypatch
 
     mock_code_identity = mocker.MagicMock()
     mock_run_context = mocker.MagicMock()
-    mock_run_context.run_log_store.create_code_identity.return_value = mock_code_identity
+    mock_run_context.run_log_store.create_code_identity.return_value = (
+        mock_code_identity
+    )
 
     monkeypatch.setattr(utils.context, "run_context", mock_run_context)
 
@@ -360,7 +372,9 @@ def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch
     with pytest.MonkeyPatch().context() as ctx:
         sys.modules["docker"] = mock_docker
 
-        mock_client.images.get = mocker.MagicMock(side_effect=Exception("No Image exists"))
+        mock_client.images.get = mocker.MagicMock(
+            side_effect=Exception("No Image exists")
+        )
 
         assert utils.get_local_docker_image_id("test") == ""
 
@@ -389,7 +403,9 @@ def test_get_node_execution_command_returns_runnable_execute(mocker, monkeypatch
 
     test_map_variable = {"a": "b"}
     try:
-        assert utils.get_node_execution_command(MockNode(), map_variable=test_map_variable) == (
+        assert utils.get_node_execution_command(
+            MockNode(), map_variable=test_map_variable
+        ) == (
             "runnable execute_single_node test_run_id test_node_id "
             f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
             "--parameters-file test_parameters_file --tag test_tag"

@@ -33,12 +33,17 @@ def instantiable_terminal_node(monkeypatch):
     yield
 
 
-def test_base_run_log_store_context_property(mocker, monkeypatch, instantiable_base_class):
+def test_base_run_log_store_context_property(
+    mocker, monkeypatch, instantiable_base_class
+):
     mock_run_context = mocker.Mock()
 
     monkeypatch.setattr(nodes.context, "run_context", mock_run_context)
 
-    assert nodes.BaseNode(node_type="dummy", name="test", internal_name="")._context == mock_run_context
+    assert (
+        nodes.BaseNode(node_type="dummy", name="test", internal_name="")._context
+        == mock_run_context
+    )
 
 
 def test_validate_name_for_dot(instantiable_base_class):
@@ -73,7 +78,9 @@ def test_base_node__get_step_log_name_returns_internal_name_if_no_map_variable()
 
 
 def test_base_node__get_step_log_name_returns_map_modified_internal_name_if_map_variable():
-    node = nodes.BaseNode(name="test", internal_name="test." + defaults.MAP_PLACEHOLDER, node_type="dummy")
+    node = nodes.BaseNode(
+        name="test", internal_name="test." + defaults.MAP_PLACEHOLDER, node_type="dummy"
+    )
 
     assert node._get_step_log_name(map_variable={"map_key": "a"}) == "test.a"
 
@@ -81,11 +88,17 @@ def test_base_node__get_step_log_name_returns_map_modified_internal_name_if_map_
 def test_base_node__get_step_log_name_returns_map_modified_internal_name_if_map_variable_multiple():
     node = nodes.BaseNode(
         name="test",
-        internal_name="test." + defaults.MAP_PLACEHOLDER + ".step." + defaults.MAP_PLACEHOLDER,
+        internal_name="test."
+        + defaults.MAP_PLACEHOLDER
+        + ".step."
+        + defaults.MAP_PLACEHOLDER,
         node_type="dummy",
     )
 
-    assert node._get_step_log_name(map_variable={"map_key": "a", "map_key1": "b"}) == "test.a.step.b"
+    assert (
+        node._get_step_log_name(map_variable={"map_key": "a", "map_key1": "b"})
+        == "test.a.step.b"
+    )
 
 
 def test_base_node__get_branch_log_name_returns_null_if_not_set():
@@ -95,14 +108,22 @@ def test_base_node__get_branch_log_name_returns_null_if_not_set():
 
 
 def test_base_node__get_branch_log_name_returns_internal_name_if_set():
-    node = nodes.BaseNode(name="test", internal_name="test", internal_branch_name="test_internal", node_type="dummy")
+    node = nodes.BaseNode(
+        name="test",
+        internal_name="test",
+        internal_branch_name="test_internal",
+        node_type="dummy",
+    )
 
     assert node._get_branch_log_name() == "test_internal"
 
 
 def test_base_node__get_branch_log_name_returns_map_modified_internal_name_if_map_variable():
     node = nodes.BaseNode(
-        name="test", internal_name="test_", internal_branch_name="test." + defaults.MAP_PLACEHOLDER, node_type="dummy"
+        name="test",
+        internal_name="test_",
+        internal_branch_name="test." + defaults.MAP_PLACEHOLDER,
+        node_type="dummy",
     )
 
     assert node._get_branch_log_name(map_variable={"map_key": "a"}) == "test.a"
@@ -112,16 +133,28 @@ def test_base_node__get_branch_log_name_returns_map_modified_internal_name_if_ma
     node = nodes.BaseNode(
         name="test",
         internal_name="test_",
-        internal_branch_name="test." + defaults.MAP_PLACEHOLDER + ".step." + defaults.MAP_PLACEHOLDER,
+        internal_branch_name="test."
+        + defaults.MAP_PLACEHOLDER
+        + ".step."
+        + defaults.MAP_PLACEHOLDER,
         node_type="dummy",
     )
 
-    assert node._get_branch_log_name(map_variable={"map_key": "a", "map_key1": "b"}) == "test.a.step.b"
+    assert (
+        node._get_branch_log_name(map_variable={"map_key": "a", "map_key1": "b"})
+        == "test.a.step.b"
+    )
 
 
-def test_traversal_node_get_on_failure_node_returns_from_config(instantiable_traversal_node):
+def test_traversal_node_get_on_failure_node_returns_from_config(
+    instantiable_traversal_node,
+):
     traversal_class = nodes.TraversalNode(
-        name="test", internal_name="test", node_type="test", next_node="next", on_failure="on_failure"
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+        on_failure="on_failure",
     )
 
     assert traversal_class._get_on_failure_node() == "on_failure"
@@ -129,7 +162,11 @@ def test_traversal_node_get_on_failure_node_returns_from_config(instantiable_tra
 
 def test_traversal_node_get_next_node_returns_from_config(instantiable_traversal_node):
     traversal_class = nodes.TraversalNode(
-        name="test", internal_name="test", node_type="test", next_node="next", on_failure="on_failure"
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+        on_failure="on_failure",
     )
 
     assert traversal_class._get_next_node() == "next"
@@ -137,21 +174,33 @@ def test_traversal_node_get_next_node_returns_from_config(instantiable_traversal
 
 def test_traversal_node_is_terminal_node_is_false(instantiable_traversal_node):
     traversal_class = nodes.TraversalNode(
-        name="test", internal_name="test", node_type="test", next_node="next", on_failure="on_failure"
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+        on_failure="on_failure",
     )
 
     assert traversal_class._is_terminal_node() is False
 
 
-def test_traversal_node_get_executor_config_defaults_to_empty_dict(instantiable_traversal_node):
+def test_traversal_node_get_executor_config_defaults_to_empty_dict(
+    instantiable_traversal_node,
+):
     traversal_class = nodes.TraversalNode(
-        name="test", internal_name="test", node_type="test", next_node="next", on_failure="on_failure"
+        name="test",
+        internal_name="test",
+        node_type="test",
+        next_node="next",
+        on_failure="on_failure",
     )
 
     assert traversal_class._get_executor_config("I do not exist") == ""
 
 
-def test_traversal_node_get_executor_returns_configured_config(instantiable_traversal_node):
+def test_traversal_node_get_executor_returns_configured_config(
+    instantiable_traversal_node,
+):
     traversal_class = nodes.TraversalNode(
         name="test",
         internal_name="test",
@@ -201,7 +250,9 @@ def test_executable_node_get_catalog_detaults_to_1(instantiable_executable_node)
     assert traversal_class._get_max_attempts() == 1
 
 
-def test_executable_node_get_branch_by_name_raises_exception(instantiable_executable_node):
+def test_executable_node_get_branch_by_name_raises_exception(
+    instantiable_executable_node,
+):
     traversal_class = nodes.ExecutableNode(
         name="test",
         internal_name="test",
@@ -213,7 +264,9 @@ def test_executable_node_get_branch_by_name_raises_exception(instantiable_execut
         traversal_class._get_branch_by_name("test")
 
 
-def test_executable_node_execute_as_graph_raises_exception(instantiable_executable_node):
+def test_executable_node_execute_as_graph_raises_exception(
+    instantiable_executable_node,
+):
     traversal_class = nodes.ExecutableNode(
         name="test",
         internal_name="test",
@@ -249,7 +302,9 @@ def test_executable_node_fan_out_raises_exception(instantiable_executable_node):
         traversal_class.fan_out()
 
 
-def test_composite_node_get_catalog_settings_raises_exception(instantiable_composite_node):
+def test_composite_node_get_catalog_settings_raises_exception(
+    instantiable_composite_node,
+):
     traversal_class = nodes.CompositeNode(
         name="test",
         internal_name="test",
@@ -298,7 +353,9 @@ def test_terminal_node__get_next_node_raises_exception(instantiable_terminal_nod
         node._get_next_node()
 
 
-def test_terminal_node__get_catalog_settings_raises_exception(instantiable_terminal_node):
+def test_terminal_node__get_catalog_settings_raises_exception(
+    instantiable_terminal_node,
+):
     node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
     with pytest.raises(exceptions.TerminalNodeError):
@@ -312,7 +369,9 @@ def test_terminal_node__get_branch_by_name_raises_exception(instantiable_termina
         node._get_branch_by_name("does not matter")
 
 
-def test_terminal_node__get_executor_config_raises_exception(instantiable_terminal_node):
+def test_terminal_node__get_executor_config_raises_exception(
+    instantiable_terminal_node,
+):
     node = nodes.TerminalNode(name="test", internal_name="test", node_type="dummy")
 
     with pytest.raises(exceptions.TerminalNodeError):
@@ -352,7 +411,9 @@ def test_terminal_node_is_terminal_node_returns_true(instantiable_terminal_node)
     assert node._is_terminal_node()
 
 
-def test_terminal_node_parse_from_config_sends_the_config_for_instantiation(instantiable_terminal_node):
+def test_terminal_node_parse_from_config_sends_the_config_for_instantiation(
+    instantiable_terminal_node,
+):
     config = {
         "node_type": "dummy",
         "name": "test",

@@ -92,4 +92,6 @@ class EnvSecretsManager(BaseSecrets):
         try:
             return os.environ[name]
         except KeyError:
-            raise exceptions.SecretNotFoundError(secret_name=name, secret_setting="environment variables")
+            raise exceptions.SecretNotFoundError(
+                secret_name=name, secret_setting="environment variables"
+            )

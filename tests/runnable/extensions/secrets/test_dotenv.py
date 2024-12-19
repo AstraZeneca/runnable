@@ -6,7 +6,9 @@ from runnable.extensions.secrets.dotenv.implementation import DotEnvSecrets
 import runnable.extensions.secrets.dotenv.implementation as implementation
 
 
-def test_dot_env_secrets_defaults_to_default_location_if_none_provided(mocker, monkeypatch):
+def test_dot_env_secrets_defaults_to_default_location_if_none_provided(
+    mocker, monkeypatch
+):
     dot_env_secret = DotEnvSecrets()
     assert dot_env_secret.secrets_location == defaults.DOTENV_FILE_LOCATION
 
@@ -33,8 +35,12 @@ def test_dot_env_secrets_raises_exception_if_secret_not_found(mocker, monkeypatc
         dot_env_secret.get("give1")
 
 
-def test_dot_env_load_secrets_raises_exception_if_file_does_not_exist(mocker, monkeypatch):
-    monkeypatch.setattr(implementation.utils, "does_file_exist", mocker.MagicMock(return_value=False))
+def test_dot_env_load_secrets_raises_exception_if_file_does_not_exist(
+    mocker, monkeypatch
+):
+    monkeypatch.setattr(
+        implementation.utils, "does_file_exist", mocker.MagicMock(return_value=False)
+    )
 
     dot_env_secret = DotEnvSecrets(location="here")
 
@@ -42,28 +48,42 @@ def test_dot_env_load_secrets_raises_exception_if_file_does_not_exist(mocker, mo
         dot_env_secret._load_secrets()
 
 
-def test_dot_env_load_secrets_raises_exception_if_secret_formatting_is_invalid(mocker, monkeypatch):
-    monkeypatch.setattr(implementation.utils, "does_file_exist", mocker.MagicMock(return_value=True))
+def test_dot_env_load_secrets_raises_exception_if_secret_formatting_is_invalid(
+    mocker, monkeypatch
+):
+    monkeypatch.setattr(
+        implementation.utils, "does_file_exist", mocker.MagicMock(return_value=True)
+    )
 
     dot_env_secret = DotEnvSecrets(location="here")
 
-    with pytest.raises(Exception, match="A secret should be of format, secret_name=secret_value"):
+    with pytest.raises(
+        Exception, match="A secret should be of format, secret_name=secret_value"
+    ):
         mocker.patch("builtins.open", mocker.mock_open(read_data="data"))
         dot_env_secret._load_secrets()
 
 
-def test_dot_env_load_secrets_raises_exception_if_secret_formatting_is_invalid_ge_2(mocker, monkeypatch):
-    monkeypatch.setattr(implementation.utils, "does_file_exist", mocker.MagicMock(return_value=True))
+def test_dot_env_load_secrets_raises_exception_if_secret_formatting_is_invalid_ge_2(
+    mocker, monkeypatch
+):
+    monkeypatch.setattr(
+        implementation.utils, "does_file_exist", mocker.MagicMock(return_value=True)
+    )
 
     dot_env_secret = DotEnvSecrets(location="here")
 
-    with pytest.raises(Exception, match="A secret should be of format, secret_name=secret_value"):
+    with pytest.raises(
+        Exception, match="A secret should be of format, secret_name=secret_value"
+    ):
         mocker.patch("builtins.open", mocker.mock_open(read_data="data=data1="))
         dot_env_secret._load_secrets()
 
 
 def test_dot_env_load_secrets_populates_correct_secrets_if_valid(mocker, monkeypatch):
-    monkeypatch.setattr(implementation.utils, "does_file_exist", mocker.MagicMock(return_value=True))
+    monkeypatch.setattr(
+        implementation.utils, "does_file_exist", mocker.MagicMock(return_value=True)
+    )
 
     dot_env_secret = DotEnvSecrets(location="here")
 

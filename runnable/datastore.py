@@ -128,7 +128,9 @@ class ObjectParameter(BaseModel):
         os.remove(self.file_name)  # Remove after loading
 
 
-Parameter = Annotated[Union[JsonParameter, ObjectParameter, MetricParameter], Field(discriminator="kind")]
+Parameter = Annotated[
+    Union[JsonParameter, ObjectParameter, MetricParameter], Field(discriminator="kind")
+]
 
 
 class StepAttempt(BaseModel):
@@ -160,8 +162,12 @@ class CodeIdentity(BaseModel, extra="allow"):
 
     code_identifier: Optional[str] = ""  # GIT sha code or docker image id
     code_identifier_type: Optional[str] = ""  # git or docker
-    code_identifier_dependable: Optional[bool] = False  # If git, checks if the tree is clean.
-    code_identifier_url: Optional[str] = ""  # The git remote url or docker repository url
+    code_identifier_dependable: Optional[bool] = (
+        False  # If git, checks if the tree is clean.
+    )
+    code_identifier_url: Optional[str] = (
+        ""  # The git remote url or docker repository url
+    )
     code_identifier_message: Optional[str] = ""  # Any optional message
 
 
@@ -188,18 +194,28 @@ class StepLog(BaseModel):
         summary: Dict[str, Any] = {}
 
         summary["Name"] = self.internal_name
-        summary["Input catalog content"] = [dc.name for dc in self.data_catalog if dc.stage == "get"]
+        summary["Input catalog content"] = [
+            dc.name for dc in self.data_catalog if dc.stage == "get"
+        ]
         summary["Available parameters"] = [
-            (p, v.description) for attempt in self.attempts for p, v in attempt.input_parameters.items()
+            (p, v.description)
+            for attempt in self.attempts
+            for p, v in attempt.input_parameters.items()
         ]
 
-        summary["Output catalog content"] = [dc.name for dc in self.data_catalog if dc.stage == "put"]
+        summary["Output catalog content"] = [
+            dc.name for dc in self.data_catalog if dc.stage == "put"
+        ]
         summary["Output parameters"] = [
-            (p, v.description) for attempt in self.attempts for p, v in attempt.output_parameters.items()
+            (p, v.description)
+            for attempt in self.attempts
+            for p, v in attempt.output_parameters.items()
         ]
 
         summary["Metrics"] = [
-            (p, v.description) for attempt in self.attempts for p, v in attempt.user_defined_metrics.items()
+            (p, v.description)
+            for attempt in self.attempts
+            for p, v in attempt.user_defined_metrics.items()
         ]
 
         cis = []
@@ -315,10 +331,18 @@ class RunLog(BaseModel):
         summary["Catalog Location"] = _context.catalog_handler.get_summary()
         summary["Full Run log present at: "] = _context.run_log_store.get_summary()
 
-        run_log = _context.run_log_store.get_run_log_by_id(run_id=_context.run_id, full=True)
+        run_log = _context.run_log_store.get_run_log_by_id(
+            run_id=_context.run_id, full=True
+        )
 
-        summary["Final Parameters"] = {p: v.description for p, v in run_log.parameters.items()}
-        summary["Collected metrics"] = {p: v.description for p, v in run_log.parameters.items() if v.kind == "metric"}
+        summary["Final Parameters"] = {
+            p: v.description for p, v in run_log.parameters.items()
+        }
+        summary["Collected metrics"] = {
+            p: v.description
+            for p, v in run_log.parameters.items()
+            if v.kind == "metric"
+        }
 
         return summary
 
@@ -341,7 +365,9 @@ class RunLog(BaseModel):
 
         return list(set(data_catalogs))
 
-    def search_branch_by_internal_name(self, i_name: str) -> Tuple[Union[BranchLog, RunLog], Union[StepLog, None]]:
+    def search_branch_by_internal_name(
+        self, i_name: str
+    ) -> Tuple[Union[BranchLog, RunLog], Union[StepLog, None]]:
         """
         Given a branch internal name, search for it in the run log.
 
@@ -388,7 +414,9 @@ class RunLog(BaseModel):
 
         raise exceptions.BranchLogNotFoundError(self.run_id, i_name)
 
-    def search_step_by_internal_name(self, i_name: str) -> Tuple[StepLog, Union[BranchLog, None]]:
+    def search_step_by_internal_name(
+        self, i_name: str
+    ) -> Tuple[StepLog, Union[BranchLog, None]]:
         """
         Given a steps internal name, search for the step name.
 
@@ -418,7 +446,9 @@ class RunLog(BaseModel):
                 # Its odd, so we are in brach name
                 current_branch = current_step.branches[".".join(dot_path[: i + 1])]  # type: ignore
                 current_steps = current_branch.steps
-                logger.debug(f"Finding step log for {i_name} in branch: {current_branch}")
+                logger.debug(
+                    f"Finding step log for {i_name} in branch: {current_branch}"
+                )
             else:
                 # Its even, so we are in step, we start here!
                 current_step = current_steps[".".join(dot_path[: i + 1])]
@@ -444,8 +474,7 @@ class BaseRunLogStore(ABC, BaseModel):
     service_type: str = "run_log_store"
 
     @abstractmethod
-    def get_summary(self) -> Dict[str, Any]:
-        ...
+    def get_summary(self) -> Dict[str, Any]: ...
 
     @property
     def _context(self):
@@ -632,7 +661,9 @@ class BaseRunLogStore(ABC, BaseModel):
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
             StepLogNotFoundError: If the step log for internal_name is not found in the datastore for run_id
         """
-        logger.info(f"{self.service_name} Getting the step log: {internal_name} of {run_id}")
+        logger.info(
+            f"{self.service_name} Getting the step log: {internal_name} of {run_id}"
+        )
         run_log = self.get_run_log_by_id(run_id=run_id)
         step_log, _ = run_log.search_step_by_internal_name(internal_name)
         return step_log
@@ -678,10 +709,14 @@ class BaseRunLogStore(ABC, BaseModel):
             BranchLog: Uncommitted and initialized with defaults BranchLog object
         """
         # Create a new BranchLog
-        logger.info(f"{self.service_name} Creating a Branch Log : {internal_branch_name}")
+        logger.info(
+            f"{self.service_name} Creating a Branch Log : {internal_branch_name}"
+        )
         return BranchLog(internal_name=internal_branch_name, status=defaults.CREATED)
 
-    def get_branch_log(self, internal_branch_name: str, run_id: str, **kwargs) -> Union[BranchLog, RunLog]:
+    def get_branch_log(
+        self, internal_branch_name: str, run_id: str, **kwargs
+    ) -> Union[BranchLog, RunLog]:
         """
         Returns the branch log by the internal branch name for the run id
 
@@ -700,7 +735,9 @@ class BaseRunLogStore(ABC, BaseModel):
         branch, _ = run_log.search_branch_by_internal_name(internal_branch_name)
         return branch
 
-    def add_branch_log(self, branch_log: Union[BranchLog, RunLog], run_id: str, **kwargs):
+    def add_branch_log(
+        self, branch_log: Union[BranchLog, RunLog], run_id: str, **kwargs
+    ):
         """
         The method should:
         # Get the run log
@@ -778,7 +815,9 @@ class BufferRunLogstore(BaseRunLogStore):
     """
 
     service_name: str = "buffered"
-    run_log: Optional[RunLog] = Field(default=None, exclude=True)  # For a buffered Run Log, this is the database
+    run_log: Optional[RunLog] = Field(
+        default=None, exclude=True
+    )  # For a buffered Run Log, this is the database
 
     def get_summary(self) -> Dict[str, Any]:
         summary = {"Type": self.service_name, "Location": "Not persisted"}
@@ -829,5 +868,7 @@ class BufferRunLogstore(BaseRunLogStore):
         # Puts the run log in the db
         # Raises Exception if not found
         """
-        logger.info(f"{self.service_name} Putting the run log in the DB: {run_log.run_id}")
+        logger.info(
+            f"{self.service_name} Putting the run log in the DB: {run_log.run_id}"
+        )
         self.run_log = run_log

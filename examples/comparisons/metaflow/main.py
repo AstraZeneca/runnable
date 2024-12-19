@@ -46,7 +46,11 @@ def train(model, train_loader, optimizer, epoch):
         optimizer.step()
         if idx * len(data) % 10000 == 0:
             out = "Train Epoch: " + "{} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                epoch, idx * len(data), len(train_loader.dataset), 100.0 * idx / len(train_loader), loss.item()
+                epoch,
+                idx * len(data),
+                len(train_loader.dataset),
+                100.0 * idx / len(train_loader),
+                loss.item(),
             )
             print(out)
 
@@ -65,9 +69,13 @@ def test(model, test_loader):
 
 
 def get_data_loaders(name="train"):
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
     if name == "train":
-        dataset = datasets.MNIST("../data", train=True, download=True, transform=transform)
+        dataset = datasets.MNIST(
+            "../data", train=True, download=True, transform=transform
+        )
         train_args = {"batch_size": 32}
         return dataset, train_args
     elif name == "test":

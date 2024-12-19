@@ -16,6 +16,7 @@ dependencies = [
     "rich>=13.9.4",
     "dill>=0.3.9",
     "setuptools>=75.6.0",
+    "python-dotenv>=1.0.1",
 ]
 
 [project.scripts]
@@ -53,8 +54,19 @@ docs = [
     "mkdocstrings-python>=1.12.2",
 ]
 
+[tool.uv.workspace]
+members = ["extensions/*"]
+
+[tool.uv.sources]
+nodes = {workspace = true}
+secrets = {workspace = true}
+catalog = {workspace = true}
+run_log_store = {workspace = true}
+executor = {workspace = true}
+
+
 [project.entry-points.'executor']
-"local" = "runnable.extensions.executor.local:LocalExecutor"
+"local" = "extensions.executor.local:LocalExecutor"
 "local-container" = "runnable.extensions.executor.local_container.implementation:LocalContainerExecutor"
 "argo" = "runnable.extensions.executor.argo.implementation:ArgoExecutor"
 "mocked" = "runnable.extensions.executor.mocked.implementation:MockedExecutor"
@@ -62,17 +74,17 @@ docs = [
 
 [project.entry-points.'secrets']
 "do-nothing" = "runnable.secrets:DoNothingSecretManager"
-"dotenv" = "runnable.extensions.secrets.dotenv.implementation:DotEnvSecrets"
+"dotenv" = "extensions.secrets.dotenv:DotEnvSecrets"
 "env-secrets" = "runnable.secrets:EnvSecretsManager"
 
 [project.entry-points.'catalog']
 "do-nothing" = "runnable.catalog:DoNothingCatalog"
-"file-system" = "runnable.extensions.catalog.file_system.implementation:FileSystemCatalog"
+"file-system" = "extensions.catalog.file_system:FileSystemCatalog"
 
 [project.entry-points.'run_log_store']
 "buffered" = "runnable.datastore:BufferRunLogstore"
-"file-system" = "runnable.extensions.run_log_store.file_system.implementation:FileSystemRunLogstore"
-"chunked-fs" = "runnable.extensions.run_log_store.chunked_file_system.implementation:ChunkedFileSystemRunLogStore"
+file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
+"chunked-fs" = "extensions.run_log_store.chunked_file_system.implementation:ChunkedFileSystemRunLogStore"
 
 [project.entry-points.'pickler']
 "pickle" = "runnable.pickler:NativePickler"
@@ -81,13 +93,13 @@ docs = [
 # left empty for now
 
 [project.entry-points.'nodes']
-"task" = "runnable.extensions.nodes:TaskNode"
-"fail" = "runnable.extensions.nodes:FailNode"
-"success" = "runnable.extensions.nodes:SuccessNode"
-"parallel" = "runnable.extensions.nodes:ParallelNode"
-"map" = "runnable.extensions.nodes:MapNode"
-"dag" = "runnable.extensions.nodes:DagNode"
-"stub" = "runnable.extensions.nodes:StubNode"
+"task" = "extensions.nodes.nodes:TaskNode"
+"fail" = "extensions.nodes.nodes:FailNode"
+"success" = "extensions.nodes.nodes:SuccessNode"
+"parallel" = "extensions.nodes.nodes:ParallelNode"
+"map" = "extensions.nodes.nodes:MapNode"
+"dag" = "extensions.nodes.nodes:DagNode"
+"stub" = "extensions.nodes.nodes:StubNode"
 
 [project.entry-points.'tasks']
 "python" = "runnable.tasks:PythonTaskType"

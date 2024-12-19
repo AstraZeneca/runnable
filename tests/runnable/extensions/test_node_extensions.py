@@ -11,7 +11,9 @@ def instantiable_base_class(monkeypatch):
     yield
 
 
-def test_task_node_parse_from_config_seperates_task_from_node_confifg(mocker, monkeypatch):
+def test_task_node_parse_from_config_seperates_task_from_node_confifg(
+    mocker, monkeypatch
+):
     base_task = BaseTaskType(task_type="dummy")
     mock_create_task = mocker.MagicMock(return_value=base_task)
 
@@ -34,10 +36,14 @@ def test_task_node_mocks_if_mock_is_true(mocker, monkeypatch):
     mock_context = mocker.MagicMock()
 
     monkeypatch.setattr(nodes.TaskNode, "_context", mock_context)
-    mock_context.run_log_store.create_attempt_log = mocker.MagicMock(return_value=mock_attempt_log)
+    mock_context.run_log_store.create_attempt_log = mocker.MagicMock(
+        return_value=mock_attempt_log
+    )
 
     base_task = BaseTaskType(task_type="dummy")
-    task_node = nodes.TaskNode(name="test", internal_name="test", next_node="next_node", executable=base_task)
+    task_node = nodes.TaskNode(
+        name="test", internal_name="test", next_node="next_node", executable=base_task
+    )
 
     attempt_log = task_node.execute(mock=True)
 
@@ -65,7 +71,9 @@ def test_parallel_node_parse_from_config_creates_sub_graph(mocker, monkeypatch):
         assert branch == graph
 
 
-def test_parallel_node_parse_from_config_raises_exception_if_no_branches(mocker, monkeypatch):
+def test_parallel_node_parse_from_config_raises_exception_if_no_branches(
+    mocker, monkeypatch
+):
     config = {
         "branches": {},
         "next_node": "next_node",
@@ -127,25 +135,41 @@ def test_dag_node_fails_non_yaml_dag_definition(mocker, monkeypatch):
     graph = nodes.Graph(start_at="first", name="first_branch")
 
     with pytest.raises(ValueError, match="dag_definition must be a YAML"):
-        _ = nodes.DagNode(name="test", internal_name="test", next_node="next", dag_definition="notanyaml", branch=graph)
+        _ = nodes.DagNode(
+            name="test",
+            internal_name="test",
+            next_node="next",
+            dag_definition="notanyaml",
+            branch=graph,
+        )
 
 
 def test_dag_node_sets_internal_branch_name(mocker, monkeypatch):
     graph = nodes.Graph(start_at="first", name="first_branch")
 
-    node = nodes.DagNode(name="test", internal_name="test", next_node="next", dag_definition="a.yaml", branch=graph)
+    node = nodes.DagNode(
+        name="test",
+        internal_name="test",
+        next_node="next",
+        dag_definition="a.yaml",
+        branch=graph,
+    )
 
     assert node.internal_branch_name == f"test.{defaults.DAG_BRANCH_NAME}"
 
 
-def test_dag_node_parse_config_raises_exception_if_dag_definition_is_not_part_of_config(mocker, monkeypatch):
+def test_dag_node_parse_config_raises_exception_if_dag_definition_is_not_part_of_config(
+    mocker, monkeypatch
+):
     config = {}
 
     with pytest.raises(Exception, match="No dag definition found in"):
         _ = nodes.DagNode.parse_from_config(config=config)
 
 
-def test_dag_node_parse_config_raises_exception_if_dag_definition_is_not_yaml(mocker, monkeypatch):
+def test_dag_node_parse_config_raises_exception_if_dag_definition_is_not_yaml(
+    mocker, monkeypatch
+):
     monkeypatch.setattr(nodes.utils, "load_yaml", mocker.MagicMock(return_value={}))
 
     config = {"dag_definition": "notanyaml"}
@@ -159,7 +183,11 @@ def test_parse_config_calls_create_graph(mocker, monkeypatch):
     mock_create_graph = mocker.MagicMock(return_value=graph)
 
     monkeypatch.setattr(nodes, "create_graph", mock_create_graph)
-    monkeypatch.setattr(nodes.utils, "load_yaml", mocker.MagicMock(return_value={"dag": {"name": "test"}}))
+    monkeypatch.setattr(
+        nodes.utils,
+        "load_yaml",
+        mocker.MagicMock(return_value={"dag": {"name": "test"}}),
+    )
 
     config = {
         "next_node": "next_node",
@@ -179,7 +207,11 @@ def test_dag_node_get_branch_by_name_returns_branch(mocker, monkeypatch):
     mock_create_graph = mocker.MagicMock(return_value=graph)
 
     monkeypatch.setattr(nodes, "create_graph", mock_create_graph)
-    monkeypatch.setattr(nodes.utils, "load_yaml", mocker.MagicMock(return_value={"dag": {"name": "test"}}))
+    monkeypatch.setattr(
+        nodes.utils,
+        "load_yaml",
+        mocker.MagicMock(return_value={"dag": {"name": "test"}}),
+    )
 
     config = {
         "next_node": "next_node",
@@ -193,12 +225,18 @@ def test_dag_node_get_branch_by_name_returns_branch(mocker, monkeypatch):
     assert dag_node._get_branch_by_name(f"parent.{defaults.DAG_BRANCH_NAME}") == graph
 
 
-def test_dag_node_get_branch_by_name_raises_exception_if_incorrect_name(mocker, monkeypatch):
+def test_dag_node_get_branch_by_name_raises_exception_if_incorrect_name(
+    mocker, monkeypatch
+):
     graph = nodes.Graph(start_at="first", name="first_branch")
     mock_create_graph = mocker.MagicMock(return_value=graph)
 
     monkeypatch.setattr(nodes, "create_graph", mock_create_graph)
-    monkeypatch.setattr(nodes.utils, "load_yaml", mocker.MagicMock(return_value={"dag": {"name": "test"}}))
+    monkeypatch.setattr(
+        nodes.utils,
+        "load_yaml",
+        mocker.MagicMock(return_value={"dag": {"name": "test"}}),
+    )
 
     config = {
         "next_node": "next_node",

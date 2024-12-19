@@ -71,9 +71,15 @@ def build_model(train_params: TrainParams, num_classes: int):
     model = keras.Sequential(
         [
             keras.Input(shape=train_params.input_shape),
-            layers.Conv2D(32, train_params.kernel_size, activation=train_params.conv_activation),
+            layers.Conv2D(
+                32, train_params.kernel_size, activation=train_params.conv_activation
+            ),
             layers.MaxPooling2D(pool_size=train_params.pool_size),
-            layers.Conv2D(64, kernel_size=train_params.kernel_size, activation=train_params.conv_activation),
+            layers.Conv2D(
+                64,
+                kernel_size=train_params.kernel_size,
+                activation=train_params.conv_activation,
+            ),
             layers.MaxPooling2D(pool_size=train_params.pool_size),
             layers.Flatten(),
             layers.Dropout(0.5),
@@ -106,7 +112,11 @@ def build_baseline_model(baseline_params: BaseLineParams, num_classes: int):
         )
     )
 
-    model.compile(loss=baseline_params.loss, optimizer=baseline_params.optimizer, metrics=baseline_params.metrics)
+    model.compile(
+        loss=baseline_params.loss,
+        optimizer=baseline_params.optimizer,
+        metrics=baseline_params.metrics,
+    )
     print(model.summary())
 
     model.save("baseline_model.keras")
@@ -116,7 +126,11 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, train_params: TrainPar
     import keras
 
     model = keras.models.load_model("model.keras")
-    model.compile(loss=train_params.loss, optimizer=train_params.optimizer, metrics=train_params.metrics)
+    model.compile(
+        loss=train_params.loss,
+        optimizer=train_params.optimizer,
+        metrics=train_params.metrics,
+    )
 
     model.fit(
         x_train,
@@ -129,13 +143,21 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, train_params: TrainPar
     model.save("trained_model.keras")
 
 
-def train_baseline_model(x_train: np.ndarray, y_train: np.ndarray, train_params: BaseLineParams):
+def train_baseline_model(
+    x_train: np.ndarray, y_train: np.ndarray, train_params: BaseLineParams
+):
     import keras
 
     model = keras.models.load_model("baseline_model.keras")
-    model.compile(loss=train_params.loss, optimizer=train_params.optimizer, metrics=train_params.metrics)
+    model.compile(
+        loss=train_params.loss,
+        optimizer=train_params.optimizer,
+        metrics=train_params.metrics,
+    )
 
-    _x_train = x_train.reshape(x_train.shape[0], train_params.num_pixels).astype("float32")
+    _x_train = x_train.reshape(x_train.shape[0], train_params.num_pixels).astype(
+        "float32"
+    )
     # _y_train = y_train.reshape(y_train.shape[0], train_params.num_pixels).astype("float32")
 
     model.fit(
@@ -161,7 +183,9 @@ def evaluate_model(x_test: np.ndarray, y_test: np.ndarray):
     return score
 
 
-def evaluate_baseline_model(x_test: np.ndarray, y_test: np.ndarray, train_params: BaseLineParams):
+def evaluate_baseline_model(
+    x_test: np.ndarray, y_test: np.ndarray, train_params: BaseLineParams
+):
     import keras
 
     trained_model = keras.models.load_model("trained_baseline_model.keras")
@@ -182,7 +206,12 @@ def main():
     load_data_task = PythonTask(
         function=load_data,
         name="load_data",
-        returns=[pickled("x_train"), pickled("y_train"), pickled("x_test"), pickled("y_test")],
+        returns=[
+            pickled("x_train"),
+            pickled("y_train"),
+            pickled("x_test"),
+            pickled("y_test"),
+        ],
     )
 
     # def scale_data(x_train: np.ndarray, x_test: np.ndarray)
@@ -248,9 +277,15 @@ def main():
         terminate_with_success=True,
     )
 
-    train_pipeline = Pipeline(steps=[build_model_task, train_model_task, evaluate_model_task])
+    train_pipeline = Pipeline(
+        steps=[build_model_task, train_model_task, evaluate_model_task]
+    )
     baseline_train = Pipeline(
-        steps=[build_baseline_model_task, train_baseline_model_task, evaluate_baseline_model_task]
+        steps=[
+            build_baseline_model_task,
+            train_baseline_model_task,
+            evaluate_baseline_model_task,
+        ]
     )
 
     parallel_step = Parallel(

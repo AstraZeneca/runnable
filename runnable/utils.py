@@ -86,7 +86,9 @@ def generate_run_id(run_id: str = "") -> str:
     return run_id
 
 
-def apply_variables(apply_to: Dict[str, Any], variables: Dict[str, str]) -> Dict[str, Any]:
+def apply_variables(
+    apply_to: Dict[str, Any], variables: Dict[str, str]
+) -> Dict[str, Any]:
     """Safely applies the variables to a config.
 
     For example: For config:
@@ -272,7 +274,9 @@ def get_local_docker_image_id(image_name: str) -> str:
         image = client.images.get(image_name)
         return image.attrs["Id"]
     except ImportError:  # pragma: no cover
-        logger.warning("Did not find docker installed, some functionality might be affected")
+        logger.warning(
+            "Did not find docker installed, some functionality might be affected"
+        )
     except BaseException:
         logger.exception(f"Could not find the image by name {image_name}")
 
@@ -295,7 +299,9 @@ def get_git_code_identity():
         code_identity.code_identifier_dependable, changed = is_git_clean()
         code_identity.code_identifier_url = get_git_remote()
         if changed:
-            code_identity.code_identifier_message = "changes found in " + ", ".join(changed.split("\n"))
+            code_identity.code_identifier_message = "changes found in " + ", ".join(
+                changed.split("\n")
+            )
     except BaseException:
         logger.exception("Git code versioning problems")
 
@@ -331,7 +337,9 @@ def get_tracked_data() -> Dict[str, str]:
             try:
                 tracked_data[key.lower()] = json.loads(value)
             except json.decoder.JSONDecodeError:
-                logger.warning(f"Tracker {key} could not be JSON decoded, adding the literal value")
+                logger.warning(
+                    f"Tracker {key} could not be JSON decoded, adding the literal value"
+                )
                 tracked_data[key.lower()] = value
 
             del os.environ[env_var]
@@ -389,7 +397,9 @@ def get_data_hash(file_name: str):
         str: The SHA ID of the file contents
     """
     # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
-    return hash_bytestr_iter(file_as_blockiter(open(file_name, "rb")), hashlib.sha256())  # pragma: no cover
+    return hash_bytestr_iter(
+        file_as_blockiter(open(file_name, "rb")), hashlib.sha256()
+    )  # pragma: no cover
 
 
 def get_node_execution_command(
@@ -415,7 +425,11 @@ def get_node_execution_command(
 
     log_level = log_level or logging.getLevelName(logger.getEffectiveLevel())
 
-    action = f"runnable execute_single_node {run_id} " f"{node._command_friendly_name()}" f" --log-level {log_level}"
+    action = (
+        f"runnable execute_single_node {run_id} "
+        f"{node._command_friendly_name()}"
+        f" --log-level {log_level}"
+    )
 
     if context.run_context.pipeline_file:
         action = action + f" --file {context.run_context.pipeline_file}"
@@ -520,7 +534,9 @@ def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> st
     return action
 
 
-def get_provider_by_name_and_type(service_type: str, service_details: defaults.ServiceConfig):
+def get_provider_by_name_and_type(
+    service_type: str, service_details: defaults.ServiceConfig
+):
     """Given a service type, one of executor, run_log_store, catalog, secrets and the config
     return the exact child class implementing the service.
     We use stevedore to do the work for us.
@@ -542,7 +558,9 @@ def get_provider_by_name_and_type(service_type: str, service_details: defaults.S
     if "config" in service_details:
         service_config = service_details.get("config", {})
 
-    logger.debug(f"Trying to get a service of {service_type} of the name {service_name} with config: {service_config}")
+    logger.debug(
+        f"Trying to get a service of {service_type} of the name {service_name} with config: {service_config}"
+    )
     try:
         mgr = driver.DriverManager(
             namespace=namespace,
@@ -552,8 +570,12 @@ def get_provider_by_name_and_type(service_type: str, service_details: defaults.S
         )
         return mgr.driver
     except Exception as _e:
-        logger.exception(f"Could not find the service of type: {service_type} with config: {service_details}")
-        raise Exception(f"Could not find the service of type: {service_type} with config: {service_details}") from _e
+        logger.exception(
+            f"Could not find the service of type: {service_type} with config: {service_details}"
+        )
+        raise Exception(
+            f"Could not find the service of type: {service_type} with config: {service_details}"
+        ) from _e
 
 
 def get_run_config() -> dict:
@@ -585,7 +607,9 @@ def json_to_ordered_dict(json_str: str) -> TypeMapVariable:
     return OrderedDict()
 
 
-def set_runnable_environment_variables(run_id: str = "", configuration_file: str = "", tag: str = "") -> None:
+def set_runnable_environment_variables(
+    run_id: str = "", configuration_file: str = "", tag: str = ""
+) -> None:
     """Set the environment variables used by runnable. This function should be called during the prepare configurations
     by all executors.
 

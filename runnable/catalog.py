@@ -26,8 +26,7 @@ class BaseCatalog(ABC, BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     @abstractmethod
-    def get_summary(self) -> Dict[str, Any]:
-        ...
+    def get_summary(self) -> Dict[str, Any]: ...
 
     @property
     def _context(self):
@@ -38,7 +37,9 @@ class BaseCatalog(ABC, BaseModel):
         return defaults.COMPUTE_DATA_FOLDER
 
     @abstractmethod
-    def get(self, name: str, run_id: str, compute_data_folder: str = "", **kwargs) -> List[DataCatalog]:
+    def get(
+        self, name: str, run_id: str, compute_data_folder: str = "", **kwargs
+    ) -> List[DataCatalog]:
         """
         Get the catalog item by 'name' for the 'run id' and store it in compute data folder.
 
@@ -119,7 +120,9 @@ class DoNothingCatalog(BaseCatalog):
     def get_summary(self) -> Dict[str, Any]:
         return {}
 
-    def get(self, name: str, run_id: str, compute_data_folder: str = "", **kwargs) -> List[DataCatalog]:
+    def get(
+        self, name: str, run_id: str, compute_data_folder: str = "", **kwargs
+    ) -> List[DataCatalog]:
         """
         Does nothing
         """
