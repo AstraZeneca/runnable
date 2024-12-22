@@ -1,7 +1,7 @@
 import pytest
 
+from extensions.nodes import nodes
 from runnable import sdk
-from runnable.extensions import nodes
 
 
 def test_success_init():

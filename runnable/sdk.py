@@ -26,7 +26,6 @@ from rich.progress import (
 from rich.table import Column
 from typing_extensions import Self
 
-from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from extensions.nodes.nodes import (
     FailNode,
     MapNode,
@@ -35,8 +34,11 @@ from extensions.nodes.nodes import (
     SuccessNode,
     TaskNode,
 )
+from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.nodes import TraversalNode
 from runnable.tasks import TaskReturns
+
+# TODO: This might have to be an extension
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 

@@ -34,13 +34,3 @@ from runnable.sdk import (  # noqa
 
 # Needed to disable ploomber telemetry
 os.environ["PLOOMBER_STATS_ENABLED"] = "false"
-
-## TODO: Summary should be a bit better for catalog.
-## If the execution fails, hint them about the retry executor.
-# Make the retry executor loose!
-
-# TODO: Think of model registry as a central place to store models.
-# TODO: Implement Sagemaker pipelines as a executor.
-
-
-# TODO: Think of way of generating dag hash without executor configuration

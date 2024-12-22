@@ -1,10 +1,11 @@
-import pytest
-import tempfile
 import os
+import tempfile
 
+import pytest
+
+import extensions.catalog.file_system as implementation
+from extensions.catalog.file_system.implementation import FileSystemCatalog
 from runnable import defaults
-from runnable.extensions.catalog.file_system.implementation import FileSystemCatalog
-import runnable.extensions.catalog.file_system.implementation as implementation
 
 
 def test_file_system_catalog_inits_default_values_if_none_config():

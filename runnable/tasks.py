@@ -31,7 +31,7 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
-# TODO: Can we add memory peak, cpu usage, etc. to the metrics?
+# TODO: This has to be an extension
 
 
 class TaskReturns(BaseModel):

@@ -1,11 +1,10 @@
 import pytest
 
+from extensions.nodes.nodes import FailNode, StubNode, SuccessNode
 from runnable import (
-    defaults,  # pylint: disable=import-error
     exceptions,  # pylint: disable=import-error
     graph,  # pylint: disable=import-error
 )
-from runnable.extensions.nodes import StubNode, FailNode, SuccessNode
 
 
 def get_new_graph(start_at="this", internal_branch_name="i_name"):

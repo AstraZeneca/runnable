@@ -14,7 +14,7 @@ from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph
 
 if TYPE_CHECKING:  # pragma: no cover
-    from runnable.extensions.nodes import TaskNode
+    from extensions.nodes.nodes import TaskNode
     from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -40,7 +40,8 @@ class BaseExecutor(ABC, BaseModel):
         False  # This is a flag to indicate whether the executor is local or not.
     )
 
-    _context_node = None  # type: BaseNode
+    # TODO: Change this to _is_local
+    _context_node: Optional[BaseNode] = None
     model_config = ConfigDict(extra="forbid")
 
     @property

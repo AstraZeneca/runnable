@@ -21,7 +21,7 @@ from runnable import defaults, names
 from runnable.defaults import TypeMapVariable
 
 if TYPE_CHECKING:  # pragma: no cover
-    from runnable.extensions.nodes import TaskNode
+    from extensions.nodes.nodes import TaskNode
     from runnable.nodes import BaseNode
 
 
@@ -397,11 +397,13 @@ def get_data_hash(file_name: str):
         str: The SHA ID of the file contents
     """
     # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
+    # TODO: For a big file, we should only hash the first few bytes
     return hash_bytestr_iter(
         file_as_blockiter(open(file_name, "rb")), hashlib.sha256()
     )  # pragma: no cover
 
 
+# TODO: This is not the right place for this.
 def get_node_execution_command(
     node: BaseNode,
     map_variable: TypeMapVariable = None,
@@ -449,6 +451,7 @@ def get_node_execution_command(
     return action
 
 
+# TODO: This is not the right place for this.
 def get_fan_command(
     mode: str,
     node: BaseNode,
@@ -492,6 +495,7 @@ def get_fan_command(
     return action
 
 
+# TODO: This is not the right place for this.
 def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> str:
     """Get the execution command to run a job via command line.
 

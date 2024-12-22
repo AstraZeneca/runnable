@@ -148,4 +148,3 @@ class DoNothingCatalog(BaseCatalog):
         Does nothing
         """
         logger.info("Using a do-nothing catalog, doing nothing while sync between runs")
-        ...

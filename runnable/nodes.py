@@ -188,7 +188,6 @@ class BaseNode(ABC, BaseModel):
             str: The on_failure node defined by the dag or ''
         This is a base implementation which the BaseNode does not satisfy
         """
-        ...
 
     @abstractmethod
     def _get_next_node(self) -> str:
@@ -198,7 +197,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             str: The node name, relative to the dag, as defined by the config
         """
-        ...
 
     @abstractmethod
     def _is_terminal_node(self) -> bool:
@@ -208,7 +206,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             bool: True or False of whether there is next node.
         """
-        ...
 
     @abstractmethod
     def _get_catalog_settings(self) -> Dict[str, Any]:
@@ -218,7 +215,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             dict: catalog settings defined as per the node or None
         """
-        ...
 
     @abstractmethod
     def _get_branch_by_name(self, branch_name: str):
@@ -233,7 +229,6 @@ class BaseNode(ABC, BaseModel):
         Raises:
             Exception: [description]
         """
-        ...
 
     def _get_neighbors(self) -> List[str]:
         """
@@ -269,7 +264,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             dict: The executor config, if defined or an empty dict
         """
-        ...
 
     @abstractmethod
     def _get_max_attempts(self) -> int:
@@ -279,7 +273,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             int: The number of maximum retries as defined by the config or 1.
         """
-        ...
 
     @abstractmethod
     def execute(
@@ -304,7 +297,6 @@ class BaseNode(ABC, BaseModel):
         Raises:
             NotImplementedError: Base class, hence not implemented.
         """
-        ...
 
     @abstractmethod
     def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
@@ -320,7 +312,6 @@ class BaseNode(ABC, BaseModel):
         Raises:
             NotImplementedError: Base class, hence not implemented.
         """
-        ...
 
     @abstractmethod
     def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
@@ -337,7 +328,6 @@ class BaseNode(ABC, BaseModel):
         Raises:
             Exception: If the node is not a composite node.
         """
-        ...
 
     @abstractmethod
     def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
@@ -354,7 +344,6 @@ class BaseNode(ABC, BaseModel):
         Raises:
             Exception: If the node is not a composite node.
         """
-        ...
 
     @classmethod
     @abstractmethod
@@ -368,7 +357,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             BaseNode: The corresponding node.
         """
-        ...
 
     @abstractmethod
     def get_summary(self) -> Dict[str, Any]:

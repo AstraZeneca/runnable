@@ -18,7 +18,6 @@ from typing import (
 
 from pydantic import BaseModel, Field, computed_field
 
-import runnable.context as context
 from runnable import defaults, exceptions
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -56,15 +55,9 @@ class DataCatalog(BaseModel, extra="allow"):
         return other.name == self.name
 
 
-class SoftDataCatalog(BaseModel, extra="forbid"):
-    source: str
-    version: Optional[str] = None
-
-
 # The theory behind reduced:
 #     parameters returned by steps in map node are only reduced by the end of the map step, fan-in.
 #     If they are accessed within the map step, the value should be the value returned by the step in the map step.
-
 #     Once the map state is complete, we can set the reduce to true and have the value as
 #     the reduced value. Its either a list or a custom function return.
 
@@ -459,10 +452,6 @@ class RunLog(BaseModel):
             return current_step, current_branch
 
         raise exceptions.StepLogNotFoundError(self.run_id, i_name)
-
-
-# All outside modules should interact with dataclasses using the RunLogStore to promote extensibility
-# If you want to customize dataclass, extend BaseRunLogStore and implement the methods as per the specification
 
 
 class BaseRunLogStore(ABC, BaseModel):
@@ -872,3 +861,6 @@ class BufferRunLogstore(BaseRunLogStore):
             f"{self.service_name} Putting the run log in the DB: {run_log.run_id}"
         )
         self.run_log = run_log
+
+
+import runnable.context as context  # noqa: F401, E402

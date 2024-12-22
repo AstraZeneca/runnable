@@ -17,6 +17,7 @@ dependencies = [
     "dill>=0.3.9",
     "setuptools>=75.6.0",
     "python-dotenv>=1.0.1",
+    "typer>=0.15.1",
 ]
 
 [project.scripts]
