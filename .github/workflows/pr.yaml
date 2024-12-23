@@ -7,6 +7,8 @@ on:
       - "mkdocs.yml"
     branches:
       - "main"
+  workflow_dispatch:
+  workflow_call:
 
 jobs:
   PRCheck:

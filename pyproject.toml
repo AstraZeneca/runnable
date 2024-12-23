@@ -23,7 +23,6 @@ dependencies = [
     "catalog",
     "run_log_store",
     "executor",
-
 ]
 
 [project.scripts]
@@ -38,6 +37,9 @@ notebook = [
 ]
 examples = [
     "pandas>=2.2.3",
+]
+release = [
+    "python-semantic-release>=9.15.2",
 ]
 
 [build-system]
