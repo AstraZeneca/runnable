@@ -537,8 +537,9 @@ def fan(
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
     node_to_execute, _ = graph.search_node_by_internal_name(
-        run_context.dag, step_internal_name
-    )  # type: ignore
+        run_context.dag,  # type: ignore
+        step_internal_name,
+    )
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 

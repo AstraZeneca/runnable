@@ -19,10 +19,10 @@ from pydantic.functional_serializers import PlainSerializer
 from ruamel.yaml import YAML
 from typing_extensions import Annotated
 
+from extensions.executor import GenericExecutor
+from extensions.nodes.nodes import DagNode, MapNode, ParallelNode
 from runnable import defaults, exceptions, integration, utils
 from runnable.defaults import TypeMapVariable
-from runnable.extensions.executor import GenericExecutor
-from runnable.extensions.nodes import DagNode, MapNode, ParallelNode
 from runnable.graph import Graph, create_node, search_node_by_internal_name
 from runnable.integration import BaseIntegration
 from runnable.nodes import BaseNode
@@ -623,8 +623,9 @@ class MetaData(BaseModel):
     generate_name: str = Field(
         default="runnable-dag-", serialization_alias="generateName"
     )
-    annotations: Optional[Dict[str, str]] = Field(default_factory=dict)
-    labels: Optional[Dict[str, str]] = Field(default_factory=dict)
+    # The type ignore is related to: https://github.com/python/mypy/issues/18191
+    annotations: Optional[Dict[str, str]] = Field(default_factory=dict)  # type: ignore
+    labels: Optional[Dict[str, str]] = Field(default_factory=dict)  # type: ignore
     namespace: Optional[str] = Field(default=None)
 
 
@@ -632,7 +633,8 @@ class Spec(BaseModel):
     active_deadline_seconds: int = Field(serialization_alias="activeDeadlineSeconds")
     entrypoint: str = Field(default="runnable-dag")
     node_selector: Optional[Dict[str, str]] = Field(
-        default_factory=dict, serialization_alias="nodeSelector"
+        default_factory=dict,  # type: ignore
+        serialization_alias="nodeSelector",
     )
     tolerations: Optional[List[Toleration]] = Field(
         default=None, serialization_alias="tolerations"
@@ -640,7 +642,7 @@ class Spec(BaseModel):
     parallelism: Optional[int] = Field(default=None, serialization_alias="parallelism")
 
     # TODO: This has to be user driven
-    pod_gc: Dict[str, str] = Field(
+    pod_gc: Dict[str, str] = Field(  # type ignore
         default={"strategy": "OnPodSuccess", "deleteDelayDuration": "600s"},
         serialization_alias="podGC",
     )
@@ -655,7 +657,7 @@ class Spec(BaseModel):
         default=None, serialization_alias="templateDefaults"
     )
 
-    arguments: Optional[List[EnvVar]] = Field(default_factory=list)
+    arguments: Optional[List[EnvVar]] = Field(default_factory=list)  # type: ignore
     persistent_volumes: List[UserVolumeMounts] = Field(
         default_factory=list, exclude=True
     )

@@ -5,11 +5,11 @@ from typing import Dict, cast
 from pydantic import Field
 from rich import print
 
+from extensions.executor import GenericExecutor
+from extensions.nodes.nodes import TaskNode
 from runnable import console, defaults, task_console, utils
 from runnable.datastore import StepLog
 from runnable.defaults import TypeMapVariable
-from runnable.extensions.executor import GenericExecutor
-from runnable.extensions.nodes import TaskNode
 from runnable.integration import BaseIntegration
 from runnable.nodes import BaseNode
 
@@ -323,9 +323,7 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
     service_provider = "file-system"  # The actual implementation of the service
 
     def configure_for_traversal(self, **kwargs):
-        from runnable.extensions.run_log_store.file_system.implementation import (
-            FileSystemRunLogstore,
-        )
+        from extensions.run_log_store.file_system import FileSystemRunLogstore
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(FileSystemRunLogstore, self.service)
@@ -337,9 +335,7 @@ class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
         }
 
     def configure_for_execution(self, **kwargs):
-        from runnable.extensions.run_log_store.file_system.implementation import (
-            FileSystemRunLogstore,
-        )
+        from extensions.run_log_store.file_system import FileSystemRunLogstore
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(FileSystemRunLogstore, self.service)
@@ -357,9 +353,7 @@ class LocalContainerComputeChunkedFS(BaseIntegration):
     service_provider = "chunked-fs"  # The actual implementation of the service
 
     def configure_for_traversal(self, **kwargs):
-        from runnable.extensions.run_log_store.chunked_file_system.implementation import (
-            ChunkedFileSystemRunLogStore,
-        )
+        from extensions.run_log_store.chunked_fs import ChunkedFileSystemRunLogStore
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(ChunkedFileSystemRunLogStore, self.service)
@@ -371,9 +365,7 @@ class LocalContainerComputeChunkedFS(BaseIntegration):
         }
 
     def configure_for_execution(self, **kwargs):
-        from runnable.extensions.run_log_store.chunked_file_system.implementation import (
-            ChunkedFileSystemRunLogStore,
-        )
+        from extensions.run_log_store.chunked_fs import ChunkedFileSystemRunLogStore
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(ChunkedFileSystemRunLogStore, self.service)
@@ -391,9 +383,7 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
     service_provider = "file-system"  # The actual implementation of the service
 
     def configure_for_traversal(self, **kwargs):
-        from runnable.extensions.catalog.file_system.implementation import (
-            FileSystemCatalog,
-        )
+        from extensions.catalog.file_system import FileSystemCatalog
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(FileSystemCatalog, self.service)
@@ -405,9 +395,7 @@ class LocalContainerComputeFileSystemCatalog(BaseIntegration):
         }
 
     def configure_for_execution(self, **kwargs):
-        from runnable.extensions.catalog.file_system.implementation import (
-            FileSystemCatalog,
-        )
+        from extensions.catalog.file_system import FileSystemCatalog
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(FileSystemCatalog, self.service)
@@ -430,7 +418,7 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
         )
 
     def configure_for_traversal(self, **kwargs):
-        from runnable.extensions.secrets.dotenv.implementation import DotEnvSecrets
+        from extensions.secrets.dotenv import DotEnvSecrets
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(DotEnvSecrets, self.service)
@@ -442,7 +430,7 @@ class LocalContainerComputeDotEnvSecrets(BaseIntegration):
         }
 
     def configure_for_execution(self, **kwargs):
-        from runnable.extensions.secrets.dotenv.implementation import DotEnvSecrets
+        from extensions.secrets.dotenv import DotEnvSecrets
 
         self.executor = cast(LocalContainerExecutor, self.executor)
         self.service = cast(DotEnvSecrets, self.service)

@@ -4,8 +4,8 @@ from pathlib import Path
 from string import Template
 from typing import Any, Dict, Optional, Sequence, Union
 
+from extensions.run_log_store.generic_chunked import ChunkedRunLogStore
 from runnable import defaults, utils
-from runnable.extensions.run_log_store.generic_chunked import ChunkedRunLogStore
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 

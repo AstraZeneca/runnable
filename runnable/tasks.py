@@ -43,8 +43,12 @@ class BaseTaskType(BaseModel):
     """A base task class which does the execution of command defined by the user."""
 
     task_type: str = Field(serialization_alias="command_type")
-    secrets: List[str] = Field(default_factory=list)
-    returns: List[TaskReturns] = Field(default_factory=list, alias="returns")
+    secrets: List[str] = Field(
+        default_factory=list
+    )  # A list of secrets to expose by secrets manager
+    returns: List[TaskReturns] = Field(
+        default_factory=list, alias="returns"
+    )  # The return values of the task
 
     model_config = ConfigDict(extra="forbid")
 
@@ -70,11 +74,13 @@ class BaseTaskType(BaseModel):
         raise NotImplementedError()
 
     def set_secrets_as_env_variables(self):
+        # Preparing the environment for the task execution
         for key in self.secrets:
             secret_value = context.run_context.secrets_handler.get(key)
             os.environ[key] = secret_value
 
     def delete_secrets_from_env_variables(self):
+        # Cleaning up the environment after the task execution
         for key in self.secrets:
             if key in os.environ:
                 del os.environ[key]
@@ -99,6 +105,7 @@ class BaseTaskType(BaseModel):
     def _diff_parameters(
         self, parameters_in: Dict[str, Parameter], context_params: Dict[str, Parameter]
     ) -> Dict[str, Parameter]:
+        # If the parameter is different from existing parameters, then it is updated
         diff: Dict[str, Parameter] = {}
         for param_name, param in context_params.items():
             if param_name in parameters_in:
@@ -112,12 +119,7 @@ class BaseTaskType(BaseModel):
 
     @contextlib.contextmanager
     def expose_secrets(self):
-        """Context manager to expose secrets to the execution.
-
-        Args:
-            map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
-
-        """
+        """Context manager to expose secrets to the execution."""
         self.set_secrets_as_env_variables()
         try:
             yield
@@ -126,13 +128,32 @@ class BaseTaskType(BaseModel):
         finally:
             self.delete_secrets_from_env_variables()
 
+    def resolve_unreduced_parameters(self, map_variable: TypeMapVariable = None):
+        """Resolve the unreduced parameters."""
+        params = self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id
+        ).copy()
+
+        for param_name, param in params.items():
+            if param.reduced is False:
+                assert (
+                    map_variable is not None
+                ), "Parameters in non-map node should always be reduced"
+
+                context_param = param_name
+                for _, v in map_variable.items():
+                    context_param = f"{v}_{context_param}"
+
+                if context_param in params:  # Is this if required?
+                    params[param_name].value = params[context_param].value
+
+        return params
+
     @contextlib.contextmanager
     def execution_context(
         self, map_variable: TypeMapVariable = None, allow_complex: bool = True
     ):
-        params = self._context.run_log_store.get_parameters(
-            run_id=self._context.run_id
-        ).copy()
+        params = self.resolve_unreduced_parameters(map_variable=map_variable)
         logger.info(f"Parameters available for the execution: {params}")
 
         for param_name, param in params.items():
@@ -505,8 +526,8 @@ class NotebookTaskType(BaseTaskType):
                 try:
                     for task_return in self.returns:
                         param_name = Template(task_return.name).safe_substitute(
-                            map_variable
-                        )  # type: ignore
+                            map_variable  # type: ignore
+                        )
 
                         if map_variable:
                             for _, v in map_variable.items():

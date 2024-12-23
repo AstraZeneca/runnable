@@ -5,9 +5,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from runnable import defaults, utils
-from runnable.catalog import BaseCatalog
+from runnable.catalog import BaseCatalog, is_catalog_out_of_sync
 from runnable.datastore import DataCatalog
-from extensions.catalog import is_catalog_out_of_sync
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 

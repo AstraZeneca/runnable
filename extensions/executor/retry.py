@@ -2,11 +2,11 @@ import logging
 from functools import cached_property
 from typing import Any, Dict, Optional
 
+from extensions.executor import GenericExecutor
+from extensions.nodes.nodes import TaskNode
 from runnable import context, defaults, exceptions
 from runnable.datastore import RunLog
 from runnable.defaults import TypeMapVariable
-from runnable.extensions.executor import GenericExecutor
-from runnable.extensions.nodes import TaskNode
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)

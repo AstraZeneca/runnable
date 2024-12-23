@@ -302,8 +302,8 @@ class ChunkedRunLogStore(BaseRunLogStore):
             else:
                 current_branch = ordered_branches[current_branch]
                 step_to_add_branch = ordered_steps[step_to_add_branch]  # type: ignore
-                step_to_add_branch.branches[current_branch.internal_name] = (
-                    current_branch  # type: ignore
+                step_to_add_branch.branches[current_branch.internal_name] = (  # type: ignore
+                    current_branch
                 )
 
             current_branch.steps[step_internal_name] = ordered_steps[step_internal_name]

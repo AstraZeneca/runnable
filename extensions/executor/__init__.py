@@ -4,6 +4,7 @@ import os
 from abc import abstractmethod
 from typing import Dict, List, Optional, cast
 
+from extensions.nodes.nodes import TaskNode
 from runnable import (
     console,
     context,
@@ -17,7 +18,6 @@ from runnable import (
 from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.executor import BaseExecutor
-from extensions.nodes.nodes import TaskNode
 from runnable.graph import Graph
 from runnable.nodes import BaseNode
 
@@ -173,6 +173,7 @@ class GenericExecutor(BaseExecutor):
             Exception: If the stage is not in one of get/put
 
         """
+        assert isinstance(self._context_node, BaseNode)
         if stage not in ["get", "put"]:
             msg = (
                 "Catalog service only accepts get/put possible actions as part of node execution."
@@ -229,6 +230,7 @@ class GenericExecutor(BaseExecutor):
         Returns:
             str: The compute data folder as defined by the node defaulting to catalog handler
         """
+        assert isinstance(self._context_node, BaseNode)
         compute_data_folder = self._context.catalog_handler.compute_data_folder
 
         catalog_settings = self._context_node._get_catalog_settings()
@@ -300,7 +302,7 @@ class GenericExecutor(BaseExecutor):
         console.print(f"Summary of the step: {step_log.internal_name}")
         console.print(step_log.get_summary(), style=defaults.info_style)
 
-        self._context_node = None  # type: ignore
+        self._context_node = None
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 

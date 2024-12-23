@@ -436,9 +436,10 @@ def search_node_by_internal_name(dag: Graph, internal_name: str):
     for i in range(len(dot_path)):
         if i % 2:
             # Its odd, so we are in brach name
-            current_branch = current_node._get_branch_by_name(
+
+            current_branch = current_node._get_branch_by_name(  # type: ignore
                 ".".join(dot_path[: i + 1])
-            )  # type: ignore
+            )
             logger.debug(
                 f"Finding step for {internal_name} in branch: {current_branch}"
             )
@@ -481,9 +482,9 @@ def search_branch_by_internal_name(dag: Graph, internal_name: str):
     for i in range(len(dot_path)):
         if i % 2:
             # Its odd, so we are in brach name
-            current_branch = current_node._get_branch_by_name(
+            current_branch = current_node._get_branch_by_name(  # type: ignore
                 ".".join(dot_path[: i + 1])
-            )  # type: ignore
+            )
             logger.debug(
                 f"Finding step for {internal_name} in branch: {current_branch}"
             )

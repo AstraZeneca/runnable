@@ -18,6 +18,12 @@ dependencies = [
     "setuptools>=75.6.0",
     "python-dotenv>=1.0.1",
     "typer>=0.15.1",
+    "nodes",
+    "secrets",
+    "catalog",
+    "run_log_store",
+    "executor",
+
 ]
 
 [project.scripts]
@@ -68,10 +74,10 @@ executor = {workspace = true}
 
 [project.entry-points.'executor']
 "local" = "extensions.executor.local:LocalExecutor"
-"local-container" = "runnable.extensions.executor.local_container.implementation:LocalContainerExecutor"
-"argo" = "runnable.extensions.executor.argo.implementation:ArgoExecutor"
-"mocked" = "runnable.extensions.executor.mocked.implementation:MockedExecutor"
-"retry" = "runnable.extensions.executor.retry.implementation:RetryExecutor"
+"local-container" = "extensions.executor.local_container:LocalContainerExecutor"
+"argo" = "extensions.executor.argo:ArgoExecutor"
+"mocked" = "extensions.executor.mocked:MockedExecutor"
+"retry" = "extensions.executor.retry:RetryExecutor"
 
 [project.entry-points.'secrets']
 "do-nothing" = "runnable.secrets:DoNothingSecretManager"
@@ -85,7 +91,7 @@ executor = {workspace = true}
 [project.entry-points.'run_log_store']
 "buffered" = "runnable.datastore:BufferRunLogstore"
 file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
-"chunked-fs" = "extensions.run_log_store.chunked_file_system.implementation:ChunkedFileSystemRunLogStore"
+"chunked-fs" = "extensions.run_log_store.chunked_fs:ChunkedFileSystemRunLogStore"
 
 [project.entry-points.'pickler']
 "pickle" = "runnable.pickler:NativePickler"

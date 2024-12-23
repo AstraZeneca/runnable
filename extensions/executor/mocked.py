@@ -4,10 +4,10 @@ from typing import Any, Dict, Type, cast
 
 from pydantic import ConfigDict, Field
 
+from extensions.executor import GenericExecutor
+from extensions.nodes.nodes import TaskNode
 from runnable import context, defaults
 from runnable.defaults import TypeMapVariable
-from runnable.extensions.executor import GenericExecutor
-from runnable.extensions.nodes import TaskNode
 from runnable.nodes import BaseNode
 from runnable.tasks import BaseTaskType
 

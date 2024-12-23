@@ -410,7 +410,6 @@ class MapNode(CompositeNode):
     node_type: str = Field(default="map", serialization_alias="type")
     iterate_on: str
     iterate_as: str
-    iterate_index: bool = Field(default=False)  # TODO: Need to design this
     reducer: Optional[str] = Field(default=None)
     branch: Graph
     is_composite: bool = True
@@ -422,7 +421,6 @@ class MapNode(CompositeNode):
             "branch": self.branch.get_summary(),
             "iterate_on": self.iterate_on,
             "iterate_as": self.iterate_as,
-            "iterate_index": self.iterate_index,
             "reducer": self.reducer,
         }
 
@@ -548,6 +546,7 @@ class MapNode(CompositeNode):
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
         # Gather all the returns of the task nodes and create parameters in reduced=False state.
+        # TODO: Why are we preemptively creating the parameters?
         raw_parameters = {}
         if map_variable:
             # If we are in a map state already, the param should have an index of the map variable.
@@ -669,10 +668,6 @@ class MapNode(CompositeNode):
         def update_param(
             params: Dict[str, Parameter], reducer_f: Callable, map_prefix: str = ""
         ):
-            from runnable.extensions.executor.mocked.implementation import (
-                MockedExecutor,
-            )
-
             for branch_return in self.branch_returns:
                 param_name, _ = branch_return
 
@@ -683,6 +678,8 @@ class MapNode(CompositeNode):
                             params[f"{iter_variable}_{param_name}"].get_value()
                         )
                     except KeyError as e:
+                        from extensions.executor.mocked import MockedExecutor
+
                         if isinstance(self._context.executor, MockedExecutor):
                             pass
                         else:
