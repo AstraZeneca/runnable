@@ -33,6 +33,27 @@ jobs:
           # Test installation
           argo version
 
-      - run: |
-          python -m poetry install --without docs,binary,perf,tutorial,compare
-          poetry run tox
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          # Install a specific version of uv.
+          version: "0.5.9"
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install the project
+        run: uv sync --all-extras --dev
+
+      - name: Run lint
+        # For example, using `flake8`
+        run: uvx ruff format
+
+      - name: Run tests
+        # For example, using `pytest`
+        run: uv run pytest -m "not container"
+
+      - name: mypy
+        run: uv run mypy runnable extensions
