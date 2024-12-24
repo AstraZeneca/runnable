@@ -45,8 +45,9 @@ jobs:
         run: uvx ruff format
 
       - name: Run tests
-        # For example, using `pytest`
-        run: uv run pytest -m "not container"
+        run: |
+          export PYTHONDONTWRITEBYTECODE=1
+          uv run pytest -m "not container"
 
       - name: mypy
         run: uv run mypy runnable extensions
