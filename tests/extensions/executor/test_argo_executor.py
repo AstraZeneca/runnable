@@ -1,6 +1,6 @@
 import pytest
 
-from runnable.extensions.executor.argo import implementation
+from extensions.executor import argo as implementation
 
 
 def test_secret_env_var_has_value_from_field():

@@ -1,4 +1,4 @@
-from extensions.catalog import is_catalog_out_of_sync
+from runnable.catalog import is_catalog_out_of_sync
 
 
 def test_is_catalog_out_of_sync_returns_true_for_empty_synced_catalogs():

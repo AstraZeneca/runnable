@@ -3,8 +3,8 @@ import tempfile
 
 import pytest
 
-import extensions.catalog.file_system as implementation
-from extensions.catalog.file_system.implementation import FileSystemCatalog
+from extensions.catalog import file_system as module
+from extensions.catalog.file_system import FileSystemCatalog
 from runnable import defaults
 
 
@@ -38,7 +38,7 @@ def test_file_system_catalog_get_raises_exception_if_catalog_does_not_exist(
             return True
         return False
 
-    monkeypatch.setattr(implementation.utils, "does_dir_exist", mock_does_dir_exist)
+    monkeypatch.setattr(module.utils, "does_dir_exist", mock_does_dir_exist)
 
     catalog_handler = FileSystemCatalog(catalog_location="this_location")
     with pytest.raises(Exception, match="Expected Catalog to be present at"):
@@ -62,13 +62,13 @@ def test_file_system_catalog_get_copies_files_from_catalog_to_compute_folder_wit
 
     with tempfile.TemporaryDirectory() as catalog_location:
         with tempfile.TemporaryDirectory(dir=".") as compute_folder:
-            catalog_location_path = implementation.Path(catalog_location)
+            catalog_location_path = module.Path(catalog_location)
             run_id = "testing"
-            implementation.Path(catalog_location_path / run_id / compute_folder).mkdir(
+            module.Path(catalog_location_path / run_id / compute_folder).mkdir(
                 parents=True
             )
             with open(
-                implementation.Path(catalog_location)
+                module.Path(catalog_location)
                 / run_id
                 / compute_folder
                 / "catalog_file",
@@ -101,13 +101,13 @@ def test_file_system_catalog_get_copies_files_from_catalog_to_compute_folder_wit
 
     with tempfile.TemporaryDirectory() as catalog_location:
         with tempfile.TemporaryDirectory(dir=".") as compute_folder:
-            catalog_location_path = implementation.Path(catalog_location)
+            catalog_location_path = module.Path(catalog_location)
             run_id = "testing"
-            implementation.Path(catalog_location_path / run_id / compute_folder).mkdir(
+            module.Path(catalog_location_path / run_id / compute_folder).mkdir(
                 parents=True
             )
             with open(
-                implementation.Path(catalog_location)
+                module.Path(catalog_location)
                 / run_id
                 / compute_folder
                 / "catalog_file",
@@ -116,10 +116,7 @@ def test_file_system_catalog_get_copies_files_from_catalog_to_compute_folder_wit
                 fw.write("hello")
 
             with open(
-                implementation.Path(catalog_location)
-                / run_id
-                / compute_folder
-                / "not_catalog",
+                module.Path(catalog_location) / run_id / compute_folder / "not_catalog",
                 "w",
             ) as fw:
                 fw.write("hello")
@@ -136,7 +133,7 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
     mocker, monkeypatch
 ):
     monkeypatch.setattr(
-        implementation, "is_catalog_out_of_sync", mocker.MagicMock(return_value=True)
+        module, "is_catalog_out_of_sync", mocker.MagicMock(return_value=True)
     )
     mock_run_store = mocker.MagicMock()
     mock_context = mocker.MagicMock()
@@ -150,11 +147,11 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
 
     with tempfile.TemporaryDirectory() as catalog_location:
         with tempfile.TemporaryDirectory(dir=".") as compute_folder:
-            catalog_location_path = implementation.Path(catalog_location)
+            catalog_location_path = module.Path(catalog_location)
             run_id = "testing"
-            implementation.Path(catalog_location_path / run_id).mkdir(parents=True)
+            module.Path(catalog_location_path / run_id).mkdir(parents=True)
 
-            with open(implementation.Path(compute_folder) / "catalog_file", "w") as fw:
+            with open(module.Path(compute_folder) / "catalog_file", "w") as fw:
                 fw.write("hello")
 
             catalog_handler = FileSystemCatalog(catalog_location=catalog_location)
@@ -169,7 +166,7 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
     mocker, monkeypatch
 ):
     monkeypatch.setattr(
-        implementation, "is_catalog_out_of_sync", mocker.MagicMock(return_value=True)
+        module, "is_catalog_out_of_sync", mocker.MagicMock(return_value=True)
     )
     mock_run_store = mocker.MagicMock()
     mock_context = mocker.MagicMock()
@@ -182,15 +179,13 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
     )
     with tempfile.TemporaryDirectory() as catalog_location:
         with tempfile.TemporaryDirectory(dir=".") as compute_folder:
-            catalog_location_path = implementation.Path(catalog_location)
+            catalog_location_path = module.Path(catalog_location)
             run_id = "testing"
-            implementation.Path(catalog_location_path / run_id).mkdir(parents=True)
-            with open(implementation.Path(compute_folder) / "catalog_file", "w") as fw:
+            module.Path(catalog_location_path / run_id).mkdir(parents=True)
+            with open(module.Path(compute_folder) / "catalog_file", "w") as fw:
                 fw.write("hello")
 
-            with open(
-                implementation.Path(compute_folder) / "not_catalog_file", "w"
-            ) as fw:
+            with open(module.Path(compute_folder) / "not_catalog_file", "w") as fw:
                 fw.write("hello")
 
             catalog_handler = FileSystemCatalog(catalog_location=catalog_location)
@@ -206,7 +201,7 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
     mocker, monkeypatch
 ):
     monkeypatch.setattr(
-        implementation, "is_catalog_out_of_sync", mocker.MagicMock(return_value=False)
+        module, "is_catalog_out_of_sync", mocker.MagicMock(return_value=False)
     )
     mock_run_store = mocker.MagicMock()
     mock_context = mocker.MagicMock()
@@ -220,15 +215,13 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
 
     with tempfile.TemporaryDirectory() as catalog_location:
         with tempfile.TemporaryDirectory(dir=".") as compute_folder:
-            catalog_location_path = implementation.Path(catalog_location)
+            catalog_location_path = module.Path(catalog_location)
             run_id = "testing"
-            implementation.Path(catalog_location_path / run_id).mkdir(parents=True)
-            with open(implementation.Path(compute_folder) / "catalog_file", "w") as fw:
+            module.Path(catalog_location_path / run_id).mkdir(parents=True)
+            with open(module.Path(compute_folder) / "catalog_file", "w") as fw:
                 fw.write("hello")
 
-            with open(
-                implementation.Path(compute_folder) / "not_catalog_file", "w"
-            ) as fw:
+            with open(module.Path(compute_folder) / "not_catalog_file", "w") as fw:
                 fw.write("hello")
 
             catalog_handler = FileSystemCatalog(catalog_location=catalog_location)
@@ -242,24 +235,24 @@ def test_file_system_catalog_put_copies_files_from_compute_folder_to_catalog_if_
 
 def test_file_system_catalog_put_uses_compute_folder_by_default(monkeypatch, mocker):
     mock_safe_make_dir = mocker.MagicMock()
-    monkeypatch.setattr(implementation.utils, "safe_make_dir", mock_safe_make_dir)
+    monkeypatch.setattr(module.utils, "safe_make_dir", mock_safe_make_dir)
 
     mock_does_dir_exist = mocker.MagicMock(side_effect=Exception())
-    monkeypatch.setattr(implementation.utils, "does_dir_exist", mock_does_dir_exist)
+    monkeypatch.setattr(module.utils, "does_dir_exist", mock_does_dir_exist)
 
     catalog_handler = FileSystemCatalog(catalog_location="this_location")
     with pytest.raises(Exception):
         catalog_handler.put("testing", run_id="dummy_run_id")
 
-    mock_does_dir_exist.assert_called_once_with(implementation.Path("."))
+    mock_does_dir_exist.assert_called_once_with(module.Path("."))
 
 
 def test_file_system_catalog_put_uses_compute_folder_provided(monkeypatch, mocker):
     mock_safe_make_dir = mocker.MagicMock()
-    monkeypatch.setattr(implementation.utils, "safe_make_dir", mock_safe_make_dir)
+    monkeypatch.setattr(module.utils, "safe_make_dir", mock_safe_make_dir)
 
     mock_does_dir_exist = mocker.MagicMock(side_effect=Exception())
-    monkeypatch.setattr(implementation.utils, "does_dir_exist", mock_does_dir_exist)
+    monkeypatch.setattr(module.utils, "does_dir_exist", mock_does_dir_exist)
 
     catalog_handler = FileSystemCatalog(catalog_location="this_location")
     with pytest.raises(Exception):
@@ -267,17 +260,17 @@ def test_file_system_catalog_put_uses_compute_folder_provided(monkeypatch, mocke
             "testing", run_id="dummy_run_id", compute_data_folder="not_data"
         )
 
-    mock_does_dir_exist.assert_called_once_with(implementation.Path("not_data"))
+    mock_does_dir_exist.assert_called_once_with(module.Path("not_data"))
 
 
 def test_file_system_catalog_put_raises_exception_if_compute_data_folder_does_not_exist(
     monkeypatch, mocker
 ):
     mock_safe_make_dir = mocker.MagicMock()
-    monkeypatch.setattr(implementation.utils, "safe_make_dir", mock_safe_make_dir)
+    monkeypatch.setattr(module.utils, "safe_make_dir", mock_safe_make_dir)
 
     mock_does_dir_exist = mocker.MagicMock(return_value=False)
-    monkeypatch.setattr(implementation.utils, "does_dir_exist", mock_does_dir_exist)
+    monkeypatch.setattr(module.utils, "does_dir_exist", mock_does_dir_exist)
 
     catalog_handler = FileSystemCatalog(catalog_location="this_location")
     with pytest.raises(Exception):
@@ -290,10 +283,10 @@ def test_file_system_catalog_put_creates_catalog_location_using_run_id(
     monkeypatch, mocker
 ):
     mock_safe_make_dir = mocker.MagicMock()
-    monkeypatch.setattr(implementation.utils, "safe_make_dir", mock_safe_make_dir)
+    monkeypatch.setattr(module.utils, "safe_make_dir", mock_safe_make_dir)
 
     mock_does_dir_exist = mocker.MagicMock(side_effect=Exception())
-    monkeypatch.setattr(implementation.utils, "does_dir_exist", mock_does_dir_exist)
+    monkeypatch.setattr(module.utils, "does_dir_exist", mock_does_dir_exist)
 
     catalog_handler = FileSystemCatalog(catalog_location="this_location")
 
@@ -301,7 +294,7 @@ def test_file_system_catalog_put_creates_catalog_location_using_run_id(
         catalog_handler.put("testing", run_id="dummy_run_id")
 
     mock_safe_make_dir.assert_called_once_with(
-        implementation.Path("this_location") / "dummy_run_id"
+        module.Path("this_location") / "dummy_run_id"
     )
 
 
@@ -309,10 +302,10 @@ def test_file_system_sync_between_runs_raises_exception_if_previous_catalog_does
     monkeypatch, mocker
 ):
     mock_safe_make_dir = mocker.MagicMock()
-    monkeypatch.setattr(implementation.utils, "safe_make_dir", mock_safe_make_dir)
+    monkeypatch.setattr(module.utils, "safe_make_dir", mock_safe_make_dir)
 
     mock_does_dir_exist = mocker.MagicMock(return_value=False)
-    monkeypatch.setattr(implementation.utils, "does_dir_exist", mock_does_dir_exist)
+    monkeypatch.setattr(module.utils, "does_dir_exist", mock_does_dir_exist)
 
     catalog_handler = FileSystemCatalog(catalog_location="this_location")
     with pytest.raises(Exception):

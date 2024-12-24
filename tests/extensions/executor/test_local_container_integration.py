@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from runnable.extensions.executor.local_container import implementation
+from extensions.executor import local_container as module
 
 
 def test_configure_for_traversal_populates_volumes(mocker, monkeypatch):
     mock_local_container = mocker.MagicMock()
     monkeypatch.setattr(
-        implementation,
+        module,
         "LocalContainerComputeFileSystemRunLogstore",
         mock_local_container,
     )
@@ -18,7 +18,7 @@ def test_configure_for_traversal_populates_volumes(mocker, monkeypatch):
     mock_fs_catalog = mocker.MagicMock()
     mock_fs_catalog.catalog_location = "catalog_location"
 
-    test_integration = implementation.LocalContainerComputeFileSystemCatalog(
+    test_integration = module.LocalContainerComputeFileSystemCatalog(
         mock_executor, mock_fs_catalog
     )
     test_integration.configure_for_traversal()
@@ -33,7 +33,7 @@ def test_configure_for_execution_assigns_catalog_location_within_container(
 ):
     mock_local_container = mocker.MagicMock()
     monkeypatch.setattr(
-        implementation,
+        module,
         "LocalContainerComputeFileSystemRunLogstore",
         mock_local_container,
     )
@@ -43,7 +43,7 @@ def test_configure_for_execution_assigns_catalog_location_within_container(
 
     mock_fs_catalog = mocker.MagicMock()
 
-    test_integration = implementation.LocalContainerComputeFileSystemCatalog(
+    test_integration = module.LocalContainerComputeFileSystemCatalog(
         mock_executor, mock_fs_catalog
     )
     test_integration.configure_for_execution()

@@ -1,23 +1,32 @@
-import logging
-
 import pytest
 
-import runnable.extensions.executor as executor
 from runnable import defaults, exceptions
-from runnable.extensions import executor
-from runnable.extensions.executor import GenericExecutor
 
 
 @pytest.fixture(autouse=True)
-def instantiable_base_class(monkeypatch, mocker):
+def instantiable_base_class(monkeypatch):
     monkeypatch.setattr(GenericExecutor, "__abstractmethods__", set())
     yield
 
 
 @pytest.fixture
+def mock_base_node(monkeypatch, mocker):
+    from runnable.nodes import BaseNode
+
+    monkeypatch.setattr(BaseNode, "__abstractmethods__", set())
+
+    class MockNode(BaseNode):
+        node_type: str = "test"
+        name: str = "name"
+        internal_name: str = "internal_name"
+
+    yield MockNode
+
+
+@pytest.fixture
 def mock_run_context(mocker, monkeypatch):
     mock_run_context = mocker.Mock()
-    monkeypatch.setattr(executor.context, "run_context", mock_run_context)
+    monkeypatch.setattr(module.context, "run_context", mock_run_context)
     return mock_run_context
 
 
@@ -26,7 +35,7 @@ def test_get_parameters_gets_parameters_from_user_parameters(
 ):
     mock_run_context.parameters_file = ""
     monkeypatch.setattr(
-        executor.parameters,
+        module.parameters,
         "get_user_set_parameters",
         mocker.MagicMock(return_value={"executor": "test"}),
     )
@@ -41,9 +50,9 @@ def test_get_parameters_user_parameters_overwrites_parameters_from_parameters_fi
     mock_run_context.parameters_file = "parameters_file"
 
     mock_load_yaml = mocker.MagicMock(return_value={"executor": "this"})
-    monkeypatch.setattr(executor.utils, "load_yaml", mock_load_yaml)
+    monkeypatch.setattr(module.utils, "load_yaml", mock_load_yaml)
     monkeypatch.setattr(
-        executor.parameters,
+        module.parameters,
         "get_user_set_parameters",
         mocker.MagicMock(return_value={"executor": "that"}),
     )
@@ -161,8 +170,8 @@ def test_base_executor_prepare_for_graph_execution_calls(
     mock_set_up_run_log = mocker.MagicMock()
     monkeypatch.setattr(GenericExecutor, "_set_up_run_log", mock_set_up_run_log)
 
-    monkeypatch.setattr(executor, "integration", mock_integration)
-    monkeypatch.setattr(executor.BaseExecutor, "_set_up_run_log", mocker.MagicMock())
+    monkeypatch.setattr(module, "integration", mock_integration)
+    monkeypatch.setattr(module.BaseExecutor, "_set_up_run_log", mocker.MagicMock())
 
     base_executor = GenericExecutor()
 
@@ -183,7 +192,7 @@ def test_base_execution_prepare_for_node_calls(mocker, monkeypatch, mock_run_con
     mock_set_up_run_log = mocker.MagicMock()
     monkeypatch.setattr(GenericExecutor, "_set_up_run_log", mock_set_up_run_log)
 
-    monkeypatch.setattr(executor, "integration", mock_integration)
+    monkeypatch.setattr(module, "integration", mock_integration)
 
     base_executor = GenericExecutor()
 
@@ -202,9 +211,9 @@ def test_base_executor__sync_catalog_raises_exception_if_stage_not_in_get_or_put
 
 
 def test_sync_catalog_does_nothing_for_terminal_node(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
+    mock_node = mock_base_node()
     mock_node._get_catalog_settings = mocker.MagicMock(
         side_effect=exceptions.TerminalNodeError
     )
@@ -216,9 +225,9 @@ def test_sync_catalog_does_nothing_for_terminal_node(
 
 
 def test_sync_catalog_does_nothing_for_no_catalog_settings(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
+    mock_node = mock_base_node()
     mock_node._get_catalog_settings = mocker.MagicMock(return_value={})
 
     test_executor = GenericExecutor()
@@ -228,9 +237,9 @@ def test_sync_catalog_does_nothing_for_no_catalog_settings(
 
 
 def test_sync_catalog_does_nothing_for_catalog_settings_stage_not_in(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
+    mock_node = mock_base_node()
     mock_node._get_catalog_settings = mocker.MagicMock(
         return_value={"get": "something"}
     )
@@ -242,11 +251,10 @@ def test_sync_catalog_does_nothing_for_catalog_settings_stage_not_in(
 
 
 def test_sync_catalog_returns_nothing_if_no_syncing_for_node(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-
-    mock_node._get_catalog_settings.return_value = None
+    mock_node = mock_base_node()
+    setattr(mock_node, "_get_catalog_settings", lambda: None)
 
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
@@ -255,10 +263,10 @@ def test_sync_catalog_returns_nothing_if_no_syncing_for_node(
 
 
 def test_sync_catalog_returns_empty_list_if_asked_nothing_in_stage(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-    mock_node._get_catalog_settings.return_value = {"get": [], "put": []}
+    mock_node = mock_base_node()
+    setattr(mock_node, "_get_catalog_settings", lambda: {"get": [], "put": []})
 
     mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
     monkeypatch.setattr(
@@ -275,11 +283,10 @@ def test_sync_catalog_returns_empty_list_if_asked_nothing_in_stage(
 
 
 def test_sync_catalog_calls_get_from_catalog_handler(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-    mock_node._get_catalog_settings.return_value = {"get": ["me"], "put": []}
-    mock_step_log = mocker.MagicMock()
+    mock_node = mock_base_node()
+    setattr(mock_node, "_get_catalog_settings", lambda: {"get": ["me"], "put": []})
 
     mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
     monkeypatch.setattr(
@@ -305,11 +312,12 @@ def test_sync_catalog_calls_get_from_catalog_handler(
 
 
 def test_sync_catalog_calls_get_from_catalog_handler_as_per_input(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-    mock_node._get_catalog_settings.return_value = {"get": ["me", "you"], "put": []}
-    mock_step_log = mocker.MagicMock()
+    mock_node = mock_base_node()
+    setattr(
+        mock_node, "_get_catalog_settings", lambda: {"get": ["me", "you"], "put": []}
+    )
 
     mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
     monkeypatch.setattr(
@@ -333,11 +341,10 @@ def test_sync_catalog_calls_get_from_catalog_handler_as_per_input(
 
 
 def test_sync_catalog_calls_put_from_catalog_handler(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-    mock_node._get_catalog_settings.return_value = {"get": [], "put": ["me"]}
-    mock_step_log = mocker.MagicMock()
+    mock_node = mock_base_node()
+    setattr(mock_node, "_get_catalog_settings", lambda: {"get": [], "put": ["me"]})
 
     mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
     monkeypatch.setattr(
@@ -366,11 +373,12 @@ def test_sync_catalog_calls_put_from_catalog_handler(
 
 
 def test_sync_catalog_calls_put_from_catalog_handler_as_per_input(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-    mock_node._get_catalog_settings.return_value = {"get": [], "put": ["me", "you"]}
-    mock_step_log = mocker.MagicMock()
+    mock_node = mock_base_node()
+    setattr(
+        mock_node, "_get_catalog_settings", lambda: {"get": [], "put": ["me", "you"]}
+    )
 
     mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
     monkeypatch.setattr(
@@ -394,11 +402,10 @@ def test_sync_catalog_calls_put_from_catalog_handler_as_per_input(
 
 
 def test_sync_catalog_calls_put_sends_synced_catalogs_to_catalog_handler(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-    mock_node._get_catalog_settings.return_value = {"get": [], "put": ["me"]}
-    mock_step_log = mocker.MagicMock()
+    mock_node = mock_base_node()
+    setattr(mock_node, "_get_catalog_settings", lambda: {"get": [], "put": ["me"]})
 
     mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
     monkeypatch.setattr(
@@ -426,11 +433,13 @@ def test_sync_catalog_calls_put_sends_synced_catalogs_to_catalog_handler(
     )
 
 
-def test_get_effective_compute_data_folder_returns_default(mocker, mock_run_context):
+def test_get_effective_compute_data_folder_returns_default(
+    mocker, mock_run_context, mock_base_node
+):
     mock_run_context.catalog_handler.compute_data_folder = "default"
 
-    mock_node = mocker.MagicMock()
-    mock_node._get_catalog_settings.return_value = {}
+    mock_node = mock_base_node()
+    setattr(mock_node, "_get_catalog_settings", lambda: {})
 
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
@@ -439,14 +448,16 @@ def test_get_effective_compute_data_folder_returns_default(mocker, mock_run_cont
 
 
 def test_get_effective_compute_data_folder_returns_from_node_settings(
-    mocker, mock_run_context
+    mocker, mock_run_context, mock_base_node
 ):
     mock_run_context.catalog_handler.compute_data_folder = "default"
 
-    mock_node = mocker.MagicMock()
-    mock_node._get_catalog_settings.return_value = {
-        "compute_data_folder": "not_default"
-    }
+    mock_node = mock_base_node()
+    setattr(
+        mock_node,
+        "_get_catalog_settings",
+        lambda: {"compute_data_folder": "not_default"},
+    )
 
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
@@ -469,10 +480,10 @@ def test_step_attempt_returns_from_env(monkeypatch):
 
 
 def test_base_executor_resolve_executor_config_gives_global_config_if_node_does_not_override(
-    mocker, mock_run_context
+    mocker, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-    mock_node._get_executor_config.return_value = {}
+    mock_node = mock_base_node()
+    setattr(mock_node, "_get_catalog_settings", lambda: {})
 
     mock_run_context.variables = {}
 
@@ -484,9 +495,14 @@ def test_base_executor_resolve_executor_config_gives_global_config_if_node_does_
 
 
 def test_get_status_and_next_node_name_returns_empty_for_terminal_node(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
+    mock_node = mock_base_node()
+
+    def f():
+        raise exceptions.TerminalNodeError()
+
+    setattr(mock_node, "_get_catalog_settings", f)
     mock_node._get_next_node = mocker.MagicMock(
         side_effect=exceptions.TerminalNodeError
     )
@@ -504,10 +520,10 @@ def test_get_status_and_next_node_name_returns_empty_for_terminal_node(
 
 
 def test_get_status_and_next_node_name_returns_next_node_if_success(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-    mock_node._get_next_node.return_value = "next_node"
+    mock_node = mock_base_node()
+    setattr(mock_node, "_get_next_node", lambda: "next_node")
 
     mock_step_log = mocker.MagicMock()
     mock_step_log.status = defaults.SUCCESS
@@ -522,11 +538,11 @@ def test_get_status_and_next_node_name_returns_next_node_if_success(
 
 
 def test_get_status_and_next_node_name_returns_terminal_node_in_case_of_failure(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-    mock_node._get_next_node.return_value = "next_node"
-    mock_node._get_on_failure_node.return_value = ""
+    mock_node = mock_base_node()
+    setattr(mock_node, "_get_next_node", lambda: "next node")
+    setattr(mock_node, "_get_on_failure_node", lambda: "")
 
     mock_run_context.run_log_store.get_step_log.return_value.status = defaults.FAIL
 
@@ -542,11 +558,11 @@ def test_get_status_and_next_node_name_returns_terminal_node_in_case_of_failure(
 
 
 def test_get_status_and_next_node_name_returns_on_failure_node_if_failed(
-    mocker, monkeypatch, mock_run_context
+    mocker, monkeypatch, mock_run_context, mock_base_node
 ):
-    mock_node = mocker.MagicMock()
-    mock_node._get_next_node.return_value = "next_node"
-    mock_node._get_on_failure_node.return_value = "me_please"
+    mock_node = mock_base_node()
+    setattr(mock_node, "_get_next_node", lambda: "next_node")
+    setattr(mock_node, "_get_on_failure_node", lambda: "me_please")
 
     mock_run_context.run_log_store.get_step_log.return_value.status = defaults.FAIL
 
@@ -581,3 +597,7 @@ def test_send_return_code_does_not_raise_exception_if_pipeline_execution_succeed
 
     test_executor = GenericExecutor()
     test_executor.send_return_code()
+
+
+from extensions import executor as module
+from extensions.executor import GenericExecutor

@@ -1,7 +1,6 @@
 import pytest
 
 from runnable import defaults
-from runnable.extensions import nodes as nodes
 from runnable.tasks import BaseTaskType
 
 
@@ -261,3 +260,6 @@ def test__as_is_node_takes_anything_as_input(mocker, monkeypatch):
     }
 
     _ = nodes.StubNode.parse_from_config(config=config)
+
+
+from extensions.nodes import nodes
