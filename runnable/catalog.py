@@ -11,6 +11,26 @@ from runnable.datastore import DataCatalog
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
+def is_catalog_out_of_sync(
+    catalog, synced_catalogs=Optional[List[DataCatalog]]
+) -> bool:
+    """
+    Check if the catalog items are out of sync from already cataloged objects.
+    If they are, return False.
+    If the object does not exist or synced catalog does not exist, return True
+    """
+    if not synced_catalogs:
+        return True  # If nothing has been synced in the past
+
+    for synced_catalog in synced_catalogs:
+        if synced_catalog.catalog_relative_path == catalog.catalog_relative_path:
+            if synced_catalog.data_hash == catalog.data_hash:
+                return False
+            return True
+
+    return True  # The object does not exist, sync it
+
+
 # --8<-- [start:docs]
 
 
@@ -26,8 +46,7 @@ class BaseCatalog(ABC, BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     @abstractmethod
-    def get_summary(self) -> Dict[str, Any]:
-        ...
+    def get_summary(self) -> Dict[str, Any]: ...
 
     @property
     def _context(self):
@@ -38,7 +57,9 @@ class BaseCatalog(ABC, BaseModel):
         return defaults.COMPUTE_DATA_FOLDER
 
     @abstractmethod
-    def get(self, name: str, run_id: str, compute_data_folder: str = "", **kwargs) -> List[DataCatalog]:
+    def get(
+        self, name: str, run_id: str, compute_data_folder: str = "", **kwargs
+    ) -> List[DataCatalog]:
         """
         Get the catalog item by 'name' for the 'run id' and store it in compute data folder.
 
@@ -119,7 +140,9 @@ class DoNothingCatalog(BaseCatalog):
     def get_summary(self) -> Dict[str, Any]:
         return {}
 
-    def get(self, name: str, run_id: str, compute_data_folder: str = "", **kwargs) -> List[DataCatalog]:
+    def get(
+        self, name: str, run_id: str, compute_data_folder: str = "", **kwargs
+    ) -> List[DataCatalog]:
         """
         Does nothing
         """
@@ -145,4 +168,3 @@ class DoNothingCatalog(BaseCatalog):
         Does nothing
         """
         logger.info("Using a do-nothing catalog, doing nothing while sync between runs")
-        ...

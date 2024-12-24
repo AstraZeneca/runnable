@@ -9,7 +9,7 @@ import runnable.context as context
 
 class BasePickler(ABC, BaseModel):
     """
-    The base class for all picklers.
+    The base class for all pickler.
 
     We are still in the process of hardening the design of this class.
     For now, we are just going to use pickle.

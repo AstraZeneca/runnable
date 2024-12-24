@@ -35,6 +35,7 @@ def prepare_configurations(
     force_local_executor: bool = False,
 ) -> context.Context:
     """
+    Sets up everything needed
     Replace the placeholders in the dag/config against the variables file.
 
     Attach the secrets_handler, run_log_store, catalog_handler to the executor and return it.
@@ -53,10 +54,16 @@ def prepare_configurations(
     variables = utils.gather_variables()
 
     templated_configuration = {}
-    configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
+    configuration_file = os.environ.get(
+        "RUNNABLE_CONFIGURATION_FILE", configuration_file
+    )
 
     if configuration_file:
         templated_configuration = utils.load_yaml(configuration_file) or {}
+
+    # Since all the services (run_log_store, catalog, secrets, executor) are
+    # dynamically loaded via stevedore, we cannot validate the configuration
+    # before they are passed to the service.
 
     configuration: RunnableConfig = cast(RunnableConfig, templated_configuration)
 
@@ -65,23 +72,32 @@ def prepare_configurations(
     # Run log settings, configuration over-rides everything
     run_log_config: Optional[ServiceConfig] = configuration.get("run_log_store", None)
     if not run_log_config:
-        run_log_config = cast(ServiceConfig, runnable_defaults.get("run_log_store", defaults.DEFAULT_RUN_LOG_STORE))
+        run_log_config = cast(
+            ServiceConfig,
+            runnable_defaults.get("run_log_store", defaults.DEFAULT_RUN_LOG_STORE),
+        )
     run_log_store = utils.get_provider_by_name_and_type("run_log_store", run_log_config)
 
     # Catalog handler settings, configuration over-rides everything
     catalog_config: Optional[ServiceConfig] = configuration.get("catalog", None)
     if not catalog_config:
-        catalog_config = cast(ServiceConfig, runnable_defaults.get("catalog", defaults.DEFAULT_CATALOG))
+        catalog_config = cast(
+            ServiceConfig, runnable_defaults.get("catalog", defaults.DEFAULT_CATALOG)
+        )
     catalog_handler = utils.get_provider_by_name_and_type("catalog", catalog_config)
 
     # Secret handler settings, configuration over-rides everything
     secrets_config: Optional[ServiceConfig] = configuration.get("secrets", None)
     if not secrets_config:
-        secrets_config = cast(ServiceConfig, runnable_defaults.get("secrets", defaults.DEFAULT_SECRETS))
+        secrets_config = cast(
+            ServiceConfig, runnable_defaults.get("secrets", defaults.DEFAULT_SECRETS)
+        )
     secrets_handler = utils.get_provider_by_name_and_type("secrets", secrets_config)
 
     # pickler
-    pickler_config = cast(ServiceConfig, runnable_defaults.get("pickler", defaults.DEFAULT_PICKLER))
+    pickler_config = cast(
+        ServiceConfig, runnable_defaults.get("pickler", defaults.DEFAULT_PICKLER)
+    )
     pickler_handler = utils.get_provider_by_name_and_type("pickler", pickler_config)
 
     # executor configurations, configuration over rides everything
@@ -90,8 +106,12 @@ def prepare_configurations(
         executor_config = ServiceConfig(type="local", config={})
 
     if not executor_config:
-        executor_config = cast(ServiceConfig, runnable_defaults.get("executor", defaults.DEFAULT_EXECUTOR))
-    configured_executor = utils.get_provider_by_name_and_type("executor", executor_config)
+        executor_config = cast(
+            ServiceConfig, runnable_defaults.get("executor", defaults.DEFAULT_EXECUTOR)
+        )
+    configured_executor = utils.get_provider_by_name_and_type(
+        "executor", executor_config
+    )
 
     # Construct the context
     run_context = context.Context(
@@ -174,20 +194,26 @@ def execute(
 
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
 
-    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_runnable_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
 
     # Prepare for graph execution
     executor.prepare_for_graph_execution()
 
     logger.info(f"Executing the graph: {run_context.dag}")
     with Progress(
-        TextColumn("[progress.description]{task.description}", table_column=Column(ratio=2)),
+        TextColumn(
+            "[progress.description]{task.description}", table_column=Column(ratio=2)
+        ),
         BarColumn(table_column=Column(ratio=1), style="dark_orange"),
         TimeElapsedColumn(table_column=Column(ratio=1)),
         console=console,
         expand=True,
     ) as progress:
-        pipeline_execution_task = progress.add_task("[dark_orange] Starting execution .. ", total=1)
+        pipeline_execution_task = progress.add_task(
+            "[dark_orange] Starting execution .. ", total=1
+        )
         try:
             run_context.progress = progress
             executor.execute_graph(dag=run_context.dag)  # type: ignore
@@ -197,16 +223,30 @@ def execute(
                 executor.send_return_code(stage="traversal")
                 return
 
-            run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
+            run_log = run_context.run_log_store.get_run_log_by_id(
+                run_id=run_context.run_id, full=False
+            )
 
             if run_log.status == defaults.SUCCESS:
-                progress.update(pipeline_execution_task, description="[green] Success", completed=True)
+                progress.update(
+                    pipeline_execution_task,
+                    description="[green] Success",
+                    completed=True,
+                )
             else:
-                progress.update(pipeline_execution_task, description="[red] Failed", completed=True)
+                progress.update(
+                    pipeline_execution_task, description="[red] Failed", completed=True
+                )
         except Exception as e:  # noqa: E722
             console.print(e, style=defaults.error_style)
-            progress.update(pipeline_execution_task, description="[red] Errored execution", completed=True)
-            run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id, full=False)
+            progress.update(
+                pipeline_execution_task,
+                description="[red] Errored execution",
+                completed=True,
+            )
+            run_log = run_context.run_log_store.get_run_log_by_id(
+                run_id=run_context.run_id, full=False
+            )
             run_log.status = defaults.FAIL
             run_context.run_log_store.add_branch_log(run_log, run_context.run_id)
             raise e
@@ -240,9 +280,13 @@ def execute_single_node(
     """
     from runnable import nodes
 
-    task_console.print(f"Executing the single node: {step_name} with map variable: {map_variable}")
+    task_console.print(
+        f"Executing the single node: {step_name} with map variable: {map_variable}"
+    )
 
-    configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
+    configuration_file = os.environ.get(
+        "RUNNABLE_CONFIGURATION_FILE", configuration_file
+    )
 
     run_context = prepare_configurations(
         configuration_file=configuration_file,
@@ -257,7 +301,9 @@ def execute_single_node(
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_runnable_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
 
     executor.prepare_for_node_execution()
 
@@ -271,7 +317,9 @@ def execute_single_node(
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
-    node_to_execute, _ = graph.search_node_by_internal_name(run_context.dag, step_internal_name)
+    node_to_execute, _ = graph.search_node_by_internal_name(
+        run_context.dag, step_internal_name
+    )
 
     logger.info("Executing the single node of : %s", node_to_execute)
     ## This step is where we save the log file
@@ -316,7 +364,9 @@ def execute_notebook(
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_runnable_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
 
     console.print("Working with context:")
     console.print(run_context)
@@ -336,17 +386,25 @@ def execute_notebook(
         # Prepare for graph execution
         executor.prepare_for_graph_execution()
 
-        logger.info("Executing the job from the user. We are still in the caller's compute environment")
+        logger.info(
+            "Executing the job from the user. We are still in the caller's compute environment"
+        )
         executor.execute_job(node=node)
 
     elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
         executor.prepare_for_node_execution()
-        logger.info("Executing the job from the system. We are in the config's compute environment")
+        logger.info(
+            "Executing the job from the system. We are in the config's compute environment"
+        )
         executor.execute_node(node=node)
 
         # Update the status of the run log
-        step_log = run_context.run_log_store.get_step_log(node._get_step_log_name(), run_id)
-        run_context.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
+        step_log = run_context.run_log_store.get_step_log(
+            node._get_step_log_name(), run_id
+        )
+        run_context.run_log_store.update_run_log_status(
+            run_id=run_id, status=step_log.status
+        )
 
     else:
         raise ValueError(f"Invalid entrypoint {entrypoint}")
@@ -379,7 +437,9 @@ def execute_function(
     executor = run_context.executor
 
     run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
-    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_runnable_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
 
     console.print("Working with context:")
     console.print(run_context)
@@ -399,17 +459,25 @@ def execute_function(
         # Prepare for graph execution
         executor.prepare_for_graph_execution()
 
-        logger.info("Executing the job from the user. We are still in the caller's compute environment")
+        logger.info(
+            "Executing the job from the user. We are still in the caller's compute environment"
+        )
         executor.execute_job(node=node)
 
     elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
         executor.prepare_for_node_execution()
-        logger.info("Executing the job from the system. We are in the config's compute environment")
+        logger.info(
+            "Executing the job from the system. We are in the config's compute environment"
+        )
         executor.execute_node(node=node)
 
         # Update the status of the run log
-        step_log = run_context.run_log_store.get_step_log(node._get_step_log_name(), run_id)
-        run_context.run_log_store.update_run_log_status(run_id=run_id, status=step_log.status)
+        step_log = run_context.run_log_store.get_step_log(
+            node._get_step_log_name(), run_id
+        )
+        run_context.run_log_store.update_run_log_status(
+            run_id=run_id, status=step_log.status
+        )
 
     else:
         raise ValueError(f"Invalid entrypoint {entrypoint}")
@@ -444,7 +512,9 @@ def fan(
     """
     from runnable import nodes
 
-    configuration_file = os.environ.get("RUNNABLE_CONFIGURATION_FILE", configuration_file)
+    configuration_file = os.environ.get(
+        "RUNNABLE_CONFIGURATION_FILE", configuration_file
+    )
 
     run_context = prepare_configurations(
         configuration_file=configuration_file,
@@ -459,12 +529,17 @@ def fan(
 
     executor = run_context.executor
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-    utils.set_runnable_environment_variables(run_id=run_id, configuration_file=configuration_file, tag=tag)
+    utils.set_runnable_environment_variables(
+        run_id=run_id, configuration_file=configuration_file, tag=tag
+    )
 
     executor.prepare_for_node_execution()
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
-    node_to_execute, _ = graph.search_node_by_internal_name(run_context.dag, step_internal_name)  # type: ignore
+    node_to_execute, _ = graph.search_node_by_internal_name(
+        run_context.dag,  # type: ignore
+        step_internal_name,
+    )
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 

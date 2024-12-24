@@ -42,7 +42,6 @@ tree .catalog/pounded-swanson-0626
 4 directories, 28 files
 """
 
-
 from __future__ import print_function
 
 # import argparse
@@ -152,22 +151,31 @@ def test(model, device, test_loader):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += F.nll_loss(output, target, reduction="sum").item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            test_loss += F.nll_loss(
+                output, target, reduction="sum"
+            ).item()  # sum up batch loss
+            pred = output.argmax(
+                dim=1, keepdim=True
+            )  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
 
     print(
         "\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n".format(
-            test_loss, correct, len(test_loader.dataset), 100.0 * correct / len(test_loader.dataset)
+            test_loss,
+            correct,
+            len(test_loader.dataset),
+            100.0 * correct / len(test_loader.dataset),
         )
     )
 
 
 # A function to prepare the dataset.
 def prepare_dataset(train_batch_size: Dict[str, Any], test_batch_size: Dict[str, Any]):
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
     dataset1 = datasets.MNIST("data", train=True, download=True, transform=transform)
     dataset2 = datasets.MNIST("data", train=False, transform=transform)
     train_loader = torch.utils.data.DataLoader(dataset1, **train_batch_size)

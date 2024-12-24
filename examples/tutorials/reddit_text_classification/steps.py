@@ -32,7 +32,7 @@ class CleanTransformer:
     def transform_clean_text(raw_text):
         try:
             decoded = raw_text.encode("ISO-8859-1").decode("utf-8")
-        except:
+        except:  # noqa: E722
             decoded = raw_text.encode("ISO-8859-1").decode("cp1252")
         html_unescaped = unescape(decoded)
         html_unescaped = re.sub(r"\r\n", " ", html_unescaped)
@@ -41,8 +41,12 @@ class CleanTransformer:
         html_unescaped = html_unescaped.replace("&gt;", " > ")
         html_unescaped = html_unescaped.replace("&lt;", " < ")
         html_unescaped = html_unescaped.replace("--", " - ")
-        html_unescaped = CleanTransformer.__uplus_pattern.sub(" U\g<digit> ", html_unescaped)
-        html_unescaped = CleanTransformer.__markup_link_pattern.sub(" \1 \2 ", html_unescaped)
+        html_unescaped = CleanTransformer.__uplus_pattern.sub(
+            " U\g<digit> ", html_unescaped
+        )
+        html_unescaped = CleanTransformer.__markup_link_pattern.sub(
+            " \1 \2 ", html_unescaped
+        )
         html_unescaped = html_unescaped.replace("\\", "")
         return html_unescaped
 

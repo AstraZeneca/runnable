@@ -1,4 +1,3 @@
-import time
 from typing import List
 
 import numpy as np
@@ -106,7 +105,12 @@ def main():
     load_data_task = PythonTask(
         function=load_data,
         name="load_data",
-        returns=[pickled("x_train"), pickled("y_train"), pickled("x_test"), pickled("y_test")],
+        returns=[
+            pickled("x_train"),
+            pickled("y_train"),
+            pickled("x_test"),
+            pickled("y_test"),
+        ],
     )
 
     # def scale_data(x_train: np.ndarray, x_test: np.ndarray)

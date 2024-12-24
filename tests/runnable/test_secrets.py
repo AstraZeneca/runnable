@@ -11,7 +11,9 @@ def instantiable_base_class(monkeypatch):
     yield
 
 
-def test_base_secrets_context_refers_to_run_context(mocker, monkeypatch, instantiable_base_class):
+def test_base_secrets_context_refers_to_run_context(
+    mocker, monkeypatch, instantiable_base_class
+):
     mock_run_context = mocker.Mock()
 
     monkeypatch.setattr(secrets.context, "run_context", mock_run_context)

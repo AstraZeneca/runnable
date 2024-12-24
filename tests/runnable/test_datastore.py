@@ -109,7 +109,9 @@ def test_runlog_search_branch_by_internal_name_returns_run_log_if_internal_name_
     assert step is None
 
 
-def test_step_log_get_data_catalogs_by_stage_gets_catalogs_from_branches(mocker, monkeypatch):
+def test_step_log_get_data_catalogs_by_stage_gets_catalogs_from_branches(
+    mocker, monkeypatch
+):
     mock_branch_log = mocker.MagicMock()
     mock_branch_log.get_data_catalogs_by_stage.return_value = ["from_branch"]
 
@@ -120,7 +122,9 @@ def test_step_log_get_data_catalogs_by_stage_gets_catalogs_from_branches(mocker,
     assert ["from_branch"] == step_log.get_data_catalogs_by_stage()
 
 
-def test_step_log_get_data_catalogs_by_stage_adds_catalogs_from_branches_to_current_ones(mocker, monkeypatch):
+def test_step_log_get_data_catalogs_by_stage_adds_catalogs_from_branches_to_current_ones(
+    mocker, monkeypatch
+):
     mock_branch_log = mocker.MagicMock()
     mock_branch_log.get_data_catalogs_by_stage.return_value = ["from_branch"]
 
@@ -135,7 +139,9 @@ def test_step_log_get_data_catalogs_by_stage_adds_catalogs_from_branches_to_curr
     assert [mock_data_catalog, "from_branch"] == step_log.get_data_catalogs_by_stage()
 
 
-def test_run_log_get_data_catalogs_by_stage_gets_catalogs_from_steps(mocker, monkeypatch):
+def test_run_log_get_data_catalogs_by_stage_gets_catalogs_from_steps(
+    mocker, monkeypatch
+):
     mock_step = mocker.MagicMock()
 
     mock_step.get_data_catalogs_by_stage.return_value = ["data catalog"]
@@ -183,7 +189,9 @@ def test_base_run_log_store_update_run_log_status(mocker, monkeypatch):
     mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
     mock_put_run_log = mocker.MagicMock()
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id)
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
+    )
     monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
 
     run_log_store = datastore.BaseRunLogStore()
@@ -191,13 +199,17 @@ def test_base_run_log_store_update_run_log_status(mocker, monkeypatch):
     assert run_log.status == "running"
 
 
-def test_base_run_log_set_parameters_creates_parameters_if_not_present_previously(mocker, monkeypatch):
+def test_base_run_log_set_parameters_creates_parameters_if_not_present_previously(
+    mocker, monkeypatch
+):
     run_log = datastore.RunLog(run_id="testing")
 
     mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
     mock_put_run_log = mocker.MagicMock()
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id)
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
+    )
     monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
     parameters = {"a": 1}
 
@@ -208,13 +220,17 @@ def test_base_run_log_set_parameters_creates_parameters_if_not_present_previousl
     mock_put_run_log.assert_called_once_with(run_log=run_log)
 
 
-def test_base_run_log_set_parameters_updates_parameters_if_present_previously(mocker, monkeypatch):
+def test_base_run_log_set_parameters_updates_parameters_if_present_previously(
+    mocker, monkeypatch
+):
     run_log = datastore.RunLog(run_id="testing")
     run_log.parameters = {"b": 2}
     mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
     mock_put_run_log = mocker.MagicMock()
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id)
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
+    )
     monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
     parameters = {"a": 1}
 
@@ -231,33 +247,43 @@ def test_base_run_log_store_get_parameters_gets_from_run_log(mocker, monkeypatch
 
     mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id)
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
+    )
 
     run_log_store = datastore.BaseRunLogStore()
     assert run_log_store.get_parameters(run_id="testing") == {"b": 2}
 
 
-def test_base_run_log_store_get_run_config_returns_config_from_run_log(mocker, monkeypatch):
+def test_base_run_log_store_get_run_config_returns_config_from_run_log(
+    mocker, monkeypatch
+):
     run_log = datastore.RunLog(run_id="testing")
     run_config = {"executor": "for testing"}
     run_log.run_config = run_config
 
     mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id)
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
+    )
     run_log_store = datastore.BaseRunLogStore()
 
     assert run_config == run_log_store.get_run_config(run_id="testing")
 
 
-def test_base_run_log_store_set_run_config_creates_run_log_if_not_present(mocker, monkeypatch):
+def test_base_run_log_store_set_run_config_creates_run_log_if_not_present(
+    mocker, monkeypatch
+):
     run_log = datastore.RunLog(run_id="testing")
 
     mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
     mock_put_run_log = mocker.MagicMock()
     run_config = {"executor": "for testing"}
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id)
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
+    )
     monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
 
     run_log_store = datastore.BaseRunLogStore()
@@ -267,14 +293,20 @@ def test_base_run_log_store_set_run_config_creates_run_log_if_not_present(mocker
     mock_put_run_log.assert_called_once_with(run_log=run_log)
 
 
-def test_base_run_log_store_set_run_config_updates_run_log_if_present(mocker, monkeypatch):
-    run_log = datastore.RunLog(run_id="testing", run_config={"datastore": "for testing"})
+def test_base_run_log_store_set_run_config_updates_run_log_if_present(
+    mocker, monkeypatch
+):
+    run_log = datastore.RunLog(
+        run_id="testing", run_config={"datastore": "for testing"}
+    )
 
     mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
     mock_put_run_log = mocker.MagicMock()
     run_config = {"executor": "for testing"}
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id)
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
+    )
     monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
 
     run_log_store = datastore.BaseRunLogStore()
@@ -291,11 +323,19 @@ def test_base_run_log_store_create_step_log_returns_a_step_log_object():
     assert isinstance(step_log, datastore.StepLog)
 
 
-def test_base_run_log_store_get_step_log_raises_step_log_not_found_error_if_search_fails(monkeypatch, mocker):
+def test_base_run_log_store_get_step_log_raises_step_log_not_found_error_if_search_fails(
+    monkeypatch, mocker
+):
     mock_run_log = mocker.MagicMock()
-    mock_run_log.search_step_by_internal_name.side_effect = exceptions.StepLogNotFoundError("test", "test")
+    mock_run_log.search_step_by_internal_name.side_effect = (
+        exceptions.StepLogNotFoundError("test", "test")
+    )
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mocker.MagicMock(return_value=mock_run_log))
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore,
+        "get_run_log_by_id",
+        mocker.MagicMock(return_value=mock_run_log),
+    )
     run_log_store = datastore.BaseRunLogStore()
 
     with pytest.raises(exceptions.StepLogNotFoundError):
@@ -307,10 +347,16 @@ def test_base_run_log_store_get_step_log_returns_from_log_search(monkeypatch, mo
     mock_step_log = mocker.MagicMock()
     mock_run_log.search_step_by_internal_name.return_value = mock_step_log, None
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mocker.MagicMock(return_value=mock_run_log))
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore,
+        "get_run_log_by_id",
+        mocker.MagicMock(return_value=mock_run_log),
+    )
     run_log_store = datastore.BaseRunLogStore()
 
-    assert mock_step_log == run_log_store.get_step_log(internal_name="test", run_id="test")
+    assert mock_step_log == run_log_store.get_step_log(
+        internal_name="test", run_id="test"
+    )
 
 
 def test_base_run_log_store_create_branch_log_returns_a_branch_log_object():
@@ -337,14 +383,22 @@ def test_base_run_log_store_create_data_catalog_object():
     assert isinstance(data_catalog, datastore.DataCatalog)
 
 
-def test_base_run_log_store_add_step_log_adds_log_to_run_log_if_branch_is_none(mocker, monkeypatch):
-    step_log = datastore.StepLog(name="test", internal_name="test")  #  step_log at root level
+def test_base_run_log_store_add_step_log_adds_log_to_run_log_if_branch_is_none(
+    mocker, monkeypatch
+):
+    step_log = datastore.StepLog(
+        name="test", internal_name="test"
+    )  #  step_log at root level
 
     mock_run_log = mocker.MagicMock()
     mock_run_log.search_branch_by_internal_name.return_value = None, None
     mock_run_log.steps = {}
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mocker.MagicMock(return_value=mock_run_log))
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore,
+        "get_run_log_by_id",
+        mocker.MagicMock(return_value=mock_run_log),
+    )
     monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mocker.MagicMock())
 
     run_log_store = datastore.BaseRunLogStore()
@@ -353,15 +407,23 @@ def test_base_run_log_store_add_step_log_adds_log_to_run_log_if_branch_is_none(m
     assert mock_run_log.steps["test"] == step_log
 
 
-def test_base_run_log_store_add_step_log_adds_log_to_branch_log_if_branch_is_found(mocker, monkeypatch):
-    step_log = datastore.StepLog(name="test", internal_name="test.branch.step")  #  step_log at branch level
+def test_base_run_log_store_add_step_log_adds_log_to_branch_log_if_branch_is_found(
+    mocker, monkeypatch
+):
+    step_log = datastore.StepLog(
+        name="test", internal_name="test.branch.step"
+    )  #  step_log at branch level
 
     mock_run_log = mocker.MagicMock()
     mock_branch_log = mocker.MagicMock()
     mock_run_log.search_branch_by_internal_name.return_value = mock_branch_log, None
     mock_branch_log.steps = {}
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mocker.MagicMock(return_value=mock_run_log))
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore,
+        "get_run_log_by_id",
+        mocker.MagicMock(return_value=mock_run_log),
+    )
     monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mocker.MagicMock())
 
     run_log_store = datastore.BaseRunLogStore()
@@ -370,25 +432,41 @@ def test_base_run_log_store_add_step_log_adds_log_to_branch_log_if_branch_is_fou
     assert mock_branch_log.steps["test.branch.step"] == step_log
 
 
-def test_base_run_log_store_get_branch_log_returns_run_log_if_internal_branch_name_is_none(mocker, monkeypatch):
+def test_base_run_log_store_get_branch_log_returns_run_log_if_internal_branch_name_is_none(
+    mocker, monkeypatch
+):
     mock_run_log = mocker.MagicMock()
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mocker.MagicMock(return_value=mock_run_log))
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore,
+        "get_run_log_by_id",
+        mocker.MagicMock(return_value=mock_run_log),
+    )
 
     run_log_store = datastore.BaseRunLogStore()
-    assert mock_run_log == run_log_store.get_branch_log(internal_branch_name=None, run_id="test")
+    assert mock_run_log == run_log_store.get_branch_log(
+        internal_branch_name=None, run_id="test"
+    )
 
 
-def test_base_run_log_store_get_branch_log_returns_branch_log_if_internal_branch_name_is_given(mocker, monkeypatch):
+def test_base_run_log_store_get_branch_log_returns_branch_log_if_internal_branch_name_is_given(
+    mocker, monkeypatch
+):
     mock_run_log = mocker.MagicMock()
     mock_branch_log = mocker.MagicMock()
 
     mock_run_log.search_branch_by_internal_name.return_value = mock_branch_log, None
 
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mocker.MagicMock(return_value=mock_run_log))
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore,
+        "get_run_log_by_id",
+        mocker.MagicMock(return_value=mock_run_log),
+    )
 
     run_log_store = datastore.BaseRunLogStore()
-    assert mock_branch_log == run_log_store.get_branch_log(internal_branch_name="branch", run_id="test")
+    assert mock_branch_log == run_log_store.get_branch_log(
+        internal_branch_name="branch", run_id="test"
+    )
 
 
 def test_base_run_log_store_add_branch_log_adds_run_log_if_sent(monkeypatch, mocker):
@@ -413,7 +491,11 @@ def test_base_run_log_add_branch_log_adds_branch_to_the_right_step(mocker, monke
 
     mock_put_run_log = mocker.MagicMock()
     monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
-    monkeypatch.setattr(datastore.BaseRunLogStore, "get_run_log_by_id", mocker.MagicMock(return_value=mock_run_log))
+    monkeypatch.setattr(
+        datastore.BaseRunLogStore,
+        "get_run_log_by_id",
+        mocker.MagicMock(return_value=mock_run_log),
+    )
 
     mock_run_log.search_step_by_internal_name.return_value = mock_step, None
 

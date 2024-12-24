@@ -54,7 +54,10 @@ def parallel_pipeline(execute: bool = True):
     parallel_step = Parallel(
         name="parallel step",
         terminate_with_success=True,
-        branches={"branch1": traversal(execute=False), "branch2": traversal(execute=False)},
+        branches={
+            "branch1": traversal(execute=False),
+            "branch2": traversal(execute=False),
+        },
     )
 
     pipeline = Pipeline(steps=[parallel_step])
@@ -69,7 +72,10 @@ def main():
     parallel_step = Parallel(
         name="nested_parallel",
         terminate_with_success=True,
-        branches={"branch1": parallel_pipeline(execute=False), "branch2": parallel_pipeline(execute=False)},
+        branches={
+            "branch1": parallel_pipeline(execute=False),
+            "branch2": parallel_pipeline(execute=False),
+        },
     )
 
     pipeline = Pipeline(steps=[parallel_step])

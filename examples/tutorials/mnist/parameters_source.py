@@ -51,9 +51,15 @@ def build_model(train_params: TrainParams, num_classes: int):
     model = keras.Sequential(
         [
             keras.Input(shape=train_params.input_shape),
-            layers.Conv2D(32, train_params.kernel_size, activation=train_params.conv_activation),
+            layers.Conv2D(
+                32, train_params.kernel_size, activation=train_params.conv_activation
+            ),
             layers.MaxPooling2D(pool_size=train_params.pool_size),
-            layers.Conv2D(64, kernel_size=train_params.kernel_size, activation=train_params.conv_activation),
+            layers.Conv2D(
+                64,
+                kernel_size=train_params.kernel_size,
+                activation=train_params.conv_activation,
+            ),
             layers.MaxPooling2D(pool_size=train_params.pool_size),
             layers.Flatten(),
             layers.Dropout(0.5),
@@ -68,7 +74,11 @@ def build_model(train_params: TrainParams, num_classes: int):
 
 def train_model(x_train: np.ndarray, y_train: np.ndarray, train_params: TrainParams):
     model = keras.models.load_model("model.keras")
-    model.compile(loss=train_params.loss, optimizer=train_params.optimizer, metrics=train_params.metrics)
+    model.compile(
+        loss=train_params.loss,
+        optimizer=train_params.optimizer,
+        metrics=train_params.metrics,
+    )
 
     model.fit(
         x_train,
@@ -98,7 +108,12 @@ def main():
     load_data_task = PythonTask(
         function=load_data,
         name="load_data",
-        returns=[pickled("x_train"), pickled("y_train"), pickled("x_test"), pickled("y_test")],
+        returns=[
+            pickled("x_train"),
+            pickled("y_train"),
+            pickled("x_test"),
+            pickled("y_test"),
+        ],
     )
 
     # def scale_data(x_train: np.ndarray, x_test: np.ndarray)

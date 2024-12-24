@@ -20,7 +20,9 @@ def test_get_user_set_parameters_does_nothing_if_prefix_does_not_match(monkeypat
     assert get_user_set_parameters() == {}
 
 
-def test_get_user_set_parameters_removes_the_parameter_if_prefix_match_remove(monkeypatch):
+def test_get_user_set_parameters_removes_the_parameter_if_prefix_match_remove(
+    monkeypatch,
+):
     monkeypatch.setenv(defaults.PARAMETER_PREFIX + "key", "1")
 
     assert defaults.PARAMETER_PREFIX + "key" in os.environ
@@ -70,7 +72,10 @@ def test_filter_arguments_for_func_with_simple_arguments():
     def func(a: int, b: str):
         pass
 
-    params = {"a": JsonParameter(kind="json", value=1), "b": JsonParameter(kind="json", value="test")}
+    params = {
+        "a": JsonParameter(kind="json", value=1),
+        "b": JsonParameter(kind="json", value="test"),
+    }
     bound_args = filter_arguments_for_func(func, params)
 
     assert bound_args == {"a": 1, "b": "test"}
@@ -108,7 +113,9 @@ def test_filter_arguments_for_func_with_missing_arguments_and_no_defaults():
         pass
 
     params = {"inner": JsonParameter(kind="json", value=1)}
-    with pytest.raises(ValueError, match=r"Parameter c is required for func but not provided"):
+    with pytest.raises(
+        ValueError, match=r"Parameter c is required for func but not provided"
+    ):
         _ = filter_arguments_for_func(func, params)
 
 
@@ -118,5 +125,7 @@ def test_filter_arguments_for_func_with_map_variable_sent_in():
     def func(inner: int, first: int, second: str):
         pass
 
-    bound_args = filter_arguments_for_func(func, params, map_variable={"first": 1, "second": "test"})
+    bound_args = filter_arguments_for_func(
+        func, params, map_variable={"first": 1, "second": "test"}
+    )
     assert bound_args == {"inner": 1, "first": 1, "second": "test"}

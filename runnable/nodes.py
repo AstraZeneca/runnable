@@ -51,7 +51,9 @@ class BaseNode(ABC, BaseModel):
             raise ValueError("Node names cannot have . or '%' in them")
         return name
 
-    def _command_friendly_name(self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER) -> str:
+    def _command_friendly_name(
+        self, replace_with=defaults.COMMAND_FRIENDLY_CHARACTER
+    ) -> str:
         """
         Replace spaces with special character for spaces.
         Spaces in the naming of the node is convenient for the user but causes issues when used programmatically.
@@ -76,7 +78,9 @@ class BaseNode(ABC, BaseModel):
         return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, " ")
 
     @classmethod
-    def _resolve_map_placeholders(cls, name: str, map_variable: TypeMapVariable = None) -> str:
+    def _resolve_map_placeholders(
+        cls, name: str, map_variable: TypeMapVariable = None
+    ) -> str:
         """
         If there is no map step used, then we just return the name as we find it.
 
@@ -141,7 +145,9 @@ class BaseNode(ABC, BaseModel):
         Returns:
             str: The dot path name of the step log name
         """
-        return self._resolve_map_placeholders(self.internal_name, map_variable=map_variable)
+        return self._resolve_map_placeholders(
+            self.internal_name, map_variable=map_variable
+        )
 
     def _get_branch_log_name(self, map_variable: TypeMapVariable = None) -> str:
         """
@@ -158,7 +164,9 @@ class BaseNode(ABC, BaseModel):
         Returns:
             str: The dot path name of the branch log
         """
-        return self._resolve_map_placeholders(self.internal_branch_name, map_variable=map_variable)
+        return self._resolve_map_placeholders(
+            self.internal_branch_name, map_variable=map_variable
+        )
 
     def __str__(self) -> str:  # pragma: no cover
         """
@@ -180,7 +188,6 @@ class BaseNode(ABC, BaseModel):
             str: The on_failure node defined by the dag or ''
         This is a base implementation which the BaseNode does not satisfy
         """
-        ...
 
     @abstractmethod
     def _get_next_node(self) -> str:
@@ -190,7 +197,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             str: The node name, relative to the dag, as defined by the config
         """
-        ...
 
     @abstractmethod
     def _is_terminal_node(self) -> bool:
@@ -200,7 +206,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             bool: True or False of whether there is next node.
         """
-        ...
 
     @abstractmethod
     def _get_catalog_settings(self) -> Dict[str, Any]:
@@ -210,7 +215,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             dict: catalog settings defined as per the node or None
         """
-        ...
 
     @abstractmethod
     def _get_branch_by_name(self, branch_name: str):
@@ -225,7 +229,6 @@ class BaseNode(ABC, BaseModel):
         Raises:
             Exception: [description]
         """
-        ...
 
     def _get_neighbors(self) -> List[str]:
         """
@@ -261,7 +264,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             dict: The executor config, if defined or an empty dict
         """
-        ...
 
     @abstractmethod
     def _get_max_attempts(self) -> int:
@@ -271,7 +273,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             int: The number of maximum retries as defined by the config or 1.
         """
-        ...
 
     @abstractmethod
     def execute(
@@ -296,7 +297,6 @@ class BaseNode(ABC, BaseModel):
         Raises:
             NotImplementedError: Base class, hence not implemented.
         """
-        ...
 
     @abstractmethod
     def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
@@ -312,7 +312,6 @@ class BaseNode(ABC, BaseModel):
         Raises:
             NotImplementedError: Base class, hence not implemented.
         """
-        ...
 
     @abstractmethod
     def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
@@ -329,7 +328,6 @@ class BaseNode(ABC, BaseModel):
         Raises:
             Exception: If the node is not a composite node.
         """
-        ...
 
     @abstractmethod
     def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
@@ -346,7 +344,6 @@ class BaseNode(ABC, BaseModel):
         Raises:
             Exception: If the node is not a composite node.
         """
-        ...
 
     @classmethod
     @abstractmethod
@@ -360,7 +357,6 @@ class BaseNode(ABC, BaseModel):
         Returns:
             BaseNode: The corresponding node.
         """
-        ...
 
     @abstractmethod
     def get_summary(self) -> Dict[str, Any]:
@@ -471,7 +467,9 @@ class CompositeNode(TraversalNode):
         attempt_number: int = 1,
         **kwargs,
     ) -> StepLog:
-        raise Exception("This is a composite node and does not have an execute function")
+        raise Exception(
+            "This is a composite node and does not have an execute function"
+        )
 
 
 class TerminalNode(BaseNode):

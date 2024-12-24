@@ -15,6 +15,8 @@ from runnable.utils import remove_prefix
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
+# TODO: Revisit this, it might be a bit too complicated than required
+
 
 def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
     """
@@ -34,9 +36,13 @@ def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
         if env_var.startswith(defaults.PARAMETER_PREFIX):
             key = remove_prefix(env_var, defaults.PARAMETER_PREFIX)
             try:
-                parameters[key.lower()] = JsonParameter(kind="json", value=json.loads(value))
+                parameters[key.lower()] = JsonParameter(
+                    kind="json", value=json.loads(value)
+                )
             except json.decoder.JSONDecodeError:
-                logger.warning(f"Parameter {key} could not be JSON decoded, adding the literal value")
+                logger.warning(
+                    f"Parameter {key} could not be JSON decoded, adding the literal value"
+                )
                 parameters[key.lower()] = JsonParameter(kind="json", value=value)
 
             if remove:
@@ -52,7 +58,9 @@ def serialize_parameter_as_str(value: Any) -> str:
 
 
 def filter_arguments_for_func(
-    func: Callable[..., Any], params: Dict[str, Any], map_variable: TypeMapVariable = None
+    func: Callable[..., Any],
+    params: Dict[str, Any],
+    map_variable: TypeMapVariable = None,
 ) -> Dict[str, Any]:
     """
     Inspects the function to be called as part of the pipeline to find the arguments of the function.
@@ -96,11 +104,16 @@ def filter_arguments_for_func(
             # No parameter of this name was provided
             if value.default == inspect.Parameter.empty:
                 # No default value is given in the function signature. error as parameter is required.
-                raise ValueError(f"Parameter {name} is required for {func.__name__} but not provided")
+                raise ValueError(
+                    f"Parameter {name} is required for {func.__name__} but not provided"
+                )
             # default value is given in the function signature, nothing further to do.
             continue
 
-        if type(value.annotation) in [BaseModel, pydantic._internal._model_construction.ModelMetaclass]:
+        if type(value.annotation) in [
+            BaseModel,
+            pydantic._internal._model_construction.ModelMetaclass,
+        ]:
             # We try to cast it as a pydantic model if asked
             named_param = params[name].get_value()
 
@@ -110,7 +123,9 @@ def filter_arguments_for_func(
 
             bound_model = bind_args_for_pydantic_model(named_param, value.annotation)
             bound_args[name] = bound_model
-            unassigned_params = unassigned_params.difference(bound_model.model_fields.keys())
+            unassigned_params = unassigned_params.difference(
+                bound_model.model_fields.keys()
+            )
 
         elif value.annotation in [str, int, float, bool]:
             # Cast it if its a primitive type. Ensure the type matches the annotation.
@@ -120,12 +135,16 @@ def filter_arguments_for_func(
 
         unassigned_params.remove(name)
 
-        params = {key: params[key] for key in unassigned_params}  # remove keys from params if they are assigned
+        params = {
+            key: params[key] for key in unassigned_params
+        }  # remove keys from params if they are assigned
 
     return bound_args
 
 
-def bind_args_for_pydantic_model(params: Dict[str, Any], model: Type[BaseModel]) -> BaseModel:
+def bind_args_for_pydantic_model(
+    params: Dict[str, Any], model: Type[BaseModel]
+) -> BaseModel:
     class EasyModel(model):  # type: ignore
         model_config = ConfigDict(extra="ignore")
 

@@ -31,7 +31,7 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
-# TODO: Can we add memory peak, cpu usage, etc. to the metrics?
+# TODO: This has to be an extension
 
 
 class TaskReturns(BaseModel):
@@ -43,8 +43,12 @@ class BaseTaskType(BaseModel):
     """A base task class which does the execution of command defined by the user."""
 
     task_type: str = Field(serialization_alias="command_type")
-    secrets: List[str] = Field(default_factory=list)
-    returns: List[TaskReturns] = Field(default_factory=list, alias="returns")
+    secrets: List[str] = Field(
+        default_factory=list
+    )  # A list of secrets to expose by secrets manager
+    returns: List[TaskReturns] = Field(
+        default_factory=list, alias="returns"
+    )  # The return values of the task
 
     model_config = ConfigDict(extra="forbid")
 
@@ -70,11 +74,13 @@ class BaseTaskType(BaseModel):
         raise NotImplementedError()
 
     def set_secrets_as_env_variables(self):
+        # Preparing the environment for the task execution
         for key in self.secrets:
             secret_value = context.run_context.secrets_handler.get(key)
             os.environ[key] = secret_value
 
     def delete_secrets_from_env_variables(self):
+        # Cleaning up the environment after the task execution
         for key in self.secrets:
             if key in os.environ:
                 del os.environ[key]
@@ -99,6 +105,7 @@ class BaseTaskType(BaseModel):
     def _diff_parameters(
         self, parameters_in: Dict[str, Parameter], context_params: Dict[str, Parameter]
     ) -> Dict[str, Parameter]:
+        # If the parameter is different from existing parameters, then it is updated
         diff: Dict[str, Parameter] = {}
         for param_name, param in context_params.items():
             if param_name in parameters_in:
@@ -112,12 +119,7 @@ class BaseTaskType(BaseModel):
 
     @contextlib.contextmanager
     def expose_secrets(self):
-        """Context manager to expose secrets to the execution.
-
-        Args:
-            map_variable (dict, optional): If the command is part of map node, the value of map. Defaults to None.
-
-        """
+        """Context manager to expose secrets to the execution."""
         self.set_secrets_as_env_variables()
         try:
             yield
@@ -126,9 +128,32 @@ class BaseTaskType(BaseModel):
         finally:
             self.delete_secrets_from_env_variables()
 
+    def resolve_unreduced_parameters(self, map_variable: TypeMapVariable = None):
+        """Resolve the unreduced parameters."""
+        params = self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id
+        ).copy()
+
+        for param_name, param in params.items():
+            if param.reduced is False:
+                assert (
+                    map_variable is not None
+                ), "Parameters in non-map node should always be reduced"
+
+                context_param = param_name
+                for _, v in map_variable.items():
+                    context_param = f"{v}_{context_param}"
+
+                if context_param in params:  # Is this if required?
+                    params[param_name].value = params[context_param].value
+
+        return params
+
     @contextlib.contextmanager
-    def execution_context(self, map_variable: TypeMapVariable = None, allow_complex: bool = True):
-        params = self._context.run_log_store.get_parameters(run_id=self._context.run_id).copy()
+    def execution_context(
+        self, map_variable: TypeMapVariable = None, allow_complex: bool = True
+    ):
+        params = self.resolve_unreduced_parameters(map_variable=map_variable)
         logger.info(f"Parameters available for the execution: {params}")
 
         for param_name, param in params.items():
@@ -150,7 +175,11 @@ class BaseTaskType(BaseModel):
         logger.debug(f"Resolved parameters: {params}")
 
         if not allow_complex:
-            params = {key: value for key, value in params.items() if isinstance(value, JsonParameter)}
+            params = {
+                key: value
+                for key, value in params.items()
+                if isinstance(value, JsonParameter)
+            }
 
         parameters_in = copy.deepcopy(params)
         try:
@@ -161,8 +190,12 @@ class BaseTaskType(BaseModel):
         finally:
             # Update parameters
             # This should only update the parameters that are changed at the root level.
-            diff_parameters = self._diff_parameters(parameters_in=parameters_in, context_params=params)
-            self._context.run_log_store.set_parameters(parameters=diff_parameters, run_id=self._context.run_id)
+            diff_parameters = self._diff_parameters(
+                parameters_in=parameters_in, context_params=params
+            )
+            self._context.run_log_store.set_parameters(
+                parameters=diff_parameters, run_id=self._context.run_id
+            )
 
 
 def task_return_to_parameter(task_return: TaskReturns, value: Any) -> Parameter:
@@ -258,7 +291,10 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         """Execute the notebook as defined by the command."""
         attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
 
-        with self.execution_context(map_variable=map_variable) as params, self.expose_secrets() as _:
+        with (
+            self.execution_context(map_variable=map_variable) as params,
+            self.expose_secrets() as _,
+        ):
             module, func = utils.get_module_and_attr_names(self.command)
             sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
             imported_module = importlib.import_module(module)
@@ -266,21 +302,32 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
             try:
                 try:
-                    filtered_parameters = parameters.filter_arguments_for_func(f, params.copy(), map_variable)
-                    logger.info(f"Calling {func} from {module} with {filtered_parameters}")
+                    filtered_parameters = parameters.filter_arguments_for_func(
+                        f, params.copy(), map_variable
+                    )
+                    logger.info(
+                        f"Calling {func} from {module} with {filtered_parameters}"
+                    )
 
                     out_file = io.StringIO()
                     with contextlib.redirect_stdout(out_file):
-                        user_set_parameters = f(**filtered_parameters)  # This is a tuple or single value
+                        user_set_parameters = f(
+                            **filtered_parameters
+                        )  # This is a tuple or single value
                     task_console.print(out_file.getvalue())
                 except Exception as e:
-                    raise exceptions.CommandCallError(f"Function call: {self.command} did not succeed.\n") from e
+                    raise exceptions.CommandCallError(
+                        f"Function call: {self.command} did not succeed.\n"
+                    ) from e
 
                 attempt_log.input_parameters = params.copy()
 
                 if map_variable:
                     attempt_log.input_parameters.update(
-                        {k: JsonParameter(value=v, kind="json") for k, v in map_variable.items()}
+                        {
+                            k: JsonParameter(value=v, kind="json")
+                            for k, v in map_variable.items()
+                        }
                     )
 
                 if self.returns:
@@ -288,7 +335,9 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                         user_set_parameters = (user_set_parameters,)
 
                     if len(user_set_parameters) != len(self.returns):
-                        raise ValueError("Returns task signature does not match the function returns")
+                        raise ValueError(
+                            "Returns task signature does not match the function returns"
+                        )
 
                     output_parameters: Dict[str, Parameter] = {}
                     metrics: Dict[str, Parameter] = {}
@@ -400,7 +449,10 @@ class NotebookTaskType(BaseTaskType):
         return str(file_name)
 
     def get_cli_options(self) -> Tuple[str, dict]:
-        return "notebook", {"command": self.command, "notebook-output-path": self.notebook_output_path}
+        return "notebook", {
+            "command": self.command,
+            "notebook-output-path": self.notebook_output_path,
+        }
 
     def execute_command(
         self,
@@ -423,9 +475,12 @@ class NotebookTaskType(BaseTaskType):
 
             notebook_output_path = self.notebook_output_path
 
-            with self.execution_context(
-                map_variable=map_variable, allow_complex=False
-            ) as params, self.expose_secrets() as _:
+            with (
+                self.execution_context(
+                    map_variable=map_variable, allow_complex=False
+                ) as params,
+                self.expose_secrets() as _,
+            ):
                 copy_params = copy.deepcopy(params)
 
                 if map_variable:
@@ -434,7 +489,9 @@ class NotebookTaskType(BaseTaskType):
                         copy_params[key] = JsonParameter(kind="json", value=value)
 
                 # Remove any {v}_unreduced parameters from the parameters
-                unprocessed_params = [k for k, v in copy_params.items() if not v.reduced]
+                unprocessed_params = [
+                    k for k, v in copy_params.items() if not v.reduced
+                ]
 
                 for key in list(copy_params.keys()):
                     if any(key.endswith(f"_{k}") for k in unprocessed_params):
@@ -458,7 +515,9 @@ class NotebookTaskType(BaseTaskType):
                     pm.execute_notebook(**kwds)
                 task_console.print(out_file.getvalue())
 
-                context.run_context.catalog_handler.put(name=notebook_output_path, run_id=context.run_context.run_id)
+                context.run_context.catalog_handler.put(
+                    name=notebook_output_path, run_id=context.run_context.run_id
+                )
 
                 client = PloomberClient.from_path(path=notebook_output_path)
                 namespace = client.get_namespace()
@@ -466,7 +525,9 @@ class NotebookTaskType(BaseTaskType):
                 output_parameters: Dict[str, Parameter] = {}
                 try:
                     for task_return in self.returns:
-                        param_name = Template(task_return.name).safe_substitute(map_variable)  # type: ignore
+                        param_name = Template(task_return.name).safe_substitute(
+                            map_variable  # type: ignore
+                        )
 
                         if map_variable:
                             for _, v in map_variable.items():
@@ -566,7 +627,9 @@ class ShellTaskType(BaseTaskType):
     def returns_should_be_json(cls, returns: List[TaskReturns]):
         for task_return in returns:
             if task_return.kind == "object" or task_return.kind == "pydantic":
-                raise ValueError("Pydantic models or Objects are not allowed in returns")
+                raise ValueError(
+                    "Pydantic models or Objects are not allowed in returns"
+                )
 
         return returns
 
@@ -601,7 +664,9 @@ class ShellTaskType(BaseTaskType):
                 subprocess_env[key] = secret_value
 
         try:
-            with self.execution_context(map_variable=map_variable, allow_complex=False) as params:
+            with self.execution_context(
+                map_variable=map_variable, allow_complex=False
+            ) as params:
                 subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
                 # Json dumps all runnable environment variables
@@ -612,7 +677,9 @@ class ShellTaskType(BaseTaskType):
 
                 collect_delimiter = "=== COLLECT ==="
 
-                command = self.command.strip() + f" && echo '{collect_delimiter}'  && env"
+                command = (
+                    self.command.strip() + f" && echo '{collect_delimiter}'  && env"
+                )
                 logger.info(f"Executing shell command: {command}")
 
                 capture = False

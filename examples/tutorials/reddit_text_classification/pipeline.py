@@ -5,7 +5,7 @@ from examples.tutorials.reddit_text_classification.steps import (
     tfidf,
     tokenize,
 )
-from runnable import Pipeline, PythonTask, Stub, pickled
+from runnable import Pipeline, Stub, pickled
 
 
 def driver():
@@ -25,10 +25,16 @@ def driver():
 
 
 def runnable_pipeline():
-    extract_task = Stub(name="extract", function=extract_text, returns=[pickled("x"), pickled("labels")])
+    extract_task = Stub(
+        name="extract", function=extract_text, returns=[pickled("x"), pickled("labels")]
+    )
     clean_task = Stub(name="clean", function=clean, returns=[pickled("cleaned_x")])
-    tokenize_task = Stub(name="tokenize", function=tokenize, returns=[pickled("tokenised_x")])
-    vectorise_task = Stub(name="tfidf", function=tfidf, returns=[pickled("vectorised_x")])
+    tokenize_task = Stub(
+        name="tokenize", function=tokenize, returns=[pickled("tokenised_x")]
+    )
+    vectorise_task = Stub(
+        name="tfidf", function=tfidf, returns=[pickled("vectorised_x")]
+    )
 
     model_fit_task = Stub(
         name="model_fit",
@@ -42,7 +48,9 @@ def runnable_pipeline():
         add_terminal_nodes=True,
     )
 
-    pipeline.execute(parameters_file="examples/tutorials/reddit_text_classification/parameters.yaml")
+    pipeline.execute(
+        parameters_file="examples/tutorials/reddit_text_classification/parameters.yaml"
+    )
 
     return pipeline
 

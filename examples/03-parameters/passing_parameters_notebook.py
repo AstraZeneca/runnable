@@ -43,7 +43,11 @@ def main():
     )
 
     pipeline = Pipeline(
-        steps=[write_parameters_from_notebook, read_parameters, read_parameters_in_notebook],
+        steps=[
+            write_parameters_from_notebook,
+            read_parameters,
+            read_parameters_in_notebook,
+        ],
     )
 
     _ = pipeline.execute()

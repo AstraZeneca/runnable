@@ -14,7 +14,7 @@ from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph
 
 if TYPE_CHECKING:  # pragma: no cover
-    from runnable.extensions.nodes import TaskNode
+    from extensions.nodes.nodes import TaskNode
     from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -36,9 +36,12 @@ class BaseExecutor(ABC, BaseModel):
 
     overrides: dict = {}
 
-    _local: bool = False  # This is a flag to indicate whether the executor is local or not.
+    _local: bool = (
+        False  # This is a flag to indicate whether the executor is local or not.
+    )
 
-    _context_node = None  # type: BaseNode
+    # TODO: Change this to _is_local
+    _context_node: Optional[BaseNode] = None
     model_config = ConfigDict(extra="forbid")
 
     @property
@@ -90,7 +93,9 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def _sync_catalog(self, stage: str, synced_catalogs=None) -> Optional[List[DataCatalog]]:
+    def _sync_catalog(
+        self, stage: str, synced_catalogs=None
+    ) -> Optional[List[DataCatalog]]:
         """
         1). Identify the catalog settings by over-riding node settings with the global settings.
         2). For stage = get:
@@ -141,7 +146,13 @@ class BaseExecutor(ABC, BaseModel):
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
     @abstractmethod
-    def _execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, mock: bool = False, **kwargs):
+    def _execute_node(
+        self,
+        node: BaseNode,
+        map_variable: TypeMapVariable = None,
+        mock: bool = False,
+        **kwargs,
+    ):
         """
         This is the entry point when we do the actual execution of the function.
 
@@ -163,7 +174,9 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_node(
+        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
+    ):
         """
         The entry point for all executors apart from local.
         We have already prepared for node execution.
@@ -191,7 +204,9 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_from_graph(
+        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
+    ):
         """
         This is the entry point to from the graph execution.
 
@@ -219,7 +234,9 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def trigger_job(self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs):
+    def trigger_job(
+        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
+    ):
         """
         Executor specific way of triggering jobs when runnable does both traversal and execution
 
@@ -236,7 +253,9 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def _get_status_and_next_node_name(self, current_node: BaseNode, dag: Graph, map_variable: TypeMapVariable = None):
+    def _get_status_and_next_node_name(
+        self, current_node: BaseNode, dag: Graph, map_variable: TypeMapVariable = None
+    ):
         """
         Given the current node and the graph, returns the name of the next node to execute.
 

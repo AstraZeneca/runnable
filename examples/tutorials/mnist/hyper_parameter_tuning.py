@@ -47,7 +47,9 @@ def convert_to_categorically(y_train: np.ndarray, y_test: np.ndarray, num_classe
     return y_train, y_test
 
 
-def build_model(train_params: TrainParams, hpt_id: int, hpt: List[List[int]], num_classes: int):
+def build_model(
+    train_params: TrainParams, hpt_id: int, hpt: List[List[int]], num_classes: int
+):
     hp = hpt[hpt_id]
     hp_id = "_".join(map(str, hp))
     print(hp_id)
@@ -75,18 +77,32 @@ def build_model(train_params: TrainParams, hpt_id: int, hpt: List[List[int]], nu
     )
 
     model = keras.Sequential(_layers)
-    model.compile(loss=train_params.loss, optimizer=train_params.optimizer, metrics=train_params.metrics)
+    model.compile(
+        loss=train_params.loss,
+        optimizer=train_params.optimizer,
+        metrics=train_params.metrics,
+    )
 
     print(model.summary())
 
     model.save(f"model{hp_id}.keras")
 
 
-def train_model(x_train: np.ndarray, y_train: np.ndarray, hpt_id: int, train_params: TrainParams, hpt: List[List[int]]):
+def train_model(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    hpt_id: int,
+    train_params: TrainParams,
+    hpt: List[List[int]],
+):
     hp = hpt[hpt_id]
     hp_id = "_".join(map(str, hp))
     model = keras.models.load_model(f"model{hp_id}.keras")
-    model.compile(loss=train_params.loss, optimizer=train_params.optimizer, metrics=train_params.metrics)
+    model.compile(
+        loss=train_params.loss,
+        optimizer=train_params.optimizer,
+        metrics=train_params.metrics,
+    )
 
     model.fit(
         x_train,
@@ -99,7 +115,9 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, hpt_id: int, train_par
     model.save(f"trained_model{hp_id}.keras")
 
 
-def evaluate_model(x_test: np.ndarray, y_test: np.ndarray, hpt: List[List[int]], hpt_id: int):
+def evaluate_model(
+    x_test: np.ndarray, y_test: np.ndarray, hpt: List[List[int]], hpt_id: int
+):
     hp = hpt[hpt_id]
     hp_id = "_".join(map(str, hp))
     trained_model = keras.models.load_model(f"trained_model{hp_id}.keras")
@@ -118,7 +136,12 @@ def main():
     load_data_task = PythonTask(
         function=load_data,
         name="load_data",
-        returns=[pickled("x_train"), pickled("y_train"), pickled("x_test"), pickled("y_test")],
+        returns=[
+            pickled("x_train"),
+            pickled("y_train"),
+            pickled("x_test"),
+            pickled("y_test"),
+        ],
     )
 
     # def scale_data(x_train: np.ndarray, x_test: np.ndarray)
@@ -159,7 +182,9 @@ def main():
         terminate_with_success=True,
     )
 
-    train_pipeline = Pipeline(steps=[build_model_task, train_model_task, evaluate_model_task])
+    train_pipeline = Pipeline(
+        steps=[build_model_task, train_model_task, evaluate_model_task]
+    )
 
     hpt_step = Map(
         name="hpt",
@@ -170,7 +195,9 @@ def main():
         terminate_with_success=True,
     )
 
-    pipeline = Pipeline(steps=[load_data_task, scale_data_task, convert_to_categorically_task, hpt_step])
+    pipeline = Pipeline(
+        steps=[load_data_task, scale_data_task, convert_to_categorically_task, hpt_step]
+    )
 
     pipeline.execute(parameters_file="examples/tutorials/mnist/parameters.yaml")
 

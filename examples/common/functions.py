@@ -126,7 +126,9 @@ def process_chunk(chunk: int):
     return chunk * 10
 
 
-def read_processed_chunk(chunk: int, processed_python: int, processed_notebook: int, processed_shell: int):
+def read_processed_chunk(
+    chunk: int, processed_python: int, processed_notebook: int, processed_shell: int
+):
     """
     A downstream step of process_chunk of map state which reads the processed chunk.
     Since the process_chunk returns the chunk multiplied by 10, we assert that.
@@ -137,7 +139,10 @@ def read_processed_chunk(chunk: int, processed_python: int, processed_notebook: 
 
 
 def assert_default_reducer(
-    processed_python: List[int], processed_notebook: List[int], processed_shell: List[int], chunks: List[int]
+    processed_python: List[int],
+    processed_notebook: List[int],
+    processed_shell: List[int],
+    chunks: List[int],
 ):
     """
     Demonstrates the default reducer which just returns the list of processed chunks.
@@ -147,7 +152,12 @@ def assert_default_reducer(
     assert processed_shell == [chunk * 1000 for chunk in chunks]
 
 
-def assert_custom_reducer(processed_python: int, processed_notebook: int, processed_shell: int, chunks: List[int]):
+def assert_custom_reducer(
+    processed_python: int,
+    processed_notebook: int,
+    processed_shell: int,
+    chunks: List[int],
+):
     """
     Asserts the custom reducer returns the max of all the processed chunks.
     """

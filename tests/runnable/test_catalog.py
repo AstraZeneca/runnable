@@ -12,7 +12,9 @@ def instantiable_base_class(monkeypatch):
     yield
 
 
-def test_base_run_log_store_context_property(mocker, monkeypatch, instantiable_base_class):
+def test_base_run_log_store_context_property(
+    mocker, monkeypatch, instantiable_base_class
+):
     mock_run_context = mocker.Mock()
 
     monkeypatch.setattr(catalog.context, "run_context", mock_run_context)
@@ -38,7 +40,9 @@ def test_base_catalog_sync_between_runs_raises_exception(instantiable_base_class
         base_catalog.sync_between_runs(previous_run_id=1, run_id=2)
 
 
-def test_base_catalog_config_default_compute_folder_if_none_config(instantiable_base_class):
+def test_base_catalog_config_default_compute_folder_if_none_config(
+    instantiable_base_class,
+):
     assert catalog.BaseCatalog().compute_data_folder == defaults.COMPUTE_DATA_FOLDER
 
 

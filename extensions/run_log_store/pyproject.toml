@@ -1,0 +1,7 @@
+[project]
+name = "run_log_store"
+version = "0.1.0"
+description = "Extensions to run log store"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
