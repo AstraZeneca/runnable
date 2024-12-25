@@ -38,9 +38,7 @@ notebook = [
 examples = [
     "pandas>=2.2.3",
 ]
-release = [
-    "python-semantic-release>=9.15.2",
-]
+release = []
 
 [build-system]
 requires = ["hatchling"]
@@ -61,6 +59,9 @@ docs = [
     "mkdocstrings>=0.27.0",
     "mkdocs-click>=0.8.1",
     "mkdocstrings-python>=1.12.2",
+]
+release = [
+    "python-semantic-release>=9.15.2",
 ]
 
 [tool.uv.workspace]
