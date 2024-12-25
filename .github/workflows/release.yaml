@@ -60,15 +60,20 @@ jobs:
               ref: tag,
               sha: context.sha
             })
+
       - name: Publish to PyPI
         if: steps.last_tag.outcome == 'success'
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-          LAST_TAG: ${{ steps.last_tag.outputs.version }}
+          APPLY_TAG: ${{ steps.last_tag.outputs.version }}
         run: |
-          python scripts/update_version.py $LAST_TAG
-          poetry config pypi-token.pypi $PYPI_TOKEN
-          poetry publish --build
+          uvx --from=toml-cli toml set --toml-path=pyproject.toml project.version $APPLY_TAG
+          uv build
+          uv publish --token $PYPI_TOKEN
+
+      - name: test_installation
+        if: steps.last_tag.outcome == 'success'
+        run: uv run --with runnable --no-project -- python -c "import runnable"
 
       - name: "Create release"
         if: steps.last_tag.outcome == 'success'
