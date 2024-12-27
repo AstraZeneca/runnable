@@ -30,7 +30,7 @@ class RetryExecutor(GenericExecutor):
     service_type: str = "executor"
     run_id: str
 
-    _local: bool = True
+    _is_local: bool = True
     _original_run_log: Optional[RunLog] = None
     _restart_initiated: bool = False
 

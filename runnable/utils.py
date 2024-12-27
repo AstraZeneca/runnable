@@ -433,6 +433,9 @@ def get_node_execution_command(
         f" --log-level {log_level}"
     )
 
+    if context.run_context.from_sdk:
+        action = action + " --mode python"
+
     if context.run_context.pipeline_file:
         action = action + f" --file {context.run_context.pipeline_file}"
 

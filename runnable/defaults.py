@@ -1,6 +1,12 @@
 from enum import Enum
-from typing import TypedDict  # type: ignore[unused-ignore]
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import (
+    Any,
+    Dict,
+    Mapping,
+    Optional,
+    TypedDict,  # type: ignore[unused-ignore]
+    Union,
+)
 
 from rich.style import Style
 from typing_extensions import TypeAlias
@@ -45,7 +51,6 @@ RUNNABLE_RUN_TAG = "RUNNABLE_RUN_TAG"
 
 # Interaction settings
 TRACK_PREFIX = "RUNNABLE_TRACK_"
-STEP_INDICATOR = "_STEP_"
 PARAMETER_PREFIX = "RUNNABLE_PRM_"
 MAP_VARIABLE = "RUNNABLE_MAP_VARIABLE"
 VARIABLE_PREFIX = "RUNNABLE_VAR_"
@@ -66,18 +71,13 @@ TRIGGERED = "TRIGGERED"
 
 # Node and Command settings
 COMMAND_TYPE = "python"
-NODE_SPEC_FILE = "node_spec.yaml"
 COMMAND_FRIENDLY_CHARACTER = "%"
-DEFAULT_CONTAINER_CONTEXT_PATH = "/opt/runnable/"
-DEFAULT_CONTAINER_DATA_PATH = "data/"
-DEFAULT_CONTAINER_OUTPUT_PARAMETERS = "parameters.json"
 
 # Default services
 DEFAULT_EXECUTOR = ServiceConfig(type="local", config={})
 DEFAULT_RUN_LOG_STORE = ServiceConfig(type="file-system", config={})
 DEFAULT_CATALOG = ServiceConfig(type="file-system", config={})
 DEFAULT_SECRETS = ServiceConfig(type="env-secrets", config={})
-DEFAULT_EXPERIMENT_TRACKER = ServiceConfig(type="do-nothing", config={})
 DEFAULT_PICKLER = ServiceConfig(type="pickle", config={})
 
 # Map state
@@ -109,30 +109,6 @@ COMPUTE_DATA_FOLDER = "."
 # Secrets settings
 DOTENV_FILE_LOCATION = ".env"
 
-
-# Docker settings
-DOCKERFILE_NAME = "Dockerfile"
-DOCKERFILE_CONTENT = r"""# Python 3.8 Image without Dependecies
-FROM python:3.8
-
-LABEL maintainer="mesanthu@gmail.com"
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
-${INSTALL_STYLE}
-
-ENV VIRTUAL_ENV=/opt/venv
-RUN python -m virtualenv --python=/usr/local/bin/python $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-${COPY_CONTENT}
-WORKDIR /app
-
-${INSTALL_REQUIREMENTS}
-"""
-GIT_ARCHIVE_NAME = "git_tracked"
 LEN_SHA_FOR_TAG = 8
 
 

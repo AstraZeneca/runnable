@@ -36,11 +36,10 @@ class BaseExecutor(ABC, BaseModel):
 
     overrides: dict = {}
 
-    _local: bool = (
+    _is_local: bool = (
         False  # This is a flag to indicate whether the executor is local or not.
     )
 
-    # TODO: Change this to _is_local
     _context_node: Optional[BaseNode] = None
     model_config = ConfigDict(extra="forbid")
 

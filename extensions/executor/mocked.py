@@ -26,7 +26,7 @@ def create_executable(
 
 class MockedExecutor(GenericExecutor):
     service_name: str = "mocked"
-    _local_executor: bool = True
+    _is_local: bool = True
 
     model_config = ConfigDict(extra="ignore")
 

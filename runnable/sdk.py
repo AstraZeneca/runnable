@@ -621,6 +621,7 @@ class Pipeline(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     def _validate_path(self, path: List[StepType], failure_path: bool = False) -> None:
+        # TODO: Drastically simplify this
         # Check if one and only one step terminates with success
         # Check no more than one step terminates with failure
 
@@ -734,6 +735,16 @@ class Pipeline(BaseModel):
         dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
         return graph.create_graph(dag_definition)
 
+    def _is_called_for_definition(self) -> bool:
+        """
+        If the run context is set, we are coming in only to get the pipeline definition.
+        """
+        from runnable.context import run_context
+
+        if run_context is None:
+            return False
+        return True
+
     def execute(
         self,
         configuration_file: str = "",
@@ -743,33 +754,13 @@ class Pipeline(BaseModel):
         log_level: str = defaults.LOG_LEVEL,
     ):
         """
-        *Execute* the Pipeline.
-
-        Execution of pipeline could either be:
-
-        Traverse and execute all the steps of the pipeline, eg. [local execution](configurations/executors/local.md).
-
-        Or create the representation of the pipeline for other executors.
-
-        Please refer to [concepts](concepts/executor.md) for more information.
-
-        Args:
-            configuration_file (str, optional): The path to the configuration file. Defaults to "".
-                The configuration file can be overridden by the environment variable RUNNABLE_CONFIGURATION_FILE.
-
-            run_id (str, optional): The ID of the run. Defaults to "".
-            tag (str, optional): The tag of the run. Defaults to "".
-                Use to group multiple runs.
-
-            parameters_file (str, optional): The path to the parameters file. Defaults to "".
-
-            log_level (str, optional): The log level. Defaults to defaults.LOG_LEVEL.
+        Overloaded method:
+        - Could be called by the user when executing the pipeline via SDK
+        - Could be called by the system itself when getting the pipeline definition
         """
 
-        # py_to_yaml is used by non local executors to generate the yaml representation of the pipeline.
-        py_to_yaml = os.environ.get("RUNNABLE_PY_TO_YAML", "false")
-
-        if py_to_yaml == "true":
+        if self._is_called_for_definition():
+            # Immediately return as this call is only for getting the pipeline definition
             return {}
 
         logger.setLevel(log_level)
@@ -791,15 +782,15 @@ class Pipeline(BaseModel):
         )
 
         dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
-
+        run_context.from_sdk = True
         run_context.dag = graph.create_graph(dag_definition)
 
         console.print("Working with context:")
         console.print(run_context)
         console.rule(style="[dark orange]")
 
-        if not run_context.executor._local:
-            # We are not working with non local executor
+        if not run_context.executor._is_local:
+            # We are not working with executor that does not work in local environment
             import inspect
 
             caller_stack = inspect.stack()[1]
@@ -809,6 +800,7 @@ class Pipeline(BaseModel):
             module_to_call = f"{module_name}.{caller_stack.function}"
 
             run_context.pipeline_file = f"{module_to_call}.py"
+            run_context.from_sdk = True
 
         # Prepare for graph execution
         run_context.executor.prepare_for_graph_execution()
@@ -823,14 +815,16 @@ class Pipeline(BaseModel):
             console=console,
             expand=True,
         ) as progress:
+            pipeline_execution_task = progress.add_task(
+                "[dark_orange] Starting execution .. ", total=1
+            )
             try:
                 run_context.progress = progress
-                pipeline_execution_task = progress.add_task(
-                    "[dark_orange] Starting execution .. ", total=1
-                )
+
                 run_context.executor.execute_graph(dag=run_context.dag)
 
-                if not run_context.executor._local:
+                if not run_context.executor._is_local:
+                    # non local executors just traverse the graph and do nothing
                     return {}
 
                 run_log = run_context.run_log_store.get_run_log_by_id(
@@ -859,7 +853,7 @@ class Pipeline(BaseModel):
                 )
                 raise
 
-        if run_context.executor._local:
+        if run_context.executor._is_local:
             return run_context.run_log_store.get_run_log_by_id(
                 run_id=run_context.run_id
             )

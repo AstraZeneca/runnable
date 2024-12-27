@@ -6,3 +6,4 @@ docs/
 .tox/
 .scripts/
 .tests/
+.venv/

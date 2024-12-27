@@ -55,7 +55,7 @@ class LocalContainerExecutor(GenericExecutor):
     run_in_local: bool = False
     environment: Dict[str, str] = Field(default_factory=dict)
 
-    _local: bool = False
+    _is_local: bool = False
 
     _container_log_location = "/tmp/run_logs/"
     _container_catalog_location = "/tmp/catalog/"

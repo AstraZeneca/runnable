@@ -24,6 +24,7 @@ class Context(BaseModel):
     pipeline_file: Optional[str] = ""
     parameters_file: Optional[str] = ""
     configuration_file: Optional[str] = ""
+    from_sdk: bool = False
 
     tag: str = ""
     run_id: str = ""

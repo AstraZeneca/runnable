@@ -29,7 +29,6 @@ def get_default_configs() -> RunnableConfig:
 def prepare_configurations(
     run_id: str,
     configuration_file: str = "",
-    pipeline_file: str = "",
     tag: str = "",
     parameters_file: str = "",
     force_local_executor: bool = False,
@@ -42,7 +41,6 @@ def prepare_configurations(
 
     Args:
         variables_file (str): The variables file, if used or None
-        pipeline_file (str): The config/dag file
         run_id (str): The run id of the run.
         tag (str): If a tag is provided at the run time
 
@@ -59,7 +57,7 @@ def prepare_configurations(
     )
 
     if configuration_file:
-        templated_configuration = utils.load_yaml(configuration_file) or {}
+        templated_configuration = utils.load_yaml(configuration_file)
 
     # Since all the services (run_log_store, catalog, secrets, executor) are
     # dynamically loaded via stevedore, we cannot validate the configuration
@@ -127,38 +125,45 @@ def prepare_configurations(
         parameters_file=parameters_file,
     )
 
-    if pipeline_file:
-        if pipeline_file.endswith(".py"):
-            # converting a pipeline defined in python to a dag in yaml
-            module_file = pipeline_file.strip(".py")
-            module, func = utils.get_module_and_attr_names(module_file)
-            sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
-            imported_module = importlib.import_module(module)
-
-            os.environ["RUNNABLE_PY_TO_YAML"] = "true"
-            dag = getattr(imported_module, func)().return_dag()
-
-        else:
-            pipeline_config = utils.load_yaml(pipeline_file)
-
-            logger.info("The input pipeline:")
-            logger.info(json.dumps(pipeline_config, indent=4))
-
-            dag_config = pipeline_config["dag"]
-
-            dag_hash = utils.get_dag_hash(dag_config)
-            dag = graph.create_graph(dag_config)
-            run_context.dag_hash = dag_hash
-
-        run_context.pipeline_file = pipeline_file
-        run_context.dag = dag
-
     context.run_context = run_context
 
     return run_context
 
 
-def execute(
+def set_pipeline_spec_from_yaml(run_context: context.Context, pipeline_file: str):
+    """
+    Reads the pipeline file from a YAML file and sets the pipeline spec in the run context
+    """
+    pipeline_config = utils.load_yaml(pipeline_file)
+    logger.info("The input pipeline:")
+    logger.info(json.dumps(pipeline_config, indent=4))
+
+    dag_config = pipeline_config["dag"]
+
+    dag_hash = utils.get_dag_hash(dag_config)
+    dag = graph.create_graph(dag_config)
+    run_context.dag_hash = dag_hash
+
+    run_context.pipeline_file = pipeline_file
+    run_context.dag = dag
+
+
+def set_pipeline_spec_from_python(run_context: context.Context, python_module: str):
+    # Call the SDK to get the dag
+    # Import the module and call the function to get the dag
+    module_file = python_module.strip(".py")
+    module, func = utils.get_module_and_attr_names(module_file)
+    sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
+    imported_module = importlib.import_module(module)
+
+    run_context.from_sdk = True
+    dag = getattr(imported_module, func)().return_dag()
+
+    run_context.pipeline_file = python_module
+    run_context.dag = dag
+
+
+def execute_yaml_spec(
     pipeline_file: str,
     configuration_file: str = "",
     tag: str = "",
@@ -167,29 +172,21 @@ def execute(
 ):
     # pylint: disable=R0914,R0913
     """
-    The entry point to runnable execution. This method would prepare the configurations and delegates traversal to the
-    executor
-
-    Args:
-        pipeline_file (str): The config/dag file
-        run_id (str): The run id of the run.
-        tag (str): If a tag is provided at the run time
-        parameters_file (str): The parameters being sent in to the application
+    The entry point to runnable execution for any YAML based spec.
+    The result could:
+        - Execution of the pipeline if its local executor
+        - Rendering of the spec in the case of non local executor
     """
     run_id = utils.generate_run_id(run_id=run_id)
 
     run_context = prepare_configurations(
         configuration_file=configuration_file,
-        pipeline_file=pipeline_file,
         run_id=run_id,
         tag=tag,
         parameters_file=parameters_file,
     )
 
-    console.print("Working with context:")
-    console.print(run_context)
-    console.rule(style="[dark orange]")
-
+    set_pipeline_spec_from_yaml(run_context, pipeline_file)
     executor = run_context.executor
 
     run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
@@ -200,6 +197,10 @@ def execute(
 
     # Prepare for graph execution
     executor.prepare_for_graph_execution()
+
+    console.print("Working with context:")
+    console.print(run_context)
+    console.rule(style="[dark orange]")
 
     logger.info(f"Executing the graph: {run_context.dag}")
     with Progress(
@@ -218,8 +219,8 @@ def execute(
             run_context.progress = progress
             executor.execute_graph(dag=run_context.dag)  # type: ignore
 
-            # Non local executors have no run logs
-            if not executor._local:
+            if not executor._is_local:
+                # Non local executors only traverse the graph and do not execute the nodes
                 executor.send_return_code(stage="traversal")
                 return
 
@@ -259,24 +260,18 @@ def execute_single_node(
     pipeline_file: str,
     step_name: str,
     map_variable: str,
+    mode: str,
     run_id: str,
     tag: str = "",
     parameters_file: str = "",
 ):
     """
-    The entry point into executing a single node of runnable. Orchestration modes should extensively use this
-    entry point.
+    This entry point is triggered during the execution of the pipeline
+        - non local execution environments
 
-    It should have similar set up of configurations to execute because orchestrator modes can initiate the execution.
-
-    Args:
-        variables_file (str): The variables file, if used or None
-        step_name : The name of the step to execute in dot path convention
-        pipeline_file (str): The config/dag file
-        run_id (str): The run id of the run.
-        tag (str): If a tag is provided at the run time
-        parameters_file (str): The parameters being sent in to the application
-
+    The mode defines how the pipeline spec is provided to the runnable
+        - yaml
+        - python
     """
     from runnable import nodes
 
@@ -290,11 +285,18 @@ def execute_single_node(
 
     run_context = prepare_configurations(
         configuration_file=configuration_file,
-        pipeline_file=pipeline_file,
         run_id=run_id,
         tag=tag,
         parameters_file=parameters_file,
     )
+
+    if mode == "yaml":
+        # Load the yaml file
+        set_pipeline_spec_from_yaml(run_context, pipeline_file)
+    elif mode == "python":
+        # Call the SDK to get the dag
+        set_pipeline_spec_from_python(run_context, pipeline_file)
+
     task_console.print("Working with context:")
     task_console.print(run_context)
     task_console.rule(style="[dark orange]")
@@ -322,7 +324,7 @@ def execute_single_node(
     )
 
     logger.info("Executing the single node of : %s", node_to_execute)
-    ## This step is where we save the log file
+    ## This step is where we save output of the function/shell command
     try:
         executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
     finally:
@@ -335,8 +337,6 @@ def execute_single_node(
         # Put the log file in the catalog
         run_context.catalog_handler.put(name=log_file_name, run_id=run_context.run_id)
         os.remove(log_file_name)
-
-    # executor.send_return_code(stage="execution")
 
 
 def execute_notebook(
@@ -553,6 +553,6 @@ def fan(
         raise ValueError(f"Invalid mode {mode}")
 
 
-if __name__ == "__main__":
-    # This is only for perf testing purposes.
-    prepare_configurations(run_id="abc", pipeline_file="examples/mocking.yaml")
+# if __name__ == "__main__":
+#     # This is only for perf testing purposes.
+#     prepare_configurations(run_id="abc", pipeline_file="examples/mocking.yaml")

@@ -70,7 +70,7 @@ def execute(
     """
     logger.setLevel(log_level)
 
-    entrypoints.execute(
+    entrypoints.execute_yaml_spec(
         configuration_file=config_file,
         pipeline_file=filename,
         tag=tag,
@@ -96,6 +96,13 @@ def execute(
     "-f", "--file", default="", help="The pipeline definition file", show_default=True
 )
 @click.option(
+    "--mode",
+    default="yaml",
+    help="spec in yaml or python sdk",
+    show_default=True,
+    type=click.Choice(["yaml", "python"]),
+)
+@click.option(
     "-c",
     "--config-file",
     default=None,
@@ -118,13 +125,18 @@ def execute(
 )
 @click.option("--tag", default="", help="A tag attached to the run")
 def execute_single_node(
-    run_id, step_name, map_variable, file, config_file, parameters_file, log_level, tag
+    run_id,
+    step_name,
+    map_variable,
+    file,
+    mode,
+    config_file,
+    parameters_file,
+    log_level,
+    tag,
 ):
     """
     Internal entrypoint for runnable to execute a single node.
-
-    Other than local executor, every other executor uses this entry point to execute a step in the context of runnable.
-    Only chained executions should use this method. Unchained executions should use execute_
     """
     logger.setLevel(log_level)
 
@@ -132,6 +144,7 @@ def execute_single_node(
     entrypoints.execute_single_node(
         configuration_file=config_file,
         pipeline_file=file,
+        mode=mode,
         step_name=step_name,
         map_variable=map_variable,
         run_id=run_id,

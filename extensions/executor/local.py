@@ -1,9 +1,9 @@
 import logging
 
-from runnable import defaults
-from runnable.defaults import TypeMapVariable
 from extensions.executor import GenericExecutor
 from extensions.nodes.nodes import TaskNode
+from runnable import defaults
+from runnable.defaults import TypeMapVariable
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -23,7 +23,7 @@ class LocalExecutor(GenericExecutor):
     """
 
     service_name: str = "local"
-    _local: bool = True
+    _is_local: bool = True
 
     def trigger_job(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
