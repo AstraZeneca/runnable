@@ -5,9 +5,6 @@ from contextlib import contextmanager
 
 import pytest
 
-from runnable import exceptions
-from runnable.entrypoints import execute
-
 
 def list_python_examples():
     for example in python_examples:
@@ -107,6 +104,8 @@ def test_python_examples(example, context):
     imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
     f = getattr(imported_module, "main")
     with context:
+        from runnable import exceptions
+
         try:
             f()
         except exceptions.ExecutionFailedError:
@@ -131,8 +130,13 @@ def test_yaml_examples(example, context):
     parameters_file = "examples/common/initial_parameters.yaml"
 
     with context:
+        from runnable import exceptions
+        from runnable.entrypoints import execute_yaml_spec
+
         try:
-            execute(pipeline_file=example_file, parameters_file=parameters_file)
+            execute_yaml_spec(
+                pipeline_file=example_file, parameters_file=parameters_file
+            )
         except exceptions.ExecutionFailedError:
             if not status:
                 raise
@@ -149,12 +153,16 @@ def test_python_examples_container(example):
     imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
     f = getattr(imported_module, "main")
     with context:
+        from runnable import context, exceptions
+
         try:
             f()
         except exceptions.ExecutionFailedError:
             print("Example failed")
             if not status:
                 raise
+        finally:
+            context.run_context = None
 
 
 @pytest.mark.parametrize("example", list_python_examples())
@@ -169,8 +177,13 @@ def test_yaml_examples_container(example):
     parameters_file = "examples/common/initial_parameters.yaml"
 
     with context:
+        from runnable import exceptions
+        from runnable.entrypoints import execute_yaml_spec
+
         try:
-            execute(pipeline_file=example_file, parameters_file=parameters_file)
+            execute_yaml_spec(
+                pipeline_file=example_file, parameters_file=parameters_file
+            )
         except exceptions.ExecutionFailedError:
             if not status:
                 raise
