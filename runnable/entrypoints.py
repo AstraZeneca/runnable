@@ -9,7 +9,7 @@ from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 from rich.table import Column
 
 import runnable.context as context
-from runnable import console, defaults, graph, task_console, utils
+from runnable import console, defaults, graph, jobs, task_console, utils
 from runnable.defaults import RunnableConfig, ServiceConfig
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -189,8 +189,6 @@ def execute_yaml_spec(
     set_pipeline_spec_from_yaml(run_context, pipeline_file)
     executor = run_context.executor
 
-    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
-
     utils.set_runnable_environment_variables(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )
@@ -297,25 +295,18 @@ def execute_single_node(
         # Call the SDK to get the dag
         set_pipeline_spec_from_python(run_context, pipeline_file)
 
+    assert run_context.dag
+
     task_console.print("Working with context:")
     task_console.print(run_context)
     task_console.rule(style="[dark orange]")
 
     executor = run_context.executor
-    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_runnable_environment_variables(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )
 
     executor.prepare_for_node_execution()
-
-    # TODO: may be make its own entry point
-    # if not run_context.dag:
-    #     # There are a few entry points that make graph dynamically and do not have a dag defined statically.
-    #     run_log = run_context.run_log_store.get_run_log_by_id(run_id=run_id, full=False)
-    #     run_context.dag = graph.create_graph(run_log.run_config["pipeline"])
-    assert run_context.dag
-
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
@@ -337,6 +328,74 @@ def execute_single_node(
         # Put the log file in the catalog
         run_context.catalog_handler.put(name=log_file_name, run_id=run_context.run_id)
         os.remove(log_file_name)
+
+
+def execute_job(
+    job_definition_file: str,
+    configuration_file: str = "",
+    tag: str = "",
+    job_id: str = "",
+    parameters_file: str = "",
+):
+    job_id = utils.generate_run_id(run_id=job_id)
+
+    run_context = prepare_configurations(
+        configuration_file=configuration_file,
+        run_id=job_id,
+        tag=tag,
+        parameters_file=parameters_file,
+    )
+
+    executor = run_context.executor
+    utils.set_runnable_environment_variables(
+        run_id=job_id, configuration_file=configuration_file, tag=tag
+    )
+
+    job_config = utils.load_yaml(job_definition_file)
+    logger.info(
+        "Executing the job from the user."
+        f"job definition: {job_definition_file}, config: {job_config}"
+    )
+    assert job_config.get("type"), "Job type is not provided"
+
+    console.print("Working with context:")
+    console.print(run_context)
+    console.rule(style="[dark orange]")
+
+    job_name = job_config.get("name", "executing job")
+    # TODO: Just like execute_single_node, we have to derive the job from yaml or sdk
+    # We instantiate a Job node and send the execution to the task node.
+    # If done right, there should be no change in task code at all.
+    job = jobs.create_job(name=job_name, job_config=job_config)
+
+    # even though it says graph, it is meant to check the validity of the configuration
+    executor.prepare_for_graph_execution()
+
+    logger.info(
+        "Executing the job from the user. We are still in the caller's compute environment"
+    )
+    job.execute()
+    # executor.execute_job(node=node)  # type: ignore
+
+    # elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
+    #     executor.prepare_for_node_execution()
+    #     logger.info(
+    #         "Executing the job from the system. We are in the config's compute environment"
+    #     )
+    #     executor.execute_node(node=node)
+
+    #     # Update the status of the run log
+    #     step_log = run_context.run_log_store.get_step_log(
+    #         node._get_step_log_name(), run_id
+    #     )
+    #     run_context.run_log_store.update_run_log_status(
+    #         run_id=run_id, status=step_log.status
+    #     )
+
+    # else:
+    #     raise ValueError(f"Invalid entrypoint {entrypoint}")
+
+    executor.send_return_code()
 
 
 def execute_notebook(
@@ -363,7 +422,6 @@ def execute_notebook(
     )
 
     executor = run_context.executor
-    run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_runnable_environment_variables(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )
@@ -436,7 +494,6 @@ def execute_function(
 
     executor = run_context.executor
 
-    run_context.execution_plan = defaults.EXECUTION_PLAN.UNCHAINED.value
     utils.set_runnable_environment_variables(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )
@@ -518,17 +575,22 @@ def fan(
 
     run_context = prepare_configurations(
         configuration_file=configuration_file,
-        pipeline_file=pipeline_file,
         run_id=run_id,
         tag=tag,
         parameters_file=parameters_file,
     )
+    if mode == "yaml":
+        # Load the yaml file
+        set_pipeline_spec_from_yaml(run_context, pipeline_file)
+    elif mode == "python":
+        # Call the SDK to get the dag
+        set_pipeline_spec_from_python(run_context, pipeline_file)
+
     console.print("Working with context:")
     console.print(run_context)
     console.rule(style="[dark orange]")
 
     executor = run_context.executor
-    run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
     utils.set_runnable_environment_variables(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )

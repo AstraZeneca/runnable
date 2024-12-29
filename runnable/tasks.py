@@ -440,8 +440,12 @@ class NotebookTaskType(BaseTaskType):
 
     @property
     def notebook_output_path(self) -> str:
-        node_name = self._context.executor._context_node.internal_name
-        sane_name = "".join(x for x in node_name if x.isalnum())
+        # This is to accommodate jobs which does not have a context_node
+        if self._context.executor._context_node:
+            node_name = self._context.executor._context_node.internal_name
+            sane_name = "".join(x for x in node_name if x.isalnum())
+        else:
+            sane_name = ""
 
         output_path = Path(".", self.command)
         file_name = output_path.parent / (output_path.stem + f"{sane_name}_out.ipynb")

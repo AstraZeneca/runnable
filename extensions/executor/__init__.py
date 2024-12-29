@@ -2,9 +2,8 @@ import copy
 import logging
 import os
 from abc import abstractmethod
-from typing import Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
-from extensions.nodes.nodes import TaskNode
 from runnable import (
     console,
     context,
@@ -19,6 +18,7 @@ from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.executor import BaseExecutor
 from runnable.graph import Graph
+from runnable.jobs import BaseJob
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -43,6 +43,8 @@ class GenericExecutor(BaseExecutor):
 
     @property
     def _context(self):
+        # TODO complete tjis
+        assert context.run_context
         return context.run_context
 
     def _get_parameters(self) -> Dict[str, JsonParameter]:
@@ -569,7 +571,7 @@ class GenericExecutor(BaseExecutor):
         if run_log.status == defaults.FAIL:
             raise exceptions.ExecutionFailedError(run_id=run_id)
 
-    def _resolve_executor_config(self, node: BaseNode):
+    def _resolve_executor_config(self, node: BaseNode) -> Dict[str, Any]:
         """
         The overrides section can contain specific over-rides to an global executor config.
         To avoid too much clutter in the dag definition, we allow the configuration file to have overrides block.
@@ -625,7 +627,7 @@ class GenericExecutor(BaseExecutor):
         return effective_node_config
 
     @abstractmethod
-    def execute_job(self, node: TaskNode):
+    def execute_job(self, job: BaseJob):
         """
         Executor specific way of executing a job (python function or a notebook).
 

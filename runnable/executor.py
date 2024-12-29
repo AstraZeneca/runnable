@@ -14,7 +14,7 @@ from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph
 
 if TYPE_CHECKING:  # pragma: no cover
-    from extensions.nodes.nodes import TaskNode
+    from runnable.jobs import BaseJob
     from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -336,8 +336,10 @@ class BaseExecutor(ABC, BaseModel):
         """
         ...
 
+    # TODO: There should be a pre-job and post-job execution method
+
     @abstractmethod
-    def execute_job(self, node: TaskNode):
+    def execute_job(self, job: BaseJob):
         """
         Executor specific way of executing a job (python function or a notebook).
 

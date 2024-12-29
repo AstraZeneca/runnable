@@ -34,3 +34,9 @@ from runnable.sdk import (  # noqa
 
 # Needed to disable ploomber telemetry
 os.environ["PLOOMBER_STATS_ENABLED"] = "false"
+
+# TODO:
+"""
+Add job to SDK
+add internal CLI end point to execute a job in the executor environment
+"""

@@ -398,7 +398,6 @@ def create_node(name: str, step_config: dict, internal_branch_name: Optional[str
         node = node_mgr.parse_from_config(config=invoke_kwds)
         return node
     except KeyError:
-        # type is missing!!
         msg = "The node configuration does not contain the required key 'type'."
         logger.exception(step_config)
         raise Exception(msg)

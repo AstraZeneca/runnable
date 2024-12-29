@@ -435,16 +435,34 @@ class ExecutableNode(TraversalNode):
         return self.max_attempts
 
     def _get_branch_by_name(self, branch_name: str):
-        raise Exception("This is an executable node and does not have branches")
+        raise exceptions.NodeMethodCallError(
+            "This is an executable node and does not have branches"
+        )
 
     def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
-        raise Exception("This is an executable node and does not have a graph")
+        raise exceptions.NodeMethodCallError(
+            "This is an executable node and does not have a graph"
+        )
 
     def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
-        raise Exception("This is an executable node and does not have a fan in")
+        raise exceptions.NodeMethodCallError(
+            "This is an executable node and does not have a fan in"
+        )
 
     def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
-        raise Exception("This is an executable node and does not have a fan out")
+        raise exceptions.NodeMethodCallError(
+            "This is an executable node and does not have a fan out"
+        )
+
+    def prepare_for_job_execution(self):
+        raise exceptions.NodeMethodCallError(
+            "This is an executable node and does not have a prepare_for_job_execution"
+        )
+
+    def tear_down_after_job_execution(self):
+        raise exceptions.NodeMethodCallError(
+            "This is an executable node and does not have a tear_down_after_job_execution",
+        )
 
 
 class CompositeNode(TraversalNode):
@@ -455,7 +473,9 @@ class CompositeNode(TraversalNode):
         Returns:
             dict: catalog settings defined as per the node or None
         """
-        raise Exception("This is a composite node and does not have a catalog settings")
+        raise exceptions.NodeMethodCallError(
+            "This is a composite node and does not have a catalog settings"
+        )
 
     def _get_max_attempts(self) -> int:
         raise Exception("This is a composite node and does not have a max_attempts")
@@ -467,8 +487,18 @@ class CompositeNode(TraversalNode):
         attempt_number: int = 1,
         **kwargs,
     ) -> StepLog:
-        raise Exception(
+        raise exceptions.NodeMethodCallError(
             "This is a composite node and does not have an execute function"
+        )
+
+    def prepare_for_job_execution(self):
+        raise exceptions.NodeMethodCallError(
+            "This is an executable node and does not have a prepare_for_job_execution"
+        )
+
+    def tear_down_after_job_execution(self):
+        raise exceptions.NodeMethodCallError(
+            "This is an executable node and does not have a tear_down_after_job_execution"
         )
 
 

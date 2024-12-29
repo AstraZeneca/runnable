@@ -74,6 +74,16 @@ class BranchNotFoundError(Exception):  # pragma: no cover
         self.message = f"Branch of name {name} is not found the graph"
 
 
+class NodeMethodCallError(Exception):
+    """
+    Exception class
+    """
+
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
+
+
 class TerminalNodeError(Exception):  # pragma: no cover
     def __init__(self):
         super().__init__()

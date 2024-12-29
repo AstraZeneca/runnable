@@ -776,7 +776,6 @@ class Pipeline(BaseModel):
             parameters_file=parameters_file,
         )
 
-        run_context.execution_plan = defaults.EXECUTION_PLAN.CHAINED.value
         utils.set_runnable_environment_variables(
             run_id=run_id, configuration_file=configuration_file, tag=tag
         )

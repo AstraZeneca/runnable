@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import (
     Any,
     Dict,
@@ -16,16 +15,6 @@ LOGGER_NAME = "runnable"
 
 # CLI settings
 LOG_LEVEL = "WARNING"
-
-
-class EXECUTION_PLAN(Enum):
-    """
-    The possible execution plans for a runnable job.
-    """
-
-    CHAINED = "chained"  #  121 relationship between run log and the dag.
-    UNCHAINED = "unchained"  # Only captures execution of steps, no relation.
-    INTERACTIVE = "interactive"  # used for interactive sessions
 
 
 # Type definitions
@@ -110,15 +99,6 @@ COMPUTE_DATA_FOLDER = "."
 DOTENV_FILE_LOCATION = ".env"
 
 LEN_SHA_FOR_TAG = 8
-
-
-class ENTRYPOINT(Enum):
-    """
-    The possible container entrypoint types.
-    """
-
-    USER = "user"
-    SYSTEM = "system"
 
 
 ## Logging settings

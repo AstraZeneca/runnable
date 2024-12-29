@@ -31,7 +31,6 @@ class Context(BaseModel):
     variables: Dict[str, str] = {}
     dag: Optional[Graph] = None
     dag_hash: str = ""
-    execution_plan: str = ""
 
 
 run_context = None  # type: Context # type: ignore
