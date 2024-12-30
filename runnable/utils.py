@@ -431,23 +431,23 @@ def get_node_execution_command(
         f"runnable execute-single-node {run_id} "
         f"{context.run_context.pipeline_file} "
         f"{node._command_friendly_name()} "
-        f" --log-level {log_level} "
+        f"--log-level {log_level} "
     )
 
     if context.run_context.from_sdk:
-        action = action + " --mode python "
+        action = action + "--mode python "
 
     if map_variable:
-        action = action + f" --map-variable '{json.dumps(map_variable)}' "
+        action = action + f"--map-variable '{json.dumps(map_variable)}' "
 
     if context.run_context.configuration_file:
-        action = action + f" --config {context.run_context.configuration_file} "
+        action = action + f"--config {context.run_context.configuration_file} "
 
     if context.run_context.parameters_file:
-        action = action + f" --parameters-file {context.run_context.parameters_file} "
+        action = action + f"--parameters-file {context.run_context.parameters_file} "
 
     if context.run_context.tag:
-        action = action + f" --tag {context.run_context.tag} "
+        action = action + f"--tag {context.run_context.tag}"
 
     return action
 

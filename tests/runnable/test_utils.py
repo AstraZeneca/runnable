@@ -4,7 +4,6 @@ import sys
 
 import pytest
 
-
 from runnable import (
     defaults,  # pylint: disable=import-error
     utils,  # pylint: disable=import-error
@@ -406,8 +405,8 @@ def test_get_node_execution_command_returns_runnable_execute(mocker, monkeypatch
         assert utils.get_node_execution_command(
             MockNode(), map_variable=test_map_variable
         ) == (
-            "runnable execute_single_node test_run_id test_node_id "
-            f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
+            "runnable execute-single-node test_run_id test_pipeline_file test_node_id "
+            f"--log-level WARNING --mode python --map-variable '{json.dumps(test_map_variable)}' --config test_configuration_file "
             "--parameters-file test_parameters_file --tag test_tag"
         )
     finally:
@@ -441,8 +440,8 @@ def test_get_node_execution_command_overwrites_run_id_if_asked(mocker, monkeypat
         assert utils.get_node_execution_command(
             MockNode(), map_variable=test_map_variable, over_write_run_id="this"
         ) == (
-            "runnable execute_single_node this test_node_id "
-            f"--log-level WARNING --file test_pipeline_file --map-variable '{json.dumps(test_map_variable)}' --config-file test_configuration_file "
+            "runnable execute-single-node this test_pipeline_file test_node_id "
+            f"--log-level WARNING --mode python --map-variable '{json.dumps(test_map_variable)}' --config test_configuration_file "
             "--parameters-file test_parameters_file --tag test_tag"
         )
     finally:
