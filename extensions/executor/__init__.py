@@ -16,7 +16,7 @@ from runnable import (
 )
 from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
 from runnable.defaults import TypeMapVariable
-from runnable.executor import BaseExecutor
+from runnable.executor import BasePipelineExecutor as BaseExecutor
 from runnable.graph import Graph
 from runnable.jobs import BaseJob
 from runnable.nodes import BaseNode
@@ -377,7 +377,7 @@ class GenericExecutor(BaseExecutor):
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
         )
-        self.trigger_job(node=node, map_variable=map_variable, **kwargs)
+        self.trigger_node_execution(node=node, map_variable=map_variable, **kwargs)
 
         log_file_name = utils.make_log_file_name(node=node, map_variable=map_variable)
         task_console.save_text(log_file_name, clear=True)
@@ -387,7 +387,7 @@ class GenericExecutor(BaseExecutor):
         )
         os.remove(log_file_name)
 
-    def trigger_job(
+    def trigger_node_execution(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
     ):
         """

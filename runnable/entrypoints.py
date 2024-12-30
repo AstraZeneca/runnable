@@ -31,7 +31,6 @@ def prepare_configurations(
     configuration_file: str = "",
     tag: str = "",
     parameters_file: str = "",
-    force_local_executor: bool = False,
 ) -> context.Context:
     """
     Sets up everything needed
@@ -68,11 +67,12 @@ def prepare_configurations(
     logger.info(f"Resolved configurations: {configuration}")
 
     # Run log settings, configuration over-rides everything
-    run_log_config: Optional[ServiceConfig] = configuration.get("run_log_store", None)
+    # The user config has run-log-store while internally we use run_log_store
+    run_log_config: Optional[ServiceConfig] = configuration.get("run-log-store", None)
     if not run_log_config:
         run_log_config = cast(
             ServiceConfig,
-            runnable_defaults.get("run_log_store", defaults.DEFAULT_RUN_LOG_STORE),
+            runnable_defaults.get("run-log-store", defaults.DEFAULT_RUN_LOG_STORE),
         )
     run_log_store = utils.get_provider_by_name_and_type("run_log_store", run_log_config)
 
@@ -99,16 +99,18 @@ def prepare_configurations(
     pickler_handler = utils.get_provider_by_name_and_type("pickler", pickler_config)
 
     # executor configurations, configuration over rides everything
-    executor_config: Optional[ServiceConfig] = configuration.get("executor", None)
-    if force_local_executor:
-        executor_config = ServiceConfig(type="local", config={})
-
+    executor_config: Optional[ServiceConfig] = configuration.get(
+        "pipeline-executor", None
+    )
     if not executor_config:
         executor_config = cast(
-            ServiceConfig, runnable_defaults.get("executor", defaults.DEFAULT_EXECUTOR)
+            ServiceConfig,
+            runnable_defaults.get(
+                "pipeline-executor", defaults.DEFAULT_PIPELINE_EXECUTOR
+            ),
         )
     configured_executor = utils.get_provider_by_name_and_type(
-        "executor", executor_config
+        "pipeline_executor", executor_config
     )
 
     # Construct the context
@@ -375,25 +377,6 @@ def execute_job(
         "Executing the job from the user. We are still in the caller's compute environment"
     )
     job.execute()
-    # executor.execute_job(node=node)  # type: ignore
-
-    # elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
-    #     executor.prepare_for_execution()
-    #     logger.info(
-    #         "Executing the job from the system. We are in the config's compute environment"
-    #     )
-    #     executor.execute_node(node=node)
-
-    #     # Update the status of the run log
-    #     step_log = run_context.run_log_store.get_step_log(
-    #         node._get_step_log_name(), run_id
-    #     )
-    #     run_context.run_log_store.update_run_log_status(
-    #         run_id=run_id, status=step_log.status
-    #     )
-
-    # else:
-    #     raise ValueError(f"Invalid entrypoint {entrypoint}")
 
     executor.send_return_code()
 

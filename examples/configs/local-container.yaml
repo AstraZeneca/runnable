@@ -1,7 +1,7 @@
-executor:
+pipeline-executor:
   type: "local-container" # (1)
   config:
     docker_image: runnable-m1:latest # (2)
 
-run_log_store: # (4)
+run-log-store: # (4)
   type: chunked-fs

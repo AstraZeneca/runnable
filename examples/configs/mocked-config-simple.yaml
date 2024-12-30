@@ -1,8 +1,8 @@
 catalog:
   type: file-system # (1)
 
-run_log_store:
+run-log-store:
   type: file-system # (1)
 
-executor:
+pipeline-executor:
   type: mocked

@@ -155,7 +155,7 @@ class LocalContainerExecutor(GenericExecutor):
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
         )
-        self.trigger_job(node=node, map_variable=map_variable, **kwargs)
+        self.trigger_node_execution(node=node, map_variable=map_variable, **kwargs)
 
     def execute_job(self, node: TaskNode):
         """
@@ -190,7 +190,7 @@ class LocalContainerExecutor(GenericExecutor):
             )
             logger.warning(msg)
 
-    def trigger_job(
+    def trigger_node_execution(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
     ):
         """

@@ -27,7 +27,7 @@ class RunnableConfig(TypedDict, total=False):
     run_log_store: Optional[ServiceConfig]
     secrets: Optional[ServiceConfig]
     catalog: Optional[ServiceConfig]
-    executor: Optional[ServiceConfig]
+    pipeline_executor: Optional[ServiceConfig]
     pickler: Optional[ServiceConfig]
 
 
@@ -63,7 +63,7 @@ COMMAND_TYPE = "python"
 COMMAND_FRIENDLY_CHARACTER = "%"
 
 # Default services
-DEFAULT_EXECUTOR = ServiceConfig(type="local", config={})
+DEFAULT_PIPELINE_EXECUTOR = ServiceConfig(type="local", config={})
 DEFAULT_RUN_LOG_STORE = ServiceConfig(type="file-system", config={})
 DEFAULT_CATALOG = ServiceConfig(type="file-system", config={})
 DEFAULT_SECRETS = ServiceConfig(type="env-secrets", config={})

@@ -1,4 +1,4 @@
-executor:
+pipeline-executor:
   type: "argo" # (1)
   config:
     image: harbor.csis.astrazeneca.net/mlops/runnable:latest # (2)
@@ -7,7 +7,7 @@ executor:
       - name: magnus-volume
         mount_path: /mnt
 
-run_log_store: # (4)
+run-log-store: # (4)
   type: chunked-fs
   config:
     log_folder: /mnt/run_log_store

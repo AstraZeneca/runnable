@@ -1,7 +1,7 @@
-executor:
+pipeline-executor:
   type: local # (1)
 
-run_log_store:
+run-log-store:
   type: buffered # (2)
 
 catalog:

@@ -748,7 +748,7 @@ class Override(BaseModel):
 
 class ArgoExecutor(GenericExecutor):
     service_name: str = "argo"
-    _local: bool = False
+    _is_local: bool = False
 
     # TODO: Add logging level as option.
 

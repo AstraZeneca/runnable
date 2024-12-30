@@ -1,2 +1,2 @@
-run_log_store:
+run-log-store:
   type: chunked-fs

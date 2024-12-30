@@ -40,7 +40,6 @@ class BaseExecutor(ABC, BaseModel):
         False  # This is a flag to indicate whether the executor is local or not.
     )
 
-    _context_node: Optional[BaseNode] = None
     model_config = ConfigDict(extra="forbid")
 
     @property
@@ -91,6 +90,79 @@ class BaseExecutor(ABC, BaseModel):
         """
         ...
 
+    @property
+    def step_attempt_number(self) -> int:
+        """
+        The attempt number of the current step.
+        Orchestrators should use this step to submit multiple attempts of the job.
+
+        Returns:
+            int: The attempt number of the current step. Defaults to 1.
+        """
+        return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
+
+    @abstractmethod
+    def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
+        """
+        Add code identities specific to the implementation.
+
+        The Base class has an implementation of adding git code identities.
+
+        Args:
+            step_log (object): The step log object
+            node (BaseNode): The node we are adding the step log for
+        """
+        ...
+
+    @abstractmethod
+    def send_return_code(self, stage="traversal"):
+        """
+        Convenience function used by pipeline to send return code to the caller of the cli
+
+        Raises:
+            Exception: If the pipeline execution failed
+        """
+        ...
+
+
+class BaseJobExecutor(BaseExecutor):
+    service_type: str = "job_executor"
+
+    @abstractmethod
+    def pre_job_execution(self, job: BaseJob):
+        """
+        This method is called before the job execution.
+        """
+        ...
+
+    @abstractmethod
+    def execute_job(self, job: BaseJob):
+        """
+        Executor specific way of executing a job (python function or a notebook).
+
+        Interactive executors should execute the job.
+        Transpilers should write the instructions.
+
+        Args:
+            node (BaseNode): The job node to execute
+
+        Raises:
+            NotImplementedError: Executors should choose to extend this functionality or not.
+        """
+        ...
+
+    @abstractmethod
+    def post_job(self, job: BaseJob):
+        """
+        This method is called after the job execution.
+        """
+        ...
+
+
+class BasePipelineExecutor(BaseExecutor):
+    service_type: str = "pipeline_executor"
+    _context_node: Optional[BaseNode] = None
+
     @abstractmethod
     def _sync_catalog(
         self, stage: str, synced_catalogs=None
@@ -132,17 +204,6 @@ class BaseExecutor(ABC, BaseModel):
             Optional[str]: The compute data folder as defined by catalog handler or the node or None.
         """
         ...
-
-    @property
-    def step_attempt_number(self) -> int:
-        """
-        The attempt number of the current step.
-        Orchestrators should use this step to submit multiple attempts of the job.
-
-        Returns:
-            int: The attempt number of the current step. Defaults to 1.
-        """
-        return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
     @abstractmethod
     def _execute_node(
@@ -190,19 +251,6 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
-        """
-        Add code identities specific to the implementation.
-
-        The Base class has an implementation of adding git code identities.
-
-        Args:
-            step_log (object): The step log object
-            node (BaseNode): The node we are adding the step log for
-        """
-        ...
-
-    @abstractmethod
     def execute_from_graph(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
     ):
@@ -229,25 +277,6 @@ class BaseExecutor(ABC, BaseModel):
             node (Node): The node to execute
             map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to None.
-        """
-        ...
-
-    @abstractmethod
-    def trigger_job(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
-        """
-        Executor specific way of triggering jobs when runnable does both traversal and execution
-
-        Transpilers will NEVER use this method and will NEVER call them.
-        Only interactive executors who need execute_from_graph will ever implement it.
-
-        Args:
-            node (BaseNode): The node to execute
-            map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
-                    Defaults to ''.
-
-        NOTE: We do not raise an exception as this method is not required by many extensions
         """
         ...
 
@@ -293,16 +322,6 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def send_return_code(self, stage="traversal"):
-        """
-        Convenience function used by pipeline to send return code to the caller of the cli
-
-        Raises:
-            Exception: If the pipeline execution failed
-        """
-        ...
-
-    @abstractmethod
     def _resolve_executor_config(self, node: BaseNode):
         """
         The overrides section can contain specific over-rides to an global executor config.
@@ -333,24 +352,6 @@ class BaseExecutor(ABC, BaseModel):
         Args:
             node (BaseNode): The current node being processed.
 
-        """
-        ...
-
-    # TODO: There should be a pre-job and post-job execution method
-
-    @abstractmethod
-    def execute_job(self, job: BaseJob):
-        """
-        Executor specific way of executing a job (python function or a notebook).
-
-        Interactive executors should execute the job.
-        Transpilers should write the instructions.
-
-        Args:
-            node (BaseNode): The job node to execute
-
-        Raises:
-            NotImplementedError: Executors should choose to extend this functionality or not.
         """
         ...
 
@@ -396,5 +397,24 @@ class BaseExecutor(ABC, BaseModel):
             node (BaseNode): The node to fan-in
             map_variable (dict, optional): If the node if of a map state,.Defaults to None.
 
+        """
+        ...
+
+    @abstractmethod
+    def trigger_node_execution(
+        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
+    ):
+        """
+        Executor specific way of triggering jobs when runnable does both traversal and execution
+
+        Transpilers will NEVER use this method and will NEVER call them.
+        Only interactive executors who need execute_from_graph will ever implement it.
+
+        Args:
+            node (BaseNode): The node to execute
+            map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
+                    Defaults to ''.
+
+        NOTE: We do not raise an exception as this method is not required by many extensions
         """
         ...

@@ -74,7 +74,7 @@ run_log_store = {workspace = true}
 executor = {workspace = true}
 
 
-[project.entry-points.'executor']
+[project.entry-points.'pipeline_executor']
 "local" = "extensions.executor.local:LocalExecutor"
 "local-container" = "extensions.executor.local_container:LocalContainerExecutor"
 "argo" = "extensions.executor.argo:ArgoExecutor"

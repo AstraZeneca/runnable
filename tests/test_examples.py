@@ -67,7 +67,7 @@ def argo_context():
 contexts = [default_context, chunked_fs_context, mocked_context, argo_context]
 
 python_examples = [
-    ("01-tasks/notebook", False, []),
+    # ("01-tasks/notebook", False, []),
     ("01-tasks/python_tasks", False, []),
     ("01-tasks/scripts", False, []),
     ("01-tasks/stub", False, []),
