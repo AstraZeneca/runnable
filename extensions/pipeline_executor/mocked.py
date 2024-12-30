@@ -4,8 +4,8 @@ from typing import Any, Dict, Type, cast
 
 from pydantic import ConfigDict, Field
 
-from extensions.executor import GenericExecutor
 from extensions.nodes.nodes import TaskNode
+from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import context, defaults
 from runnable.defaults import TypeMapVariable
 from runnable.nodes import BaseNode
@@ -24,7 +24,7 @@ def create_executable(
     return swallow_all
 
 
-class MockedExecutor(GenericExecutor):
+class MockedExecutor(GenericPipelineExecutor):
     service_name: str = "mocked"
     _is_local: bool = True
 
@@ -143,9 +143,6 @@ class MockedExecutor(GenericExecutor):
         effective_node_config = copy.deepcopy(self.model_dump())
 
         return effective_node_config
-
-    def execute_job(self, node: TaskNode):
-        pass
 
     def execute_node(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs

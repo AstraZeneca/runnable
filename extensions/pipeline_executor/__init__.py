@@ -1,7 +1,6 @@
 import copy
 import logging
 import os
-from abc import abstractmethod
 from typing import Any, Dict, List, Optional, cast
 
 from runnable import (
@@ -16,15 +15,14 @@ from runnable import (
 )
 from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
 from runnable.defaults import TypeMapVariable
-from runnable.executor import BasePipelineExecutor as BaseExecutor
+from runnable.executor import BasePipelineExecutor
 from runnable.graph import Graph
-from runnable.jobs import BaseJob
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class GenericExecutor(BaseExecutor):
+class GenericPipelineExecutor(BasePipelineExecutor):
     """
     The skeleton of an executor class.
     Any implementation of an executor should inherit this class and over-ride accordingly.
@@ -43,7 +41,6 @@ class GenericExecutor(BaseExecutor):
 
     @property
     def _context(self):
-        # TODO complete tjis
         assert context.run_context
         return context.run_context
 
@@ -625,22 +622,6 @@ class GenericExecutor(BaseExecutor):
         logger.debug(f"Effective node config: {effective_node_config}")
 
         return effective_node_config
-
-    @abstractmethod
-    def execute_job(self, job: BaseJob):
-        """
-        Executor specific way of executing a job (python function or a notebook).
-
-        Interactive executors should execute the job.
-        Transpilers should write the instructions.
-
-        Args:
-            node (BaseNode): The job node to execute
-
-        Raises:
-            NotImplementedError: Executors should choose to extend this functionality or not.
-        """
-        raise NotImplementedError
 
     def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """

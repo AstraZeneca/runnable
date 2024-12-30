@@ -82,7 +82,7 @@ def execute(
     """
     logger.setLevel(log_level.value)
 
-    entrypoints.execute_yaml_spec(
+    entrypoints.execute_pipeline_yaml_spec(
         configuration_file=config_file,
         pipeline_file=yaml_file,
         tag=tag,
@@ -254,7 +254,7 @@ def submit_job(
 ):
     logger.setLevel(log_level.value)
 
-    entrypoints.execute_job(
+    entrypoints.execute_job_yaml_spec(
         configuration_file=config_file,
         job_definition_file=job_definition_file,
         tag=tag,

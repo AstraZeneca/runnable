@@ -10,8 +10,9 @@ resolution-markers = [
 [manifest]
 members = [
     "catalog",
-    "executor",
+    "job-executor",
     "nodes",
+    "pipeline-executor",
     "run-log-store",
     "runnable",
     "secrets",
@@ -438,11 +439,6 @@ wheels = [
 ]
 
 [[package]]
-name = "executor"
-version = "0.1.0"
-source = { virtual = "extensions/executor" }
-
-[[package]]
 name = "fastjsonschema"
 version = "2.21.1"
 source = { registry = "https://pypi.org/simple" }
@@ -634,6 +630,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/ed/55/39036716d19cab074
 wheels = [
     { url = "https://files.pythonhosted.org/packages/31/80/3a54838c3fb461f6fec263ebf3a3a41771bd05190238de3486aae8540c36/jinja2-3.1.4-py3-none-any.whl", hash = "sha256:bc5dd2abb727a5319567b7a813e6a2e7318c39f4f487cfe6c89c6f9c7d25197d", size = 133271 },
 ]
+
+[[package]]
+name = "job-executor"
+version = "0.1.0"
+source = { virtual = "extensions/job_executor" }
 
 [[package]]
 name = "jsonschema"
@@ -1295,6 +1296,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9e/c3/059298687310d527a58bb01f3b1965787ee3b40dce76752eda8b44e9a2c5/pexpect-4.9.0-py2.py3-none-any.whl", hash = "sha256:7236d1e080e4936be2dc3e326cec0af72acf9212a7e1d060210e70a47e253523", size = 63772 },
 ]
+
+[[package]]
+name = "pipeline-executor"
+version = "0.1.0"
+source = { virtual = "extensions/pipeline_executor" }
 
 [[package]]
 name = "platformdirs"
@@ -2176,8 +2182,9 @@ dependencies = [
     { name = "click" },
     { name = "click-plugins" },
     { name = "dill" },
-    { name = "executor" },
+    { name = "job-executor" },
     { name = "nodes" },
+    { name = "pipeline-executor" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "rich" },
@@ -2227,9 +2234,10 @@ requires-dist = [
     { name = "click-plugins", specifier = ">=1.1.1" },
     { name = "dill", specifier = ">=0.3.9" },
     { name = "docker", marker = "extra == 'docker'", specifier = ">=7.1.0" },
-    { name = "executor", virtual = "extensions/executor" },
+    { name = "job-executor", virtual = "extensions/job_executor" },
     { name = "nodes", virtual = "extensions/nodes" },
     { name = "pandas", marker = "extra == 'examples'", specifier = ">=2.2.3" },
+    { name = "pipeline-executor", virtual = "extensions/pipeline_executor" },
     { name = "ploomber-engine", marker = "extra == 'notebook'", specifier = ">=0.0.33" },
     { name = "pydantic", specifier = ">=2.10.3" },
     { name = "python-dotenv", specifier = ">=1.0.1" },

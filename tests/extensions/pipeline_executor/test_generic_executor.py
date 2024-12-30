@@ -171,7 +171,9 @@ def test_base_executor_prepare_for_submission_calls(
     monkeypatch.setattr(GenericExecutor, "_set_up_run_log", mock_set_up_run_log)
 
     monkeypatch.setattr(module, "integration", mock_integration)
-    monkeypatch.setattr(module.BaseExecutor, "_set_up_run_log", mocker.MagicMock())
+    monkeypatch.setattr(
+        module.BasePipelineExecutor, "_set_up_run_log", mocker.MagicMock()
+    )
 
     base_executor = GenericExecutor()
 
@@ -599,5 +601,5 @@ def test_send_return_code_does_not_raise_exception_if_pipeline_execution_succeed
     test_executor.send_return_code()
 
 
-from extensions import executor as module
-from extensions.executor import GenericExecutor
+from extensions import pipeline_executor as module
+from extensions.pipeline_executor import GenericPipelineExecutor as GenericExecutor

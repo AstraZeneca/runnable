@@ -35,6 +35,7 @@ from extensions.nodes.nodes import (
     TaskNode,
 )
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
+from runnable.executor import BasePipelineExecutor
 from runnable.nodes import TraversalNode
 from runnable.tasks import TaskReturns
 
@@ -775,6 +776,8 @@ class Pipeline(BaseModel):
             tag=tag,
             parameters_file=parameters_file,
         )
+
+        assert isinstance(run_context.executor, BasePipelineExecutor)
 
         utils.set_runnable_environment_variables(
             run_id=run_id, configuration_file=configuration_file, tag=tag

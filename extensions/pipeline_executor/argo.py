@@ -19,8 +19,8 @@ from pydantic.functional_serializers import PlainSerializer
 from ruamel.yaml import YAML
 from typing_extensions import Annotated
 
-from extensions.executor import GenericExecutor
 from extensions.nodes.nodes import DagNode, MapNode, ParallelNode
+from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults, exceptions, integration, utils
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph, create_node, search_node_by_internal_name
@@ -746,7 +746,7 @@ class Override(BaseModel):
         return parallelism
 
 
-class ArgoExecutor(GenericExecutor):
+class ArgoExecutor(GenericPipelineExecutor):
     service_name: str = "argo"
     _is_local: bool = False
 
@@ -1257,12 +1257,6 @@ class ArgoExecutor(GenericExecutor):
             yaml.indent(mapping=2, sequence=4, offset=2)
 
             yaml.dump(workflow.model_dump(by_alias=True, exclude_none=True), f)
-
-    def execute_job(self, node: BaseNode):
-        """
-        Use K8's job instead
-        """
-        raise NotImplementedError("Use K8's job instead")
 
     def send_return_code(self, stage="traversal"):
         """

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from extensions.executor import local_container as module
+from extensions.pipeline_executor import local_container as module
 
 
 def test_configure_for_traversal_populates_volumes(mocker, monkeypatch):

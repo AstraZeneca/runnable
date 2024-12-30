@@ -131,10 +131,10 @@ def test_yaml_examples(example, context):
 
     with context:
         from runnable import exceptions
-        from runnable.entrypoints import execute_yaml_spec
+        from runnable.entrypoints import execute_pipeline_yaml_spec
 
         try:
-            execute_yaml_spec(
+            execute_pipeline_yaml_spec(
                 pipeline_file=example_file, parameters_file=parameters_file
             )
         except exceptions.ExecutionFailedError:
@@ -178,10 +178,10 @@ def test_yaml_examples_container(example):
 
     with context:
         from runnable import exceptions
-        from runnable.entrypoints import execute_yaml_spec
+        from runnable.entrypoints import execute_pipeline_yaml_spec
 
         try:
-            execute_yaml_spec(
+            execute_pipeline_yaml_spec(
                 pipeline_file=example_file, parameters_file=parameters_file
             )
         except exceptions.ExecutionFailedError:

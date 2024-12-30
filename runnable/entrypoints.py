@@ -11,6 +11,7 @@ from rich.table import Column
 import runnable.context as context
 from runnable import console, defaults, graph, jobs, task_console, utils
 from runnable.defaults import RunnableConfig, ServiceConfig
+from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -68,7 +69,7 @@ def prepare_configurations(
 
     # Run log settings, configuration over-rides everything
     # The user config has run-log-store while internally we use run_log_store
-    run_log_config: Optional[ServiceConfig] = configuration.get("run-log-store", None)
+    run_log_config: Optional[ServiceConfig] = configuration.get("run-log-store", None)  # type: ignore
     if not run_log_config:
         run_log_config = cast(
             ServiceConfig,
@@ -101,7 +102,8 @@ def prepare_configurations(
     # executor configurations, configuration over rides everything
     executor_config: Optional[ServiceConfig] = configuration.get(
         "pipeline-executor", None
-    )
+    )  # type: ignore
+    # as pipeline-executor is not a valid key
     if not executor_config:
         executor_config = cast(
             ServiceConfig,
@@ -165,7 +167,7 @@ def set_pipeline_spec_from_python(run_context: context.Context, python_module: s
     run_context.dag = dag
 
 
-def execute_yaml_spec(
+def execute_pipeline_yaml_spec(
     pipeline_file: str,
     configuration_file: str = "",
     tag: str = "",
@@ -187,6 +189,8 @@ def execute_yaml_spec(
         tag=tag,
         parameters_file=parameters_file,
     )
+
+    assert isinstance(run_context.executor, BasePipelineExecutor)
 
     set_pipeline_spec_from_yaml(run_context, pipeline_file)
     executor = run_context.executor
@@ -289,6 +293,7 @@ def execute_single_node(
         tag=tag,
         parameters_file=parameters_file,
     )
+    assert isinstance(run_context.executor, BasePipelineExecutor)
 
     if mode == "yaml":
         # Load the yaml file
@@ -332,7 +337,7 @@ def execute_single_node(
         os.remove(log_file_name)
 
 
-def execute_job(
+def execute_job_yaml_spec(
     job_definition_file: str,
     configuration_file: str = "",
     tag: str = "",
@@ -347,6 +352,8 @@ def execute_job(
         tag=tag,
         parameters_file=parameters_file,
     )
+
+    assert isinstance(run_context.executor, BaseJobExecutor)
 
     executor = run_context.executor
     utils.set_runnable_environment_variables(
@@ -377,150 +384,6 @@ def execute_job(
         "Executing the job from the user. We are still in the caller's compute environment"
     )
     job.execute()
-
-    executor.send_return_code()
-
-
-def execute_notebook(
-    entrypoint: str,
-    notebook_file: str,
-    catalog_config: dict,
-    configuration_file: str,
-    notebook_output_path: str = "",
-    tag: str = "",
-    run_id: str = "",
-    parameters_file: str = "",
-):
-    """
-    The entry point to runnable execution of a notebook. This method would prepare the configurations and
-    delegates traversal to the executor
-    """
-    run_id = utils.generate_run_id(run_id=run_id)
-
-    run_context = prepare_configurations(
-        configuration_file=configuration_file,
-        run_id=run_id,
-        tag=tag,
-        parameters_file=parameters_file,
-    )
-
-    executor = run_context.executor
-    utils.set_runnable_environment_variables(
-        run_id=run_id, configuration_file=configuration_file, tag=tag
-    )
-
-    console.print("Working with context:")
-    console.print(run_context)
-    console.rule(style="[dark orange]")
-
-    step_config = {
-        "command": notebook_file,
-        "command_type": "notebook",
-        "notebook_output_path": notebook_output_path,
-        "type": "task",
-        "next": "success",
-        "catalog": catalog_config,
-    }
-    node = graph.create_node(name="executing job", step_config=step_config)
-
-    if entrypoint == defaults.ENTRYPOINT.USER.value:
-        # Prepare for graph execution
-        executor.prepare_for_submission()
-
-        logger.info(
-            "Executing the job from the user. We are still in the caller's compute environment"
-        )
-        executor.execute_job(node=node)
-
-    elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
-        executor.prepare_for_execution()
-        logger.info(
-            "Executing the job from the system. We are in the config's compute environment"
-        )
-        executor.execute_node(node=node)
-
-        # Update the status of the run log
-        step_log = run_context.run_log_store.get_step_log(
-            node._get_step_log_name(), run_id
-        )
-        run_context.run_log_store.update_run_log_status(
-            run_id=run_id, status=step_log.status
-        )
-
-    else:
-        raise ValueError(f"Invalid entrypoint {entrypoint}")
-
-    executor.send_return_code()
-
-
-def execute_function(
-    entrypoint: str,
-    command: str,
-    catalog_config: dict,
-    configuration_file: str,
-    tag: str = "",
-    run_id: str = "",
-    parameters_file: str = "",
-):
-    """
-    The entry point to runnable execution of a function. This method would prepare the configurations and
-    delegates traversal to the executor
-    """
-    run_id = utils.generate_run_id(run_id=run_id)
-
-    run_context = prepare_configurations(
-        configuration_file=configuration_file,
-        run_id=run_id,
-        tag=tag,
-        parameters_file=parameters_file,
-    )
-
-    executor = run_context.executor
-
-    utils.set_runnable_environment_variables(
-        run_id=run_id, configuration_file=configuration_file, tag=tag
-    )
-
-    console.print("Working with context:")
-    console.print(run_context)
-    console.rule(style="[dark orange]")
-
-    # Prepare the graph with a single node
-    step_config = {
-        "command": command,
-        "command_type": "python",
-        "type": "task",
-        "next": "success",
-        "catalog": catalog_config,
-    }
-    node = graph.create_node(name="executing job", step_config=step_config)
-
-    if entrypoint == defaults.ENTRYPOINT.USER.value:
-        # Prepare for graph execution
-        executor.prepare_for_submission()
-
-        logger.info(
-            "Executing the job from the user. We are still in the caller's compute environment"
-        )
-        executor.execute_job(node=node)
-
-    elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
-        executor.prepare_for_execution()
-        logger.info(
-            "Executing the job from the system. We are in the config's compute environment"
-        )
-        executor.execute_node(node=node)
-
-        # Update the status of the run log
-        step_log = run_context.run_log_store.get_step_log(
-            node._get_step_log_name(), run_id
-        )
-        run_context.run_log_store.update_run_log_status(
-            run_id=run_id, status=step_log.status
-        )
-
-    else:
-        raise ValueError(f"Invalid entrypoint {entrypoint}")
 
     executor.send_return_code()
 
@@ -562,6 +425,9 @@ def fan(
         tag=tag,
         parameters_file=parameters_file,
     )
+
+    assert isinstance(run_context.executor, BasePipelineExecutor)
+
     if mode == "yaml":
         # Load the yaml file
         set_pipeline_spec_from_yaml(run_context, pipeline_file)

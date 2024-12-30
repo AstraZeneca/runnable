@@ -522,8 +522,6 @@ def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> st
 
     action = f"runnable execute_{cli_command} {run_id} " f" --log-level {log_level}"
 
-    action = action + f" --entrypoint {defaults.ENTRYPOINT.SYSTEM.value}"
-
     if context.run_context.configuration_file:
         action = action + f" --config-file {context.run_context.configuration_file}"
 

@@ -1,4 +1,4 @@
-from extensions.executor.local import LocalExecutor
+from extensions.pipeline_executor.local import LocalExecutor
 
 
 def test_local_executor_execute_node_just_calls___execute_node(mocker, monkeypatch):

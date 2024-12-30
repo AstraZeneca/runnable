@@ -1,7 +1,6 @@
 import logging
 
-from extensions.executor import GenericExecutor
-from extensions.nodes.nodes import TaskNode
+from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
 from runnable.defaults import TypeMapVariable
 from runnable.nodes import BaseNode
@@ -9,7 +8,7 @@ from runnable.nodes import BaseNode
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class LocalExecutor(GenericExecutor):
+class LocalExecutor(GenericPipelineExecutor):
     """
     In the mode of local execution, we run everything on the local computer.
 
@@ -50,29 +49,29 @@ class LocalExecutor(GenericExecutor):
         """
         self._execute_node(node=node, map_variable=map_variable, **kwargs)
 
-    def execute_job(self, node: TaskNode):
-        """
-        Set up the step log and call the execute node
+    # def execute_job(self, node: TaskNode):
+    #     """
+    #     Set up the step log and call the execute node
 
-        Args:
-            node (BaseNode): _description_
-        """
+    #     Args:
+    #         node (BaseNode): _description_
+    #     """
 
-        step_log = self._context.run_log_store.create_step_log(
-            node.name, node._get_step_log_name(map_variable=None)
-        )
+    #     step_log = self._context.run_log_store.create_step_log(
+    #         node.name, node._get_step_log_name(map_variable=None)
+    #     )
 
-        self.add_code_identities(node=node, step_log=step_log)
+    #     self.add_code_identities(node=node, step_log=step_log)
 
-        step_log.step_type = node.node_type
-        step_log.status = defaults.PROCESSING
-        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-        self.execute_node(node=node)
+    #     step_log.step_type = node.node_type
+    #     step_log.status = defaults.PROCESSING
+    #     self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+    #     self.execute_node(node=node)
 
-        # Update the run log status
-        step_log = self._context.run_log_store.get_step_log(
-            node._get_step_log_name(), self._context.run_id
-        )
-        self._context.run_log_store.update_run_log_status(
-            run_id=self._context.run_id, status=step_log.status
-        )
+    #     # Update the run log status
+    #     step_log = self._context.run_log_store.get_step_log(
+    #         node._get_step_log_name(), self._context.run_id
+    #     )
+    #     self._context.run_log_store.update_run_log_status(
+    #         run_id=self._context.run_id, status=step_log.status
+    #     )

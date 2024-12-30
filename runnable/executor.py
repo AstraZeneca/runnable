@@ -152,7 +152,7 @@ class BaseJobExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def post_job(self, job: BaseJob):
+    def post_job_execution(self, job: BaseJob):
         """
         This method is called after the job execution.
         """
@@ -322,7 +322,7 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def _resolve_executor_config(self, node: BaseNode):
+    def _resolve_executor_config(self, node: BaseNode) -> Dict[str, Any]:
         """
         The overrides section can contain specific over-rides to an global executor config.
         To avoid too much clutter in the dag definition, we allow the configuration file to have overrides block.

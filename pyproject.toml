@@ -22,7 +22,8 @@ dependencies = [
     "secrets",
     "catalog",
     "run_log_store",
-    "executor",
+    "pipeline_executor",
+    "job_executor",
 ]
 
 [project.scripts]
@@ -71,15 +72,16 @@ nodes = {workspace = true}
 secrets = {workspace = true}
 catalog = {workspace = true}
 run_log_store = {workspace = true}
-executor = {workspace = true}
+pipeline_executor = {workspace = true}
+job_executor = {workspace = true}
 
 
 [project.entry-points.'pipeline_executor']
-"local" = "extensions.executor.local:LocalExecutor"
-"local-container" = "extensions.executor.local_container:LocalContainerExecutor"
-"argo" = "extensions.executor.argo:ArgoExecutor"
-"mocked" = "extensions.executor.mocked:MockedExecutor"
-"retry" = "extensions.executor.retry:RetryExecutor"
+"local" = "extensions.pipeline_executor.local:LocalExecutor"
+"local-container" = "extensions.pipeline_executor.local_container:LocalContainerExecutor"
+"argo" = "extensions.pipeline_executor.argo:ArgoExecutor"
+"mocked" = "extensions.pipeline_executor.mocked:MockedExecutor"
+"retry" = "extensions.pipeline_executor.retry:RetryExecutor"
 
 [project.entry-points.'secrets']
 "do-nothing" = "runnable.secrets:DoNothingSecretManager"
