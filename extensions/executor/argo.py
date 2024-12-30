@@ -845,7 +845,7 @@ class ArgoExecutor(GenericExecutor):
             ),
         )
 
-    def prepare_for_graph_execution(self):
+    def prepare_for_submission(self):
         """
         This method should be called prior to calling execute_graph.
         Perform any steps required before doing the graph execution.
@@ -865,7 +865,7 @@ class ArgoExecutor(GenericExecutor):
         integration.validate(self, self._context.secrets_handler)
         integration.configure_for_traversal(self, self._context.secrets_handler)
 
-    def prepare_for_node_execution(self):
+    def prepare_for_execution(self):
         """
         Perform any modifications to the services prior to execution of the node.
 
@@ -874,7 +874,7 @@ class ArgoExecutor(GenericExecutor):
             map_variable (dict, optional): [description]. Defaults to None.
         """
 
-        super().prepare_for_node_execution()
+        super().prepare_for_execution()
         self._set_up_run_log(exists_ok=True)
 
     def execute_node(

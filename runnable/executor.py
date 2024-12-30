@@ -68,7 +68,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def prepare_for_graph_execution(self):
+    def prepare_for_submission(self):
         """
         This method should be called prior to calling execute_graph.
         Perform any steps required before doing the graph execution.
@@ -81,7 +81,7 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def prepare_for_node_execution(self):
+    def prepare_for_execution(self):
         """
         Perform any modifications to the services prior to execution of the node.
 

@@ -56,7 +56,7 @@
 #         for i, (claim, mount_path) in enumerate(self.config.persistent_volumes.items()):
 #             self.persistent_volumes[f"executor-{i}"] = (claim, mount_path)
 
-#     def prepare_for_graph_execution(self):
+#     def prepare_for_submission(self):
 #         """
 #         This method would be called prior to calling execute_graph.
 #         Perform any steps required before doing the graph execution.
@@ -78,7 +78,7 @@
 #         integration.validate(self, self.experiment_tracker)
 #         integration.configure_for_traversal(self, self.experiment_tracker)
 
-#     def prepare_for_node_execution(self):
+#     def prepare_for_execution(self):
 #         """
 #         Perform any modifications to the services prior to execution of the node.
 

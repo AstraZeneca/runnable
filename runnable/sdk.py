@@ -802,7 +802,7 @@ class Pipeline(BaseModel):
             run_context.from_sdk = True
 
         # Prepare for graph execution
-        run_context.executor.prepare_for_graph_execution()
+        run_context.executor.prepare_for_submission()
 
         with Progress(
             SpinnerColumn(spinner_name="runner"),

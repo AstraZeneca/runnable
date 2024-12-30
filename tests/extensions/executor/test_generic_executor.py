@@ -157,7 +157,7 @@ def test_set_up_run_log_store_calls_set_run_config(
     assert mock_set_run_config.call_count == 1
 
 
-def test_base_executor_prepare_for_graph_execution_calls(
+def test_base_executor_prepare_for_submission_calls(
     mocker, monkeypatch, mock_run_context
 ):
     mock_integration = mocker.MagicMock()
@@ -175,7 +175,7 @@ def test_base_executor_prepare_for_graph_execution_calls(
 
     base_executor = GenericExecutor()
 
-    base_executor.prepare_for_graph_execution()
+    base_executor.prepare_for_submission()
 
     assert mock_configure_for_traversal.call_count == 3
     assert mock_validate.call_count == 3
@@ -196,7 +196,7 @@ def test_base_execution_prepare_for_node_calls(mocker, monkeypatch, mock_run_con
 
     base_executor = GenericExecutor()
 
-    base_executor.prepare_for_node_execution()
+    base_executor.prepare_for_execution()
 
     assert mock_configure_for_execution.call_count == 3
     assert mock_validate.call_count == 3

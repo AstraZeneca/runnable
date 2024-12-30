@@ -194,7 +194,7 @@ def execute_yaml_spec(
     )
 
     # Prepare for graph execution
-    executor.prepare_for_graph_execution()
+    executor.prepare_for_submission()
 
     console.print("Working with context:")
     console.print(run_context)
@@ -306,7 +306,7 @@ def execute_single_node(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )
 
-    executor.prepare_for_node_execution()
+    executor.prepare_for_execution()
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
@@ -369,7 +369,7 @@ def execute_job(
     job = jobs.create_job(name=job_name, job_config=job_config)
 
     # even though it says graph, it is meant to check the validity of the configuration
-    executor.prepare_for_graph_execution()
+    executor.prepare_for_submission()
 
     logger.info(
         "Executing the job from the user. We are still in the caller's compute environment"
@@ -378,7 +378,7 @@ def execute_job(
     # executor.execute_job(node=node)  # type: ignore
 
     # elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
-    #     executor.prepare_for_node_execution()
+    #     executor.prepare_for_execution()
     #     logger.info(
     #         "Executing the job from the system. We are in the config's compute environment"
     #     )
@@ -442,7 +442,7 @@ def execute_notebook(
 
     if entrypoint == defaults.ENTRYPOINT.USER.value:
         # Prepare for graph execution
-        executor.prepare_for_graph_execution()
+        executor.prepare_for_submission()
 
         logger.info(
             "Executing the job from the user. We are still in the caller's compute environment"
@@ -450,7 +450,7 @@ def execute_notebook(
         executor.execute_job(node=node)
 
     elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
-        executor.prepare_for_node_execution()
+        executor.prepare_for_execution()
         logger.info(
             "Executing the job from the system. We are in the config's compute environment"
         )
@@ -514,7 +514,7 @@ def execute_function(
 
     if entrypoint == defaults.ENTRYPOINT.USER.value:
         # Prepare for graph execution
-        executor.prepare_for_graph_execution()
+        executor.prepare_for_submission()
 
         logger.info(
             "Executing the job from the user. We are still in the caller's compute environment"
@@ -522,7 +522,7 @@ def execute_function(
         executor.execute_job(node=node)
 
     elif entrypoint == defaults.ENTRYPOINT.SYSTEM.value:
-        executor.prepare_for_node_execution()
+        executor.prepare_for_execution()
         logger.info(
             "Executing the job from the system. We are in the config's compute environment"
         )
@@ -595,7 +595,7 @@ def fan(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )
 
-    executor.prepare_for_node_execution()
+    executor.prepare_for_execution()
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
     node_to_execute, _ = graph.search_node_by_internal_name(
