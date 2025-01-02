@@ -6,12 +6,17 @@ from typing import Any, Dict
 from pydantic import BaseModel, ConfigDict, Field
 from stevedore import driver
 
+import runnable.context as context
 from runnable import defaults
 from runnable.datastore import StepAttempt
 from runnable.tasks import BaseTaskType, create_task
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
+
+
+# TODO: Do we need this abstraction?
+# Why not let the job executor deal with tasks directly?
 
 
 class BaseJob(BaseModel):
@@ -21,6 +26,10 @@ class BaseJob(BaseModel):
 
     def __str__(self):
         return f"{self.name}"
+
+    @property
+    def _context(self):
+        return context.run_context
 
     @classmethod
     @abstractmethod
@@ -71,11 +80,15 @@ class PythonJob(BaseJob):
         attempt_number: int = 1,
         **kwargs,
     ) -> StepAttempt:
-        return self.executable.execute_command(
+        attempt_log = self.executable.execute_command(
             mock=mock,
             attempt_number=attempt_number,
             **kwargs,
         )
+        logger.info(f"attempt_log: {attempt_log}")
+        logger.info(f"Step {self.name} completed with status: {attempt_log.status}")
+
+        return attempt_log
 
     def prepare_for_job_execution(self):
         pass
@@ -105,11 +118,15 @@ class NotebookJob(BaseJob):
         attempt_number: int = 1,
         **kwargs,
     ) -> StepAttempt:
-        return self.executable.execute_command(
+        attempt_log = self.executable.execute_command(
             mock=mock,
             attempt_number=attempt_number,
             **kwargs,
         )
+
+        logger.info(f"attempt_log: {attempt_log}")
+        logger.info(f"Step {self.name} completed with status: {attempt_log.status}")
+        return attempt_log
 
     def prepare_for_job_execution(self):
         pass

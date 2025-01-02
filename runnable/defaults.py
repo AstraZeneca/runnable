@@ -64,6 +64,7 @@ COMMAND_FRIENDLY_CHARACTER = "%"
 
 # Default services
 DEFAULT_PIPELINE_EXECUTOR = ServiceConfig(type="local", config={})
+DEFAULT_JOB_EXECUTOR = ServiceConfig(type="local", config={})
 DEFAULT_RUN_LOG_STORE = ServiceConfig(type="file-system", config={})
 DEFAULT_CATALOG = ServiceConfig(type="file-system", config={})
 DEFAULT_SECRETS = ServiceConfig(type="env-secrets", config={})
@@ -100,6 +101,8 @@ DOTENV_FILE_LOCATION = ".env"
 
 LEN_SHA_FOR_TAG = 8
 
+# JOB CONFIG
+DEFAULT_JOB_NAME = "job"
 
 ## Logging settings
 

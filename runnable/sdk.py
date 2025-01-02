@@ -35,7 +35,8 @@ from extensions.nodes.nodes import (
     TaskNode,
 )
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
-from runnable.executor import BasePipelineExecutor
+from runnable.executor import BaseJobExecutor, BasePipelineExecutor
+from runnable.jobs import BaseJob, NotebookJob, PythonJob
 from runnable.nodes import TraversalNode
 from runnable.tasks import TaskReturns
 
@@ -191,6 +192,11 @@ class BaseTask(BaseTraversal):
             self.model_dump(exclude_none=True, by_alias=True)
         )
 
+    def create_job(self, name: str) -> BaseJob:
+        raise NotImplementedError(
+            "This method should be implemented in the child class"
+        )
+
 
 class PythonTask(BaseTask):
     """
@@ -274,6 +280,11 @@ class PythonTask(BaseTask):
 
         return f"{module}.{name}"
 
+    def create_job(self, name: str) -> PythonJob:
+        self.terminate_with_success = True
+        task_node = self.create_node()
+        return PythonJob(name=name, executable=task_node.executable)
+
 
 class NotebookTask(BaseTask):
     """
@@ -353,6 +364,11 @@ class NotebookTask(BaseTask):
     @computed_field
     def command_type(self) -> str:
         return "notebook"
+
+    def create_job(self, name: str) -> NotebookJob:
+        self.terminate_with_success = True
+        task_node = self.create_node()
+        return NotebookJob(name=name, executable=task_node.executable)
 
 
 class ShellTask(BaseTask):
@@ -854,6 +870,58 @@ class Pipeline(BaseModel):
                     completed=True,
                 )
                 raise
+
+        if run_context.executor._is_local:
+            return run_context.run_log_store.get_run_log_by_id(
+                run_id=run_context.run_id
+            )
+
+
+class Job(BaseModel):
+    name: str
+    task: Union[PythonTask, NotebookTask, ShellTask]
+
+    # TODO: Find a way to identify the difference between submission and execution
+    def execute(
+        self,
+        configuration_file: str = "",
+        job_id: str = "",
+        tag: str = "",
+        parameters_file: str = "",
+        log_level: str = defaults.LOG_LEVEL,
+    ):
+        logger.setLevel(log_level)
+
+        run_id = utils.generate_run_id(run_id=job_id)
+        configuration_file = os.environ.get(
+            "RUNNABLE_CONFIGURATION_FILE", configuration_file
+        )
+        run_context = entrypoints.prepare_configurations(
+            configuration_file=configuration_file,
+            run_id=run_id,
+            tag=tag,
+            parameters_file=parameters_file,
+            is_job=True,
+        )
+
+        assert isinstance(run_context.executor, BaseJobExecutor)
+
+        utils.set_runnable_environment_variables(
+            run_id=run_id, configuration_file=configuration_file, tag=tag
+        )
+
+        console.print("Working with context:")
+        console.print(run_context)
+        console.rule(style="[dark orange]")
+
+        job = self.task.create_job(name=self.name)
+
+        run_context.executor.prepare_for_submission()
+        run_context.executor.submit_job(job)
+
+        logger.info(
+            "Executing the job from the user. We are still in the caller's compute environment"
+        )
 
         if run_context.executor._is_local:
             return run_context.run_log_store.get_run_log_by_id(

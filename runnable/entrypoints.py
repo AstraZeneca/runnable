@@ -9,7 +9,7 @@ from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 from rich.table import Column
 
 import runnable.context as context
-from runnable import console, defaults, graph, jobs, task_console, utils
+from runnable import console, defaults, graph, task_console, tasks, utils
 from runnable.defaults import RunnableConfig, ServiceConfig
 from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 
@@ -32,6 +32,7 @@ def prepare_configurations(
     configuration_file: str = "",
     tag: str = "",
     parameters_file: str = "",
+    is_job: bool = False,
 ) -> context.Context:
     """
     Sets up everything needed
@@ -99,21 +100,35 @@ def prepare_configurations(
     )
     pickler_handler = utils.get_provider_by_name_and_type("pickler", pickler_config)
 
-    # executor configurations, configuration over rides everything
-    executor_config: Optional[ServiceConfig] = configuration.get(
-        "pipeline-executor", None
-    )  # type: ignore
-    # as pipeline-executor is not a valid key
-    if not executor_config:
-        executor_config = cast(
-            ServiceConfig,
-            runnable_defaults.get(
-                "pipeline-executor", defaults.DEFAULT_PIPELINE_EXECUTOR
-            ),
+    if not is_job:
+        # executor configurations, configuration over rides everything
+        executor_config: Optional[ServiceConfig] = configuration.get(
+            "pipeline-executor", None
+        )  # type: ignore
+        # as pipeline-executor is not a valid key
+        if not executor_config:
+            executor_config = cast(
+                ServiceConfig,
+                runnable_defaults.get(
+                    "pipeline-executor", defaults.DEFAULT_PIPELINE_EXECUTOR
+                ),
+            )
+        configured_executor = utils.get_provider_by_name_and_type(
+            "pipeline_executor", executor_config
         )
-    configured_executor = utils.get_provider_by_name_and_type(
-        "pipeline_executor", executor_config
-    )
+    else:
+        # executor configurations, configuration over rides everything
+        executor_config: Optional[ServiceConfig] = configuration.get(
+            "job-executor", None
+        )  # type: ignore
+        if not executor_config:
+            executor_config = cast(
+                ServiceConfig,
+                runnable_defaults.get("job-executor", defaults.DEFAULT_JOB_EXECUTOR),
+            )
+        configured_executor = utils.get_provider_by_name_and_type(
+            "job_executor", executor_config
+        )
 
     # Construct the context
     run_context = context.Context(
@@ -344,6 +359,7 @@ def execute_job_yaml_spec(
     job_id: str = "",
     parameters_file: str = "",
 ):
+    # A job and task are the same.
     job_id = utils.generate_run_id(run_id=job_id)
 
     run_context = prepare_configurations(
@@ -351,6 +367,7 @@ def execute_job_yaml_spec(
         run_id=job_id,
         tag=tag,
         parameters_file=parameters_file,
+        is_job=True,
     )
 
     assert isinstance(run_context.executor, BaseJobExecutor)
@@ -371,19 +388,22 @@ def execute_job_yaml_spec(
     console.print(run_context)
     console.rule(style="[dark orange]")
 
-    job_name = job_config.get("name", "executing job")
+    # rename the type to command_type of task
+    job_config["command_type"] = job_config.pop("type")
+    task = tasks.create_task(job_config)
+
+    # job_name = job_config.get("name", "executing job")
     # TODO: Just like execute_single_node, we have to derive the job from yaml or sdk
     # We instantiate a Job node and send the execution to the task node.
     # If done right, there should be no change in task code at all.
-    job = jobs.create_job(name=job_name, job_config=job_config)
+    # job = jobs.create_job(name=job_name, job_config=job_config)
 
-    # even though it says graph, it is meant to check the validity of the configuration
     executor.prepare_for_submission()
+    executor.submit_job(task)
 
     logger.info(
         "Executing the job from the user. We are still in the caller's compute environment"
     )
-    job.execute()
 
     executor.send_return_code()
 

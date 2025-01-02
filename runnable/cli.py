@@ -60,7 +60,7 @@ def execute(
             show_default=True,
             case_sensitive=False,
         ),
-    ] = LogLevel.INFO,
+    ] = LogLevel.WARNING,
     tag: Annotated[str, typer.Option(help="A tag attached to the run")] = "",
     run_id: Annotated[
         str,
@@ -243,7 +243,7 @@ def submit_job(
             show_default=True,
             case_sensitive=False,
         ),
-    ] = LogLevel.INFO,
+    ] = LogLevel.WARNING,
     tag: Annotated[str, typer.Option(help="A tag attached to the run")] = "",
     job_id: Annotated[
         str,

@@ -14,8 +14,8 @@ from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph
 
 if TYPE_CHECKING:  # pragma: no cover
-    from runnable.jobs import BaseJob
     from runnable.nodes import BaseNode
+    from runnable.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -124,45 +124,6 @@ class BaseExecutor(ABC, BaseModel):
         """
         ...
 
-
-class BaseJobExecutor(BaseExecutor):
-    service_type: str = "job_executor"
-
-    @abstractmethod
-    def pre_job_execution(self, job: BaseJob):
-        """
-        This method is called before the job execution.
-        """
-        ...
-
-    @abstractmethod
-    def execute_job(self, job: BaseJob):
-        """
-        Executor specific way of executing a job (python function or a notebook).
-
-        Interactive executors should execute the job.
-        Transpilers should write the instructions.
-
-        Args:
-            node (BaseNode): The job node to execute
-
-        Raises:
-            NotImplementedError: Executors should choose to extend this functionality or not.
-        """
-        ...
-
-    @abstractmethod
-    def post_job_execution(self, job: BaseJob):
-        """
-        This method is called after the job execution.
-        """
-        ...
-
-
-class BasePipelineExecutor(BaseExecutor):
-    service_type: str = "pipeline_executor"
-    _context_node: Optional[BaseNode] = None
-
     @abstractmethod
     def _sync_catalog(
         self, stage: str, synced_catalogs=None
@@ -187,6 +148,49 @@ class BasePipelineExecutor(BaseExecutor):
 
         """
         ...
+
+
+class BaseJobExecutor(BaseExecutor):
+    service_type: str = "job_executor"
+
+    @abstractmethod
+    def submit_job(self, job: BaseTaskType):
+        """
+        Local executors should
+        - create the run log
+        - and call an execute_job
+
+        Non local executors should
+        - transpile the job to the platform specific job spec
+        - submit the job to call execute_job
+        """
+        ...
+
+    @abstractmethod
+    def pre_job_execution(self, job: BaseTaskType):
+        """
+        This method is called before the job execution.
+        """
+        ...
+
+    @abstractmethod
+    def execute_job(self, job: BaseTaskType):
+        """
+        Focusses only on execution of the job.
+        """
+        ...
+
+    @abstractmethod
+    def post_job_execution(self, job: BaseTaskType):
+        """
+        This method is called after the job execution.
+        """
+        ...
+
+
+class BasePipelineExecutor(BaseExecutor):
+    service_type: str = "pipeline_executor"
+    _context_node: Optional[BaseNode] = None
 
     @abstractmethod
     def get_effective_compute_data_folder(self) -> Optional[str]:

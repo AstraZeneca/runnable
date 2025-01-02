@@ -554,6 +554,7 @@ def get_provider_by_name_and_type(
     Returns:
         object: A service object
     """
+
     namespace = service_type
 
     service_name = service_details["type"]
