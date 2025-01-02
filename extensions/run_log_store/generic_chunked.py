@@ -10,6 +10,7 @@ from runnable import defaults, exceptions
 from runnable.datastore import (
     BaseRunLogStore,
     BranchLog,
+    JobLog,
     JsonParameter,
     MetricParameter,
     ObjectParameter,
@@ -595,3 +596,31 @@ class ChunkedRunLogStore(BaseRunLogStore):
             contents=branch_log.model_dump(),
             name=internal_branch_name,
         )
+
+    def create_job_log(
+        self,
+        job_id: str,
+        tag: str,
+        status=defaults.CREATED,
+    ) -> JobLog: ...
+
+    def put_job_log(self, job_log: JobLog): ...
+
+    def get_job_log_by_id(self, job_id: str) -> JobLog:
+        """
+        Retrieves a Job log from the database using the config and the job_id
+
+        Args:
+            job_id (str): The job_id of the job
+
+        Returns:
+            JobLog: The JobLog object identified by the job_id
+
+        Logically the method should:
+            * Returns the job_log defined by id from the data store defined by the config
+
+        Raises:
+            NotImplementedError: This is a base class and therefore has no default implementation
+            JobLogNotFoundError: If the job log for job_id is not found in the datastore
+        """
+        ...

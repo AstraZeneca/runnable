@@ -359,7 +359,7 @@ def execute_job_yaml_spec(
     job_id: str = "",
     parameters_file: str = "",
 ):
-    # A job and task are the same.
+    # A job and task are internally the same.
     job_id = utils.generate_run_id(run_id=job_id)
 
     run_context = prepare_configurations(

@@ -4,8 +4,8 @@ from pathlib import Path
 from string import Template
 from typing import Any, Dict, Optional, Sequence, Union
 
-from extensions.run_log_store.generic_chunked import ChunkedRunLogStore
-from runnable import defaults, utils
+from extensions.run_log_store.generic_chunked import ChunkedRunLogStore, JobLog
+from runnable import defaults, exceptions, utils
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -111,3 +111,85 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
             contents = json.load(fr)
 
         return contents
+
+    def write_job_log_to_folder(self, job_log: JobLog):
+        """
+        Write the run log to the folder
+
+        Args:
+            run_log (RunLog): The run log to be added to the database
+        """
+        write_to = self.log_folder
+        utils.safe_make_dir(write_to)
+
+        write_to_path = Path(write_to)
+        job_id = job_log.job_id
+        json_file_path = write_to_path / f"{job_id}.json"
+
+        with json_file_path.open("w") as fw:
+            json.dump(job_log.model_dump(), fw, ensure_ascii=True, indent=4)  # pylint: disable=no-member
+
+    def get_jog_log_from_folder(self, job_id: str) -> JobLog:
+        """
+        Look into the run log folder for the run log for the run id.
+
+        If the run log does not exist, raise an exception. If it does, decode it
+        as a RunLog and return it
+
+        Args:
+            run_id (str): The requested run id to retrieve the run log store
+
+        Raises:
+            FileNotFoundError: If the Run Log has not been found.
+
+        Returns:
+            RunLog: The decoded Run log
+        """
+        write_to = self.log_folder
+
+        read_from_path = Path(write_to)
+        json_file_path = read_from_path / f"{job_id}.json"
+
+        if not json_file_path.exists():
+            raise FileNotFoundError(f"Expected {json_file_path} is not present")
+
+        with json_file_path.open("r") as fr:
+            json_str = json.load(fr)
+            job_log = JobLog(**json_str)  # pylint: disable=no-member
+        return job_log
+
+    def create_job_log(self, job_id: str, tag: str, status=defaults.CREATED) -> JobLog:
+        """
+        # Creates a Job log
+        # Adds it to the db
+        """
+
+        logger.info(f"{self.service_name} Creating a Job Log for : {job_id}")
+        job_log = JobLog(
+            job_id=job_id,
+            tag=tag,
+            status=status,
+        )
+        self.write_job_log_to_folder(job_log)
+        return job_log
+
+    def get_job_log_by_id(self, job_id: str) -> JobLog:
+        """
+        # Returns the run_log defined by id
+        # Raises Exception if not found
+        """
+        try:
+            logger.info(f"{self.service_name} Getting a job Log for : {job_id}")
+            job_log = self.get_jog_log_from_folder(job_id)
+            return job_log
+        except FileNotFoundError as e:
+            raise exceptions.RunLogNotFoundError(job_id) from e
+
+    def put_job_log(self, job_log: JobLog, **kwargs):
+        """
+        # Puts the run_log into the database
+        """
+        logger.info(
+            f"{self.service_name} Putting the job log in the DB: {job_log.job_id}"
+        )
+        self.write_job_log_to_folder(job_log)

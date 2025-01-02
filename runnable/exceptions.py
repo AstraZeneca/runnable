@@ -10,6 +10,18 @@ class RunLogExistsError(Exception):  # pragma: no cover
         self.message = f"Run id for {run_id} is already found in the datastore"
 
 
+class JobLogNotFoundError(Exception):
+    """
+    Exception class
+    Args:
+        Exception ([type]): [description]
+    """
+
+    def __init__(self, job_id):
+        super().__init__()
+        self.message = f"Job id for {job_id} is not found in the datastore"
+
+
 class RunLogNotFoundError(Exception):  # pragma: no cover
     """
     Exception class
