@@ -9,6 +9,7 @@ from runnable.executor import BaseExecutor
 from runnable.graph import Graph
 from runnable.pickler import BasePickler
 from runnable.secrets import BaseSecrets
+from runnable.tasks import BaseTaskType
 
 
 class Context(BaseModel):
@@ -22,15 +23,20 @@ class Context(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     pipeline_file: Optional[str] = ""
+    job_definition_file: Optional[str] = ""
     parameters_file: Optional[str] = ""
     configuration_file: Optional[str] = ""
     from_sdk: bool = False
 
-    tag: str = ""
     run_id: str = ""
+
+    tag: str = ""
     variables: Dict[str, str] = {}
+
     dag: Optional[Graph] = None
     dag_hash: str = ""
+
+    job: Optional[BaseTaskType] = None
 
 
 run_context = None  # type: Context # type: ignore

@@ -36,8 +36,8 @@ from extensions.nodes.nodes import (
 )
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.executor import BaseJobExecutor, BasePipelineExecutor
-from runnable.jobs import BaseJob, NotebookJob, PythonJob
 from runnable.nodes import TraversalNode
+from runnable.tasks import BaseTaskType as RunnableTask
 from runnable.tasks import TaskReturns
 
 # TODO: This might have to be an extension
@@ -192,7 +192,7 @@ class BaseTask(BaseTraversal):
             self.model_dump(exclude_none=True, by_alias=True)
         )
 
-    def create_job(self, name: str) -> BaseJob:
+    def create_job(self) -> RunnableTask:
         raise NotImplementedError(
             "This method should be implemented in the child class"
         )
@@ -280,10 +280,10 @@ class PythonTask(BaseTask):
 
         return f"{module}.{name}"
 
-    def create_job(self, name: str) -> PythonJob:
+    def create_job(self) -> RunnableTask:
         self.terminate_with_success = True
-        task_node = self.create_node()
-        return PythonJob(name=name, executable=task_node.executable)
+        node = self.create_node()
+        return node.executable
 
 
 class NotebookTask(BaseTask):
@@ -365,10 +365,10 @@ class NotebookTask(BaseTask):
     def command_type(self) -> str:
         return "notebook"
 
-    def create_job(self, name: str) -> NotebookJob:
+    def create_job(self) -> RunnableTask:
         self.terminate_with_success = True
-        task_node = self.create_node()
-        return NotebookJob(name=name, executable=task_node.executable)
+        node = self.create_node()
+        return node.executable
 
 
 class ShellTask(BaseTask):
@@ -879,9 +879,21 @@ class Pipeline(BaseModel):
 
 class Job(BaseModel):
     name: str
-    task: Union[PythonTask, NotebookTask, ShellTask]
+    task: BaseTask
 
-    # TODO: Find a way to identify the difference between submission and execution
+    def return_task(self) -> BaseTask:
+        return self.task
+
+    def _is_called_for_definition(self) -> bool:
+        """
+        If the run context is set, we are coming in only to get the pipeline definition.
+        """
+        from runnable.context import run_context
+
+        if run_context is None:
+            return False
+        return True
+
     def execute(
         self,
         configuration_file: str = "",
@@ -890,6 +902,9 @@ class Job(BaseModel):
         parameters_file: str = "",
         log_level: str = defaults.LOG_LEVEL,
     ):
+        if self._is_called_for_definition():
+            # Immediately return as this call is only for getting the job definition
+            return {}
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=job_id)
@@ -905,6 +920,7 @@ class Job(BaseModel):
         )
 
         assert isinstance(run_context.executor, BaseJobExecutor)
+        run_context.from_sdk = True
 
         utils.set_runnable_environment_variables(
             run_id=run_id, configuration_file=configuration_file, tag=tag
@@ -914,7 +930,7 @@ class Job(BaseModel):
         console.print(run_context)
         console.rule(style="[dark orange]")
 
-        job = self.task.create_job(name=self.name)
+        job = self.task.create_job()
 
         run_context.executor.prepare_for_submission()
         run_context.executor.submit_job(job)

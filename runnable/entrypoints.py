@@ -356,15 +356,15 @@ def execute_job_yaml_spec(
     job_definition_file: str,
     configuration_file: str = "",
     tag: str = "",
-    job_id: str = "",
+    run_id: str = "",
     parameters_file: str = "",
 ):
     # A job and task are internally the same.
-    job_id = utils.generate_run_id(run_id=job_id)
+    run_id = utils.generate_run_id(run_id=run_id)
 
     run_context = prepare_configurations(
         configuration_file=configuration_file,
-        run_id=job_id,
+        run_id=run_id,
         tag=tag,
         parameters_file=parameters_file,
         is_job=True,
@@ -374,7 +374,7 @@ def execute_job_yaml_spec(
 
     executor = run_context.executor
     utils.set_runnable_environment_variables(
-        run_id=job_id, configuration_file=configuration_file, tag=tag
+        run_id=run_id, configuration_file=configuration_file, tag=tag
     )
 
     job_config = utils.load_yaml(job_definition_file)
@@ -390,22 +390,89 @@ def execute_job_yaml_spec(
 
     # rename the type to command_type of task
     job_config["command_type"] = job_config.pop("type")
-    task = tasks.create_task(job_config)
+    job = tasks.create_task(job_config)
 
-    # job_name = job_config.get("name", "executing job")
     # TODO: Just like execute_single_node, we have to derive the job from yaml or sdk
     # We instantiate a Job node and send the execution to the task node.
     # If done right, there should be no change in task code at all.
     # job = jobs.create_job(name=job_name, job_config=job_config)
+    logger.info(
+        "Executing the job from the user. We are still in the caller's compute environment"
+    )
 
     executor.prepare_for_submission()
-    executor.submit_job(task)
+    executor.submit_job(job)
+
+    executor.send_return_code()
+
+
+def set_job_spec_from_yaml(run_context: context.Context, job_definition_file: str):
+    """
+    Reads the pipeline file from a YAML file and sets the pipeline spec in the run context
+    """
+    job_config = utils.load_yaml(job_definition_file)
+    logger.info("The input job definition file:")
+    logger.info(json.dumps(job_config, indent=4))
+
+    run_context.job_definition_file = job_definition_file
+    run_context.job = tasks.create_task(job_config)
+
+
+def set_job_spec_from_python(run_context: context.Context, python_module: str):
+    # Import the module and call the function to get the task
+    module_file = python_module.strip(".py")
+    module, func = utils.get_module_and_attr_names(module_file)
+    sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
+    imported_module = importlib.import_module(module)
+
+    run_context.from_sdk = True
+    task = getattr(imported_module, func)().return_task()
+
+    run_context.job_definition_file = python_module
+    run_context.job = task
+
+
+def execute_job_non_local(
+    job_definition_file: str,
+    configuration_file: str = "",
+    mode: str = "yaml",
+    tag: str = "",
+    run_id: str = "",
+    parameters_file: str = "",
+):
+    run_id = utils.generate_run_id(run_id=run_id)
+
+    run_context = prepare_configurations(
+        configuration_file=configuration_file,
+        run_id=run_id,
+        tag=tag,
+        parameters_file=parameters_file,
+        is_job=True,
+    )
+
+    assert isinstance(run_context.executor, BaseJobExecutor)
+
+    if mode == "yaml":
+        # Load the yaml file
+        set_job_spec_from_yaml(run_context, job_definition_file)
+    elif mode == "python":
+        # Call the SDK to get the task
+        set_job_spec_from_python(run_context, job_definition_file)
+
+    assert run_context.job
+
+    console.print("Working with context:")
+    console.print(run_context)
+    console.rule(style="[dark orange]")
 
     logger.info(
         "Executing the job from the user. We are still in the caller's compute environment"
     )
 
-    executor.send_return_code()
+    run_context.executor.prepare_for_submission()
+    run_context.executor.submit_job(run_context.job)
+
+    run_context.executor.send_return_code()
 
 
 def fan(

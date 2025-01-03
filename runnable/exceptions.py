@@ -17,9 +17,9 @@ class JobLogNotFoundError(Exception):
         Exception ([type]): [description]
     """
 
-    def __init__(self, job_id):
+    def __init__(self, run_id):
         super().__init__()
-        self.message = f"Job id for {job_id} is not found in the datastore"
+        self.message = f"Job for {run_id} is not found in the datastore"
 
 
 class RunLogNotFoundError(Exception):  # pragma: no cover

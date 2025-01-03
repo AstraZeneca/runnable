@@ -37,7 +37,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     """
 
     service_name: str = ""
-    service_type: str = "executor"
+    service_type: str = "pipeline_executor"
 
     @property
     def _context(self):

@@ -26,7 +26,10 @@ class LocalJobExecutor(GenericJobExecutor):
         """
         This method is called before the job execution.
         """
-        ...
+        job_log = self._context.run_log_store.create_job_log()
+        self._context.run_log_store.add_job_log(
+            run_id=self._context.run_id, job_log=job_log
+        )
 
     def execute_job(self, job: BaseTaskType):
         """
@@ -35,30 +38,26 @@ class LocalJobExecutor(GenericJobExecutor):
         self.prepare_for_execution()
         logger.info("Trying to execute job")
 
-        step_log = self._context.run_log_store.create_step_log(
-            defaults.DEFAULT_JOB_NAME, defaults.DEFAULT_JOB_NAME
-        )
+        job_log = self._context.run_log_store.get_job_log(run_id=self._context.run_id)
 
         attempt_log = job.execute_command(
             attempt_number=self.step_attempt_number,
             mock=self.mock,
         )
 
-        step_log.status = attempt_log.status
-
-        step_log.attempts.append(attempt_log)
+        job_log.status = attempt_log.status
+        job_log.attempts.append(attempt_log)
 
         # data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(stage="put")
         # logger.debug(f"data_catalogs_put: {data_catalogs_put}")
 
         # step_log.add_data_catalogs(data_catalogs_put or [])
 
-        console.print(f"Summary of the step: {step_log.name}")
-        console.print(step_log.get_summary(), style=defaults.info_style)
+        console.print("Summary of job")
+        console.print(job_log.get_summary())
 
-        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-        self._context.run_log_store.update_run_log_status(
-            self._context.run_id, defaults.SUCCESS
+        self._context.run_log_store.add_job_log(
+            run_id=self._context.run_id, job_log=job_log
         )
 
     def post_job_execution(self, job: BaseTaskType):

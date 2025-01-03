@@ -124,11 +124,6 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "shell" = "runnable.tasks:ShellTaskType"
 "notebook" = "runnable.tasks:NotebookTaskType"
 
-#TODO: Add the entry points for shell jobs
-[project.entry-points.'jobs']
-"python" = "runnable.jobs:PythonJob"
-# "shell" = "runnable.tasks:ShellTaskType"
-"notebook" = "runnable.jobs:NotebookJob"
 
 [tool.semantic_release]
 commit_parser = "angular"

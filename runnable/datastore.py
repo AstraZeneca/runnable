@@ -300,6 +300,60 @@ class BranchLog(BaseModel):
 StepLog.model_rebuild()
 
 
+class JobLog(BaseModel):
+    """
+    The data class capturing the data of a job
+    This should be treated as a step log
+    """
+
+    status: str = defaults.FAIL
+    message: str = ""
+    mock: bool = False
+    code_identities: List[CodeIdentity] = Field(default_factory=list)
+    attempts: List[StepAttempt] = Field(default_factory=list)
+    data_catalog: List[DataCatalog] = Field(default_factory=list)
+
+    def get_summary(self) -> Dict[str, Any]:
+        """
+        Summarize the step log to log
+        """
+        summary: Dict[str, Any] = {}
+
+        summary["Available parameters"] = [
+            (p, v.description)
+            for attempt in self.attempts
+            for p, v in attempt.input_parameters.items()
+        ]
+
+        summary["Output catalog content"] = [
+            dc.name for dc in self.data_catalog if dc.stage == "put"
+        ]
+        summary["Output parameters"] = [
+            (p, v.description)
+            for attempt in self.attempts
+            for p, v in attempt.output_parameters.items()
+        ]
+
+        summary["Metrics"] = [
+            (p, v.description)
+            for attempt in self.attempts
+            for p, v in attempt.user_defined_metrics.items()
+        ]
+
+        cis = []
+        for ci in self.code_identities:
+            message = f"{ci.code_identifier_type}:{ci.code_identifier}"
+            if not ci.code_identifier_dependable:
+                message += " but is not dependable"
+            cis.append(message)
+
+        summary["Code identities"] = cis
+
+        summary["status"] = self.status
+
+        return summary
+
+
 class RunLog(BaseModel):
     """
     The data captured as part of Run Log
@@ -310,6 +364,7 @@ class RunLog(BaseModel):
     tag: Optional[str] = ""
     status: str = defaults.FAIL
     steps: OrderedDict[str, StepLog] = Field(default_factory=OrderedDict)
+    job: Optional[JobLog] = None
     parameters: Dict[str, Parameter] = Field(default_factory=dict)
     run_config: Dict[str, Any] = Field(default_factory=dict)
 
@@ -454,61 +509,6 @@ class RunLog(BaseModel):
         raise exceptions.StepLogNotFoundError(self.run_id, i_name)
 
 
-class JobLog(BaseModel):
-    """
-    The data class capturing the data of a Step
-    """
-
-    job_id: str
-    status: str = "FAIL"  #  Should have a better default
-    message: str = ""
-    mock: bool = False
-    code_identities: List[CodeIdentity] = Field(default_factory=list)
-    attempts: List[StepAttempt] = Field(default_factory=list)
-    data_catalog: List[DataCatalog] = Field(default_factory=list)
-    tag: str = ""
-
-    def get_summary(self) -> Dict[str, Any]:
-        """
-        Summarize the step log to log
-        """
-        summary: Dict[str, Any] = {}
-
-        summary["Available parameters"] = [
-            (p, v.description)
-            for attempt in self.attempts
-            for p, v in attempt.input_parameters.items()
-        ]
-
-        summary["Output catalog content"] = [
-            dc.name for dc in self.data_catalog if dc.stage == "put"
-        ]
-        summary["Output parameters"] = [
-            (p, v.description)
-            for attempt in self.attempts
-            for p, v in attempt.output_parameters.items()
-        ]
-
-        summary["Metrics"] = [
-            (p, v.description)
-            for attempt in self.attempts
-            for p, v in attempt.user_defined_metrics.items()
-        ]
-
-        cis = []
-        for ci in self.code_identities:
-            message = f"{ci.code_identifier_type}:{ci.code_identifier}"
-            if not ci.code_identifier_dependable:
-                message += " but is not dependable"
-            cis.append(message)
-
-        summary["Code identities"] = cis
-
-        summary["status"] = self.status
-
-        return summary
-
-
 class BaseRunLogStore(ABC, BaseModel):
     """
     The base class of a Run Log Store with many common methods implemented.
@@ -524,16 +524,6 @@ class BaseRunLogStore(ABC, BaseModel):
     def _context(self):
         return context.run_context
 
-    @abstractmethod
-    def create_job_log(
-        self,
-        job_id: str,
-        tag: str,
-        status=defaults.CREATED,
-    ) -> JobLog: ...
-
-    @abstractmethod
-    def get_job_log_by_id(self, job_id: str) -> JobLog:
         """
         Retrieves a Job log from the database using the config and the job_id
 
@@ -560,7 +550,6 @@ class BaseRunLogStore(ABC, BaseModel):
         tag: str = "",
         original_run_id: str = "",
         status: str = defaults.CREATED,
-        **kwargs,
     ):
         """
         Creates a Run Log object by using the config
@@ -576,7 +565,7 @@ class BaseRunLogStore(ABC, BaseModel):
         raise NotImplementedError
 
     @abstractmethod
-    def get_run_log_by_id(self, run_id: str, full: bool = False, **kwargs) -> RunLog:
+    def get_run_log_by_id(self, run_id: str, full: bool = False) -> RunLog:
         """
         Retrieves a Run log from the database using the config and the run_id
 
@@ -598,10 +587,7 @@ class BaseRunLogStore(ABC, BaseModel):
         raise NotImplementedError
 
     @abstractmethod
-    def put_job_log(self, job_log: JobLog): ...
-
-    @abstractmethod
-    def put_run_log(self, run_log: RunLog, **kwargs):
+    def put_run_log(self, run_log: RunLog):
         """
         Puts the Run Log in the database as defined by the config
 
@@ -629,20 +615,7 @@ class BaseRunLogStore(ABC, BaseModel):
         run_log.status = status
         self.put_run_log(run_log)
 
-    def update_job_log_status(self, job_id: str, status: str):
-        """
-        Updates the status of the Job Log defined by the job_id
-
-        Args:
-            job_id (str): The job_id of the job
-            status (str): The new status of the job
-        """
-        logger.info(f"Updating status of job_id {job_id} to {status}")
-        job_log = self.get_job_log_by_id(job_id)
-        job_log.status = status
-        self.put_job_log(job_log)
-
-    def get_parameters(self, run_id: str, **kwargs) -> Dict[str, Parameter]:
+    def get_parameters(self, run_id: str) -> Dict[str, Parameter]:
         """
         Get the parameters from the Run log defined by the run_id
 
@@ -661,7 +634,7 @@ class BaseRunLogStore(ABC, BaseModel):
         run_log = self.get_run_log_by_id(run_id=run_id)
         return run_log.parameters
 
-    def set_parameters(self, run_id: str, parameters: Dict[str, Parameter], **kwargs):
+    def set_parameters(self, run_id: str, parameters: Dict[str, Parameter]):
         """
         Update the parameters of the Run log with the new parameters
 
@@ -682,7 +655,7 @@ class BaseRunLogStore(ABC, BaseModel):
         run_log.parameters.update(parameters)
         self.put_run_log(run_log=run_log)
 
-    def get_run_config(self, run_id: str, **kwargs) -> dict:
+    def get_run_config(self, run_id: str) -> dict:
         """
         Given a run_id, return the run_config used to perform the run.
 
@@ -696,7 +669,7 @@ class BaseRunLogStore(ABC, BaseModel):
         run_log = self.get_run_log_by_id(run_id=run_id)
         return run_log.run_config
 
-    def set_run_config(self, run_id: str, run_config: dict, **kwargs):
+    def set_run_config(self, run_id: str, run_config: dict):
         """Set the run config used to run the run_id
 
         Args:
@@ -708,7 +681,7 @@ class BaseRunLogStore(ABC, BaseModel):
         run_log.run_config.update(run_config)
         self.put_run_log(run_log=run_log)
 
-    def create_step_log(self, name: str, internal_name: str, **kwargs):
+    def create_step_log(self, name: str, internal_name: str):
         """
         Create a step log by the name and internal name
 
@@ -726,7 +699,7 @@ class BaseRunLogStore(ABC, BaseModel):
         logger.info(f"{self.service_name} Creating a Step Log: {internal_name}")
         return StepLog(name=name, internal_name=internal_name, status=defaults.CREATED)
 
-    def get_step_log(self, internal_name: str, run_id: str, **kwargs) -> StepLog:
+    def get_step_log(self, internal_name: str, run_id: str) -> StepLog:
         """
         Get a step log from the datastore for run_id and the internal naming of the step log
 
@@ -755,7 +728,7 @@ class BaseRunLogStore(ABC, BaseModel):
         step_log, _ = run_log.search_step_by_internal_name(internal_name)
         return step_log
 
-    def add_step_log(self, step_log: StepLog, run_id: str, **kwargs):
+    def add_step_log(self, step_log: StepLog, run_id: str):
         """
         Add the step log in the run log as identified by the run_id in the datastore
 
@@ -785,7 +758,7 @@ class BaseRunLogStore(ABC, BaseModel):
         branch.steps[step_log.internal_name] = step_log
         self.put_run_log(run_log=run_log)
 
-    def create_branch_log(self, internal_branch_name: str, **kwargs) -> BranchLog:
+    def create_branch_log(self, internal_branch_name: str) -> BranchLog:
         """
         Creates a uncommitted branch log object by the internal name given
 
@@ -856,7 +829,7 @@ class BaseRunLogStore(ABC, BaseModel):
         step.branches[internal_branch_name] = branch_log  # type: ignore
         self.put_run_log(run_log)
 
-    def create_code_identity(self, **kwargs) -> CodeIdentity:
+    def create_code_identity(self) -> CodeIdentity:
         """
         Creates an uncommitted Code identity class
 
@@ -866,7 +839,7 @@ class BaseRunLogStore(ABC, BaseModel):
         logger.info(f"{self.service_name} Creating Code identity")
         return CodeIdentity()
 
-    def create_data_catalog(self, name: str, **kwargs) -> DataCatalog:
+    def create_data_catalog(self, name: str) -> DataCatalog:
         """
         Create a uncommitted data catalog object
 
@@ -878,6 +851,45 @@ class BaseRunLogStore(ABC, BaseModel):
         """
         logger.info(f"{self.service_name} Creating Data Catalog for {name}")
         return DataCatalog(name=name)
+
+    def create_job_log(self) -> JobLog:
+        """
+        Creates a Job log and adds it to the db
+
+        Refer to BaseRunLogStore.create_job_log
+        """
+        logger.info(f"{self.service_name} Creating a Job Log and adding it to DB")
+        return JobLog(status=defaults.CREATED)
+
+    def get_job_log(self, run_id: str) -> JobLog:
+        """
+        Returns the run_log defined by id
+
+        Raises Exception if not found
+        """
+        logger.info(f"{self.service_name} Getting the run log from DB for {run_id}")
+        run_log = self.get_run_log_by_id(run_id)
+
+        try:
+            assert run_log.job
+        except AssertionError as exc:
+            raise exceptions.JobLogNotFoundError(run_id) from exc
+
+        return run_log.job
+
+    def add_job_log(self, run_id: str, job_log: JobLog):
+        """
+        Adds the job log to the run log
+
+        Args:
+            run_id (str): The run_id of the run
+            job_log (JobLog): The job log to add to the run log
+        """
+        logger.info(f"{self.service_name} Adding the job log to DB for: {run_id}")
+        run_log = self.get_run_log_by_id(run_id=run_id)
+        run_log.job = job_log
+        run_log.status = job_log.status
+        self.put_run_log(run_log=run_log)
 
 
 class BufferRunLogstore(BaseRunLogStore):
@@ -921,7 +933,6 @@ class BufferRunLogstore(BaseRunLogStore):
         tag: str = "",
         original_run_id: str = "",
         status: str = defaults.CREATED,
-        **kwargs,
     ) -> RunLog:
         """
         # Creates a Run log
@@ -940,21 +951,7 @@ class BufferRunLogstore(BaseRunLogStore):
         )
         return self.run_log
 
-    def create_job_log(self, job_id: str, tag: str, status=defaults.CREATED) -> JobLog:
-        """
-        Creates a Job log and adds it to the db
-
-        Refer to BaseRunLogStore.create_job_log
-        """
-        logger.info(f"{self.service_name} Creating a Job Log and adding it to DB")
-        self.job_log = JobLog(
-            job_id=job_id,
-            status=status,
-            tag=tag,
-        )
-        return self.job_log
-
-    def get_run_log_by_id(self, run_id: str, full: bool = False, **kwargs):
+    def get_run_log_by_id(self, run_id: str, full: bool = False):
         """
         # Returns the run_log defined by id
         # Raises Exception if not found
@@ -966,19 +963,7 @@ class BufferRunLogstore(BaseRunLogStore):
 
         raise exceptions.RunLogNotFoundError(run_id)
 
-    def get_job_log_by_id(self, job_id: str):
-        """
-        # Returns the run_log defined by id
-        # Raises Exception if not found
-        """
-
-        logger.info(f"{self.service_name} Getting the run log from DB for {job_id}")
-        if self.job_log:
-            return self.job_log
-
-        raise exceptions.RunLogNotFoundError(job_id)
-
-    def put_run_log(self, run_log: RunLog, **kwargs):
+    def put_run_log(self, run_log: RunLog):
         """
         # Puts the run log in the db
         # Raises Exception if not found
@@ -987,12 +972,6 @@ class BufferRunLogstore(BaseRunLogStore):
             f"{self.service_name} Putting the run log in the DB: {run_log.run_id}"
         )
         self.run_log = run_log
-
-    def put_job_log(self, job_log: JobLog):
-        logger.info(
-            f"{self.service_name} Putting the job log in the DB: {job_log.job_id}"
-        )
-        self.job_log = job_log
 
 
 import runnable.context as context  # noqa: F401, E402

@@ -1,6 +1,5 @@
 # ruff: noqa
 
-# TODO: Might need to add Rich to pyinstaller part
 import logging
 import os
 from logging.config import dictConfig

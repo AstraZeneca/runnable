@@ -20,7 +20,7 @@ class BaseIntegration:
     service_type = ""  # One of secret, catalog, datastore, experiment tracker
     service_provider = ""  # The actual implementation of the service
 
-    def __init__(self, executor: "BaseExecutor", integration_service: object):
+    def __init__(self, executor: BaseExecutor, integration_service: object):
         self.executor = executor
         self.service = integration_service
 
@@ -67,8 +67,8 @@ def get_integration_handler(
     Raises:
         Exception: If multiple integrations are found for the executor and service
     """
-    service_type = service.service_type  # type: ignore
-    service_name = getattr(service, "service_name")
+    service_type = service.service_type  # type: ignore # For example, catalog, secrets
+    service_name = getattr(service, "service_name")  # for example, do-nothing, buffered
     integrations = []
 
     # Get all the integrations defined by the 3rd party in their pyproject.toml

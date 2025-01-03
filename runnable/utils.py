@@ -21,7 +21,6 @@ from runnable import defaults, names
 from runnable.defaults import TypeMapVariable
 
 if TYPE_CHECKING:  # pragma: no cover
-    from extensions.nodes.nodes import TaskNode
     from runnable.nodes import BaseNode
 
 
@@ -497,18 +496,10 @@ def get_fan_command(
 
 
 # TODO: This is not the right place for this.
-def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> str:
+def get_job_execution_command(over_write_run_id: str = "") -> str:
     """Get the execution command to run a job via command line.
 
     This function should be used by all executors to submit jobs in remote environment
-
-    Args:
-        executor (BaseExecutor): The executor class.
-        node (BaseNode): The node being executed.
-        over_write_run_id (str, optional): If the node is part of a map step. Defaults to ''.
-
-    Returns:
-        str: The execution command to run a job via command line.
     """
 
     run_id = context.run_context.run_id
@@ -518,21 +509,22 @@ def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> st
 
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
-    cli_command, cli_options = node.executable.get_cli_options()
-
-    action = f"runnable execute_{cli_command} {run_id} " f" --log-level {log_level}"
+    action = (
+        f"runnable execute_job {context.run_context.job_definition_file} {run_id} "
+        f" --log-level {log_level}"
+    )
 
     if context.run_context.configuration_file:
-        action = action + f" --config-file {context.run_context.configuration_file}"
+        action = action + f" --config {context.run_context.configuration_file}"
 
     if context.run_context.parameters_file:
-        action = action + f" --parameters-file {context.run_context.parameters_file}"
+        action = action + f" --parameters {context.run_context.parameters_file}"
+
+    if context.run_context.from_sdk:
+        action = action + " --mode python "
 
     if context.run_context.tag:
         action = action + f" --tag {context.run_context.tag}"
-
-    for key, value in cli_options.items():
-        action = action + f" --{key} {value}"
 
     return action
 

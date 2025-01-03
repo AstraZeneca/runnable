@@ -597,15 +597,12 @@ class ChunkedRunLogStore(BaseRunLogStore):
             name=internal_branch_name,
         )
 
-    def create_job_log(
-        self,
-        job_id: str,
-        tag: str,
-        status=defaults.CREATED,
-    ) -> JobLog: ...
+    def create_job_log(self) -> JobLog: ...
 
+    @abstractmethod
     def put_job_log(self, job_log: JobLog): ...
 
+    @abstractmethod
     def get_job_log_by_id(self, job_id: str) -> JobLog:
         """
         Retrieves a Job log from the database using the config and the job_id

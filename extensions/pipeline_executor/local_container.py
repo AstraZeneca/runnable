@@ -51,7 +51,6 @@ class LocalContainerExecutor(GenericPipelineExecutor):
     service_name: str = "local-container"
     docker_image: str
     auto_remove_container: bool = True
-    run_in_local: bool = False
     environment: Dict[str, str] = Field(default_factory=dict)
 
     _is_local: bool = False
@@ -195,8 +194,6 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         """
         We come into this step via execute from graph, use trigger job to spin up the container.
 
-
-        If the config has "run_in_local: True", we compute it on local system instead of container.
         In local container execution, we just spin the container to execute runnable execute_single_node.
 
         Args:
