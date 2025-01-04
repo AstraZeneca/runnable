@@ -110,28 +110,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             run_id=self._context.run_id, run_config=run_config
         )
 
-    def prepare_for_submission(self):
-        """
-        This method should be called prior to calling execute_graph.
-        Perform any steps required before doing the graph execution.
-
-        The most common implementation is to prepare a run log for the run if the run uses local interactive compute.
-
-        But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we check if the services are OK.
-        We do not set up a run log as its not relevant.
-        """
-
-        self._set_up_run_log()
-
-    def prepare_for_execution(self):
-        """
-        Perform any modifications to the services prior to execution of the node.
-
-        Args:
-            node (Node): [description]
-            map_variable (dict, optional): [description]. Defaults to None.
-        """
-
     def _sync_catalog(
         self, stage: str, synced_catalogs=None
     ) -> Optional[List[DataCatalog]]:

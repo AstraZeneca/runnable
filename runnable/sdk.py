@@ -821,7 +821,7 @@ class Pipeline(BaseModel):
             run_context.from_sdk = True
 
         # Prepare for graph execution
-        run_context.executor.prepare_for_submission()
+        run_context.executor._set_up_run_log(exists_ok=False)
 
         with Progress(
             SpinnerColumn(spinner_name="runner"),

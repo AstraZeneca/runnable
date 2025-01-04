@@ -66,30 +66,6 @@ class BaseExecutor(ABC, BaseModel):
         """
         ...
 
-    @abstractmethod
-    def prepare_for_submission(self):
-        """
-        This method should be called prior to calling execute_graph.
-        Perform any steps required before doing the graph execution.
-
-        The most common implementation is to prepare a run log for the run if the run uses local interactive compute.
-
-        But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we check if the services are OK.
-        We do not set up a run log as its not relevant.
-        """
-        ...
-
-    @abstractmethod
-    def prepare_for_execution(self):
-        """
-        Perform any modifications to the services prior to execution of the node.
-
-        Args:
-            node (Node): [description]
-            map_variable (dict, optional): [description]. Defaults to None.
-        """
-        ...
-
     @property
     def step_attempt_number(self) -> int:
         """
@@ -167,27 +143,14 @@ class BaseJobExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def pre_job_execution(self, job: BaseTaskType):
-        """
-        This method is called before the job execution.
-        """
-        ...
-
-    @abstractmethod
     def execute_job(self, job: BaseTaskType):
         """
         Focusses only on execution of the job.
         """
         ...
 
-    @abstractmethod
-    def post_job_execution(self, job: BaseTaskType):
-        """
-        This method is called after the job execution.
-        """
-        ...
 
-
+# TODO: Consolidate execute_node, trigger_node_execution, _execute_node
 class BasePipelineExecutor(BaseExecutor):
     service_type: str = "pipeline_executor"
     _context_node: Optional[BaseNode] = None

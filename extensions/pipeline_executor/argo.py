@@ -844,6 +844,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             ),
         )
 
+    # TODO: This has to move to execute_node?
     def prepare_for_execution(self):
         """
         Perform any modifications to the services prior to execution of the node.
@@ -853,7 +854,6 @@ class ArgoExecutor(GenericPipelineExecutor):
             map_variable (dict, optional): [description]. Defaults to None.
         """
 
-        super().prepare_for_execution()
         self._set_up_run_log(exists_ok=True)
 
     def execute_node(

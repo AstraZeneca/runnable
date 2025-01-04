@@ -215,7 +215,7 @@ def execute_pipeline_yaml_spec(
     )
 
     # Prepare for graph execution
-    executor.prepare_for_submission()
+    executor._set_up_run_log(exists_ok=False)
 
     console.print("Working with context:")
     console.print(run_context)
@@ -328,7 +328,6 @@ def execute_single_node(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )
 
-    executor.prepare_for_execution()
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)

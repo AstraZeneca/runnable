@@ -1,0 +1,4 @@
+job-executor:
+  type: "local-container" # (1)
+  config:
+    docker_image: runnable-m1:latest # (2)
