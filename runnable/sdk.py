@@ -881,8 +881,8 @@ class Job(BaseModel):
     name: str
     task: BaseTask
 
-    def return_task(self) -> BaseTask:
-        return self.task
+    def return_task(self) -> RunnableTask:
+        return self.task.create_job()
 
     def _is_called_for_definition(self) -> bool:
         """
@@ -930,9 +930,20 @@ class Job(BaseModel):
         console.print(run_context)
         console.rule(style="[dark orange]")
 
+        if not run_context.executor._is_local:
+            # We are not working with executor that does not work in local environment
+            import inspect
+
+            caller_stack = inspect.stack()[1]
+            relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
+
+            module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
+            module_to_call = f"{module_name}.{caller_stack.function}"
+
+            run_context.job_definition_file = f"{module_to_call}.py"
+
         job = self.task.create_job()
 
-        run_context.executor.prepare_for_submission()
         run_context.executor.submit_job(job)
 
         logger.info(

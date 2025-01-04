@@ -29,20 +29,19 @@ class LocalContainerJobExecutor(GenericJobExecutor):
     _container_secrets_location = "/tmp/dotenv"
     _volumes: Dict[str, Dict[str, str]] = {}
 
-    def prepare_for_submission(self):
-        self._mount_volumes()
-        self._set_up_run_log()
-
     def submit_job(self, job: BaseTaskType):
         """
         This method gets invoked by the CLI.
         """
+        self._set_up_run_log()
+        self._mount_volumes()
+
         # Call the container job
         job_log = self._context.run_log_store.create_job_log()
         self._context.run_log_store.add_job_log(
             run_id=self._context.run_id, job_log=job_log
         )
-        self._spin_contariner(job)
+        self.spin_container(job)
 
     def pre_job_execution(self, job: BaseTaskType):
         """
@@ -55,7 +54,7 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         """
         Focusses on execution of the job.
         """
-        self.prepare_for_execution()
+        self._use_volumes()
         logger.info("Trying to execute job")
 
         job_log = self._context.run_log_store.get_job_log(run_id=self._context.run_id)
@@ -87,7 +86,7 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         """
         ...
 
-    def _spin_contariner(self, task: BaseTaskType):
+    def spin_container(self, task: BaseTaskType):
         """
         This method spins up the container
         """

@@ -401,7 +401,6 @@ def execute_job_yaml_spec(
         "Executing the job from the user. We are still in the caller's compute environment"
     )
 
-    executor.prepare_for_submission()
     executor.submit_job(job)
 
     executor.send_return_code()
@@ -414,6 +413,8 @@ def set_job_spec_from_yaml(run_context: context.Context, job_definition_file: st
     job_config = utils.load_yaml(job_definition_file)
     logger.info("The input job definition file:")
     logger.info(json.dumps(job_config, indent=4))
+
+    job_config["command_type"] = job_config.pop("type")
 
     run_context.job_definition_file = job_definition_file
     run_context.job = tasks.create_task(job_config)
@@ -470,8 +471,7 @@ def execute_job_non_local(
         "Executing the job from the user. We are still in the caller's compute environment"
     )
 
-    run_context.executor.prepare_for_submission()
-    run_context.executor.submit_job(run_context.job)
+    run_context.executor.execute_job(run_context.job)
 
     run_context.executor.send_return_code()
 
@@ -531,8 +531,6 @@ def fan(
     utils.set_runnable_environment_variables(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )
-
-    executor.prepare_for_execution()
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
     node_to_execute, _ = graph.search_node_by_internal_name(

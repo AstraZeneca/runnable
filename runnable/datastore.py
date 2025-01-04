@@ -24,7 +24,7 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
 JSONType = Union[
-    str, int, float, bool, List[Any], Dict[str, Any]
+    Union[None, bool, str, float, int, List[Any], Dict[str, Any]]
 ]  # This is actually JSONType, but pydantic doesn't support TypeAlias yet
 
 

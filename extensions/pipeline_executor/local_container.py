@@ -86,16 +86,6 @@ class LocalContainerExecutor(GenericPipelineExecutor):
             code_id.code_identifier_url = "local docker host"
             step_log.code_identities.append(code_id)
 
-    def prepare_for_execution(self):
-        """
-        Perform any modifications to the services prior to execution of the node.
-
-        Args:
-            node (Node): [description]
-            map_variable (dict, optional): [description]. Defaults to None.
-        """
-        self._use_volumes()
-
     def execute_node(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
     ):

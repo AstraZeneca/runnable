@@ -250,7 +250,7 @@ class BasePipelineExecutor(BaseExecutor):
     @abstractmethod
     def _get_status_and_next_node_name(
         self, current_node: BaseNode, dag: Graph, map_variable: TypeMapVariable = None
-    ):
+    ) -> tuple[str, str]:
         """
         Given the current node and the graph, returns the name of the next node to execute.
 
