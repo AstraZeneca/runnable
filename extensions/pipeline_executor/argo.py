@@ -21,10 +21,9 @@ from typing_extensions import Annotated
 
 from extensions.nodes.nodes import DagNode, MapNode, ParallelNode
 from extensions.pipeline_executor import GenericPipelineExecutor
-from runnable import defaults, exceptions, integration, utils
+from runnable import defaults, exceptions, utils
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph, create_node, search_node_by_internal_name
-from runnable.integration import BaseIntegration
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.NAME)
@@ -845,26 +844,6 @@ class ArgoExecutor(GenericPipelineExecutor):
             ),
         )
 
-    def prepare_for_submission(self):
-        """
-        This method should be called prior to calling execute_graph.
-        Perform any steps required before doing the graph execution.
-
-        The most common implementation is to prepare a run log for the run if the run uses local interactive compute.
-
-        But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we check if the services are OK.
-        We do not set up a run log as its not relevant.
-        """
-
-        integration.validate(self, self._context.run_log_store)
-        integration.configure_for_traversal(self, self._context.run_log_store)
-
-        integration.validate(self, self._context.catalog_handler)
-        integration.configure_for_traversal(self, self._context.catalog_handler)
-
-        integration.validate(self, self._context.secrets_handler)
-        integration.configure_for_traversal(self, self._context.secrets_handler)
-
     def prepare_for_execution(self):
         """
         Perform any modifications to the services prior to execution of the node.
@@ -1277,50 +1256,51 @@ class ArgoExecutor(GenericPipelineExecutor):
                 raise exceptions.ExecutionFailedError(run_id)
 
 
-class FileSystemRunLogStore(BaseIntegration):
-    """
-    Only local execution mode is possible for Buffered Run Log store
-    """
+# TODO:
+# class FileSystemRunLogStore(BaseIntegration):
+#     """
+#     Only local execution mode is possible for Buffered Run Log store
+#     """
 
-    executor_type = "argo"
-    service_type = "run_log_store"  # One of secret, catalog, datastore
-    service_provider = "file-system"  # The actual implementation of the service
+#     executor_type = "argo"
+#     service_type = "run_log_store"  # One of secret, catalog, datastore
+#     service_provider = "file-system"  # The actual implementation of the service
 
-    def validate(self, **kwargs):
-        msg = (
-            "Argo cannot run work with file-system run log store. "
-            "Unless you have made a mechanism to use volume mounts."
-            "Using this run log store if the pipeline has concurrent tasks might lead to unexpected results"
-        )
-        logger.warning(msg)
-
-
-class ChunkedFileSystemRunLogStore(BaseIntegration):
-    """
-    Only local execution mode is possible for Buffered Run Log store
-    """
-
-    executor_type = "argo"
-    service_type = "run_log_store"  # One of secret, catalog, datastore
-    service_provider = "chunked-fs"  # The actual implementation of the service
-
-    def validate(self, **kwargs):
-        msg = (
-            "Argo cannot run work with chunked file-system run log store. "
-            "Unless you have made a mechanism to use volume mounts"
-        )
-        logger.warning(msg)
+#     def validate(self, **kwargs):
+#         msg = (
+#             "Argo cannot run work with file-system run log store. "
+#             "Unless you have made a mechanism to use volume mounts."
+#             "Using this run log store if the pipeline has concurrent tasks might lead to unexpected results"
+#         )
+#         logger.warning(msg)
 
 
-class FileSystemCatalog(BaseIntegration):
-    """
-    Only local execution mode is possible for Buffered Run Log store
-    """
+# class ChunkedFileSystemRunLogStore(BaseIntegration):
+#     """
+#     Only local execution mode is possible for Buffered Run Log store
+#     """
 
-    executor_type = "argo"
-    service_type = "catalog"  # One of secret, catalog, datastore
-    service_provider = "file-system"  # The actual implementation of the service
+#     executor_type = "argo"
+#     service_type = "run_log_store"  # One of secret, catalog, datastore
+#     service_provider = "chunked-fs"  # The actual implementation of the service
 
-    def validate(self, **kwargs):
-        msg = "Argo cannot run work with file-system run log store. Unless you have made a mechanism to use volume mounts"
-        logger.warning(msg)
+#     def validate(self, **kwargs):
+#         msg = (
+#             "Argo cannot run work with chunked file-system run log store. "
+#             "Unless you have made a mechanism to use volume mounts"
+#         )
+#         logger.warning(msg)
+
+
+# class FileSystemCatalog(BaseIntegration):
+#     """
+#     Only local execution mode is possible for Buffered Run Log store
+#     """
+
+#     executor_type = "argo"
+#     service_type = "catalog"  # One of secret, catalog, datastore
+#     service_provider = "file-system"  # The actual implementation of the service
+
+#     def validate(self, **kwargs):
+#         msg = "Argo cannot run work with file-system run log store. Unless you have made a mechanism to use volume mounts"
+#         logger.warning(msg)

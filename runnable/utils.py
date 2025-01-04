@@ -510,7 +510,7 @@ def get_job_execution_command(over_write_run_id: str = "") -> str:
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
     action = (
-        f"runnable execute_job {context.run_context.job_definition_file} {run_id} "
+        f"runnable execute-job {context.run_context.job_definition_file} {run_id} "
         f" --log-level {log_level}"
     )
 

@@ -273,9 +273,7 @@ def execute_job(
     ],
     run_id: Annotated[
         str,
-        typer.Argument(
-            help="An optional run_id, one would be generated if its not provided"
-        ),
+        typer.Argument(help="An run_id, one would be generated if its not provided"),
     ],
     config_file: Annotated[
         str,

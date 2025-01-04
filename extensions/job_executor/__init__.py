@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Dict, List, Optional
 
-from runnable import context, defaults, exceptions, integration, parameters, utils
+from runnable import context, defaults, exceptions, parameters, utils
 from runnable.datastore import DataCatalog, JsonParameter, StepLog
 from runnable.executor import BaseJobExecutor
 from runnable.nodes import BaseNode
@@ -110,17 +110,6 @@ class GenericJobExecutor(BaseJobExecutor):
         We do not set up a run log as its not relevant.
         """
 
-        integration.validate(self, self._context.run_log_store)
-        integration.configure_for_traversal(self, self._context.run_log_store)
-
-        integration.validate(self, self._context.catalog_handler)
-        integration.configure_for_traversal(self, self._context.catalog_handler)
-
-        integration.validate(self, self._context.secrets_handler)
-        integration.configure_for_traversal(self, self._context.secrets_handler)
-
-        self._set_up_run_log()
-
     def prepare_for_execution(self):
         """
         Perform any modifications to the services prior to execution of the node.
@@ -129,14 +118,6 @@ class GenericJobExecutor(BaseJobExecutor):
             node (Node): [description]
             map_variable (dict, optional): [description]. Defaults to None.
         """
-        integration.validate(self, self._context.run_log_store)
-        integration.configure_for_execution(self, self._context.run_log_store)
-
-        integration.validate(self, self._context.catalog_handler)
-        integration.configure_for_execution(self, self._context.catalog_handler)
-
-        integration.validate(self, self._context.secrets_handler)
-        integration.configure_for_execution(self, self._context.secrets_handler)
 
     @property
     def step_attempt_number(self) -> int:

@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Dict
 
 from pydantic import Field
@@ -28,6 +29,10 @@ class LocalContainerJobExecutor(GenericJobExecutor):
     _container_secrets_location = "/tmp/dotenv"
     _volumes: Dict[str, Dict[str, str]] = {}
 
+    def prepare_for_submission(self):
+        self._mount_volumes()
+        self._set_up_run_log()
+
     def submit_job(self, job: BaseTaskType):
         """
         This method gets invoked by the CLI.
@@ -37,7 +42,7 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         self._context.run_log_store.add_job_log(
             run_id=self._context.run_id, job_log=job_log
         )
-        self.execute_job(job)
+        self._spin_contariner(job)
 
     def pre_job_execution(self, job: BaseTaskType):
         """
@@ -144,3 +149,56 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         except Exception as _e:
             logger.exception("Problems with spinning/running the container")
             raise _e
+
+    def _mount_volumes(self):
+        """
+        Mount the volumes for the container
+        """
+        match self._context.run_log_store.service_name:
+            case "file-system":
+                write_to = self._context.run_log_store.log_folder
+                self._volumes[str(Path(write_to).resolve())] = {
+                    "bind": f"{self._container_log_location}",
+                    "mode": "rw",
+                }
+            case "chunked-fs":
+                write_to = self._context.run_log_store.log_folder
+                self._volumes[str(Path(write_to).resolve())] = {
+                    "bind": f"{self._container_log_location}",
+                    "mode": "rw",
+                }
+
+        match self._context.catalog_handler.service_name:
+            case "file-system":
+                catalog_location = self._context.catalog_handler.catalog_location
+                self._volumes[str(Path(catalog_location).resolve())] = {
+                    "bind": f"{self._container_catalog_location}",
+                    "mode": "rw",
+                }
+
+        match self._context.secrets_handler.service_name:
+            case "dotenv":
+                secrets_location = self._context.secrets_handler.location
+                self._volumes[str(Path(secrets_location).resolve())] = {
+                    "bind": f"{self._container_secrets_location}",
+                    "mode": "ro",
+                }
+
+    def _use_volumes(self):
+        match self._context.run_log_store.service_name:
+            case "file-system":
+                self._context.run_log_store.log_folder = self._container_log_location
+            case "chunked-fs":
+                self._context.run_log_store.log_folder = self._container_log_location
+
+        match self._context.catalog_handler.service_name:
+            case "file-system":
+                self._context.catalog_handler.catalog_location = (
+                    self._container_catalog_location
+                )
+
+        match self._context.secrets_handler.service_name:
+            case "dotenv":
+                self._context.secrets_handler.location = (
+                    self._container_secrets_location
+                )

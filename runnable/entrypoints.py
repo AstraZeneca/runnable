@@ -377,6 +377,8 @@ def execute_job_yaml_spec(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )
 
+    run_context.job_definition_file = job_definition_file
+
     job_config = utils.load_yaml(job_definition_file)
     logger.info(
         "Executing the job from the user."

@@ -19,6 +19,7 @@ class LocalJobExecutor(GenericJobExecutor):
         """
         This method gets invoked by the CLI.
         """
+        self._set_up_run_log()
         self.pre_job_execution(job)
         self.execute_job(job)
 

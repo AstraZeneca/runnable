@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Vammi, Vijay", email = "vijay.vammi@astrazeneca.com" }
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "click-plugins>=1.1.1",
     "click<=8.1.3",
@@ -85,7 +85,7 @@ job_executor = {workspace = true}
 
 [project.entry-points.'job_executor']
 "local" = "extensions.job_executor.local:LocalJobExecutor"
-# "local-container" = "extensions.pipeline_executor.local_container:LocalContainerExecutor"
+"local-container" = "extensions.job_executor.local_container:LocalContainerJobExecutor"
 # "argo" = "extensions.pipeline_executor.argo:ArgoExecutor"
 # "mocked" = "extensions.pipeline_executor.mocked:MockedExecutor"
 # "retry" = "extensions.pipeline_executor.retry:RetryExecutor"
@@ -107,8 +107,6 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 [project.entry-points.'pickler']
 "pickle" = "runnable.pickler:NativePickler"
 
-[project.entry-points.'integration']
-# left empty for now
 
 [project.entry-points.'nodes']
 "task" = "extensions.nodes.nodes:TaskNode"
