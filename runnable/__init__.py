@@ -34,8 +34,3 @@ from runnable.sdk import (  # noqa
 
 # Needed to disable ploomber telemetry
 os.environ["PLOOMBER_STATS_ENABLED"] = "false"
-
-# TODO: There should be a way that a script can be executed
-# We set up a script to install uv and runnable as a tool prior to running the script
-# We call the script
-# We collect the output parameters and catalog items

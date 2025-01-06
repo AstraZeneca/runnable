@@ -6,6 +6,7 @@ from runnable import context, defaults, exceptions, parameters, utils
 from runnable.datastore import DataCatalog, JsonParameter, StepLog
 from runnable.executor import BaseJobExecutor
 from runnable.nodes import BaseNode
+from runnable.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -99,26 +100,6 @@ class GenericJobExecutor(BaseJobExecutor):
             run_id=self._context.run_id, run_config=run_config
         )
 
-    def prepare_for_submission(self):
-        """
-        This method should be called prior to calling execute graph/job
-        Perform any steps required before doing the graph execution.
-
-        The most common implementation is to prepare a run log for the run if the run uses local interactive compute.
-
-        But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we check if the services are OK.
-        We do not set up a run log as its not relevant.
-        """
-
-    def prepare_for_execution(self):
-        """
-        Perform any modifications to the services prior to execution of the node.
-
-        Args:
-            node (Node): [description]
-            map_variable (dict, optional): [description]. Defaults to None.
-        """
-
     @property
     def step_attempt_number(self) -> int:
         """
@@ -161,6 +142,20 @@ class GenericJobExecutor(BaseJobExecutor):
         self, stage: str, synced_catalogs=None
     ) -> Optional[List[DataCatalog]]:
         pass
+
+    def pre_job_execution(self, job: BaseTaskType):
+        """
+        This method is called before the job execution.
+        We are leaving this empty for local container
+        """
+        ...
+
+    def post_job_execution(self, job: BaseTaskType):
+        """
+        This method is called after the job execution.
+        Leaving it empty for local container
+        """
+        ...
 
     # def _sync_catalog(
     #     self, stage: str, synced_catalogs=None

@@ -34,8 +34,6 @@ class BaseExecutor(ABC, BaseModel):
     service_name: str = ""
     service_type: str = "executor"
 
-    overrides: dict = {}
-
     _is_local: bool = (
         False  # This is a flag to indicate whether the executor is local or not.
     )
@@ -154,6 +152,7 @@ class BaseJobExecutor(BaseExecutor):
 class BasePipelineExecutor(BaseExecutor):
     service_type: str = "pipeline_executor"
     _context_node: Optional[BaseNode] = None
+    overrides: dict = {}
 
     @abstractmethod
     def get_effective_compute_data_folder(self) -> Optional[str]:

@@ -29,6 +29,7 @@ from runnable.nodes import BaseNode
 logger = logging.getLogger(defaults.NAME)
 
 # TODO: Leave the run log in consistent state.
+# TODO: Make the config camel case just like Argo does.
 
 """
 executor:

@@ -43,13 +43,6 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         )
         self.spin_container(job)
 
-    def pre_job_execution(self, job: BaseTaskType):
-        """
-        This method is called before the job execution.
-        We are leaving this empty for local container
-        """
-        ...
-
     def execute_job(self, job: BaseTaskType):
         """
         Focusses on execution of the job.
@@ -78,13 +71,6 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         self._context.run_log_store.add_job_log(
             run_id=self._context.run_id, job_log=job_log
         )
-
-    def post_job_execution(self, job: BaseTaskType):
-        """
-        This method is called after the job execution.
-        Leaving it empty for local container
-        """
-        ...
 
     def spin_container(self, task: BaseTaskType):
         """
