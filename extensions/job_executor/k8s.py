@@ -5,7 +5,7 @@ from typing import Annotated, List, Optional
 
 from kubernetes import client
 from kubernetes import config as k8s_config
-from pydantic import BaseModel, ConfigDict, Field, PlainSerializer
+from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, PrivateAttr
 from pydantic.alias_generators import to_camel
 
 from extensions.job_executor import GenericJobExecutor
@@ -88,16 +88,10 @@ class VolumeMount(BaseModel):
     name: str
     mount_path: str
 
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-    )
-
 
 class Container(BaseModel):
     image: str
-    env: Optional[list[EnvVar]] = None
+    env: list[EnvVar] = Field(default_factory=list)
     image_pull_policy: ImagePullPolicy = ImagePullPolicy.NEVER
     resources: Resources = Resources()
     volume_mounts: Optional[list[VolumeMount]] = Field(default_factory=list)
@@ -111,14 +105,8 @@ class Volume(BaseModel):
     name: str
     host_path: HostPath
 
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-    )
 
-
-class Spec(BaseModel):
+class TemplateSpec(BaseModel):
     active_deadline_seconds: int = Field(default=60 * 60 * 2)  # 2 hours
     node_selector: Optional[dict[str, str]] = None
     tolerations: Optional[list[dict[str, str]]] = None
@@ -129,15 +117,24 @@ class Spec(BaseModel):
 
 
 class Template(BaseModel):
-    spec: Spec
+    spec: TemplateSpec
     metadata: Optional[ObjectMetaData] = None
+
+
+class Spec(BaseModel):
+    active_deadline_seconds: Optional[int] = Field(default=60 * 60 * 2)  # 2 hours
+    backoff_limit: int = 6
+    selector: Optional[LabelSelector] = None
+    template: Template
+    ttl_seconds_after_finished: Optional[int] = Field(default=60 * 60 * 24)  # 24 hours
 
 
 class K8sJobExecutor(GenericJobExecutor):
     service_name: str = "k8s-job"
     config_path: Optional[str] = None
-    template: Template
+    job_spec: Spec
     mock: bool = False
+
     # The location the mount of .run_log_store is mounted to in minikube
     # ensure that minikube mount $HOME/workspace/runnable/.run_log_store:/volume/run_logs is executed first
     # $HOME/workspace/runnable/.catalog:/volume/catalog
@@ -145,11 +142,11 @@ class K8sJobExecutor(GenericJobExecutor):
     mini_k8s_run_log_location: str = Field(default="/volume/run_logs/")
     mini_k8s_catalog_location: str = Field(default="/volume/catalog/")
 
-    _is_local: bool = False
+    _is_local: bool = PrivateAttr(default=False)
 
-    _container_log_location = "/tmp/run_logs/"
-    _container_catalog_location = "/tmp/catalog/"
-    _container_secrets_location = "/tmp/dotenv"
+    _container_log_location: str = PrivateAttr(default="/tmp/run_logs/")
+    _container_catalog_location: str = PrivateAttr(default="/tmp/catalog/")
+    _container_secrets_location: str = PrivateAttr(default="/tmp/dotenv")
 
     _volumes: list[Volume] = []
     _volume_mounts: list[VolumeMount] = []
@@ -216,42 +213,70 @@ class K8sJobExecutor(GenericJobExecutor):
         return client
 
     def submit_k8s_job(self, task: BaseTaskType):
-        print(self.model_dump())
+        if self.job_spec.template.spec.container.volume_mounts:
+            self._volume_mounts += self.job_spec.template.spec.container.volume_mounts
 
-        if self.template.spec.container.volume_mounts:
-            self._volume_mounts += self.template.spec.container.volume_mounts
+        container_volume_mounts = [
+            self._client.V1VolumeMount(**vol.model_dump())
+            for vol in self._volume_mounts
+        ]
 
         command = utils.get_job_execution_command()
 
+        container_env = [
+            self._client.V1EnvVar(**env.model_dump(by_alias=True))
+            for env in self.job_spec.template.spec.container.env
+        ]
+
         base_container = self._client.V1Container(
-            name="default",
             command=shlex.split(command),
-            volume_mounts=[
-                vol.model_dump(by_alias=True) for vol in self._volume_mounts
-            ],
-            **self.template.spec.container.model_dump(
-                exclude_none=True, exclude={"volume_mounts", "command"}
+            env=container_env,
+            name="default",
+            volume_mounts=container_volume_mounts,
+            **self.job_spec.template.spec.container.model_dump(
+                exclude_none=True, exclude={"volume_mounts", "command", "env"}
             ),
         )
 
-        if self.template.spec.volumes:
-            self._volumes += self.template.spec.volumes
+        if self.job_spec.template.spec.volumes:
+            self._volumes += self.job_spec.template.spec.volumes
+
+        spec_volumes = [
+            self._client.V1Volume(**vol.model_dump(by_alias=True))
+            for vol in self._volumes
+        ]
+
+        tolerations = None
+        if self.job_spec.template.spec.tolerations:
+            tolerations = [
+                self._client.V1Toleration(**toleration)
+                for toleration in self.job_spec.template.spec.tolerations
+            ]
 
         pod_spec = self._client.V1PodSpec(
             containers=[base_container],
-            volumes=[vol.model_dump(by_alias=True) for vol in self._volumes],
-            **self.template.spec.model_dump(
-                exclude_none=True, exclude={"container", "volumes"}
+            # volumes=[vol.model_dump(by_alias=True) for vol in self._volumes],
+            volumes=spec_volumes,
+            tolerations=tolerations,
+            **self.job_spec.template.spec.model_dump(
+                exclude_none=True, exclude={"container", "volumes", "tolerations"}
             ),
         )
 
+        pod_template_metadata = None
+        if self.job_spec.template.metadata:
+            pod_template_metadata = self._client.V1ObjectMeta(
+                **self.job_spec.template.metadata.model_dump(exclude_none=True)
+            )
+
         pod_template = self._client.V1PodTemplateSpec(
             spec=pod_spec,
-            **self.template.model_dump(exclude_none=True, exclude={"spec"}),
+            metadata=pod_template_metadata,
         )
 
         job_spec = client.V1JobSpec(
             template=pod_template,
+            **self.job_spec.model_dump(exclude_none=True, exclude={"template"}),
         )
 
         job = client.V1Job(
@@ -261,7 +286,7 @@ class K8sJobExecutor(GenericJobExecutor):
             spec=job_spec,
         )
 
-        print(job.__dict__)
+        logger.info(f"Submitting job: {job.__dict__}")
 
         try:
             k8s_batch = self._client.BatchV1Api()
