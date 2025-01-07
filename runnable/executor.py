@@ -5,7 +5,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, PrivateAttr
 
 import runnable.context as context
 from runnable import defaults
@@ -153,8 +153,9 @@ class BaseJobExecutor(BaseExecutor):
 # TODO: Consolidate execute_node, trigger_node_execution, _execute_node
 class BasePipelineExecutor(BaseExecutor):
     service_type: str = "pipeline_executor"
-    _context_node: Optional[BaseNode] = None
     overrides: dict = {}
+
+    _context_node: Optional[BaseNode] = PrivateAttr(default=None)
 
     @abstractmethod
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):

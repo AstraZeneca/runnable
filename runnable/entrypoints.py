@@ -15,8 +15,6 @@ from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-print("Hello from entrypoints.py")
-
 
 def get_default_configs() -> RunnableConfig:
     """

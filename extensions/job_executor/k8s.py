@@ -1,7 +1,6 @@
 import logging
 import shlex
 from enum import Enum
-from pathlib import Path
 from typing import Annotated, List, Optional
 
 from kubernetes import client
@@ -15,9 +14,6 @@ from runnable.datastore import DataCatalog
 from runnable.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.NAME)
-
-
-print("Hello from k8s.py")
 
 
 class Operator(str, Enum):
@@ -143,7 +139,9 @@ class K8sJobExecutor(GenericJobExecutor):
     template: Template
     mock: bool = False
     # The location the mount of .run_log_store is mounted to in minikube
-    # ensure that minikube mount $HOME/workspace/runnable/.run_logs:/volume/run_logs is executed first
+    # ensure that minikube mount $HOME/workspace/runnable/.run_log_store:/volume/run_logs is executed first
+    # $HOME/workspace/runnable/.catalog:/volume/catalog
+    # Ensure that the docker build is done with eval $(minikube docker-env)
     mini_k8s_run_log_location: str = Field(default="/volume/run_logs/")
     mini_k8s_catalog_location: str = Field(default="/volume/catalog/")
 
@@ -198,6 +196,8 @@ class K8sJobExecutor(GenericJobExecutor):
             catalog_settings=catalog_settings
         )
         logger.debug(f"data_catalogs_put: {data_catalogs_put}")
+
+        job_log.add_data_catalogs(data_catalogs_put or [])
 
         console.print("Summary of job")
         console.print(job_log.get_summary())
@@ -280,7 +280,6 @@ class K8sJobExecutor(GenericJobExecutor):
     def _create_volumes(self):
         match self._context.run_log_store.service_name:
             case "file-system":
-                write_to = self._context.run_log_store.log_folder
                 self._volumes.append(
                     # When you do: # minikube mount $HOME:/tmp/run_logs
                     # This .run_log_store is mounted to /tmp/run_logs of minikube
@@ -298,11 +297,10 @@ class K8sJobExecutor(GenericJobExecutor):
                     )
                 )
             case "chunked-fs":
-                write_to = self._context.run_log_store.log_folder
                 self._volumes.append(
                     Volume(
                         name="run-logs",
-                        host_path=HostPath(path=str(Path(write_to).resolve())),
+                        host_path=HostPath(path=self.mini_k8s_run_log_location),
                     )
                 )
                 self._volume_mounts.append(
@@ -313,11 +311,10 @@ class K8sJobExecutor(GenericJobExecutor):
 
         match self._context.catalog_handler.service_name:
             case "file-system":
-                catalog_location = self._context.catalog_handler.catalog_location
                 self._volumes.append(
                     Volume(
                         name="catalog",
-                        host_path=HostPath(path=str(Path(catalog_location).resolve())),
+                        host_path=HostPath(path=self.mini_k8s_catalog_location),
                     )
                 )
                 self._volume_mounts.append(

@@ -61,7 +61,7 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         job_log.status = attempt_log.status
         job_log.attempts.append(attempt_log)
 
-        data_catalogs_put: List[DataCatalog] = self._sync_catalog(
+        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
             catalog_settings=catalog_settings
         )
         logger.debug(f"data_catalogs_put: {data_catalogs_put}")

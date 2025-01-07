@@ -926,6 +926,7 @@ class BufferRunLogstore(BaseRunLogStore):
     """
 
     service_name: str = "buffered"
+
     run_log: Optional[RunLog] = Field(
         default=None, exclude=True
     )  # For a buffered Run Log, this is the database

@@ -30,11 +30,6 @@ class LocalJobExecutor(GenericJobExecutor):
 
         self.execute_job(job, catalog_settings=catalog_settings)
 
-    def pre_job_execution(self, job: BaseTaskType):
-        """
-        This method is called before the job execution.
-        """
-
     def execute_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
         """
         Focusses on execution of the job.
@@ -51,7 +46,7 @@ class LocalJobExecutor(GenericJobExecutor):
         job_log.status = attempt_log.status
         job_log.attempts.append(attempt_log)
 
-        data_catalogs_put: List[DataCatalog] = self._sync_catalog(
+        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
             catalog_settings=catalog_settings
         )
         logger.debug(f"data_catalogs_put: {data_catalogs_put}")
@@ -64,9 +59,3 @@ class LocalJobExecutor(GenericJobExecutor):
         self._context.run_log_store.add_job_log(
             run_id=self._context.run_id, job_log=job_log
         )
-
-    def post_job_execution(self, job: BaseTaskType):
-        """
-        This method is called after the job execution.
-        """
-        ...
