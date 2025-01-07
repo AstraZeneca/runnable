@@ -1,6 +1,7 @@
 import importlib
 import os
 import subprocess
+import sys
 from contextlib import contextmanager
 
 import pytest
@@ -12,56 +13,72 @@ def list_python_examples():
 
 
 @contextmanager
-def container_context():
-    os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/local-container.yaml"
-    os.environ["RUNNABLE_PRM_envvar"] = "from env"
+def runnable_context():
+    from runnable import context as runnable_context
+
     yield
-    del os.environ["RUNNABLE_CONFIGURATION_FILE"]
-    del os.environ["RUNNABLE_PRM_envvar"]
+    runnable_context.run_context = None
+
+
+@contextmanager
+def container_context():
+    with runnable_context():
+        os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
+            "examples/configs/local-container.yaml"
+        )
+        os.environ["RUNNABLE_PRM_envvar"] = "from env"
+        yield
+        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+        del os.environ["RUNNABLE_PRM_envvar"]
 
 
 @contextmanager
 def chunked_fs_context():
-    os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
-        "examples/configs/chunked-fs-run_log.yaml"
-    )
-    os.environ["RUNNABLE_PRM_envvar"] = "from env"
-    yield
-    del os.environ["RUNNABLE_CONFIGURATION_FILE"]
-    del os.environ["RUNNABLE_PRM_envvar"]
+    with runnable_context():
+        os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
+            "examples/configs/chunked-fs-run_log.yaml"
+        )
+        os.environ["RUNNABLE_PRM_envvar"] = "from env"
+        yield
+        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+        del os.environ["RUNNABLE_PRM_envvar"]
 
 
 @contextmanager
 def mocked_context():
-    os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/08-mocking/default.yaml"
-    os.environ["RUNNABLE_PRM_envvar"] = "from env"
-    yield
-    del os.environ["RUNNABLE_CONFIGURATION_FILE"]
-    del os.environ["RUNNABLE_PRM_envvar"]
+    with runnable_context():
+        os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/08-mocking/default.yaml"
+        os.environ["RUNNABLE_PRM_envvar"] = "from env"
+        yield
+        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+        del os.environ["RUNNABLE_PRM_envvar"]
 
 
 @contextmanager
 def patched_context():
-    os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/08-mocking/patching.yaml"
-    os.environ["RUNNABLE_PRM_envvar"] = "from env"
-    yield
-    del os.environ["RUNNABLE_CONFIGURATION_FILE"]
-    del os.environ["RUNNABLE_PRM_envvar"]
+    with runnable_context():
+        os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/08-mocking/patching.yaml"
+        os.environ["RUNNABLE_PRM_envvar"] = "from env"
+        yield
+        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+        del os.environ["RUNNABLE_PRM_envvar"]
 
 
 @contextmanager
 def default_context():
-    os.environ["RUNNABLE_PRM_envvar"] = "from env"
-    yield
-    del os.environ["RUNNABLE_PRM_envvar"]
+    with runnable_context():
+        os.environ["RUNNABLE_PRM_envvar"] = "from env"
+        yield
+        del os.environ["RUNNABLE_PRM_envvar"]
 
 
 @contextmanager
 def argo_context():
-    os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/argo-config.yaml"
-    yield
-    subprocess.run(["argo", "lint", "--offline", "argo-pipeline.yaml"], check=True)
-    del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+    with runnable_context():
+        os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/argo-config.yaml"
+        yield
+        subprocess.run(["argo", "lint", "--offline", "argo-pipeline.yaml"], check=True)
+        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
 
 
 contexts = [default_context, chunked_fs_context, mocked_context, argo_context]
@@ -92,7 +109,7 @@ python_examples = [
 @pytest.mark.parametrize("context", contexts)
 # @pytest.mark.no_cover
 @pytest.mark.e2e
-def test_python_examples(example, context):
+def test_python_examples(example, context, monkeypatch, mocker):
     print(f"Testing {example}...")
 
     mod, status, ignore_contexts = example
@@ -103,6 +120,7 @@ def test_python_examples(example, context):
 
     imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
     f = getattr(imported_module, "main")
+
     with context:
         from runnable import exceptions
 

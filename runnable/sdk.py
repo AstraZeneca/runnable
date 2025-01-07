@@ -775,7 +775,6 @@ class Pipeline(BaseModel):
         - Could be called by the user when executing the pipeline via SDK
         - Could be called by the system itself when getting the pipeline definition
         """
-
         if self._is_called_for_definition():
             # Immediately return as this call is only for getting the pipeline definition
             return {}

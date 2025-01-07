@@ -36,7 +36,6 @@ def main():
     pipeline = Pipeline(steps=[hello_task])
 
     pipeline.execute()
-
     return pipeline
 
 
