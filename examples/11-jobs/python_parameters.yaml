@@ -1,0 +1,11 @@
+type: python
+command: examples.common.functions.write_parameter
+returns:
+  - name: df
+    kind: object
+  - name: integer
+  - name: floater
+  - name: stringer
+  - name: pydantic_param
+  - name: score
+    kind: metric

@@ -10,6 +10,18 @@ class RunLogExistsError(Exception):  # pragma: no cover
         self.message = f"Run id for {run_id} is already found in the datastore"
 
 
+class JobLogNotFoundError(Exception):
+    """
+    Exception class
+    Args:
+        Exception ([type]): [description]
+    """
+
+    def __init__(self, run_id):
+        super().__init__()
+        self.message = f"Job for {run_id} is not found in the datastore"
+
+
 class RunLogNotFoundError(Exception):  # pragma: no cover
     """
     Exception class
@@ -72,6 +84,16 @@ class BranchNotFoundError(Exception):  # pragma: no cover
     def __init__(self, name):
         super().__init__()
         self.message = f"Branch of name {name} is not found the graph"
+
+
+class NodeMethodCallError(Exception):
+    """
+    Exception class
+    """
+
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
 
 
 class TerminalNodeError(Exception):  # pragma: no cover

@@ -1,0 +1,5 @@
+type: python
+command: examples.common.functions.write_files
+catalog:
+    - "*"
+    - data_folder/data.txt

@@ -21,7 +21,6 @@ from runnable import defaults, names
 from runnable.defaults import TypeMapVariable
 
 if TYPE_CHECKING:  # pragma: no cover
-    from extensions.nodes.nodes import TaskNode
     from runnable.nodes import BaseNode
 
 
@@ -428,25 +427,26 @@ def get_node_execution_command(
     log_level = log_level or logging.getLevelName(logger.getEffectiveLevel())
 
     action = (
-        f"runnable execute_single_node {run_id} "
-        f"{node._command_friendly_name()}"
-        f" --log-level {log_level}"
+        f"runnable execute-single-node {run_id} "
+        f"{context.run_context.pipeline_file} "
+        f"{node._command_friendly_name()} "
+        f"--log-level {log_level} "
     )
 
-    if context.run_context.pipeline_file:
-        action = action + f" --file {context.run_context.pipeline_file}"
+    if context.run_context.from_sdk:
+        action = action + "--mode python "
 
     if map_variable:
-        action = action + f" --map-variable '{json.dumps(map_variable)}'"
+        action = action + f"--map-variable '{json.dumps(map_variable)}' "
 
     if context.run_context.configuration_file:
-        action = action + f" --config-file {context.run_context.configuration_file}"
+        action = action + f"--config {context.run_context.configuration_file} "
 
     if context.run_context.parameters_file:
-        action = action + f" --parameters-file {context.run_context.parameters_file}"
+        action = action + f"--parameters-file {context.run_context.parameters_file} "
 
     if context.run_context.tag:
-        action = action + f" --tag {context.run_context.tag}"
+        action = action + f"--tag {context.run_context.tag}"
 
     return action
 
@@ -476,8 +476,8 @@ def get_fan_command(
     action = (
         f"runnable fan {run_id} "
         f"{node._command_friendly_name()} "
+        f"{context.run_context.pipeline_file} "
         f"--mode {mode} "
-        f"--file {context.run_context.pipeline_file} "
         f"--log-level {log_level} "
     )
     if context.run_context.configuration_file:
@@ -496,18 +496,10 @@ def get_fan_command(
 
 
 # TODO: This is not the right place for this.
-def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> str:
+def get_job_execution_command(over_write_run_id: str = "") -> str:
     """Get the execution command to run a job via command line.
 
     This function should be used by all executors to submit jobs in remote environment
-
-    Args:
-        executor (BaseExecutor): The executor class.
-        node (BaseNode): The node being executed.
-        over_write_run_id (str, optional): If the node is part of a map step. Defaults to ''.
-
-    Returns:
-        str: The execution command to run a job via command line.
     """
 
     run_id = context.run_context.run_id
@@ -517,23 +509,22 @@ def get_job_execution_command(node: TaskNode, over_write_run_id: str = "") -> st
 
     log_level = logging.getLevelName(logger.getEffectiveLevel())
 
-    cli_command, cli_options = node.executable.get_cli_options()
-
-    action = f"runnable execute_{cli_command} {run_id} " f" --log-level {log_level}"
-
-    action = action + f" --entrypoint {defaults.ENTRYPOINT.SYSTEM.value}"
+    action = (
+        f"runnable execute-job /app/{context.run_context.job_definition_file} {run_id} "
+        f" --log-level {log_level}"
+    )
 
     if context.run_context.configuration_file:
-        action = action + f" --config-file {context.run_context.configuration_file}"
+        action = action + f" --config {context.run_context.configuration_file}"
 
     if context.run_context.parameters_file:
-        action = action + f" --parameters-file {context.run_context.parameters_file}"
+        action = action + f" --parameters {context.run_context.parameters_file}"
+
+    if context.run_context.from_sdk:
+        action = action + " --mode python "
 
     if context.run_context.tag:
         action = action + f" --tag {context.run_context.tag}"
-
-    for key, value in cli_options.items():
-        action = action + f" --{key} {value}"
 
     return action
 
@@ -555,6 +546,7 @@ def get_provider_by_name_and_type(
     Returns:
         object: A service object
     """
+
     namespace = service_type
 
     service_name = service_details["type"]

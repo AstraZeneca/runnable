@@ -1,30 +1,27 @@
 import copy
 import logging
 import os
-from abc import abstractmethod
-from typing import Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
-from extensions.nodes.nodes import TaskNode
 from runnable import (
     console,
     context,
     defaults,
     exceptions,
-    integration,
     parameters,
     task_console,
     utils,
 )
 from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
 from runnable.defaults import TypeMapVariable
-from runnable.executor import BaseExecutor
+from runnable.executor import BasePipelineExecutor
 from runnable.graph import Graph
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class GenericExecutor(BaseExecutor):
+class GenericPipelineExecutor(BasePipelineExecutor):
     """
     The skeleton of an executor class.
     Any implementation of an executor should inherit this class and over-ride accordingly.
@@ -39,10 +36,11 @@ class GenericExecutor(BaseExecutor):
     """
 
     service_name: str = ""
-    service_type: str = "executor"
+    service_type: str = "pipeline_executor"
 
     @property
     def _context(self):
+        assert context.run_context
         return context.run_context
 
     def _get_parameters(self) -> Dict[str, JsonParameter]:
@@ -111,45 +109,6 @@ class GenericExecutor(BaseExecutor):
         self._context.run_log_store.set_run_config(
             run_id=self._context.run_id, run_config=run_config
         )
-
-    def prepare_for_graph_execution(self):
-        """
-        This method should be called prior to calling execute_graph.
-        Perform any steps required before doing the graph execution.
-
-        The most common implementation is to prepare a run log for the run if the run uses local interactive compute.
-
-        But in cases of actual rendering the job specs (eg: AWS step functions, K8's) we check if the services are OK.
-        We do not set up a run log as its not relevant.
-        """
-
-        integration.validate(self, self._context.run_log_store)
-        integration.configure_for_traversal(self, self._context.run_log_store)
-
-        integration.validate(self, self._context.catalog_handler)
-        integration.configure_for_traversal(self, self._context.catalog_handler)
-
-        integration.validate(self, self._context.secrets_handler)
-        integration.configure_for_traversal(self, self._context.secrets_handler)
-
-        self._set_up_run_log()
-
-    def prepare_for_node_execution(self):
-        """
-        Perform any modifications to the services prior to execution of the node.
-
-        Args:
-            node (Node): [description]
-            map_variable (dict, optional): [description]. Defaults to None.
-        """
-        integration.validate(self, self._context.run_log_store)
-        integration.configure_for_execution(self, self._context.run_log_store)
-
-        integration.validate(self, self._context.catalog_handler)
-        integration.configure_for_execution(self, self._context.catalog_handler)
-
-        integration.validate(self, self._context.secrets_handler)
-        integration.configure_for_execution(self, self._context.secrets_handler)
 
     def _sync_catalog(
         self, stage: str, synced_catalogs=None
@@ -375,7 +334,7 @@ class GenericExecutor(BaseExecutor):
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
         )
-        self.trigger_job(node=node, map_variable=map_variable, **kwargs)
+        self.trigger_node_execution(node=node, map_variable=map_variable, **kwargs)
 
         log_file_name = utils.make_log_file_name(node=node, map_variable=map_variable)
         task_console.save_text(log_file_name, clear=True)
@@ -385,7 +344,7 @@ class GenericExecutor(BaseExecutor):
         )
         os.remove(log_file_name)
 
-    def trigger_job(
+    def trigger_node_execution(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
     ):
         """
@@ -405,7 +364,7 @@ class GenericExecutor(BaseExecutor):
 
     def _get_status_and_next_node_name(
         self, current_node: BaseNode, dag: Graph, map_variable: TypeMapVariable = None
-    ):
+    ) -> tuple[str, str]:
         """
         Given the current node and the graph, returns the name of the next node to execute.
 
@@ -569,7 +528,7 @@ class GenericExecutor(BaseExecutor):
         if run_log.status == defaults.FAIL:
             raise exceptions.ExecutionFailedError(run_id=run_id)
 
-    def _resolve_executor_config(self, node: BaseNode):
+    def _resolve_executor_config(self, node: BaseNode) -> Dict[str, Any]:
         """
         The overrides section can contain specific over-rides to an global executor config.
         To avoid too much clutter in the dag definition, we allow the configuration file to have overrides block.
@@ -623,22 +582,6 @@ class GenericExecutor(BaseExecutor):
         logger.debug(f"Effective node config: {effective_node_config}")
 
         return effective_node_config
-
-    @abstractmethod
-    def execute_job(self, node: TaskNode):
-        """
-        Executor specific way of executing a job (python function or a notebook).
-
-        Interactive executors should execute the job.
-        Transpilers should write the instructions.
-
-        Args:
-            node (BaseNode): The job node to execute
-
-        Raises:
-            NotImplementedError: Executors should choose to extend this functionality or not.
-        """
-        raise NotImplementedError
 
     def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """

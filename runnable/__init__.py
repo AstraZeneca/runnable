@@ -1,6 +1,5 @@
 # ruff: noqa
 
-# TODO: Might need to add Rich to pyinstaller part
 import logging
 import os
 from logging.config import dictConfig
@@ -20,6 +19,7 @@ task_console = Console(record=True)
 from runnable.sdk import (  # noqa
     Catalog,
     Fail,
+    Job,
     Map,
     NotebookTask,
     Parallel,

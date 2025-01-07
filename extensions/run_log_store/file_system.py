@@ -97,7 +97,6 @@ class FileSystemRunLogstore(BaseRunLogStore):
         tag: str = "",
         original_run_id: str = "",
         status: str = defaults.CREATED,
-        **kwargs,
     ) -> RunLog:
         """
         # Creates a Run log
@@ -120,7 +119,11 @@ class FileSystemRunLogstore(BaseRunLogStore):
         self.write_to_folder(run_log)
         return run_log
 
-    def get_run_log_by_id(self, run_id: str, full: bool = False, **kwargs) -> RunLog:
+    def get_run_log_by_id(
+        self,
+        run_id: str,
+        full: bool = False,
+    ) -> RunLog:
         """
         # Returns the run_log defined by id
         # Raises Exception if not found
@@ -132,7 +135,7 @@ class FileSystemRunLogstore(BaseRunLogStore):
         except FileNotFoundError as e:
             raise exceptions.RunLogNotFoundError(run_id) from e
 
-    def put_run_log(self, run_log: RunLog, **kwargs):
+    def put_run_log(self, run_log: RunLog):
         """
         # Puts the run_log into the database
         """

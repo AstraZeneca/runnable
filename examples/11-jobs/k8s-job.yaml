@@ -1,0 +1,41 @@
+job-executor:
+  type: "k8s-job"
+  config:
+    jobSpec:
+      # activeDeadlineSeconds: Optional[int]
+      # selector: Optional[LabelSelector]
+      # ttlSecondsAfterFinished: Optional[int]
+      template:
+        # metadata:
+          # annotations: Optional[Dict[str, str]]
+          # generate_name: Optional[str] = run_id
+          # namespace: Optional[str] = "default"
+        spec:
+          # activeDeadlineSeconds: Optional[int]
+          # nodeSelector: Optional[Dict[str, str]]
+          # tolerations: Optional[List[Toleration]]
+          # volumes:
+          #   - name: str
+          #     hostPath:
+          #       path: str
+          # serviceAccountName: Optional[str]
+          # restartPolicy: Optional[str] = Choose from [Always, OnFailure, Never]
+          container:
+            # command: List[str]
+            # env:
+            #     - name: str
+            #       value: str
+            image: runnable-m1
+            # imagePullPolicy: Optional[str] = choose from [Always, Never, IfNotPresent]
+            # resources:
+            #   limits:
+            #     cpu: str
+            #     memory: str
+            #     gpu: str
+            #   requests:
+            #     cpu: str
+            #     memory: str
+            #     gpu: str
+            # volumeMounts:
+            #   - name: str
+            #     mountPath: str

@@ -1,0 +1,20 @@
+dag:
+  description: |
+    This is a sample pipeline with one step that
+    executes a shell command.
+
+    You can run this pipeline by:
+    runnable execute -f examples/01-tasks/scripts.yaml
+
+    For example:
+    .catalog
+    └── seasoned-perlman-1355
+        └── hello.execution.log
+
+  start_at: shell
+  steps:
+    shell:
+      type: task
+      command_type: shell
+      command: echo "hello world!!" # The path is relative to the root of the project.
+      next: success

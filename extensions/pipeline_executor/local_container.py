@@ -1,22 +1,20 @@
 import logging
 from pathlib import Path
-from typing import Dict, cast
+from typing import Dict
 
 from pydantic import Field
 from rich import print
 
-from extensions.executor import GenericExecutor
-from extensions.nodes.nodes import TaskNode
+from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import console, defaults, task_console, utils
 from runnable.datastore import StepLog
 from runnable.defaults import TypeMapVariable
-from runnable.integration import BaseIntegration
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class LocalContainerExecutor(GenericExecutor):
+class LocalContainerExecutor(GenericPipelineExecutor):
     """
     In the mode of local-container, we execute all the commands in a container.
 
@@ -52,10 +50,9 @@ class LocalContainerExecutor(GenericExecutor):
     service_name: str = "local-container"
     docker_image: str
     auto_remove_container: bool = True
-    run_in_local: bool = False
     environment: Dict[str, str] = Field(default_factory=dict)
 
-    _local: bool = False
+    _is_local: bool = False
 
     _container_log_location = "/tmp/run_logs/"
     _container_catalog_location = "/tmp/catalog/"
@@ -96,6 +93,7 @@ class LocalContainerExecutor(GenericExecutor):
         We are already in the container, we just execute the node.
         The node is already prepared for execution.
         """
+        self._use_volumes()
         return self._execute_node(node, map_variable, **kwargs)
 
     def execute_from_graph(
@@ -155,55 +153,54 @@ class LocalContainerExecutor(GenericExecutor):
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
         )
-        self.trigger_job(node=node, map_variable=map_variable, **kwargs)
+        self.trigger_node_execution(node=node, map_variable=map_variable, **kwargs)
 
-    def execute_job(self, node: TaskNode):
-        """
-        Set up the step log and call the execute node
+    # def execute_job(self, node: TaskNode):
+    #     """
+    #     Set up the step log and call the execute node
 
-        Args:
-            node (BaseNode): _description_
-        """
+    #     Args:
+    #         node (BaseNode): _description_
+    #     """
 
-        step_log = self._context.run_log_store.create_step_log(
-            node.name, node._get_step_log_name(map_variable=None)
-        )
+    #     step_log = self._context.run_log_store.create_step_log(
+    #         node.name, node._get_step_log_name(map_variable=None)
+    #     )
 
-        self.add_code_identities(node=node, step_log=step_log)
+    #     self.add_code_identities(node=node, step_log=step_log)
 
-        step_log.step_type = node.node_type
-        step_log.status = defaults.PROCESSING
-        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+    #     step_log.step_type = node.node_type
+    #     step_log.status = defaults.PROCESSING
+    #     self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-        command = utils.get_job_execution_command(node)
-        self._spin_container(node=node, command=command)
+    #     command = utils.get_job_execution_command(node)
+    #     self._spin_container(node=node, command=command)
 
-        # Check the step log status and warn if necessary. Docker errors are generally suppressed.
-        step_log = self._context.run_log_store.get_step_log(
-            node._get_step_log_name(map_variable=None), self._context.run_id
-        )
-        if step_log.status != defaults.SUCCESS:
-            msg = (
-                "Node execution inside the container failed. Please check the logs.\n"
-                "Note: If you do not see any docker issue from your side and the code works properly on local execution"
-                "please raise a bug report."
-            )
-            logger.warning(msg)
+    #     # Check the step log status and warn if necessary. Docker errors are generally suppressed.
+    #     step_log = self._context.run_log_store.get_step_log(
+    #         node._get_step_log_name(map_variable=None), self._context.run_id
+    #     )
+    #     if step_log.status != defaults.SUCCESS:
+    #         msg = (
+    #             "Node execution inside the container failed. Please check the logs.\n"
+    #             "Note: If you do not see any docker issue from your side and the code works properly on local execution"
+    #             "please raise a bug report."
+    #         )
+    #         logger.warning(msg)
 
-    def trigger_job(
+    def trigger_node_execution(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
     ):
         """
         We come into this step via execute from graph, use trigger job to spin up the container.
 
-
-        If the config has "run_in_local: True", we compute it on local system instead of container.
         In local container execution, we just spin the container to execute runnable execute_single_node.
 
         Args:
             node (BaseNode): The node we are currently executing
             map_variable (str, optional): If the node is part of the map branch. Defaults to ''.
         """
+        self._mount_volumes()
         executor_config = self._resolve_executor_config(node)
         auto_remove_container = executor_config.get("auto_remove_container", True)
 
@@ -312,145 +309,55 @@ class LocalContainerExecutor(GenericExecutor):
             logger.exception("Problems with spinning/running the container")
             raise _e
 
+    def _mount_volumes(self):
+        """
+        Mount the volumes for the container
+        """
+        match self._context.run_log_store.service_name:
+            case "file-system":
+                write_to = self._context.run_log_store.log_folder
+                self._volumes[str(Path(write_to).resolve())] = {
+                    "bind": f"{self._container_log_location}",
+                    "mode": "rw",
+                }
+            case "chunked-fs":
+                write_to = self._context.run_log_store.log_folder
+                self._volumes[str(Path(write_to).resolve())] = {
+                    "bind": f"{self._container_log_location}",
+                    "mode": "rw",
+                }
 
-class LocalContainerComputeFileSystemRunLogstore(BaseIntegration):
-    """
-    Integration between local container and file system run log store
-    """
+        match self._context.catalog_handler.service_name:
+            case "file-system":
+                catalog_location = self._context.catalog_handler.catalog_location
+                self._volumes[str(Path(catalog_location).resolve())] = {
+                    "bind": f"{self._container_catalog_location}",
+                    "mode": "rw",
+                }
 
-    executor_type = "local-container"
-    service_type = "run_log_store"  # One of secret, catalog, datastore
-    service_provider = "file-system"  # The actual implementation of the service
+        match self._context.secrets_handler.service_name:
+            case "dotenv":
+                secrets_location = self._context.secrets_handler.location
+                self._volumes[str(Path(secrets_location).resolve())] = {
+                    "bind": f"{self._container_secrets_location}",
+                    "mode": "ro",
+                }
 
-    def configure_for_traversal(self, **kwargs):
-        from extensions.run_log_store.file_system import FileSystemRunLogstore
+    def _use_volumes(self):
+        match self._context.run_log_store.service_name:
+            case "file-system":
+                self._context.run_log_store.log_folder = self._container_log_location
+            case "chunked-fs":
+                self._context.run_log_store.log_folder = self._container_log_location
 
-        self.executor = cast(LocalContainerExecutor, self.executor)
-        self.service = cast(FileSystemRunLogstore, self.service)
+        match self._context.catalog_handler.service_name:
+            case "file-system":
+                self._context.catalog_handler.catalog_location = (
+                    self._container_catalog_location
+                )
 
-        write_to = self.service.log_folder_name
-        self.executor._volumes[str(Path(write_to).resolve())] = {
-            "bind": f"{self.executor._container_log_location}",
-            "mode": "rw",
-        }
-
-    def configure_for_execution(self, **kwargs):
-        from extensions.run_log_store.file_system import FileSystemRunLogstore
-
-        self.executor = cast(LocalContainerExecutor, self.executor)
-        self.service = cast(FileSystemRunLogstore, self.service)
-
-        self.service.log_folder = self.executor._container_log_location
-
-
-class LocalContainerComputeChunkedFS(BaseIntegration):
-    """
-    Integration pattern between Local container and File System catalog
-    """
-
-    executor_type = "local-container"
-    service_type = "run_log_store"  # One of secret, catalog, datastore
-    service_provider = "chunked-fs"  # The actual implementation of the service
-
-    def configure_for_traversal(self, **kwargs):
-        from extensions.run_log_store.chunked_fs import ChunkedFileSystemRunLogStore
-
-        self.executor = cast(LocalContainerExecutor, self.executor)
-        self.service = cast(ChunkedFileSystemRunLogStore, self.service)
-
-        write_to = self.service.log_folder
-        self.executor._volumes[str(Path(write_to).resolve())] = {
-            "bind": f"{self.executor._container_log_location}",
-            "mode": "rw",
-        }
-
-    def configure_for_execution(self, **kwargs):
-        from extensions.run_log_store.chunked_fs import ChunkedFileSystemRunLogStore
-
-        self.executor = cast(LocalContainerExecutor, self.executor)
-        self.service = cast(ChunkedFileSystemRunLogStore, self.service)
-
-        self.service.log_folder = self.executor._container_log_location
-
-
-class LocalContainerComputeFileSystemCatalog(BaseIntegration):
-    """
-    Integration pattern between Local container and File System catalog
-    """
-
-    executor_type = "local-container"
-    service_type = "catalog"  # One of secret, catalog, datastore
-    service_provider = "file-system"  # The actual implementation of the service
-
-    def configure_for_traversal(self, **kwargs):
-        from extensions.catalog.file_system import FileSystemCatalog
-
-        self.executor = cast(LocalContainerExecutor, self.executor)
-        self.service = cast(FileSystemCatalog, self.service)
-
-        catalog_location = self.service.catalog_location
-        self.executor._volumes[str(Path(catalog_location).resolve())] = {
-            "bind": f"{self.executor._container_catalog_location}",
-            "mode": "rw",
-        }
-
-    def configure_for_execution(self, **kwargs):
-        from extensions.catalog.file_system import FileSystemCatalog
-
-        self.executor = cast(LocalContainerExecutor, self.executor)
-        self.service = cast(FileSystemCatalog, self.service)
-
-        self.service.catalog_location = self.executor._container_catalog_location
-
-
-class LocalContainerComputeDotEnvSecrets(BaseIntegration):
-    """
-    Integration between local container and dot env secrets
-    """
-
-    executor_type = "local-container"
-    service_type = "secrets"  # One of secret, catalog, datastore
-    service_provider = "dotenv"  # The actual implementation of the service
-
-    def validate(self, **kwargs):
-        logger.warning(
-            "Using dot env for non local deployments is not ideal, consider options"
-        )
-
-    def configure_for_traversal(self, **kwargs):
-        from extensions.secrets.dotenv import DotEnvSecrets
-
-        self.executor = cast(LocalContainerExecutor, self.executor)
-        self.service = cast(DotEnvSecrets, self.service)
-
-        secrets_location = self.service.secrets_location
-        self.executor._volumes[str(Path(secrets_location).resolve())] = {
-            "bind": f"{self.executor._container_secrets_location}",
-            "mode": "ro",
-        }
-
-    def configure_for_execution(self, **kwargs):
-        from extensions.secrets.dotenv import DotEnvSecrets
-
-        self.executor = cast(LocalContainerExecutor, self.executor)
-        self.service = cast(DotEnvSecrets, self.service)
-
-        self.service.location = self.executor._container_secrets_location
-
-
-class LocalContainerComputeEnvSecretsManager(BaseIntegration):
-    """
-    Integration between local container and env secrets manager
-    """
-
-    executor_type = "local-container"
-    service_type = "secrets"  # One of secret, catalog, datastore
-    service_provider = "env-secrets-manager"  # The actual implementation of the service
-
-    def validate(self, **kwargs):
-        msg = (
-            "Local container executions cannot be used with environment secrets manager. "
-            "Please use a supported secrets manager"
-        )
-        logger.exception(msg)
-        raise Exception(msg)
+        match self._context.secrets_handler.service_name:
+            case "dotenv":
+                self._context.secrets_handler.location = (
+                    self._container_secrets_location
+                )

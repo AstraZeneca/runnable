@@ -1,4 +1,4 @@
-executor:
+pipeline-executor:
   type: retry
   config:
     run_id: parallel-fail
@@ -6,5 +6,5 @@ executor:
 catalog:
   type: file-system # (1)
 
-run_log_store:
+run-log-store:
   type: file-system # (1)

@@ -678,7 +678,7 @@ class MapNode(CompositeNode):
                             params[f"{iter_variable}_{param_name}"].get_value()
                         )
                     except KeyError as e:
-                        from extensions.executor.mocked import MockedExecutor
+                        from extensions.pipeline_executor.mocked import MockedExecutor
 
                         if isinstance(self._context.executor, MockedExecutor):
                             pass

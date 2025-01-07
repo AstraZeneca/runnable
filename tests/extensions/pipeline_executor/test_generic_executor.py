@@ -157,51 +157,6 @@ def test_set_up_run_log_store_calls_set_run_config(
     assert mock_set_run_config.call_count == 1
 
 
-def test_base_executor_prepare_for_graph_execution_calls(
-    mocker, monkeypatch, mock_run_context
-):
-    mock_integration = mocker.MagicMock()
-    mock_validate = mocker.MagicMock()
-    mock_configure_for_traversal = mocker.MagicMock()
-
-    mock_integration.validate = mock_validate
-    mock_integration.configure_for_traversal = mock_configure_for_traversal
-
-    mock_set_up_run_log = mocker.MagicMock()
-    monkeypatch.setattr(GenericExecutor, "_set_up_run_log", mock_set_up_run_log)
-
-    monkeypatch.setattr(module, "integration", mock_integration)
-    monkeypatch.setattr(module.BaseExecutor, "_set_up_run_log", mocker.MagicMock())
-
-    base_executor = GenericExecutor()
-
-    base_executor.prepare_for_graph_execution()
-
-    assert mock_configure_for_traversal.call_count == 3
-    assert mock_validate.call_count == 3
-
-
-def test_base_execution_prepare_for_node_calls(mocker, monkeypatch, mock_run_context):
-    mock_integration = mocker.MagicMock()
-    mock_validate = mocker.MagicMock()
-    mock_configure_for_execution = mocker.MagicMock()
-
-    mock_integration.validate = mock_validate
-    mock_integration.configure_for_execution = mock_configure_for_execution
-
-    mock_set_up_run_log = mocker.MagicMock()
-    monkeypatch.setattr(GenericExecutor, "_set_up_run_log", mock_set_up_run_log)
-
-    monkeypatch.setattr(module, "integration", mock_integration)
-
-    base_executor = GenericExecutor()
-
-    base_executor.prepare_for_node_execution()
-
-    assert mock_configure_for_execution.call_count == 3
-    assert mock_validate.call_count == 3
-
-
 def test_base_executor__sync_catalog_raises_exception_if_stage_not_in_get_or_put(
     mocker, monkeypatch
 ):
@@ -599,5 +554,5 @@ def test_send_return_code_does_not_raise_exception_if_pipeline_execution_succeed
     test_executor.send_return_code()
 
 
-from extensions import executor as module
-from extensions.executor import GenericExecutor
+from extensions import pipeline_executor as module
+from extensions.pipeline_executor import GenericPipelineExecutor as GenericExecutor

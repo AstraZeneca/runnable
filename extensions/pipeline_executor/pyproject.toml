@@ -1,5 +1,5 @@
 [project]
-name = "executor"
+name = "pipeline_executor"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"

@@ -21,6 +21,7 @@ jobs:
           fetch-depth: 0
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
       - name: "Set up Python"
         run: uv python install
       - run: |

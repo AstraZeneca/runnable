@@ -1,0 +1,2 @@
+type: python
+command: examples.common.functions.hello # dotted path to the function.

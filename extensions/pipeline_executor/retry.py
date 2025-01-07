@@ -2,8 +2,7 @@ import logging
 from functools import cached_property
 from typing import Any, Dict, Optional
 
-from extensions.executor import GenericExecutor
-from extensions.nodes.nodes import TaskNode
+from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import context, defaults, exceptions
 from runnable.datastore import RunLog
 from runnable.defaults import TypeMapVariable
@@ -12,7 +11,7 @@ from runnable.nodes import BaseNode
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class RetryExecutor(GenericExecutor):
+class RetryExecutor(GenericPipelineExecutor):
     """
     The skeleton of an executor class.
     Any implementation of an executor should inherit this class and over-ride accordingly.
@@ -30,7 +29,7 @@ class RetryExecutor(GenericExecutor):
     service_type: str = "executor"
     run_id: str
 
-    _local: bool = True
+    _is_local: bool = True
     _original_run_log: Optional[RunLog] = None
     _restart_initiated: bool = False
 
@@ -179,6 +178,3 @@ class RetryExecutor(GenericExecutor):
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
     ):
         self._execute_node(node, map_variable=map_variable, **kwargs)
-
-    def execute_job(self, node: TaskNode):
-        pass

@@ -19,7 +19,7 @@ The hello.execution.log has the captured stdout of "Hello World!".
 """
 
 from examples.common.functions import hello
-from runnable import Pipeline, PythonTask
+from runnable import Job, PythonTask
 
 
 def main():
@@ -33,10 +33,11 @@ def main():
     )
 
     # The pipeline has only one step.
-    pipeline = Pipeline(steps=[hello_task])
+    job = Job(name="hello", task=hello_task)
 
-    pipeline.execute()
-    return pipeline
+    job.execute()
+
+    return job
 
 
 if __name__ == "__main__":

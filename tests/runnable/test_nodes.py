@@ -1,6 +1,10 @@
 import pytest
 
-from runnable import defaults, nodes, exceptions  # pylint: disable=import-error  # pylint: disable=import-error
+from runnable import (  # pylint: disable=import-error  # pylint: disable=import-error
+    defaults,
+    exceptions,
+    nodes,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -260,8 +264,10 @@ def test_executable_node_get_branch_by_name_raises_exception(
         next_node="next",
     )
 
-    with pytest.raises(Exception, match="This is an executable node and"):
+    with pytest.raises(exceptions.NodeMethodCallError) as execinfo:
         traversal_class._get_branch_by_name("test")
+
+    assert "This is an executable node and" in str(execinfo.value.message)
 
 
 def test_executable_node_execute_as_graph_raises_exception(
@@ -274,8 +280,9 @@ def test_executable_node_execute_as_graph_raises_exception(
         next_node="next",
     )
 
-    with pytest.raises(Exception, match="This is an executable node and"):
+    with pytest.raises(exceptions.NodeMethodCallError) as execinfo:
         traversal_class.execute_as_graph()
+    assert "This is an executable node and" in str(execinfo.value.message)
 
 
 def test_executable_node_fan_in_raises_exception(instantiable_executable_node):
@@ -286,8 +293,9 @@ def test_executable_node_fan_in_raises_exception(instantiable_executable_node):
         next_node="next",
     )
 
-    with pytest.raises(Exception, match="This is an executable node and"):
+    with pytest.raises(exceptions.NodeMethodCallError) as execinfo:
         traversal_class.fan_in()
+    assert "This is an executable node and" in str(execinfo.value.message)
 
 
 def test_executable_node_fan_out_raises_exception(instantiable_executable_node):
@@ -298,8 +306,10 @@ def test_executable_node_fan_out_raises_exception(instantiable_executable_node):
         next_node="next",
     )
 
-    with pytest.raises(Exception, match="This is an executable node and"):
+    with pytest.raises(exceptions.NodeMethodCallError) as execinfo:
         traversal_class.fan_out()
+
+    assert "This is an executable node and" in str(execinfo.value.message)
 
 
 def test_composite_node_get_catalog_settings_raises_exception(
@@ -312,8 +322,10 @@ def test_composite_node_get_catalog_settings_raises_exception(
         next_node="next",
     )
 
-    with pytest.raises(Exception, match="This is a composite node and"):
+    with pytest.raises(exceptions.NodeMethodCallError) as execinfo:
         traversal_class._get_catalog_settings()
+
+    assert "This is a composite node and" in str(execinfo.value.message)
 
 
 def test_composite_node_get_max_attempts_raises_exception(instantiable_composite_node):
@@ -336,8 +348,9 @@ def test_composite_node_execute_raises_exception(instantiable_composite_node):
         next_node="next",
     )
 
-    with pytest.raises(Exception, match="This is a composite node and"):
+    with pytest.raises(exceptions.NodeMethodCallError) as execinfo:
         traversal_class.execute()
+    assert "This is a composite node and" in str(execinfo.value.message)
 
 
 def test_terminal_node_get_on_failure_node_raises_exception(instantiable_terminal_node):

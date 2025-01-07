@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Vammi, Vijay", email = "vijay.vammi@astrazeneca.com" }
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "click-plugins>=1.1.1",
     "click<=8.1.3",
@@ -22,11 +22,12 @@ dependencies = [
     "secrets",
     "catalog",
     "run_log_store",
-    "executor",
+    "pipeline_executor",
+    "job_executor",
 ]
 
 [project.scripts]
-runnable = 'runnable.cli:cli'
+runnable = 'runnable.cli:app'
 
 [project.optional-dependencies]
 docker = [
@@ -37,6 +38,9 @@ notebook = [
 ]
 examples = [
     "pandas>=2.2.3",
+]
+k8s = [
+    "kubernetes>=31.0.0",
 ]
 
 [build-system]
@@ -71,15 +75,24 @@ nodes = {workspace = true}
 secrets = {workspace = true}
 catalog = {workspace = true}
 run_log_store = {workspace = true}
-executor = {workspace = true}
+pipeline_executor = {workspace = true}
+job_executor = {workspace = true}
 
 
-[project.entry-points.'executor']
-"local" = "extensions.executor.local:LocalExecutor"
-"local-container" = "extensions.executor.local_container:LocalContainerExecutor"
-"argo" = "extensions.executor.argo:ArgoExecutor"
-"mocked" = "extensions.executor.mocked:MockedExecutor"
-"retry" = "extensions.executor.retry:RetryExecutor"
+[project.entry-points.'pipeline_executor']
+"local" = "extensions.pipeline_executor.local:LocalExecutor"
+"local-container" = "extensions.pipeline_executor.local_container:LocalContainerExecutor"
+"argo" = "extensions.pipeline_executor.argo:ArgoExecutor"
+"mocked" = "extensions.pipeline_executor.mocked:MockedExecutor"
+"retry" = "extensions.pipeline_executor.retry:RetryExecutor"
+
+[project.entry-points.'job_executor']
+"local" = "extensions.job_executor.local:LocalJobExecutor"
+"local-container" = "extensions.job_executor.local_container:LocalContainerJobExecutor"
+"k8s-job" = "extensions.job_executor.k8s:K8sJobExecutor"
+# "argo" = "extensions.pipeline_executor.argo:ArgoExecutor"
+# "mocked" = "extensions.pipeline_executor.mocked:MockedExecutor"
+# "retry" = "extensions.pipeline_executor.retry:RetryExecutor"
 
 [project.entry-points.'secrets']
 "do-nothing" = "runnable.secrets:DoNothingSecretManager"
@@ -98,8 +111,6 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 [project.entry-points.'pickler']
 "pickle" = "runnable.pickler:NativePickler"
 
-[project.entry-points.'integration']
-# left empty for now
 
 [project.entry-points.'nodes']
 "task" = "extensions.nodes.nodes:TaskNode"
@@ -114,6 +125,7 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "python" = "runnable.tasks:PythonTaskType"
 "shell" = "runnable.tasks:ShellTaskType"
 "notebook" = "runnable.tasks:NotebookTaskType"
+
 
 [tool.semantic_release]
 commit_parser = "angular"

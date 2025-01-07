@@ -155,3 +155,5 @@ cov.xml
 .DS_Store
 
 data/
+
+minikube/
