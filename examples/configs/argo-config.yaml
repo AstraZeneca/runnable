@@ -9,10 +9,10 @@ pipeline-executor:
 
 run-log-store: # (4)
   type: chunked-fs
-  config:
-    log_folder: /mnt/run_log_store
+  # config:
+  #   log_folder: /mnt/run_log_store
 
 catalog:
   type: file-system
-  config:
-   catalog_location: /mnt/catalog
+  # config:
+  #  catalog_location: /mnt/catalog

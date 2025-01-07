@@ -69,8 +69,6 @@ def prepare_configurations(
     # dynamically loaded via stevedore, we cannot validate the configuration
     # before they are passed to the service.
 
-    configuration: RunnableConfig = cast(RunnableConfig, templated_configuration)
-
     logger.info(f"Resolved configurations: {configuration}")
 
     # Run log settings, configuration over-rides everything
@@ -123,16 +121,18 @@ def prepare_configurations(
         )
     else:
         # executor configurations, configuration over rides everything
-        executor_config: Optional[ServiceConfig] = configuration.get(
+        job_executor_config: Optional[ServiceConfig] = configuration.get(
             "job-executor", None
         )  # type: ignore
-        if not executor_config:
+        if not job_executor_config:
             executor_config = cast(
                 ServiceConfig,
                 runnable_defaults.get("job-executor", defaults.DEFAULT_JOB_EXECUTOR),
             )
+
+        assert job_executor_config, "Job executor is not provided"
         configured_executor = utils.get_provider_by_name_and_type(
-            "job_executor", executor_config
+            "job_executor", job_executor_config
         )
 
     # Construct the context

@@ -94,7 +94,7 @@ class Container(BaseModel):
     env: list[EnvVar] = Field(default_factory=list)
     image_pull_policy: ImagePullPolicy = ImagePullPolicy.NEVER
     resources: Resources = Resources()
-    volume_mounts: Optional[list[VolumeMount]] = Field(default_factory=list)
+    volume_mounts: Optional[list[VolumeMount]] = Field(default_factory=lambda: [])
 
 
 class HostPath(BaseModel):
@@ -110,7 +110,7 @@ class TemplateSpec(BaseModel):
     active_deadline_seconds: int = Field(default=60 * 60 * 2)  # 2 hours
     node_selector: Optional[dict[str, str]] = None
     tolerations: Optional[list[dict[str, str]]] = None
-    volumes: Optional[list[Volume]] = Field(default_factory=list)
+    volumes: Optional[list[Volume]] = Field(default_factory=lambda: [])
     service_account_name: Optional[str] = "default"
     restart_policy: RestartPolicy = RestartPolicy.NEVER
     container: Container
@@ -189,7 +189,7 @@ class K8sJobExecutor(GenericJobExecutor):
         job_log.status = attempt_log.status
         job_log.attempts.append(attempt_log)
 
-        data_catalogs_put: List[DataCatalog] = self._sync_catalog(
+        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
             catalog_settings=catalog_settings
         )
         logger.debug(f"data_catalogs_put: {data_catalogs_put}")

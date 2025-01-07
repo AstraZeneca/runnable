@@ -10,7 +10,6 @@ from runnable import defaults, exceptions
 from runnable.datastore import (
     BaseRunLogStore,
     BranchLog,
-    JobLog,
     JsonParameter,
     MetricParameter,
     ObjectParameter,
@@ -346,7 +345,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         )
         return run_log
 
-    def get_run_log_by_id(self, run_id: str, full: bool = False, **kwargs) -> RunLog:
+    def get_run_log_by_id(self, run_id: str, full: bool = False) -> RunLog:
         """
         Retrieves a Run log from the database using the config and the run_id
 
@@ -374,7 +373,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         except EntityNotFoundError as e:
             raise exceptions.RunLogNotFoundError(run_id) from e
 
-    def put_run_log(self, run_log: RunLog, **kwargs):
+    def put_run_log(self, run_log: RunLog):
         """
         Puts the Run Log in the database as defined by the config
 
@@ -392,7 +391,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
             run_id=run_id, contents=run_log.model_dump(), log_type=self.LogTypes.RUN_LOG
         )
 
-    def get_parameters(self, run_id: str, **kwargs) -> dict:
+    def get_parameters(self, run_id: str) -> dict:
         """
         Get the parameters from the Run log defined by the run_id
 
@@ -427,7 +426,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
         return parameters
 
-    def set_parameters(self, run_id: str, parameters: dict, **kwargs):
+    def set_parameters(self, run_id: str, parameters: dict):
         """
         Update the parameters of the Run log with the new parameters
 
@@ -452,7 +451,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
                 name=key,
             )
 
-    def get_run_config(self, run_id: str, **kwargs) -> dict:
+    def get_run_config(self, run_id: str) -> dict:
         """
         Given a run_id, return the run_config used to perform the run.
 
@@ -466,7 +465,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         run_log = self.get_run_log_by_id(run_id=run_id)
         return run_log.run_config
 
-    def set_run_config(self, run_id: str, run_config: dict, **kwargs):
+    def set_run_config(self, run_id: str, run_config: dict):
         """Set the run config used to run the run_id
 
         Args:
@@ -478,7 +477,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         run_log.run_config.update(run_config)
         self.put_run_log(run_log=run_log)
 
-    def get_step_log(self, internal_name: str, run_id: str, **kwargs) -> StepLog:
+    def get_step_log(self, internal_name: str, run_id: str) -> StepLog:
         """
         Get a step log from the datastore for run_id and the internal naming of the step log
 
@@ -513,7 +512,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
         return step_log
 
-    def add_step_log(self, step_log: StepLog, run_id: str, **kwargs):
+    def add_step_log(self, step_log: StepLog, run_id: str):
         """
         Add the step log in the run log as identified by the run_id in the datastore
 
@@ -566,7 +565,9 @@ class ChunkedRunLogStore(BaseRunLogStore):
         return branch
 
     def add_branch_log(
-        self, branch_log: Union[BranchLog, RunLog], run_id: str, **kwargs
+        self,
+        branch_log: Union[BranchLog, RunLog],
+        run_id: str,
     ):
         """
         The method should:
@@ -596,28 +597,3 @@ class ChunkedRunLogStore(BaseRunLogStore):
             contents=branch_log.model_dump(),
             name=internal_branch_name,
         )
-
-    def create_job_log(self) -> JobLog: ...
-
-    @abstractmethod
-    def put_job_log(self, job_log: JobLog): ...
-
-    @abstractmethod
-    def get_job_log_by_id(self, job_id: str) -> JobLog:
-        """
-        Retrieves a Job log from the database using the config and the job_id
-
-        Args:
-            job_id (str): The job_id of the job
-
-        Returns:
-            JobLog: The JobLog object identified by the job_id
-
-        Logically the method should:
-            * Returns the job_log defined by id from the data store defined by the config
-
-        Raises:
-            NotImplementedError: This is a base class and therefore has no default implementation
-            JobLogNotFoundError: If the job log for job_id is not found in the datastore
-        """
-        ...

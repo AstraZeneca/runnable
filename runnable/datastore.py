@@ -788,7 +788,7 @@ class BaseRunLogStore(ABC, BaseModel):
         return BranchLog(internal_name=internal_branch_name, status=defaults.CREATED)
 
     def get_branch_log(
-        self, internal_branch_name: str, run_id: str, **kwargs
+        self, internal_branch_name: str, run_id: str
     ) -> Union[BranchLog, RunLog]:
         """
         Returns the branch log by the internal branch name for the run id
@@ -808,9 +808,7 @@ class BaseRunLogStore(ABC, BaseModel):
         branch, _ = run_log.search_branch_by_internal_name(internal_branch_name)
         return branch
 
-    def add_branch_log(
-        self, branch_log: Union[BranchLog, RunLog], run_id: str, **kwargs
-    ):
+    def add_branch_log(self, branch_log: Union[BranchLog, RunLog], run_id: str):
         """
         The method should:
         # Get the run log
