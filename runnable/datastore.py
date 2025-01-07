@@ -313,6 +313,19 @@ class JobLog(BaseModel):
     attempts: List[StepAttempt] = Field(default_factory=list)
     data_catalog: List[DataCatalog] = Field(default_factory=list)
 
+    def add_data_catalogs(self, data_catalogs: List[DataCatalog]):
+        """
+        Add the data catalogs as asked by the user
+
+        Args:
+            dict_catalogs ([DataCatalog]): A list of data catalog items
+        """
+
+        if not self.data_catalog:
+            self.data_catalog = []
+        for data_catalog in data_catalogs:
+            self.data_catalog.append(data_catalog)
+
     def get_summary(self) -> Dict[str, Any]:
         """
         Summarize the step log to log

@@ -2,7 +2,7 @@ import logging
 import shlex
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, List, Optional
 
 from kubernetes import client
 from kubernetes import config as k8s_config
@@ -11,6 +11,7 @@ from pydantic.alias_generators import to_camel
 
 from extensions.job_executor import GenericJobExecutor
 from runnable import console, defaults, utils
+from runnable.datastore import DataCatalog
 from runnable.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.NAME)
@@ -140,13 +141,13 @@ class K8sJobExecutor(GenericJobExecutor):
     service_name: str = "k8s-job"
     config_path: Optional[str] = None
     template: Template
-    _is_local: bool = False
     mock: bool = False
-
     # The location the mount of .run_log_store is mounted to in minikube
     # ensure that minikube mount $HOME/workspace/runnable/.run_logs:/volume/run_logs is executed first
     mini_k8s_run_log_location: str = Field(default="/volume/run_logs/")
     mini_k8s_catalog_location: str = Field(default="/volume/catalog/")
+
+    _is_local: bool = False
 
     _container_log_location = "/tmp/run_logs/"
     _container_catalog_location = "/tmp/catalog/"
@@ -161,7 +162,7 @@ class K8sJobExecutor(GenericJobExecutor):
         from_attributes=True,
     )
 
-    def submit_job(self, job: BaseTaskType):
+    def submit_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
         """
         This method gets invoked by the CLI.
         """
@@ -176,7 +177,7 @@ class K8sJobExecutor(GenericJobExecutor):
         self._create_volumes()
         self.submit_k8s_job(job)
 
-    def execute_job(self, job: BaseTaskType):
+    def execute_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
         """
         Focusses on execution of the job.
         """
@@ -193,10 +194,10 @@ class K8sJobExecutor(GenericJobExecutor):
         job_log.status = attempt_log.status
         job_log.attempts.append(attempt_log)
 
-        # data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(stage="put")
-        # logger.debug(f"data_catalogs_put: {data_catalogs_put}")
-
-        # step_log.add_data_catalogs(data_catalogs_put or [])
+        data_catalogs_put: List[DataCatalog] = self._sync_catalog(
+            catalog_settings=catalog_settings
+        )
+        logger.debug(f"data_catalogs_put: {data_catalogs_put}")
 
         console.print("Summary of job")
         console.print(job_log.get_summary())
@@ -207,12 +208,11 @@ class K8sJobExecutor(GenericJobExecutor):
 
     @property
     def _client(self):
-        k8s_config.load_kube_config()
-        # if self.config_path:
-        #     k8s_config.load_kube_config(kube_config_path=self.config.config_path)
-        # else:
-        #     # https://github.com/kubernetes-client/python/blob/master/kubernetes/base/config/__init__.py
-        #     k8s_config.load_config()
+        if self.config_path:
+            k8s_config.load_kube_config(config_file=self.config_path)
+        else:
+            # https://github.com/kubernetes-client/python/blob/master/kubernetes/base/config/__init__.py
+            k8s_config.load_config()
         return client
 
     def submit_k8s_job(self, task: BaseTaskType):

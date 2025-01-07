@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 import runnable.context as context
 from runnable import defaults
-from runnable.datastore import DataCatalog, StepLog
+from runnable.datastore import DataCatalog, JobLog, StepLog
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph
 
@@ -64,6 +64,7 @@ class BaseExecutor(ABC, BaseModel):
         """
         ...
 
+    # TODO: Make this attempt number
     @property
     def step_attempt_number(self) -> int:
         """
@@ -74,6 +75,86 @@ class BaseExecutor(ABC, BaseModel):
             int: The attempt number of the current step. Defaults to 1.
         """
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
+
+    @abstractmethod
+    def send_return_code(self, stage="traversal"):
+        """
+        Convenience function used by pipeline to send return code to the caller of the cli
+
+        Raises:
+            Exception: If the pipeline execution failed
+        """
+        ...
+
+
+class BaseJobExecutor(BaseExecutor):
+    service_type: str = "job_executor"
+
+    @abstractmethod
+    def submit_job(self, job: BaseTaskType, catalog_settings: Optional[List[str]]):
+        """
+        Local executors should
+        - create the run log
+        - and call an execute_job
+
+        Non local executors should
+        - transpile the job to the platform specific job spec
+        - submit the job to call execute_job
+        """
+        ...
+
+    @abstractmethod
+    def add_code_identities(self, job_log: JobLog, **kwargs):
+        """
+        Add code identities specific to the implementation.
+
+        The Base class has an implementation of adding git code identities.
+
+        Args:
+            step_log (object): The step log object
+            node (BaseNode): The node we are adding the step log for
+        """
+        ...
+
+    @abstractmethod
+    def _sync_catalog(
+        self,
+        catalog_settings: Optional[List[str]],
+    ) -> Optional[List[DataCatalog]]:
+        """
+        1). Identify the catalog settings by over-riding node settings with the global settings.
+        2). For stage = get:
+                Identify the catalog items that are being asked to get from the catalog
+                And copy them to the local compute data folder
+        3). For stage = put:
+                Identify the catalog items that are being asked to put into the catalog
+                Copy the items from local compute folder to the catalog
+        4). Add the items onto the step log according to the stage
+
+        Args:
+            node (Node): The current node being processed
+            step_log (StepLog): The step log corresponding to that node
+            stage (str): One of get or put
+
+        Raises:
+            Exception: If the stage is not in one of get/put
+
+        """
+        ...
+
+    @abstractmethod
+    def execute_job(self, job: BaseTaskType, catalog_settings: Optional[List[str]]):
+        """
+        Focusses only on execution of the job.
+        """
+        ...
+
+
+# TODO: Consolidate execute_node, trigger_node_execution, _execute_node
+class BasePipelineExecutor(BaseExecutor):
+    service_type: str = "pipeline_executor"
+    _context_node: Optional[BaseNode] = None
+    overrides: dict = {}
 
     @abstractmethod
     def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
@@ -89,12 +170,19 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def send_return_code(self, stage="traversal"):
+    def get_effective_compute_data_folder(self) -> Optional[str]:
         """
-        Convenience function used by pipeline to send return code to the caller of the cli
+        Get the effective compute data folder for the given stage.
+        If there is nothing to catalog, we return None.
 
-        Raises:
-            Exception: If the pipeline execution failed
+        The default is the compute data folder of the catalog but this can be over-ridden by the node.
+
+        Args:
+            stage (str): The stage we are in the process of cataloging
+
+
+        Returns:
+            Optional[str]: The compute data folder as defined by catalog handler or the node or None.
         """
         ...
 
@@ -120,54 +208,6 @@ class BaseExecutor(ABC, BaseModel):
         Raises:
             Exception: If the stage is not in one of get/put
 
-        """
-        ...
-
-
-class BaseJobExecutor(BaseExecutor):
-    service_type: str = "job_executor"
-
-    @abstractmethod
-    def submit_job(self, job: BaseTaskType):
-        """
-        Local executors should
-        - create the run log
-        - and call an execute_job
-
-        Non local executors should
-        - transpile the job to the platform specific job spec
-        - submit the job to call execute_job
-        """
-        ...
-
-    @abstractmethod
-    def execute_job(self, job: BaseTaskType):
-        """
-        Focusses only on execution of the job.
-        """
-        ...
-
-
-# TODO: Consolidate execute_node, trigger_node_execution, _execute_node
-class BasePipelineExecutor(BaseExecutor):
-    service_type: str = "pipeline_executor"
-    _context_node: Optional[BaseNode] = None
-    overrides: dict = {}
-
-    @abstractmethod
-    def get_effective_compute_data_folder(self) -> Optional[str]:
-        """
-        Get the effective compute data folder for the given stage.
-        If there is nothing to catalog, we return None.
-
-        The default is the compute data folder of the catalog but this can be over-ridden by the node.
-
-        Args:
-            stage (str): The stage we are in the process of cataloging
-
-
-        Returns:
-            Optional[str]: The compute data folder as defined by catalog handler or the node or None.
         """
         ...
 

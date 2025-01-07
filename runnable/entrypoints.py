@@ -62,6 +62,11 @@ def prepare_configurations(
     if configuration_file:
         templated_configuration = utils.load_yaml(configuration_file)
 
+    # apply variables
+    configuration = cast(
+        RunnableConfig, utils.apply_variables(templated_configuration, variables)
+    )
+
     # Since all the services (run_log_store, catalog, secrets, executor) are
     # dynamically loaded via stevedore, we cannot validate the configuration
     # before they are passed to the service.
@@ -391,19 +396,19 @@ def execute_job_yaml_spec(
     console.print(run_context)
     console.rule(style="[dark orange]")
 
+    # A hack where we create a task node and get our job/catalog settings
+    catalog_config: list[str] = job_config.pop("catalog", {})
+
     # rename the type to command_type of task
     job_config["command_type"] = job_config.pop("type")
     job = tasks.create_task(job_config)
 
-    # TODO: Just like execute_single_node, we have to derive the job from yaml or sdk
-    # We instantiate a Job node and send the execution to the task node.
-    # If done right, there should be no change in task code at all.
-    # job = jobs.create_job(name=job_name, job_config=job_config)
     logger.info(
         "Executing the job from the user. We are still in the caller's compute environment"
     )
 
-    executor.submit_job(job)
+    assert isinstance(executor, BaseJobExecutor)
+    executor.submit_job(job, catalog_settings=catalog_config)
 
     executor.send_return_code()
 
@@ -416,10 +421,13 @@ def set_job_spec_from_yaml(run_context: context.Context, job_definition_file: st
     logger.info("The input job definition file:")
     logger.info(json.dumps(job_config, indent=4))
 
+    catalog_config: list[str] = job_config.pop("catalog", {})
+
     job_config["command_type"] = job_config.pop("type")
 
     run_context.job_definition_file = job_definition_file
     run_context.job = tasks.create_task(job_config)
+    run_context.job_catalog_settings = catalog_config
 
 
 def set_job_spec_from_python(run_context: context.Context, python_module: str):
@@ -431,9 +439,11 @@ def set_job_spec_from_python(run_context: context.Context, python_module: str):
 
     run_context.from_sdk = True
     task = getattr(imported_module, func)().return_task()
+    catalog_settings = getattr(imported_module, func)().return_catalog_settings()
 
     run_context.job_definition_file = python_module
     run_context.job = task
+    run_context.job_catalog_settings = catalog_settings
 
 
 def execute_job_non_local(
@@ -473,7 +483,9 @@ def execute_job_non_local(
         "Executing the job from the user. We are still in the caller's compute environment"
     )
 
-    run_context.executor.execute_job(run_context.job)
+    run_context.executor.execute_job(
+        run_context.job, catalog_settings=run_context.job_catalog_settings
+    )
 
     run_context.executor.send_return_code()
 

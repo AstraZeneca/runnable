@@ -1,11 +1,12 @@
 import logging
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Optional
 
 from pydantic import Field
 
 from extensions.job_executor import GenericJobExecutor
 from runnable import console, defaults, utils
+from runnable.datastore import DataCatalog
 from runnable.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -29,7 +30,7 @@ class LocalContainerJobExecutor(GenericJobExecutor):
     _container_secrets_location = "/tmp/dotenv"
     _volumes: Dict[str, Dict[str, str]] = {}
 
-    def submit_job(self, job: BaseTaskType):
+    def submit_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
         """
         This method gets invoked by the CLI.
         """
@@ -41,9 +42,9 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         self._context.run_log_store.add_job_log(
             run_id=self._context.run_id, job_log=job_log
         )
-        self.spin_container(job)
+        self.spin_container()
 
-    def execute_job(self, job: BaseTaskType):
+    def execute_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
         """
         Focusses on execution of the job.
         """
@@ -60,10 +61,12 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         job_log.status = attempt_log.status
         job_log.attempts.append(attempt_log)
 
-        # data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(stage="put")
-        # logger.debug(f"data_catalogs_put: {data_catalogs_put}")
+        data_catalogs_put: List[DataCatalog] = self._sync_catalog(
+            catalog_settings=catalog_settings
+        )
+        logger.debug(f"data_catalogs_put: {data_catalogs_put}")
 
-        # step_log.add_data_catalogs(data_catalogs_put or [])
+        job_log.add_data_catalogs(data_catalogs_put or [])
 
         console.print("Summary of job")
         console.print(job_log.get_summary())
@@ -72,7 +75,7 @@ class LocalContainerJobExecutor(GenericJobExecutor):
             run_id=self._context.run_id, job_log=job_log
         )
 
-    def spin_container(self, task: BaseTaskType):
+    def spin_container(self):
         """
         This method spins up the container
         """

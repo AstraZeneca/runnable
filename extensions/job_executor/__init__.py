@@ -3,10 +3,8 @@ import os
 from typing import Dict, List, Optional
 
 from runnable import context, defaults, exceptions, parameters, utils
-from runnable.datastore import DataCatalog, JsonParameter, StepLog
+from runnable.datastore import DataCatalog, JobLog, JsonParameter
 from runnable.executor import BaseJobExecutor
-from runnable.nodes import BaseNode
-from runnable.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -111,7 +109,7 @@ class GenericJobExecutor(BaseJobExecutor):
         """
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
-    def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
+    def add_code_identities(self, job_log: JobLog, **kwargs):
         """
         Add code identities specific to the implementation.
 
@@ -121,7 +119,7 @@ class GenericJobExecutor(BaseJobExecutor):
             step_log (object): The step log object
             node (BaseNode): The node we are adding the step log for
         """
-        step_log.code_identities.append(utils.get_git_code_identity())
+        job_log.code_identities.append(utils.get_git_code_identity())
 
     def send_return_code(self, stage="traversal"):
         """
@@ -139,84 +137,24 @@ class GenericJobExecutor(BaseJobExecutor):
             raise exceptions.ExecutionFailedError(run_id=run_id)
 
     def _sync_catalog(
-        self, stage: str, synced_catalogs=None
-    ) -> Optional[List[DataCatalog]]:
-        pass
+        self,
+        catalog_settings=Optional[List[str]],
+    ) -> List[DataCatalog] | None:
+        if not catalog_settings:
+            logger.info("No catalog settings found")
+            return None
 
-    def pre_job_execution(self, job: BaseTaskType):
-        """
-        This method is called before the job execution.
-        We are leaving this empty for local container
-        """
-        ...
+        compute_data_folder = self._context.catalog_handler.compute_data_folder
 
-    def post_job_execution(self, job: BaseTaskType):
-        """
-        This method is called after the job execution.
-        Leaving it empty for local container
-        """
-        ...
+        data_catalogs = []
+        for name_pattern in catalog_settings:
+            data_catalog = self._context.catalog_handler.put(
+                name=name_pattern,
+                run_id=self._context.run_id,
+                compute_data_folder=compute_data_folder,
+            )
 
-    # def _sync_catalog(
-    #     self, stage: str, synced_catalogs=None
-    # ) -> Optional[List[DataCatalog]]:
-    #     """
-    #     1). Identify the catalog settings by over-riding node settings with the global settings.
-    #     2). For stage = get:
-    #             Identify the catalog items that are being asked to get from the catalog
-    #             And copy them to the local compute data folder
-    #     3). For stage = put:
-    #             Identify the catalog items that are being asked to put into the catalog
-    #             Copy the items from local compute folder to the catalog
-    #     4). Add the items onto the step log according to the stage
+            logger.debug(f"Added data catalog: {data_catalog} to job log")
+            data_catalogs.extend(data_catalog)
 
-    #     Args:
-    #         node (Node): The current node being processed
-    #         step_log (StepLog): The step log corresponding to that node
-    #         stage (str): One of get or put
-
-    #     Raises:
-    #         Exception: If the stage is not in one of get/put
-
-    #     """
-    #     if stage != "put":
-    #         msg = (
-    #             "Catalog service only accepts put possible actions as part of job execution."
-    #             f"Sync catalog of the executor: {self.service_name} asks for {stage} which is not accepted"
-    #         )
-    #         logger.exception(msg)
-    #         raise Exception(msg)
-
-    #     try:
-    #         node_catalog_settings = self._context_node._get_catalog_settings()
-    #     except exceptions.TerminalNodeError:
-    #         return None
-
-    #     if not (node_catalog_settings and stage in node_catalog_settings):
-    #         logger.info("No catalog settings found for stage: %s", stage)
-    #         # Nothing to get/put from the catalog
-    #         return None
-
-    #     compute_data_folder = self.get_effective_compute_data_folder()
-
-    #     data_catalogs = []
-    #     for name_pattern in node_catalog_settings.get(stage) or []:
-    #         if stage == "get":
-    #             data_catalog = self._context.catalog_handler.get(
-    #                 name=name_pattern,
-    #                 run_id=self._context.run_id,
-    #                 compute_data_folder=compute_data_folder,
-    #             )
-
-    #         elif stage == "put":
-    #             data_catalog = self._context.catalog_handler.put(
-    #                 name=name_pattern,
-    #                 run_id=self._context.run_id,
-    #                 compute_data_folder=compute_data_folder,
-    #                 synced_catalogs=synced_catalogs,
-    #             )
-
-    #         logger.debug(f"Added data catalog: {data_catalog} to step log")
-    #         data_catalogs.extend(data_catalog)
-
-    #     return data_catalogs
+        return data_catalogs

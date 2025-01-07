@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from rich.progress import Progress
@@ -37,6 +37,7 @@ class Context(BaseModel):
     dag_hash: str = ""
 
     job: Optional[BaseTaskType] = None
+    job_catalog_settings: Optional[List[str]] = []
 
 
 run_context = None  # type: Context # type: ignore

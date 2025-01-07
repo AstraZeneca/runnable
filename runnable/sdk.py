@@ -884,6 +884,11 @@ class Job(BaseModel):
     def return_task(self) -> RunnableTask:
         return self.task.create_job()
 
+    def return_catalog_settings(self) -> Optional[List[str]]:
+        if self.task.catalog is None:
+            return []
+        return self.task.catalog.put
+
     def _is_called_for_definition(self) -> bool:
         """
         If the run context is set, we are coming in only to get the pipeline definition.
@@ -943,8 +948,9 @@ class Job(BaseModel):
             run_context.job_definition_file = f"{module_to_call}.py"
 
         job = self.task.create_job()
+        catalog_settings = self.return_catalog_settings()
 
-        run_context.executor.submit_job(job)
+        run_context.executor.submit_job(job, catalog_settings=catalog_settings)
 
         logger.info(
             "Executing the job from the user. We are still in the caller's compute environment"
