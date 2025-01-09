@@ -16,6 +16,9 @@ from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
+print("")  # removes the buffer print
+
+
 def get_default_configs() -> RunnableConfig:
     """
     User can provide extensions as part of their code base, runnable-config.yaml provides the place to put them.

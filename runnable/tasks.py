@@ -156,19 +156,6 @@ class BaseTaskType(BaseModel):
         params = self.resolve_unreduced_parameters(map_variable=map_variable)
         logger.info(f"Parameters available for the execution: {params}")
 
-        for param_name, param in params.items():
-            # Any access to unreduced param should be replaced.
-            # The replacement is the context param
-            # It is possible that the unreduced param is not created as no upstream step
-            # has created it yet.
-            if param.reduced is False:
-                context_param = param_name
-                for _, v in map_variable.items():  # type: ignore
-                    context_param = f"{v}_{context_param}"
-
-                if context_param in params:
-                    params[param_name].value = params[context_param].value
-
         task_console.log("Parameters available for the execution:")
         task_console.log(params)
 
