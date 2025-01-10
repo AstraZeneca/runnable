@@ -1,3 +1,5 @@
+#Follow this as a template https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1JobSpec.md
+
 jobSpec:
   activeDeadlineSeconds: Optional[int]
   selector: Optional[LabelSelector]
