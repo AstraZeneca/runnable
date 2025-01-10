@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from rich.progress import Progress
@@ -29,6 +29,8 @@ class Context(BaseModel):
     from_sdk: bool = False
 
     run_id: str = ""
+    object_serialisation: bool = True
+    return_objects: Dict[str, Any] = {}
 
     tag: str = ""
     variables: Dict[str, str] = {}
