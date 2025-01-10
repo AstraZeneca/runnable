@@ -1,0 +1,14 @@
+pipeline-executor:
+  type: local # (1)
+  config:
+    object_serialisation: false
+
+
+run-log-store:
+  type: buffered # (2)
+
+catalog:
+  type: do-nothing # (3)
+
+secrets:
+  type: do-nothing # (4)

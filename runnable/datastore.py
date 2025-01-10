@@ -98,22 +98,33 @@ class ObjectParameter(BaseModel):
     @computed_field  # type: ignore
     @property
     def description(self) -> str:
-        return f"Pickled object stored in catalog as: {self.value}"
+        if context.run_context.object_serialisation:
+            return f"Pickled object stored in catalog as: {self.value}"
+
+        return f"Object stored in memory as: {self.value}"
 
     @property
     def file_name(self) -> str:
         return f"{self.value}{context.run_context.pickler.extension}"
 
     def get_value(self) -> Any:
-        # Get the pickled object
-        catalog_handler = context.run_context.catalog_handler
+        # If there was no serialisation, return the object from the return objects
+        if not context.run_context.object_serialisation:
+            return context.run_context.return_objects[self.value]
 
+        # If the object was serialised, get it from the catalog
+        catalog_handler = context.run_context.catalog_handler
         catalog_handler.get(name=self.file_name, run_id=context.run_context.run_id)
         obj = context.run_context.pickler.load(path=self.file_name)
         os.remove(self.file_name)  # Remove after loading
         return obj
 
     def put_object(self, data: Any) -> None:
+        if not context.run_context.object_serialisation:
+            context.run_context.return_objects[self.value] = data
+            return
+
+        # If the object was serialised, put it in the catalog
         context.run_context.pickler.dump(data=data, path=self.file_name)
 
         catalog_handler = context.run_context.catalog_handler

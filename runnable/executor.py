@@ -34,9 +34,7 @@ class BaseExecutor(ABC, BaseModel):
     service_name: str = ""
     service_type: str = "executor"
 
-    _is_local: bool = (
-        False  # This is a flag to indicate whether the executor is local or not.
-    )
+    _is_local: bool = PrivateAttr(default=False)
 
     model_config = ConfigDict(extra="forbid")
 

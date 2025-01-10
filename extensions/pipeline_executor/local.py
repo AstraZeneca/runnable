@@ -1,5 +1,7 @@
 import logging
 
+from pydantic import Field, PrivateAttr
+
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
 from runnable.defaults import TypeMapVariable
@@ -22,7 +24,18 @@ class LocalExecutor(GenericPipelineExecutor):
     """
 
     service_name: str = "local"
-    _is_local: bool = True
+
+    object_serialisation: bool = Field(default=True)
+
+    _is_local: bool = PrivateAttr(default=True)
+
+    def execute_from_graph(
+        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
+    ):
+        if not self.object_serialisation:
+            self._context.object_serialisation = False
+
+        super().execute_from_graph(node=node, map_variable=map_variable, **kwargs)
 
     def trigger_node_execution(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
@@ -47,30 +60,3 @@ class LocalExecutor(GenericPipelineExecutor):
             map_variable (dict[str, str], optional): _description_. Defaults to None.
         """
         self._execute_node(node=node, map_variable=map_variable, **kwargs)
-
-    # def execute_job(self, node: TaskNode):
-    #     """
-    #     Set up the step log and call the execute node
-
-    #     Args:
-    #         node (BaseNode): _description_
-    #     """
-
-    #     step_log = self._context.run_log_store.create_step_log(
-    #         node.name, node._get_step_log_name(map_variable=None)
-    #     )
-
-    #     self.add_code_identities(node=node, step_log=step_log)
-
-    #     step_log.step_type = node.node_type
-    #     step_log.status = defaults.PROCESSING
-    #     self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-    #     self.execute_node(node=node)
-
-    #     # Update the run log status
-    #     step_log = self._context.run_log_store.get_step_log(
-    #         node._get_step_log_name(), self._context.run_id
-    #     )
-    #     self._context.run_log_store.update_run_log_status(
-    #         run_id=self._context.run_id, status=step_log.status
-    #     )
