@@ -73,8 +73,8 @@ wheels = [
 
 [[package]]
 name = "catalog"
-version = "0.1.0"
-source = { virtual = "extensions/catalog" }
+version = "0.0.0"
+source = { editable = "extensions/catalog" }
 
 [[package]]
 name = "certifi"
@@ -609,8 +609,8 @@ wheels = [
 
 [[package]]
 name = "job-executor"
-version = "0.1.0"
-source = { virtual = "extensions/job_executor" }
+version = "0.0.0"
+source = { editable = "extensions/job_executor" }
 
 [[package]]
 name = "jsonschema"
@@ -1034,8 +1034,8 @@ wheels = [
 
 [[package]]
 name = "nodes"
-version = "0.1.0"
-source = { virtual = "extensions/nodes" }
+version = "0.0.0"
+source = { editable = "extensions/nodes" }
 
 [[package]]
 name = "numpy"
@@ -1261,8 +1261,8 @@ wheels = [
 
 [[package]]
 name = "pipeline-executor"
-version = "0.1.0"
-source = { virtual = "extensions/pipeline_executor" }
+version = "0.0.0"
+source = { editable = "extensions/pipeline_executor" }
 
 [[package]]
 name = "platformdirs"
@@ -2078,27 +2078,21 @@ wheels = [
 
 [[package]]
 name = "run-log-store"
-version = "0.1.0"
-source = { virtual = "extensions/run_log_store" }
+version = "0.0.0"
+source = { editable = "extensions/run_log_store" }
 
 [[package]]
 name = "runnable"
 version = "0.0.0"
 source = { editable = "." }
 dependencies = [
-    { name = "catalog" },
     { name = "click" },
     { name = "click-plugins" },
     { name = "dill" },
-    { name = "job-executor" },
-    { name = "nodes" },
-    { name = "pipeline-executor" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "rich" },
     { name = "ruamel-yaml" },
-    { name = "run-log-store" },
-    { name = "secrets" },
     { name = "setuptools" },
     { name = "stevedore" },
     { name = "typer" },
@@ -2140,23 +2134,17 @@ release = [
 
 [package.metadata]
 requires-dist = [
-    { name = "catalog", virtual = "extensions/catalog" },
     { name = "click", specifier = "<=8.1.3" },
     { name = "click-plugins", specifier = ">=1.1.1" },
     { name = "dill", specifier = ">=0.3.9" },
     { name = "docker", marker = "extra == 'docker'", specifier = ">=7.1.0" },
-    { name = "job-executor", virtual = "extensions/job_executor" },
     { name = "kubernetes", marker = "extra == 'k8s'", specifier = ">=31.0.0" },
-    { name = "nodes", virtual = "extensions/nodes" },
     { name = "pandas", marker = "extra == 'examples'", specifier = ">=2.2.3" },
-    { name = "pipeline-executor", virtual = "extensions/pipeline_executor" },
     { name = "ploomber-engine", marker = "extra == 'notebook'", specifier = ">=0.0.33" },
     { name = "pydantic", specifier = ">=2.10.3" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "ruamel-yaml", specifier = ">=0.18.6" },
-    { name = "run-log-store", virtual = "extensions/run_log_store" },
-    { name = "secrets", virtual = "extensions/secrets" },
     { name = "setuptools", specifier = ">=75.6.0" },
     { name = "stevedore", specifier = ">=5.4.0" },
     { name = "typer", specifier = ">=0.15.1" },
@@ -2182,8 +2170,8 @@ release = [{ name = "python-semantic-release", specifier = ">=9.15.2" }]
 
 [[package]]
 name = "secrets"
-version = "0.1.0"
-source = { virtual = "extensions/secrets" }
+version = "0.0.0"
+source = { editable = "extensions/secrets" }
 
 [[package]]
 name = "setuptools"
