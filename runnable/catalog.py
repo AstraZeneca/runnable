@@ -10,8 +10,6 @@ from runnable.datastore import DataCatalog
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-# TODO: Should ** be allowed as glob pattern as it can potentially copy everything to catalog
-
 
 def is_catalog_out_of_sync(
     catalog, synced_catalogs=Optional[List[DataCatalog]]
@@ -169,4 +167,5 @@ class DoNothingCatalog(BaseCatalog):
         """
         Does nothing
         """
+        logger.info("Using a do-nothing catalog, doing nothing while sync between runs")
         logger.info("Using a do-nothing catalog, doing nothing while sync between runs")

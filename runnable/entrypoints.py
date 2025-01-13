@@ -16,9 +16,6 @@ from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-print("")  # removes the buffer print
-
-
 def get_default_configs() -> RunnableConfig:
     """
     User can provide extensions as part of their code base, runnable-config.yaml provides the place to put them.
@@ -128,11 +125,10 @@ def prepare_configurations(
             "job-executor", None
         )  # type: ignore
         if not job_executor_config:
-            executor_config = cast(
+            job_executor_config = cast(
                 ServiceConfig,
                 runnable_defaults.get("job-executor", defaults.DEFAULT_JOB_EXECUTOR),
             )
-
         assert job_executor_config, "Job executor is not provided"
         configured_executor = utils.get_provider_by_name_and_type(
             "job_executor", job_executor_config
