@@ -15,8 +15,6 @@ from runnable.utils import remove_prefix
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-# TODO: Revisit this, it might be a bit too complicated than required
-
 
 def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
     """
@@ -48,13 +46,6 @@ def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
             if remove:
                 del os.environ[env_var]
     return parameters
-
-
-def serialize_parameter_as_str(value: Any) -> str:
-    if isinstance(value, BaseModel):
-        return json.dumps(value.model_dump())
-
-    return json.dumps(value)
 
 
 def filter_arguments_for_func(

@@ -11,9 +11,9 @@ import runnable.context as context
 from runnable import defaults
 from runnable.datastore import DataCatalog, JobLog, StepLog
 from runnable.defaults import TypeMapVariable
-from runnable.graph import Graph
 
 if TYPE_CHECKING:  # pragma: no cover
+    from runnable.graph import Graph
     from runnable.nodes import BaseNode
     from runnable.tasks import BaseTaskType
 
