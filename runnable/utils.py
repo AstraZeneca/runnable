@@ -17,7 +17,7 @@ from ruamel.yaml import YAML
 from stevedore import driver
 
 import runnable.context as context
-from runnable import defaults, names
+from runnable import console, defaults, names
 from runnable.defaults import TypeMapVariable
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -176,7 +176,7 @@ def is_a_git_repo() -> bool:
         logger.info("Found the code to be git versioned")
         return True
     except BaseException:  # pylint: disable=W0702
-        logger.error("No git repo found, unsafe hash")
+        console.print("Not a git repo", style="bold red")
 
     return False
 
@@ -195,27 +195,7 @@ def get_current_code_commit() -> Union[str, None]:
         logger.info("Found the git commit to be: %s", label)
         return label
     except BaseException:  # pylint: disable=W0702
-        logger.exception("Error getting git hash")
-        raise
-
-
-def archive_git_tracked(name: str):
-    """Generate a git archive of the tracked files.
-
-    Args:
-        name (str): The name to give the archive
-
-    Raises:
-        Exception: If its not a git repo
-    """
-    command = f"git archive -v -o {name}.tar.gz --format=tar.gz HEAD"
-
-    if not is_a_git_repo():
-        raise Exception("Not a git repo")
-    try:
-        subprocess.check_output(command.split()).strip().decode("utf-8")
-    except BaseException:  # pylint: disable=W0702
-        logger.exception("Error archiving repo")
+        console.print("Not a git repo, error getting hash", style="bold red")
         raise
 
 
@@ -234,7 +214,7 @@ def is_git_clean() -> Tuple[bool, Union[None, str]]:
             return True, None
         return False, label
     except BaseException:  # pylint: disable=W0702
-        logger.exception("Error checking if the code is git clean")
+        console.print("Not a git repo, not clean", style="bold red")
 
     return False, None
 
@@ -253,7 +233,7 @@ def get_git_remote() -> Union[str, None]:
         logger.info("Found the git remote to be: %s", label)
         return label
     except BaseException:  # pylint: disable=W0702
-        logger.exception("Error getting git remote")
+        console.print("Not a git repo, no remote", style="bold red")
         raise
 
 
