@@ -98,6 +98,7 @@ include = [
 [project.entry-points.'job_executor']
 "local" = "extensions.job_executor.local:LocalJobExecutor"
 "local-container" = "extensions.job_executor.local_container:LocalContainerJobExecutor"
+"mini-k8s-job" = "extensions.job_executor.k8s:MiniK8sJobExecutor"
 "k8s-job" = "extensions.job_executor.k8s:K8sJobExecutor"
 # "argo" = "extensions.pipeline_executor.argo:ArgoExecutor"
 # "mocked" = "extensions.pipeline_executor.mocked:MockedExecutor"
