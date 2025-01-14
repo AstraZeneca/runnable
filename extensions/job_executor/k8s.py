@@ -190,6 +190,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         self._use_volumes()
 
         job_log = self._context.run_log_store.get_job_log(run_id=self._context.run_id)
+        self.add_code_identities(job_log)
 
         attempt_log = job.execute_command(
             attempt_number=self.step_attempt_number,
@@ -428,6 +429,7 @@ class K8sJobExecutor(GenericK8sJobExecutor):
         )
 
         job_log = self._context.run_log_store.get_job_log(run_id=self._context.run_id)
+        self.add_code_identities(job_log)
 
         attempt_log = job.execute_command(
             attempt_number=self.step_attempt_number,
