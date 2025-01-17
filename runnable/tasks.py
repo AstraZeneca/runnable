@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from pickle import PicklingError
 from string import Template
-from typing import Any, Dict, List, Literal, Tuple
+from typing import Any, Dict, List, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from stevedore import driver
@@ -58,20 +58,6 @@ class BaseTaskType(BaseModel):
     @property
     def _context(self):
         return context.run_context
-
-    def get_cli_options(self) -> Tuple[str, dict]:
-        """
-        Key is the name of the cli option and value is the value of the cli option.
-        This should always be in sync with the cli options defined in execute_*.
-
-        Returns:
-            str: The name of the cli option.
-            dict: The dict of cli options for the task.
-
-        Raises:
-            NotImplementedError: Base class, not implemented
-        """
-        raise NotImplementedError()
 
     def set_secrets_as_env_variables(self):
         # Preparing the environment for the task execution
@@ -262,14 +248,6 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     task_type: str = Field(default="python", serialization_alias="command_type")
     command: str
 
-    def get_cli_options(self) -> Tuple[str, dict]:
-        """Return the cli options for the task.
-
-        Returns:
-            dict: The cli options for the task
-        """
-        return "function", {"command": self.command}
-
     def execute_command(
         self,
         map_variable: TypeMapVariable = None,
@@ -438,12 +416,6 @@ class NotebookTaskType(BaseTaskType):
         file_name = output_path.parent / (output_path.stem + f"{sane_name}_out.ipynb")
 
         return str(file_name)
-
-    def get_cli_options(self) -> Tuple[str, dict]:
-        return "notebook", {
-            "command": self.command,
-            "notebook-output-path": self.notebook_output_path,
-        }
 
     def execute_command(
         self,

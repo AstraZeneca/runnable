@@ -1,0 +1,11 @@
+pipeline-executor:
+  type: "argo" # (1)
+  config:
+    pvc_for_runnable: runnable
+    argoWorkflow:
+      metadata:
+        generateName: "argo-" # (2)
+      spec:
+        serviceAccountName: "default-editor"
+        templateDefaults:
+          image: harbor.csis.astrazeneca.net/mlops/runnable:latest # (2)

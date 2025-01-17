@@ -332,6 +332,7 @@ def execute_single_node(
         run_id=run_id, configuration_file=configuration_file, tag=tag
     )
 
+    # TODO:  Is it useful to make it get from an environment variable
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
@@ -353,6 +354,8 @@ def execute_single_node(
         # Put the log file in the catalog
         run_context.catalog_handler.put(name=log_file_name, run_id=run_context.run_id)
         os.remove(log_file_name)
+
+    executor.send_return_code()
 
 
 def execute_job_yaml_spec(

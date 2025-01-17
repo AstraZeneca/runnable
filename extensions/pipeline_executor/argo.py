@@ -31,36 +31,6 @@ logger = logging.getLogger(defaults.NAME)
 # TODO: Leave the run log in consistent state.
 # TODO: Make the config camel case just like Argo does.
 
-"""
-executor:
-  type: argo
-  config:
-    image: # apply to template
-    max_workflow_duration: # Apply to spec
-    nodeSelector: #Apply to spec
-    parallelism: #apply to spec
-    resources: # convert to podSpecPath
-      limits:
-      requests:
-    retryStrategy:
-    max_step_duration: # apply to templateDefaults
-    step_timeout: # apply to templateDefaults
-    tolerations: # apply to spec
-    imagePullPolicy: # apply to template
-
-    overrides:
-      override:
-        tolerations: # template
-        image: # container
-        max_step_duration: # template
-        step_timeout: #template
-        nodeSelector: #template
-        parallelism: # this need to applied for map
-        resources: # container
-        imagePullPolicy: #container
-        retryStrategy: # template
-"""
-
 
 class SecretEnvVar(BaseModel):
     """

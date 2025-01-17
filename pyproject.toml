@@ -91,7 +91,7 @@ include = [
 [project.entry-points.'pipeline_executor']
 "local" = "extensions.pipeline_executor.local:LocalExecutor"
 "local-container" = "extensions.pipeline_executor.local_container:LocalContainerExecutor"
-"argo" = "extensions.pipeline_executor.argo:ArgoExecutor"
+"argo" = "extensions.pipeline_executor.argo_models:ArgoExecutor"
 "mocked" = "extensions.pipeline_executor.mocked:MockedExecutor"
 "retry" = "extensions.pipeline_executor.retry:RetryExecutor"
 

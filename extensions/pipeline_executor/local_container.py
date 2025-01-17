@@ -155,39 +155,6 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         )
         self.trigger_node_execution(node=node, map_variable=map_variable, **kwargs)
 
-    # def execute_job(self, node: TaskNode):
-    #     """
-    #     Set up the step log and call the execute node
-
-    #     Args:
-    #         node (BaseNode): _description_
-    #     """
-
-    #     step_log = self._context.run_log_store.create_step_log(
-    #         node.name, node._get_step_log_name(map_variable=None)
-    #     )
-
-    #     self.add_code_identities(node=node, step_log=step_log)
-
-    #     step_log.step_type = node.node_type
-    #     step_log.status = defaults.PROCESSING
-    #     self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-
-    #     command = utils.get_job_execution_command(node)
-    #     self._spin_container(node=node, command=command)
-
-    #     # Check the step log status and warn if necessary. Docker errors are generally suppressed.
-    #     step_log = self._context.run_log_store.get_step_log(
-    #         node._get_step_log_name(map_variable=None), self._context.run_id
-    #     )
-    #     if step_log.status != defaults.SUCCESS:
-    #         msg = (
-    #             "Node execution inside the container failed. Please check the logs.\n"
-    #             "Note: If you do not see any docker issue from your side and the code works properly on local execution"
-    #             "please raise a bug report."
-    #         )
-    #         logger.warning(msg)
-
     def trigger_node_execution(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
     ):
