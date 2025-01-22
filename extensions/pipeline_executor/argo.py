@@ -658,22 +658,24 @@ class ArgoExecutor(GenericPipelineExecutor):
                     else:
                         raise ValueError("Invalid node type")
 
-                    branch_task = DagTask(
-                        name=f"{task_name}-{node_type}",
-                        template=f"{task_name}-{node_type}",
-                        depends=f"{task_name}-fan-out.Succeeded",
-                        arguments=Arguments(parameters=added_parameters),
-                        with_param=with_param,
-                    )
-                    composite_template.dag.tasks.append(branch_task)
+                    fan_in_depends = ""
 
                     for name, branch in branches.items():
                         name = (
                             name.replace(" ", "-").replace(".", "-").replace("_", "-")
                         )
 
+                        branch_task = DagTask(
+                            name=f"{task_name}-{name}",
+                            template=f"{task_name}-{name}",
+                            depends=f"{task_name}-fan-out.Succeeded",
+                            arguments=Arguments(parameters=added_parameters),
+                            with_param=with_param,
+                        )
+                        composite_template.dag.tasks.append(branch_task)
+
                         branch_template = DagTemplate(
-                            name=name,
+                            name=branch_task.name,
                             inputs=Inputs(
                                 parameters=[
                                     Parameter(name=param.name, value=None)
@@ -689,10 +691,12 @@ class ArgoExecutor(GenericPipelineExecutor):
                             parameters=added_parameters,
                         )
 
+                        fan_in_depends += f"{branch_task.name}.Succeeded || {branch_task.name}.Failed || "
+
                     fan_in_task = DagTask(
                         name=f"{task_name}-fan-in",
                         template=f"{task_name}-fan-in",
-                        depends=f"{branch_task.name}.Succeeded || {branch_task.name}.Failed",
+                        depends=fan_in_depends.strip(" || "),
                         arguments=Arguments(parameters=parameters),
                     )
 
