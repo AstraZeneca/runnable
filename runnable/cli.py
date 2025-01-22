@@ -164,7 +164,7 @@ def fan(
     python_or_yaml_file: Annotated[
         str, typer.Argument(help="The pipeline definition file")
     ],
-    mode: Annotated[FanMode, typer.Option(help="fan in or fan out")],
+    in_or_out: Annotated[str, typer.Argument(help="The fan mode")],
     map_variable: Annotated[
         str,
         typer.Option(
@@ -172,7 +172,7 @@ def fan(
             help="The map variable dictionary in str",
             show_default=True,
         ),
-    ],
+    ] = "",
     config_file: Annotated[
         str,
         typer.Option(
@@ -197,6 +197,14 @@ def fan(
         ),
     ] = LogLevel.INFO,
     tag: Annotated[str, typer.Option(help="A tag attached to the run")] = "",
+    mode: Annotated[
+        ExecutionMode,
+        typer.Option(
+            "--mode",
+            "-m",
+            help="spec in yaml or python sdk",
+        ),
+    ] = ExecutionMode.YAML,
 ):
     logger.setLevel(log_level.value)
 
@@ -206,6 +214,7 @@ def fan(
         pipeline_file=python_or_yaml_file,
         step_name=step_name,
         mode=mode,
+        in_or_out=in_or_out,
         map_variable=map_variable,
         run_id=run_id,
         tag=tag,

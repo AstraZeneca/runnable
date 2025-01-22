@@ -17,6 +17,6 @@ COPY . /app
 WORKDIR /app
 
 RUN uv python install && \
-    uv sync --index https://artifactory.astrazeneca.net/api/pypi/pypi-virtual/simple/ --frozen --all-extras
+    uv sync --index https://artifactory.astrazeneca.net/api/pypi/pypi-virtual/simple/  --all-extras
 
 ENV PATH="/app/.venv/bin:$PATH"

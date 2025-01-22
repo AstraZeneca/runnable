@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from pickle import PicklingError
 from string import Template
-from typing import Any, Dict, List, Literal, Tuple
+from typing import Any, Dict, List, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from stevedore import driver
@@ -58,20 +58,6 @@ class BaseTaskType(BaseModel):
     @property
     def _context(self):
         return context.run_context
-
-    def get_cli_options(self) -> Tuple[str, dict]:
-        """
-        Key is the name of the cli option and value is the value of the cli option.
-        This should always be in sync with the cli options defined in execute_*.
-
-        Returns:
-            str: The name of the cli option.
-            dict: The dict of cli options for the task.
-
-        Raises:
-            NotImplementedError: Base class, not implemented
-        """
-        raise NotImplementedError()
 
     def set_secrets_as_env_variables(self):
         # Preparing the environment for the task execution
@@ -262,14 +248,6 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     task_type: str = Field(default="python", serialization_alias="command_type")
     command: str
 
-    def get_cli_options(self) -> Tuple[str, dict]:
-        """Return the cli options for the task.
-
-        Returns:
-            dict: The cli options for the task
-        """
-        return "function", {"command": self.command}
-
     def execute_command(
         self,
         map_variable: TypeMapVariable = None,
@@ -425,25 +403,21 @@ class NotebookTaskType(BaseTaskType):
 
         return command
 
-    @property
-    def notebook_output_path(self) -> str:
-        # This is to accommodate jobs which does not have a context_node
+    def get_notebook_output_path(self, map_variable: TypeMapVariable = None) -> str:
+        tag = ""
+        map_variable = map_variable or {}
+        for key, value in map_variable.items():
+            tag += f"{key}_{value}_"
+
         if self._context.executor._context_node:
-            node_name = self._context.executor._context_node.internal_name
-            sane_name = "".join(x for x in node_name if x.isalnum())
-        else:
-            sane_name = ""
+            tag += self._context.executor._context_node.name
+
+        tag = "".join(x for x in tag if x.isalnum())
 
         output_path = Path(".", self.command)
-        file_name = output_path.parent / (output_path.stem + f"{sane_name}_out.ipynb")
+        file_name = output_path.parent / (output_path.stem + f"-{tag}_out.ipynb")
 
         return str(file_name)
-
-    def get_cli_options(self) -> Tuple[str, dict]:
-        return "notebook", {
-            "command": self.command,
-            "notebook-output-path": self.notebook_output_path,
-        }
 
     def execute_command(
         self,
@@ -464,7 +438,9 @@ class NotebookTaskType(BaseTaskType):
             import ploomber_engine as pm
             from ploomber_engine.ipython import PloomberClient
 
-            notebook_output_path = self.notebook_output_path
+            notebook_output_path = self.get_notebook_output_path(
+                map_variable=map_variable
+            )
 
             with (
                 self.execution_context(
@@ -476,7 +452,6 @@ class NotebookTaskType(BaseTaskType):
 
                 if map_variable:
                     for key, value in map_variable.items():
-                        notebook_output_path += "_" + str(value)
                         copy_params[key] = JsonParameter(kind="json", value=value)
 
                 # Remove any {v}_unreduced parameters from the parameters

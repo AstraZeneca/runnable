@@ -419,6 +419,11 @@ class ShellTask(BaseTask):
     def command_type(self) -> str:
         return "shell"
 
+    def create_job(self) -> RunnableTask:
+        self.terminate_with_success = True
+        node = self.create_node()
+        return node.executable
+
 
 class Stub(BaseTraversal):
     """
