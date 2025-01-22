@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import shlex
 import string
@@ -25,8 +26,6 @@ from runnable import defaults, utils
 from runnable.defaults import TypeMapVariable
 from runnable.graph import Graph, search_node_by_internal_name
 from runnable.nodes import BaseNode
-
-# TODO: Clearly mark which step should set up run log
 
 
 class BaseModelWIthConfig(BaseModel, use_enum_values=True):
@@ -247,9 +246,6 @@ class TemplateDefaults(BaseModelWIthConfig):
     resources: Resources = Field(default_factory=Resources)
 
 
-# TODO: Can user provide env vars for the container?
-
-
 # User provides this as part of the argoSpec
 # some an be provided here or as a template default or node override
 class ArgoWorkflowSpec(BaseModelWIthConfig):
@@ -261,7 +257,7 @@ class ArgoWorkflowSpec(BaseModelWIthConfig):
     pod_gc: Optional[PodGC] = Field(default=None, serialization_alias="podGC")
     retry_strategy: Optional[RetryStrategy] = Field(default=None)
     service_account_name: Optional[str] = Field(default=None)
-    template_defaults: TemplateDefaults = Field(default_factory=TemplateDefaults)
+    template_defaults: TemplateDefaults
     tolerations: Optional[list[Toleration]] = Field(default=None)
 
 
@@ -278,7 +274,7 @@ class ArgoWorkflow(BaseModelWIthConfig):
     )
     kind: Literal["Workflow"] = Field(default="Workflow", frozen=True)
     metadata: ArgoMetadata
-    spec: ArgoWorkflowSpec = Field(default_factory=ArgoWorkflowSpec)
+    spec: ArgoWorkflowSpec
 
 
 # The below are not visible to the user
@@ -291,7 +287,7 @@ class DagTask(BaseModelWIthConfig):
 
 
 class CoreDagTemplate(BaseModelWIthConfig):
-    tasks: list[DagTask] = Field(default_factory=list)
+    tasks: list[DagTask] = Field(default_factory=list[DagTask])
 
 
 class CoreContainerTemplate(BaseModelWIthConfig):
@@ -305,7 +301,7 @@ class CoreContainerTemplate(BaseModelWIthConfig):
 
 class DagTemplate(BaseModelWIthConfig):
     name: str
-    dag: CoreDagTemplate = Field(default=CoreDagTemplate)  # Should be filled in
+    dag: CoreDagTemplate = Field(default_factory=CoreDagTemplate)
     inputs: Optional[Inputs] = Field(default=None)
     parallelism: Optional[int] = Field(default=None)  # Not sure if this is needed
     fail_fast: bool = Field(default=True)
@@ -366,7 +362,9 @@ class ArgoExecutor(GenericPipelineExecutor):
     pvc_for_runnable: Optional[str] = Field(default=None)
     # pvc_for_catalog: Optional[str] = Field(default=None)
     # pvc_for_run_log: Optional[str] = Field(default=None)
-    custom_volumes: Optional[list[CustomVolume]] = Field(default_factory=list)
+    custom_volumes: Optional[list[CustomVolume]] = Field(
+        default_factory=list[CustomVolume]
+    )
 
     expose_parameters_as_inputs: bool = True
     secret_from_k8s: Optional[str] = Field(default=None)
@@ -386,6 +384,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     )
     _container_log_location: str = PrivateAttr(default="/tmp/run_logs/")
     _container_catalog_location: str = PrivateAttr(default="/tmp/catalog/")
+    _added_initial_container: bool = PrivateAttr(default=False)
 
     def sanitize_name(self, name: str) -> str:
         formatted_name = name.replace(" ", "-").replace(".", "-").replace("_", "-")
@@ -393,6 +392,29 @@ class ArgoExecutor(GenericPipelineExecutor):
         unique_name = f"{formatted_name}-{tag}"
         unique_name = unique_name.replace("map-variable-placeholder-", "")
         return unique_name
+
+    def _set_up_initial_container(self, container_template: CoreContainerTemplate):
+        if self._added_initial_container:
+            return
+
+        parameters: list[Parameter] = []
+
+        if self.argo_workflow.spec.arguments:
+            parameters = self.argo_workflow.spec.arguments.parameters or []
+
+        for parameter in parameters or []:
+            key, _ = parameter.name, parameter.value
+            env_var = EnvVar(
+                name=defaults.PARAMETER_PREFIX + key,
+                value="{{workflow.parameters." + key + "}}",
+            )
+            container_template.env.append(env_var)
+
+        env_var = EnvVar(name="error_on_existing_run_id", value="true")
+        container_template.env.append(env_var)
+
+        # After the first container is added, set the added_initial_container to True
+        self._added_initial_container = True
 
     def _create_fan_templates(
         self,
@@ -405,7 +427,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         map_variable: TypeMapVariable = {}
         for parameter in parameters or []:
-            map_variable[parameter.name] = (
+            map_variable[parameter.name] = (  # type: ignore
                 "{{inputs.parameters." + str(parameter.name) + "}}"
             )
 
@@ -424,6 +446,9 @@ class ArgoExecutor(GenericPipelineExecutor):
                 volume_pair.volume_mount for volume_pair in self.volume_pairs
             ],
         )
+
+        # Either a task or a fan-out can the first container
+        self._set_up_initial_container(container_template=core_container_template)
 
         task_name += f"-fan-{mode}"
 
@@ -452,7 +477,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         node_overide = {}
         if hasattr(node, "overides"):
-            node_overide = node.overides  # type: ignore
+            node_overide = node.overides
 
         # update template defaults with node overrides
         template_defaults.update(node_overide)
@@ -461,7 +486,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         map_variable: TypeMapVariable = {}
         for parameter in inputs.parameters or []:
-            map_variable[parameter.name] = (
+            map_variable[parameter.name] = (  # type: ignore
                 "{{inputs.parameters." + str(parameter.name) + "}}"
             )
 
@@ -482,6 +507,8 @@ class ArgoExecutor(GenericPipelineExecutor):
             ],
         )
 
+        self._set_up_initial_container(container_template=core_container_template)
+
         container_template = ContainerTemplate(
             container=core_container_template,
             name=task_name,
@@ -496,28 +523,12 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         return container_template
 
-    def _add_env_vars_to_container_template(
+    def _expose_secrets_to_task(
         self,
         working_on: BaseNode,
         container_template: CoreContainerTemplate,
-        add_override_parameters: bool = False,
     ):
-        # TODO:  Add map variables too if agreed
-        # TODO: Instead of add_overrides take in a initial_container flag
         assert isinstance(working_on, TaskNode)
-        parameters = {}
-        if not self.argo_workflow.spec.arguments:
-            parameters = self.argo_workflow.spec.arguments.parameters
-
-        if add_override_parameters:
-            for parameter in parameters or []:
-                key, _ = parameter.name, parameter.value
-                env_var = EnvVar(
-                    name=defaults.PARAMETER_PREFIX + key,
-                    value="{{workflow.parameters." + key + "}}",
-                )
-                container_template.env.append(env_var)
-
         secrets = working_on.executable.secrets
         for secret in secrets:
             assert self.secret_from_k8s is not None
@@ -569,7 +580,6 @@ class ArgoExecutor(GenericPipelineExecutor):
         dag: Graph,
         start_at: str,
         parameters: Optional[list[Parameter]] = None,
-        override_parameters: bool = False,
     ):
         current_node: str = start_at
         depends: str = ""
@@ -607,10 +617,9 @@ class ArgoExecutor(GenericPipelineExecutor):
                     assert template_of_container.container is not None
 
                     if working_on.node_type == "task":
-                        self._add_env_vars_to_container_template(
+                        self._expose_secrets_to_task(
                             working_on,
                             container_template=template_of_container.container,
-                            add_override_parameters=override_parameters,
                         )
 
                     self._templates.append(template_of_container)
@@ -710,7 +719,6 @@ class ArgoExecutor(GenericPipelineExecutor):
 
                     self._templates.append(composite_template)
 
-            # This might be common across all the nodes.
             self._handle_failures(
                 working_on,
                 dag,
@@ -721,7 +729,6 @@ class ArgoExecutor(GenericPipelineExecutor):
             if working_on.node_type == "success" or working_on.node_type == "fail":
                 break
 
-            override_parameters: bool = False
             current_node = working_on._get_next_node()
 
         self._templates.append(dag_template)
@@ -759,7 +766,6 @@ class ArgoExecutor(GenericPipelineExecutor):
             dag,
             start_at=dag.start_at,
             parameters=[],
-            override_parameters=self.expose_parameters_as_inputs,
         )
 
         argo_workflow_dump = self.argo_workflow.model_dump(
@@ -814,10 +820,11 @@ class ArgoExecutor(GenericPipelineExecutor):
         map_variable: dict[str, str | int | float] | None = None,
         **kwargs,
     ):
-        # TODO: Having an optional flag to set up run log might be a good idea
-        # This should only be for the first step of the graph
+        error_on_existing_run_id = os.environ.get("error_on_existing_run_id", "false")
+        exists_ok = error_on_existing_run_id == "false"
+
         self._use_volumes()
-        self._set_up_run_log(exists_ok=True)
+        self._set_up_run_log(exists_ok=exists_ok)
 
         step_log = self._context.run_log_store.create_step_log(
             node.name, node._get_step_log_name(map_variable)
@@ -843,7 +850,10 @@ class ArgoExecutor(GenericPipelineExecutor):
     def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
         # This could be the first step of the graph
         self._use_volumes()
-        self._set_up_run_log(exists_ok=True)
+
+        error_on_existing_run_id = os.environ.get("error_on_existing_run_id", "false")
+        exists_ok = error_on_existing_run_id == "false"
+        self._set_up_run_log(exists_ok=exists_ok)
 
         super().fan_out(node, map_variable)
 

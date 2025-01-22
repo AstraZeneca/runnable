@@ -403,17 +403,19 @@ class NotebookTaskType(BaseTaskType):
 
         return command
 
-    @property
-    def notebook_output_path(self) -> str:
-        # This is to accommodate jobs which does not have a context_node
+    def get_notebook_output_path(self, map_variable: TypeMapVariable = None) -> str:
+        tag = ""
+        map_variable = map_variable or {}
+        for key, value in map_variable.items():
+            tag += f"{key}_{value}_"
+
         if self._context.executor._context_node:
-            node_name = self._context.executor._context_node.internal_name
-            sane_name = "".join(x for x in node_name if x.isalnum())
-        else:
-            sane_name = ""
+            tag += self._context.executor._context_node.name
+
+        tag = "".join(x for x in tag if x.isalnum())
 
         output_path = Path(".", self.command)
-        file_name = output_path.parent / (output_path.stem + f"{sane_name}_out.ipynb")
+        file_name = output_path.parent / (output_path.stem + f"-{tag}_out.ipynb")
 
         return str(file_name)
 
@@ -436,7 +438,9 @@ class NotebookTaskType(BaseTaskType):
             import ploomber_engine as pm
             from ploomber_engine.ipython import PloomberClient
 
-            notebook_output_path = self.notebook_output_path
+            notebook_output_path = self.get_notebook_output_path(
+                map_variable=map_variable
+            )
 
             with (
                 self.execution_context(
@@ -448,7 +452,6 @@ class NotebookTaskType(BaseTaskType):
 
                 if map_variable:
                     for key, value in map_variable.items():
-                        notebook_output_path += "_" + str(value)
                         copy_params[key] = JsonParameter(kind="json", value=value)
 
                 # Remove any {v}_unreduced parameters from the parameters
