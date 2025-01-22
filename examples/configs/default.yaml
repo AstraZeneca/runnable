@@ -2,10 +2,10 @@ pipeline-executor:
   type: local # (1)
 
 run-log-store:
-  type: buffered # (2)
+  type: file-system
 
 catalog:
-  type: do-nothing # (3)
+  type: file-system # (3)
 
 secrets:
-  type: do-nothing # (4)
+  type: env-secrets # (4)

@@ -495,6 +495,7 @@ def fan(
     pipeline_file: str,
     step_name: str,
     mode: str,
+    in_or_out: str,
     map_variable: str,
     run_id: str,
     tag: str = "",
@@ -554,10 +555,10 @@ def fan(
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    if mode == "in":
+    if in_or_out == "in":
         logger.info("Fanning in for : %s", node_to_execute)
         executor.fan_in(node=node_to_execute, map_variable=map_variable_dict)
-    elif mode == "out":
+    elif in_or_out == "out":
         logger.info("Fanning out for : %s", node_to_execute)
         executor.fan_out(node=node_to_execute, map_variable=map_variable_dict)
     else:
