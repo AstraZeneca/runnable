@@ -1,20 +1,17 @@
 from examples.common.functions import write_files
-from runnable import Catalog, Job, PythonTask
+from runnable import Catalog, PythonJob
 
 print("Running catalog.py")
 
 
 def main():
     write_catalog = Catalog(put=["df.csv", "data_folder/data.txt"])
-    generate_data = PythonTask(
-        name="generate_data",
+    job = PythonJob(
         function=write_files,
         catalog=write_catalog,
     )
 
-    job = Job(name="catalog", task=generate_data)
-
-    _ = job.execute()
+    job.execute()
 
     return job
 

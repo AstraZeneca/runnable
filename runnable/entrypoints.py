@@ -438,7 +438,7 @@ def set_job_spec_from_python(run_context: context.Context, python_module: str):
     imported_module = importlib.import_module(module)
 
     run_context.from_sdk = True
-    task = getattr(imported_module, func)().return_task()
+    task = getattr(imported_module, func)().get_task()
     catalog_settings = getattr(imported_module, func)().return_catalog_settings()
 
     run_context.job_definition_file = python_module

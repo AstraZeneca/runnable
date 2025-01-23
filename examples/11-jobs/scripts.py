@@ -14,18 +14,12 @@ For example:
 
 """
 
-from runnable import Job, ShellTask
+from runnable import ShellJob
 
 
 def main():
     # If this step executes successfully, the pipeline will terminate with success
-    hello_task = ShellTask(
-        name="hello",
-        command="echo 'Hello World!'",
-        terminate_with_success=True,
-    )
-
-    job = Job(name="hello", task=hello_task)
+    job = ShellJob(command="echo 'Hello World!'")
 
     job.execute()
 
