@@ -19,21 +19,11 @@ The hello.execution.log has the captured stdout of "Hello World!".
 """
 
 from examples.common.functions import hello
-from runnable import Job, PythonTask
+from runnable import PythonJob
 
 
 def main():
-    # Create a tasks which calls the function "hello"
-    # If this step executes successfully,
-    # the pipeline will terminate with success
-    hello_task = PythonTask(
-        name="hello",
-        function=hello,
-        terminate_with_success=True,
-    )
-
-    # The pipeline has only one step.
-    job = Job(name="hello", task=hello_task)
+    job = PythonJob(function=hello)
 
     job.execute()
 

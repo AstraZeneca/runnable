@@ -822,17 +822,21 @@ class Pipeline(BaseModel):
             )
 
 
-class Job(BaseModel):
-    name: str
-    task: BaseTask
+class BaseJob(BaseModel):
+    catalog: Optional[Catalog] = Field(default=None, alias="catalog")
+    overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
+    returns: List[Union[str, TaskReturns]] = Field(
+        default_factory=list, alias="returns"
+    )
+    secrets: List[str] = Field(default_factory=list)
 
-    def return_task(self) -> RunnableTask:
-        return self.task.create_job()
+    def get_task(self) -> RunnableTask:
+        raise NotImplementedError
 
     def return_catalog_settings(self) -> Optional[List[str]]:
-        if self.task.catalog is None:
+        if self.catalog is None:
             return []
-        return self.task.catalog.put
+        return self.catalog.put
 
     def _is_called_for_definition(self) -> bool:
         """
@@ -892,7 +896,7 @@ class Job(BaseModel):
 
             run_context.job_definition_file = f"{module_to_call}.py"
 
-        job = self.task.create_job()
+        job = self.get_task()
         catalog_settings = self.return_catalog_settings()
 
         run_context.executor.submit_job(job, catalog_settings=catalog_settings)
@@ -905,3 +909,60 @@ class Job(BaseModel):
             return run_context.run_log_store.get_run_log_by_id(
                 run_id=run_context.run_id
             )
+
+
+class PythonJob(BaseJob):
+    function: Callable = Field(exclude=True)
+
+    @property
+    @computed_field
+    def command(self) -> str:
+        module = self.function.__module__
+        name = self.function.__name__
+
+        return f"{module}.{name}"
+
+    def get_task(self) -> RunnableTask:
+        # Piggy bank on existing tasks as a hack
+        task = PythonTask(
+            name="dummy",
+            terminate_with_success=True,
+            returns=self.returns,
+            secrets=self.secrets,
+            function=self.function,
+        )
+        return task.create_node().executable
+
+
+class NotebookJob(BaseJob):
+    notebook: str = Field(serialization_alias="command")
+    optional_ploomber_args: Optional[Dict[str, Any]] = Field(
+        default=None, alias="optional_ploomber_args"
+    )
+
+    def get_task(self) -> RunnableTask:
+        # Piggy bank on existing tasks as a hack
+        task = NotebookTask(
+            name="dummy",
+            terminate_with_success=True,
+            returns=self.returns,
+            secrets=self.secrets,
+            notebook=self.notebook,
+            optional_ploomber_args=self.optional_ploomber_args,
+        )
+        return task.create_node().executable
+
+
+class ShellJob(BaseJob):
+    command: str = Field(alias="command")
+
+    def get_task(self) -> RunnableTask:
+        # Piggy bank on existing tasks as a hack
+        task = ShellTask(
+            name="dummy",
+            terminate_with_success=True,
+            returns=self.returns,
+            secrets=self.secrets,
+            command=self.command,
+        )
+        return task.create_node().executable

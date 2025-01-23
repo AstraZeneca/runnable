@@ -19,11 +19,11 @@ Run the below example as:
 """
 
 from examples.common.functions import write_parameter
-from runnable import Job, PythonTask, metric, pickled
+from runnable import PythonJob, metric, pickled
 
 
 def main():
-    write_parameters = PythonTask(
+    job = PythonJob(
         function=write_parameter,
         returns=[
             pickled("df"),
@@ -33,10 +33,7 @@ def main():
             "pydantic_param",
             metric("score"),
         ],
-        name="set_parameter",
     )
-
-    job = Job(name="set_parameters", task=write_parameters)
 
     job.execute()
 
