@@ -6,7 +6,7 @@ import string
 from collections import namedtuple
 from enum import Enum
 from functools import cached_property
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal, Optional, cast
 
 from pydantic import (
     BaseModel,
@@ -20,7 +20,13 @@ from pydantic import (
 from pydantic.alias_generators import to_camel
 from ruamel.yaml import YAML
 
-from extensions.nodes.nodes import MapNode, ParallelNode, TaskNode
+from extensions.nodes.nodes import (
+    MapNode,
+    ParallelNode,
+    StubNode,
+    SuccessNode,
+    TaskNode,
+)
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults, utils
 from runnable.defaults import TypeMapVariable
@@ -229,9 +235,8 @@ class Resources(BaseModel):
     requests: Request = Field(default=Request(), serialization_alias="requests")
 
 
-# This is what the user can override per template
-# Some are specific to container and some are specific to dag
-class TemplateDefaults(BaseModelWIthConfig):
+# Lets construct this from UserDefaults
+class ArgoTemplateDefaults(BaseModelWIthConfig):
     active_deadline_seconds: Optional[int] = Field(default=86400)  # 1 day
     fail_fast: bool = Field(default=True)
     node_selector: dict[str, str] = Field(default_factory=dict)
@@ -240,11 +245,30 @@ class TemplateDefaults(BaseModelWIthConfig):
     timeout: Optional[str] = Field(default=None)
     tolerations: Optional[list[Toleration]] = Field(default=None)
 
-    # These are in addition to what argo spec provides
-    image: str
-    image_pull_policy: Optional[ImagePullPolicy] = Field(default=ImagePullPolicy.Always)
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+
+
+class CommonDefaults(BaseModelWIthConfig):
+    active_deadline_seconds: Optional[int] = Field(default=86400)  # 1 day
+    fail_fast: bool = Field(default=True)
+    node_selector: dict[str, str] = Field(default_factory=dict)
+    parallelism: Optional[int] = Field(default=None)
+    retry_strategy: Optional[RetryStrategy] = Field(default=None)
+    timeout: Optional[str] = Field(default=None)
+    tolerations: Optional[list[Toleration]] = Field(default=None)
+    image_pull_policy: ImagePullPolicy = Field(default=ImagePullPolicy.Always)
     resources: Resources = Field(default_factory=Resources)
     env: list[EnvVar | SecretEnvVar] = Field(default_factory=list, exclude=True)
+
+
+class UserDefaults(CommonDefaults):
+    image: str
+
+
+class Overrides(CommonDefaults):
+    image: Optional[str] = Field(default=None)
 
 
 # User provides this as part of the argoSpec
@@ -258,7 +282,6 @@ class ArgoWorkflowSpec(BaseModelWIthConfig):
     pod_gc: Optional[PodGC] = Field(default=None, serialization_alias="podGC")
     retry_strategy: Optional[RetryStrategy] = Field(default=None)
     service_account_name: Optional[str] = Field(default=None)
-    template_defaults: TemplateDefaults
     tolerations: Optional[list[Toleration]] = Field(default=None)
 
 
@@ -321,7 +344,6 @@ class ContainerTemplate((BaseModelWIthConfig)):
     inputs: Optional[Inputs] = Field(default=None)
     outputs: Optional[Outputs] = Field(default=None)
 
-    # The remaining can be from template defaults or node overrides
     active_deadline_seconds: Optional[int] = Field(default=86400)  # 1 day
     metadata: Optional[PodMetaData] = Field(default=None)
     node_selector: dict[str, str] = Field(default_factory=dict)
@@ -356,17 +378,10 @@ class ArgoExecutor(GenericPipelineExecutor):
         from_attributes=True,
         use_enum_values=True,
     )
-
-    argo_workflow: ArgoWorkflow
-
-    # Lets use a generic one
     pvc_for_runnable: Optional[str] = Field(default=None)
-    # pvc_for_catalog: Optional[str] = Field(default=None)
-    # pvc_for_run_log: Optional[str] = Field(default=None)
     custom_volumes: Optional[list[CustomVolume]] = Field(
         default_factory=list[CustomVolume]
     )
-    env: list[EnvVar] = Field(default_factory=list[EnvVar])
 
     expose_parameters_as_inputs: bool = True
     secret_from_k8s: Optional[str] = Field(default=None)
@@ -374,6 +389,13 @@ class ArgoExecutor(GenericPipelineExecutor):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
         default="INFO"
     )
+
+    defaults: UserDefaults  # A similar structure to template defaults
+    argo_workflow: ArgoWorkflow
+
+    # Lets use a generic one
+
+    overrides: dict[str, Overrides] = Field(default_factory=dict)  # type: ignore
 
     # This should be used when we refer to run_id or log_level in the containers
     _run_id_as_parameter: str = PrivateAttr(default="{{workflow.parameters.run_id}}")
@@ -425,8 +447,6 @@ class ArgoExecutor(GenericPipelineExecutor):
         parameters: Optional[list[Parameter]],
         task_name: str,
     ):
-        template_defaults = self.argo_workflow.spec.template_defaults.model_dump()
-
         map_variable: TypeMapVariable = {}
         for parameter in parameters or []:
             map_variable[parameter.name] = (  # type: ignore
@@ -442,8 +462,8 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         core_container_template = CoreContainerTemplate(
             command=shlex.split(fan_command),
-            image=template_defaults["image"],
-            image_pull_policy=template_defaults["image_pull_policy"],
+            image=self.defaults.image,
+            image_pull_policy=self.defaults.image_pull_policy,
             volume_mounts=[
                 volume_pair.volume_mount for volume_pair in self.volume_pairs
             ],
@@ -459,12 +479,17 @@ class ArgoExecutor(GenericPipelineExecutor):
             outputs = Outputs(parameters=[OutputParameter(name="iterate-on")])
 
         container_template = ContainerTemplate(
-            container=core_container_template,
             name=task_name,
-            volumes=[volume_pair.volume for volume_pair in self.volume_pairs],
+            container=core_container_template,
             inputs=Inputs(parameters=parameters),
             outputs=outputs,
-            **template_defaults,
+            active_deadline_seconds=self.defaults.active_deadline_seconds,
+            node_selector=self.defaults.node_selector,
+            parallelism=self.defaults.parallelism,
+            retry_strategy=self.defaults.retry_strategy,
+            timeout=self.defaults.timeout,
+            tolerations=self.defaults.tolerations,
+            volumes=[volume_pair.volume for volume_pair in self.volume_pairs],
         )
 
         self._templates.append(container_template)
@@ -475,14 +500,19 @@ class ArgoExecutor(GenericPipelineExecutor):
         task_name: str,
         inputs: Optional[Inputs] = None,
     ) -> ContainerTemplate:
-        template_defaults = self.argo_workflow.spec.template_defaults.model_dump()
+        assert (
+            isinstance(node, TaskNode)
+            or isinstance(node, StubNode)
+            or isinstance(node, SuccessNode)
+        )
+        node_override = None
+        if hasattr(node, "overrides"):
+            override_key = node.overrides.get(self.service_name, "")
+            node_override = self.overrides.get(override_key, None)
 
-        node_overide = {}
-        if hasattr(node, "overides"):
-            node_overide = node.overides
-
-        # update template defaults with node overrides
-        template_defaults.update(node_overide)
+        effective_settings = self.defaults.model_dump()
+        if node_override:
+            effective_settings.update(node_override.model_dump())
 
         inputs = inputs or Inputs(parameters=[])
 
@@ -502,8 +532,9 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         core_container_template = CoreContainerTemplate(
             command=shlex.split(command),
-            image=template_defaults["image"],
-            image_pull_policy=template_defaults["image_pull_policy"],
+            image=effective_settings["image"],
+            image_pull_policy=effective_settings["image_pull_policy"],
+            resources=effective_settings["resources"],
             volume_mounts=[
                 volume_pair.volume_mount for volume_pair in self.volume_pairs
             ],
@@ -516,15 +547,15 @@ class ArgoExecutor(GenericPipelineExecutor):
         self._set_env_vars_to_task(node, core_container_template)
 
         container_template = ContainerTemplate(
-            container=core_container_template,
             name=task_name,
+            container=core_container_template,
             inputs=Inputs(
                 parameters=[
                     Parameter(name=param.name) for param in inputs.parameters or []
                 ]
             ),
             volumes=[volume_pair.volume for volume_pair in self.volume_pairs],
-            **template_defaults,
+            **effective_settings,
         )
 
         return container_template
@@ -534,16 +565,22 @@ class ArgoExecutor(GenericPipelineExecutor):
     ):
         if not isinstance(working_on, TaskNode):
             return
+
         global_envs: dict[str, str] = {}
 
-        for env_var in self.env:
+        for env_var in self.defaults.env:
+            env_var = cast(EnvVar, env_var)
             global_envs[env_var.name] = env_var.value
 
-        node_overide = {}
-        if hasattr(working_on, "overides"):
-            node_overide = working_on.overides
+        override_key = working_on.overrides.get(self.service_name, "")
+        node_override = self.overrides.get(override_key, None)
 
-        global_envs.update(node_overide.get("env", {}))
+        # Update the global envs with the node overrides
+        if node_override:
+            for env_var in node_override.env:
+                env_var = cast(EnvVar, env_var)
+                global_envs[env_var.name] = env_var.value
+
         for key, value in global_envs.items():
             env_var_to_add = EnvVar(name=key, value=value)
             container_template.env.append(env_var_to_add)

@@ -30,8 +30,7 @@ def main():
     stub_task = Stub(name="hello stub")
 
     python_task = PythonTask(
-        name="hello python",
-        function=hello,
+        name="hello python", function=hello, overrides={"argo": "smaller"}
     )
 
     shell_task = ShellTask(

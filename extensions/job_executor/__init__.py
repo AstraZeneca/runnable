@@ -8,6 +8,8 @@ from runnable.executor import BaseJobExecutor
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
+# TODO: Jobs should put the logs into the catalog
+
 
 class GenericJobExecutor(BaseJobExecutor):
     """

@@ -2,17 +2,35 @@ pipeline-executor:
   type: "argo" # (1)
   config:
     pvc_for_runnable: runnable
-    env:
-      - name: argo_env
-        value: "argo"
+    defaults:
+      image: $docker_image # (3)
+      resources:
+        limits:
+          cpu: "1"
+          memory: 1Gi
+        requests:
+          cpu: "0.5"
+          memory: 500Mi
+      env:
+        - name: argo_env
+          value: "argo"
+    overrides:
+      smaller:
+        image: $docker2
+        resources:
+            limits:
+              cpu: "1"
+              memory: 2Gi
+            requests:
+              cpu: "0.5"
+              memory: 500Mi
     argoWorkflow:
       metadata:
         generateName: "argo-" # (2)
         namespace: enterprise-mlops
       spec:
         serviceAccountName: "default-editor"
-        templateDefaults:
-          image: $docker_image # (2)
+
 
 
 
