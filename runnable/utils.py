@@ -135,11 +135,10 @@ def apply_variables(
             string_template = str_template(
                 string_template.substitute({identifier: variables[identifier]})
             )
-
-    if identifiers:
-        logger.warn(
-            msg=f"Some variables were not found in the variables dict, {identifiers}",
-        )
+        else:
+            logger.warning(
+                msg=f"Variable {identifier} not found in the variables",
+            )
 
     return json.loads(string_template.safe_substitute({}))
 

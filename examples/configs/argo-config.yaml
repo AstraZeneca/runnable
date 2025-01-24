@@ -9,7 +9,11 @@ pipeline-executor:
       spec:
         serviceAccountName: "default-editor"
         templateDefaults:
-          image: harbor.csis.astrazeneca.net/mlops/runnable:latest # (2)
+          image: $docker_image # (2)
+          env:
+            - name: argo_env
+              value: "argo"
+
 
 
 run-log-store: # (4)
