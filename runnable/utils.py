@@ -85,6 +85,21 @@ def generate_run_id(run_id: str = "") -> str:
     return run_id
 
 
+def get_identifiers(template):
+    # https://github.com/python/cpython/issues/90465
+    return list(
+        set(
+            filter(
+                lambda v: v is not None,
+                (
+                    mo.group("named") or mo.group("braced")
+                    for mo in template.pattern.finditer(template.template)
+                ),
+            )
+        )
+    )
+
+
 def apply_variables(
     apply_to: Dict[str, Any], variables: Dict[str, str]
 ) -> Dict[str, Any]:
@@ -109,8 +124,24 @@ def apply_variables(
         raise Exception("Argument Variables should be dict")
 
     json_d = json.dumps(apply_to)
-    transformed = str_template(json_d).substitute(**variables)
-    return json.loads(transformed)
+    string_template = str_template(json_d)
+
+    identifiers = get_identifiers(string_template)
+    while True:
+        if not identifiers:
+            break
+        identifier = identifiers.pop()
+        if identifier in variables:
+            string_template = str_template(
+                string_template.substitute({identifier: variables[identifier]})
+            )
+
+    if identifiers:
+        logger.warn(
+            msg=f"Some variables were not found in the variables dict, {identifiers}",
+        )
+
+    return json.loads(string_template.safe_substitute({}))
 
 
 def get_module_and_attr_names(command: str) -> Tuple[str, str]:

@@ -239,6 +239,7 @@ class TemplateDefaults(BaseModelWIthConfig):
     retry_strategy: Optional[RetryStrategy] = Field(default=None)
     timeout: Optional[str] = Field(default=None)
     tolerations: Optional[list[Toleration]] = Field(default=None)
+    env: list[EnvVar | SecretEnvVar] = Field(default_factory=list)
 
     # These are in addition to what argo spec provides
     image: str
@@ -501,6 +502,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         core_container_template = CoreContainerTemplate(
             command=shlex.split(command),
             image=template_defaults["image"],
+            env=template_defaults["env"],
             image_pull_policy=template_defaults["image_pull_policy"],
             volume_mounts=[
                 volume_pair.volume_mount for volume_pair in self.volume_pairs
