@@ -109,8 +109,16 @@ def apply_variables(
         raise Exception("Argument Variables should be dict")
 
     json_d = json.dumps(apply_to)
-    transformed = str_template(json_d).substitute(**variables)
-    return json.loads(transformed)
+    string_template = str_template(json_d)
+
+    template = string_template.safe_substitute(variables)
+
+    if "$" in template:
+        logger.warning(
+            "Not all variables found in the config are found in the variables"
+        )
+
+    return json.loads(template)
 
 
 def get_module_and_attr_names(command: str) -> Tuple[str, str]:

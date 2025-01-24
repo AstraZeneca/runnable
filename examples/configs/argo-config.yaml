@@ -2,6 +2,9 @@ pipeline-executor:
   type: "argo" # (1)
   config:
     pvc_for_runnable: runnable
+    env:
+      - name: argo_env
+        value: "argo"
     argoWorkflow:
       metadata:
         generateName: "argo-" # (2)
@@ -9,7 +12,9 @@ pipeline-executor:
       spec:
         serviceAccountName: "default-editor"
         templateDefaults:
-          image: harbor.csis.astrazeneca.net/mlops/runnable:latest # (2)
+          image: $docker_image # (2)
+
+
 
 
 run-log-store: # (4)
