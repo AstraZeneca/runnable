@@ -4,10 +4,8 @@ import sys
 
 import pytest
 
-from runnable import (
-    defaults,  # pylint: disable=import-error
-    utils,  # pylint: disable=import-error
-)
+from runnable import defaults  # pylint: disable=import-error
+from runnable import utils  # pylint: disable=import-error
 
 
 def test_does_file_exist_returns_true_if_path_true(mocker, monkeypatch):
@@ -66,8 +64,8 @@ def test_apply_variables_applies_variables():
 def test_apply_variables_applies_known_variables():
     apply_to = "${var}_${var1}"
 
-    with pytest.raises(KeyError):
-        transformed = utils.apply_variables(apply_to, variables={"var": "hello"})
+    transformed = utils.apply_variables(apply_to, variables={"var": "hello"})
+    assert transformed == "hello_${var1}"
 
 
 def test_get_module_and_func_names_raises_exception_for_incorrect_command():

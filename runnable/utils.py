@@ -85,21 +85,6 @@ def generate_run_id(run_id: str = "") -> str:
     return run_id
 
 
-def get_identifiers(template):
-    # https://github.com/python/cpython/issues/90465
-    return list(
-        set(
-            filter(
-                lambda v: v is not None,
-                (
-                    mo.group("named") or mo.group("braced")
-                    for mo in template.pattern.finditer(template.template)
-                ),
-            )
-        )
-    )
-
-
 def apply_variables(
     apply_to: Dict[str, Any], variables: Dict[str, str]
 ) -> Dict[str, Any]:
@@ -126,21 +111,14 @@ def apply_variables(
     json_d = json.dumps(apply_to)
     string_template = str_template(json_d)
 
-    identifiers = get_identifiers(string_template)
-    while True:
-        if not identifiers:
-            break
-        identifier = identifiers.pop()
-        if identifier in variables:
-            string_template = str_template(
-                string_template.substitute({identifier: variables[identifier]})
-            )
-        else:
-            logger.warning(
-                msg=f"Variable {identifier} not found in the variables",
-            )
+    template = string_template.safe_substitute(variables)
 
-    return json.loads(string_template.safe_substitute({}))
+    if "$" in template:
+        logger.warning(
+            "Not all variables found in the config are found in the variables"
+        )
+
+    return json.loads(template)
 
 
 def get_module_and_attr_names(command: str) -> Tuple[str, str]:

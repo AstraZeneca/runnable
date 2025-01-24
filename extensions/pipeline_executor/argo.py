@@ -239,12 +239,12 @@ class TemplateDefaults(BaseModelWIthConfig):
     retry_strategy: Optional[RetryStrategy] = Field(default=None)
     timeout: Optional[str] = Field(default=None)
     tolerations: Optional[list[Toleration]] = Field(default=None)
-    env: list[EnvVar | SecretEnvVar] = Field(default_factory=list)
 
     # These are in addition to what argo spec provides
     image: str
     image_pull_policy: Optional[ImagePullPolicy] = Field(default=ImagePullPolicy.Always)
     resources: Resources = Field(default_factory=Resources)
+    env: list[EnvVar | SecretEnvVar] = Field(default_factory=list, exclude=True)
 
 
 # User provides this as part of the argoSpec
@@ -366,6 +366,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     custom_volumes: Optional[list[CustomVolume]] = Field(
         default_factory=list[CustomVolume]
     )
+    env: list[EnvVar] = Field(default_factory=list[EnvVar])
 
     expose_parameters_as_inputs: bool = True
     secret_from_k8s: Optional[str] = Field(default=None)
@@ -502,7 +503,6 @@ class ArgoExecutor(GenericPipelineExecutor):
         core_container_template = CoreContainerTemplate(
             command=shlex.split(command),
             image=template_defaults["image"],
-            env=template_defaults["env"],
             image_pull_policy=template_defaults["image_pull_policy"],
             volume_mounts=[
                 volume_pair.volume_mount for volume_pair in self.volume_pairs
@@ -510,6 +510,10 @@ class ArgoExecutor(GenericPipelineExecutor):
         )
 
         self._set_up_initial_container(container_template=core_container_template)
+        self._expose_secrets_to_task(
+            working_on=node, container_template=core_container_template
+        )
+        self._set_env_vars_to_task(node, core_container_template)
 
         container_template = ContainerTemplate(
             container=core_container_template,
@@ -525,12 +529,32 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         return container_template
 
+    def _set_env_vars_to_task(
+        self, working_on: BaseNode, container_template: CoreContainerTemplate
+    ):
+        if not isinstance(working_on, TaskNode):
+            return
+        global_envs: dict[str, str] = {}
+
+        for env_var in self.env:
+            global_envs[env_var.name] = env_var.value
+
+        node_overide = {}
+        if hasattr(working_on, "overides"):
+            node_overide = working_on.overides
+
+        global_envs.update(node_overide.get("env", {}))
+        for key, value in global_envs.items():
+            env_var_to_add = EnvVar(name=key, value=value)
+            container_template.env.append(env_var_to_add)
+
     def _expose_secrets_to_task(
         self,
         working_on: BaseNode,
         container_template: CoreContainerTemplate,
     ):
-        assert isinstance(working_on, TaskNode)
+        if not isinstance(working_on, TaskNode):
+            return
         secrets = working_on.executable.secrets
         for secret in secrets:
             assert self.secret_from_k8s is not None
