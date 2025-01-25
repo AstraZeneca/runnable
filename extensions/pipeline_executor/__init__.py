@@ -261,6 +261,9 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         console.print(f"Summary of the step: {step_log.internal_name}")
         console.print(step_log.get_summary(), style=defaults.info_style)
 
+        self.add_task_log_to_catalog(
+            name=self._context_node.name, map_variable=map_variable
+        )
         self._context_node = None
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
@@ -336,7 +339,8 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         )
         self.trigger_node_execution(node=node, map_variable=map_variable, **kwargs)
 
-        log_file_name = utils.make_log_file_name(node=node, map_variable=map_variable)
+    def add_task_log_to_catalog(self, name: str, map_variable: TypeMapVariable = None):
+        log_file_name = utils.make_log_file_name(name=name, map_variable=map_variable)
         task_console.save_text(log_file_name, clear=True)
 
         self._context.catalog_handler.put(

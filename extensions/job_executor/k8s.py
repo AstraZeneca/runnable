@@ -214,6 +214,8 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             run_id=self._context.run_id, job_log=job_log
         )
 
+        self.add_task_log_to_catalog(name="job", map_variable=None)
+
     @property
     def _client(self):
         if self.config_path:
@@ -452,6 +454,8 @@ class K8sJobExecutor(GenericK8sJobExecutor):
         self._context.run_log_store.add_job_log(
             run_id=self._context.run_id, job_log=job_log
         )
+
+        self.add_task_log_to_catalog(name="job", map_variable=None)
 
     def _create_volumes(self):
         self._volumes.append(

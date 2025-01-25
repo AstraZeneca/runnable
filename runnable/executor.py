@@ -84,6 +84,11 @@ class BaseExecutor(ABC, BaseModel):
         """
         ...
 
+    @abstractmethod
+    def add_task_log_to_catalog(
+        self, name: str, map_variable: Optional[TypeMapVariable] = None
+    ): ...
+
 
 class BaseJobExecutor(BaseExecutor):
     service_type: str = "job_executor"

@@ -395,7 +395,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
     # Lets use a generic one
 
-    overrides: dict[str, Overrides] = Field(default_factory=dict)  # type: ignore
+    overrides: dict[str, Overrides] = Field(default_factory=dict)
 
     # This should be used when we refer to run_id or log_level in the containers
     _run_id_as_parameter: str = PrivateAttr(default="{{workflow.parameters.run_id}}")

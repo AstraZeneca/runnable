@@ -628,9 +628,9 @@ def gather_variables() -> Dict[str, str]:
     return variables
 
 
-def make_log_file_name(node: BaseNode, map_variable: TypeMapVariable) -> str:
+def make_log_file_name(name: str, map_variable: TypeMapVariable) -> str:
     random_tag = "".join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    log_file_name = node.name
+    log_file_name = name
 
     if map_variable:
         for _, value in map_variable.items():

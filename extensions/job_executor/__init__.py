@@ -2,13 +2,12 @@ import logging
 import os
 from typing import Dict, List, Optional
 
-from runnable import context, defaults, exceptions, parameters, utils
+from runnable import context, defaults, exceptions, parameters, task_console, utils
 from runnable.datastore import DataCatalog, JobLog, JsonParameter
+from runnable.defaults import TypeMapVariable
 from runnable.executor import BaseJobExecutor
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
-
-# TODO: Jobs should put the logs into the catalog
 
 
 class GenericJobExecutor(BaseJobExecutor):
@@ -99,6 +98,15 @@ class GenericJobExecutor(BaseJobExecutor):
         self._context.run_log_store.set_run_config(
             run_id=self._context.run_id, run_config=run_config
         )
+
+    def add_task_log_to_catalog(self, name: str, map_variable: TypeMapVariable = None):
+        log_file_name = utils.make_log_file_name(name=name, map_variable=map_variable)
+        task_console.save_text(log_file_name, clear=True)
+
+        self._context.catalog_handler.put(
+            name=log_file_name, run_id=self._context.run_id
+        )
+        os.remove(log_file_name)
 
     @property
     def step_attempt_number(self) -> int:
