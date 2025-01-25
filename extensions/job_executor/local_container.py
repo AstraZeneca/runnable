@@ -76,8 +76,6 @@ class LocalContainerJobExecutor(GenericJobExecutor):
             run_id=self._context.run_id, job_log=job_log
         )
 
-        self.add_task_log_to_catalog(name="job", map_variable=None)
-
     def spin_container(self):
         """
         This method spins up the container

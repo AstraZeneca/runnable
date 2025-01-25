@@ -345,15 +345,9 @@ def execute_single_node(
     try:
         executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
     finally:
-        log_file_name = utils.make_log_file_name(
-            node=node_to_execute,
-            map_variable=map_variable_dict,
+        run_context.executor.add_task_log_to_catalog(
+            name=node_to_execute.internal_name, map_variable=map_variable_dict
         )
-        task_console.save_text(log_file_name)
-
-        # Put the log file in the catalog
-        run_context.catalog_handler.put(name=log_file_name, run_id=run_context.run_id)
-        os.remove(log_file_name)
 
     executor.send_return_code()
 
@@ -408,7 +402,10 @@ def execute_job_yaml_spec(
     )
 
     assert isinstance(executor, BaseJobExecutor)
-    executor.submit_job(job, catalog_settings=catalog_config)
+    try:
+        executor.submit_job(job, catalog_settings=catalog_config)
+    finally:
+        run_context.executor.add_task_log_to_catalog("job")
 
     executor.send_return_code()
 
@@ -483,9 +480,12 @@ def execute_job_non_local(
         "Executing the job from the user. We are still in the caller's compute environment"
     )
 
-    run_context.executor.execute_job(
-        run_context.job, catalog_settings=run_context.job_catalog_settings
-    )
+    try:
+        run_context.executor.execute_job(
+            run_context.job, catalog_settings=run_context.job_catalog_settings
+        )
+    finally:
+        run_context.executor.add_task_log_to_catalog("job")
 
     run_context.executor.send_return_code()
 

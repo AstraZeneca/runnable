@@ -210,6 +210,20 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         """
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
+    def add_task_log_to_catalog(
+        self, name: str, map_variable: Dict[str, str | int | float] | None = None
+    ):
+        log_file_name = utils.make_log_file_name(
+            name=name,
+            map_variable=map_variable,
+        )
+        task_console.save_text(log_file_name)
+        # Put the log file in the catalog
+        self._context.catalog_handler.put(
+            name=log_file_name, run_id=self._context.run_id
+        )
+        os.remove(log_file_name)
+
     def _execute_node(
         self,
         node: BaseNode,
@@ -261,9 +275,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         console.print(f"Summary of the step: {step_log.internal_name}")
         console.print(step_log.get_summary(), style=defaults.info_style)
 
-        self.add_task_log_to_catalog(
-            name=self._context_node.name, map_variable=map_variable
-        )
         self._context_node = None
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
@@ -338,15 +349,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
         )
         self.trigger_node_execution(node=node, map_variable=map_variable, **kwargs)
-
-    def add_task_log_to_catalog(self, name: str, map_variable: TypeMapVariable = None):
-        log_file_name = utils.make_log_file_name(name=name, map_variable=map_variable)
-        task_console.save_text(log_file_name, clear=True)
-
-        self._context.catalog_handler.put(
-            name=log_file_name, run_id=self._context.run_id
-        )
-        os.remove(log_file_name)
 
     def trigger_node_execution(
         self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
@@ -486,6 +488,11 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 console.print(e, style=defaults.error_style)
                 logger.exception(e)
                 raise
+            finally:
+                # Add task log to the catalog
+                self.add_task_log_to_catalog(
+                    name=working_on.internal_name, map_variable=map_variable
+                )
 
             console.rule(style="[dark orange]")
 

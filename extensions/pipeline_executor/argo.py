@@ -6,7 +6,7 @@ import string
 from collections import namedtuple
 from enum import Enum
 from functools import cached_property
-from typing import Annotated, Literal, Optional, cast
+from typing import Annotated, Any, Literal, Optional, cast
 
 from pydantic import (
     BaseModel,
@@ -237,6 +237,7 @@ class Resources(BaseModel):
 
 # Lets construct this from UserDefaults
 class ArgoTemplateDefaults(BaseModelWIthConfig):
+    image: str
     active_deadline_seconds: Optional[int] = Field(default=86400)  # 1 day
     fail_fast: bool = Field(default=True)
     node_selector: dict[str, str] = Field(default_factory=dict)
@@ -283,6 +284,7 @@ class ArgoWorkflowSpec(BaseModelWIthConfig):
     retry_strategy: Optional[RetryStrategy] = Field(default=None)
     service_account_name: Optional[str] = Field(default=None)
     tolerations: Optional[list[Toleration]] = Field(default=None)
+    template_defaults: Optional[ArgoTemplateDefaults] = Field(default=None)
 
 
 class ArgoMetadata(BaseModelWIthConfig):
@@ -410,6 +412,11 @@ class ArgoExecutor(GenericPipelineExecutor):
     _container_catalog_location: str = PrivateAttr(default="/tmp/catalog/")
     _added_initial_container: bool = PrivateAttr(default=False)
 
+    def model_post_init(self, __context: Any) -> None:
+        self.argo_workflow.spec.template_defaults = ArgoTemplateDefaults(
+            image=self.defaults.image, **self.defaults.model_dump()
+        )
+
     def sanitize_name(self, name: str) -> str:
         formatted_name = name.replace(" ", "-").replace(".", "-").replace("_", "-")
         tag = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
@@ -505,6 +512,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             or isinstance(node, StubNode)
             or isinstance(node, SuccessNode)
         )
+
         node_override = None
         if hasattr(node, "overrides"):
             override_key = node.overrides.get(self.service_name, "")
@@ -833,11 +841,11 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         argo_workflow_dump = self.argo_workflow.model_dump(
             by_alias=True,
-            exclude={
-                "spec": {
-                    "template_defaults": {"image_pull_policy", "image", "resources"}
-                }
-            },
+            # exclude={
+            #     "spec": {
+            #         "template_defaults": {"image_pull_policy", "image", "resources"}
+            #     }
+            # },
             exclude_none=True,
             round_trip=False,
         )
