@@ -237,7 +237,6 @@ class Resources(BaseModel):
 
 # Lets construct this from UserDefaults
 class ArgoTemplateDefaults(BaseModelWIthConfig):
-    image: str
     active_deadline_seconds: Optional[int] = Field(default=86400)  # 1 day
     fail_fast: bool = Field(default=True)
     node_selector: dict[str, str] = Field(default_factory=dict)
@@ -264,10 +263,12 @@ class CommonDefaults(BaseModelWIthConfig):
     env: list[EnvVar | SecretEnvVar] = Field(default_factory=list, exclude=True)
 
 
+# The user provided defaults at the top level
 class UserDefaults(CommonDefaults):
     image: str
 
 
+# Overrides need not have image
 class Overrides(CommonDefaults):
     image: Optional[str] = Field(default=None)
 
@@ -392,10 +393,8 @@ class ArgoExecutor(GenericPipelineExecutor):
         default="INFO"
     )
 
-    defaults: UserDefaults  # A similar structure to template defaults
+    defaults: UserDefaults
     argo_workflow: ArgoWorkflow
-
-    # Lets use a generic one
 
     overrides: dict[str, Overrides] = Field(default_factory=dict)
 
@@ -414,7 +413,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
     def model_post_init(self, __context: Any) -> None:
         self.argo_workflow.spec.template_defaults = ArgoTemplateDefaults(
-            image=self.defaults.image, **self.defaults.model_dump()
+            **self.defaults.model_dump()
         )
 
     def sanitize_name(self, name: str) -> str:
@@ -516,7 +515,10 @@ class ArgoExecutor(GenericPipelineExecutor):
         node_override = None
         if hasattr(node, "overrides"):
             override_key = node.overrides.get(self.service_name, "")
-            node_override = self.overrides.get(override_key, None)
+            try:
+                node_override = self.overrides.get(override_key)
+            except:  # noqa
+                raise Exception("Override not found for: ", override_key)
 
         effective_settings = self.defaults.model_dump()
         if node_override:
@@ -563,7 +565,7 @@ class ArgoExecutor(GenericPipelineExecutor):
                 ]
             ),
             volumes=[volume_pair.volume for volume_pair in self.volume_pairs],
-            **effective_settings,
+            **node_override.model_dump() if node_override else {},
         )
 
         return container_template
@@ -841,11 +843,6 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         argo_workflow_dump = self.argo_workflow.model_dump(
             by_alias=True,
-            # exclude={
-            #     "spec": {
-            #         "template_defaults": {"image_pull_policy", "image", "resources"}
-            #     }
-            # },
             exclude_none=True,
             round_trip=False,
         )
