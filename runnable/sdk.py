@@ -899,7 +899,10 @@ class BaseJob(BaseModel):
         job = self.get_task()
         catalog_settings = self.return_catalog_settings()
 
-        run_context.executor.submit_job(job, catalog_settings=catalog_settings)
+        try:
+            run_context.executor.submit_job(job, catalog_settings=catalog_settings)
+        finally:
+            run_context.executor.add_task_log_to_catalog("job")
 
         logger.info(
             "Executing the job from the user. We are still in the caller's compute environment"

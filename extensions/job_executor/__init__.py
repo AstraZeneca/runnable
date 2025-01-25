@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Dict, List, Optional
 
-from runnable import context, defaults, exceptions, parameters, utils
+from runnable import context, defaults, exceptions, parameters, task_console, utils
 from runnable.datastore import DataCatalog, JobLog, JsonParameter
 from runnable.executor import BaseJobExecutor
 
@@ -158,3 +158,17 @@ class GenericJobExecutor(BaseJobExecutor):
             data_catalogs.extend(data_catalog)
 
         return data_catalogs
+
+    def add_task_log_to_catalog(
+        self, name: str, map_variable: Dict[str, str | int | float] | None = None
+    ):
+        log_file_name = utils.make_log_file_name(
+            name=name,
+            map_variable=map_variable,
+        )
+        task_console.save_text(log_file_name)
+        # Put the log file in the catalog
+        self._context.catalog_handler.put(
+            name=log_file_name, run_id=self._context.run_id
+        )
+        os.remove(log_file_name)
