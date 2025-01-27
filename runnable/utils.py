@@ -77,7 +77,11 @@ def generate_run_id(run_id: str = "") -> str:
     Returns:
         str: A generated run_id
     """
-    # If we are not provided with a run_id, generate one
+    # If we are not provided with a run_id, check env var
+    if not run_id:
+        run_id = os.environ.get(defaults.ENV_RUN_ID, "")
+
+    # If both are not given, generate one
     if not run_id:
         now = datetime.now()
         run_id = f"{names.get_random_name()}-{now.hour:02}{now.minute:02}"

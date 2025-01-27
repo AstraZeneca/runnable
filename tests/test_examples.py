@@ -1,7 +1,6 @@
 import importlib
 import os
 import subprocess
-import sys
 from contextlib import contextmanager
 
 import pytest
@@ -17,6 +16,7 @@ def runnable_context():
     from runnable import context as runnable_context
 
     yield
+    del os.environ["RUNNABLE_RUN_ID"]
     runnable_context.run_context = None
 
 

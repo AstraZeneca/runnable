@@ -64,8 +64,9 @@ def execute(
     tag: Annotated[str, typer.Option(help="A tag attached to the run")] = "",
     run_id: Annotated[
         str,
-        typer.Option(
-            help="An optional run_id, one would be generated if its not provided"
+        typer.Argument(
+            envvar="RUNNABLE_RUN_ID",
+            help="An optional run_id, one would be generated if its not provided",
         ),
     ] = "",
 ):
@@ -282,8 +283,11 @@ def execute_job(
     ],
     run_id: Annotated[
         str,
-        typer.Argument(help="An run_id, one would be generated if its not provided"),
-    ],
+        typer.Argument(
+            envvar="RUNNABLE_RUN_ID",
+            help="An optional run_id, one would be generated if its not provided",
+        ),
+    ] = "",
     config_file: Annotated[
         str,
         typer.Option(
