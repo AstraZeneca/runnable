@@ -152,6 +152,7 @@ class BaseTaskType(BaseModel):
                 key: value
                 for key, value in params.items()
                 if isinstance(value, JsonParameter)
+                or isinstance(value, MetricParameter)
             }
 
         parameters_in = copy.deepcopy(params)

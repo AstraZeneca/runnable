@@ -11,9 +11,9 @@ dag:
 
     Run the below example as:
         runnable execute examples/03-parameters/passing_parameters_notebook.yaml
-  start_at: write_parameters_from_notebook
+  start_at: set_parameter
   steps:
-    write_parameters_from_notebook:
+    set_parameter:
       type: task
       command_type: notebook
       command: examples/common/write_parameters.ipynb
@@ -26,8 +26,8 @@ dag:
         - name: pydantic_param
         - name: score
           kind: metric
-      next: read_parameters
-    read_parameters:
+      next: get_parameters
+    get_parameters:
       type: task
       command: examples.common.functions.read_parameter
       next: read_parameters_in_notebook

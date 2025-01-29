@@ -54,7 +54,9 @@ def chunked_fs_context():
 @contextmanager
 def mocked_context():
     with runnable_context():
-        os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/08-mocking/default.yaml"
+        os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
+            "examples/08-mocking/mocked-config-simple.yaml"
+        )
         os.environ["RUNNABLE_PRM_envvar"] = "from env"
         yield
         del os.environ["RUNNABLE_CONFIGURATION_FILE"]
@@ -90,14 +92,16 @@ def argo_context():
 
 contexts = [
     default_context,
-    mocked_context,
-]  # , chunked_fs_context, mocked_context, argo_context]
+    chunked_fs_context,
+]  # , mocked_context, argo_context]
 
+# file, fails, ignore_contexts, parameters_file, assertions
 python_examples = [
     (
         "01-tasks/python_tasks",
         False,
         [],
+        "",
         [
             partial(conditions.should_have_num_steps, 2),
             partial(conditions.should_have_catalog_execution_logs),
@@ -107,6 +111,7 @@ python_examples = [
         "01-tasks/scripts",
         False,
         [],
+        "",
         [
             partial(conditions.should_have_num_steps, 2),
             partial(conditions.should_have_catalog_execution_logs),
@@ -116,6 +121,7 @@ python_examples = [
         "01-tasks/stub",
         False,
         [],
+        "",
         [
             partial(conditions.should_have_num_steps, 4),
             partial(conditions.should_have_catalog_execution_logs),
@@ -125,6 +131,7 @@ python_examples = [
         "01-tasks/notebook",
         False,
         [],
+        "",
         [
             partial(conditions.should_have_num_steps, 2),
             partial(conditions.should_have_catalog_execution_logs),
@@ -138,6 +145,7 @@ python_examples = [
         "02-sequential/traversal",
         False,
         [],
+        "",
         [
             partial(conditions.should_have_num_steps, 5),
             partial(conditions.should_have_catalog_execution_logs),
@@ -152,6 +160,7 @@ python_examples = [
         "02-sequential/default_fail",
         True,
         [],
+        "",
         [
             partial(conditions.should_have_num_steps, 3),
             partial(conditions.should_have_catalog_execution_logs),
@@ -164,6 +173,7 @@ python_examples = [
         "02-sequential/on_failure_fail",
         True,
         [],
+        "",
         [
             partial(conditions.should_have_num_steps, 3),
             partial(conditions.should_have_catalog_execution_logs),
@@ -176,6 +186,7 @@ python_examples = [
         "02-sequential/on_failure_succeed",
         False,
         [],
+        "",
         [
             partial(conditions.should_have_num_steps, 3),
             partial(conditions.should_have_catalog_execution_logs),
@@ -188,6 +199,7 @@ python_examples = [
         "03-parameters/static_parameters_python",
         False,
         [],
+        "examples/common/initial_parameters.yaml",
         [
             partial(conditions.should_have_num_steps, 3),
             partial(conditions.should_have_catalog_execution_logs),
@@ -224,6 +236,7 @@ python_examples = [
         "03-parameters/static_parameters_non_python",
         False,
         [],
+        "examples/common/initial_parameters.yaml",
         [
             partial(conditions.should_have_num_steps, 3),
             partial(conditions.should_have_catalog_execution_logs),
@@ -260,6 +273,7 @@ python_examples = [
         "03-parameters/static_parameters_fail",
         False,
         [],
+        "examples/common/initial_parameters.yaml",
         [
             partial(conditions.should_have_num_steps, 3),
             partial(conditions.should_have_catalog_execution_logs),
@@ -292,10 +306,185 @@ python_examples = [
             ),
         ],
     ),
-    # ("03-parameters/passing_parameters_notebook", False, []),
-    # ("03-parameters/passing_parameters_python", False, []),
-    # ("03-parameters/passing_parameters_shell", False, []),
-    # ("03-parameters/static_parameters_non_python", False, []),
+    (
+        "03-parameters/passing_parameters_python",
+        False,
+        [],
+        "",
+        [
+            partial(conditions.should_have_num_steps, 3),
+            partial(conditions.should_have_catalog_execution_logs),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_successful, "set_parameter"),
+            partial(
+                conditions.should_step_have_parameters,
+                "set_parameter",
+                {
+                    "envvar": "from env",
+                },
+            ),
+            partial(
+                conditions.should_step_have_output_parameters,
+                "set_parameter",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "score": 0.9,
+                    "df": "df",
+                },
+            ),
+            partial(
+                conditions.should_step_have_parameters,
+                "get_parameters",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "score": 0.9,
+                    "df": "df",
+                    "envvar": "from env",
+                },
+            ),
+            partial(
+                conditions.should_step_have_output_parameters,
+                "get_parameters",
+                {},
+            ),
+        ],
+    ),
+    (
+        "03-parameters/passing_parameters_notebook",
+        False,
+        [],
+        "",
+        [
+            partial(conditions.should_have_num_steps, 4),
+            partial(conditions.should_have_catalog_execution_logs),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_successful, "set_parameter"),
+            partial(
+                conditions.should_step_have_parameters,
+                "set_parameter",
+                {
+                    "envvar": "from env",
+                },
+            ),
+            partial(
+                conditions.should_step_have_output_parameters,
+                "set_parameter",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "score": 0.9,
+                    "df": "df",
+                },
+            ),
+            partial(
+                conditions.should_step_have_parameters,
+                "get_parameters",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "score": 0.9,
+                    "df": "df",
+                    "envvar": "from env",
+                },
+            ),
+            partial(
+                conditions.should_step_have_output_parameters,
+                "get_parameters",
+                {},
+            ),
+            partial(
+                conditions.should_step_have_parameters,
+                "read_parameters_in_notebook",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "score": 0.9,
+                    "envvar": "from env",
+                },
+            ),
+            partial(
+                conditions.should_step_have_output_parameters,
+                "read_parameters_in_notebook",
+                {},
+            ),
+        ],
+    ),
+    (
+        "03-parameters/passing_parameters_shell",
+        False,
+        [],
+        "",
+        [
+            partial(conditions.should_have_num_steps, 4),
+            partial(conditions.should_have_catalog_execution_logs),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_successful, "write_parameter"),
+            partial(
+                conditions.should_step_have_parameters,
+                "write_parameter",
+                {
+                    "envvar": "from env",
+                },
+            ),
+            partial(
+                conditions.should_step_have_output_parameters,
+                "write_parameter",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "score": 0.9,
+                },
+            ),
+            partial(
+                conditions.should_step_have_parameters,
+                "read_parameters",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "score": 0.9,
+                    "envvar": "from env",
+                },
+            ),
+            partial(
+                conditions.should_step_have_output_parameters,
+                "read_parameters",
+                {},
+            ),
+            partial(
+                conditions.should_step_have_parameters,
+                "read_parameters_in_shell",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "score": 0.9,
+                    "envvar": "from env",
+                },
+            ),
+            partial(
+                conditions.should_step_have_output_parameters,
+                "read_parameters_in_shell",
+                {},
+            ),
+        ],
+    ),
     # ("04-catalog/catalog", False, [mocked_context]),
     # ("06-parallel/parallel", False, []),
     # ("06-parallel/nesting", False, []),
@@ -311,7 +500,7 @@ python_examples = [
 def test_python_examples(example, context, monkeypatch, mocker):
     print(f"Testing {example}...")
 
-    mod, fails, ignore_contexts, assertions = example
+    mod, fails, ignore_contexts, _, assertions = example
     if context in ignore_contexts:
         return
 
@@ -340,23 +529,20 @@ def test_python_examples(example, context, monkeypatch, mocker):
 @pytest.mark.e2e
 def test_yaml_examples(example, context):
     print(f"Testing {example}...")
-    file, fails, ignore_contexts, assertions = example
+    file, fails, ignore_contexts, parameters_file, assertions = example
 
     if context in ignore_contexts:
         return
 
     context = context()
     example_file = f"examples/{file}.yaml"
-    parameters_file = "examples/common/initial_parameters.yaml"
 
     with context:
         from runnable import exceptions
         from runnable.entrypoints import execute_pipeline_yaml_spec
 
-        print("existing", os.environ.get(defaults.ENV_RUN_ID))
         run_id = generate_run_id()
         os.environ[defaults.ENV_RUN_ID] = run_id
-        print(run_id)
         try:
             execute_pipeline_yaml_spec(
                 pipeline_file=example_file,

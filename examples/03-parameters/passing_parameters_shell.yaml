@@ -12,9 +12,9 @@ dag:
     Run the pipeline as:
       runnable execute -f examples/03-parameters/passing_parameters_shell.yaml
 
-  start_at: write_parameters_in_shell
+  start_at: write_parameter
   steps:
-    write_parameters_in_shell:
+    write_parameter:
       type: task
       command_type: shell
       command: |

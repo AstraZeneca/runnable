@@ -33,11 +33,10 @@ def gather_steps(run_log: RunLog) -> list[str]:
 
 @lru_cache
 def load_run_log(run_id):
-    run_log_locaton = f".run_log_store/{run_id}.json"
-    with open(run_log_locaton, "r") as f:
-        run_log_dict = json.load(f)
+    from runnable import context
 
-    return RunLog(**run_log_dict)
+    run_log = context.run_context.run_log_store.get_run_log_by_id(run_id, full=True)
+    return run_log
 
 
 def should_be_successful():
@@ -84,6 +83,25 @@ def should_step_have_parameters(step_name: str, parameters: dict):
         parameter: value.value
         for parameter, value in step.attempts[0].input_parameters.items()
     }
+
+    print(step_name)
+    print("func_parameters", func_parameters)
+    print("parameters", parameters)
+
+    assert parameters == func_parameters
+
+
+def should_step_have_output_parameters(step_name: str, parameters: dict):
+    run_id = os.environ[defaults.ENV_RUN_ID]
+    run_log = load_run_log(run_id)
+    step = run_log.steps[step_name]
+    func_parameters = {
+        parameter: value.value
+        for parameter, value in step.attempts[0].output_parameters.items()
+    }
+
+    print(func_parameters)
+    print(parameters)
 
     assert parameters == func_parameters
 
