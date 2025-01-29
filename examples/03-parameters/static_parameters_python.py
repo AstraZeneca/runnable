@@ -47,19 +47,10 @@ def main():
         name="read_params_as_pydantic",
     )
 
-    """
-    Signature of read_initial_params_as_json
-    def read_initial_params_as_json(
-        integer: int,
-        floater: float,
-        stringer: str,
-        pydantic_param: Dict[str, Union[int, str]],
-    ):
-    """
     read_params_as_json = PythonTask(
         function=read_initial_params_as_json,
         terminate_with_success=True,
-        name="read_params_json",
+        name="read_params_as_json",
     )
 
     pipeline = Pipeline(

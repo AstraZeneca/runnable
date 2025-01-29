@@ -26,8 +26,8 @@ dag:
     read_params_as_pydantic:
       type: task
       command: examples.common.functions.read_initial_params_as_pydantic
-      next: read_params_json
-    read_params_json:
+      next: read_params_as_json
+    read_params_as_json:
       type: task
       command: examples.common.functions.read_initial_params_as_json
       next: success

@@ -15,20 +15,20 @@ dag:
 
     Run this pipeline as:
       runnable execute -f examples/02-sequential/on_failure_succeed.yaml
-  start_at: step_1
+  start_at: step 1
   steps:
-    step_1:
+    step 1:
       type: task
       command_type: shell
       command: exit 1 # This will fail!
-      next: step_2
-      on_failure: step_4
-    step_2:
+      next: step 2
+      on_failure: step 4
+    step 2:
       type: stub
-      next: step_3
-    step_3:
+      next: step 3
+    step 3:
       type: stub
       next: success
-    step_4:
+    step 4:
       type: stub
       next: success

@@ -65,7 +65,7 @@ def execute(
     run_id: Annotated[
         str,
         typer.Argument(
-            envvar="RUNNABLE_RUN_ID",
+            envvar=defaults.ENV_RUN_ID,
             help="An optional run_id, one would be generated if its not provided",
         ),
     ] = "",

@@ -284,16 +284,15 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     raise exceptions.CommandCallError(
                         f"Function call: {self.command} did not succeed.\n"
                     ) from e
-
-                attempt_log.input_parameters = params.copy()
-
-                if map_variable:
-                    attempt_log.input_parameters.update(
-                        {
-                            k: JsonParameter(value=v, kind="json")
-                            for k, v in map_variable.items()
-                        }
-                    )
+                finally:
+                    attempt_log.input_parameters = params.copy()
+                    if map_variable:
+                        attempt_log.input_parameters.update(
+                            {
+                                k: JsonParameter(value=v, kind="json")
+                                for k, v in map_variable.items()
+                            }
+                        )
 
                 if self.returns:
                     if not isinstance(user_set_parameters, tuple):  # make it a tuple
