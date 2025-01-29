@@ -447,6 +447,7 @@ class NotebookTaskType(BaseTaskType):
                 ) as params,
                 self.expose_secrets() as _,
             ):
+                attempt_log.input_parameters = params.copy()
                 copy_params = copy.deepcopy(params)
 
                 if map_variable:
@@ -634,6 +635,7 @@ class ShellTaskType(BaseTaskType):
             ) as params:
                 subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
+                attempt_log.input_parameters = params.copy()
                 # Json dumps all runnable environment variables
                 for key, value in subprocess_env.items():
                     if isinstance(value, str):

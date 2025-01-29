@@ -84,8 +84,7 @@ def should_step_have_parameters(step_name: str, parameters: dict):
         parameter: value.value
         for parameter, value in step.attempts[0].input_parameters.items()
     }
-    print(parameters)
-    print(func_parameters)
+
     assert parameters == func_parameters
 
 
@@ -99,8 +98,6 @@ def should_have_catalog_execution_logs():
     for step_name in step_names:
         logfile_name = "".join(x for x in step_name if x.isalnum())
         pattern = rf"{re.escape(logfile_name)}...\.execution\.log"
-
-        print(f"Checking for {pattern} in {contents}")
 
         assert any(
             re.search(pattern, s) for s in contents

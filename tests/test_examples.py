@@ -88,7 +88,10 @@ def argo_context():
         del os.environ["RUNNABLE_CONFIGURATION_FILE"]
 
 
-contexts = [default_context]  # , chunked_fs_context, mocked_context, argo_context]
+contexts = [
+    default_context,
+    mocked_context,
+]  # , chunked_fs_context, mocked_context, argo_context]
 
 python_examples = [
     (
@@ -230,6 +233,54 @@ python_examples = [
             partial(
                 conditions.should_step_have_parameters,
                 "read_params_in_notebook",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "chunks": [1, 2, 3],
+                    "envvar": "from env",
+                },
+            ),
+            partial(
+                conditions.should_step_have_parameters,
+                "read_params_in_shell",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "chunks": [1, 2, 3],
+                    "envvar": "from env",
+                },
+            ),
+        ],
+    ),
+    (
+        "03-parameters/static_parameters_fail",
+        False,
+        [],
+        [
+            partial(conditions.should_have_num_steps, 3),
+            partial(conditions.should_have_catalog_execution_logs),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_failed, "read_params_and_fail"),
+            partial(conditions.should_step_be_successful, "read_params_in_notebook"),
+            partial(
+                conditions.should_step_have_parameters,
+                "read_params_in_notebook",
+                {
+                    "integer": 1,
+                    "floater": 3.14,
+                    "stringer": "hello",
+                    "pydantic_param": {"x": 10, "foo": "bar"},
+                    "chunks": [1, 2, 3],
+                    "envvar": "from env",
+                },
+            ),
+            partial(
+                conditions.should_step_have_parameters,
+                "read_params_and_fail",
                 {
                     "integer": 1,
                     "floater": 3.14,
