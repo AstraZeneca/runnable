@@ -1,6 +1,6 @@
 from examples.common.functions import (
     assert_default_reducer,
-    process_chunk,
+    process_chunk_fail,
     read_processed_chunk,
 )
 from runnable import Map, NotebookTask, Pipeline, PythonTask, ShellTask
@@ -19,7 +19,7 @@ def iterable_branch(execute: bool = True):
     # In the example, we are multiplying the chunk by 10.
     process_chunk_task_python = PythonTask(
         name="execute_python",
-        function=process_chunk,
+        function=process_chunk_fail,
         returns=["processed_python"],
     )
 

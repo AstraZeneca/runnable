@@ -5,30 +5,6 @@ from functools import lru_cache
 from pathlib import Path
 
 from runnable import defaults
-from runnable.datastore import RunLog, StepLog
-
-
-def gather_steps_from_step(step_log: StepLog) -> list[str]:
-    steps = []
-    for _, branch in step_log.branches.items():
-        for _, step in branch.steps.items():
-            if step.step_type == "task":
-                steps.append(step.internal_name)
-                continue
-
-            steps.extend(gather_steps_from_step(step))
-    return steps
-
-
-def gather_steps(run_log: RunLog) -> list[str]:
-    steps = []
-    for _, step in run_log.steps.items():
-        if step.step_type == "task":
-            steps.append(step.internal_name)
-            continue
-        steps.extend(gather_steps_from_step(step))
-
-    return steps
 
 
 @lru_cache
@@ -72,7 +48,7 @@ def should_step_be_failed(step_name: str):
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     step = run_log.steps[step_name]
-    assert step.status == defaults.FAIL, f"Expected successful, got {step.status}"
+    assert step.status == defaults.FAIL, f"Expected failed, got {step.status}"
 
 
 def should_step_have_parameters(step_name: str, parameters: dict):
@@ -84,11 +60,26 @@ def should_step_have_parameters(step_name: str, parameters: dict):
         for parameter, value in step.attempts[0].input_parameters.items()
     }
 
-    print(step_name)
-    print("func_parameters", func_parameters)
-    print("parameters", parameters)
-
     assert parameters == func_parameters
+
+
+def should_branch_step_have_parameters(
+    parent_step_name: str, branch_name: str, branch_step_name: str, key: str, value
+):
+    run_id = os.environ[defaults.ENV_RUN_ID]
+    run_log = load_run_log(run_id)
+    step = run_log.steps[parent_step_name]
+
+    branch = step.branches[f"{parent_step_name}.{branch_name}"]
+    step_name = f"{parent_step_name}.{branch_name}.{branch_step_name}"
+    func_parameters = {
+        parameter: value.value
+        for parameter, value in branch.steps[step_name]
+        .attempts[0]
+        .input_parameters.items()
+    }
+
+    assert func_parameters[key] == value
 
 
 def should_step_have_output_parameters(step_name: str, parameters: dict):
@@ -100,9 +91,6 @@ def should_step_have_output_parameters(step_name: str, parameters: dict):
         for parameter, value in step.attempts[0].output_parameters.items()
     }
 
-    print(func_parameters)
-    print(parameters)
-
     assert parameters == func_parameters
 
 
@@ -110,7 +98,7 @@ def should_have_catalog_execution_logs():
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
 
-    step_names = gather_steps(run_log)
+    step_names = run_log.steps.keys()
     contents = os.listdir(f".catalog/{run_id}")
 
     for step_name in step_names:
@@ -120,6 +108,47 @@ def should_have_catalog_execution_logs():
         assert any(
             re.search(pattern, s) for s in contents
         ), "No match found in the list."
+
+
+def should_have_catalog_contents(files: list[str] = None):
+    run_id = os.environ[defaults.ENV_RUN_ID]
+
+    contents = os.listdir(f".catalog/{run_id}")
+    print(contents)
+
+    for file_name in files or []:
+        pattern = rf"{file_name}"
+
+        assert any(
+            re.search(pattern, s) for s in contents
+        ), "No match found in the list."
+
+
+def should_branch_have_steps(step_name, branch_name: str, num_steps: int):
+    run_id = os.environ[defaults.ENV_RUN_ID]
+    run_log = load_run_log(run_id)
+    step = run_log.steps[step_name]
+    branch = step.branches[f"{step_name}.{branch_name}"]
+
+    assert len(branch.steps) == num_steps
+
+
+def should_branch_be_successful(step_name, branch_name: str):
+    run_id = os.environ[defaults.ENV_RUN_ID]
+    run_log = load_run_log(run_id)
+    step = run_log.steps[step_name]
+    branch = step.branches[f"{step_name}.{branch_name}"]
+
+    assert branch.status == defaults.SUCCESS
+
+
+def should_branch_be_failed(step_name, branch_name: str):
+    run_id = os.environ[defaults.ENV_RUN_ID]
+    run_log = load_run_log(run_id)
+    step = run_log.steps[step_name]
+    branch = step.branches[f"{step_name}.{branch_name}"]
+
+    assert branch.status == defaults.FAIL
 
 
 def should_have_notebook_output(name: str):

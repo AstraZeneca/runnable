@@ -1,0 +1,72 @@
+success_branch: &success_branch
+  description: |
+    Use this pattern to define repeatable branch
+
+    This pipeline is the same as the one defined in examples/02-sequential/traversal.yaml
+  start_at: hello stub
+  steps:
+    hello stub:
+      type: stub
+      next: hello python
+    hello python:
+      type: task
+      command_type: python
+      command: examples.common.functions.hello # dotted path to the function.
+      next: hello shell
+    hello shell:
+      type: task
+      command_type: shell
+      command: echo "Hello World!" # Command to run
+      next: hello notebook
+    hello notebook:
+      type: task
+      command_type: notebook
+      command: examples/common/simple_notebook.ipynb # The path is relative to the root of the project.
+      next: success
+
+
+fail_branch: &fail_branch
+  description: |
+    Use this pattern to define repeatable branch
+
+    This pipeline is the same as the one defined in examples/02-sequential/traversal.yaml
+  start_at: hello stub
+  steps:
+    hello stub:
+      type: stub
+      next: hello python
+    hello python:
+      type: task
+      command_type: python
+      command: examples.common.functions.raise_ex # dotted path to the function.
+      next: hello shell
+    hello shell:
+      type: task
+      command_type: shell
+      command: echo "Hello World!" # Command to run
+      next: hello notebook
+    hello notebook:
+      type: task
+      command_type: notebook
+      command: examples/common/simple_notebook.ipynb # The path is relative to the root of the project.
+      next: success
+
+
+dag:
+  description: |
+    This example demonstrates the use of the Parallel step.
+
+    parallel step takes a mapping of branches which are pipelines themselves.
+
+    Run this pipeline as:
+      runnable execute -f examples/06-parallel/parallel.yaml
+
+
+  start_at: parallel_step
+  steps:
+    parallel_step:
+      type: parallel
+      next: success
+      branches:
+        branch1: *success_branch
+        branch2: *fail_branch

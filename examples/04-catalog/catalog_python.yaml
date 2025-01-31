@@ -1,0 +1,27 @@
+dag:
+  start_at: generate_data_python
+  steps:
+    generate_data_python:
+      type: task
+      command: examples.common.functions.write_files
+      catalog:
+        put:
+          - df.csv
+          - data_folder/data.txt
+      next: delete_files_after_generate
+    delete_files_after_generate:
+      type: task
+      command_type: shell
+      command: |
+        rm df.csv || true && \
+        rm data_folder/data.txt || true
+      next: read_data_python
+    read_data_python:
+      type: task
+      command_type: python
+      command: examples.common.functions.read_files
+      catalog:
+        get:
+          - df.csv
+          - data_folder/data.txt
+      next: success

@@ -1,0 +1,74 @@
+branch: &branch
+  start_at: execute_python
+  steps:
+    execute_python:
+      type: task
+      command: examples.common.functions.process_chunk_fail
+      returns:
+        - name: processed_python
+      next: execute_notebook
+    execute_notebook:
+      type: task
+      command_type: notebook
+      command: examples/common/process_chunk.ipynb
+      returns:
+        - name: processed_notebook
+      next: execute_shell
+    execute_shell:
+      type: task
+      command_type: shell
+      command: |
+        if [ "$processed_python" = $( expr 10 '*' "$chunk" ) ] \
+        && [ "$processed_notebook" = $( expr 10 '*' "$processed_python" ) ] ; then
+            echo "yaay"
+        else
+            echo "naay"
+            exit 1;
+        fi
+        export processed_shell=$( expr 10 '*' "$processed_notebook")
+      returns:
+        - name: processed_shell
+      next: read_chunk
+    read_chunk:
+      type: task
+      command: examples.common.functions.read_processed_chunk
+      next: success
+
+
+dag:
+  description: |
+    map states allows to repeat a branch for each value of an iterable.
+
+    The below example can written, in python, as:
+
+    chunks = [1, 2, 3]
+
+    for chunk in chunks:
+        # Any task within the pipeline can access the value of chunk as an argument.
+        processed = process_chunk(chunk)
+
+        # The value of processed for every iteration is the value returned by the steps
+        # of the current execution. For example, the value of processed
+        # for chunk=1, is chunk*10 = 10 for downstream steps.
+        read_processed_chunk(chunk, processed)
+
+    # Outside of loop, processed is a list of all the processed chunks.
+    # This is also called as the reduce pattern.
+    assert processed == [chunk * 10 for chunk in chunks]
+
+    Run this pipeline as:
+      runnable execute -f examples/07-map/map.yaml \
+      -p examples/common/initial_parameters.yaml
+
+  start_at: map_state
+  steps:
+    map_state:
+      type: map
+      branch: *branch
+      iterate_on: chunks
+      iterate_as: chunk
+      next: collect
+    collect:
+      type: task
+      command: examples.common.functions.assert_default_reducer
+      next: success

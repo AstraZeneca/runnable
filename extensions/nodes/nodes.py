@@ -661,6 +661,10 @@ class MapNode(CompositeNode):
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
+        # If we failed, we return without any collection
+        if not step_log.status == defaults.SUCCESS:
+            return
+
         # Apply the reduce function and reduce the returns of the task nodes.
         # The final value of the parameter is the result of the reduce function.
         reducer_f = self.get_reducer_function()

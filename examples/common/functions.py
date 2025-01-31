@@ -126,6 +126,16 @@ def process_chunk(chunk: int):
     return chunk * 10
 
 
+def process_chunk_fail(chunk: int):
+    """
+    An example function that processes a chunk of data.
+    We are multiplying the chunk by 10.
+    """
+    if chunk == 1:
+        raise Exception("This is a failure")
+    return chunk * 10
+
+
 def read_processed_chunk(
     chunk: int, processed_python: int, processed_notebook: int, processed_shell: int
 ):
