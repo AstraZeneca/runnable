@@ -31,7 +31,26 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
-# TODO: This has to be an extension
+class TeeIO(io.StringIO):
+    """
+    A custom class to write to the buffer and the output stream at the same time.
+    """
+
+    def __init__(self, output_stream=sys.stdout):
+        super().__init__()
+        self.output_stream = output_stream
+
+    def write(self, s):
+        super().write(s)  # Write to the buffer
+        self.output_stream.write(s)  # Write to the output stream
+
+    def flush(self):
+        super().flush()
+        self.output_stream.flush()
+
+
+buffer = TeeIO()
+sys.stdout = buffer
 
 
 class TaskReturns(BaseModel):
@@ -275,7 +294,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                         f"Calling {func} from {module} with {filtered_parameters}"
                     )
 
-                    out_file = io.StringIO()
+                    out_file = TeeIO()
                     with contextlib.redirect_stdout(out_file):
                         user_set_parameters = f(
                             **filtered_parameters
@@ -477,7 +496,7 @@ class NotebookTaskType(BaseTaskType):
                 }
                 kwds.update(ploomber_optional_args)
 
-                out_file = io.StringIO()
+                out_file = TeeIO()
                 with contextlib.redirect_stdout(out_file):
                     pm.execute_notebook(**kwds)
                 task_console.print(out_file.getvalue())
