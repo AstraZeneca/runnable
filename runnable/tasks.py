@@ -31,7 +31,26 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
-# TODO: This has to be an extension
+class TeeIO(io.StringIO):
+    """
+    A custom class to write to the buffer and the output stream at the same time.
+    """
+
+    def __init__(self, output_stream=sys.stdout):
+        super().__init__()
+        self.output_stream = output_stream
+
+    def write(self, s):
+        super().write(s)  # Write to the buffer
+        self.output_stream.write(s)  # Write to the output stream
+
+    def flush(self):
+        super().flush()
+        self.output_stream.flush()
+
+
+buffer = TeeIO()
+sys.stdout = buffer
 
 
 class TaskReturns(BaseModel):
@@ -152,6 +171,7 @@ class BaseTaskType(BaseModel):
                 key: value
                 for key, value in params.items()
                 if isinstance(value, JsonParameter)
+                or isinstance(value, MetricParameter)
             }
 
         parameters_in = copy.deepcopy(params)
@@ -274,7 +294,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                         f"Calling {func} from {module} with {filtered_parameters}"
                     )
 
-                    out_file = io.StringIO()
+                    out_file = TeeIO()
                     with contextlib.redirect_stdout(out_file):
                         user_set_parameters = f(
                             **filtered_parameters
@@ -284,16 +304,15 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     raise exceptions.CommandCallError(
                         f"Function call: {self.command} did not succeed.\n"
                     ) from e
-
-                attempt_log.input_parameters = params.copy()
-
-                if map_variable:
-                    attempt_log.input_parameters.update(
-                        {
-                            k: JsonParameter(value=v, kind="json")
-                            for k, v in map_variable.items()
-                        }
-                    )
+                finally:
+                    attempt_log.input_parameters = params.copy()
+                    if map_variable:
+                        attempt_log.input_parameters.update(
+                            {
+                                k: JsonParameter(value=v, kind="json")
+                                for k, v in map_variable.items()
+                            }
+                        )
 
                 if self.returns:
                     if not isinstance(user_set_parameters, tuple):  # make it a tuple
@@ -448,6 +467,7 @@ class NotebookTaskType(BaseTaskType):
                 ) as params,
                 self.expose_secrets() as _,
             ):
+                attempt_log.input_parameters = params.copy()
                 copy_params = copy.deepcopy(params)
 
                 if map_variable:
@@ -476,7 +496,7 @@ class NotebookTaskType(BaseTaskType):
                 }
                 kwds.update(ploomber_optional_args)
 
-                out_file = io.StringIO()
+                out_file = TeeIO()
                 with contextlib.redirect_stdout(out_file):
                     pm.execute_notebook(**kwds)
                 task_console.print(out_file.getvalue())
@@ -635,6 +655,7 @@ class ShellTaskType(BaseTaskType):
             ) as params:
                 subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
+                attempt_log.input_parameters = params.copy()
                 # Json dumps all runnable environment variables
                 for key, value in subprocess_env.items():
                     if isinstance(value, str):

@@ -15,9 +15,9 @@ dag:
         2 directories, 1 file
 
         The hello.execution.log has the captured stdout of "Hello World!".
-  start_at: hello_task
+  start_at: hello
   steps:
-    hello_task:
+    hello:
       type: task
       command: examples.common.functions.hello # dotted path to the function.
       next: success

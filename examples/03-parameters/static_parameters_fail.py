@@ -24,42 +24,39 @@ Run this pipeline as:
 
 import os
 
-from examples.common.functions import (
-    read_initial_params_as_json,
-    read_initial_params_as_pydantic,
-)
-from runnable import Pipeline, PythonTask
+from examples.common.functions import raise_ex
+from runnable import NotebookTask, Pipeline, PythonTask
 
 
 def main():
-    """
-    Signature of read_initial_params_as_pydantic
-    def read_initial_params_as_pydantic(
-        integer: int,
-        floater: float,
-        stringer: str,
-        pydantic_param: ComplexParams,
-        envvar: str,
-    ):
-    """
-    read_params_as_pydantic = PythonTask(
-        function=read_initial_params_as_pydantic,
-        name="read_params_as_pydantic",
-    )
-
-    read_params_as_json = PythonTask(
-        function=read_initial_params_as_json,
+    read_params_in_notebook = NotebookTask(
+        name="read_params_in_notebook",
+        notebook="examples/common/read_parameters.ipynb",
         terminate_with_success=True,
-        name="read_params_as_json",
     )
 
-    pipeline = Pipeline(
-        steps=[read_params_as_pydantic, read_params_as_json],
+    notebook_pipeline = Pipeline(
+        steps=[
+            read_params_in_notebook,
+        ],
+    )
+    read_params_and_fail = PythonTask(
+        function=raise_ex,
+        name="read_params_and_fail",
+        terminate_with_success=True,
     )
 
-    _ = pipeline.execute(parameters_file="examples/common/initial_parameters.yaml")
+    read_params_and_fail.on_failure = notebook_pipeline
 
-    return pipeline
+    python_pipeline = Pipeline(
+        steps=[
+            read_params_and_fail,
+        ],
+    )
+
+    python_pipeline.execute(parameters_file="examples/common/initial_parameters.yaml")
+
+    return python_pipeline
 
 
 if __name__ == "__main__":

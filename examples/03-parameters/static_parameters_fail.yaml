@@ -21,13 +21,15 @@ dag:
     Run this pipeline by:
       runnable execute -f 03-parameters/static_parameters_python.yaml \
         -p examples/common/initial_parameters.yaml
-  start_at: read_params_as_pydantic
+  start_at: read_params_and_fail
   steps:
-    read_params_as_pydantic:
+    read_params_and_fail:
       type: task
-      command: examples.common.functions.read_initial_params_as_pydantic
-      next: read_params_as_json
-    read_params_as_json:
+      command: examples.common.functions.raise_ex
+      next: success
+      on_failure: read_params_in_notebook
+    read_params_in_notebook:
       type: task
-      command: examples.common.functions.read_initial_params_as_json
+      command_type: notebook
+      command: examples/common/read_parameters.ipynb
       next: success

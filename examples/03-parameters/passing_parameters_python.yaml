@@ -16,9 +16,9 @@ dag:
 
     Run the pipeline as:
       runnable execute -f examples/03-parameters/passing_parameters_python.yaml
-  start_at: write_parameters
+  start_at: set_parameter
   steps:
-    write_parameters:
+    set_parameter:
       type: task
       command: examples.common.functions.write_parameter
       returns:
@@ -30,9 +30,8 @@ dag:
         - name: pydantic_param
         - name: score
           kind: metric
-
-      next: read_parameters
-    read_parameters:
+      next: get_parameters
+    get_parameters:
       type: task
       command: examples.common.functions.read_parameter
       next: success
