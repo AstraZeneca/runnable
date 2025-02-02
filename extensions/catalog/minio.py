@@ -65,4 +65,5 @@ class MinioCatalog(AnyPathCatalog):
         (run_catalog / relative_file_path.parent).mkdir(parents=True, exist_ok=True)
 
         file_in_cloud = run_catalog / file
+        assert isinstance(file_in_cloud, S3Path)
         file_in_cloud.upload_from(file)
