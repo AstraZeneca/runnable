@@ -257,6 +257,18 @@ wheels = [
 ]
 
 [[package]]
+name = "cloudpathlib"
+version = "0.20.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/71/0b/a47d78ed2816db100543b504fdbfc2070f422aac858e6bcf775713e37b8a/cloudpathlib-0.20.0.tar.gz", hash = "sha256:f6ef7ca409a510f7ba4639ba50ab3fc5b6dee82d6dff0d7f5715fd0c9ab35891", size = 45149 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1f/6e/b64600156934dab14cc8b403095a9ea8bd722aad2e775673c68346b76220/cloudpathlib-0.20.0-py3-none-any.whl", hash = "sha256:7af3bcefbf73392ae7f31c08b3660ec31607f8c01b7f6262d4d73469a845f641", size = 52547 },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -2088,6 +2100,7 @@ source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "click-plugins" },
+    { name = "cloudpathlib" },
     { name = "dill" },
     { name = "pydantic" },
     { name = "python-dotenv" },
@@ -2136,6 +2149,7 @@ release = [
 requires-dist = [
     { name = "click", specifier = "<=8.1.3" },
     { name = "click-plugins", specifier = ">=1.1.1" },
+    { name = "cloudpathlib", specifier = ">=0.20.0" },
     { name = "dill", specifier = ">=0.3.9" },
     { name = "docker", marker = "extra == 'docker'", specifier = ">=7.1.0" },
     { name = "kubernetes", marker = "extra == 'k8s'", specifier = ">=31.0.0" },

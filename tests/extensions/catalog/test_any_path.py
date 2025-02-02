@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 
-from extensions.catalog import file_system as module
+from extensions.catalog import any_path as module
 from extensions.catalog.file_system import FileSystemCatalog
 from runnable import defaults
 
