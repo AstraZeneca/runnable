@@ -46,7 +46,7 @@ class FileSystemCatalog(AnyPathCatalog):
             f"Copying objects from {self.compute_data_folder} to the run catalog location of {run_catalog}"
         )
 
-        relative_file_path = file.relative_to(".")
+        relative_file_path = file.relative_to(self.compute_data_folder)
 
         (run_catalog / relative_file_path.parent).mkdir(parents=True, exist_ok=True)
         shutil.copy(file, run_catalog / relative_file_path)

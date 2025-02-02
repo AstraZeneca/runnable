@@ -40,7 +40,12 @@ class AnyPathCatalog(BaseCatalog):
     def download_from_catalog(self, file: Path | CloudPath) -> None: ...
 
     @abstractmethod
-    def get_catalog_location(self) -> Path | CloudPath: ...
+    def get_catalog_location(self) -> Path | CloudPath:
+        """
+        For local file systems, this is the .catalog/run_id/compute_data_folder
+        For cloud systems, this is s3://bucket/run_id/compute_data_folder
+        """
+        ...
 
     def get(self, name: str) -> List[DataCatalog]:
         """
@@ -75,15 +80,14 @@ class AnyPathCatalog(BaseCatalog):
             if str(file).endswith(".execution.log"):
                 continue
 
+            self.download_from_catalog(file)
             relative_file_path = file.relative_to(run_catalog)  # type: ignore
 
             data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
             data_catalog.catalog_relative_path = str(relative_file_path)
-            data_catalog.data_hash = utils.get_data_hash(str(file))
+            data_catalog.data_hash = utils.get_data_hash(str(relative_file_path))
             data_catalog.stage = "get"
             data_catalogs.append(data_catalog)
-
-            self.download_from_catalog(file)
 
         if not data_catalogs:
             raise Exception(f"Did not find any files matching {name} in {run_catalog}")
@@ -137,7 +141,7 @@ class AnyPathCatalog(BaseCatalog):
                 # Need not add a data catalog for the folder
                 continue
 
-            relative_file_path = file.relative_to(".")
+            relative_file_path = file.relative_to(copy_from)
 
             data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
             data_catalog.catalog_relative_path = (
