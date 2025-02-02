@@ -114,7 +114,7 @@ class ObjectParameter(BaseModel):
 
         # If the object was serialised, get it from the catalog
         catalog_handler = context.run_context.catalog_handler
-        catalog_handler.get(name=self.file_name, run_id=context.run_context.run_id)
+        catalog_handler.get(name=self.file_name)
         obj = context.run_context.pickler.load(path=self.file_name)
         os.remove(self.file_name)  # Remove after loading
         return obj
@@ -128,7 +128,7 @@ class ObjectParameter(BaseModel):
         context.run_context.pickler.dump(data=data, path=self.file_name)
 
         catalog_handler = context.run_context.catalog_handler
-        catalog_handler.put(name=self.file_name, run_id=context.run_context.run_id)
+        catalog_handler.put(name=self.file_name)
         os.remove(self.file_name)  # Remove after loading
 
 

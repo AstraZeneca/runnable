@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 import runnable.context as context
 from runnable import defaults
@@ -43,6 +43,9 @@ class BaseCatalog(ABC, BaseModel):
 
     service_name: str = ""
     service_type: str = "catalog"
+
+    compute_data_folder: str = Field(default=defaults.COMPUTE_DATA_FOLDER)
+
     model_config = ConfigDict(extra="forbid")
 
     @abstractmethod
@@ -52,14 +55,8 @@ class BaseCatalog(ABC, BaseModel):
     def _context(self):
         return context.run_context
 
-    @property
-    def compute_data_folder(self) -> str:
-        return defaults.COMPUTE_DATA_FOLDER
-
     @abstractmethod
-    def get(
-        self, name: str, run_id: str, compute_data_folder: str = "", **kwargs
-    ) -> List[DataCatalog]:
+    def get(self, name: str) -> List[DataCatalog]:
         """
         Get the catalog item by 'name' for the 'run id' and store it in compute data folder.
 
@@ -79,14 +76,7 @@ class BaseCatalog(ABC, BaseModel):
         raise NotImplementedError
 
     @abstractmethod
-    def put(
-        self,
-        name: str,
-        run_id: str,
-        compute_data_folder: str = "",
-        synced_catalogs: Optional[List[DataCatalog]] = None,
-        **kwargs,
-    ) -> List[DataCatalog]:
+    def put(self, name: str) -> List[DataCatalog]:
         """
         Put the file by 'name' from the 'compute_data_folder' in the catalog for the run_id.
 
@@ -140,23 +130,14 @@ class DoNothingCatalog(BaseCatalog):
     def get_summary(self) -> Dict[str, Any]:
         return {}
 
-    def get(
-        self, name: str, run_id: str, compute_data_folder: str = "", **kwargs
-    ) -> List[DataCatalog]:
+    def get(self, name: str) -> List[DataCatalog]:
         """
         Does nothing
         """
         logger.info("Using a do-nothing catalog, doing nothing in get")
         return []
 
-    def put(
-        self,
-        name: str,
-        run_id: str,
-        compute_data_folder: str = "",
-        synced_catalogs: Optional[List[DataCatalog]] = None,
-        **kwargs,
-    ) -> List[DataCatalog]:
+    def put(self, name: str) -> List[DataCatalog]:
         """
         Does nothing
         """
@@ -167,5 +148,4 @@ class DoNothingCatalog(BaseCatalog):
         """
         Does nothing
         """
-        logger.info("Using a do-nothing catalog, doing nothing while sync between runs")
         logger.info("Using a do-nothing catalog, doing nothing while sync between runs")

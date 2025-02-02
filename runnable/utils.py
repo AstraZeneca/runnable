@@ -359,26 +359,26 @@ def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
     return diff
 
 
-def hash_bytestr_iter(bytesiter, hasher, ashexstr=True):  # pylint: disable=C0116
-    """Hashes the given bytesiter using the given hasher."""
-    for block in bytesiter:  # pragma: no cover
-        hasher.update(block)
-    return hasher.hexdigest() if ashexstr else hasher.digest()  # pragma: no cover
+# def hash_bytestr_iter(bytesiter, hasher, ashexstr=True):  # pylint: disable=C0116
+#     """Hashes the given bytesiter using the given hasher."""
+#     for block in bytesiter:  # pragma: no cover
+#         hasher.update(block)
+#     return hasher.hexdigest() if ashexstr else hasher.digest()  # pragma: no cover
 
 
-def file_as_blockiter(afile, blocksize=65536):  # pylint: disable=C0116
-    """From a StackOverflow answer: that is used to generate a MD5 hash of a large files.
-    # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file.
+# def file_as_blockiter(afile, blocksize=65536):  # pylint: disable=C0116
+#     """From a StackOverflow answer: that is used to generate a MD5 hash of a large files.
+#     # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file.
 
-    """
-    with afile:  # pragma: no cover
-        block = afile.read(blocksize)
-        while len(block) > 0:
-            yield block
-            block = afile.read(blocksize)
+#     """
+#     with afile:  # pragma: no cover
+#         block = afile.read(blocksize)
+#         while len(block) > 0:
+#             yield block
+#             block = afile.read(blocksize)
 
 
-def get_data_hash(file_name: str):
+def get_data_hash(file_name: str) -> str:
     """Returns the hash of the data file.
 
     Args:
@@ -389,9 +389,12 @@ def get_data_hash(file_name: str):
     """
     # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
     # TODO: For a big file, we should only hash the first few bytes
-    return hash_bytestr_iter(
-        file_as_blockiter(open(file_name, "rb")), hashlib.sha256()
-    )  # pragma: no cover
+    with open(file_name, "rb") as f:
+        file_hash = hashlib.md5()
+        for chunk in iter(lambda: f.read(4096), b""):
+            file_hash.update(chunk)
+
+    return file_hash.hexdigest()
 
 
 # TODO: This is not the right place for this.

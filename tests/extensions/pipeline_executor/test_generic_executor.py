@@ -223,13 +223,6 @@ def test_sync_catalog_returns_empty_list_if_asked_nothing_in_stage(
     mock_node = mock_base_node()
     setattr(mock_node, "_get_catalog_settings", lambda: {"get": [], "put": []})
 
-    mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
-    monkeypatch.setattr(
-        GenericExecutor,
-        "get_effective_compute_data_folder",
-        mock_get_effective_compute_folder,
-    )
-
     test_executor = GenericExecutor()
     test_executor._context_node = mock_node
 
@@ -243,13 +236,6 @@ def test_sync_catalog_calls_get_from_catalog_handler(
     mock_node = mock_base_node()
     setattr(mock_node, "_get_catalog_settings", lambda: {"get": ["me"], "put": []})
 
-    mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
-    monkeypatch.setattr(
-        GenericExecutor,
-        "get_effective_compute_data_folder",
-        mock_get_effective_compute_folder,
-    )
-
     mock_catalog_handler_get = mocker.MagicMock()
     mock_catalog_handler_get.return_value = ["data_catalog"]
     mock_run_context.catalog_handler.get = mock_catalog_handler_get
@@ -261,9 +247,7 @@ def test_sync_catalog_calls_get_from_catalog_handler(
     data_catalogs = test_executor._sync_catalog(stage="get")
 
     assert data_catalogs == ["data_catalog"]
-    mock_catalog_handler_get.assert_called_once_with(
-        name="me", run_id="run_id", compute_data_folder="compute_folder"
-    )
+    mock_catalog_handler_get.assert_called_once_with(name="me")
 
 
 def test_sync_catalog_calls_get_from_catalog_handler_as_per_input(
@@ -272,13 +256,6 @@ def test_sync_catalog_calls_get_from_catalog_handler_as_per_input(
     mock_node = mock_base_node()
     setattr(
         mock_node, "_get_catalog_settings", lambda: {"get": ["me", "you"], "put": []}
-    )
-
-    mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
-    monkeypatch.setattr(
-        GenericExecutor,
-        "get_effective_compute_data_folder",
-        mock_get_effective_compute_folder,
     )
 
     mock_catalog_handler_get = mocker.MagicMock()
@@ -301,13 +278,6 @@ def test_sync_catalog_calls_put_from_catalog_handler(
     mock_node = mock_base_node()
     setattr(mock_node, "_get_catalog_settings", lambda: {"get": [], "put": ["me"]})
 
-    mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
-    monkeypatch.setattr(
-        GenericExecutor,
-        "get_effective_compute_data_folder",
-        mock_get_effective_compute_folder,
-    )
-
     mock_catalog_handler_put = mocker.MagicMock()
     mock_catalog_handler_put.return_value = ["data_catalog"]
     mock_run_context.catalog_handler.put = mock_catalog_handler_put
@@ -319,12 +289,7 @@ def test_sync_catalog_calls_put_from_catalog_handler(
     data_catalogs = test_executor._sync_catalog(stage="put")
 
     assert data_catalogs == ["data_catalog"]
-    mock_catalog_handler_put.assert_called_once_with(
-        name="me",
-        run_id="run_id",
-        compute_data_folder="compute_folder",
-        synced_catalogs=None,
-    )
+    mock_catalog_handler_put.assert_called_once_with(name="me")
 
 
 def test_sync_catalog_calls_put_from_catalog_handler_as_per_input(
@@ -333,13 +298,6 @@ def test_sync_catalog_calls_put_from_catalog_handler_as_per_input(
     mock_node = mock_base_node()
     setattr(
         mock_node, "_get_catalog_settings", lambda: {"get": [], "put": ["me", "you"]}
-    )
-
-    mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
-    monkeypatch.setattr(
-        GenericExecutor,
-        "get_effective_compute_data_folder",
-        mock_get_effective_compute_folder,
     )
 
     mock_catalog_handler_put = mocker.MagicMock()
@@ -362,13 +320,6 @@ def test_sync_catalog_calls_put_sends_synced_catalogs_to_catalog_handler(
     mock_node = mock_base_node()
     setattr(mock_node, "_get_catalog_settings", lambda: {"get": [], "put": ["me"]})
 
-    mock_get_effective_compute_folder = mocker.MagicMock(return_value="compute_folder")
-    monkeypatch.setattr(
-        GenericExecutor,
-        "get_effective_compute_data_folder",
-        mock_get_effective_compute_folder,
-    )
-
     mock_catalog_handler_put = mocker.MagicMock()
     mock_catalog_handler_put.return_value = ["data_catalog"]
     mock_run_context.catalog_handler.put = mock_catalog_handler_put
@@ -380,44 +331,7 @@ def test_sync_catalog_calls_put_sends_synced_catalogs_to_catalog_handler(
     data_catalogs = test_executor._sync_catalog(stage="put", synced_catalogs="in_sync")
 
     assert data_catalogs == ["data_catalog"]
-    mock_catalog_handler_put.assert_called_once_with(
-        name="me",
-        run_id="run_id",
-        compute_data_folder="compute_folder",
-        synced_catalogs="in_sync",
-    )
-
-
-def test_get_effective_compute_data_folder_returns_default(
-    mocker, mock_run_context, mock_base_node
-):
-    mock_run_context.catalog_handler.compute_data_folder = "default"
-
-    mock_node = mock_base_node()
-    setattr(mock_node, "_get_catalog_settings", lambda: {})
-
-    test_executor = GenericExecutor()
-    test_executor._context_node = mock_node
-
-    assert test_executor.get_effective_compute_data_folder() == "default"
-
-
-def test_get_effective_compute_data_folder_returns_from_node_settings(
-    mocker, mock_run_context, mock_base_node
-):
-    mock_run_context.catalog_handler.compute_data_folder = "default"
-
-    mock_node = mock_base_node()
-    setattr(
-        mock_node,
-        "_get_catalog_settings",
-        lambda: {"compute_data_folder": "not_default"},
-    )
-
-    test_executor = GenericExecutor()
-    test_executor._context_node = mock_node
-
-    assert test_executor.get_effective_compute_data_folder() == "not_default"
+    mock_catalog_handler_put.assert_called_once_with(name="me")
 
 
 def test_step_attempt_returns_one_by_default():

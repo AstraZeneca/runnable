@@ -174,23 +174,6 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def get_effective_compute_data_folder(self) -> Optional[str]:
-        """
-        Get the effective compute data folder for the given stage.
-        If there is nothing to catalog, we return None.
-
-        The default is the compute data folder of the catalog but this can be over-ridden by the node.
-
-        Args:
-            stage (str): The stage we are in the process of cataloging
-
-
-        Returns:
-            Optional[str]: The compute data folder as defined by catalog handler or the node or None.
-        """
-        ...
-
-    @abstractmethod
     def _sync_catalog(
         self, stage: str, synced_catalogs=None
     ) -> Optional[List[DataCatalog]]:

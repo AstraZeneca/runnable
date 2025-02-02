@@ -501,9 +501,7 @@ class NotebookTaskType(BaseTaskType):
                     pm.execute_notebook(**kwds)
                 task_console.print(out_file.getvalue())
 
-                context.run_context.catalog_handler.put(
-                    name=notebook_output_path, run_id=context.run_context.run_id
-                )
+                context.run_context.catalog_handler.put(name=notebook_output_path)
 
                 client = PloomberClient.from_path(path=notebook_output_path)
                 namespace = client.get_namespace()

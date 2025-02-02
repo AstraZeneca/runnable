@@ -25,13 +25,13 @@ def test_base_run_log_store_context_property(
 def test_base_catalog_get_raises_exception(instantiable_base_class):
     base_catalog = catalog.BaseCatalog()
     with pytest.raises(NotImplementedError):
-        base_catalog.get(name="test", run_id="test")
+        base_catalog.get(name="test")
 
 
 def test_base_catalog_put_raises_exception(instantiable_base_class):
     base_catalog = catalog.BaseCatalog()
     with pytest.raises(NotImplementedError):
-        base_catalog.put(name="test", run_id="test")
+        base_catalog.put(name="test")
 
 
 def test_base_catalog_sync_between_runs_raises_exception(instantiable_base_class):
@@ -48,12 +48,12 @@ def test_base_catalog_config_default_compute_folder_if_none_config(
 
 def test_do_nothing_catalog_get_returns_empty_list(monkeypatch, mocker):
     catalog_handler = catalog.DoNothingCatalog()
-    assert catalog_handler.get(name="does not matter", run_id="none") == []
+    assert catalog_handler.get(name="does not matter") == []
 
 
 def test_do_nothing_catalog_put_returns_empty_list(monkeypatch, mocker):
     catalog_handler = catalog.DoNothingCatalog()
-    assert catalog_handler.put(name="does not matter", run_id="none") == []
+    assert catalog_handler.put(name="does not matter") == []
 
 
 def test_do_nothing_catalog_sync_between_runs_does_nothing(monkeypatch, mocker):
