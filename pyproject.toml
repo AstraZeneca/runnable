@@ -34,6 +34,9 @@ examples = [
 k8s = [
     "kubernetes>=31.0.0",
 ]
+s3 = [
+    "cloudpathlib[s3]"
+]
 
 [dependency-groups]
 dev = [
@@ -114,6 +117,7 @@ include = [
 "do-nothing" = "runnable.catalog:DoNothingCatalog"
 "file-system" = "extensions.catalog.file_system:FileSystemCatalog"
 "s3" = "extensions.catalog.s3:S3Catalog"
+"minio" = "extensions.catalog.minio:MinioCatalog"
 
 [project.entry-points.'run_log_store']
 "buffered" = "runnable.datastore:BufferRunLogstore"

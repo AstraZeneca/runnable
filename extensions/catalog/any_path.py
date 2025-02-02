@@ -3,12 +3,12 @@ import os
 import shutil
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List
 
-from cloudpathlib import S3Path
+from cloudpathlib import CloudPath
 
 from runnable import defaults, utils
-from runnable.catalog import BaseCatalog, is_catalog_out_of_sync
+from runnable.catalog import BaseCatalog
 from runnable.datastore import DataCatalog
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -30,24 +30,19 @@ class AnyPathCatalog(BaseCatalog):
 
     """
 
-    catalog_location: str = defaults.CATALOG_LOCATION_FOLDER
-
-    def get_catalog_location(self):
-        return self.catalog_location
-
-    def get_summary(self) -> Dict[str, Any]:
-        summary = {
-            "Catalog Location": self.get_catalog_location(),
-        }
-
-        return summary
+    @abstractmethod
+    def get_summary(self) -> Dict[str, Any]: ...
 
     @abstractmethod
-    def get_path_client(self) -> Type[S3Path] | Type[Path]: ...
+    def upload_to_catalog(self, file: Path) -> None: ...
 
-    def get(
-        self, name: str, run_id: str, compute_data_folder: str = "", **kwargs
-    ) -> List[DataCatalog]:
+    @abstractmethod
+    def download_from_catalog(self, file: Path | CloudPath) -> None: ...
+
+    @abstractmethod
+    def get_catalog_location(self) -> Path | CloudPath: ...
+
+    def get(self, name: str) -> List[DataCatalog]:
         """
         Get the file by matching glob pattern to the name
 
@@ -61,30 +56,7 @@ class AnyPathCatalog(BaseCatalog):
         Returns:
             List(object) : A list of catalog objects
         """
-        logger.info(
-            f"Using the {self.service_name} catalog and trying to get {name} for run_id: {run_id}"
-        )
-
-        copy_to = self.compute_data_folder
-        if compute_data_folder:
-            copy_to = compute_data_folder
-
-        client = self.get_path_client()
-        copy_to = client(copy_to)  # type: ignore
-
-        catalog_location = self.get_catalog_location()
-        run_catalog = client(catalog_location) / run_id / copy_to
-
-        logger.debug(
-            f"Copying objects to {copy_to} from the run catalog location of {run_catalog}"
-        )
-
-        if not run_catalog.is_dir():
-            msg = (
-                f"Expected Catalog to be present at: {run_catalog} but not found.\n"
-                "Note: Please make sure that some data was put in the catalog before trying to get from it.\n"
-            )
-            raise Exception(msg)
+        run_catalog = self.get_catalog_location()
 
         # Iterate through the contents of the run_catalog and copy the files that fit the name pattern
         # We should also return a list of data hashes
@@ -106,31 +78,19 @@ class AnyPathCatalog(BaseCatalog):
             relative_file_path = file.relative_to(run_catalog)  # type: ignore
 
             data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
-            data_catalog.catalog_handler_location = catalog_location
             data_catalog.catalog_relative_path = str(relative_file_path)
             data_catalog.data_hash = utils.get_data_hash(str(file))
             data_catalog.stage = "get"
             data_catalogs.append(data_catalog)
 
-            # Make the directory in the data folder if required
-            Path(copy_to / relative_file_path.parent).mkdir(parents=True, exist_ok=True)
-            shutil.copy(file, copy_to / relative_file_path)
-
-            logger.info(f"Copied {file} from {run_catalog} to {copy_to}")
+            self.download_from_catalog(file)
 
         if not data_catalogs:
             raise Exception(f"Did not find any files matching {name} in {run_catalog}")
 
         return data_catalogs
 
-    def put(
-        self,
-        name: str,
-        run_id: str,
-        compute_data_folder: str = "",
-        synced_catalogs: Optional[List[DataCatalog]] = None,
-        **kwargs,
-    ) -> List[DataCatalog]:
+    def put(self, name: str) -> List[DataCatalog]:
         """
         Put the files matching the glob pattern into the catalog.
 
@@ -148,29 +108,16 @@ class AnyPathCatalog(BaseCatalog):
         Returns:
             List(object) : A list of catalog objects
         """
+        run_id = self._context.run_id
         logger.info(
             f"Using the {self.service_name} catalog and trying to put {name} for run_id: {run_id}"
         )
 
-        client = self.get_path_client()
+        copy_from = Path(self.compute_data_folder)
 
-        copy_from = self.compute_data_folder
-        if compute_data_folder:
-            copy_from = compute_data_folder
-
-        copy_from = client(copy_from)  # type: ignore
-
-        catalog_location = self.get_catalog_location()
-        run_catalog = client(catalog_location) / run_id
-        run_catalog.mkdir(parents=True, exist_ok=True)
-
-        logger.debug(
-            f"Copying objects from {copy_from} to the run catalog location of {run_catalog}"
-        )
-
-        if not utils.does_dir_exist(copy_from):
+        if not copy_from.is_dir():
             msg = (
-                f"Expected compute data folder to be present at: {compute_data_folder} but not found. \n"
+                f"Expected compute data folder to be present at: {copy_from} but not found. \n"
                 "Note: runnable does not create the compute data folder for you. Please ensure that the "
                 "folder exists.\n"
             )
@@ -178,8 +125,7 @@ class AnyPathCatalog(BaseCatalog):
 
         # Iterate through the contents of copy_from and if the name matches, we move them to the run_catalog
         # We should also return a list of datastore.DataCatalog items
-
-        glob_files = copy_from.glob(name)  # type: ignore
+        glob_files = copy_from.glob(name)
         logger.debug(
             f"Glob identified {glob_files} as matches to from the compute data folder: {copy_from}"
         )
@@ -194,7 +140,6 @@ class AnyPathCatalog(BaseCatalog):
             relative_file_path = file.relative_to(".")
 
             data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
-            data_catalog.catalog_handler_location = catalog_location
             data_catalog.catalog_relative_path = (
                 run_id + os.sep + str(relative_file_path)
             )
@@ -202,18 +147,8 @@ class AnyPathCatalog(BaseCatalog):
             data_catalog.stage = "put"
             data_catalogs.append(data_catalog)
 
-            if is_catalog_out_of_sync(data_catalog, synced_catalogs):
-                logger.info(f"{data_catalog.name} was found to be changed, syncing")
-
-                # Make the directory in the catalog if required
-                client(run_catalog / relative_file_path.parent).mkdir(
-                    parents=True, exist_ok=True
-                )
-                shutil.copy(file, run_catalog / relative_file_path)
-            else:
-                logger.info(
-                    f"{data_catalog.name} was found to be unchanged, ignoring syncing"
-                )
+            # TODO: Think about syncing only if the file is changed
+            self.upload_to_catalog(file)
 
         if not data_catalogs:
             raise Exception(f"Did not find any files matching {name} in {copy_from}")

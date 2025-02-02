@@ -151,53 +151,24 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             # Nothing to get/put from the catalog
             return None
 
-        compute_data_folder = self.get_effective_compute_data_folder()
-
         data_catalogs = []
         for name_pattern in node_catalog_settings.get(stage) or []:
             if stage == "get":
                 data_catalog = self._context.catalog_handler.get(
                     name=name_pattern,
-                    run_id=self._context.run_id,
-                    compute_data_folder=compute_data_folder,
                 )
 
             elif stage == "put":
                 data_catalog = self._context.catalog_handler.put(
                     name=name_pattern,
-                    run_id=self._context.run_id,
-                    compute_data_folder=compute_data_folder,
-                    synced_catalogs=synced_catalogs,
                 )
+            else:
+                raise Exception(f"Stage {stage} not supported")
 
             logger.debug(f"Added data catalog: {data_catalog} to step log")
             data_catalogs.extend(data_catalog)
 
         return data_catalogs
-
-    def get_effective_compute_data_folder(self) -> str:
-        """
-        Get the effective compute data folder for the given stage.
-        If there is nothing to catalog, we return None.
-
-        The default is the compute data folder of the catalog but this can be over-ridden by the node.
-
-        Args:
-            stage (str): The stage we are in the process of cataloging
-
-
-        Returns:
-            str: The compute data folder as defined by the node defaulting to catalog handler
-        """
-        assert isinstance(self._context_node, BaseNode)
-        compute_data_folder = self._context.catalog_handler.compute_data_folder
-
-        catalog_settings = self._context_node._get_catalog_settings()
-        effective_compute_data_folder = (
-            catalog_settings.get("compute_data_folder", "") or compute_data_folder
-        )
-
-        return effective_compute_data_folder
 
     @property
     def step_attempt_number(self) -> int:
@@ -219,9 +190,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         )
         task_console.save_text(log_file_name)
         # Put the log file in the catalog
-        self._context.catalog_handler.put(
-            name=log_file_name, run_id=self._context.run_id
-        )
+        self._context.catalog_handler.put(name=log_file_name)
         os.remove(log_file_name)
 
     def _execute_node(
