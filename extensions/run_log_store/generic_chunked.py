@@ -4,7 +4,9 @@ from abc import abstractmethod
 from enum import Enum
 from pathlib import Path
 from string import Template
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Union
+
+from cloudpathlib import CloudPath
 
 from runnable import defaults, exceptions
 from runnable.datastore import (
@@ -21,7 +23,7 @@ from runnable.datastore import (
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-T = Union[str, Path]  # Holds str, path
+MixT = Union[CloudPath, Path]  # Holds str, path
 
 
 class EntityNotFoundError(Exception):
@@ -87,7 +89,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
     @abstractmethod
     def get_matches(
         self, run_id: str, name: str, multiple_allowed: bool = False
-    ) -> Optional[Union[Sequence[T], T]]:
+    ) -> Optional[Union[list[Path], list[CloudPath], MixT]]:
         """
         Get contents of persistence layer matching the pattern name*
 
@@ -98,7 +100,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         ...
 
     @abstractmethod
-    def _store(self, run_id: str, contents: dict, name: T, insert: bool = False):
+    def _store(self, run_id: str, contents: dict, name: MixT, insert: bool = False):
         """
         Store the contents against the name in the persistence layer.
 
@@ -110,7 +112,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         ...
 
     @abstractmethod
-    def _retrieve(self, name: T) -> dict:
+    def _retrieve(self, run_id: str, name: MixT) -> dict:
         """
         Does the job of retrieving from the persistent layer.
 
@@ -140,7 +142,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         insert = False
 
         if match:
-            existing_contents = self._retrieve(name=match)  # type: ignore
+            existing_contents = self._retrieve(run_id=run_id, name=match)  # type: ignore
             contents = dict(existing_contents, **contents)
             name_to_give = match  # type: ignore
         else:
@@ -149,7 +151,9 @@ class ChunkedRunLogStore(BaseRunLogStore):
             )
             insert = True
 
-        self._store(run_id=run_id, contents=contents, name=name_to_give, insert=insert)
+        self._store(
+            run_id=run_id, contents=contents, name=Path(name_to_give), insert=insert
+        )
 
     def retrieve(
         self, run_id: str, log_type: LogTypes, name: str = "", multiple_allowed=False
@@ -190,13 +194,13 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
         if matches:
             if not multiple_allowed:
-                contents = self._retrieve(name=matches)  # type: ignore
+                contents = self._retrieve(run_id=run_id, name=matches)  # type: ignore
                 model = self.ModelTypes[log_type.name].value
                 return model(**contents)
 
             models = []
             for match in matches:  # type: ignore
-                contents = self._retrieve(name=match)
+                contents = self._retrieve(run_id=run_id, name=match)
                 model = self.ModelTypes[log_type.name].value
                 models.append(model(**contents))
             return models
@@ -225,7 +229,9 @@ class ChunkedRunLogStore(BaseRunLogStore):
             # No branch logs are found
             return {}
         # Forcing get_matches to always return a list is a better design
-        epoch_created = [str(match).split("-")[-1] for match in matches]  # type: ignore
+
+        assert isinstance(matches, list)
+        epoch_created = [str(match).split("-")[-1] for match in matches]
 
         # sort matches by epoch created
         epoch_created, matches = zip(*sorted(zip(epoch_created, matches)))  # type: ignore
@@ -234,7 +240,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
         for match in matches:
             model = self.ModelTypes[log_type.name].value
-            log_model = model(**self._retrieve(match))
+            log_model = model(**self._retrieve(run_id=run_id, name=match))
             logs[log_model.internal_name] = log_model  # type: ignore
 
         return logs

@@ -1,16 +1,30 @@
 import json
 import logging
-from pathlib import Path
+from functools import lru_cache
 from typing import Any, Dict
 
+from cloudpathlib import S3Client, S3Path
+from pydantic import Field, SecretStr
+
 from extensions.run_log_store.any_path import AnyPathRunLogStore
-from runnable import defaults, utils
+from runnable import defaults
 from runnable.datastore import RunLog
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class FileSystemRunLogstore(AnyPathRunLogStore):
+@lru_cache
+def get_minio_client(
+    endpoint_url: str, aws_access_key_id: str, aws_secret_access_key: str
+) -> S3Client:
+    return S3Client(
+        endpoint_url=endpoint_url,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+    )
+
+
+class MinioRunLogStore(AnyPathRunLogStore):
     """
     In this type of Run Log store, we use a file system to store the JSON run log.
 
@@ -33,16 +47,28 @@ class FileSystemRunLogstore(AnyPathRunLogStore):
     """
 
     service_name: str = "file-system"
-    log_folder: str = defaults.LOG_LOCATION_FOLDER
 
-    @property
-    def log_folder_name(self):
-        return self.log_folder
+    endpoint_url: str = Field(default="http://localhost:9002")
+    aws_access_key_id: SecretStr = SecretStr(secret_value="minioadmin")
+    aws_secret_access_key: SecretStr = SecretStr(secret_value="minioadmin")
+    bucket: str = Field(default="runnable/run-logs")
 
     def get_summary(self) -> Dict[str, Any]:
         summary = {"Type": self.service_name, "Location": self.log_folder}
 
         return summary
+
+    def get_run_log_bucket(self) -> S3Path:
+        run_id = self._context.run_id
+
+        return S3Path(
+            f"s3://{self.bucket}/{run_id}/",
+            client=get_minio_client(
+                self.endpoint_url,
+                self.aws_access_key_id.get_secret_value(),
+                self.aws_secret_access_key.get_secret_value(),
+            ),
+        )
 
     def write_to_path(self, run_log: RunLog):
         """
@@ -51,15 +77,13 @@ class FileSystemRunLogstore(AnyPathRunLogStore):
         Args:
             run_log (RunLog): The run log to be added to the database
         """
-        write_to = self.log_folder_name
-        utils.safe_make_dir(write_to)
+        run_log_bucket = self.get_run_log_bucket()
+        run_log_bucket.mkdir(parents=True, exist_ok=True)
 
-        write_to_path = Path(write_to)
-        run_id = run_log.run_id
-        json_file_path = write_to_path / f"{run_id}.json"
-
-        with json_file_path.open("w") as fw:
-            json.dump(run_log.model_dump(), fw, ensure_ascii=True, indent=4)  # pylint: disable=no-member
+        run_log_object = run_log_bucket / f"{run_log.run_id}.json"
+        run_log_object.write_text(
+            json.dumps(run_log.model_dump_json(), ensure_ascii=True, indent=4)
+        )
 
     def read_from_path(self, run_id: str) -> RunLog:
         """
@@ -77,15 +101,11 @@ class FileSystemRunLogstore(AnyPathRunLogStore):
         Returns:
             RunLog: The decoded Run log
         """
-        write_to = self.log_folder_name
+        run_log_bucket = self.get_run_log_bucket()
 
-        read_from_path = Path(write_to)
-        json_file_path = read_from_path / f"{run_id}.json"
+        run_log_object = run_log_bucket / f"{run_id}.json"
 
-        if not json_file_path.exists():
-            raise FileNotFoundError(f"Expected {json_file_path} is not present")
+        run_log_text = json.loads(run_log_object.read_text())
+        run_log = RunLog(**json.loads(run_log_text))
 
-        with json_file_path.open("r") as fr:
-            json_str = json.load(fr)
-            run_log = RunLog(**json_str)  # pylint: disable=no-member
         return run_log

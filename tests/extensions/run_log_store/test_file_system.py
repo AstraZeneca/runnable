@@ -33,7 +33,7 @@ def test_file_system_run_log_store_write_to_folder_makes_dir_if_not_present(
     mock_run_log.model_dump = mock_dict
 
     run_log_store = FileSystemRunLogstore()
-    run_log_store.write_to_folder(run_log=mock_run_log)
+    run_log_store.write_to_path(run_log=mock_run_log)
 
     mock_safe_make_dir.assert_called_once_with(run_log_store.log_folder_name)
     assert mock_dict.call_count == 1
@@ -52,7 +52,7 @@ def test_file_system_run_log_store_get_from_folder_raises_exception_if_folder_no
     run_log_store = module.FileSystemRunLogstore()
 
     with pytest.raises(FileNotFoundError):
-        run_log_store.get_from_folder(run_id="test")
+        run_log_store.read_from_path(run_id="test")
 
 
 def test_file_system_run_log_store_get_from_folder_returns_run_log_from_file_contents(
@@ -69,7 +69,7 @@ def test_file_system_run_log_store_get_from_folder_returns_run_log_from_file_con
     mock_json.load.return_value = {"run_id": "test"}
 
     run_log_store = module.FileSystemRunLogstore()
-    run_log = run_log_store.get_from_folder(run_id="does not matter")
+    run_log = run_log_store.read_from_path(run_id="does not matter")
 
     assert run_log.run_id == "test"
 
@@ -78,7 +78,7 @@ def test_file_system_run_log_store_create_run_log_writes_to_folder(mocker, monke
     mock_write_to_folder = mocker.MagicMock()
 
     monkeypatch.setattr(
-        module.FileSystemRunLogstore, "write_to_folder", mock_write_to_folder
+        module.FileSystemRunLogstore, "write_to_path", mock_write_to_folder
     )
 
     run_log_store = module.FileSystemRunLogstore()
@@ -96,7 +96,7 @@ def test_file_system_run_log_store_create_run_log_raises_exception_if_present(
     mock_get_run_log_by_id = mocker.MagicMock(return_value="existing")
 
     monkeypatch.setattr(
-        module.FileSystemRunLogstore, "write_to_folder", mock_write_to_folder
+        module.FileSystemRunLogstore, "write_to_path", mock_write_to_folder
     )
     monkeypatch.setattr(
         module.FileSystemRunLogstore,
@@ -116,7 +116,7 @@ def test_file_system_run_log_store_get_run_log_by_id_raises_exception_if_get_fro
     mock_get_from_folder.side_effect = FileNotFoundError()
 
     monkeypatch.setattr(
-        module.FileSystemRunLogstore, "get_from_folder", mock_get_from_folder
+        module.FileSystemRunLogstore, "read_from_path", mock_get_from_folder
     )
 
     run_log_store = module.FileSystemRunLogstore()
@@ -131,7 +131,7 @@ def test_file_system_run_log_store_get_run_log_by_id_returns_run_log_from_get_fr
     mock_get_from_folder.return_value = "I am a run log"
 
     monkeypatch.setattr(
-        module.FileSystemRunLogstore, "get_from_folder", mock_get_from_folder
+        module.FileSystemRunLogstore, "read_from_path", mock_get_from_folder
     )
 
     run_log_store = module.FileSystemRunLogstore()
@@ -145,7 +145,7 @@ def test_file_system_run_log_store_put_run_log_writes_to_folder(mocker, monkeypa
     mock_write_to_folder = mocker.MagicMock()
 
     monkeypatch.setattr(
-        module.FileSystemRunLogstore, "write_to_folder", mock_write_to_folder
+        module.FileSystemRunLogstore, "write_to_path", mock_write_to_folder
     )
 
     run_log_store = module.FileSystemRunLogstore()

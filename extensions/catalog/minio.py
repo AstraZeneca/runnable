@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from cloudpathlib import CloudPath, S3Client, S3Path
+from pydantic import Field, SecretStr
 
 from extensions.catalog.any_path import AnyPathCatalog
 from runnable import defaults
@@ -25,9 +26,9 @@ def get_minio_client(
 class MinioCatalog(AnyPathCatalog):
     service_name: str = "minio"
 
-    endpoint_url: str = "http://localhost:9002"
-    aws_access_key_id: str = "minioadmin"
-    aws_secret_access_key: str = "minioadmin"
+    endpoint_url: str = Field(default="http://localhost:9002")
+    aws_access_key_id: SecretStr = SecretStr(secret_value="minioadmin")
+    aws_secret_access_key: SecretStr = SecretStr(secret_value="minioadmin")
     bucket: str = "runnable"
 
     def get_summary(self) -> dict[str, Any]:
@@ -44,7 +45,9 @@ class MinioCatalog(AnyPathCatalog):
         return S3Path(
             f"s3://{self.bucket}/{run_id}/{self.compute_data_folder}".strip("."),
             client=get_minio_client(
-                self.endpoint_url, self.aws_access_key_id, self.aws_secret_access_key
+                self.endpoint_url,
+                self.aws_access_key_id.get_secret_value(),
+                self.aws_secret_access_key.get_secret_value(),
             ),
         )
 

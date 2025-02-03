@@ -1,2 +1,9 @@
 catalog:
   type: minio
+  config:
+    bucket: runnable/catalog
+
+run-log-store:
+  type: minio
+  config:
+    bucket: runnable/run-logs
