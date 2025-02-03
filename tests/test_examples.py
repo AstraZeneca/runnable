@@ -40,6 +40,16 @@ def container_context():
 
 
 @contextmanager
+def minio_context():
+    with runnable_context():
+        os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/minio.yaml"
+        os.environ["RUNNABLE_PRM_envvar"] = "from env"
+        yield
+        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+        del os.environ["RUNNABLE_PRM_envvar"]
+
+
+@contextmanager
 def chunked_fs_context():
     with runnable_context():
         os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
@@ -616,7 +626,7 @@ python_examples = [
 @pytest.mark.parametrize("context", contexts)
 # @pytest.mark.no_cover
 @pytest.mark.e2e
-def test_python_examples(example, context, monkeypatch, mocker):
+def test_python_examples(example, context):
     print(f"Testing {example}...")
 
     mod, fails, ignore_contexts, _, assertions = example
@@ -670,6 +680,33 @@ def test_yaml_examples(example, context):
             )
             [asserttion() for asserttion in assertions]
         except exceptions.ExecutionFailedError:
+            if not fails:
+                raise
+
+
+@pytest.mark.parametrize("example", list_python_examples())
+@pytest.mark.minio
+@pytest.mark.e2e
+def test_python_examples_minio(example):
+    print(f"Testing {example}...")
+
+    mod, fails, _, _, assertions = example
+
+    context = minio_context()
+
+    imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
+    f = getattr(imported_module, "main")
+
+    with context:
+        from runnable import exceptions
+
+        try:
+            os.environ[defaults.ENV_RUN_ID] = generate_run_id()
+            f()
+            # [asserttion() for asserttion in assertions]
+
+        except exceptions.ExecutionFailedError:
+            print("Example failed")
             if not fails:
                 raise
 

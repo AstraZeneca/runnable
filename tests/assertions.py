@@ -1,4 +1,3 @@
-import json
 import os
 import re
 from functools import lru_cache
@@ -110,11 +109,10 @@ def should_have_catalog_execution_logs():
         ), "No match found in the list."
 
 
-def should_have_catalog_contents(files: list[str] = None):
+def should_have_catalog_contents(files: list[str]):
     run_id = os.environ[defaults.ENV_RUN_ID]
 
     contents = os.listdir(f".catalog/{run_id}")
-    print(contents)
 
     for file_name in files or []:
         pattern = rf"{file_name}"

@@ -47,7 +47,7 @@ jobs:
       - name: Run tests
         run: |
           export PYTHONDONTWRITEBYTECODE=1
-          uv run pytest -m "not container"
+          uv run pytest -k "not (container or minio)"
 
       - name: mypy
         run: uv run mypy runnable extensions

@@ -2,14 +2,16 @@ import json
 import logging
 from pathlib import Path
 from string import Template
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Union
+
+from cloudpathlib import CloudPath
 
 from extensions.run_log_store.generic_chunked import ChunkedRunLogStore
 from runnable import defaults, utils
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-T = Union[str, Path]
+MixT = Union[CloudPath, Path]
 
 
 class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
@@ -28,7 +30,7 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
 
     def get_matches(
         self, run_id: str, name: str, multiple_allowed: bool = False
-    ) -> Optional[Union[Sequence[T], T]]:
+    ) -> Optional[Union[list[Path], list[CloudPath], MixT]]:
         """
         Get contents of files matching the pattern name*
 
@@ -78,7 +80,7 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
 
         return str(name) + ".json"
 
-    def _store(self, run_id: str, contents: dict, name: Union[Path, str], insert=False):
+    def _store(self, run_id: str, contents: dict, name: MixT, insert=False):
         """
         Store the contents against the name in the folder.
 
@@ -87,15 +89,16 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
             contents (dict): The dict to store
             name (str): The name to store as
         """
+        log_folder_with_run_id = self.log_folder_with_run_id(run_id=run_id)
         if insert:
-            name = self.log_folder_with_run_id(run_id=run_id) / name
+            name = log_folder_with_run_id / name
 
-        utils.safe_make_dir(self.log_folder_with_run_id(run_id=run_id))
+        utils.safe_make_dir(log_folder_with_run_id)
 
-        with open(self.safe_suffix_json(name), "w") as fw:
+        with open(log_folder_with_run_id / self.safe_suffix_json(name.name), "w") as fw:
             json.dump(contents, fw, ensure_ascii=True, indent=4)
 
-    def _retrieve(self, name: Union[str, Path]) -> dict:
+    def _retrieve(self, run_id: str, name: MixT) -> dict:
         """
         Does the job of retrieving from the folder.
 
@@ -106,8 +109,9 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
             dict: The contents
         """
         contents: dict = {}
+        log_folder_with_run_id = self.log_folder_with_run_id(run_id=run_id)
 
-        with open(self.safe_suffix_json(name), "r") as fr:
+        with open(log_folder_with_run_id / self.safe_suffix_json(name.name), "r") as fr:
             contents = json.load(fr)
 
         return contents
