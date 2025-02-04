@@ -138,9 +138,9 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
         if match:
             assert isinstance(match, str)
-            existing_contents = self._retrieve(run_id=run_id, name=match)  # type: ignore
+            existing_contents = self._retrieve(run_id=run_id, name=match)
             contents = dict(existing_contents, **contents)
-            name_to_give = match  # type: ignore
+            name_to_give = match
         else:
             name_to_give = Template(naming_pattern).safe_substitute(
                 {"creation_time": str(int(time.time_ns()))}
@@ -189,13 +189,13 @@ class ChunkedRunLogStore(BaseRunLogStore):
         if matches:
             if not multiple_allowed:
                 assert isinstance(matches, str)
-                contents = self._retrieve(run_id=run_id, name=matches)  # type: ignore
+                contents = self._retrieve(run_id=run_id, name=matches)
                 model = self.ModelTypes[log_type.name].value
                 return model(**contents)
 
             assert isinstance(matches, list)
             models = []
-            for match in matches:  # type: ignore
+            for match in matches:
                 contents = self._retrieve(run_id=run_id, name=match)
                 model = self.ModelTypes[log_type.name].value
                 models.append(model(**contents))
