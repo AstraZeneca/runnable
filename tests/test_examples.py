@@ -50,6 +50,18 @@ def minio_context():
 
 
 @contextmanager
+def chunked_minio_context():
+    with runnable_context():
+        os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
+            "examples/configs/chunked_minio.yaml"
+        )
+        os.environ["RUNNABLE_PRM_envvar"] = "from env"
+        yield
+        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
+        del os.environ["RUNNABLE_PRM_envvar"]
+
+
+@contextmanager
 def chunked_fs_context():
     with runnable_context():
         os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
@@ -684,15 +696,19 @@ def test_yaml_examples(example, context):
                 raise
 
 
+minio_contexts = [minio_context, chunked_minio_context]
+
+
 @pytest.mark.parametrize("example", list_python_examples())
+@pytest.mark.parametrize("context", minio_contexts)
 @pytest.mark.minio
 @pytest.mark.e2e
-def test_python_examples_minio(example):
+def test_python_examples_minio(example, context):
     print(f"Testing {example}...")
 
     mod, fails, _, _, assertions = example
 
-    context = minio_context()
+    context = context()
 
     imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
     f = getattr(imported_module, "main")

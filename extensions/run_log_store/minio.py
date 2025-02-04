@@ -46,7 +46,7 @@ class MinioRunLogStore(AnyPathRunLogStore):
 
     """
 
-    service_name: str = "file-system"
+    service_name: str = "minio"
 
     endpoint_url: str = Field(default="http://localhost:9002")
     aws_access_key_id: SecretStr = SecretStr(secret_value="minioadmin")
@@ -54,7 +54,10 @@ class MinioRunLogStore(AnyPathRunLogStore):
     bucket: str = Field(default="runnable/run-logs")
 
     def get_summary(self) -> Dict[str, Any]:
-        summary = {"Type": self.service_name, "Location": self.log_folder}
+        summary = {
+            "Type": self.service_name,
+            "Location": f"{self.endpoint_url}/{self.bucket}",
+        }
 
         return summary
 

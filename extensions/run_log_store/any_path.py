@@ -33,10 +33,6 @@ class AnyPathRunLogStore(BaseRunLogStore):
     service_name: str = "file-system"
     log_folder: str = defaults.LOG_LOCATION_FOLDER
 
-    @property
-    def log_folder_name(self):
-        return self.log_folder
-
     def get_summary(self) -> Dict[str, Any]:
         summary = {"Type": self.service_name, "Location": self.log_folder}
 
