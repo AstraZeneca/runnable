@@ -1,12 +1,10 @@
+import json
 import logging
 import time
 from abc import abstractmethod
 from enum import Enum
-from pathlib import Path
 from string import Template
-from typing import Any, Dict, Optional, Union
-
-from cloudpathlib import CloudPath
+from typing import Any, Dict, Union
 
 from runnable import defaults, exceptions
 from runnable.datastore import (
@@ -21,9 +19,6 @@ from runnable.datastore import (
 )
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
-
-
-MixT = Union[CloudPath, Path]  # Holds str, path
 
 
 class EntityNotFoundError(Exception):
@@ -89,7 +84,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
     @abstractmethod
     def get_matches(
         self, run_id: str, name: str, multiple_allowed: bool = False
-    ) -> Optional[Union[list[Path], list[CloudPath], MixT]]:
+    ) -> None | str | list[str]:
         """
         Get contents of persistence layer matching the pattern name*
 
@@ -100,7 +95,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         ...
 
     @abstractmethod
-    def _store(self, run_id: str, contents: dict, name: MixT, insert: bool = False):
+    def _store(self, run_id: str, contents: dict, name: str, insert: bool = False):
         """
         Store the contents against the name in the persistence layer.
 
@@ -112,7 +107,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         ...
 
     @abstractmethod
-    def _retrieve(self, run_id: str, name: MixT) -> dict:
+    def _retrieve(self, run_id: str, name: str) -> dict:
         """
         Does the job of retrieving from the persistent layer.
 
@@ -142,18 +137,17 @@ class ChunkedRunLogStore(BaseRunLogStore):
         insert = False
 
         if match:
-            existing_contents = self._retrieve(run_id=run_id, name=match)  # type: ignore
+            assert isinstance(match, str)
+            existing_contents = self._retrieve(run_id=run_id, name=match)
             contents = dict(existing_contents, **contents)
-            name_to_give = match  # type: ignore
+            name_to_give = match
         else:
             name_to_give = Template(naming_pattern).safe_substitute(
                 {"creation_time": str(int(time.time_ns()))}
             )
             insert = True
 
-        self._store(
-            run_id=run_id, contents=contents, name=Path(name_to_give), insert=insert
-        )
+        self._store(run_id=run_id, contents=contents, name=name_to_give, insert=insert)
 
     def retrieve(
         self, run_id: str, log_type: LogTypes, name: str = "", multiple_allowed=False
@@ -194,12 +188,14 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
         if matches:
             if not multiple_allowed:
-                contents = self._retrieve(run_id=run_id, name=matches)  # type: ignore
+                assert isinstance(matches, str)
+                contents = self._retrieve(run_id=run_id, name=matches)
                 model = self.ModelTypes[log_type.name].value
                 return model(**contents)
 
+            assert isinstance(matches, list)
             models = []
-            for match in matches:  # type: ignore
+            for match in matches:
                 contents = self._retrieve(run_id=run_id, name=match)
                 model = self.ModelTypes[log_type.name].value
                 models.append(model(**contents))
@@ -347,7 +343,9 @@ class ChunkedRunLogStore(BaseRunLogStore):
         )
 
         self.store(
-            run_id=run_id, contents=run_log.model_dump(), log_type=self.LogTypes.RUN_LOG
+            run_id=run_id,
+            contents=json.loads(run_log.model_dump_json()),
+            log_type=self.LogTypes.RUN_LOG,
         )
         return run_log
 
@@ -394,7 +392,9 @@ class ChunkedRunLogStore(BaseRunLogStore):
         """
         run_id = run_log.run_id
         self.store(
-            run_id=run_id, contents=run_log.model_dump(), log_type=self.LogTypes.RUN_LOG
+            run_id=run_id,
+            contents=json.loads(run_log.model_dump_json()),
+            log_type=self.LogTypes.RUN_LOG,
         )
 
     def get_parameters(self, run_id: str) -> dict:
@@ -453,7 +453,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
             self.store(
                 run_id=run_id,
                 log_type=self.LogTypes.PARAMETER,
-                contents={key: value.model_dump(by_alias=True)},
+                contents={key: json.loads(value.model_dump_json(by_alias=True))},
                 name=key,
             )
 
@@ -544,7 +544,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         self.store(
             run_id=run_id,
             log_type=self.LogTypes.STEP_LOG,
-            contents=step_log.model_dump(),
+            contents=json.loads(step_log.model_dump_json()),
             name=step_log.internal_name,
         )
 
@@ -600,6 +600,6 @@ class ChunkedRunLogStore(BaseRunLogStore):
         self.store(
             run_id=run_id,
             log_type=self.LogTypes.BRANCH_LOG,
-            contents=branch_log.model_dump(),
+            contents=json.loads(branch_log.model_dump_json()),
             name=internal_branch_name,
         )

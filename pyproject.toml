@@ -124,6 +124,7 @@ include = [
 file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "minio" = "extensions.run_log_store.minio:MinioRunLogStore"
 "chunked-fs" = "extensions.run_log_store.chunked_fs:ChunkedFileSystemRunLogStore"
+"chunked-minio" = "extensions.run_log_store.chunked_minio:ChunkedMinioRunLogStore"
 
 [project.entry-points.'pickler']
 "pickle" = "runnable.pickler:NativePickler"
