@@ -3,6 +3,7 @@ FROM ubuntu:24.04
 
 LABEL maintainer="vijay.vammi@astrazeneca.com"
 
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     ca-certificates \

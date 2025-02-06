@@ -144,14 +144,10 @@ class GenericJobExecutor(BaseJobExecutor):
             logger.info("No catalog settings found")
             return None
 
-        compute_data_folder = self._context.catalog_handler.compute_data_folder
-
         data_catalogs = []
         for name_pattern in catalog_settings:
             data_catalog = self._context.catalog_handler.put(
                 name=name_pattern,
-                run_id=self._context.run_id,
-                compute_data_folder=compute_data_folder,
             )
 
             logger.debug(f"Added data catalog: {data_catalog} to job log")
@@ -168,7 +164,5 @@ class GenericJobExecutor(BaseJobExecutor):
         )
         task_console.save_text(log_file_name)
         # Put the log file in the catalog
-        self._context.catalog_handler.put(
-            name=log_file_name, run_id=self._context.run_id
-        )
+        self._context.catalog_handler.put(name=log_file_name)
         os.remove(log_file_name)
