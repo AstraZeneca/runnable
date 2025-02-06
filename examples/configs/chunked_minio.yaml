@@ -1,0 +1,9 @@
+catalog:
+  type: minio
+  config:
+    bucket: runnable/catalog
+
+run-log-store:
+  type: chunked-minio
+  config:
+    bucket: runnable/run-logs

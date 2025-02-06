@@ -38,6 +38,7 @@ class DataCatalog(BaseModel, extra="allow"):
     catalog_relative_path: str = ""  # The file path relative the catalog location
     catalog_handler_location: str = ""  # The location of the catalog
     stage: str = ""  # The stage at which we recorded it get, put etc
+    last_modified_datetime: datetime = Field(default_factory=datetime.now)
 
     # Needed for set operations to work on DataCatalog objects
     def __hash__(self):

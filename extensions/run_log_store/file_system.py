@@ -59,7 +59,7 @@ class FileSystemRunLogstore(AnyPathRunLogStore):
         json_file_path = write_to_path / f"{run_id}.json"
 
         with json_file_path.open("w") as fw:
-            json.dump(run_log.model_dump(), fw, ensure_ascii=True, indent=4)  # pylint: disable=no-member
+            json.dump(run_log.model_dump(mode="json"), fw, ensure_ascii=True, indent=4)  # pylint: disable=no-member
 
     def read_from_path(self, run_id: str) -> RunLog:
         """

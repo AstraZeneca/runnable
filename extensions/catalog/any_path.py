@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 from abc import abstractmethod
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -86,6 +87,9 @@ class AnyPathCatalog(BaseCatalog):
             data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
             data_catalog.catalog_relative_path = str(relative_file_path)
             data_catalog.data_hash = utils.get_data_hash(str(relative_file_path))
+            data_catalog.last_modified_datetime = datetime.fromtimestamp(
+                file.stat().st_mtime
+            )
             data_catalog.stage = "get"
             data_catalogs.append(data_catalog)
 

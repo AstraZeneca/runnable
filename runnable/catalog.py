@@ -45,6 +45,9 @@ class BaseCatalog(ABC, BaseModel):
     service_type: str = "catalog"
 
     compute_data_folder: str = Field(default=defaults.COMPUTE_DATA_FOLDER)
+    store_copy: bool = Field(
+        default=True
+    )  # Store a copy of the artifact in the catalog
 
     model_config = ConfigDict(extra="forbid")
 

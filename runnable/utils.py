@@ -359,42 +359,38 @@ def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
     return diff
 
 
-# def hash_bytestr_iter(bytesiter, hasher, ashexstr=True):  # pylint: disable=C0116
-#     """Hashes the given bytesiter using the given hasher."""
-#     for block in bytesiter:  # pragma: no cover
-#         hasher.update(block)
-#     return hasher.hexdigest() if ashexstr else hasher.digest()  # pragma: no cover
+def get_data_hash(file_path) -> str:
+    # Define the size for the last 5MB in bytes
+    last_5mb_size = 5 * 1024 * 1024  # 5 MB in bytes
 
+    # Create a SHA-256 hash object
+    sha256_hash = hashlib.sha256()
 
-# def file_as_blockiter(afile, blocksize=65536):  # pylint: disable=C0116
-#     """From a StackOverflow answer: that is used to generate a MD5 hash of a large files.
-#     # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file.
+    try:
+        with open(file_path, "rb") as f:
+            # Move to the end of the file
+            f.seek(0, 2)  # '2' specifies the end of the file
 
-#     """
-#     with afile:  # pragma: no cover
-#         block = afile.read(blocksize)
-#         while len(block) > 0:
-#             yield block
-#             block = afile.read(blocksize)
+            # Get the current file size position
+            file_size = f.tell()
 
+            # Determine how many bytes to read
+            bytes_to_read = min(last_5mb_size, file_size)
 
-def get_data_hash(file_name: str) -> str:
-    """Returns the hash of the data file.
+            # Seek to the appropriate position from the end
+            f.seek(-bytes_to_read, 2)
 
-    Args:
-        file_name (str): The file name to generated the hash
+            # Read the data
+            data = f.read(bytes_to_read)
 
-    Returns:
-        str: The SHA ID of the file contents
-    """
-    # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
-    # TODO: For a big file, we should only hash the first few bytes
-    with open(file_name, "rb") as f:
-        file_hash = hashlib.md5()
-        for chunk in iter(lambda: f.read(4096), b""):
-            file_hash.update(chunk)
+            # Update the hash with the data
+            sha256_hash.update(data)
 
-    return file_hash.hexdigest()
+        # Return the hexadecimal digest of the hash
+        return sha256_hash.hexdigest()
+
+    except OSError as e:
+        raise Exception(f"Error reading file: {file_path}") from e
 
 
 # TODO: This is not the right place for this.
