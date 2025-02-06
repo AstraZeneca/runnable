@@ -152,6 +152,9 @@ class AnyPathCatalog(BaseCatalog):
                 run_id + os.sep + str(relative_file_path)
             )
             data_catalog.data_hash = utils.get_data_hash(str(file))
+            data_catalog.last_modified_datetime = datetime.fromtimestamp(
+                file.stat().st_mtime
+            )
             data_catalog.stage = "put"
             data_catalogs.append(data_catalog)
 
