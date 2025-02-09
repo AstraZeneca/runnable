@@ -1,0 +1,5 @@
+catalog:
+  type: minio
+  config:
+    bucket: runnable/catalog
+    store_copy: false

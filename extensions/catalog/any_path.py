@@ -1,5 +1,4 @@
 import logging
-import os
 import shutil
 from abc import abstractmethod
 from datetime import datetime
@@ -35,16 +34,38 @@ class AnyPathCatalog(BaseCatalog):
     def get_summary(self) -> Dict[str, Any]: ...
 
     @abstractmethod
-    def upload_to_catalog(self, file: Path) -> None: ...
+    def upload_log_file(self, file: Path) -> None: ...
 
     @abstractmethod
-    def download_from_catalog(self, file: Path | CloudPath) -> None: ...
+    def upload_to_catalog(self, file: Path) -> Path | CloudPath: ...
+
+    @abstractmethod
+    def download_from_catalog(self, file: Path | CloudPath) -> Path | CloudPath: ...
 
     @abstractmethod
     def get_catalog_location(self) -> Path | CloudPath:
         """
-        For local file systems, this is the .catalog/run_id/compute_data_folder
-        For cloud systems, this is s3://bucket/run_id/compute_data_folder
+        If we are not storing a copy, the location is a "shared" one with no <run_id> folder
+            eg: s3://bucket/ or local file system.
+
+        If we are storing a copy, the location is a run_id folder
+            eg: s3://bucket/run_id/ or .catalog/run_id/
+        """
+        ...
+
+    @abstractmethod
+    def get_log_location(self) -> Path | CloudPath:
+        """
+        This will always exist and will be:
+        for local file systems, this is the .catalog/run_id/
+        for cloud systems, this is s3://bucket/run_id/
+        """
+        ...
+
+    @abstractmethod
+    def get_additional_identifiers(self, file: Path | CloudPath) -> dict[str, str]:
+        """
+        Get the implementation specific id for the file
         """
         ...
 
@@ -81,15 +102,19 @@ class AnyPathCatalog(BaseCatalog):
             if str(file).endswith(".execution.log"):
                 continue
 
-            self.download_from_catalog(file)
+            file_pointer = self.download_from_catalog(file)
             relative_file_path = file.relative_to(run_catalog)  # type: ignore
 
             data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
             data_catalog.catalog_relative_path = str(relative_file_path)
             data_catalog.data_hash = utils.get_data_hash(str(relative_file_path))
+            data_catalog.catalog_handler_location = str(self.get_catalog_location())
             data_catalog.last_modified_datetime = datetime.fromtimestamp(
                 file.stat().st_mtime
             )
+            for key, value in self.get_additional_identifiers(file_pointer).items():
+                setattr(data_catalog, key, value)
+
             data_catalog.stage = "get"
             data_catalogs.append(data_catalog)
 
@@ -116,6 +141,13 @@ class AnyPathCatalog(BaseCatalog):
         Returns:
             List(object) : A list of catalog objects
         """
+
+        if name.endswith("execution.log"):
+            copy_from = Path(name)
+            self.upload_log_file(copy_from)
+
+            return []
+
         run_id = self._context.run_id
         logger.info(
             f"Using the {self.service_name} catalog and trying to put {name} for run_id: {run_id}"
@@ -145,21 +177,24 @@ class AnyPathCatalog(BaseCatalog):
                 # Need not add a data catalog for the folder
                 continue
 
+            # TODO: Think about syncing only if the file is changed
+            file_pointer = self.upload_to_catalog(file)
+
             relative_file_path = file.relative_to(copy_from)
 
             data_catalog = run_log_store.create_data_catalog(str(relative_file_path))
-            data_catalog.catalog_relative_path = (
-                run_id + os.sep + str(relative_file_path)
-            )
+            data_catalog.catalog_relative_path = str(relative_file_path)
+            data_catalog.catalog_handler_location = str(self.get_catalog_location())
             data_catalog.data_hash = utils.get_data_hash(str(file))
             data_catalog.last_modified_datetime = datetime.fromtimestamp(
                 file.stat().st_mtime
             )
+
+            for key, value in self.get_additional_identifiers(file_pointer).items():
+                setattr(data_catalog, key, value)
+
             data_catalog.stage = "put"
             data_catalogs.append(data_catalog)
-
-            # TODO: Think about syncing only if the file is changed
-            self.upload_to_catalog(file)
 
         if not data_catalogs:
             raise Exception(f"Did not find any files matching {name} in {copy_from}")

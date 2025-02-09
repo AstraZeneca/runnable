@@ -1,0 +1,4 @@
+catalog:
+  type: minio
+  config:
+    bucket: runnable/catalog

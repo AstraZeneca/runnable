@@ -47,7 +47,7 @@ class BaseCatalog(ABC, BaseModel):
     compute_data_folder: str = Field(default=defaults.COMPUTE_DATA_FOLDER)
     store_copy: bool = Field(
         default=True
-    )  # Store a copy of the artifact in the catalog
+    )  # Store a copy of the artifact in the catalog/run_id/<>
 
     model_config = ConfigDict(extra="forbid")
 

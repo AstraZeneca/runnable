@@ -1,0 +1,4 @@
+catalog:
+  type: file-system
+  config:
+    store_copy: false
