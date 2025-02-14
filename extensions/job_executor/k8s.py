@@ -34,6 +34,19 @@ class ImagePullPolicy(str, Enum):
     NEVER = "Never"
 
 
+class TolerationOperator(str, Enum):
+    EXISTS = "Exists"
+    EQUAL = "Equal"
+
+
+class Toleration(BaseModel):
+    key: str
+    operator: TolerationOperator = TolerationOperator.EQUAL
+    value: Optional[str]
+    effect: str
+    toleration_seconds: Optional[int] = Field(default=None)
+
+
 class LabelSelectorRequirement(BaseModel):
     key: str
     operator: Operator
@@ -124,7 +137,7 @@ class PVCVolume(BaseModel):
 class K8sTemplateSpec(BaseModel):
     active_deadline_seconds: int = Field(default=60 * 60 * 2)  # 2 hours
     node_selector: Optional[dict[str, str]] = None
-    tolerations: Optional[list[dict[str, str]]] = None
+    tolerations: Optional[list[Toleration]] = None
     volumes: Optional[list[HostPathVolume | PVCVolume]] = Field(
         default_factory=lambda: []
     )
@@ -260,7 +273,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         tolerations = None
         if self.job_spec.template.spec.tolerations:
             tolerations = [
-                self._client.V1Toleration(**toleration)
+                self._client.V1Toleration(**toleration.model_dump(by_alias=True))
                 for toleration in self.job_spec.template.spec.tolerations
             ]
 
