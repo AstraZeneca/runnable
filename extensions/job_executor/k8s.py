@@ -39,7 +39,17 @@ class TolerationOperator(str, Enum):
     EQUAL = "Equal"
 
 
-class Toleration(BaseModel):
+class BaseModelWIthConfig(BaseModel, use_enum_values=True):
+    model_config = ConfigDict(
+        extra="forbid",
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True,
+        validate_default=True,
+    )
+
+
+class Toleration(BaseModelWIthConfig):
     key: str
     operator: TolerationOperator = TolerationOperator.EQUAL
     value: Optional[str]
@@ -47,24 +57,24 @@ class Toleration(BaseModel):
     toleration_seconds: Optional[int] = Field(default=None)
 
 
-class LabelSelectorRequirement(BaseModel):
+class LabelSelectorRequirement(BaseModelWIthConfig):
     key: str
     operator: Operator
     values: list[str]
 
 
-class LabelSelector(BaseModel):
+class LabelSelector(BaseModelWIthConfig):
     match_expressions: list[LabelSelectorRequirement]
     match_labels: dict[str, str]
 
 
-class ObjectMetaData(BaseModel):
+class ObjectMetaData(BaseModelWIthConfig):
     generate_name: Optional[str]
     annotations: Optional[dict[str, str]]
     namespace: Optional[str] = "default"
 
 
-class EnvVar(BaseModel):
+class EnvVar(BaseModelWIthConfig):
     name: str
     value: str
 
@@ -75,7 +85,7 @@ VendorGPU = Annotated[
 ]
 
 
-class Request(BaseModel):
+class Request(BaseModelWIthConfig):
     """
     The default requests
     """
@@ -85,7 +95,7 @@ class Request(BaseModel):
     gpu: VendorGPU = Field(default=None, serialization_alias="nvidia.com/gpu")
 
 
-class Limit(BaseModel):
+class Limit(BaseModelWIthConfig):
     """
     The default limits
     """
@@ -95,34 +105,34 @@ class Limit(BaseModel):
     gpu: VendorGPU = Field(default=None, serialization_alias="nvidia.com/gpu")
 
 
-class Resources(BaseModel):
+class Resources(BaseModelWIthConfig):
     limits: Limit = Limit()
-    requests: Request = Request()
+    requests: Optional[Request] = Field(default=None)
 
 
-class VolumeMount(BaseModel):
+class VolumeMount(BaseModelWIthConfig):
     name: str
     mount_path: str
 
 
-class Container(BaseModel):
+class Container(BaseModelWIthConfig):
     image: str
     env: list[EnvVar] = Field(default_factory=list)
-    image_pull_policy: ImagePullPolicy = ImagePullPolicy.NEVER
+    image_pull_policy: ImagePullPolicy = Field(default=ImagePullPolicy.NEVER)
     resources: Resources = Resources()
     volume_mounts: Optional[list[VolumeMount]] = Field(default_factory=lambda: [])
 
 
-class HostPath(BaseModel):
+class HostPath(BaseModelWIthConfig):
     path: str
 
 
-class HostPathVolume(BaseModel):
+class HostPathVolume(BaseModelWIthConfig):
     name: str
     host_path: HostPath
 
 
-class PVCClaim(BaseModel):
+class PVCClaim(BaseModelWIthConfig):
     claim_name: str
 
     model_config = ConfigDict(
@@ -132,12 +142,12 @@ class PVCClaim(BaseModel):
     )
 
 
-class PVCVolume(BaseModel):
+class PVCVolume(BaseModelWIthConfig):
     name: str
     persistent_volume_claim: PVCClaim
 
 
-class K8sTemplateSpec(BaseModel):
+class K8sTemplateSpec(BaseModelWIthConfig):
     active_deadline_seconds: int = Field(default=60 * 60 * 2)  # 2 hours
     node_selector: Optional[dict[str, str]] = None
     tolerations: Optional[list[Toleration]] = None
@@ -149,12 +159,12 @@ class K8sTemplateSpec(BaseModel):
     container: Container
 
 
-class K8sTemplate(BaseModel):
+class K8sTemplate(BaseModelWIthConfig):
     spec: K8sTemplateSpec
     metadata: Optional[ObjectMetaData] = None
 
 
-class Spec(BaseModel):
+class Spec(BaseModelWIthConfig):
     active_deadline_seconds: Optional[int] = Field(default=60 * 60 * 2)  # 2 hours
     backoff_limit: int = 6
     selector: Optional[LabelSelector] = None
@@ -251,7 +261,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         command = utils.get_job_execution_command()
 
         container_env = [
-            self._client.V1EnvVar(**env.model_dump(by_alias=True))
+            self._client.V1EnvVar(**env.model_dump())
             for env in self.job_spec.template.spec.container.env
         ]
 
@@ -260,8 +270,12 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             env=container_env,
             name="default",
             volume_mounts=container_volume_mounts,
+            resources=self.job_spec.template.spec.container.resources.model_dump(
+                by_alias=True, exclude_none=True
+            ),
             **self.job_spec.template.spec.container.model_dump(
-                exclude_none=True, exclude={"volume_mounts", "command", "env"}
+                exclude_none=True,
+                exclude={"volume_mounts", "command", "env", "resources"},
             ),
         )
 
@@ -269,14 +283,13 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             self._volumes += self.job_spec.template.spec.volumes
 
         spec_volumes = [
-            self._client.V1Volume(**vol.model_dump(by_alias=True))
-            for vol in self._volumes
+            self._client.V1Volume(**vol.model_dump()) for vol in self._volumes
         ]
 
         tolerations = None
         if self.job_spec.template.spec.tolerations:
             tolerations = [
-                self._client.V1Toleration(**toleration.model_dump(by_alias=True))
+                self._client.V1Toleration(**toleration.model_dump())
                 for toleration in self.job_spec.template.spec.tolerations
             ]
 

@@ -3,10 +3,10 @@ job-executor:
   config:
     pvc_claim_name: runnable
     config_path:
-    mock: false
+    mock: true
     namespace: enterprise-mlops
     jobSpec:
-      # activeDeadlineSeconds: Optional[int]
+      activeDeadlineSeconds: 32000
       # selector: Optional[LabelSelector]
       # ttlSecondsAfterFinished: Optional[int]
       template:
@@ -14,7 +14,7 @@ job-executor:
           # annotations: Optional[Dict[str, str]]
           # generate_name: Optional[str] = run_id
         spec:
-          # activeDeadlineSeconds: Optional[int]
+          activeDeadlineSeconds: 86400
           # nodeSelector: Optional[Dict[str, str]]
           # tolerations: Optional[List[Toleration]]
           # volumes:
@@ -30,15 +30,15 @@ job-executor:
             #       value: str
             image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             # imagePullPolicy: Optional[str] = choose from [Always, Never, IfNotPresent]
-            # resources:
-            #   limits:
-            #     cpu: str
-            #     memory: str
-            #     gpu: str
-            #   requests:
-            #     cpu: str
-            #     memory: str
-            #     gpu: str
+            resources:
+              limits:
+                cpu: "$"
+                memory: "3"
+                gpu: "1"
+              # requests:
+              #   cpu: "3"
+              #   memory: "3"
+              #   gpu: "1"
             # volumeMounts:
             #   - name: str
             #     mountPath: str
