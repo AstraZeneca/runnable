@@ -69,6 +69,12 @@ class EnvVar(BaseModel):
     value: str
 
 
+VendorGPU = Annotated[
+    Optional[int],
+    PlainSerializer(lambda x: str(x), return_type=str, when_used="unless-none"),
+]
+
+
 class Request(BaseModel):
     """
     The default requests
@@ -76,19 +82,16 @@ class Request(BaseModel):
 
     memory: str = "1Gi"
     cpu: str = "250m"
+    gpu: VendorGPU = Field(default=None, serialization_alias="nvidia.com/gpu")
 
 
-VendorGPU = Annotated[
-    Optional[int],
-    PlainSerializer(lambda x: str(x), return_type=str, when_used="unless-none"),
-]
-
-
-class Limit(Request):
+class Limit(BaseModel):
     """
     The default limits
     """
 
+    memory: str = "1Gi"
+    cpu: str = "250m"
     gpu: VendorGPU = Field(default=None, serialization_alias="nvidia.com/gpu")
 
 
