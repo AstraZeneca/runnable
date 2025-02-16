@@ -7,6 +7,7 @@ from kubernetes import client
 from kubernetes import config as k8s_config
 from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, PrivateAttr
 from pydantic.alias_generators import to_camel
+from rich import print
 
 from extensions.job_executor import GenericJobExecutor
 from runnable import console, defaults, utils
@@ -133,13 +134,7 @@ class HostPathVolume(BaseModelWIthConfig):
 
 
 class PVCClaim(BaseModelWIthConfig):
-    claim_name: str
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-    )
+    claimName: str
 
 
 class PVCVolume(BaseModelWIthConfig):
@@ -295,7 +290,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
 
         pod_spec = self._client.V1PodSpec(
             containers=[base_container],
-            # volumes=[vol.model_dump(by_alias=True) for vol in self._volumes],
+            # volumes=[vol.model_dump(by_alias=True) for vol in spec_volumes],
             volumes=spec_volumes,
             tolerations=tolerations,
             **self.job_spec.template.spec.model_dump(
@@ -486,7 +481,7 @@ class K8sJobExecutor(GenericK8sJobExecutor):
         self._volumes.append(
             PVCVolume(
                 name=self.pvc_claim_name,
-                persistent_volume_claim=PVCClaim(claim_name=self.pvc_claim_name),
+                persistent_volume_claim=PVCClaim(claimName=self.pvc_claim_name),
             )
         )
         match self._context.run_log_store.service_name:
