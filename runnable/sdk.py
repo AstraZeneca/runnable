@@ -824,11 +824,21 @@ class Pipeline(BaseModel):
 
 class BaseJob(BaseModel):
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
-    overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
     returns: List[Union[str, TaskReturns]] = Field(
         default_factory=list, alias="returns"
     )
     secrets: List[str] = Field(default_factory=list)
+
+    @field_validator("catalog", mode="after")
+    @classmethod
+    def validate_catalog(cls, catalog: Optional[Catalog]) -> Optional[Catalog]:
+        if catalog is None:
+            return None
+
+        if catalog.get:
+            raise Exception("Catalog get is not supported for jobs")
+
+        return catalog
 
     def get_task(self) -> RunnableTask:
         raise NotImplementedError
