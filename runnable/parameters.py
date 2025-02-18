@@ -114,9 +114,6 @@ def filter_arguments_for_func(
 
             bound_model = bind_args_for_pydantic_model(named_param, value.annotation)
             bound_args[name] = bound_model
-            unassigned_params = unassigned_params.difference(
-                bound_model.model_fields.keys()
-            )
 
         elif value.annotation in [str, int, float, bool]:
             # Cast it if its a primitive type. Ensure the type matches the annotation.
