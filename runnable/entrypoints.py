@@ -174,7 +174,7 @@ def set_pipeline_spec_from_yaml(run_context: context.Context, pipeline_file: str
 def set_pipeline_spec_from_python(run_context: context.Context, python_module: str):
     # Call the SDK to get the dag
     # Import the module and call the function to get the dag
-    module_file = python_module.strip(".py")
+    module_file = python_module.rstrip(".py")
     module, func = utils.get_module_and_attr_names(module_file)
     sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
     imported_module = importlib.import_module(module)
@@ -429,7 +429,7 @@ def set_job_spec_from_yaml(run_context: context.Context, job_definition_file: st
 
 def set_job_spec_from_python(run_context: context.Context, python_module: str):
     # Import the module and call the function to get the task
-    module_file = python_module.strip(".py")
+    module_file = python_module.rstrip(".py")
     module, func = utils.get_module_and_attr_names(module_file)
     sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
     imported_module = importlib.import_module(module)
