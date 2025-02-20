@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from runnable.datastore import StepAttempt
 from runnable.defaults import TypeMapVariable
@@ -38,6 +38,10 @@ class TorchTaskType(BaseTaskType):
         description="Number of nodes to use, currently we only support single node, multi gpu",
         le=1,
     )
+
+    @field_validator("num_gpus")
+    def check_if_cuda_is_available(self, num_gpus: int) -> int:
+        return num_gpus
 
     def execute_command(
         self,
