@@ -93,7 +93,6 @@ class BaseTaskType(BaseModel):
     def execute_command(
         self,
         map_variable: TypeMapVariable = None,
-        **kwargs,
     ) -> StepAttempt:
         """The function to execute the command.
 
@@ -271,7 +270,6 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     def execute_command(
         self,
         map_variable: TypeMapVariable = None,
-        **kwargs,
     ) -> StepAttempt:
         """Execute the notebook as defined by the command."""
         attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
@@ -441,7 +439,6 @@ class NotebookTaskType(BaseTaskType):
     def execute_command(
         self,
         map_variable: TypeMapVariable = None,
-        **kwargs,
     ) -> StepAttempt:
         """Execute the python notebook as defined by the command.
 
@@ -620,7 +617,6 @@ class ShellTaskType(BaseTaskType):
     def execute_command(
         self,
         map_variable: TypeMapVariable = None,
-        **kwargs,
     ) -> StepAttempt:
         # Using shell=True as we want to have chained commands to be executed in the same shell.
         """Execute the shell command as defined by the command.
