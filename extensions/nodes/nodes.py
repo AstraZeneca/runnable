@@ -5,14 +5,12 @@ import sys
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Annotated, Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 from pydantic import (
     ConfigDict,
     Field,
-    ValidationInfo,
     field_serializer,
-    field_validator,
 )
 
 from runnable import console, datastore, defaults, utils
@@ -73,7 +71,6 @@ class TaskNode(ExecutableNode):
         mock=False,
         map_variable: TypeMapVariable = None,
         attempt_number: int = 1,
-        **kwargs,
     ) -> StepLog:
         """
         All that we do in runnable is to come to this point where we actually execute the command.
@@ -135,7 +132,6 @@ class FailNode(TerminalNode):
         mock=False,
         map_variable: TypeMapVariable = None,
         attempt_number: int = 1,
-        **kwargs,
     ) -> StepLog:
         """
         Execute the failure node.
@@ -199,7 +195,6 @@ class SuccessNode(TerminalNode):
         mock=False,
         map_variable: TypeMapVariable = None,
         attempt_number: int = 1,
-        **kwargs,
     ) -> StepLog:
         """
         Execute the success node.
@@ -298,7 +293,7 @@ class ParallelNode(CompositeNode):
 
         raise Exception(f"Branch {branch_name} does not exist")
 
-    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_out(self, map_variable: TypeMapVariable = None):
         """
         The general fan out method for a node of type Parallel.
         This method assumes that the step log has already been created.
@@ -321,7 +316,7 @@ class ParallelNode(CompositeNode):
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None):
         """
         This function does the actual execution of the sub-branches of the parallel node.
 
@@ -342,16 +337,14 @@ class ParallelNode(CompositeNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-        self.fan_out(map_variable=map_variable, **kwargs)
+        self.fan_out(map_variable=map_variable)
 
         for _, branch in self.branches.items():
-            self._context.executor.execute_graph(
-                branch, map_variable=map_variable, **kwargs
-            )
+            self._context.executor.execute_graph(branch, map_variable=map_variable)
 
-        self.fan_in(map_variable=map_variable, **kwargs)
+        self.fan_in(map_variable=map_variable)
 
-    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None):
         """
         The general fan in method for a node of type Parallel.
 
@@ -515,7 +508,7 @@ class MapNode(CompositeNode):
         """
         return self.branch
 
-    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_out(self, map_variable: TypeMapVariable = None):
         """
         The general method to fan out for a node of type map.
         This method assumes that the step log has already been created.
@@ -563,7 +556,7 @@ class MapNode(CompositeNode):
             parameters=raw_parameters, run_id=self._context.run_id
         )
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None):
         """
         This function does the actual execution of the branch of the map node.
 
@@ -607,19 +600,19 @@ class MapNode(CompositeNode):
         if not isinstance(iterate_on, list):
             raise Exception("Only list is allowed as a valid iterator type")
 
-        self.fan_out(map_variable=map_variable, **kwargs)
+        self.fan_out(map_variable=map_variable)
 
         for iter_variable in iterate_on:
             effective_map_variable = map_variable or OrderedDict()
             effective_map_variable[self.iterate_as] = iter_variable
 
             self._context.executor.execute_graph(
-                self.branch, map_variable=effective_map_variable, **kwargs
+                self.branch, map_variable=effective_map_variable
             )
 
-        self.fan_in(map_variable=map_variable, **kwargs)
+        self.fan_in(map_variable=map_variable)
 
-    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None):
         """
         The general method to fan in for a node of type map.
 
@@ -712,172 +705,6 @@ class MapNode(CompositeNode):
         self._context.run_log_store.set_parameters(
             parameters=params, run_id=self._context.run_id
         )
-
-
-class DagNode(CompositeNode):
-    """
-    A composite node that internally holds a dag.
-
-    The structure is generally:
-        DagNode:
-            dag_definition: A YAML file that holds the dag in 'dag' block
-
-        The config is expected to have a variable 'dag_definition'.
-    """
-
-    node_type: str = Field(default="dag", serialization_alias="type")
-    dag_definition: str
-    branch: Graph
-    is_composite: bool = True
-    internal_branch_name: Annotated[str, Field(validate_default=True)] = ""
-
-    def get_summary(self) -> Dict[str, Any]:
-        summary = {
-            "name": self.name,
-            "type": self.node_type,
-        }
-        return summary
-
-    @field_validator("internal_branch_name")
-    @classmethod
-    def validate_internal_branch_name(
-        cls, internal_branch_name: str, info: ValidationInfo
-    ):
-        internal_name = info.data["internal_name"]
-        return internal_name + "." + defaults.DAG_BRANCH_NAME
-
-    @field_validator("dag_definition")
-    @classmethod
-    def validate_dag_definition(cls, value):
-        if not value.endswith(".yaml"):  # TODO: Might have a problem with the SDK
-            raise ValueError("dag_definition must be a YAML file")
-        return value
-
-    @classmethod
-    def parse_from_config(cls, config: Dict[str, Any]) -> "DagNode":
-        internal_name = cast(str, config.get("internal_name"))
-
-        if "dag_definition" not in config:
-            raise Exception(f"No dag definition found in {config}")
-
-        dag_config = utils.load_yaml(config["dag_definition"])
-        if "dag" not in dag_config:
-            raise Exception(
-                "No DAG found in dag_definition, please provide it in dag block"
-            )
-
-        branch = create_graph(
-            dag_config["dag"],
-            internal_branch_name=internal_name + "." + defaults.DAG_BRANCH_NAME,
-        )
-
-        return cls(branch=branch, **config)
-
-    def _get_branch_by_name(self, branch_name: str):
-        """
-        Retrieve a branch by name.
-        The name is expected to follow a dot path convention.
-
-        Returns a Graph Object
-
-        Args:
-            branch_name (str): The name of the branch to retrieve
-
-        Raises:
-            Exception: If the branch_name is not 'dag'
-        """
-        if branch_name != self.internal_branch_name:
-            raise Exception(
-                f"Node of type {self.node_type} only allows a branch of name {defaults.DAG_BRANCH_NAME}"
-            )
-
-        return self.branch
-
-    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
-        """
-        The general method to fan out for a node of type dag.
-        The method assumes that the step log has already been created.
-
-        Args:
-            executor (BaseExecutor): The executor class as defined by the config
-            map_variable (dict, optional): _description_. Defaults to None.
-        """
-        effective_branch_name = self._resolve_map_placeholders(
-            self.internal_branch_name, map_variable=map_variable
-        )
-
-        branch_log = self._context.run_log_store.create_branch_log(
-            effective_branch_name
-        )
-        branch_log.status = defaults.PROCESSING
-        self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
-
-    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
-        """
-        This function does the actual execution of the branch of the dag node.
-
-        From a design perspective, this function should not be called if the execution is 3rd party orchestrated.
-
-        The modes that render the job specifications, do not need to interact with this node at all
-        as they have their own internal mechanisms of handling sub dags.
-        If they do not, you can find a way using as-is nodes as hack nodes.
-
-        The actual logic is :
-            * We just execute the branch as with any other composite nodes
-            * The branch name is called 'dag'
-
-        The execution of a dag, could result in
-            * The dag being completely executed with a definite (fail, success) state in case of
-                local or local-container execution
-            * The dag being in a processing state with PROCESSING status in case of local-aws-batch
-
-        Only fail state is considered failure during this phase of execution.
-
-        Args:
-            executor (Executor): The Executor as per the use config
-            **kwargs: Optional kwargs passed around
-        """
-        self.fan_out(map_variable=map_variable, **kwargs)
-        self._context.executor.execute_graph(
-            self.branch, map_variable=map_variable, **kwargs
-        )
-        self.fan_in(map_variable=map_variable, **kwargs)
-
-    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
-        """
-        The general method to fan in for a node of type dag.
-
-        3rd party orchestrators should call this method to find the status of the step log.
-
-        Args:
-            executor (BaseExecutor): The executor class as defined by the config
-            map_variable (dict, optional): If the node is part of type dag. Defaults to None.
-        """
-        step_success_bool = True
-        effective_branch_name = self._resolve_map_placeholders(
-            self.internal_branch_name, map_variable=map_variable
-        )
-        effective_internal_name = self._resolve_map_placeholders(
-            self.internal_name, map_variable=map_variable
-        )
-
-        branch_log = self._context.run_log_store.get_branch_log(
-            effective_branch_name, self._context.run_id
-        )
-        if branch_log.status != defaults.SUCCESS:
-            step_success_bool = False
-
-        step_log = self._context.run_log_store.get_step_log(
-            effective_internal_name, self._context.run_id
-        )
-        step_log.status = defaults.PROCESSING
-
-        if step_success_bool:  #  If none failed and nothing is waiting
-            step_log.status = defaults.SUCCESS
-        else:
-            step_log.status = defaults.FAIL
-
-        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
 
 class StubNode(ExecutableNode):

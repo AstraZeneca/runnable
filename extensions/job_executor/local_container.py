@@ -6,7 +6,7 @@ from pydantic import Field
 
 from extensions.job_executor import GenericJobExecutor
 from runnable import console, defaults, utils
-from runnable.datastore import DataCatalog
+from runnable.datastore import DataCatalog, StepAttempt
 from runnable.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -54,10 +54,12 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         job_log = self._context.run_log_store.get_job_log(run_id=self._context.run_id)
         self.add_code_identities(job_log)
 
-        attempt_log = job.execute_command(
-            attempt_number=self.step_attempt_number,
-            mock=self.mock,
-        )
+        if not self.mock:
+            attempt_log = job.execute_command()
+        else:
+            attempt_log = StepAttempt(
+                status=defaults.SUCCESS,
+            )
 
         job_log.status = attempt_log.status
         job_log.attempts.append(attempt_log)

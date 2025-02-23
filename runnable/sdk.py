@@ -34,6 +34,7 @@ from extensions.nodes.nodes import (
     SuccessNode,
     TaskNode,
 )
+from extensions.tasks.torch import TorchTaskType
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 from runnable.nodes import TraversalNode
@@ -262,6 +263,33 @@ class PythonTask(BaseTask):
     @computed_field
     def command_type(self) -> str:
         return "python"
+
+    @computed_field
+    def command(self) -> str:
+        module = self.function.__module__
+        name = self.function.__name__
+
+        return f"{module}.{name}"
+
+    def create_job(self) -> RunnableTask:
+        self.terminate_with_success = True
+        node = self.create_node()
+        return node.executable
+
+
+class TorchTask(BaseTask):
+    function: Callable = Field(exclude=True)
+    num_gpus: int = Field(default=1, description="Number of GPUs to use")
+
+    num_nodes: int = Field(
+        default=1,
+        description="Number of nodes to use, currently only supports single node",
+        le=1,
+    )
+
+    @computed_field
+    def command_type(self) -> str:
+        return "torch"
 
     @computed_field
     def command(self) -> str:
@@ -945,6 +973,38 @@ class PythonJob(BaseJob):
             function=self.function,
         )
         return task.create_node().executable
+
+
+class TorchJob(BaseJob):
+    function: Callable = Field(exclude=True)
+    num_gpus: int = Field(default=1, description="Number of GPUs to use")
+
+    @property
+    def command(self) -> str:
+        module = self.function.__module__
+        name = self.function.__name__
+
+        return f"{module}.{name}"
+
+    def get_task(self) -> RunnableTask:
+        # Piggy bank on existing tasks as a hack
+        task = TorchTaskType(
+            task_type="torch",
+            command=self.command,
+            num_gpus=self.num_gpus,
+            returns=self.returns,
+            secrets=self.secrets,
+        )
+        return task
+        # task = TorchTask(
+        #     name="dummy",
+        #     terminate_with_success=True,
+        #     returns=self.returns,
+        #     secrets=self.secrets,
+        #     num_gpus=self.num_gpus,
+        #     function=self.function,
+        # )
+        # return task.create_node().executable
 
 
 class NotebookJob(BaseJob):

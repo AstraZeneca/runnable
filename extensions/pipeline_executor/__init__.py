@@ -593,7 +593,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         step_log.status = defaults.PROCESSING
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-        node.fan_out(executor=self, map_variable=map_variable)
+        node.fan_out(map_variable=map_variable)
 
     def fan_in(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
@@ -614,7 +614,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             map_variable (dict, optional): If the node if of a map state,.Defaults to None.
 
         """
-        node.fan_in(executor=self, map_variable=map_variable)
+        node.fan_in(map_variable=map_variable)
 
         step_log = self._context.run_log_store.get_step_log(
             node._get_step_log_name(map_variable=map_variable), self._context.run_id

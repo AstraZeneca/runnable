@@ -280,7 +280,6 @@ class BaseNode(ABC, BaseModel):
         mock=False,
         map_variable: TypeMapVariable = None,
         attempt_number: int = 1,
-        **kwargs,
     ) -> StepLog:
         """
         The actual function that does the execution of the command in the config.
@@ -299,7 +298,7 @@ class BaseNode(ABC, BaseModel):
         """
 
     @abstractmethod
-    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None):
         """
         This function would be called to set up the execution of the individual
         branches of a composite node.
@@ -314,7 +313,7 @@ class BaseNode(ABC, BaseModel):
         """
 
     @abstractmethod
-    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_out(self, map_variable: TypeMapVariable = None):
         """
         This function would be called to set up the execution of the individual
         branches of a composite node.
@@ -330,7 +329,7 @@ class BaseNode(ABC, BaseModel):
         """
 
     @abstractmethod
-    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None):
         """
         This function would be called to tear down the execution of the individual
         branches of a composite node.
@@ -439,29 +438,19 @@ class ExecutableNode(TraversalNode):
             "This is an executable node and does not have branches"
         )
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a graph"
         )
 
-    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a fan in"
         )
 
-    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_out(self, map_variable: TypeMapVariable = None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a fan out"
-        )
-
-    def prepare_for_job_execution(self):
-        raise exceptions.NodeMethodCallError(
-            "This is an executable node and does not have a prepare_for_job_execution"
-        )
-
-    def tear_down_after_job_execution(self):
-        raise exceptions.NodeMethodCallError(
-            "This is an executable node and does not have a tear_down_after_job_execution",
         )
 
 
@@ -485,20 +474,9 @@ class CompositeNode(TraversalNode):
         mock=False,
         map_variable: TypeMapVariable = None,
         attempt_number: int = 1,
-        **kwargs,
     ) -> StepLog:
         raise exceptions.NodeMethodCallError(
             "This is a composite node and does not have an execute function"
-        )
-
-    def prepare_for_job_execution(self):
-        raise exceptions.NodeMethodCallError(
-            "This is an executable node and does not have a prepare_for_job_execution"
-        )
-
-    def tear_down_after_job_execution(self):
-        raise exceptions.NodeMethodCallError(
-            "This is an executable node and does not have a tear_down_after_job_execution"
         )
 
 
@@ -524,13 +502,16 @@ class TerminalNode(BaseNode):
     def _get_max_attempts(self) -> int:
         return 1
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None):
         raise exceptions.TerminalNodeError()
 
-    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None):
         raise exceptions.TerminalNodeError()
 
-    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_out(
+        self,
+        map_variable: TypeMapVariable = None,
+    ):
         raise exceptions.TerminalNodeError()
 
     @classmethod

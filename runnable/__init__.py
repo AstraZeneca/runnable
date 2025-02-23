@@ -31,6 +31,7 @@ from runnable.sdk import (  # noqa
     ShellTask,
     Stub,
     Success,
+    TorchJob,
     metric,
     pickled,
 )
