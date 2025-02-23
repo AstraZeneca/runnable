@@ -107,7 +107,7 @@ class BaseJobExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def add_code_identities(self, job_log: JobLog, **kwargs):
+    def add_code_identities(self, job_log: JobLog):
         """
         Add code identities specific to the implementation.
 
@@ -161,7 +161,7 @@ class BasePipelineExecutor(BaseExecutor):
     _context_node: Optional[BaseNode] = PrivateAttr(default=None)
 
     @abstractmethod
-    def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
+    def add_code_identities(self, node: BaseNode, step_log: StepLog):
         """
         Add code identities specific to the implementation.
 
@@ -204,7 +204,6 @@ class BasePipelineExecutor(BaseExecutor):
         node: BaseNode,
         map_variable: TypeMapVariable = None,
         mock: bool = False,
-        **kwargs,
     ):
         """
         This is the entry point when we do the actual execution of the function.
@@ -227,9 +226,7 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def execute_node(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
+    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         The entry point for all executors apart from local.
         We have already prepared for node execution.
@@ -244,9 +241,7 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def execute_from_graph(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
+    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         This is the entry point to from the graph execution.
 
@@ -294,7 +289,7 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def execute_graph(self, dag: Graph, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_graph(self, dag: Graph, map_variable: TypeMapVariable = None):
         """
         The parallelization is controlled by the nodes and not by this function.
 
@@ -395,7 +390,7 @@ class BasePipelineExecutor(BaseExecutor):
 
     @abstractmethod
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
+        self, node: BaseNode, map_variable: TypeMapVariable = None
     ):
         """
         Executor specific way of triggering jobs when runnable does both traversal and execution

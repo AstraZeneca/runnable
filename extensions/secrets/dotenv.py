@@ -37,7 +37,7 @@ class DotEnvSecrets(BaseSecrets):
         """
         self.secrets = dotenv_values(self.secrets_location)
 
-    def get(self, name: str = "", **kwargs) -> str:
+    def get(self, name: str = "") -> str:
         """
         Get a secret of name from the secrets file.
 

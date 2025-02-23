@@ -7,11 +7,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
-from pydantic import (
-    ConfigDict,
-    Field,
-    field_serializer,
-)
+from pydantic import ConfigDict, Field, field_serializer
 
 from runnable import console, datastore, defaults, utils
 from runnable.datastore import (
@@ -753,7 +749,6 @@ class StubNode(ExecutableNode):
         mock=False,
         map_variable: TypeMapVariable = None,
         attempt_number: int = 1,
-        **kwargs,
     ) -> StepLog:
         """
         Do Nothing node.

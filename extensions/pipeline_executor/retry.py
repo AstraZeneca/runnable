@@ -63,9 +63,7 @@ class RetryExecutor(GenericPipelineExecutor):
         # Should the parameters be copied from previous execution
         # self._set_up_for_re_run(params=params)
 
-    def execute_from_graph(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
+    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         This is the entry point to from the graph execution.
 
@@ -103,7 +101,7 @@ class RetryExecutor(GenericPipelineExecutor):
         # If its a terminal node, complete it now
         if node.node_type in ["success", "fail"]:
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-            self._execute_node(node, map_variable=map_variable, **kwargs)
+            self._execute_node(node, map_variable=map_variable)
             return
 
         # In retry step
@@ -118,12 +116,12 @@ class RetryExecutor(GenericPipelineExecutor):
         # We call an internal function to iterate the sub graphs and execute them
         if node.is_composite:
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-            node.execute_as_graph(map_variable=map_variable, **kwargs)
+            node.execute_as_graph(map_variable=map_variable)
             return
 
         # Executor specific way to trigger a job
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-        self.execute_node(node=node, map_variable=map_variable, **kwargs)
+        self.execute_node(node=node, map_variable=map_variable)
 
     def _is_step_eligible_for_rerun(
         self, node: BaseNode, map_variable: TypeMapVariable = None
@@ -174,7 +172,5 @@ class RetryExecutor(GenericPipelineExecutor):
         self._restart_initiated = True
         return True
 
-    def execute_node(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
-        self._execute_node(node, map_variable=map_variable, **kwargs)
+    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
+        self._execute_node(node, map_variable=map_variable)

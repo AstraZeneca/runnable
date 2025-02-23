@@ -810,7 +810,6 @@ class ArgoExecutor(GenericPipelineExecutor):
         self,
         dag: Graph,
         map_variable: dict[str, str | int | float] | None = None,
-        **kwargs,
     ):
         # All the arguments set at the spec level can be referred as "{{workflow.parameters.*}}"
         # We want to use that functionality to override the parameters at the task level
@@ -886,7 +885,6 @@ class ArgoExecutor(GenericPipelineExecutor):
         self,
         node: BaseNode,
         map_variable: dict[str, str | int | float] | None = None,
-        **kwargs,
     ):
         error_on_existing_run_id = os.environ.get("error_on_existing_run_id", "false")
         exists_ok = error_on_existing_run_id == "false"
@@ -904,7 +902,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         step_log.status = defaults.PROCESSING
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-        self._execute_node(node=node, map_variable=map_variable, **kwargs)
+        self._execute_node(node=node, map_variable=map_variable)
 
         # Raise exception if the step failed
         step_log = self._context.run_log_store.get_step_log(

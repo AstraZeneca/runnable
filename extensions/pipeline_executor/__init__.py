@@ -198,7 +198,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         node: BaseNode,
         map_variable: TypeMapVariable = None,
         mock: bool = False,
-        **kwargs,
     ):
         """
         This is the entry point when we do the actual execution of the function.
@@ -232,7 +231,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             map_variable=map_variable,
             attempt_number=self.step_attempt_number,
             mock=mock,
-            **kwargs,
         )
 
         data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(stage="put")
@@ -248,7 +246,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
+    def add_code_identities(self, node: BaseNode, step_log: StepLog):
         """
         Add code identities specific to the implementation.
 
@@ -260,9 +258,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         """
         step_log.code_identities.append(utils.get_git_code_identity())
 
-    def execute_from_graph(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
+    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         This is the entry point to from the graph execution.
 
@@ -303,12 +299,12 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         # Add the step log to the database as per the situation.
         # If its a terminal node, complete it now
         if node.node_type in ["success", "fail"]:
-            self._execute_node(node, map_variable=map_variable, **kwargs)
+            self._execute_node(node, map_variable=map_variable)
             return
 
         # We call an internal function to iterate the sub graphs and execute them
         if node.is_composite:
-            node.execute_as_graph(map_variable=map_variable, **kwargs)
+            node.execute_as_graph(map_variable=map_variable)
             return
 
         task_console.export_text(clear=True)
@@ -317,10 +313,10 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
         )
-        self.trigger_node_execution(node=node, map_variable=map_variable, **kwargs)
+        self.trigger_node_execution(node=node, map_variable=map_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
+        self, node: BaseNode, map_variable: TypeMapVariable = None
     ):
         """
         Call this method only if we are responsible for traversing the graph via
@@ -376,7 +372,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         return step_log.status, next_node_name
 
-    def execute_graph(self, dag: Graph, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_graph(self, dag: Graph, map_variable: TypeMapVariable = None):
         """
         The parallelization is controlled by the nodes and not by this function.
 
@@ -430,7 +426,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             )
 
             try:
-                self.execute_from_graph(working_on, map_variable=map_variable, **kwargs)
+                self.execute_from_graph(working_on, map_variable=map_variable)
                 status, next_node_name = self._get_status_and_next_node_name(
                     current_node=working_on, dag=dag, map_variable=map_variable
                 )

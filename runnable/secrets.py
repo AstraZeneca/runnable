@@ -29,7 +29,7 @@ class BaseSecrets(ABC, BaseModel):
         return context.run_context
 
     @abstractmethod
-    def get(self, name: str, **kwargs) -> str:
+    def get(self, name: str) -> str:
         """
         Return the secret by name.
 
@@ -53,7 +53,7 @@ class DoNothingSecretManager(BaseSecrets):
 
     service_name: str = "do-nothing"
 
-    def get(self, name: str, **kwargs) -> str:
+    def get(self, name: str) -> str:
         """
         If a name is provided, return None else return empty dict.
 
@@ -76,7 +76,7 @@ class EnvSecretsManager(BaseSecrets):
 
     service_name: str = "env-secrets"
 
-    def get(self, name: str, **kwargs) -> str:
+    def get(self, name: str) -> str:
         """
         If a name is provided, return None else return empty dict.
 
