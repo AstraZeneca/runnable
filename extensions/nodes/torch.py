@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from pydantic import ConfigDict, Field
 
+from extensions.nodes.torch_config import TorchConfig
 from runnable import PythonJob, datastore, defaults
 from runnable.datastore import StepLog
 from runnable.nodes import DistributedNode
@@ -74,39 +75,9 @@ def delete_env_vars_with_prefix(prefix):
         del os.environ[var]
 
 
-class TorchNode(DistributedNode):
+class TorchNode(DistributedNode, TorchConfig):
     node_type: str = Field(default="torch", serialization_alias="type")
     executable: PythonTaskType = Field(exclude=True)
-
-    nnodes: str = Field(default="1:1")
-    nproc_per_node: int = Field(default=4)
-
-    rdzv_backend: str = Field(default="static")
-    rdzv_endpoint: str = Field(default="")
-    rdzv_id: str | None = Field(default=None)
-    rdzv_conf: str = Field(default="")
-
-    max_restarts: int = Field(default=3)
-    monitor_interval: float = Field(default=0.1)
-    start_method: str = Field(default="spawn")
-    role: str = Field(default="default_role")
-    log_dir: str = Field(default="torch_logs")
-    redirects: str = Field(default="3")
-    tee: str = Field(default="0")
-    master_addr: str = Field(default="localhost")
-    master_port: str = Field(default="29500")
-    training_script: str = Field(default="dummy_training_script")
-    training_script_args: str = Field(default="")
-
-    # Optional fields
-    local_ranks_filter: str = Field(default="")
-    node_rank: int = Field(default=0)
-    local_addr: str | None = Field(default=None)
-    logs_specs: str | None = Field(default=None)
-    standalone: bool = Field(default=False)
-    module: bool = Field(default=False)
-    no_python: bool = Field(default=False)
-    run_path: bool = Field(default=False)
 
     # Similar to TaskNode
     model_config = ConfigDict(extra="allow")
@@ -135,6 +106,7 @@ class TorchNode(DistributedNode):
 
     def get_launch_config(self) -> LaunchConfig:
         config, _, _ = config_from_args(self)
+        config.run_id = self._context.run_id
         return config
 
     def execute(
@@ -144,7 +116,6 @@ class TorchNode(DistributedNode):
         attempt_number: int = 1,
     ) -> StepLog:
         assert map_variable is None, "TorchNode does not support map_variable"
-        print("Executing TorchNode")
 
         step_log = self._context.run_log_store.get_step_log(
             self._get_step_log_name(map_variable), self._context.run_id
@@ -152,7 +123,8 @@ class TorchNode(DistributedNode):
 
         # Attempt to call the function or elastic launch
         launch_config = self.get_launch_config()
-        print(f"launch_config: {launch_config}")
+        logger.info(f"launch_config: {launch_config}")
+
         os.environ["RUNNABLE_TORCH_COMMAND"] = self.executable.command
         os.environ["RUNNABLE_TORCH_PARAMETERS_FILES"] = (
             self._context.parameters_file or ""
@@ -177,7 +149,7 @@ class TorchNode(DistributedNode):
                 end_time=str(datetime.now()),
                 attempt_number=attempt_number,
             )
-            print(f"Error: {e}")
+            logger.error(f"Error executing TorchNode: {e}")
 
         delete_env_vars_with_prefix("RUNNABLE_TORCH")
 

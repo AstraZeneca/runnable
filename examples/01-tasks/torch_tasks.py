@@ -27,7 +27,7 @@ def main():
         function=hello,
         name="torch",
         terminate_with_success=True,
-        # rdzv_backend="",
+        max_restarts=2,
     )
 
     # The pipeline has only one step.

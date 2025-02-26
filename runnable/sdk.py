@@ -34,6 +34,7 @@ from extensions.nodes.nodes import (
     SuccessNode,
     TaskNode,
 )
+from extensions.nodes.torch_config import TorchConfig
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 from runnable.nodes import TraversalNode
@@ -458,7 +459,7 @@ class Stub(BaseTraversal):
         return StubNode.parse_from_config(self.model_dump(exclude_none=True))
 
 
-class Torch(BaseTraversal):
+class Torch(BaseTraversal, TorchConfig):
     # Its a wrapper of a python task
     # TODO: Is there a way to not sync these with the torch node in extensions?
     function: Callable = Field(exclude=True)
@@ -468,20 +469,6 @@ class Torch(BaseTraversal):
         default_factory=list, alias="returns"
     )
     secrets: List[str] = Field(default_factory=list)
-
-    # min_nodes: int = Field(default=1)
-    # max_nodes: int = Field(default=1)
-    # nproc_per_node: int = Field(default=1)
-    # run_id: str = Field(default="")
-    # role: str = Field(default="default_role")
-    # rdzv_endpoint: str = Field(default="localhost:29500")
-    # # rdzv_backend: str = Field(default="c10d")
-    # # rdzv_configs: dict[str, Any] = field(default_factory=dict)
-    # # rdzv_timeout: int = -1
-    # max_restarts: int = Field(default=3)
-    # monitor_interval: float = Field(default=0.1)
-    # start_method: str = Field(default="spawn")
-    # local_addr: Optional[str] = None
 
     @computed_field
     def command_type(self) -> str:
