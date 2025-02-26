@@ -5,7 +5,7 @@ import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -34,18 +34,19 @@ from extensions.nodes.nodes import (
     SuccessNode,
     TaskNode,
 )
-from extensions.tasks.torch import TorchTaskType
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 from runnable.nodes import TraversalNode
 from runnable.tasks import BaseTaskType as RunnableTask
 from runnable.tasks import TaskReturns
 
-# TODO: This might have to be an extension
-
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-StepType = Union["Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map"]
+StepType = Union[
+    "Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map", "Torch"
+]
+if TYPE_CHECKING:
+    from extensions.nodes.torch import TorchNode
 
 
 def pickled(name: str) -> TaskReturns:
@@ -277,33 +278,6 @@ class PythonTask(BaseTask):
         return node.executable
 
 
-class TorchTask(BaseTask):
-    function: Callable = Field(exclude=True)
-    num_gpus: int = Field(default=1, description="Number of GPUs to use")
-
-    num_nodes: int = Field(
-        default=1,
-        description="Number of nodes to use, currently only supports single node",
-        le=1,
-    )
-
-    @computed_field
-    def command_type(self) -> str:
-        return "torch"
-
-    @computed_field
-    def command(self) -> str:
-        module = self.function.__module__
-        name = self.function.__name__
-
-        return f"{module}.{name}"
-
-    def create_job(self) -> RunnableTask:
-        self.terminate_with_success = True
-        node = self.create_node()
-        return node.executable
-
-
 class NotebookTask(BaseTask):
     """
     An execution node of the pipeline of notebook.
@@ -482,6 +456,59 @@ class Stub(BaseTraversal):
                 )
 
         return StubNode.parse_from_config(self.model_dump(exclude_none=True))
+
+
+class Torch(BaseTraversal):
+    # Its a wrapper of a python task
+    # TODO: Is there a way to not sync these with the torch node in extensions?
+    function: Callable = Field(exclude=True)
+    catalog: Optional[Catalog] = Field(default=None, alias="catalog")
+    overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
+    returns: List[Union[str, TaskReturns]] = Field(
+        default_factory=list, alias="returns"
+    )
+    secrets: List[str] = Field(default_factory=list)
+
+    # min_nodes: int = Field(default=1)
+    # max_nodes: int = Field(default=1)
+    # nproc_per_node: int = Field(default=1)
+    # run_id: str = Field(default="")
+    # role: str = Field(default="default_role")
+    # rdzv_endpoint: str = Field(default="localhost:29500")
+    # # rdzv_backend: str = Field(default="c10d")
+    # # rdzv_configs: dict[str, Any] = field(default_factory=dict)
+    # # rdzv_timeout: int = -1
+    # max_restarts: int = Field(default=3)
+    # monitor_interval: float = Field(default=0.1)
+    # start_method: str = Field(default="spawn")
+    # local_addr: Optional[str] = None
+
+    @computed_field
+    def command_type(self) -> str:
+        return "python"
+
+    @computed_field
+    def command(self) -> str:
+        module = self.function.__module__
+        name = self.function.__name__
+
+        return f"{module}.{name}"
+
+    def create_node(self) -> TorchNode:
+        if not self.next_node:
+            if not (self.terminate_with_failure or self.terminate_with_success):
+                raise AssertionError(
+                    "A node not being terminated must have a user defined next node"
+                )
+
+        if self.on_failure:
+            self.on_failure = self.on_failure.steps[0].name  # type: ignore
+
+        from extensions.nodes.torch import TorchNode
+
+        return TorchNode.parse_from_config(
+            self.model_dump(exclude_none=True, by_alias=True)
+        )
 
 
 class Parallel(BaseTraversal):
@@ -973,38 +1000,6 @@ class PythonJob(BaseJob):
             function=self.function,
         )
         return task.create_node().executable
-
-
-class TorchJob(BaseJob):
-    function: Callable = Field(exclude=True)
-    num_gpus: int = Field(default=1, description="Number of GPUs to use")
-
-    @property
-    def command(self) -> str:
-        module = self.function.__module__
-        name = self.function.__name__
-
-        return f"{module}.{name}"
-
-    def get_task(self) -> RunnableTask:
-        # Piggy bank on existing tasks as a hack
-        task = TorchTaskType(
-            task_type="torch",
-            command=self.command,
-            num_gpus=self.num_gpus,
-            returns=self.returns,
-            secrets=self.secrets,
-        )
-        return task
-        # task = TorchTask(
-        #     name="dummy",
-        #     terminate_with_success=True,
-        #     returns=self.returns,
-        #     secrets=self.secrets,
-        #     num_gpus=self.num_gpus,
-        #     function=self.function,
-        # )
-        # return task.create_node().executable
 
 
 class NotebookJob(BaseJob):

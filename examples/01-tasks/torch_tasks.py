@@ -19,15 +19,22 @@ The hello.execution.log has the captured stdout of "Hello World!".
 """
 
 from examples.common.functions import hello
-from runnable import TorchJob
+from runnable import Pipeline, Torch
 
 
 def main():
-    job = TorchJob(function=hello, num_gpus=2)
+    torch_task = Torch(
+        function=hello,
+        name="torch",
+        terminate_with_success=True,
+        # rdzv_backend="",
+    )
 
-    job.execute()
+    # The pipeline has only one step.
+    pipeline = Pipeline(steps=[torch_task])
 
-    return job
+    pipeline.execute()
+    return pipeline
 
 
 if __name__ == "__main__":

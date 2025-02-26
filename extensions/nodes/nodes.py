@@ -246,7 +246,6 @@ class ParallelNode(CompositeNode):
 
     node_type: str = Field(default="parallel", serialization_alias="type")
     branches: Dict[str, Graph]
-    is_composite: bool = Field(default=True, exclude=True)
 
     def get_summary(self) -> Dict[str, Any]:
         summary = {
@@ -401,7 +400,6 @@ class MapNode(CompositeNode):
     iterate_as: str
     reducer: Optional[str] = Field(default=None)
     branch: Graph
-    is_composite: bool = True
 
     def get_summary(self) -> Dict[str, Any]:
         summary = {
