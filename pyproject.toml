@@ -37,6 +37,9 @@ k8s = [
 s3 = [
     "cloudpathlib[s3]"
 ]
+torch = [
+    "torch>=2.6.0",
+]
 
 [dependency-groups]
 dev = [
@@ -138,6 +141,7 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "map" = "extensions.nodes.nodes:MapNode"
 "dag" = "extensions.nodes.nodes:DagNode"
 "stub" = "extensions.nodes.nodes:StubNode"
+"torch" = "extensions.nodes.torch:TorchNode"
 
 [project.entry-points.'tasks']
 "python" = "runnable.tasks:PythonTaskType"

@@ -37,6 +37,7 @@ class BaseNode(ABC, BaseModel):
     internal_name: str = Field(exclude=True)
     internal_branch_name: str = Field(default="", exclude=True)
     is_composite: bool = Field(default=False, exclude=True)
+    is_distributed: bool = Field(default=False, exclude=True)
 
     @property
     def _context(self):
@@ -280,7 +281,6 @@ class BaseNode(ABC, BaseModel):
         mock=False,
         map_variable: TypeMapVariable = None,
         attempt_number: int = 1,
-        **kwargs,
     ) -> StepLog:
         """
         The actual function that does the execution of the command in the config.
@@ -299,7 +299,7 @@ class BaseNode(ABC, BaseModel):
         """
 
     @abstractmethod
-    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None):
         """
         This function would be called to set up the execution of the individual
         branches of a composite node.
@@ -314,7 +314,7 @@ class BaseNode(ABC, BaseModel):
         """
 
     @abstractmethod
-    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_out(self, map_variable: TypeMapVariable = None):
         """
         This function would be called to set up the execution of the individual
         branches of a composite node.
@@ -330,7 +330,7 @@ class BaseNode(ABC, BaseModel):
         """
 
     @abstractmethod
-    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None):
         """
         This function would be called to tear down the execution of the individual
         branches of a composite node.
@@ -439,33 +439,25 @@ class ExecutableNode(TraversalNode):
             "This is an executable node and does not have branches"
         )
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a graph"
         )
 
-    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a fan in"
         )
 
-    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_out(self, map_variable: TypeMapVariable = None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a fan out"
         )
 
-    def prepare_for_job_execution(self):
-        raise exceptions.NodeMethodCallError(
-            "This is an executable node and does not have a prepare_for_job_execution"
-        )
-
-    def tear_down_after_job_execution(self):
-        raise exceptions.NodeMethodCallError(
-            "This is an executable node and does not have a tear_down_after_job_execution",
-        )
-
 
 class CompositeNode(TraversalNode):
+    is_composite: bool = True
+
     def _get_catalog_settings(self) -> Dict[str, Any]:
         """
         If the node defines a catalog settings, return it or None
@@ -485,20 +477,44 @@ class CompositeNode(TraversalNode):
         mock=False,
         map_variable: TypeMapVariable = None,
         attempt_number: int = 1,
-        **kwargs,
     ) -> StepLog:
         raise exceptions.NodeMethodCallError(
             "This is a composite node and does not have an execute function"
         )
 
-    def prepare_for_job_execution(self):
+
+class DistributedNode(TraversalNode):
+    """
+    Use this node for distributed execution of tasks.
+    eg: torch distributed, horovod, etc.
+    """
+
+    is_distributed: bool = True
+    catalog: Optional[CatalogStructure] = Field(default=None)
+    max_attempts: int = Field(default=1, ge=1)
+
+    def _get_catalog_settings(self) -> Dict[str, Any]:
+        """
+        If the node defines a catalog settings, return it or None
+
+        Returns:
+            dict: catalog settings defined as per the node or None
+        """
+        if self.catalog:
+            return self.catalog.model_dump()
+        return {}
+
+    def _get_max_attempts(self) -> int:
+        return self.max_attempts
+
+    def _get_branch_by_name(self, branch_name: str):
         raise exceptions.NodeMethodCallError(
-            "This is an executable node and does not have a prepare_for_job_execution"
+            "This is an distributed node and does not have branches"
         )
 
-    def tear_down_after_job_execution(self):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None):
         raise exceptions.NodeMethodCallError(
-            "This is an executable node and does not have a tear_down_after_job_execution"
+            "This is an executable node and does not have a graph"
         )
 
 
@@ -524,13 +540,16 @@ class TerminalNode(BaseNode):
     def _get_max_attempts(self) -> int:
         return 1
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None, **kwargs):
+    def execute_as_graph(self, map_variable: TypeMapVariable = None):
         raise exceptions.TerminalNodeError()
 
-    def fan_in(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_in(self, map_variable: TypeMapVariable = None):
         raise exceptions.TerminalNodeError()
 
-    def fan_out(self, map_variable: TypeMapVariable = None, **kwargs):
+    def fan_out(
+        self,
+        map_variable: TypeMapVariable = None,
+    ):
         raise exceptions.TerminalNodeError()
 
     @classmethod

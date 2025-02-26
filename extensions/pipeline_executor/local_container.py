@@ -59,7 +59,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
     _container_secrets_location = "/tmp/dotenv"
     _volumes: Dict[str, Dict[str, str]] = {}
 
-    def add_code_identities(self, node: BaseNode, step_log: StepLog, **kwargs):
+    def add_code_identities(self, node: BaseNode, step_log: StepLog):
         """
         Call the Base class to add the git code identity and add docker identity
 
@@ -86,18 +86,18 @@ class LocalContainerExecutor(GenericPipelineExecutor):
             code_id.code_identifier_url = "local docker host"
             step_log.code_identities.append(code_id)
 
-    def execute_node(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
+    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         We are already in the container, we just execute the node.
         The node is already prepared for execution.
         """
         self._use_volumes()
-        return self._execute_node(node, map_variable, **kwargs)
+        return self._execute_node(node, map_variable)
 
     def execute_from_graph(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
+        self,
+        node: BaseNode,
+        map_variable: TypeMapVariable = None,
     ):
         """
         This is the entry point to from the graph execution.
@@ -139,12 +139,12 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         # Add the step log to the database as per the situation.
         # If its a terminal node, complete it now
         if node.node_type in ["success", "fail"]:
-            self._execute_node(node, map_variable=map_variable, **kwargs)
+            self._execute_node(node, map_variable=map_variable)
             return
 
         # We call an internal function to iterate the sub graphs and execute them
         if node.is_composite:
-            node.execute_as_graph(map_variable=map_variable, **kwargs)
+            node.execute_as_graph(map_variable=map_variable)
             return
 
         task_console.export_text(clear=True)
@@ -153,10 +153,10 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
         )
-        self.trigger_node_execution(node=node, map_variable=map_variable, **kwargs)
+        self.trigger_node_execution(node=node, map_variable=map_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
+        self, node: BaseNode, map_variable: TypeMapVariable = None
     ):
         """
         We come into this step via execute from graph, use trigger job to spin up the container.
@@ -181,7 +181,6 @@ class LocalContainerExecutor(GenericPipelineExecutor):
             command=command,
             map_variable=map_variable,
             auto_remove_container=auto_remove_container,
-            **kwargs,
         )
 
         step_log = self._context.run_log_store.get_step_log(
@@ -203,7 +202,6 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         command: str,
         map_variable: TypeMapVariable = None,
         auto_remove_container: bool = True,
-        **kwargs,
     ):
         """
         During the flow run, we have to spin up a container with the docker image mentioned

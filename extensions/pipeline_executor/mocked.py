@@ -36,9 +36,7 @@ class MockedExecutor(GenericPipelineExecutor):
     def _context(self):
         return context.run_context
 
-    def execute_from_graph(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
+    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         This is the entry point to from the graph execution.
 
@@ -80,18 +78,18 @@ class MockedExecutor(GenericPipelineExecutor):
         # If its a terminal node, complete it now
         if node.node_type in ["success", "fail"]:
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-            self._execute_node(node, map_variable=map_variable, **kwargs)
+            self._execute_node(node, map_variable=map_variable)
             return
 
         # We call an internal function to iterate the sub graphs and execute them
         if node.is_composite:
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-            node.execute_as_graph(map_variable=map_variable, **kwargs)
+            node.execute_as_graph(map_variable=map_variable)
             return
 
         if node.name not in self.patches:
             # node is not patched, so mock it
-            self._execute_node(node, map_variable=map_variable, mock=True, **kwargs)
+            self._execute_node(node, map_variable=map_variable, mock=True)
         else:
             # node is patched
             # command as the patch value
@@ -103,9 +101,7 @@ class MockedExecutor(GenericPipelineExecutor):
                 node_name=node.name,
             )
             node_to_send.executable = executable
-            self._execute_node(
-                node_to_send, map_variable=map_variable, mock=False, **kwargs
-            )
+            self._execute_node(node_to_send, map_variable=map_variable, mock=False)
 
     def _resolve_executor_config(self, node: BaseNode):
         """
@@ -144,9 +140,7 @@ class MockedExecutor(GenericPipelineExecutor):
 
         return effective_node_config
 
-    def execute_node(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
+    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         The entry point for all executors apart from local.
         We have already prepared for node execution.

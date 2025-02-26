@@ -318,7 +318,6 @@ class ChunkedRunLogStore(BaseRunLogStore):
         tag: str = "",
         original_run_id: str = "",
         status: str = defaults.CREATED,
-        **kwargs,
     ):
         """
         Creates a Run Log object by using the config
@@ -549,7 +548,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         )
 
     def get_branch_log(
-        self, internal_branch_name: str, run_id: str, **kwargs
+        self, internal_branch_name: str, run_id: str
     ) -> Union[BranchLog, RunLog]:
         """
         Returns the branch log by the internal branch name for the run id

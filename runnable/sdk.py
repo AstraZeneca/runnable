@@ -5,7 +5,7 @@ import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -34,17 +34,20 @@ from extensions.nodes.nodes import (
     SuccessNode,
     TaskNode,
 )
+from extensions.nodes.torch_config import TorchConfig
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 from runnable.nodes import TraversalNode
 from runnable.tasks import BaseTaskType as RunnableTask
 from runnable.tasks import TaskReturns
 
-# TODO: This might have to be an extension
-
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
-StepType = Union["Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map"]
+StepType = Union[
+    "Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map", "Torch"
+]
+if TYPE_CHECKING:
+    from extensions.nodes.torch import TorchNode
 
 
 def pickled(name: str) -> TaskReturns:
@@ -454,6 +457,45 @@ class Stub(BaseTraversal):
                 )
 
         return StubNode.parse_from_config(self.model_dump(exclude_none=True))
+
+
+class Torch(BaseTraversal, TorchConfig):
+    # Its a wrapper of a python task
+    # TODO: Is there a way to not sync these with the torch node in extensions?
+    function: Callable = Field(exclude=True)
+    catalog: Optional[Catalog] = Field(default=None, alias="catalog")
+    overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
+    returns: List[Union[str, TaskReturns]] = Field(
+        default_factory=list, alias="returns"
+    )
+    secrets: List[str] = Field(default_factory=list)
+
+    @computed_field
+    def command_type(self) -> str:
+        return "python"
+
+    @computed_field
+    def command(self) -> str:
+        module = self.function.__module__
+        name = self.function.__name__
+
+        return f"{module}.{name}"
+
+    def create_node(self) -> TorchNode:
+        if not self.next_node:
+            if not (self.terminate_with_failure or self.terminate_with_success):
+                raise AssertionError(
+                    "A node not being terminated must have a user defined next node"
+                )
+
+        if self.on_failure:
+            self.on_failure = self.on_failure.steps[0].name  # type: ignore
+
+        from extensions.nodes.torch import TorchNode
+
+        return TorchNode.parse_from_config(
+            self.model_dump(exclude_none=True, by_alias=True)
+        )
 
 
 class Parallel(BaseTraversal):

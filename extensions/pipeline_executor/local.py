@@ -29,16 +29,14 @@ class LocalExecutor(GenericPipelineExecutor):
 
     _is_local: bool = PrivateAttr(default=True)
 
-    def execute_from_graph(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
+    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
         if not self.object_serialisation:
             self._context.object_serialisation = False
 
-        super().execute_from_graph(node=node, map_variable=map_variable, **kwargs)
+        super().execute_from_graph(node=node, map_variable=map_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
+        self, node: BaseNode, map_variable: TypeMapVariable = None
     ):
         """
         In this mode of execution, we prepare for the node execution and execute the node
@@ -47,11 +45,9 @@ class LocalExecutor(GenericPipelineExecutor):
             node (BaseNode): [description]
             map_variable (str, optional): [description]. Defaults to ''.
         """
-        self.execute_node(node=node, map_variable=map_variable, **kwargs)
+        self.execute_node(node=node, map_variable=map_variable)
 
-    def execute_node(
-        self, node: BaseNode, map_variable: TypeMapVariable = None, **kwargs
-    ):
+    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
         """
         For local execution, we just execute the node.
 
@@ -59,4 +55,4 @@ class LocalExecutor(GenericPipelineExecutor):
             node (BaseNode): _description_
             map_variable (dict[str, str], optional): _description_. Defaults to None.
         """
-        self._execute_node(node=node, map_variable=map_variable, **kwargs)
+        self._execute_node(node=node, map_variable=map_variable)
