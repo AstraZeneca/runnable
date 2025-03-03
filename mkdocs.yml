@@ -115,7 +115,7 @@ nav:
       - "Introduction": "index.md"
       - "Usage": "usage.md"
       - "Why runnable?": "why-runnable.md"
-  - "Define pipeline":
+  - "Concepts":
       - "concepts/index.md"
       - "Tasks": concepts/task.md
       - "Pipeline": "concepts/pipeline.md"
@@ -129,11 +129,10 @@ nav:
       - "configurations/overview.md"
       - "Executor":
           - "local": "configurations/executors/local.md"
-          - "mocked": "configurations/executors/mocked.md"
-          - "retry": "configurations/executors/mocked.md"
+          # - "mocked": "configurations/executors/mocked.md"
+          # - "retry": "configurations/executors/mocked.md"
           - "local-container": "configurations/executors/local-container.md"
           - "argo workflows": "configurations/executors/argo.md"
-          - "container environments": "configurations/executors/container-environments.md"
       - "Run log": "configurations/run-log.md"
       - "Catalog": "configurations/catalog.md"
       - "Secrets": "configurations/secrets.md"

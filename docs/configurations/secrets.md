@@ -1,7 +1,4 @@
-**runnable** provides an interface to secrets managers
-[via the API](../interactions.md/#runnable.get_secret).
-
-Please refer to [Secrets in concepts](../concepts/secrets.md) for more information.
+Secrets are exposed as environmental variables in ```runnable```.
 
 ## do-nothing
 

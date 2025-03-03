@@ -6,23 +6,7 @@ dag:
     As with simpler tasks, the stdout and stderr of each task are captured
     and stored in the catalog.
 
-    For example, the catalog structure for this execution would be:
-
-    .catalog
-    └── cold-jennings-1534
-        ├── examples
-        │   └── common
-        │       └── simple_notebook_out.ipynb
-        ├── hello_notebook.execution.log
-        ├── hello_python.execution.log
-        └── hello_shell.execution.log
-
-    4 directories, 4 files
-
-    The notebook simple_notebook_out.ipynb has the captured stdout of "Hello World!".
-
-    You can run this pipeline as:
-      runnable execute -f examples/02-sequential/traversal.yaml
+    runnable execute -f examples/02-sequential/traversal.yaml
 
   start_at: hello stub # (1)
   steps:

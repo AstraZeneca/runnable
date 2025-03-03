@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Dict
 
 from pydantic import Field
-from rich import print
 
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import console, defaults, task_console, utils
@@ -20,31 +19,50 @@ class LocalContainerExecutor(GenericPipelineExecutor):
 
     Ensure that the local compute has enough resources to finish all your jobs.
 
-    The image of the run, could either be provided as default in the configuration of the execution engine
-    i.e.:
-    execution:
-      type: 'local-container'
-      config:
-        docker_image: the image you want the code to run in.
+    Configuration options:
 
-    or default image could be over-ridden for a single node by providing a docker_image in the step config.
-    i.e:
-    dag:
-      steps:
-        step:
-          executor_config:
-            local-container:
-                docker_image: The image that you want that single step to run in.
-    This image would only be used for that step only.
-
-    This mode does not build the docker image with the latest code for you, it is still left for the user to build
-    and ensure that the docker image provided is the correct one.
-
-    Example config:
-    execution:
+    ```yaml
+    pipeline-executor:
       type: local-container
       config:
-        docker_image: The default docker image to use if the node does not provide one.
+        docker_image: <required>
+        auto_remove_container: true/false
+        environment:
+          key: value
+        overrides:
+          alternate_config:
+            docker_image: <required>
+            auto_remove_container: true/false
+            environment:
+              key: value
+    ```
+
+    - ```docker_image```: The default docker image to use for all the steps.
+    - ```auto_remove_container```: Remove container after execution
+    - ```environment```: Environment variables to pass to the container
+
+    Overrides give you the ability to override the default docker image for a single step.
+    A step can then then refer to the alternate_config in the task definition.
+
+    Example:
+
+    ```python
+    from runnable import PythonTask
+
+    task = PythonTask(
+        name="alt_task",
+        overrides={
+            "local-container": "alternate_config"
+            }
+        )
+    ```
+
+    In the above example, ```alt_task``` will run in the docker image/configuration
+    as defined in the alternate_config.
+
+    ```runnable``` does not build the docker image for you, it is still left for the user to build
+    and ensure that the docker image provided is the correct one.
+
     """
 
     service_name: str = "local-container"
@@ -221,7 +239,6 @@ class LocalContainerExecutor(GenericPipelineExecutor):
 
         try:
             logger.info(f"Running the command {command}")
-            print(command)
             #  Overrides global config with local
             executor_config = self._resolve_executor_config(node)
 

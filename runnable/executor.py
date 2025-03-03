@@ -156,7 +156,7 @@ class BaseJobExecutor(BaseExecutor):
 # TODO: Consolidate execute_node, trigger_node_execution, _execute_node
 class BasePipelineExecutor(BaseExecutor):
     service_type: str = "pipeline_executor"
-    overrides: dict = {}
+    overrides: dict[str, Any] = {}
 
     _context_node: Optional[BaseNode] = PrivateAttr(default=None)
 

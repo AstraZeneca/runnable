@@ -371,6 +371,89 @@ class CustomVolume(BaseModelWIthConfig):
 
 
 class ArgoExecutor(GenericPipelineExecutor):
+    """
+    Executes the pipeline using Argo Workflows.
+
+    The defaults configuration is kept similar to the
+    [Argo Workflow spec](https://argo-workflows.readthedocs.io/en/latest/fields/#workflow).
+
+    Configuration:
+
+    ```yaml
+    pipeline-executor:
+      type: argo
+      config:
+        pvc_for_runnable: "my-pvc"
+        custom_volumes:
+          - mount_path: "/tmp"
+            persistent_volume_claim:
+              claim_name: "my-pvc"
+              read_only: false/true
+        expose_parameters_as_inputs: true/false
+        secrets_from_k8s:
+          - key1
+          - key2
+          - ...
+        output_file: "argo-pipeline.yaml"
+        log_level: "DEBUG"/"INFO"/"WARNING"/"ERROR"/"CRITICAL"
+        defaults:
+          image: "my-image"
+          activeDeadlineSeconds: 86400
+          failFast: true
+          nodeSelector:
+            label: value
+          parallelism: 1
+          retryStrategy:
+            backoff:
+            duration: "2m"
+            factor: 2
+            maxDuration: "1h"
+            limit: 0
+            retryPolicy: "Always"
+          timeout: "1h"
+          tolerations:
+          imagePullPolicy: "Always"/"IfNotPresent"/"Never"
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "250m"
+              gpu: 0
+            requests:
+              memory: "1Gi"
+              cpu: "250m"
+          env:
+            - name: "MY_ENV"
+            value: "my-value"
+            - name: secret_env
+            secretName: "my-secret"
+            secretKey: "my-key"
+        overrides:
+          key1:
+            ... similar structure to defaults
+
+        argoWorkflow:
+          metadata:
+            annotations:
+              key1: value1
+              key2: value2
+            generateName: "my-workflow"
+            labels:
+              key1: value1
+
+    ```
+
+    As of now, ```runnable``` needs a pvc to store the logs and the catalog; provided by ```pvc_for_runnable```.
+    - ```custom_volumes``` can be used to mount additional volumes to the container.
+
+    - ```expose_parameters_as_inputs``` can be used to expose the initial parameters as inputs to the workflow.
+    - ```secrets_from_k8s``` can be used to expose the secrets from the k8s secret store.
+    - ```output_file``` is the file where the argo pipeline will be dumped.
+    - ```log_level``` is the log level for the containers.
+    - ```defaults``` is the default configuration for all the containers.
+
+
+    """
+
     service_name: str = "argo"
     _is_local: bool = False
     mock: bool = False

@@ -11,8 +11,7 @@ Most complex pipelines require secrets to hold sensitive information during task
 They could be database credentials, API keys or any information that need to present at
 the run-time but invisible at all other times.
 
-runnable provides a [clean API](../interactions.md/#runnable.get_secret) to access secrets
-and independent of the actual secret provider, the interface remains the same.
+The secrets are always exposed as environmental variables.
 
 A typical example would be a task requiring the database connection string to connect
 to a database.
@@ -24,8 +23,8 @@ class CustomObject:
 
     @property
     def connection_object(self):
-        from runnable import get_secret
-        connection_string = get_secret("connection_string")
+        import os
+        connection_string = os.environ.get("connection_string")
         # Do something with the secrets
 ```
 
@@ -40,12 +39,7 @@ Please refer to [configurations](../configurations/secrets.md) for available imp
 
     The file is assumed to be present in ```examples/secrets.env``` for this example.
 
-    ```shell linenums="1"
-    --8<-- "examples/secrets.env"
-    ```
-
-    1. Shell scripts style are supported.
-    2. Key value based format is also supported.
+    It follows the same format as [python-dotenv](https://github.com/theskumar/python-dotenv)
 
 
 === "Example configuration"
@@ -58,12 +52,3 @@ Please refer to [configurations](../configurations/secrets.md) for available imp
 
     1. Use dotenv secrets manager.
     2. Location of the dotenv file, defaults to ```.env``` in project root.
-
-
-=== "Pipeline in python"
-
-    ```python linenums="1" hl_lines="12-13"
-    --8<-- "examples/secrets.py"
-    ```
-
-    1. The key of the secret that you want to retrieve.
