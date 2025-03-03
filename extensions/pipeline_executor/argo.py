@@ -27,6 +27,7 @@ from extensions.nodes.nodes import (
     SuccessNode,
     TaskNode,
 )
+from extensions.nodes.torch import TorchNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults, utils
 from runnable.defaults import TypeMapVariable
@@ -510,6 +511,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             isinstance(node, TaskNode)
             or isinstance(node, StubNode)
             or isinstance(node, SuccessNode)
+            or isinstance(node, TorchNode)
         )
 
         node_override = None
@@ -791,6 +793,24 @@ class ArgoExecutor(GenericPipelineExecutor):
                     )
 
                     self._templates.append(composite_template)
+
+                case "torch":
+                    assert isinstance(working_on, TorchNode)
+
+                    template_of_container = self._create_container_template(
+                        working_on,
+                        task_name=task_name,
+                        inputs=Inputs(parameters=parameters),
+                    )
+                    assert template_of_container.container is not None
+
+                    if working_on.node_type == "task":
+                        self._expose_secrets_to_task(
+                            working_on,
+                            container_template=template_of_container.container,
+                        )
+
+                    self._templates.append(template_of_container)
 
             self._handle_failures(
                 working_on,
