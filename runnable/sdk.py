@@ -325,7 +325,7 @@ class NotebookTask(BaseTask):
         catalog Optional[Catalog]: The files sync data from/to, refer to Catalog.
 
         secrets List[str]: List of secrets to pass to the task. They are exposed as environment variables
-        and removed after execution.
+            and removed after execution.
 
         overrides (Dict[str, Any]): Any overrides to the command.
             Individual tasks can override the global configuration config by referring to the
@@ -391,7 +391,7 @@ class ShellTask(BaseTask):
         catalog Optional[Catalog]: The files sync data from/to, refer to Catalog.
 
         secrets List[str]: List of secrets to pass to the task. They are exposed as environment variables
-        and removed after execution.
+            and removed after execution.
 
         overrides (Dict[str, Any]): Any overrides to the command.
             Individual tasks can override the global configuration config by referring to the
@@ -460,8 +460,6 @@ class Stub(BaseTraversal):
 
 
 class Torch(BaseTraversal, TorchConfig):
-    # Its a wrapper of a python task
-    # TODO: Is there a way to not sync these with the torch node in extensions?
     function: Callable = Field(exclude=True)
     catalog: Optional[Catalog] = Field(default=None, alias="catalog")
     overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")

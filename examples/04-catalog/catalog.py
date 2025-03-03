@@ -24,24 +24,6 @@ Use this pattern to move files that are not dill friendly.
 
 All the files are stored in catalog.
 
-.catalog
-└── silly-joliot-0610
-    ├── data_folder
-    │   └── data.txt
-    ├── deleteaftergenerate.execution.log
-    ├── deleteaftergeneratenotebook.execution.log
-    ├── deleteaftergeneratepython.execution.log
-    ├── deleteaftergenerateshell.execution.log
-    ├── df.csv
-    ├── examples
-    │   └── common
-    │       └── read_files_out.ipynb
-    ├── generatedata.execution.log
-    ├── readdatanotebook.execution.log
-    ├── readdatapy.execution.log
-    └── readdatashell.execution.log
-
-5 directories, 11 files
 
 Run this pipeline as:
     python examples/04-catalog/catalog.py

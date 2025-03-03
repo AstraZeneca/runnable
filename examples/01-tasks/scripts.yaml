@@ -6,11 +6,6 @@ dag:
     You can run this pipeline by:
     runnable execute -f examples/01-tasks/scripts.yaml
 
-    For example:
-    .catalog
-    └── seasoned-perlman-1355
-        └── hello.execution.log
-
   start_at: shell
   steps:
     shell:

@@ -28,6 +28,7 @@ def main():
         name="torch",
         terminate_with_success=True,
         max_restarts=2,
+        overrides={"argo": "cpu-machine"},
     )
 
     # The pipeline has only one step.

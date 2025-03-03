@@ -10,8 +10,14 @@ as it was triggered.
 
 ## Configuration
 
-```yaml
-executor: local
-```
+::: extensions.pipeline_executor.local.LocalExecutor
+    options:
+        show_root_heading: false
+        show_bases: false
+        members: false
+        show_docstring_description: true
+        heading_level: 3
+
+
 
 All the examples in the concepts section are executed using ```local``` executors.

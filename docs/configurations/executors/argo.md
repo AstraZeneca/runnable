@@ -15,95 +15,14 @@ to get inputs from infrastructure teams or ML engineers in defining the configur
 
 ## Configuration
 
-Only ```image``` is the required parameter. Please refer to the
-[note on containers](container-environments.md) on building images.
+::: extensions.pipeline_executor.argo.ArgoExecutor
+    options:
+        show_root_heading: false
+        show_bases: false
+        members: false
+        show_docstring_description: true
+        heading_level: 3
 
-
-```yaml linenums="1"
-executor:
-  type: argo
-  config:
-    name:
-    annotations:
-    labels:
-    namespace:
-    image: <required>
-    pod_gc:
-    max_workflow_duration_in_seconds:
-    node_selector:
-    parallelism:
-    service_account_name:
-    resources:
-    retry_strategy:
-    max_step_duration_in_seconds:
-    tolerations:
-    image_pull_policy:
-    expose_parameters_as_inputs:
-    output_file:
-    secrets_from_k8s:
-    persistent_volumes:
-```
-
-
-### Defaults
-
-
-!!! warning "Default values"
-
-    Ensure that these default values fit your needs to avoid unexpected behavior.
-
-<div class="annotate" markdown>
-
-| Parameter      | Default | Argo Field |
-| :-----------: | :-------------: | :------------: |
-| name | ```runnable-dag-``` | ```generateName``` |
-| annotations | ```{}``` | ```annotations``` of ```metadata``` |
-| labels | ```{}``` | ```labels``` |
-| pod_gc       | ```OnPodCompletion```  | ```podGC``` |
-| service_account_name | ```None``` | ```serviceAccountName``` of spec |
-| secrets_from_k8s | ```[]``` | List
-| expose_parameters_as_inputs | True | NA
-| max_workflow_duration_in_seconds | 86400 seconds = 1 day | ```activeDeadlineSeconds``` of spec |
-| node_selector | ```{}``` | ```nodeSelector``` |
-| parallelism | ```None``` | ```parallelism``` of spec |
-| resources | limits: 1Gi of memory and 250m of CPU | ```resources``` of the container |
-| retry_strategy | ```None``` | ```retryStrategy``` of the spec |
-| max_step_duration_in_seconds | 60 * 60 * 2 = 2 hours | ```activeDeadlineSeconds``` of container |
-| tolerations | ```{}``` | ```tolerations``` of the container |
-| image_pull_policy | ```"" ``` | ```imagePullPolicy``` of the container |
-| persistent_volumes | ```None``` | '''
-
-
-
-
-</div>
-
-### Notes
-
-#### The following parameters cannot be overridden at individual step level.
-
-- ```name```: Using a name provides a logical way to organize pipelines.
-- ```pod_gc```: Defines the pod garbage collection strategy. Setting to ```OnPodCompletion``` will mark the
-pod for garbage collection immediately after completion, either success or failure.
-- ```annotations```: [Unstructured key value pairs](http://kubernetes.io/docs/user-guide/annotations)
-that can be added to K8's resources.
-- ```labels```: Dictionary of labels to apply to all the objects of the workflow.
-- ```service_account_name```: Name of the service account to be used to run the workflow.
-- ```max_workflow_duration_in_seconds```: The default value is 1 day for the completion of the workflow. Kubernetes
-will actively try to fail the pipeline after this duration.
-
-!!! tip inline end "Volumes"
-
-    As the persistent volumes are attached to the pod at specified path, it allows for ```file-system``` based
-    catalog or run log store to work without any modifications.
-
-    For example, ```/mnt``` folder can be used as the
-    ```parent``` directory for file-system run log store and catalog.
-
-
-
-- ```persistent_volumes```: Persistent volumes from the underlying Kubernetes cluster to be assigned to the pods.
-You can attach multiple persistent volumes to the pods as long as there are no clashes with mount paths.
 
 #### Example:
 
@@ -538,25 +457,18 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
 
     Assumed to be present at ```examples/configs/argo-config.yaml```
 
-    The docker image is a [variable](container-environments.md/#dynamic_name_of_the_image) and
-    dynamically set during execution.
-
     ```yaml linenums="1" hl_lines="4"
     --8<-- "examples/configs/argo-config.yaml"
     ```
 
     1. Use ```argo``` executor type to execute the pipeline.
-    2. By default, all the tasks are executed in the docker image . Please
-    refer to [building docker images](container-environments.md)
+    2. By default, all the tasks are executed in the docker image.
     3. Mount the persistent volume ```runnable-volume``` to all the containers as ```/mnt```.
     4. Store the run logs in the file-system. As all containers have access to ```runnable-volume```
     as ```/mnt```. We use that to mounted folder as run log store.
 
 
 === "python SDK"
-
-    Running the SDK defined pipelines for any container based executions [happens in
-    multi-stage process](container-environments.md).
 
     1. Generate the ```yaml``` definition file by:
     ```runnable_CONFIGURATION_FILE=examples/configs/argo-config.yaml python examples/concepts/simple.py```
@@ -570,16 +482,11 @@ code versioning tools. We recommend using ```secrets_from_k8s``` in the configur
     ```
 
     1. You can provide a configuration file dynamically by using the environment
-    variable ```runnable_CONFIGURATION_FILE```. Please see [SDK for more details](../../sdk.md).
+    variable ```runnable_CONFIGURATION_FILE```. Please see [SDK for more details](../../reference.md).
 
 
 === "yaml"
 
-    For yaml based definitions, the execution order is to:
-
-    1. Build the docker image with the yaml definition in it, called runnable:latest in current example.
-    2. Execute the pipeline via the runnable CLI:
-    ```runnable_VAR_argo_docker_image=runnable:latest runnable execute -f examples/concepts/simple.yaml -c examples/configs/argo-config.yaml```
 
     ```yaml linenums="1"
     --8<-- "examples/concepts/simple.yaml"
@@ -799,16 +706,12 @@ runnable compiled argo workflows support deeply nested workflows.
 
     Assumed to be present at ```examples/configs/argo-config.yaml```
 
-    The docker image is a [variable](container-environments.md) and
-    dynamically set during execution.
-
     ```yaml linenums="1" hl_lines="4"
     --8<-- "examples/configs/argo-config.yaml"
     ```
 
     1. Use ```argo``` executor type to execute the pipeline.
-    2. By default, all the tasks are executed in the docker image . Please
-    refer to [building docker images](container-environments.md)
+    2. By default, all the tasks are executed in the docker image.
     3. Mount the persistent volume ```runnable-volume``` to all the containers as ```/mnt```.
     4. Store the run logs in the file-system. As all containers have access to ```runnable-volume```
     as ```/mnt```. We use that to mounted folder as run log store.

@@ -12,6 +12,12 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 class LocalJobExecutor(GenericJobExecutor):
     """
     The LocalJobExecutor is a job executor that runs the job locally.
+
+    Configuration:
+
+    pipeline-executor:
+        type: local
+
     """
 
     service_name: str = "local"

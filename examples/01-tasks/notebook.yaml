@@ -8,17 +8,6 @@ dag:
     Upon successful execution, the output notebook with cell outputs
     is stored in the catalog.
 
-    For example, the catalog structure for this execution would be:
-
-    .catalog
-    └── meek-rosalind-0853
-        ├── examples
-        │   └── common
-        │       └── simple_notebook_out.ipynb
-        └── notebook.execution.log
-
-    The notebook simple_notebook_<step_name>_out.ipynb has the captured stdout of "Hello World!".
-
     You can run this pipeline as:
       runnable execute -f examples/01-tasks/notebook.yaml
 

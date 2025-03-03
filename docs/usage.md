@@ -12,39 +12,67 @@ We recommend the installation in a virtual environment using ```poetry``` or any
 
 ### Extras
 
-#### Docker
+The below extras expand the functionality of ```runnable``` to different environments.
 
-To run the pipelines/functions/notebooks in a container, install runnable with docker functionality.
+They can be installed by ```"pip install runnable[<extra>]"```
 
-```shell
-pip install "runnable[docker]"
-```
+- ```docker``` : enable pipelines/jobs in a container
+- ```notebook``` : enables notebooks as tasks/jobs
+- ```k8s``` : enables running jobs in kubernetes or minikube clusters
+- ```s3``` : enables using ```s3``` buckets for ```run log store``` and ```catalog```
+- ```torch``` : enables to run pytorch jobs or as tasks in pipeline
 
-#### Notebook
-
-To use notebooks as tasks, install runnable with ```notebook``` functionality.
-
-```shell
-pip install "runnable[notebook]"
-```
-
-
-<hr style="border:2px dotted orange">
 
 ## Usage
 
-Pipelines defined in **runnable** can be either via [python sdk](sdk.md) or ```yaml``` based definitions.
+### Execute a pipeline
 
-To execute a pipeline, defined in ```yaml```, use the **runnable** cli.
+Pipelines defined in **runnable** can be either via [python sdk](reference.md) or ```yaml``` based definitions.
+
+
 The options are detailed below:
 
-- ```-f, --file``` (str): The pipeline definition file, defaults to pipeline.yaml
-- ```-c, --config-file``` (str): [config file](configurations/overview.md) to be used for the run [default: None]
-- ```-p, --parameters-file``` (str): [Parameters](concepts/parameters.md)  accessible by the application [default: None]
-- ```--log-level``` : The log level, one of ```INFO | DEBUG | WARNING| ERROR| FATAL``` [default: INFO]
-- ```--tag``` (str): A tag attached to the run[default: ]
-- ```--run-id``` (str): An optional run_id, one would be generated if not provided
-- ```--use-cached``` (str): Provide the previous run_id to re-run.
+```shell
+
+runnable execute
+
+╭─ Arguments ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *    yaml_file      TEXT      The pipeline definition file [default: None] [required]                                                              │
+│      run_id         [RUN_ID]  An optional run_id, one would be generated if its not provided [env var: RUNNABLE_RUN_ID]                            │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --config      -c      TEXT                              The configuration file specifying the services                                             │
+│ --parameters  -p      TEXT                              Parameters, in yaml,  accessible by the application                                        │
+│ --log-level           [INFO|DEBUG|WARNING|ERROR|FATAL]  The log level [default: WARNING]                                                           │
+│ --tag                 TEXT                              A tag attached to the run                                                                  │
+│ --help                                                  Show this message and exit.                                                                │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+```
+
+
+### Execute a job
+
+Jobs defined in **runnable** can be either via [python sdk](reference.md) or ```yaml``` based definitions.
+
+The options are detailed below:
+
+```shell
+Usage: runnable submit-job [OPTIONS] JOB_DEFINITION_FILE
+
+╭─ Arguments ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *    job_definition_file      TEXT  The yaml file containing the job definition [default: None] [required]                                         │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --config      -c      TEXT                              The configuration file specifying the services                                             │
+│ --parameters  -p      TEXT                              Parameters, in yaml,  accessible by the application                                        │
+│ --log-level           [INFO|DEBUG|WARNING|ERROR|FATAL]  The log level [default: WARNING]                                                           │
+│ --tag                 TEXT                              A tag attached to the run                                                                  │
+│ --run-id              TEXT                              An optional run_id, one would be generated if its not provided                             │
+│ --help                                                  Show this message and exit.                                                                │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```
+
 
 <hr style="border:2px dotted orange">
 

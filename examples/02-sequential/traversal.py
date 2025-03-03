@@ -9,17 +9,6 @@ You can execute this pipeline by:
     As with simpler tasks, the stdout and stderr of each task are captured
     and stored in the catalog.
 
-    .catalog
-    └── cold-jennings-1534
-        ├── examples
-        │   └── common
-        │       └── simple_notebook_out.ipynb
-        ├── hello_notebook.execution.log
-        ├── hello_python.execution.log
-        └── hello_shell.execution.log
-
-    4 directories, 4 files
-
 """
 
 from examples.common.functions import hello

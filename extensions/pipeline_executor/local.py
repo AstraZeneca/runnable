@@ -18,8 +18,11 @@ class LocalExecutor(GenericPipelineExecutor):
     Also ensure that the local compute is good enough for the compute to happen of all the steps.
 
     Example config:
-    execution:
+
+    ```yaml
+    pipeline-executor:
       type: local
+    ```
 
     """
 
