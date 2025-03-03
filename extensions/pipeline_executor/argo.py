@@ -607,7 +607,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         effective_settings = self.defaults.model_dump()
         if node_override:
-            effective_settings.update(node_override.model_dump())
+            effective_settings.update(node_override.model_dump(exclude_none=True))
 
         inputs = inputs or Inputs(parameters=[])
 
@@ -879,6 +879,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
                 case "torch":
                     assert isinstance(working_on, TorchNode)
+                    # TODO: Need to add multi-node functionality
 
                     template_of_container = self._create_container_template(
                         working_on,

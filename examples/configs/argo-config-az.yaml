@@ -6,7 +6,7 @@ pipeline-executor:
       image: harbor.csis.astrazeneca.net/mlops/runnable:latest # (2)
     overrides:
       cpu-machine:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest # (2)
+        # image: harbor.csis.astrazeneca.net/mlops/runnable:latest # (2)
         tolerations:
         - effect: "NoSchedule"
           key: "as_m5_4xlarge_ns"
@@ -29,8 +29,6 @@ pipeline-executor:
         namespace: enterprise-mlops
       spec:
         serviceAccountName: "default-editor"
-        templateDefaults:
-          image: harbor.csis.astrazeneca.net/mlops/runnable:latest # (2)
 
 
 run-log-store: # (4)
