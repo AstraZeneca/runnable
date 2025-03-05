@@ -115,7 +115,9 @@ class TorchNode(DistributedNode, TorchConfig):
         map_variable: TypeMapVariable = None,
         attempt_number: int = 1,
     ) -> StepLog:
-        assert map_variable is None, "TorchNode does not support map_variable"
+        assert (
+            map_variable is None or not map_variable
+        ), "TorchNode does not support map_variable"
 
         step_log = self._context.run_log_store.get_step_log(
             self._get_step_log_name(map_variable), self._context.run_id
@@ -130,6 +132,8 @@ class TorchNode(DistributedNode, TorchConfig):
             self._context.parameters_file or ""
         )
         os.environ["RUNNABLE_TORCH_RUN_ID"] = self._context.run_id
+        # retrieve the master address and port from the parameters
+        # default to localhost and 29500
         launcher = elastic_launch(
             launch_config,
             training_subprocess,
@@ -161,9 +165,17 @@ class TorchNode(DistributedNode, TorchConfig):
 
         return step_log
 
-    # TODO: Not sure we need these methods
     def fan_in(self, map_variable: dict[str, str | int | float] | None = None):
-        assert map_variable is None, "TorchNode does not support map_variable"
+        # Destroy the service
+        # Destroy the statefulset
+        assert (
+            map_variable is None or not map_variable
+        ), "TorchNode does not support map_variable"
 
     def fan_out(self, map_variable: dict[str, str | int | float] | None = None):
-        assert map_variable is None, "TorchNode does not support map_variable"
+        # Create a service
+        # Create a statefulset
+        # Gather the IPs and set them as parameters downstream
+        assert (
+            map_variable is None or not map_variable
+        ), "TorchNode does not support map_variable"
