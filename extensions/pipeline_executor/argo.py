@@ -880,6 +880,7 @@ class ArgoExecutor(GenericPipelineExecutor):
                 case "torch":
                     assert isinstance(working_on, TorchNode)
                     # TODO: Need to add multi-node functionality
+                    # Check notes on the torch node
 
                     template_of_container = self._create_container_template(
                         working_on,
