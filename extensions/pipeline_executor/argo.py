@@ -261,7 +261,7 @@ class CommonDefaults(BaseModelWIthConfig):
     tolerations: Optional[list[Toleration]] = Field(default=None)
     image_pull_policy: ImagePullPolicy = Field(default=ImagePullPolicy.Always)
     resources: Resources = Field(default_factory=Resources)
-    env: list[EnvVar | SecretEnvVar] = Field(default_factory=list, exclude=True)
+    env: list[EnvVar | SecretEnvVar] = Field(default_factory=list)
 
 
 # The user provided defaults at the top level
