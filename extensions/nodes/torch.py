@@ -1,6 +1,8 @@
 import importlib
 import logging
 import os
+import random
+import string
 from datetime import datetime
 from typing import Any, Callable
 
@@ -28,7 +30,13 @@ def training_subprocess():
     command = os.environ.get("RUNNABLE_TORCH_COMMAND")
     run_id = os.environ.get("RUNNABLE_TORCH_RUN_ID", "")
     parameters_files = os.environ.get("RUNNABLE_TORCH_PARAMETERS_FILES", "")
-    process_run_id = run_id + "-" + os.environ.get("RANK", "")
+    process_run_id = (
+        run_id
+        + "-"
+        + os.environ.get("RANK", "")
+        + "-"
+        + "".join(random.choices(string.ascii_lowercase, k=3))
+    )
 
     delete_env_vars_with_prefix("RUNNABLE_")
 
@@ -39,6 +47,13 @@ def training_subprocess():
         parameters_file=parameters_files,
         job_id=process_run_id,
     )
+
+    from runnable.context import run_context
+
+    job_log = run_context.run_log_store.get_run_log_by_id(run_id=run_context.run_id)
+
+    if job_log.status == defaults.FAIL:
+        raise Exception(f"Job {process_run_id} failed")
 
 
 def get_callable_from_dotted_path(dotted_path) -> Callable:
