@@ -525,6 +525,18 @@ python_examples = [
         ],
     ),
     (
+        "04-catalog/catalog_on_fail",
+        False,
+        [],
+        "",
+        [
+            partial(conditions.should_have_num_steps, 3),
+            partial(conditions.should_have_catalog_execution_logs),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_failed, "fail_immediately"),
+        ],
+    ),
+    (
         "06-parallel/parallel",
         False,
         [],

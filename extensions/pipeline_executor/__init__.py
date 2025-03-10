@@ -233,11 +233,15 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             mock=mock,
         )
 
-        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(stage="put")
-        logger.debug(f"data_catalogs_put: {data_catalogs_put}")
+        if step_log.status == defaults.SUCCESS:
+            data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
+                stage="put"
+            )
+            logger.debug(f"data_catalogs_put: {data_catalogs_put}")
+            step_log.add_data_catalogs(data_catalogs_put or [])
 
+        # get catalog should always be added to the step log
         step_log.add_data_catalogs(data_catalogs_get or [])
-        step_log.add_data_catalogs(data_catalogs_put or [])
 
         console.print(f"Summary of the step: {step_log.internal_name}")
         console.print(step_log.get_summary(), style=defaults.info_style)

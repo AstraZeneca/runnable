@@ -1,0 +1,45 @@
+dag:
+  description: |
+    Demonstrates moving files within tasks.
+
+    - generate_data: creates df.csv and data_folder/data.txt
+
+    - delete_local_after_generate: deletes df.csv and data_folder/data.txt
+        This step ensures that the local files are deleted after the step
+
+    - read_data_py: reads df.csv and data_folder/data.txt
+
+    - delete_local_after_python_get: deletes df.csv and data_folder/data.txt
+        This step ensures that the local files are deleted after the step
+
+    - read_data_shell: reads df.csv and data_folder/data.txt
+
+    - delete_local_after_shell_get: deletes df.csv and data_folder/data.txt
+        This step ensures that the local files are deleted after the step
+
+    - read_data_notebook: reads df.csv and data_folder/data.txt
+
+    - delete_local_after_notebook_get: deletes df.csv and data_folder/data.txt
+
+    Use this pattern to move files that are not dill friendly.
+
+    All the files are stored in catalog.
+
+    Run this pipeline as:
+      runnable execute -f examples/04-catalog/catalog.yaml
+  start_at: fail_immediately
+  steps:
+    fail_immediately:
+      type: task
+      command_type: shell
+      command: |
+        exit 1
+      catalog:
+        put:
+          - df.csv
+          - data_folder/data.txt
+      next: success
+      on_failure: success node
+    success node:
+      type: stub
+      next: success
