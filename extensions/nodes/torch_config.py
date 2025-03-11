@@ -1,33 +1,39 @@
+from enum import Enum
+
 from pydantic import BaseModel, Field
+
+
+class StartMethod(str, Enum):
+    spawn = "spawn"
+    fork = "fork"
+    forkserver = "forkserver"
 
 
 class TorchConfig(BaseModel):
     nnodes: str = Field(default="1:1")
-    nproc_per_node: int = Field(default=4)
+    nproc_per_node: int = Field(default=1)
 
-    rdzv_backend: str = Field(default="static")
-    rdzv_endpoint: str = Field(default="")
-    rdzv_id: str | None = Field(default=None)
-    rdzv_conf: str = Field(default="")
+    rdzv_backend: str | None = Field(default="static")
+    rdzv_endpoint: str | None = Field(default="")
+    rdzv_id: str | None = Field(default="none")
+    rdzv_conf: str | None = Field(default="")
 
-    max_restarts: int = Field(default=3)
-    monitor_interval: float = Field(default=0.1)
-    start_method: str = Field(default="spawn")
-    role: str = Field(default="default_role")
-    log_dir: str = Field(default="torch_logs")
-    redirects: str = Field(default="1")
-    tee: str = Field(default="1")
-    master_addr: str = Field(default="localhost")
-    master_port: str = Field(default="29500")
+    max_restarts: int | None = Field(default=None)
+    monitor_interval: float | None = Field(default=0.1)
+    start_method: str | None = Field(default=StartMethod.spawn)
+    role: str | None = Field(default="default")
+    log_dir: str | None = Field(default="torch_logs")
+    redirects: str | None = Field(default="0")
+    tee: str | None = Field(default="0")
+    master_addr: str | None = Field(default="localhost")
+    master_port: str | None = Field(default="29500")
     training_script: str = Field(default="dummy_training_script")
     training_script_args: str = Field(default="")
 
     # Optional fields
-    local_ranks_filter: str = Field(default="")
-    node_rank: int = Field(default=0)
-    local_addr: str | None = Field(default=None)
-    logs_specs: str | None = Field(default=None)
-    standalone: bool = Field(default=False)
-    module: bool = Field(default=False)
-    no_python: bool = Field(default=False)
-    run_path: bool = Field(default=False)
+    local_ranks_filter: str | None = Field(default="0")
+    node_rank: int | None = Field(default=0)
+    standalone: bool | None = Field(default=None)
+    module: bool | None = Field(default=False)
+    no_python: bool | None = Field(default=False)
+    run_path: bool | None = Field(default=False)
