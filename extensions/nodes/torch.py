@@ -197,7 +197,7 @@ class TorchNode(DistributedNode, TorchConfig):
         ), "TorchNode does not support map_variable"
 
 
-class EasyModel(BaseModel):  # type: ignore
+class EasyModel(BaseModel):
     model_config = ConfigDict(extra="allow")
     logs_specs: str | None = None
     local_addr: str | None = Field(default=None)
