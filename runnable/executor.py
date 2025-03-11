@@ -123,6 +123,7 @@ class BaseJobExecutor(BaseExecutor):
     def _sync_catalog(
         self,
         catalog_settings: Optional[List[str]],
+        allow_file_not_found_exc: bool = False,
     ) -> Optional[List[DataCatalog]]:
         """
         1). Identify the catalog settings by over-riding node settings with the global settings.
@@ -175,7 +176,10 @@ class BasePipelineExecutor(BaseExecutor):
 
     @abstractmethod
     def _sync_catalog(
-        self, stage: str, synced_catalogs=None
+        self,
+        stage: str,
+        synced_catalogs=None,
+        allow_file_no_found_exc: bool = False,
     ) -> Optional[List[DataCatalog]]:
         """
         1). Identify the catalog settings by over-riding node settings with the global settings.

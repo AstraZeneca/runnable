@@ -289,7 +289,9 @@ def test_sync_catalog_calls_put_from_catalog_handler(
     data_catalogs = test_executor._sync_catalog(stage="put")
 
     assert data_catalogs == ["data_catalog"]
-    mock_catalog_handler_put.assert_called_once_with(name="me")
+    mock_catalog_handler_put.assert_called_once_with(
+        name="me", allow_file_not_found_exc=False
+    )
 
 
 def test_sync_catalog_calls_put_from_catalog_handler_as_per_input(
@@ -331,7 +333,9 @@ def test_sync_catalog_calls_put_sends_synced_catalogs_to_catalog_handler(
     data_catalogs = test_executor._sync_catalog(stage="put", synced_catalogs="in_sync")
 
     assert data_catalogs == ["data_catalog"]
-    mock_catalog_handler_put.assert_called_once_with(name="me")
+    mock_catalog_handler_put.assert_called_once_with(
+        name="me", allow_file_not_found_exc=False
+    )
 
 
 def test_step_attempt_returns_one_by_default():

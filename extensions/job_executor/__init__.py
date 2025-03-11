@@ -139,6 +139,7 @@ class GenericJobExecutor(BaseJobExecutor):
     def _sync_catalog(
         self,
         catalog_settings=Optional[List[str]],
+        allow_file_not_found_exc: bool = False,
     ) -> List[DataCatalog] | None:
         if not catalog_settings:
             logger.info("No catalog settings found")
@@ -147,7 +148,7 @@ class GenericJobExecutor(BaseJobExecutor):
         data_catalogs = []
         for name_pattern in catalog_settings:
             data_catalog = self._context.catalog_handler.put(
-                name=name_pattern,
+                name=name_pattern, allow_file_not_found_exc=allow_file_not_found_exc
             )
 
             logger.debug(f"Added data catalog: {data_catalog} to job log")

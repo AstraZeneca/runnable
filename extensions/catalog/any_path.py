@@ -94,7 +94,9 @@ class AnyPathCatalog(BaseCatalog):
 
         return data_catalogs
 
-    def put(self, name: str) -> List[DataCatalog]:
+    def put(
+        self, name: str, allow_file_not_found_exc: bool = False
+    ) -> List[DataCatalog]:
         """
         Put the files matching the glob pattern into the catalog.
 
@@ -154,7 +156,7 @@ class AnyPathCatalog(BaseCatalog):
             # TODO: Think about syncing only if the file is changed
             self.upload_to_catalog(file)
 
-        if not data_catalogs:
+        if not data_catalogs and not allow_file_not_found_exc:
             raise Exception(f"Did not find any files matching {name} in {copy_from}")
 
         return data_catalogs

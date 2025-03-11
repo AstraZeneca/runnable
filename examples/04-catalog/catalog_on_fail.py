@@ -1,32 +1,5 @@
 """
-Demonstrates moving files within tasks.
-
-- generate_data: creates df.csv and data_folder/data.txt
-
-- delete_local_after_generate: deletes df.csv and data_folder/data.txt
-    This step ensures that the local files are deleted after the step
-
-- read_data_py: reads df.csv and data_folder/data.txt
-
-- delete_local_after_python_get: deletes df.csv and data_folder/data.txt
-    This step ensures that the local files are deleted after the step
-
-- read_data_shell: reads df.csv and data_folder/data.txt
-
-- delete_local_after_shell_get: deletes df.csv and data_folder/data.txt
-    This step ensures that the local files are deleted after the step
-
-- read_data_notebook: reads df.csv and data_folder/data.txt
-
-- delete_local_after_notebook_get: deletes df.csv and data_folder/data.txt
-
-Use this pattern to move files that are not dill friendly.
-
-All the files are stored in catalog.
-
-
-Run this pipeline as:
-    python examples/04-catalog/catalog.py
+If a task fails, the put action of catalog will ignore files that are not present.
 
 """
 
@@ -37,7 +10,9 @@ def main():
     write_catalog = Catalog(put=["df.csv", "data_folder/data.txt"])
     fail_immediately = ShellTask(
         name="fail_immediately",
-        command="exit 1",
+        command="""
+        touch df.csv && \
+        exit 1""",
         catalog=write_catalog,
         terminate_with_failure=True,
     )

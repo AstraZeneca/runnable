@@ -7,7 +7,6 @@ from kubernetes import client
 from kubernetes import config as k8s_config
 from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, PrivateAttr
 from pydantic.alias_generators import to_camel
-from rich import print
 
 from extensions.job_executor import GenericJobExecutor
 from runnable import console, defaults, utils
@@ -223,8 +222,13 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         job_log.status = attempt_log.status
         job_log.attempts.append(attempt_log)
 
+        allow_file_not_found_exc = True
+        if job_log.status == defaults.SUCCESS:
+            allow_file_not_found_exc = False
+
         data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
-            catalog_settings=catalog_settings
+            catalog_settings=catalog_settings,
+            allow_file_not_found_exc=allow_file_not_found_exc,
         )
         logger.debug(f"data_catalogs_put: {data_catalogs_put}")
 
