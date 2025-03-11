@@ -658,7 +658,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     def _set_env_vars_to_task(
         self, working_on: BaseNode, container_template: CoreContainerTemplate
     ):
-        if not isinstance(working_on, TaskNode) or isinstance(working_on, TorchNode):
+        if not (isinstance(working_on, TaskNode) or isinstance(working_on, TorchNode)):
             return
 
         global_envs: dict[str, str] = {}

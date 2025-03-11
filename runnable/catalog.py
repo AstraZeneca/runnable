@@ -76,7 +76,9 @@ class BaseCatalog(ABC, BaseModel):
         raise NotImplementedError
 
     @abstractmethod
-    def put(self, name: str) -> List[DataCatalog]:
+    def put(
+        self, name: str, allow_file_not_found_exc: bool = False
+    ) -> List[DataCatalog]:
         """
         Put the file by 'name' from the 'compute_data_folder' in the catalog for the run_id.
 
@@ -137,7 +139,9 @@ class DoNothingCatalog(BaseCatalog):
         logger.info("Using a do-nothing catalog, doing nothing in get")
         return []
 
-    def put(self, name: str) -> List[DataCatalog]:
+    def put(
+        self, name: str, allow_file_not_found_exc: bool = False
+    ) -> List[DataCatalog]:
         """
         Does nothing
         """

@@ -33,6 +33,7 @@ dag:
       type: task
       command_type: shell
       command: |
+        touch df.csv && \
         exit 1
       catalog:
         put:

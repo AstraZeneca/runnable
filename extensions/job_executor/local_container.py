@@ -64,9 +64,15 @@ class LocalContainerJobExecutor(GenericJobExecutor):
         job_log.status = attempt_log.status
         job_log.attempts.append(attempt_log)
 
+        allow_file_not_found_exc = True
+        if job_log.status == defaults.SUCCESS:
+            allow_file_not_found_exc = False
+
         data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
-            catalog_settings=catalog_settings
+            catalog_settings=catalog_settings,
+            allow_file_not_found_exc=allow_file_not_found_exc,
         )
+
         logger.debug(f"data_catalogs_put: {data_catalogs_put}")
 
         job_log.add_data_catalogs(data_catalogs_put or [])

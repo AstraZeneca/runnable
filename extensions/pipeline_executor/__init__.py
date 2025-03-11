@@ -111,7 +111,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         )
 
     def _sync_catalog(
-        self, stage: str, synced_catalogs=None
+        self, stage: str, synced_catalogs=None, allow_file_no_found_exc: bool = False
     ) -> Optional[List[DataCatalog]]:
         """
         1). Identify the catalog settings by over-riding node settings with the global settings.
@@ -160,7 +160,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
             elif stage == "put":
                 data_catalog = self._context.catalog_handler.put(
-                    name=name_pattern,
+                    name=name_pattern, allow_file_not_found_exc=allow_file_no_found_exc
                 )
             else:
                 raise Exception(f"Stage {stage} not supported")
@@ -233,12 +233,16 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             mock=mock,
         )
 
+        allow_file_not_found_exc = True
         if step_log.status == defaults.SUCCESS:
-            data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
-                stage="put"
-            )
-            logger.debug(f"data_catalogs_put: {data_catalogs_put}")
-            step_log.add_data_catalogs(data_catalogs_put or [])
+            # raise exception if we succeeded but the file was not found
+            allow_file_not_found_exc = False
+
+        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
+            stage="put", allow_file_no_found_exc=allow_file_not_found_exc
+        )
+        logger.debug(f"data_catalogs_put: {data_catalogs_put}")
+        step_log.add_data_catalogs(data_catalogs_put or [])
 
         # get catalog should always be added to the step log
         step_log.add_data_catalogs(data_catalogs_get or [])
