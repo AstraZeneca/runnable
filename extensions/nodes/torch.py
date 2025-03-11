@@ -6,7 +6,7 @@ import string
 from datetime import datetime
 from typing import Any, Callable
 
-from pydantic import ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from extensions.nodes.torch_config import TorchConfig
 from runnable import PythonJob, datastore, defaults
@@ -120,7 +120,8 @@ class TorchNode(DistributedNode, TorchConfig):
         return cls(executable=executable, **node_config, **task_config)
 
     def get_launch_config(self) -> LaunchConfig:
-        config, _, _ = config_from_args(self)
+        easy_model = EasyModel(**self.model_dump(exclude_none=True))
+        config, _, _ = config_from_args(easy_model)
         config.run_id = self._context.run_id
         return config
 
@@ -194,3 +195,9 @@ class TorchNode(DistributedNode, TorchConfig):
         assert (
             map_variable is None or not map_variable
         ), "TorchNode does not support map_variable"
+
+
+class EasyModel(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    logs_specs: str | None = None
+    local_addr: str | None = Field(default=None)
