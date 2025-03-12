@@ -85,12 +85,12 @@ class EasyTorchConfig(TorchConfig):
     model_config = ConfigDict(extra="ignore")
 
     # TODO: Validate min < max
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def min_nodes(self) -> int:
         return int(self.nnodes.split(":")[0])
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def max_nodes(self) -> int:
         return int(self.nnodes.split(":")[1])
