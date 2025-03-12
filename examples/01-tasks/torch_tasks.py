@@ -29,6 +29,8 @@ def main():
         terminate_with_success=True,
         max_restarts=2,
         overrides={"argo": "cpu-machine"},
+        rdzv_endpoint="localhost:12355",
+        rdzv_configs={"rank": 0},
     )
 
     # The pipeline has only one step.
