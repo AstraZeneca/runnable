@@ -6,9 +6,9 @@ import string
 from datetime import datetime
 from typing import Any, Callable
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
-from extensions.nodes.torch_config import TorchConfig
+from extensions.nodes.torch_config import EasyTorchConfig, InternalLogSpecs, TorchConfig
 from runnable import PythonJob, datastore, defaults
 from runnable.datastore import StepLog
 from runnable.nodes import DistributedNode
@@ -18,8 +18,9 @@ from runnable.utils import TypeMapVariable
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 try:
+    from torch.distributed.elastic.multiprocessing.api import DefaultLogsSpecs
     from torch.distributed.launcher.api import LaunchConfig, elastic_launch
-    from torch.distributed.run import config_from_args
+
 except ImportError:
     raise ImportError("torch is not installed. Please install torch first.")
 
@@ -120,10 +121,25 @@ class TorchNode(DistributedNode, TorchConfig):
         return cls(executable=executable, **node_config, **task_config)
 
     def get_launch_config(self) -> LaunchConfig:
-        easy_model = EasyModel(**self.model_dump(exclude_none=True))
-        config, _, _ = config_from_args(easy_model)
-        config.run_id = self._context.run_id
-        return config
+        internal_log_spec = InternalLogSpecs(**self.model_dump(exclude_none=True))
+        log_spec: DefaultLogsSpecs = DefaultLogsSpecs(
+            **internal_log_spec.model_dump(exclude_none=True)
+        )
+        easy_torch_config = EasyTorchConfig(
+            **self.model_dump(
+                exclude_none=True,
+            )
+        )
+
+        laugch_config = LaunchConfig(
+            **easy_torch_config.model_dump(
+                exclude_none=True,
+            ),
+            logs_specs=log_spec,
+            run_id=self._context.run_id,
+        )
+        print(laugch_config)
+        return laugch_config
 
     def execute(
         self,
@@ -195,9 +211,3 @@ class TorchNode(DistributedNode, TorchConfig):
         assert (
             map_variable is None or not map_variable
         ), "TorchNode does not support map_variable"
-
-
-class EasyModel(BaseModel):
-    model_config = ConfigDict(extra="allow")
-    logs_specs: str | None = None
-    local_addr: str | None = Field(default=None)
