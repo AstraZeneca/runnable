@@ -179,6 +179,21 @@ python_examples = [
         ],
     ),
     (
+        "02-sequential/traversal_default_success",
+        False,
+        [],
+        "",
+        [
+            partial(conditions.should_have_num_steps, 5),
+            partial(conditions.should_have_catalog_execution_logs),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_successful, "hello stub"),
+            partial(conditions.should_step_be_successful, "hello python"),
+            partial(conditions.should_step_be_successful, "hello shell"),
+            partial(conditions.should_step_be_successful, "hello notebook"),
+        ],
+    ),
+    (
         "02-sequential/default_fail",
         True,
         [],

@@ -685,6 +685,7 @@ class Pipeline(BaseModel):
         terminal_step: StepType = self.steps[-1]
         if not terminal_step.terminate_with_failure:
             terminal_step.terminate_with_success = True
+            terminal_step.next_node = "success"
 
         # assert that there is only one termination node with success or failure
         # Assert that there are no duplicate step names

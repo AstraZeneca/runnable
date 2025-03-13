@@ -1,0 +1,30 @@
+dag:
+  description: |
+    A pipeline can have any "tasks" as part of it. In the
+    below example, we have a mix of stub, python, shell and notebook tasks.
+
+    As with simpler tasks, the stdout and stderr of each task are captured
+    and stored in the catalog.
+
+    runnable execute -f examples/02-sequential/traversal.yaml
+
+  start_at: hello stub # (1)
+  steps:
+    hello stub:
+      type: stub
+      next: hello python # (2)
+    hello python:
+      type: task
+      command_type: python
+      command: examples.common.functions.hello # dotted path to the function.
+      next: hello shell
+    hello shell:
+      type: task
+      command_type: shell
+      command: echo "Hello World!" # Command to run
+      next: hello notebook
+    hello notebook:
+      type: task
+      command_type: notebook
+      command: examples/common/simple_notebook.ipynb # The path is relative to the root of the project.
+      next: success # (3)
