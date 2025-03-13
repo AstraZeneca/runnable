@@ -9,6 +9,8 @@ You can execute this pipeline by:
     As with simpler tasks, the stdout and stderr of each task are captured
     and stored in the catalog.
 
+    The terminal step of the pipeline is defaulted to success
+
 """
 
 from examples.common.functions import hello
