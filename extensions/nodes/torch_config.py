@@ -10,59 +10,39 @@ class StartMethod(str, Enum):
     forkserver = "forkserver"
 
 
-# min_nodes: int
-# max_nodes: int
-# nproc_per_node: int
-
-# logs_specs: Optional[LogsSpecs] = None
-# run_id: str = ""
-# role: str = "default_role"
-
-# rdzv_endpoint: str = ""
-# rdzv_backend: str = "etcd"
-# rdzv_configs: dict[str, Any] = field(default_factory=dict)
-# rdzv_timeout: int = -1
-
-# max_restarts: int = 3
-# monitor_interval: float = 0.1
-# start_method: str = "spawn"
-# log_line_prefix_template: Optional[str] = None
-# metrics_cfg: dict[str, str] = field(default_factory=dict)
-# local_addr: Optional[str] = None
-
 ## The idea is the following:
 # Users can configure any of the options present in TorchConfig class.
-# The LaunchConfig class will be created from torch config.
+# The LaunchConfig class will be created from TorchConfig.
 # The LogSpecs is sent as a parameter to the launch config.
-# None as much as possible to get
 
 ## NO idea of standalone and how to send it
 
 
-class InternalLogSpecs(BaseModel):
-    log_dir: Optional[str] = Field(default="torch_logs")
-    redirects: int | None = Field(default=None)
-    tee: int | None = Field(default=None)
-    local_ranks_filter: Optional[set[int]] = Field(default=None)
-
-    model_config = ConfigDict(extra="ignore")
-
-
+# The user sees this as part of the config of the node.
+# It is kept as similar as possible to torchrun
 class TorchConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    nnodes: str = Field(default="1:1", exclude=True)
-    nproc_per_node: int = Field(default=1)
+
+    # excluded as LaunchConfig requires min and max nodes
+    nnodes: str = Field(default="1:1", exclude=True, description="min:max")
+    nproc_per_node: int = Field(default=1, description="Number of processes per node")
 
     # will be used to create the log specs
+    # But they are excluded from dump as logs specs is a class for LaunchConfig
+    # from_str("0") -> Std.NONE
+    # from_str("1") -> Std.OUT
+    # from_str("0:3,1:0,2:1,3:2") -> {0: Std.ALL, 1: Std.NONE, 2: Std.OUT, 3: Std.ERR}
     log_dir: Optional[str] = Field(default="torch_logs", exclude=True)
-    redirects: int | None = Field(default=None, exclude=True)
-    tee: int | None = Field(default=None, exclude=True)
+    redirects: str = Field(default="0", exclude=True)  # Std.NONE
+    tee: str = Field(default="0", exclude=True)  # Std.NONE
     local_ranks_filter: Optional[set[int]] = Field(default=None, exclude=True)
 
     role: str | None = Field(default=None)
+
     # run_id would be the run_id of the context
     # and sent at the creation of the LaunchConfig
 
+    # This section is about the communication between nodes/processes
     rdzv_backend: str | None = Field(default="static")
     rdzv_endpoint: str | None = Field(default="")
     rdzv_configs: dict[str, Any] = Field(default_factory=dict)
