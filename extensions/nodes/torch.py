@@ -118,6 +118,7 @@ def delete_env_vars_with_prefix(prefix):
         del os.environ[var]
 
 
+# TODO: The design of this class is not final
 class TorchNode(DistributedNode, TorchConfig):
     node_type: str = Field(default="torch", serialization_alias="type")
     executable: PythonTaskType = Field(exclude=True)
