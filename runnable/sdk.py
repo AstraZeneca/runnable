@@ -44,10 +44,10 @@ from runnable.tasks import TaskReturns
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 StepType = Union[
-    "Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map", "Torch"
+    "Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map", "TorchTask"
 ]
 if TYPE_CHECKING:
-    from extensions.nodes.torch import TorchNode
+    pass
 
 
 def pickled(name: str) -> TaskReturns:
@@ -189,6 +189,34 @@ class BaseTask(BaseTraversal):
         raise NotImplementedError(
             "This method should be implemented in the child class"
         )
+
+
+class TorchTask(BaseTask, TorchConfig):
+    function: Callable = Field(exclude=True)
+
+    @field_validator("returns", mode="before")
+    @classmethod
+    def serialize_returns(
+        cls, returns: List[Union[str, TaskReturns]]
+    ) -> List[TaskReturns]:
+        assert len(returns) == 0, "Torch tasks cannot return any variables"
+        return []
+
+    @computed_field
+    def command_type(self) -> str:
+        return "torch"
+
+    @computed_field
+    def command(self) -> str:
+        module = self.function.__module__
+        name = self.function.__name__
+
+        return f"{module}.{name}"
+
+    def create_job(self) -> RunnableTask:
+        self.terminate_with_success = True
+        node = self.create_node()
+        return node.executable
 
 
 class PythonTask(BaseTask):
@@ -457,43 +485,6 @@ class Stub(BaseTraversal):
                 )
 
         return StubNode.parse_from_config(self.model_dump(exclude_none=True))
-
-
-class Torch(BaseTraversal, TorchConfig):
-    function: Callable = Field(exclude=True)
-    catalog: Optional[Catalog] = Field(default=None, alias="catalog")
-    overrides: Dict[str, Any] = Field(default_factory=dict, alias="overrides")
-    returns: List[Union[str, TaskReturns]] = Field(
-        default_factory=list, alias="returns"
-    )
-    secrets: List[str] = Field(default_factory=list)
-
-    @computed_field
-    def command_type(self) -> str:
-        return "python"
-
-    @computed_field
-    def command(self) -> str:
-        module = self.function.__module__
-        name = self.function.__name__
-
-        return f"{module}.{name}"
-
-    def create_node(self) -> TorchNode:
-        if not self.next_node:
-            if not (self.terminate_with_failure or self.terminate_with_success):
-                raise AssertionError(
-                    "A node not being terminated must have a user defined next node"
-                )
-
-        if self.on_failure:
-            self.on_failure = self.on_failure.steps[0].name  # type: ignore
-
-        from extensions.nodes.torch import TorchNode
-
-        return TorchNode.parse_from_config(
-            self.model_dump(exclude_none=True, by_alias=True)
-        )
 
 
 class Parallel(BaseTraversal):
@@ -966,7 +957,7 @@ class BaseJob(BaseModel):
 
 
 class PythonJob(BaseJob):
-    function: Callable = Field(exclude=True)
+    function: Callable = Field()
 
     @property
     @computed_field
@@ -976,14 +967,27 @@ class PythonJob(BaseJob):
 
         return f"{module}.{name}"
 
+    # TODO: can this be simplified to just self.model_dump(exclude_none=True)?
     def get_task(self) -> RunnableTask:
         # Piggy bank on existing tasks as a hack
         task = PythonTask(
             name="dummy",
             terminate_with_success=True,
-            returns=self.returns,
-            secrets=self.secrets,
-            function=self.function,
+            **self.model_dump(exclude_defaults=True, exclude_none=True),
+        )
+        return task.create_node().executable
+
+
+class TorchJob(BaseJob, TorchConfig):
+    function: Callable = Field()
+    # min and max should always be 1
+
+    def get_task(self) -> RunnableTask:
+        # Piggy bank on existing tasks as a hack
+        task = TorchTask(
+            name="dummy",
+            terminate_with_success=True,
+            **self.model_dump(exclude_defaults=True, exclude_none=True),
         )
         return task.create_node().executable
 
@@ -999,10 +1003,7 @@ class NotebookJob(BaseJob):
         task = NotebookTask(
             name="dummy",
             terminate_with_success=True,
-            returns=self.returns,
-            secrets=self.secrets,
-            notebook=self.notebook,
-            optional_ploomber_args=self.optional_ploomber_args,
+            **self.model_dump(exclude_defaults=True, exclude_none=True),
         )
         return task.create_node().executable
 
@@ -1015,8 +1016,6 @@ class ShellJob(BaseJob):
         task = ShellTask(
             name="dummy",
             terminate_with_success=True,
-            returns=self.returns,
-            secrets=self.secrets,
-            command=self.command,
+            **self.model_dump(exclude_defaults=True, exclude_none=True),
         )
         return task.create_node().executable
