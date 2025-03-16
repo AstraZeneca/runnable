@@ -39,6 +39,7 @@ s3 = [
 ]
 torch = [
     "torch>=2.6.0",
+    "torchvision>=0.21.0",
 ]
 
 [dependency-groups]
@@ -59,6 +60,9 @@ docs = [
 ]
 release = [
     "python-semantic-release>=9.15.2",
+]
+torch = [
+    "torchvision>=0.21.0",
 ]
 
 [tool.uv.workspace]
@@ -147,6 +151,7 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "python" = "runnable.tasks:PythonTaskType"
 "shell" = "runnable.tasks:ShellTaskType"
 "notebook" = "runnable.tasks:NotebookTaskType"
+"torch" = "extensions.tasks.torch:TorchTaskType"
 
 
 # Release configuration

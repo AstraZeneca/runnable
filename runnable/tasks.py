@@ -28,7 +28,6 @@ from runnable.datastore import (
 from runnable.defaults import TypeMapVariable
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
-logging.getLogger("stevedore").setLevel(logging.CRITICAL)
 
 
 class TeeIO(io.StringIO):
@@ -49,8 +48,7 @@ class TeeIO(io.StringIO):
         self.output_stream.flush()
 
 
-buffer = TeeIO()
-sys.stdout = buffer
+sys.stdout = TeeIO()
 
 
 class TaskReturns(BaseModel):
@@ -761,6 +759,8 @@ def create_task(kwargs_for_init) -> BaseTaskType:
         tasks.BaseTaskType: The command object
     """
     # The dictionary cannot be modified
+
+    print(kwargs_for_init)
     kwargs = kwargs_for_init.copy()
     command_type = kwargs.pop("command_type", defaults.COMMAND_TYPE)
 

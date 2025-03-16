@@ -129,6 +129,7 @@ def prepare_configurations(
                 ServiceConfig,
                 runnable_defaults.get("job-executor", defaults.DEFAULT_JOB_EXECUTOR),
             )
+
         assert job_executor_config, "Job executor is not provided"
         configured_executor = utils.get_provider_by_name_and_type(
             "job_executor", job_executor_config
