@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 from typing_extensions import Callable
 
 from runnable import defaults
-from runnable.datastore import JsonParameter
+from runnable.datastore import JsonParameter, ObjectParameter
 from runnable.defaults import TypeMapVariable
 from runnable.utils import remove_prefix
 
@@ -101,10 +101,13 @@ def filter_arguments_for_func(
             # default value is given in the function signature, nothing further to do.
             continue
 
+        param_value = params[name]
+
         if type(value.annotation) in [
             BaseModel,
             pydantic._internal._model_construction.ModelMetaclass,
-        ]:
+        ] and not isinstance(param_value, ObjectParameter):
+            # Even if the annotation is a pydantic model, it can be passed as an object parameter
             # We try to cast it as a pydantic model if asked
             named_param = params[name].get_value()
 
