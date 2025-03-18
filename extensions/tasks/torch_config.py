@@ -43,7 +43,7 @@ class TorchConfig(BaseModel):
     # and sent at the creation of the LaunchConfig
 
     # This section is about the communication between nodes/processes
-    rdzv_backend: str | None = Field(default="static")
+    rdzv_backend: str | None = Field(default="")
     rdzv_endpoint: str | None = Field(default="")
     rdzv_configs: dict[str, Any] = Field(default_factory=dict)
     rdzv_timeout: int | None = Field(default=None)

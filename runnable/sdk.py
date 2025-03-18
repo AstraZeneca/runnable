@@ -34,7 +34,7 @@ from extensions.nodes.nodes import (
     SuccessNode,
     TaskNode,
 )
-from extensions.nodes.torch_config import TorchConfig
+from extensions.tasks.torch_config import TorchConfig
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 from runnable.nodes import TraversalNode
@@ -192,6 +192,8 @@ class BaseTask(BaseTraversal):
 
 
 class TorchTask(BaseTask, TorchConfig):
+    # The user will not know the rnnz variables for multi node
+    # They should be overridden in the environment
     function: Callable = Field(exclude=True)
 
     @field_validator("returns", mode="before")

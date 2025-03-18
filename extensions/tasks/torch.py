@@ -60,7 +60,7 @@ class TorchTaskType(BaseTaskType, TorchConfig):
                 exclude_none=True,
             )
         )
-
+        print("###", easy_torch_config)
         launch_config = LaunchConfig(
             **easy_torch_config.model_dump(
                 exclude_none=True,
@@ -77,7 +77,28 @@ class TorchTaskType(BaseTaskType, TorchConfig):
     ):
         assert map_variable is None, "map_variable is not supported for torch"
 
+        # The below should happen only if we are in the node that we want to execute
+        # For a single node, multi worker setup, this should be the entry point
+        # For a multi-node, we need to:
+        # - create a service config
+        # - Create a stateful set with number of nodes
+        # - Create a job to run the torch.distributed.launcher.api.elastic_launch on every node
+        # - the entry point to runnnable could be a way to trigger execution instead of scaling
+        is_execute = os.environ.get("RUNNABLE_TORCH_EXECUTE", "true") == "true"
+
+        if self.max_nodes > 1 and not is_execute:
+            executor = self._context.executor
+            executor.scale_up(self)
+            return StepAttempt(
+                status=defaults.SUCCESS,
+                start_time=str(datetime.now()),
+                end_time=str(datetime.now()),
+                attempt_number=1,
+                message="Triggered a scale up",
+            )
+
         launch_config = self._get_launch_config()
+        print("###****", launch_config)
         logger.info(f"launch_config: {launch_config}")
 
         # ENV variables are shared with the subprocess, use that as communication
@@ -175,9 +196,6 @@ def training_subprocess():
         self._context.parameters_file or ""
     )
     os.environ["RUNNABLE_TORCH_RUN_ID"] = self._context.run_id
-    os.environ["RUNNABLE_TORCH_COPY_CONTENTS_TO"] = (
-        self._context.catalog_handler.compute_data_folder
-    )
     os.environ["RUNNABLE_TORCH_TORCH_LOGS"] = self.log_dir or ""
 
     """

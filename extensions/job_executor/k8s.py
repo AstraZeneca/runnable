@@ -329,7 +329,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
 
         logger.info(f"Submitting job: {job.__dict__}")
         if self.mock:
-            print(job.__dict__)
+            logger.info(job.__dict__)
             return
 
         try:
