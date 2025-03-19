@@ -760,7 +760,6 @@ def create_task(kwargs_for_init) -> BaseTaskType:
     """
     # The dictionary cannot be modified
 
-    print(kwargs_for_init)
     kwargs = kwargs_for_init.copy()
     command_type = kwargs.pop("command_type", defaults.COMMAND_TYPE)
 

@@ -5,7 +5,7 @@ import random
 import string
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
@@ -21,11 +21,12 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 try:
     from torch.distributed.elastic.multiprocessing.api import DefaultLogsSpecs, Std
     from torch.distributed.launcher.api import LaunchConfig, elastic_launch
-
 except ImportError:
-    raise ImportError("torch is not installed. Please install torch first.")
+    logger.exception("Torch is not installed. Please install torch first.")
 
-print("torch is installed")
+if TYPE_CHECKING:
+    from torch.distributed.elastic.multiprocessing.api import DefaultLogsSpecs, Std
+    from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
 
 def training_subprocess():

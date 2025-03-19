@@ -5,7 +5,7 @@ import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -34,7 +34,7 @@ from extensions.nodes.nodes import (
     SuccessNode,
     TaskNode,
 )
-from extensions.nodes.torch_config import TorchConfig
+from extensions.tasks.torch_config import TorchConfig
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 from runnable.nodes import TraversalNode
@@ -46,8 +46,6 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 StepType = Union[
     "Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map", "TorchTask"
 ]
-if TYPE_CHECKING:
-    pass
 
 
 def pickled(name: str) -> TaskReturns:
@@ -192,6 +190,8 @@ class BaseTask(BaseTraversal):
 
 
 class TorchTask(BaseTask, TorchConfig):
+    # The user will not know the rnnz variables for multi node
+    # They should be overridden in the environment
     function: Callable = Field(exclude=True)
 
     @field_validator("returns", mode="before")

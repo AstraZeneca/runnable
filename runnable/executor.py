@@ -153,6 +153,14 @@ class BaseJobExecutor(BaseExecutor):
         """
         ...
 
+    # @abstractmethod
+    # def scale_up(self, job: BaseTaskType):
+    #     """
+    #     Scale up the job to run on max_nodes
+    #     This has to also call the entry point
+    #     """
+    #     ...
+
 
 # TODO: Consolidate execute_node, trigger_node_execution, _execute_node
 class BasePipelineExecutor(BaseExecutor):
