@@ -5,14 +5,14 @@ import random
 import string
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import Any, Callable, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 from extensions.nodes.torch_config import EasyTorchConfig, TorchConfig
 from runnable import PythonJob, datastore, defaults
 from runnable.datastore import StepLog
-from runnable.nodes import DistributedNode
+from runnable.nodes import ExecutableNode
 from runnable.tasks import PythonTaskType, create_task
 from runnable.utils import TypeMapVariable
 
@@ -23,10 +23,7 @@ try:
     from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 except ImportError:
     logger.exception("Torch is not installed. Please install torch first.")
-
-if TYPE_CHECKING:
-    from torch.distributed.elastic.multiprocessing.api import DefaultLogsSpecs, Std
-    from torch.distributed.launcher.api import LaunchConfig, elastic_launch
+    raise Exception("Torch is not installed. Please install torch first.")
 
 
 def training_subprocess():
@@ -120,7 +117,7 @@ def delete_env_vars_with_prefix(prefix):
 
 
 # TODO: The design of this class is not final
-class TorchNode(DistributedNode, TorchConfig):
+class TorchNode(ExecutableNode, TorchConfig):
     node_type: str = Field(default="torch", serialization_alias="type")
     executable: PythonTaskType = Field(exclude=True)
 

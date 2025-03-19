@@ -5,7 +5,7 @@ import random
 import string
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
 from ruamel.yaml import YAML
@@ -23,12 +23,9 @@ try:
     from torch.distributed.elastic.multiprocessing.api import DefaultLogsSpecs, Std
     from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
-except ImportError:
+except ImportError as e:
     logger.exception("torch is not installed")
-
-if TYPE_CHECKING:
-    from torch.distributed.elastic.multiprocessing.api import DefaultLogsSpecs, Std
-    from torch.distributed.launcher.api import LaunchConfig, elastic_launch
+    raise Exception("torch is not installed") from e
 
 
 def get_min_max_nodes(nnodes: str) -> tuple[int, int]:
