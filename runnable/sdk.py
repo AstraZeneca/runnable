@@ -5,7 +5,7 @@ import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -46,8 +46,6 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 StepType = Union[
     "Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map", "TorchTask"
 ]
-if TYPE_CHECKING:
-    pass
 
 
 def pickled(name: str) -> TaskReturns:

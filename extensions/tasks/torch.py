@@ -5,7 +5,7 @@ import random
 import string
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
 from ruamel.yaml import YAML
@@ -17,15 +17,23 @@ from runnable.datastore import StepAttempt
 from runnable.tasks import BaseTaskType
 from runnable.utils import get_module_and_attr_names
 
+logger = logging.getLogger(defaults.LOGGER_NAME)
+
 try:
     from torch.distributed.elastic.multiprocessing.api import DefaultLogsSpecs, Std
     from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
 except ImportError:
-    raise ImportError("torch is not installed. Please install torch first.")
+    logger.exception("torch is not installed")
+
+if TYPE_CHECKING:
+    from torch.distributed.elastic.multiprocessing.api import DefaultLogsSpecs, Std
+    from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
 
-logger = logging.getLogger(defaults.LOGGER_NAME)
+def get_min_max_nodes(nnodes: str) -> tuple[int, int]:
+    min_nodes, max_nodes = (int(x) for x in nnodes.split(":"))
+    return min_nodes, max_nodes
 
 
 class TorchTaskType(BaseTaskType, TorchConfig):
@@ -86,7 +94,9 @@ class TorchTaskType(BaseTaskType, TorchConfig):
         # - the entry point to runnnable could be a way to trigger execution instead of scaling
         is_execute = os.environ.get("RUNNABLE_TORCH_EXECUTE", "true") == "true"
 
-        if self.max_nodes > 1 and not is_execute:
+        _, max_nodes = get_min_max_nodes(self.nnodes)
+
+        if max_nodes > 1 and not is_execute:
             executor = self._context.executor
             executor.scale_up(self)
             return StepAttempt(
