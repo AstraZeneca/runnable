@@ -19,6 +19,8 @@ from runnable.utils import get_module_and_attr_names
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
+logger = logging.getLogger(defaults.LOGGER_NAME)
+
 try:
     from torch.distributed.elastic.multiprocessing.api import DefaultLogsSpecs, Std
     from torch.distributed.launcher.api import LaunchConfig, elastic_launch
@@ -66,6 +68,7 @@ class TorchTaskType(BaseTaskType, TorchConfig):
             )
         )
         print("###", easy_torch_config)
+        print("###", easy_torch_config)
         launch_config = LaunchConfig(
             **easy_torch_config.model_dump(
                 exclude_none=True,
@@ -104,7 +107,30 @@ class TorchTaskType(BaseTaskType, TorchConfig):
                 message="Triggered a scale up",
             )
 
+        # The below should happen only if we are in the node that we want to execute
+        # For a single node, multi worker setup, this should be the entry point
+        # For a multi-node, we need to:
+        # - create a service config
+        # - Create a stateful set with number of nodes
+        # - Create a job to run the torch.distributed.launcher.api.elastic_launch on every node
+        # - the entry point to runnnable could be a way to trigger execution instead of scaling
+        is_execute = os.environ.get("RUNNABLE_TORCH_EXECUTE", "true") == "true"
+
+        _, max_nodes = get_min_max_nodes(self.nnodes)
+
+        if max_nodes > 1 and not is_execute:
+            executor = self._context.executor
+            executor.scale_up(self)
+            return StepAttempt(
+                status=defaults.SUCCESS,
+                start_time=str(datetime.now()),
+                end_time=str(datetime.now()),
+                attempt_number=1,
+                message="Triggered a scale up",
+            )
+
         launch_config = self._get_launch_config()
+        print("###****", launch_config)
         print("###****", launch_config)
         logger.info(f"launch_config: {launch_config}")
 
