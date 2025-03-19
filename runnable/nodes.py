@@ -36,8 +36,8 @@ class BaseNode(ABC, BaseModel):
     name: str
     internal_name: str = Field(exclude=True)
     internal_branch_name: str = Field(default="", exclude=True)
+
     is_composite: bool = Field(default=False, exclude=True)
-    is_distributed: bool = Field(default=False, exclude=True)
 
     @property
     def _context(self):
@@ -480,41 +480,6 @@ class CompositeNode(TraversalNode):
     ) -> StepLog:
         raise exceptions.NodeMethodCallError(
             "This is a composite node and does not have an execute function"
-        )
-
-
-class DistributedNode(TraversalNode):
-    """
-    Use this node for distributed execution of tasks.
-    eg: torch distributed, horovod, etc.
-    """
-
-    is_distributed: bool = True
-    catalog: Optional[CatalogStructure] = Field(default=None)
-    max_attempts: int = Field(default=1, ge=1)
-
-    def _get_catalog_settings(self) -> Dict[str, Any]:
-        """
-        If the node defines a catalog settings, return it or None
-
-        Returns:
-            dict: catalog settings defined as per the node or None
-        """
-        if self.catalog:
-            return self.catalog.model_dump()
-        return {}
-
-    def _get_max_attempts(self) -> int:
-        return self.max_attempts
-
-    def _get_branch_by_name(self, branch_name: str):
-        raise exceptions.NodeMethodCallError(
-            "This is an distributed node and does not have branches"
-        )
-
-    def execute_as_graph(self, map_variable: TypeMapVariable = None):
-        raise exceptions.NodeMethodCallError(
-            "This is an executable node and does not have a graph"
         )
 
 

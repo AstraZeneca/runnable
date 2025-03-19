@@ -20,14 +20,10 @@ from pydantic import (
 from pydantic.alias_generators import to_camel
 from ruamel.yaml import YAML
 
-from extensions.nodes.nodes import (
-    MapNode,
-    ParallelNode,
-    StubNode,
-    SuccessNode,
-    TaskNode,
-)
-from extensions.nodes.torch import TorchNode
+from extensions.nodes.nodes import MapNode, ParallelNode, TaskNode
+
+# TODO: Should be part of a wider refactor
+# from extensions.nodes.torch import TorchNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults, utils
 from runnable.defaults import TypeMapVariable
@@ -590,12 +586,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         task_name: str,
         inputs: Optional[Inputs] = None,
     ) -> ContainerTemplate:
-        assert (
-            isinstance(node, TaskNode)
-            or isinstance(node, StubNode)
-            or isinstance(node, SuccessNode)
-            or isinstance(node, TorchNode)
-        )
+        assert node.node_type in ["task", "torch", "success", "stub", "fail"]
 
         node_override = None
         if hasattr(node, "overrides"):
@@ -658,7 +649,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     def _set_env_vars_to_task(
         self, working_on: BaseNode, container_template: CoreContainerTemplate
     ):
-        if not (isinstance(working_on, TaskNode) or isinstance(working_on, TorchNode)):
+        if working_on.node_type not in ["task", "torch"]:
             return
 
         global_envs: dict[str, str] = {}
@@ -667,7 +658,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             env_var = cast(EnvVar, env_var)
             global_envs[env_var.name] = env_var.value
 
-        override_key = working_on.overrides.get(self.service_name, "")
+        override_key = working_on.overrides.get(self.service_name, "")  # type: ignore
         node_override = self.overrides.get(override_key, None)
 
         # Update the global envs with the node overrides
@@ -878,6 +869,8 @@ class ArgoExecutor(GenericPipelineExecutor):
                     self._templates.append(composite_template)
 
                 case "torch":
+                    from extensions.nodes.torch import TorchNode
+
                     assert isinstance(working_on, TorchNode)
                     # TODO: Need to add multi-node functionality
                     # Check notes on the torch node
