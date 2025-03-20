@@ -61,7 +61,7 @@ class SecretEnvVar(BaseModel):
         valueFrom:
           secretKeyRef:
             name: my-secret
-            key: mypassword
+            key: MYSECRETPASSWORD
     """
 
     environment_variable: str = Field(serialization_alias="name")
@@ -70,7 +70,7 @@ class SecretEnvVar(BaseModel):
 
     @computed_field  # type: ignore
     @property
-    def value_from(self) -> dict[str, dict[str, str]]:
+    def valueFrom(self) -> dict[str, dict[str, str]]:
         return {
             "secretKeyRef": {
                 "name": self.secret_name,
@@ -764,12 +764,6 @@ class ArgoExecutor(GenericPipelineExecutor):
                         inputs=Inputs(parameters=parameters),
                     )
                     assert template_of_container.container is not None
-
-                    if working_on.node_type == "task":
-                        self._expose_secrets_to_task(
-                            working_on,
-                            container_template=template_of_container.container,
-                        )
 
                     self._templates.append(template_of_container)
 
