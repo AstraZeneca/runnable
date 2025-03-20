@@ -760,6 +760,11 @@ class Pipeline(BaseModel):
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=run_id)
+
+        parameters_file = os.environ.get("RUNNABLE_PARAMETERS_FILE", parameters_file)
+
+        tag = os.environ.get("RUNNABLE_tag", tag)
+
         configuration_file = os.environ.get(
             "RUNNABLE_CONFIGURATION_FILE", configuration_file
         )
@@ -904,9 +909,15 @@ class BaseJob(BaseModel):
         logger.setLevel(log_level)
 
         run_id = utils.generate_run_id(run_id=job_id)
+
+        parameters_file = os.environ.get("RUNNABLE_PARAMETERS_FILE", parameters_file)
+
+        tag = os.environ.get("RUNNABLE_tag", tag)
+
         configuration_file = os.environ.get(
             "RUNNABLE_CONFIGURATION_FILE", configuration_file
         )
+
         run_context = entrypoints.prepare_configurations(
             configuration_file=configuration_file,
             run_id=run_id,
