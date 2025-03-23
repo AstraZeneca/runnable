@@ -44,7 +44,13 @@ from runnable.tasks import TaskReturns
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 StepType = Union[
-    "Stub", "PythonTask", "NotebookTask", "ShellTask", "Parallel", "Map", "TorchTask"
+    "Stub",
+    "PythonTask",
+    "NotebookTask",
+    "ShellTask",
+    "Parallel",
+    "Map",
+    "TorchTask",
 ]
 
 
@@ -189,36 +195,6 @@ class BaseTask(BaseTraversal):
         )
 
 
-class TorchTask(BaseTask, TorchConfig):
-    # The user will not know the rnnz variables for multi node
-    # They should be overridden in the environment
-    function: Callable = Field(exclude=True)
-
-    @field_validator("returns", mode="before")
-    @classmethod
-    def serialize_returns(
-        cls, returns: List[Union[str, TaskReturns]]
-    ) -> List[TaskReturns]:
-        assert len(returns) == 0, "Torch tasks cannot return any variables"
-        return []
-
-    @computed_field
-    def command_type(self) -> str:
-        return "torch"
-
-    @computed_field
-    def command(self) -> str:
-        module = self.function.__module__
-        name = self.function.__name__
-
-        return f"{module}.{name}"
-
-    def create_job(self) -> RunnableTask:
-        self.terminate_with_success = True
-        node = self.create_node()
-        return node.executable
-
-
 class PythonTask(BaseTask):
     """
     An execution node of the pipeline of python functions.
@@ -300,6 +276,26 @@ class PythonTask(BaseTask):
         name = self.function.__name__
 
         return f"{module}.{name}"
+
+    def create_job(self) -> RunnableTask:
+        self.terminate_with_success = True
+        node = self.create_node()
+        return node.executable
+
+
+class TorchTask(BaseTask):
+    entrypoint: str = Field(
+        alias="entrypoint", default="torch.distributed.run", frozen=True
+    )
+    args_to_torchrun: Dict[str, Any] = Field(
+        default_factory=dict, alias="args_to_torchrun"
+    )
+
+    script_to_call: str
+
+    @computed_field
+    def command_type(self) -> str:
+        return "torch"
 
     def create_job(self) -> RunnableTask:
         self.terminate_with_success = True
