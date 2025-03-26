@@ -386,8 +386,10 @@ class TorchTaskType(BaseTaskType):
                 entry_point_args.append(self.script_to_call)
                 for key, value in params.items():
                     entry_point_args.append(f"--{key}")
-                    if type(value) is not bool:
-                        entry_point_args.append(str(value.value))
+                    if type(value.value) is not bool:  # type: ignore
+                        entry_point_args.append(str(value.value))  # type: ignore
+
+                # TODO: Check the typing here
 
                 logger.info("Calling the user script with the following parameters:")
                 logger.info(entry_point_args)
