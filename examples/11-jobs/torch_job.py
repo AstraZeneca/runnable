@@ -18,23 +18,16 @@ An example of the catalog structure:
 The hello.execution.log has the captured stdout of "Hello World!".
 """
 
-from examples.common.functions import hello
 from runnable import TorchJob
 
 
 def main():
     job = TorchJob(
-        function=hello,
-        nproc_per_node=1,
-        max_restarts=1,
-        rdzv_endpoint="localhost:12355",
-        rdzv_configs={"rank": 0},
-        redirects="3",
-        tee="1",
-        log_dir="torch_logs/",
+        args_to_torchrun={"nproc_per_node": "2", "backend": "gloo"},
+        script_to_call="examples/common/script.py",
     )
 
-    job.execute()
+    job.execute(parameters_file="examples/common/initial_parameters.yaml")
 
     return job
 

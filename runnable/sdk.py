@@ -34,7 +34,6 @@ from extensions.nodes.nodes import (
     SuccessNode,
     TaskNode,
 )
-from extensions.tasks.torch_config import TorchConfig
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 from runnable.nodes import TraversalNode
@@ -974,7 +973,6 @@ class PythonJob(BaseJob):
 
         return f"{module}.{name}"
 
-    # TODO: can this be simplified to just self.model_dump(exclude_none=True)?
     def get_task(self) -> RunnableTask:
         # Piggy bank on existing tasks as a hack
         task = PythonTask(
@@ -985,9 +983,14 @@ class PythonJob(BaseJob):
         return task.create_node().executable
 
 
-class TorchJob(BaseJob, TorchConfig):
-    function: Callable = Field()
-    # min and max should always be 1
+class TorchJob(BaseJob):
+    entrypoint: str = Field(default="torch.distributed.run", frozen=True)
+    args_to_torchrun: dict[str, str | bool | int | float] = Field(
+        default_factory=dict
+    )  # For example
+    # {"nproc_per_node": 2, "nnodes": 1,}
+
+    script_to_call: str  # For example train/script.py
 
     def get_task(self) -> RunnableTask:
         # Piggy bank on existing tasks as a hack
