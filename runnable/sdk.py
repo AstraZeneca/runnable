@@ -283,14 +283,15 @@ class PythonTask(BaseTask):
 
 
 class TorchTask(BaseTask):
-    entrypoint: str = Field(
-        alias="entrypoint", default="torch.distributed.run", frozen=True
-    )
-    args_to_torchrun: Dict[str, Any] = Field(
-        default_factory=dict, alias="args_to_torchrun"
-    )
+    # entrypoint: str = Field(
+    #     alias="entrypoint", default="torch.distributed.run", frozen=True
+    # )
+    # args_to_torchrun: Dict[str, Any] = Field(
+    #     default_factory=dict, alias="args_to_torchrun"
+    # )
 
     script_to_call: str
+    accelerate_config_file: str
 
     @computed_field
     def command_type(self) -> str:
@@ -984,13 +985,14 @@ class PythonJob(BaseJob):
 
 
 class TorchJob(BaseJob):
-    entrypoint: str = Field(default="torch.distributed.run", frozen=True)
-    args_to_torchrun: dict[str, str | bool | int | float] = Field(
-        default_factory=dict
-    )  # For example
+    # entrypoint: str = Field(default="torch.distributed.run", frozen=True)
+    # args_to_torchrun: dict[str, str | bool | int | float] = Field(
+    #     default_factory=dict
+    # )  # For example
     # {"nproc_per_node": 2, "nnodes": 1,}
 
     script_to_call: str  # For example train/script.py
+    accelerate_config_file: str
 
     def get_task(self) -> RunnableTask:
         # Piggy bank on existing tasks as a hack

@@ -5,7 +5,6 @@ import io
 import json
 import logging
 import os
-import runpy
 import subprocess
 import sys
 from datetime import datetime
@@ -357,16 +356,15 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
 class TorchTaskType(BaseTaskType):
     task_type: str = Field(default="torch", serialization_alias="command_type")
-
-    entrypoint: str = Field(default="torch.distributed.run", frozen=True)
-    args_to_torchrun: dict[str, str | bool] = Field(default_factory=dict)  # For example
-    # {"nproc_per_node": 2, "nnodes": 1,}
+    accelerate_config_file: str
 
     script_to_call: str  # For example train/script.py
 
     def execute_command(
         self, map_variable: Dict[str, str | int | float] | None = None
     ) -> StepAttempt:
+        from accelerate.commands import launch
+
         attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
 
         with (
@@ -376,39 +374,37 @@ class TorchTaskType(BaseTaskType):
             self.expose_secrets() as _,
         ):
             try:
-                entry_point_args = [self.entrypoint]
-
-                for key, value in self.args_to_torchrun.items():
-                    entry_point_args.append(f"--{key}")
-                    if type(value) is not bool:
-                        entry_point_args.append(str(value))
-
-                entry_point_args.append(self.script_to_call)
+                script_args = []
                 for key, value in params.items():
-                    entry_point_args.append(f"--{key}")
-                    if type(value.value) is not bool:  # type: ignore
-                        entry_point_args.append(str(value.value))  # type: ignore
+                    script_args.append(f"--{key}")
+                    if type(value.value) is not bool:
+                        script_args.append(str(value.value))
 
                 # TODO: Check the typing here
 
                 logger.info("Calling the user script with the following parameters:")
-                logger.info(entry_point_args)
+                logger.info(script_args)
                 out_file = TeeIO()
                 try:
                     with contextlib.redirect_stdout(out_file):
-                        sys.argv = entry_point_args
-                        runpy.run_module(self.entrypoint, run_name="__main__")
+                        parser = launch.launch_command_parser()
+                        args = parser.parse_args(self.script_to_call)
+                        args.training_script = self.script_to_call
+                        args.config_file = self.accelerate_config_file
+                        args.training_script_args = script_args
+
+                        launch.launch_command(args)
                     task_console.print(out_file.getvalue())
                 except Exception as e:
                     raise exceptions.CommandCallError(
-                        f"Call to entrypoint {self.entrypoint} with {self.script_to_call} did not succeed."
+                        f"Call to script{self.script_to_call} did not succeed."
                     ) from e
                 finally:
                     sys.argv = sys.argv[:1]
 
                 attempt_log.status = defaults.SUCCESS
             except Exception as _e:
-                msg = f"Call to entrypoint {self.entrypoint} with {self.script_to_call} did not succeed."
+                msg = f"Call to script: {self.script_to_call} did not succeed."
                 attempt_log.message = msg
                 task_console.print_exception(show_locals=False)
                 task_console.log(_e, style=defaults.error_style)
