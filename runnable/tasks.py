@@ -354,6 +354,66 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         return attempt_log
 
 
+class TorchTaskType(BaseTaskType):
+    task_type: str = Field(default="torch", serialization_alias="command_type")
+    accelerate_config_file: str
+
+    script_to_call: str  # For example train/script.py
+
+    def execute_command(
+        self, map_variable: Dict[str, str | int | float] | None = None
+    ) -> StepAttempt:
+        from accelerate.commands import launch
+
+        attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
+
+        with (
+            self.execution_context(
+                map_variable=map_variable, allow_complex=False
+            ) as params,
+            self.expose_secrets() as _,
+        ):
+            try:
+                script_args = []
+                for key, value in params.items():
+                    script_args.append(f"--{key}")
+                    if type(value.value) is not bool:
+                        script_args.append(str(value.value))
+
+                # TODO: Check the typing here
+
+                logger.info("Calling the user script with the following parameters:")
+                logger.info(script_args)
+                out_file = TeeIO()
+                try:
+                    with contextlib.redirect_stdout(out_file):
+                        parser = launch.launch_command_parser()
+                        args = parser.parse_args(self.script_to_call)
+                        args.training_script = self.script_to_call
+                        args.config_file = self.accelerate_config_file
+                        args.training_script_args = script_args
+
+                        launch.launch_command(args)
+                    task_console.print(out_file.getvalue())
+                except Exception as e:
+                    raise exceptions.CommandCallError(
+                        f"Call to script{self.script_to_call} did not succeed."
+                    ) from e
+                finally:
+                    sys.argv = sys.argv[:1]
+
+                attempt_log.status = defaults.SUCCESS
+            except Exception as _e:
+                msg = f"Call to script: {self.script_to_call} did not succeed."
+                attempt_log.message = msg
+                task_console.print_exception(show_locals=False)
+                task_console.log(_e, style=defaults.error_style)
+
+        attempt_log.end_time = str(datetime.now())
+
+        return attempt_log
+
+
 class NotebookTaskType(BaseTaskType):
     """
     --8<-- [start:notebook_reference]
@@ -747,6 +807,31 @@ class ShellTaskType(BaseTaskType):
         return attempt_log
 
 
+def convert_binary_to_string(data):
+    """
+    Recursively converts 1 and 0 values in a nested dictionary to "1" and "0".
+
+    Args:
+        data (dict or any): The input data (dictionary, list, or other).
+
+    Returns:
+        dict or any: The modified data with binary values converted to strings.
+    """
+
+    if isinstance(data, dict):
+        for key, value in data.items():
+            data[key] = convert_binary_to_string(value)
+        return data
+    elif isinstance(data, list):
+        return [convert_binary_to_string(item) for item in data]
+    elif data == 1:
+        return "1"
+    elif data == 0:
+        return "0"
+    else:
+        return data  # Return other values unchanged
+
+
 def create_task(kwargs_for_init) -> BaseTaskType:
     """
     Creates a task object from the command configuration.
@@ -762,6 +847,8 @@ def create_task(kwargs_for_init) -> BaseTaskType:
 
     kwargs = kwargs_for_init.copy()
     command_type = kwargs.pop("command_type", defaults.COMMAND_TYPE)
+
+    kwargs = convert_binary_to_string(kwargs)
 
     try:
         task_mgr = driver.DriverManager(
