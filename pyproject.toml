@@ -19,7 +19,6 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "typer>=0.15.1",
     "cloudpathlib>=0.20.0",
-    "torchvision>=0.21.0",
 ]
 
 [project.optional-dependencies]
@@ -61,9 +60,6 @@ docs = [
 ]
 release = [
     "python-semantic-release>=9.15.2",
-]
-torch = [
-    "torchvision>=0.21.0",
 ]
 
 [tool.uv.workspace]
