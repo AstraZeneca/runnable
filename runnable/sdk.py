@@ -26,6 +26,7 @@ from rich.progress import (
 from rich.table import Column
 from typing_extensions import Self
 
+from extensions.nodes.conditional import ConditionalBranch, ConditionalNode
 from extensions.nodes.nodes import (
     FailNode,
     MapNode,
@@ -50,6 +51,7 @@ StepType = Union[
     "Parallel",
     "Map",
     "TorchTask",
+    "Conditional",
 ]
 
 
@@ -192,6 +194,12 @@ class BaseTask(BaseTraversal):
         raise NotImplementedError(
             "This method should be implemented in the child class"
         )
+
+    def as_pipeline(self) -> "Pipeline":
+        return Pipeline(steps=[self])  # type: ignore
+
+    def as_conditional_pipeline(self, evaluate: str):
+        return ConditionalPipeline(evaluate=evaluate, pipeline=self.as_pipeline())
 
 
 class PythonTask(BaseTask):
@@ -521,6 +529,55 @@ class Parallel(BaseTraversal):
         return node
 
 
+class ConditionalPipeline(BaseModel):
+    """
+    A branch of a conditional node.
+    """
+
+    evaluate: str
+    pipeline: "Pipeline"
+
+    def get_conditional_branch(self) -> ConditionalBranch:
+        return ConditionalBranch(
+            evaluate=self.evaluate,
+            graph=self.pipeline._dag.model_copy(),
+        )
+
+
+class Conditional(BaseTraversal):
+    branches: Dict[str, ConditionalPipeline]
+
+    @computed_field  # type: ignore
+    @property
+    def get_branches(self) -> Dict[str, ConditionalBranch]:
+        branches = {}
+        for branch_name, branch in self.branches.items():
+            sub_graph = branch.pipeline._dag.model_copy()
+            conditional = ConditionalBranch(
+                evaluate=branch.evaluate,
+                graph=sub_graph,
+            )
+            branches[branch_name] = conditional
+
+        return branches
+
+    def create_node(self) -> ConditionalNode:
+        if not self.next_node:
+            if not (self.terminate_with_failure or self.terminate_with_success):
+                raise AssertionError(
+                    "A node not being terminated must have a user defined next node"
+                )
+
+        node = ConditionalNode(
+            name=self.name,
+            internal_name="",
+            next_node=self.next_node,
+            branches=self.get_branches,
+        )
+
+        return node
+
+
 class Map(BaseTraversal):
     """
     A node that iterates over a list of items and executes a pipeline for each item.
@@ -544,7 +601,6 @@ class Map(BaseTraversal):
     iterate_on: str
     iterate_as: str
     reducer: Optional[str] = Field(default=None, alias="reducer")
-    overrides: Dict[str, Any] = Field(default_factory=dict)
 
     @computed_field  # type: ignore
     @property
@@ -565,7 +621,6 @@ class Map(BaseTraversal):
             next_node=self.next_node,
             iterate_on=self.iterate_on,
             iterate_as=self.iterate_as,
-            overrides=self.overrides,
             reducer=self.reducer,
         )
 

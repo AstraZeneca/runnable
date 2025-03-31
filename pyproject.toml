@@ -142,7 +142,7 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "map" = "extensions.nodes.nodes:MapNode"
 "dag" = "extensions.nodes.nodes:DagNode"
 "stub" = "extensions.nodes.nodes:StubNode"
-"torch" = "extensions.nodes.torch:TorchNode"
+"conditional" = "extensions.nodes.conditional:ConditionalNode"
 
 [project.entry-points.'tasks']
 "python" = "runnable.tasks:PythonTaskType"
