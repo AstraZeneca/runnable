@@ -20,6 +20,7 @@ from pydantic import (
 from pydantic.alias_generators import to_camel
 from ruamel.yaml import YAML
 
+from extensions.nodes.conditional import ConditionalBranch, ConditionalNode
 from extensions.nodes.nodes import MapNode, ParallelNode, TaskNode
 
 # TODO: Should be part of a wider refactor
@@ -307,6 +308,7 @@ class DagTask(BaseModelWIthConfig):
     template: str  # Should be name of a container template or dag template
     arguments: Optional[Arguments] = Field(default=None)
     with_param: Optional[str] = Field(default=None)
+    when_param: Optional[str] = Field(default=None, serialization_alias="when")
     depends: Optional[str] = Field(default=None)
 
 
@@ -563,6 +565,8 @@ class ArgoExecutor(GenericPipelineExecutor):
         outputs: Optional[Outputs] = None
         if mode == "out" and node.node_type == "map":
             outputs = Outputs(parameters=[OutputParameter(name="iterate-on")])
+        if mode == "out" and node.node_type == "conditional":
+            outputs = Outputs(parameters=[OutputParameter(name="evaluations")])
 
         container_template = ContainerTemplate(
             name=task_name,
@@ -722,6 +726,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     # - We are using withParam and arguments of the map template to send that value in
     # - The map template should receive that value as a parameter into the template.
     # - The task then start to use it as inputs.parameters.iterate-on
+    # the when param should be an evaluation
 
     def _gather_tasks_for_dag_template(
         self,
@@ -767,9 +772,11 @@ class ArgoExecutor(GenericPipelineExecutor):
 
                     self._templates.append(template_of_container)
 
-                case "map" | "parallel":
-                    assert isinstance(working_on, MapNode) or isinstance(
-                        working_on, ParallelNode
+                case "map" | "parallel" | "conditional":
+                    assert (
+                        isinstance(working_on, MapNode)
+                        or isinstance(working_on, ParallelNode)
+                        or isinstance(working_on, ConditionalNode)
                     )
                     node_type = working_on.node_type
 
@@ -807,15 +814,24 @@ class ArgoExecutor(GenericPipelineExecutor):
                     elif node_type == "parallel":
                         assert isinstance(working_on, ParallelNode)
                         branches = working_on.branches
+                    elif node_type == "conditional":
+                        assert isinstance(working_on, ConditionalNode)
+                        branches = working_on.branches
                     else:
                         raise ValueError("Invalid node type")
 
                     fan_in_depends = ""
 
-                    for name, branch in branches.items():
+                    for i, (name, branch) in enumerate(branches.items()):
                         name = (
                             name.replace(" ", "-").replace(".", "-").replace("_", "-")
                         )
+
+                        when_param = None
+                        if node_type == "conditional":
+                            assert isinstance(branch, ConditionalBranch)
+                            branch = branch.graph
+                            when_param = f"'true' == {{{{tasks.{task_name}-fan-out.outputs.parameters.evaluations}}}}[{i}]"
 
                         branch_task = DagTask(
                             name=f"{task_name}-{name}",
@@ -823,6 +839,7 @@ class ArgoExecutor(GenericPipelineExecutor):
                             depends=f"{task_name}-fan-out.Succeeded",
                             arguments=Arguments(parameters=added_parameters),
                             with_param=with_param,
+                            when_param=when_param,
                         )
                         composite_template.dag.tasks.append(branch_task)
 
@@ -835,6 +852,8 @@ class ArgoExecutor(GenericPipelineExecutor):
                                 ]
                             ),
                         )
+
+                        assert isinstance(branch, Graph)
 
                         self._gather_tasks_for_dag_template(
                             dag_template=branch_template,
@@ -861,28 +880,6 @@ class ArgoExecutor(GenericPipelineExecutor):
                     )
 
                     self._templates.append(composite_template)
-
-                case "torch":
-                    from extensions.nodes.torch import TorchNode
-
-                    assert isinstance(working_on, TorchNode)
-                    # TODO: Need to add multi-node functionality
-                    # Check notes on the torch node
-
-                    template_of_container = self._create_container_template(
-                        working_on,
-                        task_name=task_name,
-                        inputs=Inputs(parameters=parameters),
-                    )
-                    assert template_of_container.container is not None
-
-                    if working_on.node_type == "task":
-                        self._expose_secrets_to_task(
-                            working_on,
-                            container_template=template_of_container.container,
-                        )
-
-                    self._templates.append(template_of_container)
 
             self._handle_failures(
                 working_on,
@@ -1024,6 +1021,11 @@ class ArgoExecutor(GenericPipelineExecutor):
 
             with open("/tmp/output.txt", mode="w", encoding="utf-8") as myfile:
                 json.dump(iterate_on.get_value(), myfile, indent=4)
+        if node.node_type == "conditional":
+            assert isinstance(node, ConditionalNode)
+
+            with open("/tmp/output.txt", mode="w", encoding="utf-8") as myfile:
+                json.dump(node.evaluations, myfile, indent=4)
 
     def fan_in(self, node: BaseNode, map_variable: TypeMapVariable = None):
         self._use_volumes()

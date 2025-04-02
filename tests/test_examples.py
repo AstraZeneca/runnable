@@ -117,10 +117,22 @@ contexts = [
     chunked_fs_context,
 ]  # , mocked_context, argo_context]
 
-# file, fails, ignore_contexts, parameters_file, assertions
+# file, no_yaml, fails, ignore_contexts, parameters_file, assertions
 python_examples = [
     (
         "01-tasks/python_tasks",
+        False,
+        False,
+        [],
+        "",
+        [
+            partial(conditions.should_have_num_steps, 2),
+            partial(conditions.should_have_catalog_execution_logs),
+        ],
+    ),
+    (
+        "01-tasks/python_task_as_pipeline",
+        True,
         False,
         [],
         "",
@@ -132,6 +144,7 @@ python_examples = [
     (
         "01-tasks/scripts",
         False,
+        False,
         [],
         "",
         [
@@ -142,6 +155,7 @@ python_examples = [
     (
         "01-tasks/stub",
         False,
+        False,
         [],
         "",
         [
@@ -151,6 +165,7 @@ python_examples = [
     ),
     (
         "01-tasks/notebook",
+        False,
         False,
         [],
         "",
@@ -165,6 +180,7 @@ python_examples = [
     ),
     (
         "02-sequential/traversal",
+        False,
         False,
         [],
         "",
@@ -181,6 +197,7 @@ python_examples = [
     (
         "02-sequential/traversal_default_success",
         False,
+        False,
         [],
         "",
         [
@@ -195,6 +212,7 @@ python_examples = [
     ),
     (
         "02-sequential/default_fail",
+        False,
         True,
         [],
         "",
@@ -208,6 +226,7 @@ python_examples = [
     ),
     (
         "02-sequential/on_failure_fail",
+        False,
         True,
         [],
         "",
@@ -222,6 +241,7 @@ python_examples = [
     (
         "02-sequential/on_failure_succeed",
         False,
+        False,
         [],
         "",
         [
@@ -234,6 +254,7 @@ python_examples = [
     ),
     (
         "03-parameters/static_parameters_python",
+        False,
         False,
         [],
         "examples/common/initial_parameters.yaml",
@@ -272,6 +293,7 @@ python_examples = [
     (
         "03-parameters/static_parameters_non_python",
         False,
+        False,
         [],
         "examples/common/initial_parameters.yaml",
         [
@@ -309,6 +331,7 @@ python_examples = [
     (
         "03-parameters/static_parameters_fail",
         False,
+        False,
         [],
         "examples/common/initial_parameters.yaml",
         [
@@ -345,6 +368,7 @@ python_examples = [
     ),
     (
         "03-parameters/passing_parameters_python",
+        False,
         False,
         [],
         "",
@@ -394,6 +418,7 @@ python_examples = [
     ),
     (
         "03-parameters/passing_parameters_notebook",
+        False,
         False,
         [],
         "",
@@ -461,6 +486,7 @@ python_examples = [
     (
         "03-parameters/passing_parameters_shell",
         False,
+        False,
         [],
         "",
         [
@@ -525,6 +551,7 @@ python_examples = [
     (
         "04-catalog/catalog_python",
         False,
+        False,
         [],
         "",
         [
@@ -542,6 +569,7 @@ python_examples = [
     (
         "04-catalog/catalog_on_fail",
         False,
+        False,
         [],
         "",
         [
@@ -558,6 +586,7 @@ python_examples = [
     (
         "06-parallel/parallel",
         False,
+        False,
         [],
         "",
         [
@@ -572,6 +601,7 @@ python_examples = [
     ),
     (
         "06-parallel/parallel_branch_fail",
+        False,
         True,
         [],
         "",
@@ -587,6 +617,7 @@ python_examples = [
     ),
     (
         "07-map/map",
+        False,
         False,
         [],
         "examples/common/initial_parameters.yaml",
@@ -624,6 +655,7 @@ python_examples = [
     ),
     (
         "07-map/map_fail",
+        False,
         True,
         [],
         "examples/common/initial_parameters.yaml",
@@ -672,7 +704,7 @@ python_examples = [
 def test_python_examples(example, context):
     print(f"Testing {example}...")
 
-    mod, fails, ignore_contexts, _, assertions = example
+    mod, no_yaml, fails, ignore_contexts, _, assertions = example
     if context in ignore_contexts:
         return
 
@@ -701,9 +733,12 @@ def test_python_examples(example, context):
 @pytest.mark.e2e
 def test_yaml_examples(example, context):
     print(f"Testing {example}...")
-    file, fails, ignore_contexts, parameters_file, assertions = example
+    file, no_yaml, fails, ignore_contexts, parameters_file, assertions = example
 
     if context in ignore_contexts:
+        return
+
+    if no_yaml:
         return
 
     context = context()

@@ -3,7 +3,7 @@ from copy import deepcopy
 from string import Template
 from typing import Any, cast
 
-from pydantic import BaseModel, Field, PrivateAttr, field_serializer
+from pydantic import BaseModel, Field, field_serializer
 
 from runnable import console, defaults
 from runnable.datastore import JSONType
@@ -41,7 +41,7 @@ class ConditionalNode(CompositeNode):
     node_type: str = Field(default="conditional", serialization_alias="type")
     branches: dict[str, ConditionalBranch]
 
-    _evaluations: list[bool] = PrivateAttr(default_factory=list)
+    evaluations: list[bool] = Field(default_factory=list, exclude=True)
 
     def get_summary(self) -> dict[str, Any]:
         summary = {
@@ -134,7 +134,7 @@ class ConditionalNode(CompositeNode):
             )
 
             result = self.evaluate_condition(branch.evaluate, parameters)
-            self._evaluations.append(result)
+            self.evaluations.append(result)
 
             if not result:
                 # Need not create a branch log for this branch
@@ -180,7 +180,7 @@ class ConditionalNode(CompositeNode):
         self.fan_out(map_variable=map_variable)
 
         for index, (_, branch) in enumerate(self.branches.items()):
-            if self._evaluations[index]:
+            if self.evaluations[index]:
                 # if the condition is met, execute the graph
                 logger.debug(f"Executing graph for {branch.graph}")
                 self._context.executor.execute_graph(
