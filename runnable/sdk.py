@@ -562,6 +562,7 @@ class Conditional(BaseTraversal):
                 raise AssertionError(
                     "A node not being terminated must have a user defined next node"
                 )
+
         node = ConditionalNode(
             name=self.name,
             branches=self.graph_branches,
