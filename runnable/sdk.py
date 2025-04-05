@@ -26,7 +26,7 @@ from rich.progress import (
 from rich.table import Column
 from typing_extensions import Self
 
-from extensions.nodes.conditional import ConditionalBranch, ConditionalNode
+from extensions.nodes.conditional import ConditionalNode
 from extensions.nodes.nodes import (
     FailNode,
     MapNode,
@@ -197,9 +197,6 @@ class BaseTask(BaseTraversal):
 
     def as_pipeline(self) -> "Pipeline":
         return Pipeline(steps=[self])  # type: ignore
-
-    def as_conditional_pipeline(self, evaluate: str):
-        return ConditionalPipeline(evaluate=evaluate, pipeline=self.as_pipeline())
 
 
 class PythonTask(BaseTask):
@@ -529,37 +526,35 @@ class Parallel(BaseTraversal):
         return node
 
 
-class ConditionalPipeline(BaseModel):
-    """
-    A branch of a conditional node.
-    """
-
-    evaluate: str
-    pipeline: "Pipeline"
-
-    def get_conditional_branch(self) -> ConditionalBranch:
-        return ConditionalBranch(
-            evaluate=self.evaluate,
-            graph=self.pipeline._dag.model_copy(),
-        )
-
-
 class Conditional(BaseTraversal):
-    branches: Dict[str, ConditionalPipeline]
+    branches: Dict[str, "Pipeline"]
+    parameter: str  # the name of the parameter should be isalnum
+
+    @field_validator("parameter")
+    @classmethod
+    def validate_parameter(cls, parameter: str) -> str:
+        if not parameter.isalnum():
+            raise AssertionError(
+                "The parameter name should be alphanumeric and not empty"
+            )
+        return parameter
+
+    @field_validator("branches")
+    @classmethod
+    def validate_branches(
+        cls, branches: Dict[str, "Pipeline"]
+    ) -> Dict[str, "Pipeline"]:
+        for branch_name in branches.keys():
+            if not branch_name.isalnum():
+                raise ValueError(f"Branch '{branch_name}' must be alphanumeric.")
+        return branches
 
     @computed_field  # type: ignore
     @property
-    def get_branches(self) -> Dict[str, ConditionalBranch]:
-        branches = {}
-        for branch_name, branch in self.branches.items():
-            sub_graph = branch.pipeline._dag.model_copy()
-            conditional = ConditionalBranch(
-                evaluate=branch.evaluate,
-                graph=sub_graph,
-            )
-            branches[branch_name] = conditional
-
-        return branches
+    def graph_branches(self) -> Dict[str, graph.Graph]:
+        return {
+            name: pipeline._dag.model_copy() for name, pipeline in self.branches.items()
+        }
 
     def create_node(self) -> ConditionalNode:
         if not self.next_node:
@@ -567,14 +562,13 @@ class Conditional(BaseTraversal):
                 raise AssertionError(
                     "A node not being terminated must have a user defined next node"
                 )
-
         node = ConditionalNode(
             name=self.name,
+            branches=self.graph_branches,
             internal_name="",
             next_node=self.next_node,
-            branches=self.get_branches,
+            parameter=self.parameter,
         )
-
         return node
 
 

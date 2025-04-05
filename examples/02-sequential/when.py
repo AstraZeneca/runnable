@@ -22,12 +22,12 @@ def main():
     when_heads_pipeline = PythonTask(
         name="when_heads_task",
         function=when_heads_function,
-    ).as_conditional_pipeline(evaluate="'$toss' == 'heads'")
+    ).as_pipeline()
 
     when_tails_pipeline = PythonTask(
         name="when_tails_task",
         function=when_tails_function,
-    ).as_conditional_pipeline(evaluate="'$toss' == 'tails'")
+    ).as_pipeline()
 
     conditional = Conditional(
         name="conditional",
@@ -35,6 +35,7 @@ def main():
             "heads": when_heads_pipeline,
             "tails": when_tails_pipeline,
         },
+        parameter="toss",
     )
 
     toss_task = PythonTask(

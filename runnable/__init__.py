@@ -20,7 +20,6 @@ task_console = Console(record=True)
 from runnable.sdk import (  # noqa;
     Catalog,
     Conditional,
-    ConditionalPipeline,
     Fail,
     Map,
     NotebookJob,

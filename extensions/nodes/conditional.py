@@ -1,62 +1,100 @@
 import logging
 from copy import deepcopy
-from string import Template
 from typing import Any, cast
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import Field, field_serializer, field_validator
 
 from runnable import console, defaults
-from runnable.datastore import JSONType
+from runnable.datastore import Parameter
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode, TypeMapVariable
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-class ConditionalBranch(BaseModel):
-    """
-    Branch of a conditional node.
-
-    The graph is only executed if the evaluation is successful.
-    The string evaluate should be a string template:
-    eg: "$parameter1 <= 5 and $parameter2 > 10"
-    we replace the parameters with their values
-    and evaluate the expression.
-
-    """
-
-    evaluate: str
-    graph: Graph
-
-    def get_summary(self) -> dict[str, Any]:
-        summary = {
-            "evaluate": self.evaluate,
-            "graph": self.graph.get_summary(),
-        }
-
-        return summary
-
-
 class ConditionalNode(CompositeNode):
-    node_type: str = Field(default="conditional", serialization_alias="type")
-    branches: dict[str, ConditionalBranch]
+    """
+    parameter: name -> the parameter which is used for evaluation
+    default: Optional[branch] = branch to execute if nothing is matched.
+    branches: {
+        "case1" : branch1,
+        "case2: branch2,
+    }
 
-    evaluations: list[bool] = Field(default_factory=list, exclude=True)
+    Conceptually this is equal to:
+    match parameter:
+        case "case1":
+            branch1
+        case "case2":
+            branch2
+        case _:
+            default
+
+    """
+
+    node_type: str = Field(default="conditional", serialization_alias="type")
+
+    parameter: str  # the name of the parameter should be isalnum
+    default: Graph | None = Field(default=None)  # TODO: Think about the design of this
+    branches: dict[str, Graph]
+    # The keys of the branches should be isalnum()
+
+    @field_validator("parameter", mode="after")
+    @classmethod
+    def check_parameter(cls, parameter: str) -> str:
+        """
+        Validate that the parameter name is alphanumeric.
+
+        Args:
+            parameter (str): The parameter name to validate.
+
+        Raises:
+            ValueError: If the parameter name is not alphanumeric.
+
+        Returns:
+            str: The validated parameter name.
+        """
+        if not parameter.isalnum():
+            raise ValueError(f"Parameter '{parameter}' must be alphanumeric.")
+        return parameter
+
+    def get_parameter_value(self) -> str | int | bool | float:
+        """
+        Get the parameter value from the context.
+
+        Returns:
+            Any: The value of the parameter.
+        """
+        parameters: dict[str, Parameter] = self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id
+        )
+
+        if self.parameter not in parameters:
+            raise Exception(f"Parameter {self.parameter} not found in parameters")
+
+        chosen_parameter_value = parameters[self.parameter].get_value()
+
+        assert isinstance(chosen_parameter_value, (int, float, bool, str)), (
+            f"Parameter '{self.parameter}' must be of type int, float, bool, or str, "
+            f"but got {type(chosen_parameter_value).__name__}."
+        )
+
+        return chosen_parameter_value
 
     def get_summary(self) -> dict[str, Any]:
         summary = {
             "name": self.name,
             "type": self.node_type,
             "branches": [branch.get_summary() for branch in self.branches.values()],
+            "parameter": self.parameter,
+            "default": self.default.get_summary() if self.default else None,
         }
 
         return summary
 
     @field_serializer("branches")
-    def ser_branches(
-        self, branches: dict[str, ConditionalBranch]
-    ) -> dict[str, ConditionalBranch]:
-        ret: dict[str, ConditionalBranch] = {}
+    def ser_branches(self, branches: dict[str, Graph]) -> dict[str, Graph]:
+        ret: dict[str, Graph] = {}
 
         for branch_name, branch in branches.items():
             ret[branch_name.split(".")[-1]] = branch
@@ -71,14 +109,10 @@ class ConditionalNode(CompositeNode):
         branches = {}
         for branch_name, branch_config in config_branches.items():
             sub_graph = create_graph(
-                deepcopy(branch_config["graph"]),
+                deepcopy(branch_config),
                 internal_branch_name=internal_name + "." + branch_name,
             )
-            conditional = ConditionalBranch(
-                evaluate=branch_config["evaluate"],
-                graph=sub_graph,
-            )
-            branches[internal_name + "." + branch_name] = conditional
+            branches[internal_name + "." + branch_name] = sub_graph
 
         if not branches:
             raise Exception("A parallel node should have branches")
@@ -86,59 +120,29 @@ class ConditionalNode(CompositeNode):
 
     def _get_branch_by_name(self, branch_name: str) -> Graph:
         if branch_name in self.branches:
-            return self.branches[branch_name].graph
+            return self.branches[branch_name]
 
         raise Exception(f"Branch {branch_name} does not exist")
-
-    def evaluate_condition(
-        self, condition: str, parameters: dict[str, JSONType]
-    ) -> bool:
-        """
-        Evaluate the condition with the parameters.
-
-        Args:
-            condition (str): The condition to evaluate.
-            parameters (JSONType): The parameters to use in the evaluation.
-
-        Returns:
-            bool: True if the condition is met, False otherwise.
-        """
-        str_template = Template(condition)
-        evaluate = str_template.substitute(**parameters)
-
-        assert "$" not in evaluate, "Not all required parameters were provided"
-
-        result = eval(evaluate)  # pylint: disable=eval-used
-        logger.debug(
-            f"Evaluating condition: {condition} with parameters: {parameters} => {result}"
-        )
-        return result
 
     def fan_out(self, map_variable: TypeMapVariable = None):
         """
         This method is restricted to creating branch logs.
         """
-        parameters: dict[str, JSONType] = {}
-        for key, value in self._context.run_log_store.get_parameters(
-            run_id=self._context.run_id
-        ).items():
-            if value.kind in ["json", "metric"]:
-                parameters[key] = value.value
+        parameter_value = self.get_parameter_value()
 
-        parameters.update(map_variable or {})
         hit_once = False
 
-        for internal_branch_name, branch in self.branches.items():
-            effective_branch_name = self._resolve_map_placeholders(
-                internal_branch_name, map_variable=map_variable
-            )
-
-            result = self.evaluate_condition(branch.evaluate, parameters)
-            self.evaluations.append(result)
+        for internal_branch_name, _ in self.branches.items():
+            # the match is done on the last part of the branch name
+            result = str(parameter_value) == internal_branch_name.split(".")[-1]
 
             if not result:
                 # Need not create a branch log for this branch
                 continue
+
+            effective_branch_name = self._resolve_map_placeholders(
+                internal_branch_name, map_variable=map_variable
+            )
 
             hit_once = True
             branch_log = self._context.run_log_store.create_branch_log(
@@ -153,7 +157,7 @@ class ConditionalNode(CompositeNode):
 
         if not hit_once:
             raise Exception(
-                f"None of the branches were true. Please check your evaluate statements: {self.branches}"
+                "None of the branches were true. Please check your evaluate statements"
             )
 
     def execute_as_graph(self, map_variable: TypeMapVariable = None):
@@ -178,14 +182,15 @@ class ConditionalNode(CompositeNode):
             **kwargs: Optional kwargs passed around
         """
         self.fan_out(map_variable=map_variable)
+        parameter_value = self.get_parameter_value()
 
-        for index, (_, branch) in enumerate(self.branches.items()):
-            if self.evaluations[index]:
+        for internal_branch_name, branch in self.branches.items():
+            result = str(parameter_value) == internal_branch_name.split(".")[-1]
+
+            if result:
                 # if the condition is met, execute the graph
-                logger.debug(f"Executing graph for {branch.graph}")
-                self._context.executor.execute_graph(
-                    branch.graph, map_variable=map_variable
-                )
+                logger.debug(f"Executing graph for {branch}")
+                self._context.executor.execute_graph(branch, map_variable=map_variable)
 
         self.fan_in(map_variable=map_variable)
 
@@ -203,26 +208,19 @@ class ConditionalNode(CompositeNode):
             self.internal_name, map_variable=map_variable
         )
 
-        parameters: dict[str, JSONType] = {}
-        for key, value in self._context.run_log_store.get_parameters(
-            run_id=self._context.run_id
-        ).items():
-            if value.kind in ["json", "metric"]:
-                parameters[key] = value.value
-
-        parameters.update(map_variable or {})
         step_success_bool: bool = True
+        parameter_value = self.get_parameter_value()
 
-        for internal_branch_name, branch in self.branches.items():
-            effective_branch_name = self._resolve_map_placeholders(
-                internal_branch_name, map_variable=map_variable
-            )
-
-            result = self.evaluate_condition(branch.evaluate, parameters)
+        for internal_branch_name, _ in self.branches.items():
+            result = str(parameter_value) == internal_branch_name.split(".")[-1]
 
             if not result:
                 # The branch would not have been executed
                 continue
+
+            effective_branch_name = self._resolve_map_placeholders(
+                internal_branch_name, map_variable=map_variable
+            )
 
             branch_log = self._context.run_log_store.get_branch_log(
                 effective_branch_name, self._context.run_id

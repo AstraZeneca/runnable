@@ -1021,6 +1021,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
             with open("/tmp/output.txt", mode="w", encoding="utf-8") as myfile:
                 json.dump(iterate_on.get_value(), myfile, indent=4)
+
         if node.node_type == "conditional":
             assert isinstance(node, ConditionalNode)
 
