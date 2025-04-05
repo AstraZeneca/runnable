@@ -20,7 +20,7 @@ from pydantic import (
 from pydantic.alias_generators import to_camel
 from ruamel.yaml import YAML
 
-from extensions.nodes.conditional import ConditionalBranch, ConditionalNode
+from extensions.nodes.conditional import ConditionalNode
 from extensions.nodes.nodes import MapNode, ParallelNode, TaskNode
 
 # TODO: Should be part of a wider refactor
@@ -566,7 +566,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         if mode == "out" and node.node_type == "map":
             outputs = Outputs(parameters=[OutputParameter(name="iterate-on")])
         if mode == "out" and node.node_type == "conditional":
-            outputs = Outputs(parameters=[OutputParameter(name="evaluations")])
+            outputs = Outputs(parameters=[OutputParameter(name="case")])
 
         container_template = ContainerTemplate(
             name=task_name,
@@ -817,21 +817,24 @@ class ArgoExecutor(GenericPipelineExecutor):
                     elif node_type == "conditional":
                         assert isinstance(working_on, ConditionalNode)
                         branches = working_on.branches
+                        when_param = (
+                            f"{{{{tasks.{task_name}-fan-out.outputs.parameters.case}}}}"
+                        )
                     else:
                         raise ValueError("Invalid node type")
 
                     fan_in_depends = ""
 
-                    for i, (name, branch) in enumerate(branches.items()):
+                    for name, branch in branches.items():
+                        match_when = branch.internal_branch_name.split(".")[-1]
                         name = (
                             name.replace(" ", "-").replace(".", "-").replace("_", "-")
                         )
 
                         when_param = None
                         if node_type == "conditional":
-                            assert isinstance(branch, ConditionalBranch)
-                            branch = branch.graph
-                            when_param = f"'true' == {{{{tasks.{task_name}-fan-out.outputs.parameters.evaluations}}}}[{i}]"
+                            assert isinstance(working_on, ConditionalNode)
+                            when_param = f"'{match_when}' == {{{{tasks.{task_name}-fan-out.outputs.parameters.case}}}}"
 
                         branch_task = DagTask(
                             name=f"{task_name}-{name}",
@@ -1026,7 +1029,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             assert isinstance(node, ConditionalNode)
 
             with open("/tmp/output.txt", mode="w", encoding="utf-8") as myfile:
-                json.dump(node.evaluations, myfile, indent=4)
+                json.dump(node.get_parameter_value(), myfile, indent=4)
 
     def fan_in(self, node: BaseNode, map_variable: TypeMapVariable = None):
         self._use_volumes()
