@@ -799,7 +799,8 @@ class ArgoExecutor(GenericPipelineExecutor):
                     )
 
                     # Add the composite task
-                    with_param = None
+                    with_param: Optional[str] = None
+                    when_param: Optional[str] = None
                     added_parameters = parameters or []
                     branches = {}
                     if node_type == "map":
@@ -831,7 +832,6 @@ class ArgoExecutor(GenericPipelineExecutor):
                             name.replace(" ", "-").replace(".", "-").replace("_", "-")
                         )
 
-                        when_param = None
                         if node_type == "conditional":
                             assert isinstance(working_on, ConditionalNode)
                             when_param = f"'{match_when}' == {{{{tasks.{task_name}-fan-out.outputs.parameters.case}}}}"
