@@ -8,6 +8,7 @@ import runnable.context as context
 from runnable import defaults, exceptions
 from runnable.datastore import StepLog
 from runnable.defaults import TypeMapVariable
+from runnable.graph import Graph
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -218,7 +219,7 @@ class BaseNode(ABC, BaseModel):
         """
 
     @abstractmethod
-    def _get_branch_by_name(self, branch_name: str):
+    def _get_branch_by_name(self, branch_name: str) -> Graph:
         """
         Retrieve a branch by name.
 

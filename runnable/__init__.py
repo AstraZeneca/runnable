@@ -17,8 +17,9 @@ console.print(":runner: Lets go!!")
 
 task_console = Console(record=True)
 
-from runnable.sdk import (  # noqa
+from runnable.sdk import (  # noqa;
     Catalog,
+    Conditional,
     Fail,
     Map,
     NotebookJob,
