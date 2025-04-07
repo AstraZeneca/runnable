@@ -135,13 +135,12 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 
 
 [project.entry-points.'nodes']
-"task" = "extensions.nodes.nodes:TaskNode"
-"fail" = "extensions.nodes.nodes:FailNode"
-"success" = "extensions.nodes.nodes:SuccessNode"
-"parallel" = "extensions.nodes.nodes:ParallelNode"
-"map" = "extensions.nodes.nodes:MapNode"
-"dag" = "extensions.nodes.nodes:DagNode"
-"stub" = "extensions.nodes.nodes:StubNode"
+"task" = "extensions.nodes.task:TaskNode"
+"fail" = "extensions.nodes.fail:FailNode"
+"success" = "extensions.nodes.success:SuccessNode"
+"parallel" = "extensions.nodes.parallel:ParallelNode"
+"map" = "extensions.nodes.map:MapNode"
+"stub" = "extensions.nodes.stub:StubNode"
 "conditional" = "extensions.nodes.conditional:ConditionalNode"
 
 [project.entry-points.'tasks']

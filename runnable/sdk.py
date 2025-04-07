@@ -27,14 +27,12 @@ from rich.table import Column
 from typing_extensions import Self
 
 from extensions.nodes.conditional import ConditionalNode
-from extensions.nodes.nodes import (
-    FailNode,
-    MapNode,
-    ParallelNode,
-    StubNode,
-    SuccessNode,
-    TaskNode,
-)
+from extensions.nodes.fail import FailNode
+from extensions.nodes.map import MapNode
+from extensions.nodes.parallel import ParallelNode
+from extensions.nodes.stub import StubNode
+from extensions.nodes.success import SuccessNode
+from extensions.nodes.task import TaskNode
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
 from runnable.executor import BaseJobExecutor, BasePipelineExecutor
 from runnable.nodes import TraversalNode

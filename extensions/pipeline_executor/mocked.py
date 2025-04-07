@@ -4,7 +4,7 @@ from typing import Any, Dict, Type, cast
 
 from pydantic import ConfigDict, Field
 
-from extensions.nodes.nodes import TaskNode
+from extensions.nodes.task import TaskNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import context, defaults
 from runnable.defaults import TypeMapVariable

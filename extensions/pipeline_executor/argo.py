@@ -8,6 +8,8 @@ from enum import Enum
 from functools import cached_property
 from typing import Annotated, Any, Literal, Optional, cast
 
+from map import MapNode
+from parallel import ParallelNode
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -21,7 +23,7 @@ from pydantic.alias_generators import to_camel
 from ruamel.yaml import YAML
 
 from extensions.nodes.conditional import ConditionalNode
-from extensions.nodes.nodes import MapNode, ParallelNode, TaskNode
+from extensions.nodes.task import TaskNode
 
 # TODO: Should be part of a wider refactor
 # from extensions.nodes.torch import TorchNode
