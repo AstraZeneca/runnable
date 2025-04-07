@@ -18,7 +18,6 @@ def main():
     hello_task = PythonTask(
         name="hello",
         function=hello,
-        terminate_with_success=True,
     )
 
     # The pipeline has only one step.

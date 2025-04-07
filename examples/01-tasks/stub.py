@@ -3,7 +3,7 @@ This is a simple pipeline that does 3 steps in sequence.
 
     step 1 >> step 2 >> step 3 >> success
 
-    All the steps are mocked and they will just pass through.
+    All the steps are stubbed and they will just pass through.
     Use this pattern to define the skeleton of your pipeline
     and flesh out the steps later.
 
@@ -27,7 +27,7 @@ def main():
     # mature pipelines
     step2 = Stub(name="step2", what="is this thing")
 
-    step3 = Stub(name="step3", terminate_with_success=True)
+    step3 = Stub(name="step3")
 
     pipeline = Pipeline(steps=[step1, step2, step3])
 

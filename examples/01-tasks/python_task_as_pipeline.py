@@ -12,13 +12,11 @@ from runnable import PythonTask
 
 
 def main():
-    # Create a tasks which calls the function "hello"
-    # If this step executes successfully,
-    # the pipeline will terminate with success
+    # A single step pipeline can also be created using the
+    # task.as_pipeline() method.
     pipeline = PythonTask(
         name="hello",
         function=hello,
-        terminate_with_success=True,
     ).as_pipeline()
 
     pipeline.execute()

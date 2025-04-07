@@ -12,6 +12,14 @@ step_1 -> step_4 -> success
 This pattern is handy when you are expecting a failure of a step
 and have ways to handle it.
 
+Corresponds to:
+try:
+    step1()  # Raises the exception
+    step2()
+    step3()
+except Exception as e:
+    step4()
+
 Run this pipeline:
     python examples/02-sequential/on_failure_succeed.py
 """
@@ -25,8 +33,8 @@ def main():
 
     step_2 = Stub(name="step 2")
 
-    step_3 = Stub(name="step 3", terminate_with_success=True)
-    step_4 = Stub(name="step 4", terminate_with_success=True)  # (1)
+    step_3 = Stub(name="step 3")
+    step_4 = Stub(name="step 4")
 
     on_failure_pipeline = Pipeline(steps=[step_4])
 
