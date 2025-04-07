@@ -18,7 +18,7 @@ from stevedore import driver
 
 import runnable.context as context
 from runnable import console, defaults, names
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 
 if TYPE_CHECKING:  # pragma: no cover
     from runnable.nodes import BaseNode
@@ -400,7 +400,7 @@ def get_data_hash(file_name: str) -> str:
 # TODO: This is not the right place for this.
 def get_node_execution_command(
     node: BaseNode,
-    map_variable: TypeMapVariable = None,
+    map_variable: MapVariableType = None,
     over_write_run_id: str = "",
     log_level: str = "",
 ) -> str:
@@ -451,7 +451,7 @@ def get_fan_command(
     mode: str,
     node: BaseNode,
     run_id: str,
-    map_variable: TypeMapVariable = None,
+    map_variable: MapVariableType = None,
     log_level: str = "",
 ) -> str:
     """
@@ -583,7 +583,7 @@ def get_run_config() -> dict:
     return run_config
 
 
-def json_to_ordered_dict(json_str: str) -> TypeMapVariable:
+def json_to_ordered_dict(json_str: str) -> MapVariableType:
     """Decode a JSON str into OrderedDict.
 
     Args:
@@ -635,7 +635,7 @@ def gather_variables() -> Dict[str, str]:
     return variables
 
 
-def make_log_file_name(name: str, map_variable: TypeMapVariable) -> str:
+def make_log_file_name(name: str, map_variable: MapVariableType) -> str:
     random_tag = "".join(random.choices(string.ascii_uppercase + string.digits, k=3))
     log_file_name = name
 

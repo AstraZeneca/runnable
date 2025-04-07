@@ -4,7 +4,7 @@ from typing import Any, Dict, cast
 from pydantic import Field, field_serializer
 
 from runnable import defaults
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode
 
@@ -67,7 +67,7 @@ class ParallelNode(CompositeNode):
 
         raise Exception(f"Branch {branch_name} does not exist")
 
-    def fan_out(self, map_variable: TypeMapVariable = None):
+    def fan_out(self, map_variable: MapVariableType = None):
         """
         The general fan out method for a node of type Parallel.
         This method assumes that the step log has already been created.
@@ -90,7 +90,7 @@ class ParallelNode(CompositeNode):
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None):
+    def execute_as_graph(self, map_variable: MapVariableType = None):
         """
         This function does the actual execution of the sub-branches of the parallel node.
 
@@ -118,7 +118,7 @@ class ParallelNode(CompositeNode):
 
         self.fan_in(map_variable=map_variable)
 
-    def fan_in(self, map_variable: TypeMapVariable = None):
+    def fan_in(self, map_variable: MapVariableType = None):
         """
         The general fan in method for a node of type Parallel.
 

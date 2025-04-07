@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 import runnable.context as context
 from runnable import defaults, exceptions
 from runnable.datastore import StepLog
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.graph import Graph
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -81,7 +81,7 @@ class BaseNode(ABC, BaseModel):
 
     @classmethod
     def _resolve_map_placeholders(
-        cls, name: str, map_variable: TypeMapVariable = None
+        cls, name: str, map_variable: MapVariableType = None
     ) -> str:
         """
         If there is no map step used, then we just return the name as we find it.
@@ -132,7 +132,7 @@ class BaseNode(ABC, BaseModel):
 
         return name
 
-    def _get_step_log_name(self, map_variable: TypeMapVariable = None) -> str:
+    def _get_step_log_name(self, map_variable: MapVariableType = None) -> str:
         """
         For every step in the dag, there is a corresponding step log name.
         This method returns the step log name in dot path convention.
@@ -151,7 +151,7 @@ class BaseNode(ABC, BaseModel):
             self.internal_name, map_variable=map_variable
         )
 
-    def _get_branch_log_name(self, map_variable: TypeMapVariable = None) -> str:
+    def _get_branch_log_name(self, map_variable: MapVariableType = None) -> str:
         """
         For nodes that are internally branches, this method returns the branch log name.
         The branch log name is in dot path convention.
@@ -280,7 +280,7 @@ class BaseNode(ABC, BaseModel):
     def execute(
         self,
         mock=False,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
         attempt_number: int = 1,
     ) -> StepLog:
         """
@@ -300,7 +300,7 @@ class BaseNode(ABC, BaseModel):
         """
 
     @abstractmethod
-    def execute_as_graph(self, map_variable: TypeMapVariable = None):
+    def execute_as_graph(self, map_variable: MapVariableType = None):
         """
         This function would be called to set up the execution of the individual
         branches of a composite node.
@@ -315,7 +315,7 @@ class BaseNode(ABC, BaseModel):
         """
 
     @abstractmethod
-    def fan_out(self, map_variable: TypeMapVariable = None):
+    def fan_out(self, map_variable: MapVariableType = None):
         """
         This function would be called to set up the execution of the individual
         branches of a composite node.
@@ -331,7 +331,7 @@ class BaseNode(ABC, BaseModel):
         """
 
     @abstractmethod
-    def fan_in(self, map_variable: TypeMapVariable = None):
+    def fan_in(self, map_variable: MapVariableType = None):
         """
         This function would be called to tear down the execution of the individual
         branches of a composite node.
@@ -440,17 +440,17 @@ class ExecutableNode(TraversalNode):
             "This is an executable node and does not have branches"
         )
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None):
+    def execute_as_graph(self, map_variable: MapVariableType = None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a graph"
         )
 
-    def fan_in(self, map_variable: TypeMapVariable = None):
+    def fan_in(self, map_variable: MapVariableType = None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a fan in"
         )
 
-    def fan_out(self, map_variable: TypeMapVariable = None):
+    def fan_out(self, map_variable: MapVariableType = None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a fan out"
         )
@@ -476,7 +476,7 @@ class CompositeNode(TraversalNode):
     def execute(
         self,
         mock=False,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
         attempt_number: int = 1,
     ) -> StepLog:
         raise exceptions.NodeMethodCallError(
@@ -506,15 +506,15 @@ class TerminalNode(BaseNode):
     def _get_max_attempts(self) -> int:
         return 1
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None):
+    def execute_as_graph(self, map_variable: MapVariableType = None):
         raise exceptions.TerminalNodeError()
 
-    def fan_in(self, map_variable: TypeMapVariable = None):
+    def fan_in(self, map_variable: MapVariableType = None):
         raise exceptions.TerminalNodeError()
 
     def fan_out(
         self,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
     ):
         raise exceptions.TerminalNodeError()
 

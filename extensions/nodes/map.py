@@ -16,7 +16,7 @@ from runnable.datastore import (
     ObjectParameter,
     Parameter,
 )
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode
 
@@ -147,7 +147,7 @@ class MapNode(CompositeNode):
         """
         return self.branch
 
-    def fan_out(self, map_variable: TypeMapVariable = None):
+    def fan_out(self, map_variable: MapVariableType = None):
         """
         The general method to fan out for a node of type map.
         This method assumes that the step log has already been created.
@@ -195,7 +195,7 @@ class MapNode(CompositeNode):
             parameters=raw_parameters, run_id=self._context.run_id
         )
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None):
+    def execute_as_graph(self, map_variable: MapVariableType = None):
         """
         This function does the actual execution of the branch of the map node.
 
@@ -251,7 +251,7 @@ class MapNode(CompositeNode):
 
         self.fan_in(map_variable=map_variable)
 
-    def fan_in(self, map_variable: TypeMapVariable = None):
+    def fan_in(self, map_variable: MapVariableType = None):
         """
         The general method to fan in for a node of type map.
 

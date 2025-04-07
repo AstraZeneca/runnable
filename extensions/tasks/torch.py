@@ -81,7 +81,7 @@ class TorchTaskType(BaseTaskType, TorchConfig):
 
     def execute_command(
         self,
-        map_variable: defaults.TypeMapVariable = None,
+        map_variable: defaults.MapVariableType = None,
     ):
         assert map_variable is None, "map_variable is not supported for torch"
 

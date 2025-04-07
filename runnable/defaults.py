@@ -1,11 +1,5 @@
-from typing import (
-    Any,
-    Dict,
-    Mapping,
-    Optional,
-    TypedDict,  # type: ignore[unused-ignore]
-    Union,
-)
+from typing import TypedDict  # type: ignore[unused-ignore]
+from typing import Any, Dict, Mapping, Optional, Union
 
 from rich.style import Style
 from typing_extensions import TypeAlias
@@ -31,7 +25,7 @@ class RunnableConfig(TypedDict, total=False):
     pickler: Optional[ServiceConfig]
 
 
-TypeMapVariable: TypeAlias = Optional[Dict[str, Union[str, int, float]]]
+MapVariableType: TypeAlias = Optional[Dict[str, Union[str, int, float]]]
 
 
 # Config file environment variable

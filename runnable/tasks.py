@@ -25,7 +25,7 @@ from runnable.datastore import (
     Parameter,
     StepAttempt,
 )
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -90,7 +90,7 @@ class BaseTaskType(BaseModel):
 
     def execute_command(
         self,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
     ) -> StepAttempt:
         """The function to execute the command.
 
@@ -130,7 +130,7 @@ class BaseTaskType(BaseModel):
         finally:
             self.delete_secrets_from_env_variables()
 
-    def resolve_unreduced_parameters(self, map_variable: TypeMapVariable = None):
+    def resolve_unreduced_parameters(self, map_variable: MapVariableType = None):
         """Resolve the unreduced parameters."""
         params = self._context.run_log_store.get_parameters(
             run_id=self._context.run_id
@@ -153,7 +153,7 @@ class BaseTaskType(BaseModel):
 
     @contextlib.contextmanager
     def execution_context(
-        self, map_variable: TypeMapVariable = None, allow_complex: bool = True
+        self, map_variable: MapVariableType = None, allow_complex: bool = True
     ):
         params = self.resolve_unreduced_parameters(map_variable=map_variable)
         logger.info(f"Parameters available for the execution: {params}")
@@ -267,7 +267,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     def execute_command(
         self,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
     ) -> StepAttempt:
         """Execute the notebook as defined by the command."""
         attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
@@ -478,7 +478,7 @@ class NotebookTaskType(BaseTaskType):
 
         return command
 
-    def get_notebook_output_path(self, map_variable: TypeMapVariable = None) -> str:
+    def get_notebook_output_path(self, map_variable: MapVariableType = None) -> str:
         tag = ""
         map_variable = map_variable or {}
         for key, value in map_variable.items():
@@ -496,7 +496,7 @@ class NotebookTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
     ) -> StepAttempt:
         """Execute the python notebook as defined by the command.
 
@@ -674,7 +674,7 @@ class ShellTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
     ) -> StepAttempt:
         # Using shell=True as we want to have chained commands to be executed in the same shell.
         """Execute the shell command as defined by the command.

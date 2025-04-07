@@ -8,8 +8,6 @@ from enum import Enum
 from functools import cached_property
 from typing import Annotated, Any, Literal, Optional, cast
 
-from map import MapNode
-from parallel import ParallelNode
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -23,13 +21,15 @@ from pydantic.alias_generators import to_camel
 from ruamel.yaml import YAML
 
 from extensions.nodes.conditional import ConditionalNode
+from extensions.nodes.map import MapNode
+from extensions.nodes.parallel import ParallelNode
 from extensions.nodes.task import TaskNode
 
 # TODO: Should be part of a wider refactor
 # from extensions.nodes.torch import TorchNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults, utils
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.graph import Graph, search_node_by_internal_name
 from runnable.nodes import BaseNode
 
@@ -537,7 +537,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         parameters: Optional[list[Parameter]],
         task_name: str,
     ):
-        map_variable: TypeMapVariable = {}
+        map_variable: MapVariableType = {}
         for parameter in parameters or []:
             map_variable[parameter.name] = (  # type: ignore
                 "{{inputs.parameters." + str(parameter.name) + "}}"
@@ -608,7 +608,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         inputs = inputs or Inputs(parameters=[])
 
-        map_variable: TypeMapVariable = {}
+        map_variable: MapVariableType = {}
         for parameter in inputs.parameters or []:
             map_variable[parameter.name] = (  # type: ignore
                 "{{inputs.parameters." + str(parameter.name) + "}}"
@@ -960,7 +960,7 @@ class ArgoExecutor(GenericPipelineExecutor):
                 f,
             )
 
-    def _implicitly_fail(self, node: BaseNode, map_variable: TypeMapVariable):
+    def _implicitly_fail(self, node: BaseNode, map_variable: MapVariableType):
         assert self._context.dag
         _, current_branch = search_node_by_internal_name(
             dag=self._context.dag, internal_name=node.internal_name
@@ -1007,7 +1007,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         self._implicitly_fail(node, map_variable)
 
-    def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def fan_out(self, node: BaseNode, map_variable: MapVariableType = None):
         # This could be the first step of the graph
         self._use_volumes()
 
@@ -1033,7 +1033,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             with open("/tmp/output.txt", mode="w", encoding="utf-8") as myfile:
                 json.dump(node.get_parameter_value(), myfile, indent=4)
 
-    def fan_in(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def fan_in(self, node: BaseNode, map_variable: MapVariableType = None):
         self._use_volumes()
         super().fan_in(node, map_variable)
 

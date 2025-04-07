@@ -13,7 +13,7 @@ from runnable import (
     utils,
 )
 from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.executor import BasePipelineExecutor
 from runnable.graph import Graph
 from runnable.nodes import BaseNode
@@ -196,7 +196,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     def _execute_node(
         self,
         node: BaseNode,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
         mock: bool = False,
     ):
         """
@@ -266,7 +266,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         """
         step_log.code_identities.append(utils.get_git_code_identity())
 
-    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This is the entry point to from the graph execution.
 
@@ -324,7 +324,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         self.trigger_node_execution(node=node, map_variable=map_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: TypeMapVariable = None
+        self, node: BaseNode, map_variable: MapVariableType = None
     ):
         """
         Call this method only if we are responsible for traversing the graph via
@@ -342,7 +342,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         pass
 
     def _get_status_and_next_node_name(
-        self, current_node: BaseNode, dag: Graph, map_variable: TypeMapVariable = None
+        self, current_node: BaseNode, dag: Graph, map_variable: MapVariableType = None
     ) -> tuple[str, str]:
         """
         Given the current node and the graph, returns the name of the next node to execute.
@@ -380,7 +380,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         return step_log.status, next_node_name
 
-    def execute_graph(self, dag: Graph, map_variable: TypeMapVariable = None):
+    def execute_graph(self, dag: Graph, map_variable: MapVariableType = None):
         """
         The parallelization is controlled by the nodes and not by this function.
 
@@ -567,7 +567,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         return effective_node_config
 
-    def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def fan_out(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This method is used to appropriately fan-out the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
@@ -599,7 +599,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         node.fan_out(map_variable=map_variable)
 
-    def fan_in(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def fan_in(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This method is used to appropriately fan-in after the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.

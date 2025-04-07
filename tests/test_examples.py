@@ -112,10 +112,7 @@ def argo_context():
         del os.environ["RUNNABLE_CONFIGURATION_FILE"]
 
 
-contexts = [
-    default_context,
-    # chunked_fs_context,
-]  # , mocked_context, argo_context]
+contexts = [default_context, chunked_fs_context]  # , mocked_context, argo_context]
 
 # file, no_yaml, fails, ignore_contexts, parameters_file, assertions
 python_examples = [
@@ -688,7 +685,7 @@ python_examples = [
 def test_python_examples(example, context):
     print(f"Testing {example}...")
 
-    mod, no_yaml, fails, ignore_contexts, _, assertions = example
+    mod, _, fails, ignore_contexts, _, assertions = example
     if context in ignore_contexts:
         return
 
@@ -742,6 +739,36 @@ def test_yaml_examples(example, context):
             )
             [asserttion() for asserttion in assertions]
         except exceptions.ExecutionFailedError:
+            if not fails:
+                raise
+
+
+argo_contexts = [argo_context]
+
+
+@pytest.mark.parametrize("example", list_python_examples())
+@pytest.mark.parametrize("context", argo_contexts)
+# @pytest.mark.no_cover
+@pytest.mark.e2e
+def test_python_examples_argo(example, context):
+    print(f"Testing {example}...")
+
+    mod, _, fails, ignore_contexts, _, _ = example
+
+    context = context()
+
+    imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
+    f = getattr(imported_module, "main")
+
+    with context:
+        from runnable import exceptions
+
+        try:
+            os.environ[defaults.ENV_RUN_ID] = generate_run_id()
+            f()
+
+        except exceptions.ExecutionFailedError:
+            print("Example failed")
             if not fails:
                 raise
 

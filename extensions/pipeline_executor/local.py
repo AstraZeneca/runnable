@@ -4,7 +4,7 @@ from pydantic import Field, PrivateAttr
 
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -32,14 +32,14 @@ class LocalExecutor(GenericPipelineExecutor):
 
     _is_local: bool = PrivateAttr(default=True)
 
-    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
         if not self.object_serialisation:
             self._context.object_serialisation = False
 
         super().execute_from_graph(node=node, map_variable=map_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: TypeMapVariable = None
+        self, node: BaseNode, map_variable: MapVariableType = None
     ):
         """
         In this mode of execution, we prepare for the node execution and execute the node
@@ -50,7 +50,7 @@ class LocalExecutor(GenericPipelineExecutor):
         """
         self.execute_node(node=node, map_variable=map_variable)
 
-    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         For local execution, we just execute the node.
 

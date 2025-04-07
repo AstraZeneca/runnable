@@ -6,7 +6,7 @@ from pydantic import ConfigDict, Field
 
 from runnable import datastore, defaults
 from runnable.datastore import StepLog
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.nodes import ExecutableNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -56,7 +56,7 @@ class StubNode(ExecutableNode):
     def execute(
         self,
         mock=False,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
         attempt_number: int = 1,
     ) -> StepLog:
         """

@@ -5,7 +5,7 @@ from pydantic import Field
 
 from runnable import datastore, defaults
 from runnable.datastore import StepLog
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.nodes import TerminalNode
 
 
@@ -31,7 +31,7 @@ class SuccessNode(TerminalNode):
     def execute(
         self,
         mock=False,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
         attempt_number: int = 1,
     ) -> StepLog:
         """

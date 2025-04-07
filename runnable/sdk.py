@@ -485,6 +485,9 @@ class Stub(BaseTraversal):
 
         return StubNode.parse_from_config(self.model_dump(exclude_none=True))
 
+    def as_pipeline(self) -> "Pipeline":
+        return Pipeline(steps=[self])  # type: ignore
+
 
 class Parallel(BaseTraversal):
     """

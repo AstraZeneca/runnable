@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, PrivateAttr
 import runnable.context as context
 from runnable import defaults
 from runnable.datastore import DataCatalog, JobLog, StepLog
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 
 if TYPE_CHECKING:  # pragma: no cover
     from runnable.graph import Graph
@@ -86,7 +86,7 @@ class BaseExecutor(ABC, BaseModel):
 
     @abstractmethod
     def add_task_log_to_catalog(
-        self, name: str, map_variable: Optional[TypeMapVariable] = None
+        self, name: str, map_variable: Optional[MapVariableType] = None
     ): ...
 
 
@@ -214,7 +214,7 @@ class BasePipelineExecutor(BaseExecutor):
     def _execute_node(
         self,
         node: BaseNode,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
         mock: bool = False,
     ):
         """
@@ -238,7 +238,7 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         The entry point for all executors apart from local.
         We have already prepared for node execution.
@@ -253,7 +253,7 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This is the entry point to from the graph execution.
 
@@ -282,7 +282,7 @@ class BasePipelineExecutor(BaseExecutor):
 
     @abstractmethod
     def _get_status_and_next_node_name(
-        self, current_node: BaseNode, dag: Graph, map_variable: TypeMapVariable = None
+        self, current_node: BaseNode, dag: Graph, map_variable: MapVariableType = None
     ) -> tuple[str, str]:
         """
         Given the current node and the graph, returns the name of the next node to execute.
@@ -301,7 +301,7 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def execute_graph(self, dag: Graph, map_variable: TypeMapVariable = None):
+    def execute_graph(self, dag: Graph, map_variable: MapVariableType = None):
         """
         The parallelization is controlled by the nodes and not by this function.
 
@@ -356,7 +356,7 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def fan_out(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This method is used to appropriately fan-out the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
@@ -379,7 +379,7 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def fan_in(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def fan_in(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This method is used to appropriately fan-in after the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
@@ -402,7 +402,7 @@ class BasePipelineExecutor(BaseExecutor):
 
     @abstractmethod
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: TypeMapVariable = None
+        self, node: BaseNode, map_variable: MapVariableType = None
     ):
         """
         Executor specific way of triggering jobs when runnable does both traversal and execution

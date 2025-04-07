@@ -7,7 +7,7 @@ from pydantic import Field
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import console, defaults, task_console, utils
 from runnable.datastore import StepLog
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -104,7 +104,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
             code_id.code_identifier_url = "local docker host"
             step_log.code_identities.append(code_id)
 
-    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         We are already in the container, we just execute the node.
         The node is already prepared for execution.
@@ -115,7 +115,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
     def execute_from_graph(
         self,
         node: BaseNode,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
     ):
         """
         This is the entry point to from the graph execution.
@@ -174,7 +174,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         self.trigger_node_execution(node=node, map_variable=map_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: TypeMapVariable = None
+        self, node: BaseNode, map_variable: MapVariableType = None
     ):
         """
         We come into this step via execute from graph, use trigger job to spin up the container.
@@ -218,7 +218,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         self,
         node: BaseNode,
         command: str,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
         auto_remove_container: bool = True,
     ):
         """

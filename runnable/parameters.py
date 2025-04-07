@@ -10,7 +10,7 @@ from typing_extensions import Callable
 
 from runnable import defaults
 from runnable.datastore import JsonParameter, ObjectParameter
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.utils import remove_prefix
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -51,7 +51,7 @@ def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
 def filter_arguments_for_func(
     func: Callable[..., Any],
     params: Dict[str, Any],
-    map_variable: TypeMapVariable = None,
+    map_variable: MapVariableType = None,
 ) -> Dict[str, Any]:
     """
     Inspects the function to be called as part of the pipeline to find the arguments of the function.
