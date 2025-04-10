@@ -851,7 +851,6 @@ class Pipeline(BaseModel):
 
         # Prepare for graph execution
         run_context.executor._set_up_run_log(exists_ok=False)
-
         with Progress(
             SpinnerColumn(spinner_name="runner"),
             TextColumn(
@@ -861,13 +860,14 @@ class Pipeline(BaseModel):
             TimeElapsedColumn(table_column=Column(ratio=1)),
             console=console,
             expand=True,
+            auto_refresh=False,
         ) as progress:
             pipeline_execution_task = progress.add_task(
                 "[dark_orange] Starting execution .. ", total=1
             )
+
             try:
                 run_context.progress = progress
-
                 run_context.executor.execute_graph(dag=run_context.dag)
 
                 if not run_context.executor._is_local:

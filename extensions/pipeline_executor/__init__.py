@@ -189,6 +189,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             map_variable=map_variable,
         )
         task_console.save_text(log_file_name)
+        task_console.export_text(clear=True)
         # Put the log file in the catalog
         self._context.catalog_handler.put(name=log_file_name)
         os.remove(log_file_name)
@@ -249,6 +250,10 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         console.print(f"Summary of the step: {step_log.internal_name}")
         console.print(step_log.get_summary(), style=defaults.info_style)
+
+        self.add_task_log_to_catalog(
+            name=self._context_node.internal_name, map_variable=map_variable
+        )
 
         self._context_node = None
 
@@ -314,8 +319,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         if node.is_composite:
             node.execute_as_graph(map_variable=map_variable)
             return
-
-        task_console.export_text(clear=True)
 
         task_name = node._resolve_map_placeholders(node.internal_name, map_variable)
         console.print(
@@ -461,11 +464,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 console.print(e, style=defaults.error_style)
                 logger.exception(e)
                 raise
-            finally:
-                # Add task log to the catalog
-                self.add_task_log_to_catalog(
-                    name=working_on.internal_name, map_variable=map_variable
-                )
 
             console.rule(style="[dark orange]")
 
