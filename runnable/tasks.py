@@ -48,6 +48,29 @@ class TeeIO(io.StringIO):
         self.output_stream.flush()
 
 
+@contextlib.contextmanager
+def redirect_output():
+    # Backup the original stdout and stderr
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+
+    # Redirect stdout and stderr to custom TeeStream objects
+    sys.stdout = TeeIO(sys.stdout)
+    sys.stderr = TeeIO(sys.stderr)
+
+    # Replace stream for all StreamHandlers to use the new sys.stdout
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.stream = sys.stdout
+
+    try:
+        yield sys.stdout, sys.stderr
+    finally:
+        # Restore the original stdout and stderr
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+
+
 class TaskReturns(BaseModel):
     name: str
     kind: Literal["json", "object", "metric"] = Field(default="json")
@@ -286,21 +309,16 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     logger.info(
                         f"Calling {func} from {module} with {filtered_parameters}"
                     )
-
-                    stdout_file = TeeIO()
-                    stderr_file = TeeIO(sys.stderr)
-
-                    with (
-                        contextlib.redirect_stdout(stdout_file),
-                        contextlib.redirect_stderr(stderr_file),
-                    ):
+                    self._context.progress.stop()
+                    with redirect_output() as (buffer, stderr_buffer):
                         user_set_parameters = f(
                             **filtered_parameters
                         )  # This is a tuple or single value
 
-                    task_console.print("Output:", style=defaults.success_style)
-                    task_console.print(stdout_file.getvalue())
-                    task_console.print(stderr_file.getvalue())
+                        # task_console.print("Output:", style=defaults.success_style)
+                        task_console.print(buffer.getvalue())
+                        task_console.print(stderr_buffer.getvalue())
+                    self._context.progress.start()
                 except Exception as e:
                     raise exceptions.CommandCallError(
                         f"Function call: {self.command} did not succeed.\n"
