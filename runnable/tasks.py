@@ -48,9 +48,6 @@ class TeeIO(io.StringIO):
         self.output_stream.flush()
 
 
-sys.stdout = TeeIO()
-
-
 class TaskReturns(BaseModel):
     name: str
     kind: Literal["json", "object", "metric"] = Field(default="json")
@@ -290,12 +287,20 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                         f"Calling {func} from {module} with {filtered_parameters}"
                     )
 
-                    out_file = TeeIO()
-                    with contextlib.redirect_stdout(out_file):
+                    stdout_file = TeeIO()
+                    stderr_file = TeeIO(sys.stderr)
+
+                    with (
+                        contextlib.redirect_stdout(stdout_file),
+                        contextlib.redirect_stderr(stderr_file),
+                    ):
                         user_set_parameters = f(
                             **filtered_parameters
                         )  # This is a tuple or single value
-                    task_console.print(out_file.getvalue())
+
+                    task_console.print("Output:", style=defaults.success_style)
+                    task_console.print(stdout_file.getvalue())
+                    task_console.print(stderr_file.getvalue())
                 except Exception as e:
                     raise exceptions.CommandCallError(
                         f"Function call: {self.command} did not succeed.\n"
