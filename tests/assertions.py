@@ -101,7 +101,11 @@ def should_have_catalog_execution_logs():
     contents = os.listdir(f".catalog/{run_id}")
 
     for step_name in step_names:
+        step = run_log.steps[step_name]
+        if step.step_type == "parallel":
+            continue  # Skip the root node of the parallel step
         logfile_name = "".join(x for x in step_name if x.isalnum())
+        print(f"Checking for {logfile_name} in {contents}")
         pattern = rf"{re.escape(logfile_name)}...\.execution\.log"
 
         assert any(
