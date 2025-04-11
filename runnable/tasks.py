@@ -50,6 +50,8 @@ class TeeIO(io.StringIO):
 
 @contextlib.contextmanager
 def redirect_output():
+    # Set the stream handlers to use the custom TeeIO class
+
     # Backup the original stdout and stderr
     original_stdout = sys.stdout
     original_stderr = sys.stderr
@@ -309,15 +311,20 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     logger.info(
                         f"Calling {func} from {module} with {filtered_parameters}"
                     )
-                    self._context.progress.stop()
+                    self._context.progress.stop()  # redirecting stdout clashes with rich progress
                     with redirect_output() as (buffer, stderr_buffer):
                         user_set_parameters = f(
                             **filtered_parameters
                         )  # This is a tuple or single value
 
-                        # task_console.print("Output:", style=defaults.success_style)
-                        task_console.print(buffer.getvalue())
-                        task_console.print(stderr_buffer.getvalue())
+                        print(
+                            stderr_buffer.getvalue()
+                        )  # To print the logging statements
+
+                    # TODO: Avoid double print!!
+                    with task_console.capture():
+                        task_console.log(buffer.getvalue())
+                        task_console.log(stderr_buffer.getvalue())
                     self._context.progress.start()
                 except Exception as e:
                     raise exceptions.CommandCallError(
