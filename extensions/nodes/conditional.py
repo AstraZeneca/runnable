@@ -190,7 +190,9 @@ class ConditionalNode(CompositeNode):
             if result:
                 # if the condition is met, execute the graph
                 logger.debug(f"Executing graph for {branch}")
-                self._context.executor.execute_graph(branch, map_variable=map_variable)
+                self._context.pipeline_executor.execute_graph(
+                    branch, map_variable=map_variable
+                )
 
         self.fan_in(map_variable=map_variable)
 

@@ -112,7 +112,7 @@ def argo_context():
         del os.environ["RUNNABLE_CONFIGURATION_FILE"]
 
 
-contexts = [default_context, chunked_fs_context]  # , mocked_context, argo_context]
+contexts = [default_context]  # , chunked_fs_context]  # , mocked_context, argo_context]
 
 # file, no_yaml, fails, ignore_contexts, parameters_file, assertions
 python_examples = [

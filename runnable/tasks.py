@@ -101,7 +101,7 @@ class BaseTaskType(BaseModel):
     def set_secrets_as_env_variables(self):
         # Preparing the environment for the task execution
         for key in self.secrets:
-            secret_value = context.run_context.secrets_handler.get(key)
+            secret_value = context.run_context.secrets.get(key)
             os.environ[key] = secret_value
 
     def delete_secrets_from_env_variables(self):
@@ -311,7 +311,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     logger.info(
                         f"Calling {func} from {module} with {filtered_parameters}"
                     )
-                    self._context.progress.stop()  # redirecting stdout clashes with rich progress
+                    context.progress.stop()  # redirecting stdout clashes with rich progress
                     with redirect_output() as (buffer, stderr_buffer):
                         user_set_parameters = f(
                             **filtered_parameters
@@ -325,7 +325,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     with task_console.capture():
                         task_console.log(buffer.getvalue())
                         task_console.log(stderr_buffer.getvalue())
-                    self._context.progress.start()
+                    context.progress.start()
                 except Exception as e:
                     raise exceptions.CommandCallError(
                         f"Function call: {self.command} did not succeed.\n"
@@ -514,8 +514,8 @@ class NotebookTaskType(BaseTaskType):
         for key, value in map_variable.items():
             tag += f"{key}_{value}_"
 
-        if hasattr(self._context.executor, "_context_node"):
-            tag += self._context.executor._context_node.name
+        # if hasattr(self._context.executor, "_context_node"):
+        #     tag += self._context.executor._context_node.name
 
         tag = "".join(x for x in tag if x.isalnum()).strip("-")
 
@@ -586,7 +586,7 @@ class NotebookTaskType(BaseTaskType):
                     pm.execute_notebook(**kwds)
                 task_console.print(out_file.getvalue())
 
-                context.run_context.catalog_handler.put(name=notebook_output_path)
+                context.run_context.catalog.put(name=notebook_output_path)
 
                 client = PloomberClient.from_path(path=notebook_output_path)
                 namespace = client.get_namespace()
@@ -728,7 +728,7 @@ class ShellTaskType(BaseTaskType):
         # Expose secrets as environment variables
         if self.secrets:
             for key in self.secrets:
-                secret_value = context.run_context.secrets_handler.get(key)
+                secret_value = context.run_context.secrets.get(key)
                 subprocess_env[key] = secret_value
 
         try:

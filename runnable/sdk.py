@@ -34,7 +34,7 @@ from extensions.nodes.stub import StubNode
 from extensions.nodes.success import SuccessNode
 from extensions.nodes.task import TaskNode
 from runnable import console, defaults, entrypoints, exceptions, graph, utils
-from runnable.executor import BaseJobExecutor, BasePipelineExecutor
+from runnable.executor import BaseJobExecutor
 from runnable.nodes import TraversalNode
 from runnable.tasks import BaseTaskType as RunnableTask
 from runnable.tasks import TaskReturns
@@ -787,6 +787,17 @@ class Pipeline(BaseModel):
             return False
         return True
 
+    def get_caller(self) -> str:
+        import inspect
+
+        caller_stack = inspect.stack()[1]
+        relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
+
+        module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
+        module_to_call = f"{module_name}.{caller_stack.function}"
+
+        return module_to_call
+
     def execute(
         self,
         configuration_file: str = "",
@@ -804,53 +815,46 @@ class Pipeline(BaseModel):
             # Immediately return as this call is only for getting the pipeline definition
             return {}
 
+        from runnable import context
+
         logger.setLevel(log_level)
 
-        run_id = utils.generate_run_id(run_id=run_id)
+        configurations = {
+            "pipeline_definition_file": self.get_caller(),
+            "parameters_file": parameters_file,
+            "configuration_file": configuration_file,
+            "tag": tag,
+            "run_id": run_id,
+            "execution_mode": "python",
+        }
 
-        parameters_file = os.environ.get("RUNNABLE_PARAMETERS_FILE", parameters_file)
+        if configuration_file:
+            configurations.update(utils.load_yaml(configuration_file))
 
-        tag = os.environ.get("RUNNABLE_tag", tag)
-
-        configuration_file = os.environ.get(
-            "RUNNABLE_CONFIGURATION_FILE", configuration_file
-        )
-        run_context = entrypoints.prepare_configurations(
-            configuration_file=configuration_file,
-            run_id=run_id,
-            tag=tag,
-            parameters_file=parameters_file,
-        )
-
-        assert isinstance(run_context.executor, BasePipelineExecutor)
-
-        utils.set_runnable_environment_variables(
-            run_id=run_id, configuration_file=configuration_file, tag=tag
+        configurations.update(
+            {
+                key: value
+                for key, value in defaults.DEFAULT_SERVICES.items()
+                if key not in configurations
+            }
         )
 
-        dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
-        run_context.from_sdk = True
-        run_context.dag = graph.create_graph(dag_definition)
+        run_context = context.PipelineContext.model_validate(configurations)
+        context.run_context = run_context
+
+        assert isinstance(run_context, context.PipelineContext)
+
+        if run_context.pipeline_executor._is_local:
+            run_context.dag = self.return_dag()
+
+        assert run_context.dag is not None
 
         console.print("Working with context:")
         console.print(run_context)
         console.rule(style="[dark orange]")
 
-        if not run_context.executor._is_local:
-            # We are not working with executor that does not work in local environment
-            import inspect
-
-            caller_stack = inspect.stack()[1]
-            relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
-
-            module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
-            module_to_call = f"{module_name}.{caller_stack.function}"
-
-            run_context.pipeline_file = f"{module_to_call}.py"
-            run_context.from_sdk = True
-
         # Prepare for graph execution
-        run_context.executor._set_up_run_log(exists_ok=False)
+        run_context.pipeline_executor._set_up_run_log(exists_ok=False)
         with Progress(
             SpinnerColumn(spinner_name="runner"),
             TextColumn(
@@ -867,10 +871,10 @@ class Pipeline(BaseModel):
             )
 
             try:
-                run_context.progress = progress
-                run_context.executor.execute_graph(dag=run_context.dag)
+                context.progress = progress
+                run_context.pipeline_executor.execute_graph(dag=run_context.dag)
 
-                if not run_context.executor._is_local:
+                if not run_context.pipeline_executor._is_local:
                     # non local executors just traverse the graph and do nothing
                     return {}
 
@@ -900,7 +904,7 @@ class Pipeline(BaseModel):
                 )
                 raise
 
-        if run_context.executor._is_local:
+        if run_context.pipeline_executor._is_local:
             return run_context.run_log_store.get_run_log_by_id(
                 run_id=run_context.run_id
             )

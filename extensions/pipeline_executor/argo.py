@@ -1044,9 +1044,9 @@ class ArgoExecutor(GenericPipelineExecutor):
             case "chunked-fs":
                 self._context.run_log_store.log_folder = self._container_log_location
 
-        match self._context.catalog_handler.service_name:
+        match self._context.catalog.service_name:
             case "file-system":
-                self._context.catalog_handler.catalog_location = (
+                self._context.catalog.catalog_location = (
                     self._container_catalog_location
                 )
 

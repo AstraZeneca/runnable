@@ -113,7 +113,7 @@ class ObjectParameter(BaseModel):
             return context.run_context.return_objects[self.value]
 
         # If the object was serialised, get it from the catalog
-        catalog_handler = context.run_context.catalog_handler
+        catalog_handler = context.run_context.catalog
         catalog_handler.get(name=self.file_name)
         obj = context.run_context.pickler.load(path=self.file_name)
         os.remove(self.file_name)  # Remove after loading
@@ -127,7 +127,7 @@ class ObjectParameter(BaseModel):
         # If the object was serialised, put it in the catalog
         context.run_context.pickler.dump(data=data, path=self.file_name)
 
-        catalog_handler = context.run_context.catalog_handler
+        catalog_handler = context.run_context.catalog
         catalog_handler.put(name=self.file_name)
         os.remove(self.file_name)  # Remove after loading
 
@@ -400,7 +400,7 @@ class RunLog(BaseModel):
         summary["Unique execution id"] = self.run_id
         summary["status"] = self.status
 
-        summary["Catalog Location"] = _context.catalog_handler.get_summary()
+        summary["Catalog Location"] = _context.catalog.get_summary()
         summary["Full Run log present at: "] = _context.run_log_store.get_summary()
 
         run_log = _context.run_log_store.get_run_log_by_id(

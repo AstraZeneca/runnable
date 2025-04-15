@@ -42,6 +42,7 @@ class BaseNode(ABC, BaseModel):
 
     @property
     def _context(self):
+        assert isinstance(context.run_context, context.PipelineContext)
         return context.run_context
 
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=False)

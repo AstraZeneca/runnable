@@ -114,7 +114,9 @@ class ParallelNode(CompositeNode):
         self.fan_out(map_variable=map_variable)
 
         for _, branch in self.branches.items():
-            self._context.executor.execute_graph(branch, map_variable=map_variable)
+            self._context.pipeline_executor.execute_graph(
+                branch, map_variable=map_variable
+            )
 
         self.fan_in(map_variable=map_variable)
 

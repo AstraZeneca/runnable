@@ -1,4 +1,3 @@
-from typing import TypedDict  # type: ignore[unused-ignore]
 from typing import Any, Dict, Mapping, Optional, Union
 
 from rich.style import Style
@@ -11,26 +10,12 @@ LOGGER_NAME = "runnable"
 LOG_LEVEL = "WARNING"
 
 
-# Type definitions
-class ServiceConfig(TypedDict):
-    type: str
-    config: Mapping[str, Any]
-
-
-class RunnableConfig(TypedDict, total=False):
-    run_log_store: Optional[ServiceConfig]
-    secrets: Optional[ServiceConfig]
-    catalog: Optional[ServiceConfig]
-    pipeline_executor: Optional[ServiceConfig]
-    pickler: Optional[ServiceConfig]
-
-
 MapVariableType: TypeAlias = Optional[Dict[str, Union[str, int, float]]]
 
-
 # Config file environment variable
-RUNNABLE_CONFIG_FILE = "RUNNABLE_CONFIG_FILE"
+RUNNABLE_CONFIGURATION_FILE = "RUNNABLE_CONFIGURATION_FILE"
 RUNNABLE_RUN_TAG = "RUNNABLE_RUN_TAG"
+RUNNABLE_PARAMETERS_FILE = "RUNNABLE_PARAMETERS_FILE"
 
 # Interaction settings
 TRACK_PREFIX = "RUNNABLE_TRACK_"
@@ -57,12 +42,14 @@ COMMAND_TYPE = "python"
 COMMAND_FRIENDLY_CHARACTER = "%"
 
 # Default services
-DEFAULT_PIPELINE_EXECUTOR = ServiceConfig(type="local", config={})
-DEFAULT_JOB_EXECUTOR = ServiceConfig(type="local", config={})
-DEFAULT_RUN_LOG_STORE = ServiceConfig(type="file-system", config={})
-DEFAULT_CATALOG = ServiceConfig(type="file-system", config={})
-DEFAULT_SECRETS = ServiceConfig(type="env-secrets", config={})
-DEFAULT_PICKLER = ServiceConfig(type="pickle", config={})
+DEFAULT_SERVICES: Mapping[str, Any] = {
+    "pipeline_executor": {"type": "local", "config": {}},
+    "job_executor": {"type": "local", "config": {}},
+    "run_log_store": {"type": "file-system", "config": {}},
+    "catalog": {"type": "file-system", "config": {}},
+    "pickler": {"type": "pickle", "config": {}},
+    "secrets": {"type": "env-secrets", "config": {}},
+}
 
 # Map state
 MAP_PLACEHOLDER = "map_variable_placeholder"

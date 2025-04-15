@@ -11,10 +11,9 @@ from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
 from string import Template as str_template
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Tuple, Union
 
 from ruamel.yaml import YAML
-from stevedore import driver
 
 import runnable.context as context
 from runnable import console, defaults, names
@@ -314,6 +313,7 @@ def remove_prefix(text: str, prefix: str) -> str:
     return text  # or whatever is given
 
 
+# TODO: Could remove this?
 def get_tracked_data() -> Dict[str, str]:
     """Scans the environment variables to find any user tracked variables that have a prefix runnable_TRACK_
     Removes the environment variable to prevent any clashes in the future steps.
@@ -359,25 +359,6 @@ def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
     return diff
 
 
-# def hash_bytestr_iter(bytesiter, hasher, ashexstr=True):  # pylint: disable=C0116
-#     """Hashes the given bytesiter using the given hasher."""
-#     for block in bytesiter:  # pragma: no cover
-#         hasher.update(block)
-#     return hasher.hexdigest() if ashexstr else hasher.digest()  # pragma: no cover
-
-
-# def file_as_blockiter(afile, blocksize=65536):  # pylint: disable=C0116
-#     """From a StackOverflow answer: that is used to generate a MD5 hash of a large files.
-#     # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file.
-
-#     """
-#     with afile:  # pragma: no cover
-#         block = afile.read(blocksize)
-#         while len(block) > 0:
-#             yield block
-#             block = afile.read(blocksize)
-
-
 def get_data_hash(file_name: str) -> str:
     """Returns the hash of the data file.
 
@@ -415,6 +396,7 @@ def get_node_execution_command(
         str: The execution command to run a node via command line.
     """
     run_id = context.run_context.run_id
+    assert isinstance(context.run_context, context.PipelineContext)
 
     if over_write_run_id:
         run_id = over_write_run_id
@@ -423,7 +405,7 @@ def get_node_execution_command(
 
     action = (
         f"runnable execute-single-node {run_id} "
-        f"{context.run_context.pipeline_file} "
+        f"{context.run_context.pipeline_definition_file} "
         f"{node._command_friendly_name()} "
         f"--log-level {log_level} "
     )
@@ -467,11 +449,13 @@ def get_fan_command(
     Returns:
         str: The fan in or out command
     """
+    assert isinstance(context.run_context, context.PipelineContext)
+
     log_level = log_level or logging.getLevelName(logger.getEffectiveLevel())
     action = (
         f"runnable fan {run_id} "
         f"{node._command_friendly_name()} "  # step name
-        f"{context.run_context.pipeline_file} "  # yaml or python
+        f"{context.run_context.pipeline_definition_file} "  # yaml or python
         f"{mode} "  # in or out
         f"--log-level {log_level} "
     )
@@ -496,6 +480,7 @@ def get_job_execution_command(over_write_run_id: str = "") -> str:
 
     This function should be used by all executors to submit jobs in remote environment
     """
+    assert isinstance(context.run_context, context.JobContext)
 
     run_id = context.run_context.run_id
 
@@ -522,51 +507,6 @@ def get_job_execution_command(over_write_run_id: str = "") -> str:
         action = action + f" --tag {context.run_context.tag}"
 
     return action
-
-
-def get_provider_by_name_and_type(
-    service_type: str, service_details: defaults.ServiceConfig
-):
-    """Given a service type, one of executor, run_log_store, catalog, secrets and the config
-    return the exact child class implementing the service.
-    We use stevedore to do the work for us.
-
-    Args:
-        service_type (str): One of executor, run_log_store, catalog, secrets
-        service_details (dict): The config used to instantiate the service.
-
-    Raises:
-        Exception: If the service by that name does not exist
-
-    Returns:
-        object: A service object
-    """
-
-    namespace = service_type
-
-    service_name = service_details["type"]
-    service_config: Mapping[str, Any] = {}
-    if "config" in service_details:
-        service_config = service_details.get("config", {})
-
-    logger.debug(
-        f"Trying to get a service of {service_type} of the name {service_name} with config: {service_config}"
-    )
-    try:
-        mgr = driver.DriverManager(
-            namespace=namespace,
-            name=service_name,
-            invoke_on_load=True,
-            invoke_kwds={**service_config},
-        )
-        return mgr.driver
-    except Exception as _e:
-        logger.exception(
-            f"Could not find the service of type: {service_type} with config: {service_details}"
-        )
-        raise Exception(
-            f"Could not find the service of type: {service_type} with config: {service_details}"
-        ) from _e
 
 
 def get_run_config() -> dict:
@@ -596,27 +536,6 @@ def json_to_ordered_dict(json_str: str) -> MapVariableType:
         return json.loads(json_str, object_pairs_hook=OrderedDict)
 
     return OrderedDict()
-
-
-def set_runnable_environment_variables(
-    run_id: str = "", configuration_file: str = "", tag: str = ""
-) -> None:
-    """Set the environment variables used by runnable. This function should be called during the prepare configurations
-    by all executors.
-
-    Args:
-        run_id (str, optional): The run id of the execution. Defaults to None.
-        configuration_file (str, optional): The configuration file if used. Defaults to None.
-        tag (str, optional): The tag associated with a run. Defaults to None.
-    """
-    if run_id:
-        os.environ[defaults.ENV_RUN_ID] = run_id
-
-    if configuration_file:
-        os.environ[defaults.RUNNABLE_CONFIG_FILE] = configuration_file
-
-    if tag:
-        os.environ[defaults.RUNNABLE_RUN_TAG] = tag
 
 
 def gather_variables() -> Dict[str, str]:

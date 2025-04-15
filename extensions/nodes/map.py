@@ -245,7 +245,7 @@ class MapNode(CompositeNode):
             effective_map_variable = map_variable or OrderedDict()
             effective_map_variable[self.iterate_as] = iter_variable
 
-            self._context.executor.execute_graph(
+            self._context.pipeline_executor.execute_graph(
                 self.branch, map_variable=effective_map_variable
             )
 
@@ -316,7 +316,7 @@ class MapNode(CompositeNode):
                     except KeyError as e:
                         from extensions.pipeline_executor.mocked import MockedExecutor
 
-                        if isinstance(self._context.executor, MockedExecutor):
+                        if isinstance(self._context.pipeline_executor, MockedExecutor):
                             pass
                         else:
                             raise Exception(

@@ -154,12 +154,12 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         data_catalogs = []
         for name_pattern in node_catalog_settings.get(stage) or []:
             if stage == "get":
-                data_catalog = self._context.catalog_handler.get(
+                data_catalog = self._context.catalog.get(
                     name=name_pattern,
                 )
 
             elif stage == "put":
-                data_catalog = self._context.catalog_handler.put(
+                data_catalog = self._context.catalog.put(
                     name=name_pattern, allow_file_not_found_exc=allow_file_no_found_exc
                 )
             else:
@@ -191,7 +191,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         task_console.save_text(log_file_name)
         task_console.export_text(clear=True)
         # Put the log file in the catalog
-        self._context.catalog_handler.put(name=log_file_name)
+        self._context.catalog.put(name=log_file_name)
         os.remove(log_file_name)
 
     def _execute_node(
@@ -412,7 +412,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 dag.internal_branch_name or "Graph",
                 map_variable,
             )
-            branch_execution_task = self._context.progress.add_task(
+            branch_execution_task = context.progress.add_task(
                 f"[dark_orange]Executing {branch_task_name}",
                 total=1,
             )
@@ -432,7 +432,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
             depth = " " * ((task_name.count(".")) or 1 - 1)
 
-            task_execution = self._context.progress.add_task(
+            task_execution = context.progress.add_task(
                 f"{depth}Executing {task_name}", total=1
             )
 
@@ -443,20 +443,20 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 )
 
                 if status == defaults.SUCCESS:
-                    self._context.progress.update(
+                    context.progress.update(
                         task_execution,
                         description=f"{depth}[green] {task_name} Completed",
                         completed=True,
                         overflow="fold",
                     )
                 else:
-                    self._context.progress.update(
+                    context.progress.update(
                         task_execution,
                         description=f"{depth}[red] {task_name} Failed",
                         completed=True,
                     )  # type ignore
             except Exception as e:  # noqa: E722
-                self._context.progress.update(
+                context.progress.update(
                     task_execution,
                     description=f"{depth}[red] {task_name} Errored",
                     completed=True,
@@ -473,7 +473,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             current_node = next_node_name
 
         if branch_execution_task:
-            self._context.progress.update(
+            context.progress.update(
                 branch_execution_task,
                 description=f"[green3] {branch_task_name} completed",
                 completed=True,
