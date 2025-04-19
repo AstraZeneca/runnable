@@ -5,7 +5,7 @@ from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 from rich.table import Column
 
 import runnable.context as context
-from runnable import console, defaults, utils
+from runnable import console, defaults
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -195,25 +195,19 @@ def execute_pipeline_yaml_spec(
         - Execution of the pipeline if its local executor
         - Rendering of the spec in the case of non local executor
     """
+
+    service_configurations = context.ServiceConfigurations(
+        configuration_file=configuration_file,
+        execution_context=context.ExecutionContext.PIPELINE,
+    )
     configurations = {
         "pipeline_definition_file": pipeline_file,
         "parameters_file": parameters_file,
-        "configuration_file": configuration_file,
         "tag": tag,
         "run_id": run_id,
-        "execution_mode": "yaml",
+        "execution_mode": context.ExecutionMode.YAML,
+        **service_configurations.services,
     }
-
-    if configuration_file:
-        configurations.update(utils.load_yaml(configuration_file))
-
-    configurations.update(
-        {
-            key: value
-            for key, value in defaults.DEFAULT_SERVICES.items()
-            if key not in configurations
-        }
-    )
 
     logger.info("Resolved configurations:")
     logger.info(json.dumps(configurations, indent=4))

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from rich.style import Style
 from typing_extensions import TypeAlias
@@ -42,7 +42,7 @@ COMMAND_TYPE = "python"
 COMMAND_FRIENDLY_CHARACTER = "%"
 
 # Default services
-DEFAULT_SERVICES: Mapping[str, Any] = {
+DEFAULT_SERVICES: dict[str, Any] = {
     "pipeline_executor": {"type": "local", "config": {}},
     "job_executor": {"type": "local", "config": {}},
     "run_log_store": {"type": "file-system", "config": {}},

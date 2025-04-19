@@ -61,10 +61,11 @@ def get_pipeline_spec_from_python(python_module: str) -> Graph:
 def get_service_by_name(namespace: str, service_config: dict[str, Any], _) -> Any:  # noqa: ANN401, ANN001
     """Get the service by name."""
     service_config = service_config.copy()
+
     kind = service_config.pop("type", None)
 
-    if not kind:
-        kind = defaults.DEFAULT_SERVICES[kind]
+    # if not kind:
+    #     kind = defaults.DEFAULT_SERVICES[kind]
 
     if "config" in service_config:
         service_config = service_config.get("config", {})
@@ -126,14 +127,62 @@ InstantiatedJob = Annotated[BaseTaskType, BeforeValidator(get_task("tasks"))]
 
 
 class ExecutionMode(str, Enum):
-    yaml = "yaml"
-    python = "python"
+    YAML = "yaml"
+    PYTHON = "python"
+
+
+class ExecutionContext(str, Enum):
+    PIPELINE = "pipeline"
+    JOB = "job"
+
+
+class ServiceConfigurations(BaseModel):
+    configuration_file: Optional[str] = Field(
+        default=None, exclude=True, description="Path to the configuration file."
+    )
+    execution_context: ExecutionContext = ExecutionContext.PIPELINE
+
+    @field_validator("configuration_file", mode="before")
+    @classmethod
+    def override_configuration_file(cls, configuration_file: str) -> str | None:
+        """Override the configuration file if provided."""
+        if os.environ.get(defaults.RUNNABLE_CONFIGURATION_FILE, None):
+            # If the env var is set, use it
+            return os.environ.get(
+                defaults.RUNNABLE_CONFIGURATION_FILE, configuration_file
+            )
+
+    @computed_field
+    @property
+    def services(self) -> dict[str, Any]:
+        """Get the effective services"""
+        # TODO: Take care of pipeline vs job here
+        services = defaults.DEFAULT_SERVICES
+
+        if not self.configuration_file:
+            return services
+
+        # Load the configuration file
+        config = utils.load_yaml(self.configuration_file)
+        for key, value in config.items():
+            services[key.replace("-", "_")] = value
+
+        if self.execution_context == ExecutionContext.JOB:
+            services.pop("pipeline_executor", None)
+        elif self.execution_context == ExecutionContext.PIPELINE:
+            services.pop("job_executor", None)
+        else:
+            raise ValueError(
+                f"Invalid execution context: {self.execution_context}. Must be 'pipeline' or 'job'."
+            )
+
+        return services
 
 
 class RunnableContext(BaseModel):
-    model_config = ConfigDict(use_enum_values=True)
+    model_config = ConfigDict(use_enum_values=True, loc_by_alias=True)
 
-    execution_mode: ExecutionMode = ExecutionMode.yaml
+    execution_mode: ExecutionMode = ExecutionMode.PYTHON
 
     parameters_file: Optional[str] = Field(
         default=None, exclude=True, description="Path to the parameters file."
@@ -152,19 +201,26 @@ class RunnableContext(BaseModel):
         str, Any
     ] = {}  # Should be validated against executor being local, should this be here?
 
-    @field_validator("parameters_file")
+    @field_validator("parameters_file", mode="before")
     @classmethod
     def override_parameters_file(cls, parameters_file: str) -> str:
         """Override the parameters file if provided."""
-        return os.environ.get(defaults.RUNNABLE_PARAMETERS_FILE, parameters_file)
+        if os.environ.get(defaults.RUNNABLE_PARAMETERS_FILE, None):
+            return os.environ.get(defaults.RUNNABLE_PARAMETERS_FILE, parameters_file)
+        return parameters_file
 
-    @field_validator("configuration_file")
+    @field_validator("configuration_file", mode="before")
     @classmethod
     def override_configuration_file(cls, configuration_file: str) -> str:
         """Override the configuration file if provided."""
+        if os.environ.get(defaults.RUNNABLE_CONFIGURATION_FILE, None):
+            # If the env var is set, use it
+            return os.environ.get(
+                defaults.RUNNABLE_CONFIGURATION_FILE, configuration_file
+            )
         return os.environ.get(defaults.RUNNABLE_CONFIGURATION_FILE, configuration_file)
 
-    @field_validator("run_id")
+    @field_validator("run_id", mode="before")
     @classmethod
     def generate_run_id(cls, run_id: str) -> str:
         """Generate a run id if not provided."""
@@ -203,29 +259,28 @@ class RunnableContext(BaseModel):
 # THe structure of the config file as presented by the user.
 # There are default services that are used if the user does not provide any.
 class PipelineContext(RunnableContext):
-    pipeline_executor: InstantiatedPipelineExecutor
+    pipeline_executor: InstantiatedPipelineExecutor = Field(alias="pipeline_executor")
     catalog: InstantiatedCatalog
     secrets: InstantiatedSecrets
     pickler: InstantiatedPickler
-    run_log_store: InstantiatedRunLogStore
+    run_log_store: InstantiatedRunLogStore = Field(alias="run_log_store")
 
     pipeline_definition_file: str
 
     @computed_field
     def from_sdk(self) -> bool:
         """Check if the pipeline/job is from SDK."""
-        if self.pipeline_definition_file.endswith(".py"):
+        if self.execution_mode == ExecutionMode.PYTHON:
             return True
         return False
 
     @computed_field
     @cached_property
     def dag(self) -> Graph | None:
-        print(f"Pipeline definition file: {self.pipeline_definition_file}")
         """Get the dag."""
-        if self.execution_mode == ExecutionMode.yaml:
+        if self.execution_mode == ExecutionMode.YAML:
             return get_pipeline_spec_from_yaml(self.pipeline_definition_file)
-        elif self.execution_mode == ExecutionMode.python:
+        elif self.execution_mode == ExecutionMode.PYTHON:
             # If its local execution, we don't need to call the function to get dag
             if self.pipeline_executor._is_local:
                 return None

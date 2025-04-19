@@ -790,7 +790,7 @@ class Pipeline(BaseModel):
     def get_caller(self) -> str:
         import inspect
 
-        caller_stack = inspect.stack()[1]
+        caller_stack = inspect.stack()[2]
         relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
 
         module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
@@ -819,25 +819,19 @@ class Pipeline(BaseModel):
 
         logger.setLevel(log_level)
 
+        service_configurations = context.ServiceConfigurations(
+            configuration_file=configuration_file,
+            execution_context=context.ExecutionContext.PIPELINE,
+        )
+
         configurations = {
             "pipeline_definition_file": self.get_caller(),
             "parameters_file": parameters_file,
-            "configuration_file": configuration_file,
             "tag": tag,
             "run_id": run_id,
-            "execution_mode": "python",
+            "execution_mode": context.ExecutionMode.PYTHON,
+            **service_configurations.services,
         }
-
-        if configuration_file:
-            configurations.update(utils.load_yaml(configuration_file))
-
-        configurations.update(
-            {
-                key: value
-                for key, value in defaults.DEFAULT_SERVICES.items()
-                if key not in configurations
-            }
-        )
 
         run_context = context.PipelineContext.model_validate(configurations)
         context.run_context = run_context
