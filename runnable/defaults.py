@@ -35,7 +35,6 @@ CREATED = "CREATED"
 PROCESSING = "PROCESSING"
 SUCCESS = "SUCCESS"
 FAIL = "FAIL"
-TRIGGERED = "TRIGGERED"
 
 # Node and Command settings
 COMMAND_TYPE = "python"
@@ -64,8 +63,6 @@ MAX_TIME = 86400  # 1 day in seconds
 # User extensions
 USER_CONFIG_FILE = "runnable-config.yaml"
 
-# Executor settings
-ENABLE_PARALLEL = False
 
 # RUN log store settings
 LOG_LOCATION_FOLDER = ".run_log_store"

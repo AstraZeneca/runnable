@@ -3,7 +3,7 @@ from functools import cached_property
 from typing import Any, Dict, Optional
 
 from extensions.pipeline_executor import GenericPipelineExecutor
-from runnable import context, defaults, exceptions
+from runnable import defaults, exceptions
 from runnable.datastore import RunLog
 from runnable.defaults import MapVariableType
 from runnable.nodes import BaseNode
@@ -33,10 +33,6 @@ class RetryExecutor(GenericPipelineExecutor):
     _original_run_log: Optional[RunLog] = None
     _restart_initiated: bool = False
 
-    @property
-    def _context(self):
-        return context.run_context
-
     @cached_property
     def original_run_log(self):
         return self._context.run_log_store.get_run_log_by_id(
@@ -46,7 +42,7 @@ class RetryExecutor(GenericPipelineExecutor):
 
     def _set_up_for_re_run(self, params: Dict[str, Any]) -> None:
         # Sync the previous run log catalog to this one.
-        self._context.catalog_handler.sync_between_runs(
+        self._context.catalog.sync_between_runs(
             previous_run_id=self.run_id, run_id=self._context.run_id
         )
 

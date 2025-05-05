@@ -1,11 +1,8 @@
 import json
 import logging
 
-from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
-from rich.table import Column
-
 import runnable.context as context
-from runnable import console, defaults
+from runnable import defaults, graph, nodes, utils
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -19,166 +16,6 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 #         user_configs = cast(RunnableConfig, utils.load_yaml(defaults.USER_CONFIG_FILE))
 
 #     return user_configs
-
-
-def prepare_configurations(
-    run_id: str,
-    configuration_file: str = "",
-    tag: str = "",
-    parameters_file: str = "",
-    is_job: bool = False,
-):
-    """
-    Sets up everything needed
-    Replace the placeholders in the dag/config against the variables file.
-
-    Attach the secrets_handler, run_log_store, catalog_handler to the executor and return it.
-
-    Args:
-        variables_file (str): The variables file, if used or None
-        run_id (str): The run id of the run.
-        tag (str): If a tag is provided at the run time
-
-    Returns:
-        executor.BaseExecutor : A prepared executor as per the dag/config
-    """
-    # runnable_defaults = get_default_configs()
-
-    # variables = utils.gather_variables()
-
-    # templated_configuration = {}
-    # configuration_file = os.environ.get(
-    #     "RUNNABLE_CONFIGURATION_FILE", configuration_file
-    # )
-
-    # if configuration_file:
-    #     templated_configuration = utils.load_yaml(configuration_file)
-
-    # # apply variables
-    # configuration = cast(
-    #     RunnableConfig, utils.apply_variables(templated_configuration, variables)
-    # )
-
-    # # Since all the services (run_log_store, catalog, secrets, executor) are
-    # # dynamically loaded via stevedore, we cannot validate the configuration
-    # # before they are passed to the service.
-
-    # logger.info(f"Resolved configurations: {configuration}")
-
-    # # Run log settings, configuration over-rides everything
-    # # The user config has run-log-store while internally we use run_log_store
-    # run_log_config: Optional[ServiceConfig] = configuration.get("run-log-store", None)  # type: ignore
-    # if not run_log_config:
-    #     run_log_config = cast(
-    #         ServiceConfig,
-    #         runnable_defaults.get("run-log-store", defaults.DEFAULT_RUN_LOG_STORE),
-    #     )
-    # run_log_store = utils.get_provider_by_name_and_type("run_log_store", run_log_config)
-
-    # # Catalog handler settings, configuration over-rides everything
-    # catalog_config: Optional[ServiceConfig] = configuration.get("catalog", None)
-    # if not catalog_config:
-    #     catalog_config = cast(
-    #         ServiceConfig, runnable_defaults.get("catalog", defaults.DEFAULT_CATALOG)
-    #     )
-    # catalog_handler = utils.get_provider_by_name_and_type("catalog", catalog_config)
-
-    # # Secret handler settings, configuration over-rides everything
-    # secrets_config: Optional[ServiceConfig] = configuration.get("secrets", None)
-    # if not secrets_config:
-    #     secrets_config = cast(
-    #         ServiceConfig, runnable_defaults.get("secrets", defaults.DEFAULT_SECRETS)
-    #     )
-    # secrets_handler = utils.get_provider_by_name_and_type("secrets", secrets_config)
-
-    # # pickler
-    # pickler_config = cast(
-    #     ServiceConfig, runnable_defaults.get("pickler", defaults.DEFAULT_PICKLER)
-    # )
-    # pickler_handler = utils.get_provider_by_name_and_type("pickler", pickler_config)
-
-    # if not is_job:
-    #     # executor configurations, configuration over rides everything
-    #     executor_config: Optional[ServiceConfig] = configuration.get(
-    #         "pipeline-executor", None
-    #     )  # type: ignore
-    #     # as pipeline-executor is not a valid key
-    #     if not executor_config:
-    #         executor_config = cast(
-    #             ServiceConfig,
-    #             runnable_defaults.get(
-    #                 "pipeline-executor", defaults.DEFAULT_PIPELINE_EXECUTOR
-    #             ),
-    #         )
-    #     configured_executor = utils.get_provider_by_name_and_type(
-    #         "pipeline_executor", executor_config
-    #     )
-    # else:
-    #     # executor configurations, configuration over rides everything
-    #     job_executor_config: Optional[ServiceConfig] = configuration.get(
-    #         "job-executor", None
-    #     )  # type: ignore
-    #     if not job_executor_config:
-    #         job_executor_config = cast(
-    #             ServiceConfig,
-    #             runnable_defaults.get("job-executor", defaults.DEFAULT_JOB_EXECUTOR),
-    #         )
-
-    #     assert job_executor_config, "Job executor is not provided"
-    #     configured_executor = utils.get_provider_by_name_and_type(
-    #         "job_executor", job_executor_config
-    #     )
-
-    # # Construct the context
-    # run_context = context.Context(
-    #     executor=configured_executor,
-    #     run_log_store=run_log_store,
-    #     catalog_handler=catalog_handler,
-    #     secrets_handler=secrets_handler,
-    #     pickler=pickler_handler,
-    #     variables=variables,
-    #     tag=tag,
-    #     run_id=run_id,
-    #     configuration_file=configuration_file,
-    #     parameters_file=parameters_file,
-    # )
-
-    # context.run_context = run_context
-
-    return context.run_context
-
-
-# def set_pipeline_spec_from_yaml(run_context: context.Context, pipeline_file: str):
-#     """
-#     Reads the pipeline file from a YAML file and sets the pipeline spec in the run context
-#     """
-#     pipeline_config = utils.load_yaml(pipeline_file)
-#     logger.info("The input pipeline:")
-#     logger.info(json.dumps(pipeline_config, indent=4))
-
-#     dag_config = pipeline_config["dag"]
-
-#     dag_hash = utils.get_dag_hash(dag_config)
-#     dag = graph.create_graph(dag_config)
-#     run_context.dag_hash = dag_hash
-
-#     run_context.pipeline_file = pipeline_file
-#     run_context.dag = dag
-
-
-# def set_pipeline_spec_from_python(run_context: context.Context, python_module: str):
-#     # Call the SDK to get the dag
-#     # Import the module and call the function to get the dag
-#     module_file = python_module.rstrip(".py")
-#     module, func = utils.get_module_and_attr_names(module_file)
-#     sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
-#     imported_module = importlib.import_module(module)
-
-#     run_context.from_sdk = True
-#     dag = getattr(imported_module, func)().return_dag()
-
-#     run_context.pipeline_file = python_module
-#     run_context.dag = dag
 
 
 def execute_pipeline_yaml_spec(
@@ -206,6 +43,7 @@ def execute_pipeline_yaml_spec(
         "tag": tag,
         "run_id": run_id,
         "execution_mode": context.ExecutionMode.YAML,
+        "configuration_file": configuration_file,
         **service_configurations.services,
     }
 
@@ -214,67 +52,9 @@ def execute_pipeline_yaml_spec(
 
     run_context = context.PipelineContext.model_validate(configurations)
 
-    context.run_context = run_context
-    executor = run_context.pipeline_executor
+    run_context.execute()
 
-    # Prepare for graph execution
-    executor._set_up_run_log(exists_ok=False)
-
-    console.print("Working with context:")
-    console.print(run_context)
-    console.rule(style="[dark orange]")
-
-    logger.info(f"Executing the graph: {run_context.dag}")
-    with Progress(
-        TextColumn(
-            "[progress.description]{task.description}", table_column=Column(ratio=2)
-        ),
-        BarColumn(table_column=Column(ratio=1), style="dark_orange"),
-        TimeElapsedColumn(table_column=Column(ratio=1)),
-        console=console,
-        expand=True,
-    ) as progress:
-        pipeline_execution_task = progress.add_task(
-            "[dark_orange] Starting execution .. ", total=1
-        )
-        try:
-            context.progress = progress
-            executor.execute_graph(dag=run_context.dag)  # type: ignore
-
-            if not executor._is_local:
-                # Non local executors only traverse the graph and do not execute the nodes
-                executor.send_return_code(stage="traversal")
-                return
-
-            run_log = run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id, full=False
-            )
-
-            if run_log.status == defaults.SUCCESS:
-                progress.update(
-                    pipeline_execution_task,
-                    description="[green] Success",
-                    completed=True,
-                )
-            else:
-                progress.update(
-                    pipeline_execution_task, description="[red] Failed", completed=True
-                )
-        except Exception as e:  # noqa: E722
-            console.print(e, style=defaults.error_style)
-            progress.update(
-                pipeline_execution_task,
-                description="[red] Errored execution",
-                completed=True,
-            )
-            run_log = run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id, full=False
-            )
-            run_log.status = defaults.FAIL
-            run_context.run_log_store.add_branch_log(run_log, run_context.run_id)
-            raise e
-
-    executor.send_return_code()
+    run_context.pipeline_executor.send_return_code()
 
 
 def execute_single_node(
@@ -295,55 +75,41 @@ def execute_single_node(
         - yaml
         - python
     """
-    # from runnable import nodes
 
-    # configurations = {
-    #     "pipeline_definition_file": pipeline_file,
-    #     "parameters_file": parameters_file,
-    #     "configuration_file": configuration_file,
-    #     "tag": tag,
-    #     "run_id": run_id,
-    # }
+    service_configurations = context.ServiceConfigurations(
+        configuration_file=configuration_file,
+        execution_context=context.ExecutionContext.PIPELINE,
+    )
+    configurations = {
+        "pipeline_definition_file": pipeline_file,
+        "parameters_file": parameters_file,
+        "tag": tag,
+        "run_id": run_id,
+        "execution_mode": mode,
+        "configuration_file": configuration_file,
+        **service_configurations.services,
+    }
 
-    # if configuration_file:
-    #     configurations.update(utils.load_yaml(configuration_file))
+    logger.info("Resolved configurations:")
+    logger.info(json.dumps(configurations, indent=4))
 
-    # configurations.update(
-    #     {
-    #         key: value
-    #         for key, value in defaults.DEFAULT_SERVICES.items()
-    #         if key not in configurations
-    #     }
-    # )
+    run_context = context.PipelineContext.model_validate(configurations)
+    assert run_context.dag
 
-    # logger.info("Resolved configurations:")
-    # logger.info(json.dumps(configurations, indent=4))
+    map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    # run_context = context.PipelineContext.model_validate(configurations)
-    # executor = run_context.pipeline_executor
+    step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
+    node_to_execute, _ = graph.search_node_by_internal_name(
+        run_context.dag, step_internal_name
+    )
 
-    # utils.set_runnable_environment_variables(
-    #     run_id=run_id, configuration_file=configuration_file, tag=tag
-    # )
+    logger.info("Executing the single node of : %s", node_to_execute)
 
-    # # TODO:  Is it useful to make it get from an environment variable
-    # map_variable_dict = utils.json_to_ordered_dict(map_variable)
+    run_context.pipeline_executor.execute_node(
+        node=node_to_execute, map_variable=map_variable_dict
+    )
 
-    # step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
-    # node_to_execute, _ = graph.search_node_by_internal_name(
-    #     run_context.dag, step_internal_name
-    # )
-
-    # logger.info("Executing the single node of : %s", node_to_execute)
-    # ## This step is where we save output of the function/shell command
-    # try:
-    #     executor.execute_node(node=node_to_execute, map_variable=map_variable_dict)
-    # finally:
-    #     executor.add_task_log_to_catalog(
-    #         name=node_to_execute.internal_name, map_variable=map_variable_dict
-    #     )
-
-    # executor.send_return_code()
+    run_context.pipeline_executor.send_return_code()
 
 
 def execute_job_yaml_spec(
@@ -419,22 +185,6 @@ def execute_job_yaml_spec(
     # run_context.job_definition_file = job_definition_file
     # run_context.job = tasks.create_task(job_config)
     # run_context.job_catalog_settings = catalog_config
-
-
-# def set_job_spec_from_python(run_context: context.Context, python_module: str):
-# Import the module and call the function to get the task
-# module_file = python_module.rstrip(".py")
-# module, func = utils.get_module_and_attr_names(module_file)
-# sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
-# imported_module = importlib.import_module(module)
-
-# run_context.from_sdk = True
-# task = getattr(imported_module, func)().get_task()
-# catalog_settings = getattr(imported_module, func)().return_catalog_settings()
-
-# run_context.job_definition_file = python_module
-# run_context.job = task
-# run_context.job_catalog_settings = catalog_settings
 
 
 def execute_job_non_local(

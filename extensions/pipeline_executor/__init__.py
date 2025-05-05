@@ -40,7 +40,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
     @property
     def _context(self):
-        assert context.run_context
+        assert isinstance(context.run_context, context.PipelineContext)
         return context.run_context
 
     def _get_parameters(self) -> Dict[str, JsonParameter]:

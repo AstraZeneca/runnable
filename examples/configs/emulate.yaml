@@ -1,0 +1,2 @@
+pipeline-executor:
+  type: emulator # (1)

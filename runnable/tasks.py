@@ -581,10 +581,18 @@ class NotebookTaskType(BaseTaskType):
                 }
                 kwds.update(ploomber_optional_args)
 
-                out_file = TeeIO()
-                with contextlib.redirect_stdout(out_file):
+                context.progress.stop()  # redirecting stdout clashes with rich progress
+
+                with redirect_output() as (buffer, stderr_buffer):
                     pm.execute_notebook(**kwds)
-                task_console.print(out_file.getvalue())
+
+                    print(stderr_buffer.getvalue())  # To print the logging statements
+
+                with task_console.capture():
+                    task_console.log(buffer.getvalue())
+                    task_console.log(stderr_buffer.getvalue())
+
+                context.progress.start()
 
                 context.run_context.catalog.put(name=notebook_output_path)
 
@@ -754,6 +762,7 @@ class ShellTaskType(BaseTaskType):
                 capture = False
                 return_keys = {x.name: x for x in self.returns}
 
+                context.progress.stop()  # redirecting stdout clashes with rich progress
                 proc = subprocess.Popen(
                     command,
                     shell=True,
@@ -777,6 +786,7 @@ class ShellTaskType(BaseTaskType):
                         continue
                     task_console.print(line, style=defaults.warning_style)
 
+                context.progress.start()
                 output_parameters: Dict[str, Parameter] = {}
                 metrics: Dict[str, Parameter] = {}
 

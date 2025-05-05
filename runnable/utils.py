@@ -65,6 +65,7 @@ def safe_make_dir(directory: Union[str, Path]):
     Path(directory).mkdir(parents=True, exist_ok=True)
 
 
+# TODO: remove this
 def generate_run_id(run_id: str = "") -> str:
     """Generate a new run_id.
 
@@ -144,19 +145,6 @@ def get_module_and_attr_names(command: str) -> Tuple[str, str]:
     func = mods[-1]
     module = ".".join(mods[:-1])
     return module, func
-
-
-def get_dag_hash(dag: Dict[str, Any]) -> str:
-    """Generates the hash of the dag definition.
-
-    Args:
-        dag (dict): The dictionary object containing the dag definition
-
-    Returns:
-        str: The hash of the dag definition
-    """
-    dag_str = json.dumps(dag, sort_keys=True, ensure_ascii=True)
-    return hashlib.sha1(dag_str.encode("utf-8")).hexdigest()
 
 
 def load_yaml(file_path: str, load_type: str = "safe") -> Dict[str, Any]:
@@ -313,30 +301,6 @@ def remove_prefix(text: str, prefix: str) -> str:
     return text  # or whatever is given
 
 
-# TODO: Could remove this?
-def get_tracked_data() -> Dict[str, str]:
-    """Scans the environment variables to find any user tracked variables that have a prefix runnable_TRACK_
-    Removes the environment variable to prevent any clashes in the future steps.
-
-    Returns:
-        dict: A dictionary of user tracked data
-    """
-    tracked_data = {}
-    for env_var, value in os.environ.items():
-        if env_var.startswith(defaults.TRACK_PREFIX):
-            key = remove_prefix(env_var, defaults.TRACK_PREFIX)
-            try:
-                tracked_data[key.lower()] = json.loads(value)
-            except json.decoder.JSONDecodeError:
-                logger.warning(
-                    f"Tracker {key} could not be JSON decoded, adding the literal value"
-                )
-                tracked_data[key.lower()] = value
-
-            del os.environ[env_var]
-    return tracked_data
-
-
 def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
     """
     Given two dicts d1 and d2, return a new dict that has upsert items from d1.
@@ -376,56 +340,6 @@ def get_data_hash(file_name: str) -> str:
             file_hash.update(chunk)
 
     return file_hash.hexdigest()
-
-
-# TODO: This is not the right place for this.
-def get_node_execution_command(
-    node: BaseNode,
-    map_variable: MapVariableType = None,
-    over_write_run_id: str = "",
-    log_level: str = "",
-) -> str:
-    """A utility function to standardize execution call to a node via command line.
-
-    Args:
-        executor (object): The executor class.
-        node (object): The Node to execute
-        map_variable (str, optional): If the node belongs to a map step. Defaults to None.
-
-    Returns:
-        str: The execution command to run a node via command line.
-    """
-    run_id = context.run_context.run_id
-    assert isinstance(context.run_context, context.PipelineContext)
-
-    if over_write_run_id:
-        run_id = over_write_run_id
-
-    log_level = log_level or logging.getLevelName(logger.getEffectiveLevel())
-
-    action = (
-        f"runnable execute-single-node {run_id} "
-        f"{context.run_context.pipeline_definition_file} "
-        f"{node._command_friendly_name()} "
-        f"--log-level {log_level} "
-    )
-
-    if context.run_context.from_sdk:
-        action = action + "--mode python "
-
-    if map_variable:
-        action = action + f"--map-variable '{json.dumps(map_variable)}' "
-
-    if context.run_context.configuration_file:
-        action = action + f"--config {context.run_context.configuration_file} "
-
-    if context.run_context.parameters_file:
-        action = action + f"--parameters-file {context.run_context.parameters_file} "
-
-    if context.run_context.tag:
-        action = action + f"--tag {context.run_context.tag}"
-
-    return action
 
 
 # TODO: This is not the right place for this.

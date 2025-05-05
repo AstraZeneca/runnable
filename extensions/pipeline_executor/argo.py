@@ -615,10 +615,10 @@ class ArgoExecutor(GenericPipelineExecutor):
             )
 
         # command = "runnable execute-single-node"
-        command = utils.get_node_execution_command(
+        command = self._context.get_node_callable_command(
             node=node,
-            over_write_run_id=self._run_id_as_parameter,
             map_variable=map_variable,
+            over_write_run_id=self._run_id_as_parameter,
             log_level=self._log_level_as_parameter,
         )
 

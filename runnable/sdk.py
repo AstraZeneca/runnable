@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 import re
@@ -16,14 +17,6 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from rich.progress import (
-    BarColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
-from rich.table import Column
 from typing_extensions import Self
 
 from extensions.nodes.conditional import ConditionalNode
@@ -33,7 +26,7 @@ from extensions.nodes.parallel import ParallelNode
 from extensions.nodes.stub import StubNode
 from extensions.nodes.success import SuccessNode
 from extensions.nodes.task import TaskNode
-from runnable import console, defaults, entrypoints, exceptions, graph, utils
+from runnable import console, defaults, entrypoints, graph, utils
 from runnable.executor import BaseJobExecutor
 from runnable.nodes import TraversalNode
 from runnable.tasks import BaseTaskType as RunnableTask
@@ -788,8 +781,6 @@ class Pipeline(BaseModel):
         return True
 
     def get_caller(self) -> str:
-        import inspect
-
         caller_stack = inspect.stack()[2]
         relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
 
@@ -830,6 +821,7 @@ class Pipeline(BaseModel):
             "tag": tag,
             "run_id": run_id,
             "execution_mode": context.ExecutionMode.PYTHON,
+            "configuration_file": configuration_file,
             **service_configurations.services,
         }
 
@@ -841,67 +833,7 @@ class Pipeline(BaseModel):
         if run_context.pipeline_executor._is_local:
             run_context.dag = self.return_dag()
 
-        assert run_context.dag is not None
-
-        console.print("Working with context:")
-        console.print(run_context)
-        console.rule(style="[dark orange]")
-
-        # Prepare for graph execution
-        run_context.pipeline_executor._set_up_run_log(exists_ok=False)
-        with Progress(
-            SpinnerColumn(spinner_name="runner"),
-            TextColumn(
-                "[progress.description]{task.description}", table_column=Column(ratio=2)
-            ),
-            BarColumn(table_column=Column(ratio=1), style="dark_orange"),
-            TimeElapsedColumn(table_column=Column(ratio=1)),
-            console=console,
-            expand=True,
-            auto_refresh=False,
-        ) as progress:
-            pipeline_execution_task = progress.add_task(
-                "[dark_orange] Starting execution .. ", total=1
-            )
-
-            try:
-                context.progress = progress
-                run_context.pipeline_executor.execute_graph(dag=run_context.dag)
-
-                if not run_context.pipeline_executor._is_local:
-                    # non local executors just traverse the graph and do nothing
-                    return {}
-
-                run_log = run_context.run_log_store.get_run_log_by_id(
-                    run_id=run_context.run_id, full=False
-                )
-
-                if run_log.status == defaults.SUCCESS:
-                    progress.update(
-                        pipeline_execution_task,
-                        description="[green] Success",
-                        completed=True,
-                    )
-                else:
-                    progress.update(
-                        pipeline_execution_task,
-                        description="[red] Failed",
-                        completed=True,
-                    )
-                    raise exceptions.ExecutionFailedError(run_context.run_id)
-            except Exception as e:  # noqa: E722
-                console.print(e, style=defaults.error_style)
-                progress.update(
-                    pipeline_execution_task,
-                    description="[red] Errored execution",
-                    completed=True,
-                )
-                raise
-
-        if run_context.pipeline_executor._is_local:
-            return run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id
-            )
+        run_context.execute()
 
 
 class BaseJob(BaseModel):
