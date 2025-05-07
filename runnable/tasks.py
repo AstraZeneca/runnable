@@ -514,8 +514,8 @@ class NotebookTaskType(BaseTaskType):
         for key, value in map_variable.items():
             tag += f"{key}_{value}_"
 
-        # if hasattr(self._context.executor, "_context_node"):
-        #     tag += self._context.executor._context_node.name
+        if isinstance(self._context, context.PipelineContext):
+            tag += self._context.pipeline_executor._context_node.name
 
         tag = "".join(x for x in tag if x.isalnum()).strip("-")
 
