@@ -423,20 +423,6 @@ def get_job_execution_command(over_write_run_id: str = "") -> str:
     return action
 
 
-def get_run_config() -> dict:
-    """Given an executor with assigned services, return the run_config.
-
-    Args:
-        executor (object): The executor with all the services assigned.
-
-    Returns:
-        dict: The run_config.
-    """
-
-    run_config = context.run_context.model_dump(by_alias=True)
-    return run_config
-
-
 def json_to_ordered_dict(json_str: str) -> MapVariableType:
     """Decode a JSON str into OrderedDict.
 

@@ -1,551 +1,784 @@
+from unittest.mock import Mock, patch
+
 import pytest
 
-from runnable import datastore, defaults, exceptions
+from runnable import exceptions
+from runnable.datastore import (
+    BranchLog,
+    BufferRunLogstore,
+    DataCatalog,
+    ObjectParameter,
+    RunLog,
+    StepLog,
+)
 
 
-@pytest.fixture(autouse=True)
-def instantiable_base_class(monkeypatch):
-    monkeypatch.setattr(datastore.BaseRunLogStore, "__abstractmethods__", set())
-    yield
+@pytest.fixture
+def mock_context():
+    """Fixture to create a mock run context"""
+    mock_ctx = Mock()
+    mock_ctx.object_serialisation = False
+    mock_ctx.pickler = Mock()
+    mock_ctx.pickler.extension = ".pkl"
+    mock_ctx.return_objects = {}
+    mock_ctx.catalog = Mock()
+    return mock_ctx
 
 
-def test_data_catalog_eq_is_equal_if_name_is_same():
-    this = datastore.DataCatalog(name="test")
-    that = datastore.DataCatalog(name="test")
-
-    assert this == that
-    assert len(set([this, that])) == 1
-
-
-def test_data_catalog_eq_is_not_equal_if_name_is_not_same():
-    this = datastore.DataCatalog(name="test")
-    that = datastore.DataCatalog(name="test1")
-
-    assert this != that
-    assert len(set([this, that])) == 2
+def test_object_parameter_init():
+    """Test basic initialization of ObjectParameter"""
+    obj_param = ObjectParameter(kind="object", value="test_obj")
+    assert obj_param.kind == "object"
+    assert obj_param.value == "test_obj"
+    assert obj_param.reduced is True
 
 
-def test_data_catalog_eq_is_not_equal_if_objs_are_not_same(mocker):
-    this = datastore.DataCatalog(name="test")
-    that = mocker.MagicMock()
+@pytest.mark.parametrize(
+    "serialisation,expected",
+    [
+        (True, "Pickled object stored in catalog as: test_obj"),
+        (False, "Object stored in memory as: test_obj"),
+    ],
+)
+def test_object_parameter_description(mock_context, serialisation, expected):
+    """Test description property under different serialization settings"""
+    with patch("runnable.datastore.context") as mock_ctx_module:
+        mock_ctx_module.run_context = mock_context
+        mock_context.object_serialisation = serialisation
 
-    assert this != that
-    assert len(set([this, that])) == 2
-
-
-# Some of the base run log store tests are not unit tests as they trust the structure of pydantic BaseModel.
-# I am intentionally allowing it as we are using them as containers and no actual functions are being called.
-
-
-def test_branchlog_get_data_catalogs_by_state_raises_exception_for_incorrect_stage():
-    branch_log = datastore.BranchLog(internal_name="test")
-    with pytest.raises(Exception):
-        branch_log.get_data_catalogs_by_stage(stage="notright")
-
-
-def test_branchlog_calls_step_logs_catalogs(mocker):
-    mock_step = mocker.MagicMock()
-    mock_get_data_catalogs_by_stage = mocker.MagicMock()
-
-    mock_step.get_data_catalogs_by_stage = mock_get_data_catalogs_by_stage
-
-    branch_log = datastore.BranchLog(internal_name="test")
-    branch_log.steps["test_step"] = mock_step
-
-    branch_log.get_data_catalogs_by_stage(stage="put")
-
-    mock_get_data_catalogs_by_stage.assert_called_once_with(stage="put")
+        obj_param = ObjectParameter(kind="object", value="test_obj")
+        assert obj_param.description == expected
 
 
-def test_steplog_get_data_catalogs_by_state_raises_exception_for_incorrect_stage():
-    step_log = datastore.StepLog(name="test", internal_name="test")
-    with pytest.raises(Exception):
-        step_log.get_data_catalogs_by_stage(stage="notright")
+def test_object_parameter_file_name(mock_context):
+    """Test file_name property"""
+    with patch("runnable.datastore.context") as mock_ctx_module:
+        mock_ctx_module.run_context = mock_context
+
+        obj_param = ObjectParameter(kind="object", value="test_obj")
+        assert obj_param.file_name == "test_obj.pkl"
 
 
-def test_steplog_get_data_catalogs_filters_by_stage(mocker):
-    step_log = datastore.StepLog(name="test", internal_name="test")
+def test_get_value_without_serialisation(mock_context):
+    """Test get_value when object serialisation is disabled"""
+    with patch("runnable.datastore.context") as mock_ctx_module:
+        mock_ctx_module.run_context = mock_context
+        mock_context.object_serialisation = False
+        mock_context.return_objects = {"test_obj": "test_value"}
 
-    mock_data_catalog_put = mocker.MagicMock()
-    mock_data_catalog_put.stage = "put"
-    mock_data_catalog_get = mocker.MagicMock()
-    mock_data_catalog_get.stage = "get"
-
-    step_log.data_catalog = [mock_data_catalog_get, mock_data_catalog_put]
-
-    assert step_log.get_data_catalogs_by_stage() == [mock_data_catalog_put]
-    assert step_log.get_data_catalogs_by_stage(stage="get") == [mock_data_catalog_get]
+        obj_param = ObjectParameter(kind="object", value="test_obj")
+        assert obj_param.get_value() == "test_value"
 
 
-def test_steplog_add_data_catalogs_inits_a_new_data_catalog():
-    step_log = datastore.StepLog(name="test", internal_name="test")
+def test_put_object_without_serialisation(mock_context):
+    """Test put_object when object serialisation is disabled"""
+    with patch("runnable.datastore.context") as mock_ctx_module:
+        mock_ctx_module.run_context = mock_context
+        mock_context.object_serialisation = False
 
-    step_log.add_data_catalogs(data_catalogs=[])
+        obj_param = ObjectParameter(kind="object", value="test_obj")
+        obj_param.put_object("test_value")
 
-    assert step_log.data_catalog == []
-
-
-def test_steplog_add_data_catalogs_appends_to_existing_catalog():
-    step_log = datastore.StepLog(name="test", internal_name="test")
-    step_log.data_catalog = ["a"]
-
-    step_log.add_data_catalogs(data_catalogs=["b"])
-
-    assert step_log.data_catalog == ["a", "b"]
+        assert mock_context.return_objects["test_obj"] == "test_value"
 
 
-def test_runlog_get_data_catalogs_by_state_raises_exception_for_incorrect_stage():
-    run_log = datastore.RunLog(run_id="run_id")
-    with pytest.raises(Exception):
-        run_log.get_data_catalogs_by_stage(stage="notright")
+def test_get_data_catalogs_by_stage_invalid_stage():
+    """Test that invalid stage raises exception"""
+    step_log = StepLog(name="test_step", internal_name="test_step")
+
+    with pytest.raises(Exception) as exc_info:
+        step_log.get_data_catalogs_by_stage(stage="invalid")
+    assert str(exc_info.value) == "Stage should be in get or put"
 
 
-def test_runlog_search_branch_by_internal_name_returns_run_log_if_internal_name_is_none():
-    run_log = datastore.RunLog(run_id="run_id")
+def test_get_data_catalogs_by_stage_empty():
+    """Test with empty data catalogs"""
+    step_log = StepLog(name="test_step", internal_name="test_step")
 
-    branch, step = run_log.search_branch_by_internal_name(i_name=None)
+    catalogs = step_log.get_data_catalogs_by_stage(stage="put")
+    assert len(catalogs) == 0
 
-    assert run_log == branch
+
+def test_get_data_catalogs_by_stage_put():
+    """Test get_data_catalogs_by_stage with 'put' stage"""
+    step_log = StepLog(name="test_step", internal_name="test_step")
+
+    # Add test catalogs
+    catalogs = [
+        DataCatalog(name="data1", stage="put"),
+        DataCatalog(name="data2", stage="get"),
+        DataCatalog(name="data3", stage="put"),
+    ]
+    step_log.data_catalog.extend(catalogs)
+
+    put_catalogs = step_log.get_data_catalogs_by_stage(stage="put")
+    assert len(put_catalogs) == 2
+    assert all(c.stage == "put" for c in put_catalogs)
+    assert {c.name for c in put_catalogs} == {"data1", "data3"}
+
+
+def test_get_data_catalogs_by_stage_get():
+    """Test get_data_catalogs_by_stage with 'get' stage"""
+    step_log = StepLog(name="test_step", internal_name="test_step")
+
+    # Add test catalogs
+    catalogs = [
+        DataCatalog(name="data1", stage="put"),
+        DataCatalog(name="data2", stage="get"),
+        DataCatalog(name="data3", stage="get"),
+    ]
+    step_log.data_catalog.extend(catalogs)
+
+    get_catalogs = step_log.get_data_catalogs_by_stage(stage="get")
+    assert len(get_catalogs) == 2
+    assert all(c.stage == "get" for c in get_catalogs)
+    assert {c.name for c in get_catalogs} == {"data2", "data3"}
+
+
+def test_get_data_catalogs_by_stage_with_branches():
+    """Test get_data_catalogs_by_stage with nested branches"""
+    step_log = StepLog(name="test_step", internal_name="test_step")
+
+    # Add catalogs to main step
+    step_log.data_catalog.extend(
+        [
+            DataCatalog(name="main_data1", stage="put"),
+            DataCatalog(name="main_data2", stage="get"),
+        ]
+    )
+
+    # Create a branch with its own catalogs
+    branch = BranchLog(internal_name="branch1")
+    branch_step = StepLog(name="branch_step", internal_name="branch_step")
+    branch_step.data_catalog.extend(
+        [
+            DataCatalog(name="branch_data1", stage="put"),
+            DataCatalog(name="branch_data2", stage="put"),
+        ]
+    )
+    branch.steps = {"branch_step": branch_step}
+
+    # Add branch to step
+    step_log.branches["branch1"] = branch
+
+    # Test getting all put catalogs
+    put_catalogs = step_log.get_data_catalogs_by_stage(stage="put")
+    assert len(put_catalogs) == 3
+    assert {c.name for c in put_catalogs} == {
+        "main_data1",
+        "branch_data1",
+        "branch_data2",
+    }
+
+
+def test_get_data_catalogs_by_stage_multiple_branches():
+    """Test get_data_catalogs_by_stage with multiple branches"""
+    step_log = StepLog(name="test_step", internal_name="test_step")
+
+    # Add catalogs to main step
+    step_log.data_catalog.extend([DataCatalog(name="main_data", stage="put")])
+
+    # Create multiple branches
+    for i in range(2):
+        branch = BranchLog(internal_name=f"branch{i}")
+        branch_step = StepLog(name=f"branch_step{i}", internal_name=f"branch_step{i}")
+        branch_step.data_catalog.extend(
+            [
+                DataCatalog(name=f"branch{i}_data1", stage="put"),
+                DataCatalog(name=f"branch{i}_data2", stage="get"),
+            ]
+        )
+        branch.steps = {f"branch_step{i}": branch_step}
+        step_log.branches[f"branch{i}"] = branch
+
+    # Test getting all put catalogs
+    put_catalogs = step_log.get_data_catalogs_by_stage(stage="put")
+    assert len(put_catalogs) == 3
+    assert {c.name for c in put_catalogs} == {
+        "main_data",
+        "branch0_data1",
+        "branch1_data1",
+    }
+
+    # Test getting all get catalogs
+    get_catalogs = step_log.get_data_catalogs_by_stage(stage="get")
+    assert len(get_catalogs) == 2
+    assert {c.name for c in get_catalogs} == {"branch0_data2", "branch1_data2"}
+
+
+def test_data_catalog_init_with_required_fields():
+    """Test initializing DataCatalog with only required name field"""
+    catalog = DataCatalog(name="test_data")
+    assert catalog.name == "test_data"
+    assert catalog.data_hash == ""
+    assert catalog.catalog_relative_path == ""
+    assert catalog.catalog_handler_location == ""
+    assert catalog.stage == ""
+
+
+def test_data_catalog_init_with_all_fields():
+    """Test initializing DataCatalog with all fields"""
+    catalog = DataCatalog(
+        name="test_data",
+        data_hash="abc123",
+        catalog_relative_path="/path/to/data",
+        catalog_handler_location="/root/catalog",
+        stage="put",
+    )
+    assert catalog.name == "test_data"
+    assert catalog.data_hash == "abc123"
+    assert catalog.catalog_relative_path == "/path/to/data"
+    assert catalog.catalog_handler_location == "/root/catalog"
+    assert catalog.stage == "put"
+
+
+def test_data_catalog_hash_based_on_name():
+    """Test that hash is based only on name field"""
+    catalog1 = DataCatalog(name="test_data", data_hash="abc123", stage="put")
+    catalog2 = DataCatalog(name="test_data", data_hash="def456", stage="get")
+    # Same name should produce same hash
+    assert hash(catalog1) == hash(catalog2)
+    assert hash(catalog1) == hash("test_data")
+
+
+def test_data_catalog_equality_based_on_name():
+    """Test equality comparison between DataCatalog objects"""
+    catalog1 = DataCatalog(name="test_data", data_hash="abc123", stage="put")
+    catalog2 = DataCatalog(name="test_data", data_hash="def456", stage="get")
+    # Same name means equal
+    assert catalog1 == catalog2
+
+
+def test_data_catalog_inequality():
+    """Test inequality comparison between DataCatalog objects"""
+    catalog1 = DataCatalog(name="test_data_1")
+    catalog2 = DataCatalog(name="test_data_2")
+    assert catalog1 != catalog2
+
+
+def test_data_catalog_equality_with_non_catalog():
+    """Test equality comparison with non-DataCatalog objects"""
+    catalog = DataCatalog(name="test_data")
+    assert catalog != "test_data"
+    assert catalog != {"name": "test_data"}
+    assert catalog != 123
+
+
+def test_data_catalog_allows_extra_fields():
+    """Test that extra fields are allowed"""
+    catalog = DataCatalog(
+        name="test_data", extra_field="extra_value", another_field=123
+    )
+    assert catalog.extra_field == "extra_value"
+    assert catalog.another_field == 123
+
+
+def test_search_branch_empty_name():
+    """Test searching branch with empty name returns the run log itself"""
+    run_log = RunLog(run_id="test_run")
+    branch, step = run_log.search_branch_by_internal_name("")
+
+    assert branch == run_log
     assert step is None
 
 
-def test_step_log_get_data_catalogs_by_stage_gets_catalogs_from_branches(
-    mocker, monkeypatch
-):
-    mock_branch_log = mocker.MagicMock()
-    mock_branch_log.get_data_catalogs_by_stage.return_value = ["from_branch"]
+def test_search_branch_simple_path():
+    """Test searching a simple branch path (step.branch)"""
+    run_log = RunLog(run_id="test_run")
 
-    step_log = datastore.StepLog(name="test", internal_name="for_testing")
+    # Create a step with a branch
+    step = StepLog(name="step1", internal_name="step1")
+    branch = BranchLog(internal_name="step1.branch1")
+    step.branches["step1.branch1"] = branch
+    run_log.steps["step1"] = step
 
-    step_log.branches["single_branch"] = mock_branch_log
+    found_branch, found_step = run_log.search_branch_by_internal_name("step1.branch1")
 
-    assert ["from_branch"] == step_log.get_data_catalogs_by_stage()
-
-
-def test_step_log_get_data_catalogs_by_stage_adds_catalogs_from_branches_to_current_ones(
-    mocker, monkeypatch
-):
-    mock_branch_log = mocker.MagicMock()
-    mock_branch_log.get_data_catalogs_by_stage.return_value = ["from_branch"]
-
-    mock_data_catalog = mocker.MagicMock()
-    mock_data_catalog.stage = "put"
-
-    step_log = datastore.StepLog(name="test", internal_name="for_testing")
-
-    step_log.branches["single_branch"] = mock_branch_log
-    step_log.data_catalog = [mock_data_catalog]
-
-    assert [mock_data_catalog, "from_branch"] == step_log.get_data_catalogs_by_stage()
+    assert found_branch == branch
+    assert found_step == step
 
 
-def test_run_log_get_data_catalogs_by_stage_gets_catalogs_from_steps(
-    mocker, monkeypatch
-):
-    mock_step = mocker.MagicMock()
+def test_search_branch_nested_path():
+    """Test searching a nested branch path (step.branch.step.branch)"""
+    run_log = RunLog(run_id="test_run")
 
-    mock_step.get_data_catalogs_by_stage.return_value = ["data catalog"]
+    # Create first level
+    step1 = StepLog(name="step1", internal_name="step1")
+    branch1 = BranchLog(internal_name="step1.branch1")
+    step1.branches["step1.branch1"] = branch1
+    run_log.steps["step1"] = step1
 
-    run_log = datastore.RunLog(run_id="test")
-    run_log.steps = {"first_step": mock_step}
+    # Create second level
+    step2 = StepLog(name="step2", internal_name="step1.branch1.step2")
+    branch2 = BranchLog(internal_name="step1.branch1.step2.branch2")
+    step2.branches["step1.branch1.step2.branch2"] = branch2
+    branch1.steps["step1.branch1.step2"] = step2
 
-    data_catalogs = run_log.get_data_catalogs_by_stage("get")
-
-    assert data_catalogs == ["data catalog"]
-
-
-def test_base_run_log_store_create_run_log_not_implemented():
-    run_log_store = datastore.BaseRunLogStore()
-    with pytest.raises(NotImplementedError):
-        run_log_store.create_run_log(run_id="will fail")
-
-
-def test_base_run_log_store_get_run_log_by_id_not_implemented():
-    run_log_store = datastore.BaseRunLogStore()
-    with pytest.raises(NotImplementedError):
-        run_log_store.get_run_log_by_id(run_id="will fail")
-
-
-def test_base_run_log_store_put_run_log_not_implemented():
-    run_log_store = datastore.BaseRunLogStore()
-    with pytest.raises(NotImplementedError):
-        run_log_store.put_run_log(run_log="will fail")
-
-
-def test_base_run_log_store_context_returns_global_context(mocker, monkeypatch):
-    mock_context = mocker.MagicMock()
-    mock_run_context = mocker.MagicMock()
-
-    mock_context.run_context = mock_run_context
-
-    monkeypatch.setattr(datastore, "context", mock_context)
-    run_log_store = datastore.BaseRunLogStore()
-    assert run_log_store._context == mock_run_context
-
-
-def test_base_run_log_store_update_run_log_status(mocker, monkeypatch):
-    run_log = datastore.RunLog(run_id="testing")
-
-    mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
-    mock_put_run_log = mocker.MagicMock()
-
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
-    )
-    monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
-
-    run_log_store = datastore.BaseRunLogStore()
-    run_log_store.update_run_log_status(run_id="test", status="running")
-    assert run_log.status == "running"
-
-
-def test_base_run_log_set_parameters_creates_parameters_if_not_present_previously(
-    mocker, monkeypatch
-):
-    run_log = datastore.RunLog(run_id="testing")
-
-    mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
-    mock_put_run_log = mocker.MagicMock()
-
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
-    )
-    monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
-    parameters = {"a": 1}
-
-    run_log_store = datastore.BaseRunLogStore()
-    run_log_store.set_parameters(run_id="testing", parameters=parameters)
-
-    assert run_log.parameters == parameters
-    mock_put_run_log.assert_called_once_with(run_log=run_log)
-
-
-def test_base_run_log_set_parameters_updates_parameters_if_present_previously(
-    mocker, monkeypatch
-):
-    run_log = datastore.RunLog(run_id="testing")
-    run_log.parameters = {"b": 2}
-    mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
-    mock_put_run_log = mocker.MagicMock()
-
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
-    )
-    monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
-    parameters = {"a": 1}
-
-    run_log_store = datastore.BaseRunLogStore()
-    run_log_store.set_parameters(run_id="testing", parameters=parameters)
-
-    assert run_log.parameters == {"a": 1, "b": 2}
-    mock_put_run_log.assert_called_once_with(run_log=run_log)
-
-
-def test_base_run_log_store_get_parameters_gets_from_run_log(mocker, monkeypatch):
-    run_log = datastore.RunLog(run_id="testing")
-    run_log.parameters = {"b": 2}
-
-    mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
-
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
+    found_branch, found_step = run_log.search_branch_by_internal_name(
+        "step1.branch1.step2.branch2"
     )
 
-    run_log_store = datastore.BaseRunLogStore()
-    assert run_log_store.get_parameters(run_id="testing") == {"b": 2}
+    assert found_branch == branch2
+    assert found_step == step2
 
 
-def test_base_run_log_store_get_run_config_returns_config_from_run_log(
-    mocker, monkeypatch
-):
-    run_log = datastore.RunLog(run_id="testing")
-    run_config = {"executor": "for testing"}
-    run_log.run_config = run_config
+def test_search_branch_not_found():
+    """Test searching for a non-existent branch raises error"""
+    run_log = RunLog(run_id="test_run")
 
-    mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
+    # Create a step without the searched branch
+    step = StepLog(name="step1", internal_name="step1")
+    run_log.steps["step1"] = step
 
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
+    with pytest.raises(exceptions.BranchLogNotFoundError) as exc_info:
+        run_log.search_branch_by_internal_name("step1.missing_branch")
+
+    assert exc_info.value.run_id == "test_run"
+    assert exc_info.value.branch_name == "step1.missing_branch"
+
+
+def test_search_branch_invalid_path():
+    """Test searching with invalid path structure raises error"""
+    run_log = RunLog(run_id="test_run")
+
+    # Create a step
+    step = StepLog(name="step1", internal_name="step1")
+    run_log.steps["step1"] = step
+
+    # Try to search with invalid path (missing step)
+    with pytest.raises(exceptions.BranchLogNotFoundError):
+        run_log.search_branch_by_internal_name("nonexistent.branch1")
+
+
+def test_search_branch_multiple_branches():
+    """Test searching in a structure with multiple branches"""
+    run_log = RunLog(run_id="test_run")
+
+    # Create first branch path
+    step1 = StepLog(name="step1", internal_name="step1")
+    branch1 = BranchLog(internal_name="step1.branch1")
+    step1.branches["step1.branch1"] = branch1
+    run_log.steps["step1"] = step1
+
+    # Create parallel branch path
+    step2 = StepLog(name="step2", internal_name="step2")
+    branch2 = BranchLog(internal_name="step2.branch2")
+    step2.branches["step2.branch2"] = branch2
+    run_log.steps["step2"] = step2
+
+    # Test finding first branch
+    found_branch1, found_step1 = run_log.search_branch_by_internal_name("step1.branch1")
+    assert found_branch1 == branch1
+    assert found_step1 == step1
+
+    # Test finding second branch
+    found_branch2, found_step2 = run_log.search_branch_by_internal_name("step2.branch2")
+    assert found_branch2 == branch2
+    assert found_step2 == step2
+
+
+def test_search_step_simple_path():
+    """Test searching for a step at the root level"""
+    run_log = RunLog(run_id="test_run")
+
+    # Create a simple step
+    step = StepLog(name="step1", internal_name="step1")
+    run_log.steps["step1"] = step
+
+    found_step, found_branch = run_log.search_step_by_internal_name("step1")
+    assert found_step == step
+    assert found_branch is None
+
+
+def test_search_step_nested_path():
+    """Test searching for a step inside a branch"""
+    run_log = RunLog(run_id="test_run")
+
+    # Create first level
+    step1 = StepLog(name="step1", internal_name="step1")
+    branch1 = BranchLog(internal_name="step1.branch1")
+    step1.branches["step1.branch1"] = branch1
+    run_log.steps["step1"] = step1
+
+    # Create nested step
+    step2 = StepLog(name="step2", internal_name="step1.branch1.step2")
+    branch1.steps["step1.branch1.step2"] = step2
+
+    found_step, found_branch = run_log.search_step_by_internal_name(
+        "step1.branch1.step2"
     )
-    run_log_store = datastore.BaseRunLogStore()
+    assert found_step == step2
+    assert found_branch == branch1
 
-    assert run_config == run_log_store.get_run_config(run_id="testing")
 
+def test_search_step_deeply_nested():
+    """Test searching for a step multiple levels deep"""
+    run_log = RunLog(run_id="test_run")
 
-def test_base_run_log_store_set_run_config_creates_run_log_if_not_present(
-    mocker, monkeypatch
-):
-    run_log = datastore.RunLog(run_id="testing")
+    # Create first level
+    step1 = StepLog(name="step1", internal_name="step1")
+    branch1 = BranchLog(internal_name="step1.branch1")
+    step1.branches["step1.branch1"] = branch1
+    run_log.steps["step1"] = step1
 
-    mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
-    mock_put_run_log = mocker.MagicMock()
-    run_config = {"executor": "for testing"}
+    # Create second level
+    step2 = StepLog(name="step2", internal_name="step1.branch1.step2")
+    branch2 = BranchLog(internal_name="step1.branch1.step2.branch2")
+    step2.branches["step1.branch1.step2.branch2"] = branch2
+    branch1.steps["step1.branch1.step2"] = step2
 
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
+    # Create final step
+    step3 = StepLog(name="step3", internal_name="step1.branch1.step2.branch2.step3")
+    branch2.steps["step1.branch1.step2.branch2.step3"] = step3
+
+    found_step, found_branch = run_log.search_step_by_internal_name(
+        "step1.branch1.step2.branch2.step3"
     )
-    monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
-
-    run_log_store = datastore.BaseRunLogStore()
-    run_log_store.set_run_config(run_id="testing", run_config=run_config)
-
-    assert run_log.run_config == run_config
-    mock_put_run_log.assert_called_once_with(run_log=run_log)
+    assert found_step == step3
+    assert found_branch == branch2
 
 
-def test_base_run_log_store_set_run_config_updates_run_log_if_present(
-    mocker, monkeypatch
-):
-    run_log = datastore.RunLog(
-        run_id="testing", run_config={"datastore": "for testing"}
+def test_search_step_not_found():
+    """Test searching for a non-existent step"""
+    run_log = RunLog(run_id="test_run")
+
+    with pytest.raises(exceptions.StepLogNotFoundError) as exc_info:
+        run_log.search_step_by_internal_name("nonexistent.step")
+
+    assert exc_info.value.run_id == "test_run"
+    assert exc_info.value.step_name == "nonexistent.step"
+
+
+def test_search_step_invalid_branch_path():
+    """Test searching with invalid branch path"""
+    run_log = RunLog(run_id="test_run")
+
+    # Create step but no branch
+    step = StepLog(name="step1", internal_name="step1")
+    run_log.steps["step1"] = step
+
+    with pytest.raises(exceptions.StepLogNotFoundError) as exc_info:
+        run_log.search_step_by_internal_name("step1.nonexistent.step2")
+
+    assert exc_info.value.run_id == "test_run"
+    assert exc_info.value.step_name == "step1.nonexistent.step2"
+
+
+def test_search_step_empty_runlog():
+    """Test searching in an empty run log"""
+    run_log = RunLog(run_id="test_run")
+
+    with pytest.raises(exceptions.StepLogNotFoundError) as exc_info:
+        run_log.search_step_by_internal_name("step1")
+
+    assert exc_info.value.run_id == "test_run"
+    assert exc_info.value.step_name == "step1"
+
+
+def test_add_step_log_basic():
+    """Test adding a basic step log to run log"""
+    # Create a buffer run log store
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
+
+    # Create a simple step log
+    step_log = StepLog(name="step1", internal_name="step1")
+
+    # Add step log
+    store.add_step_log(step_log, "test_run")
+
+    # Verify step was added correctly
+    assert "step1" in store.run_log.steps
+    assert store.run_log.steps["step1"] == step_log
+
+
+def test_add_step_log_nested():
+    """Test adding a step log within a branch"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
+
+    # Create parent step and branch
+    parent_step = StepLog(name="parent", internal_name="parent")
+    parent_branch = BranchLog(internal_name="parent.branch1")
+    parent_step.branches["parent.branch1"] = parent_branch
+    store.run_log.steps["parent"] = parent_step
+
+    # Create nested step
+    nested_step = StepLog(name="nested", internal_name="parent.branch1.nested")
+
+    # Add nested step
+    store.add_step_log(nested_step, "test_run")
+
+    # Verify nested step was added correctly
+    assert "parent.branch1.nested" in parent_branch.steps
+    assert parent_branch.steps["parent.branch1.nested"] == nested_step
+
+
+def test_add_step_log_run_not_found():
+    """Test adding step log to non-existent run"""
+    store = BufferRunLogstore(service_name="test_store")
+    step_log = StepLog(name="step1", internal_name="step1")
+
+    with pytest.raises(exceptions.RunLogNotFoundError) as exc_info:
+        store.add_step_log(step_log, "nonexistent_run")
+
+    assert exc_info.value.run_id == "nonexistent_run"
+
+
+def test_add_step_log_branch_not_found():
+    """Test adding step log to non-existent branch"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
+
+    # Create step with non-existent parent branch
+    step_log = StepLog(name="step1", internal_name="nonexistent.branch.step1")
+
+    with pytest.raises(exceptions.BranchLogNotFoundError) as exc_info:
+        store.add_step_log(step_log, "test_run")
+
+    assert exc_info.value.run_id == "test_run"
+    assert exc_info.value.branch_name == "nonexistent.branch"
+
+
+def test_add_step_log_multiple_levels():
+    """Test adding step log in deeply nested structure"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
+
+    # Create multi-level structure
+    level1_step = StepLog(name="level1", internal_name="level1")
+    level1_branch = BranchLog(internal_name="level1.branch1")
+    level1_step.branches["level1.branch1"] = level1_branch
+
+    level2_step = StepLog(name="level2", internal_name="level1.branch1.level2")
+    level2_branch = BranchLog(internal_name="level1.branch1.level2.branch2")
+    level2_step.branches["level1.branch1.level2.branch2"] = level2_branch
+
+    # Add structure to run log
+    store.run_log.steps["level1"] = level1_step
+    level1_branch.steps["level1.branch1.level2"] = level2_step
+
+    # Create and add deeply nested step
+    nested_step = StepLog(
+        name="nested", internal_name="level1.branch1.level2.branch2.nested"
     )
+    store.add_step_log(nested_step, "test_run")
 
-    mock_get_run_log_by_id = mocker.MagicMock(return_value=run_log)
-    mock_put_run_log = mocker.MagicMock()
-    run_config = {"executor": "for testing"}
+    # Verify deep nesting
+    assert "level1.branch1.level2.branch2.nested" in level2_branch.steps
+    assert level2_branch.steps["level1.branch1.level2.branch2.nested"] == nested_step
 
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore, "get_run_log_by_id", mock_get_run_log_by_id
-    )
-    monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
 
-    run_log_store = datastore.BaseRunLogStore()
-    run_log_store.set_run_config(run_id="testing", run_config=run_config)
+def test_add_step_log_replace_existing():
+    """Test replacing an existing step log"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
 
-    assert run_log.run_config == {"datastore": "for testing", "executor": "for testing"}
+    # Add initial step
+    initial_step = StepLog(name="step1", internal_name="step1", status="CREATED")
+    store.add_step_log(initial_step, "test_run")
 
+    # Replace with new step
+    replacement_step = StepLog(name="step1", internal_name="step1", status="COMPLETED")
+    store.add_step_log(replacement_step, "test_run")
 
-def test_base_run_log_store_create_step_log_returns_a_step_log_object():
-    run_log_store = datastore.BaseRunLogStore()
+    # Verify replacement
+    assert store.run_log.steps["step1"].status == "COMPLETED"
 
-    step_log = run_log_store.create_step_log(name="test", internal_name="test")
 
-    assert isinstance(step_log, datastore.StepLog)
+def test_get_branch_log_empty_name():
+    """Test getting branch with empty name returns the run log"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
 
+    branch = store.get_branch_log("", "test_run")
+    assert branch == run_log
 
-def test_base_run_log_store_get_step_log_raises_step_log_not_found_error_if_search_fails(
-    monkeypatch, mocker
-):
-    mock_run_log = mocker.MagicMock()
-    mock_run_log.search_step_by_internal_name.side_effect = (
-        exceptions.StepLogNotFoundError("test", "test")
-    )
 
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore,
-        "get_run_log_by_id",
-        mocker.MagicMock(return_value=mock_run_log),
-    )
-    run_log_store = datastore.BaseRunLogStore()
+def test_get_branch_log_simple_branch():
+    """Test getting a simple branch"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
 
-    with pytest.raises(exceptions.StepLogNotFoundError):
-        run_log_store.get_step_log(internal_name="test", run_id="test")
+    # Create step with branch
+    step = StepLog(name="step1", internal_name="step1")
+    branch = BranchLog(internal_name="step1.branch1")
+    step.branches["step1.branch1"] = branch
+    run_log.steps["step1"] = step
 
+    found_branch = store.get_branch_log("step1.branch1", "test_run")
+    assert found_branch == branch
+    assert found_branch.internal_name == "step1.branch1"
 
-def test_base_run_log_store_get_step_log_returns_from_log_search(monkeypatch, mocker):
-    mock_run_log = mocker.MagicMock()
-    mock_step_log = mocker.MagicMock()
-    mock_run_log.search_step_by_internal_name.return_value = mock_step_log, None
 
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore,
-        "get_run_log_by_id",
-        mocker.MagicMock(return_value=mock_run_log),
-    )
-    run_log_store = datastore.BaseRunLogStore()
+def test_get_branch_log_nested():
+    """Test getting a nested branch"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
 
-    assert mock_step_log == run_log_store.get_step_log(
-        internal_name="test", run_id="test"
-    )
+    # Create first level
+    step1 = StepLog(name="step1", internal_name="step1")
+    branch1 = BranchLog(internal_name="step1.branch1")
+    step1.branches["step1.branch1"] = branch1
+    run_log.steps["step1"] = step1
 
+    # Create second level
+    step2 = StepLog(name="step2", internal_name="step1.branch1.step2")
+    branch2 = BranchLog(internal_name="step1.branch1.step2.branch2")
+    step2.branches["step1.branch1.step2.branch2"] = branch2
+    branch1.steps["step1.branch1.step2"] = step2
 
-def test_base_run_log_store_create_branch_log_returns_a_branch_log_object():
-    run_log_store = datastore.BaseRunLogStore()
+    found_branch = store.get_branch_log("step1.branch1.step2.branch2", "test_run")
+    assert found_branch == branch2
+    assert found_branch.internal_name == "step1.branch1.step2.branch2"
 
-    branch_log = run_log_store.create_branch_log(internal_branch_name="test")
 
-    assert isinstance(branch_log, datastore.BranchLog)
+def test_get_branch_log_nonexistent():
+    """Test getting a non-existent branch raises error"""
+    store = BufferRunLogstore(service_name="test_store")
+    store.create_run_log(run_id="test_run")
 
+    with pytest.raises(exceptions.BranchLogNotFoundError) as exc_info:
+        store.get_branch_log("nonexistent.branch", "test_run")
 
-def test_base_run_log_store_create_code_identity_object():
-    run_log_store = datastore.BaseRunLogStore()
+    assert exc_info.value.run_id == "test_run"
+    assert exc_info.value.branch_name == "nonexistent.branch"
 
-    code_identity = run_log_store.create_code_identity()
 
-    assert isinstance(code_identity, datastore.CodeIdentity)
+def test_get_branch_log_invalid_run_id():
+    """Test getting branch with invalid run ID raises error"""
+    store = BufferRunLogstore(service_name="test_store")
 
+    with pytest.raises(exceptions.RunLogNotFoundError) as exc_info:
+        store.get_branch_log("branch1", "invalid_run")
 
-def test_base_run_log_store_create_data_catalog_object():
-    run_log_store = datastore.BaseRunLogStore()
+    assert exc_info.value.run_id == "invalid_run"
 
-    data_catalog = run_log_store.create_data_catalog(name="data")
 
-    assert isinstance(data_catalog, datastore.DataCatalog)
+def test_get_branch_log_multiple_branches():
+    """Test getting branches from a structure with multiple branches"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
 
+    # Create parallel branches
+    step1 = StepLog(name="step1", internal_name="step1")
+    branch1 = BranchLog(internal_name="step1.branch1")
+    step1.branches["step1.branch1"] = branch1
+    run_log.steps["step1"] = step1
 
-def test_base_run_log_store_add_step_log_adds_log_to_run_log_if_branch_is_none(
-    mocker, monkeypatch
-):
-    step_log = datastore.StepLog(
-        name="test", internal_name="test"
-    )  #  step_log at root level
+    step2 = StepLog(name="step2", internal_name="step2")
+    branch2 = BranchLog(internal_name="step2.branch2")
+    step2.branches["step2.branch2"] = branch2
+    run_log.steps["step2"] = step2
 
-    mock_run_log = mocker.MagicMock()
-    mock_run_log.search_branch_by_internal_name.return_value = None, None
-    mock_run_log.steps = {}
+    # Test getting both branches
+    found_branch1 = store.get_branch_log("step1.branch1", "test_run")
+    found_branch2 = store.get_branch_log("step2.branch2", "test_run")
 
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore,
-        "get_run_log_by_id",
-        mocker.MagicMock(return_value=mock_run_log),
-    )
-    monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mocker.MagicMock())
+    assert found_branch1 == branch1
+    assert found_branch2 == branch2
+    assert found_branch1.internal_name == "step1.branch1"
+    assert found_branch2.internal_name == "step2.branch2"
 
-    run_log_store = datastore.BaseRunLogStore()
 
-    run_log_store.add_step_log(step_log=step_log, run_id="test")
-    assert mock_run_log.steps["test"] == step_log
+def test_add_branch_log_simple():
+    """Test adding a simple branch log"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
 
+    # Create step that will contain branch
+    step = StepLog(name="step1", internal_name="step1")
+    run_log.steps["step1"] = step
 
-def test_base_run_log_store_add_step_log_adds_log_to_branch_log_if_branch_is_found(
-    mocker, monkeypatch
-):
-    step_log = datastore.StepLog(
-        name="test", internal_name="test.branch.step"
-    )  #  step_log at branch level
+    # Create and add branch
+    branch = BranchLog(internal_name="step1.branch1")
+    store.add_branch_log(branch, "test_run")
 
-    mock_run_log = mocker.MagicMock()
-    mock_branch_log = mocker.MagicMock()
-    mock_run_log.search_branch_by_internal_name.return_value = mock_branch_log, None
-    mock_branch_log.steps = {}
+    # Verify branch was added correctly
+    assert "step1.branch1" in step.branches
+    assert step.branches["step1.branch1"] == branch
 
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore,
-        "get_run_log_by_id",
-        mocker.MagicMock(return_value=mock_run_log),
-    )
-    monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mocker.MagicMock())
 
-    run_log_store = datastore.BaseRunLogStore()
+def test_add_branch_log_runlog():
+    """Test adding a RunLog as branch (base DAG case)"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = RunLog(run_id="test_run")
 
-    run_log_store.add_step_log(step_log=step_log, run_id="test")
-    assert mock_branch_log.steps["test.branch.step"] == step_log
+    # Add RunLog as branch
+    store.add_branch_log(run_log, "test_run")
 
+    # Verify RunLog was stored
+    assert store.run_log == run_log
 
-def test_base_run_log_store_get_branch_log_returns_run_log_if_internal_branch_name_is_none(
-    mocker, monkeypatch
-):
-    mock_run_log = mocker.MagicMock()
 
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore,
-        "get_run_log_by_id",
-        mocker.MagicMock(return_value=mock_run_log),
-    )
+def test_add_branch_log_nested():
+    """Test adding a branch in nested structure"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
 
-    run_log_store = datastore.BaseRunLogStore()
-    assert mock_run_log == run_log_store.get_branch_log(
-        internal_branch_name=None, run_id="test"
-    )
+    # Create first level
+    step1 = StepLog(name="step1", internal_name="step1")
+    branch1 = BranchLog(internal_name="step1.branch1")
+    step1.branches["step1.branch1"] = branch1
+    run_log.steps["step1"] = step1
 
+    # Create second level step
+    step2 = StepLog(name="step2", internal_name="step1.branch1.step2")
+    branch1.steps["step1.branch1.step2"] = step2
 
-def test_base_run_log_store_get_branch_log_returns_branch_log_if_internal_branch_name_is_given(
-    mocker, monkeypatch
-):
-    mock_run_log = mocker.MagicMock()
-    mock_branch_log = mocker.MagicMock()
+    # Create and add nested branch
+    nested_branch = BranchLog(internal_name="step1.branch1.step2.branch2")
+    store.add_branch_log(nested_branch, "test_run")
 
-    mock_run_log.search_branch_by_internal_name.return_value = mock_branch_log, None
+    # Verify nested branch was added correctly
+    assert "step1.branch1.step2.branch2" in step2.branches
+    assert step2.branches["step1.branch1.step2.branch2"] == nested_branch
 
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore,
-        "get_run_log_by_id",
-        mocker.MagicMock(return_value=mock_run_log),
-    )
 
-    run_log_store = datastore.BaseRunLogStore()
-    assert mock_branch_log == run_log_store.get_branch_log(
-        internal_branch_name="branch", run_id="test"
-    )
+def test_add_branch_log_nonexistent_step():
+    """Test adding branch to non-existent step raises error"""
+    store = BufferRunLogstore(service_name="test_store")
+    store.create_run_log(run_id="test_run")
 
+    # Try to add branch to non-existent step
+    branch = BranchLog(internal_name="nonexistent.branch1")
 
-def test_base_run_log_store_add_branch_log_adds_run_log_if_sent(monkeypatch, mocker):
-    mock_put_run_log = mocker.MagicMock()
-    monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
+    with pytest.raises(exceptions.StepLogNotFoundError) as exc_info:
+        store.add_branch_log(branch, "test_run")
 
-    run_log = datastore.RunLog(run_id="test")
+    assert exc_info.value.run_id == "test_run"
+    assert exc_info.value.step_name == "nonexistent"
 
-    run_log_store = datastore.BaseRunLogStore()
 
-    run_log_store.add_branch_log(branch_log=run_log, run_id="test")
+def test_add_branch_log_invalid_run():
+    """Test adding branch to non-existent run raises error"""
+    store = BufferRunLogstore(service_name="test_store")
+    branch = BranchLog(internal_name="step1.branch1")
 
-    mock_put_run_log.assert_called_once_with(run_log)
+    with pytest.raises(exceptions.RunLogNotFoundError) as exc_info:
+        store.add_branch_log(branch, "nonexistent_run")
 
+    assert exc_info.value.run_id == "nonexistent_run"
 
-def test_base_run_log_add_branch_log_adds_branch_to_the_right_step(mocker, monkeypatch):
-    branch_log = datastore.BranchLog(internal_name="test.branch.step")
 
-    mock_run_log = mocker.MagicMock()
-    mock_step = mocker.MagicMock()
-    mock_step.branches = {}
+def test_add_branch_log_multiple_branches():
+    """Test adding multiple branches to same step"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
 
-    mock_put_run_log = mocker.MagicMock()
-    monkeypatch.setattr(datastore.BaseRunLogStore, "put_run_log", mock_put_run_log)
-    monkeypatch.setattr(
-        datastore.BaseRunLogStore,
-        "get_run_log_by_id",
-        mocker.MagicMock(return_value=mock_run_log),
-    )
+    # Create step that will contain branches
+    step = StepLog(name="step1", internal_name="step1")
+    run_log.steps["step1"] = step
 
-    mock_run_log.search_step_by_internal_name.return_value = mock_step, None
+    # Create and add multiple branches
+    branch1 = BranchLog(internal_name="step1.branch1")
+    branch2 = BranchLog(internal_name="step1.branch2")
 
-    run_log_store = datastore.BaseRunLogStore()
+    store.add_branch_log(branch1, "test_run")
+    store.add_branch_log(branch2, "test_run")
 
-    run_log_store.add_branch_log(branch_log=branch_log, run_id="test")
-
-    assert mock_step.branches["test.branch.step"] == branch_log
-
-
-def test_buffered_run_log_store_inits_run_log_as_none():
-    run_log_store = datastore.BufferRunLogstore()
-
-    assert run_log_store.run_log is None
-
-
-def test_buffered_run_log_store_create_run_log_creates_a_run_log_object():
-    run_log_store = datastore.BufferRunLogstore()
-
-    run_log = run_log_store.create_run_log(run_id="test")
-
-    assert isinstance(run_log, datastore.RunLog)
-    assert run_log.status == defaults.CREATED
-
-
-def test_buffered_run_log_store_get_run_log_returns_the_run_log():
-    run_log_store = datastore.BufferRunLogstore()
-
-    run_log = datastore.RunLog(run_id="test")
-    run_log.status = defaults.PROCESSING
-    run_log_store.run_log = run_log
-
-    r_run_log = run_log_store.get_run_log_by_id("test")
-    assert r_run_log == run_log
-
-
-def test_buffered_run_log_store_put_run_log_updates_the_run_log():
-    run_log_store = datastore.BufferRunLogstore()
-
-    run_log = datastore.RunLog(run_id="test")
-    run_log_store.put_run_log(run_log=run_log)
-
-    assert run_log == run_log_store.run_log
-
-    r_run_log = run_log_store.get_run_log_by_id("test")
-    assert r_run_log == run_log
-
-
-def test_buffered_get_run_log_by_id_raises_exception_if_not_found():
-    run_log_store = datastore.BufferRunLogstore()
-
-    with pytest.raises(exceptions.RunLogNotFoundError):
-        run_log_store.get_run_log_by_id("test")
+    # Verify both branches were added correctly
+    assert "step1.branch1" in step.branches
+    assert "step1.branch2" in step.branches
+    assert step.branches["step1.branch1"] == branch1
+    assert step.branches["step1.branch2"] == branch2

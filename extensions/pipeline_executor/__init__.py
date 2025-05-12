@@ -104,7 +104,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         )
 
         # Update run_config
-        run_config = utils.get_run_config()
+        run_config = self._context.model_dump()
         logger.debug(f"run_config as seen by executor: {run_config}")
         self._context.run_log_store.set_run_config(
             run_id=self._context.run_id, run_config=run_config

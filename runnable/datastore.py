@@ -467,23 +467,29 @@ class RunLog(BaseModel):
         current_step = None
         current_branch = None
 
-        for i in range(len(dot_path)):
-            if i % 2:
-                # Its odd, so we are in branch
-                # Get the branch that holds the step
-                current_branch = current_step.branches[".".join(dot_path[: i + 1])]  # type: ignore
-                current_steps = current_branch.steps
-                logger.debug(f"Finding branch {i_name} in branch: {current_branch}")
-            else:
-                # Its even, so we are in step, we start here!
-                # Get the step that holds the branch
-                current_step = current_steps[".".join(dot_path[: i + 1])]
-                logger.debug(f"Finding branch for {i_name} in step: {current_step}")
+        try:
+            for i in range(len(dot_path)):
+                if i % 2:
+                    # Its odd, so we are in branch
+                    # Get the branch that holds the step
+                    current_branch = current_step.branches[".".join(dot_path[: i + 1])]  # type: ignore
+                    current_steps = current_branch.steps
+                    logger.debug(f"Finding branch {i_name} in branch: {current_branch}")
+                else:
+                    # Its even, so we are in step, we start here!
+                    # Get the step that holds the branch
+                    current_step = current_steps[".".join(dot_path[: i + 1])]
+                    logger.debug(f"Finding branch for {i_name} in step: {current_step}")
 
-        logger.debug(f"current branch : {current_branch}, current step {current_step}")
-        if current_branch and current_step:
-            return current_branch, current_step
+            logger.debug(
+                f"current branch : {current_branch}, current step {current_step}"
+            )
+            if current_branch and current_step:
+                return current_branch, current_step
+        except KeyError as _e:
+            raise exceptions.BranchLogNotFoundError(self.run_id, i_name) from _e
 
+        # If we are here, we have not found the branch
         raise exceptions.BranchLogNotFoundError(self.run_id, i_name)
 
     def search_step_by_internal_name(
@@ -513,23 +519,31 @@ class RunLog(BaseModel):
         current_steps = self.steps
         current_step = None
         current_branch = None
-        for i in range(len(dot_path)):
-            if i % 2:
-                # Its odd, so we are in brach name
-                current_branch = current_step.branches[".".join(dot_path[: i + 1])]  # type: ignore
-                current_steps = current_branch.steps
-                logger.debug(
-                    f"Finding step log for {i_name} in branch: {current_branch}"
-                )
-            else:
-                # Its even, so we are in step, we start here!
-                current_step = current_steps[".".join(dot_path[: i + 1])]
-                logger.debug(f"Finding step log for {i_name} in step: {current_step}")
+        try:
+            for i in range(len(dot_path)):
+                if i % 2:
+                    # Its odd, so we are in brach name
+                    current_branch = current_step.branches[".".join(dot_path[: i + 1])]  # type: ignore
+                    current_steps = current_branch.steps
+                    logger.debug(
+                        f"Finding step log for {i_name} in branch: {current_branch}"
+                    )
+                else:
+                    # Its even, so we are in step, we start here!
+                    current_step = current_steps[".".join(dot_path[: i + 1])]
+                    logger.debug(
+                        f"Finding step log for {i_name} in step: {current_step}"
+                    )
 
-        logger.debug(f"current branch : {current_branch}, current step {current_step}")
-        if current_branch and current_step:
-            return current_step, current_branch
+            logger.debug(
+                f"current branch : {current_branch}, current step {current_step}"
+            )
+            if current_branch and current_step:
+                return current_step, current_branch
+        except KeyError as _e:
+            raise exceptions.StepLogNotFoundError(self.run_id, i_name) from _e
 
+        # If we are here, we have not found the step
         raise exceptions.StepLogNotFoundError(self.run_id, i_name)
 
 
@@ -547,23 +561,6 @@ class BaseRunLogStore(ABC, BaseModel):
     @property
     def _context(self):
         return context.run_context
-
-        """
-        Retrieves a Job log from the database using the config and the job_id
-
-        Args:
-            job_id (str): The job_id of the job
-
-        Returns:
-            JobLog: The JobLog object identified by the job_id
-
-        Logically the method should:
-            * Returns the job_log defined by id from the data store defined by the config
-
-        Raises:
-            NotImplementedError: This is a base class and therefore has no default implementation
-            JobLogNotFoundError: If the job log for job_id is not found in the datastore
-        """
 
     @abstractmethod
     def create_run_log(
