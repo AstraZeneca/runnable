@@ -4,8 +4,10 @@ import sys
 
 import pytest
 
-from runnable import defaults  # pylint: disable=import-error
-from runnable import utils  # pylint: disable=import-error
+from runnable import (
+    defaults,  # pylint: disable=import-error
+    utils,  # pylint: disable=import-error
+)
 
 
 def test_does_file_exist_returns_true_if_path_true(mocker, monkeypatch):
@@ -91,19 +93,6 @@ def test_get_module_and_func_names_returns_module_and_func_names_inner():
 
     assert m == "module1.module2"
     assert f == "func"
-
-
-def test_get_dag_hash_sorts_keys(mocker, monkeypatch):
-    dag = {"b": 1, "a": 2}
-
-    mock_sha1 = mocker.MagicMock()
-    mock_hashlib = mocker.MagicMock()
-    mock_hashlib.sha1 = mock_sha1
-    monkeypatch.setattr(utils, "hashlib", mock_hashlib)
-
-    utils.get_dag_hash(dag)
-
-    mock_sha1.assert_called_once_with('{"a": 2, "b": 1}'.encode("utf-8"))
 
 
 def test_load_yaml_raises_exception_if_yaml_load_does(mocker, monkeypatch):
@@ -316,34 +305,6 @@ def test_remove_prefix_returns_text_removes_prefix_if_found_full():
     assert utils.remove_prefix(text, "hi") == ""
 
 
-def test_get_tracked_data_does_nothing_if_prefix_does_not_match(monkeypatch):
-    monkeypatch.setenv("random", "value")
-
-    assert utils.get_tracked_data() == {}
-
-
-def test_get_tracked_data_returns_the_data_if_prefix_match_int(monkeypatch):
-    monkeypatch.setenv(defaults.TRACK_PREFIX + "key", "1")
-
-    assert utils.get_tracked_data() == {"key": 1}
-
-
-def test_get_tracked_data_returns_the_data_if_prefix_match_string(monkeypatch):
-    monkeypatch.setenv(defaults.TRACK_PREFIX + "key", '"value"')
-
-    assert utils.get_tracked_data() == {"key": "value"}
-
-
-def test_get_tracked_data_removes_the_data_if_prefix_match_remove(monkeypatch):
-    monkeypatch.setenv(defaults.TRACK_PREFIX + "key", "1")
-
-    assert defaults.TRACK_PREFIX + "key" in os.environ
-
-    utils.get_tracked_data()
-
-    assert defaults.TRACK_PREFIX + "key" not in os.environ
-
-
 def test_get_local_docker_image_id_gets_image_from_docker_client(mocker, monkeypatch):
     mock_client = mocker.MagicMock()
     mock_docker = mocker.MagicMock()
@@ -374,78 +335,3 @@ def test_get_local_docker_image_id_returns_none_in_exception(mocker, monkeypatch
         )
 
         assert utils.get_local_docker_image_id("test") == ""
-
-
-def test_get_node_execution_command_returns_runnable_execute(mocker, monkeypatch):
-    import logging
-
-    mock_context = mocker.MagicMock()
-    mock_context.run_context.run_id = "test_run_id"
-    mock_context.run_context.pipeline_file = "test_pipeline_file"
-    mock_context.run_context.configuration_file = "test_configuration_file"
-    mock_context.run_context.parameters_file = "test_parameters_file"
-    mock_context.run_context.tag = "test_tag"
-
-    monkeypatch.setattr(utils, "context", mock_context)
-
-    logger = logging.getLogger(name="runnable")
-    old_level = logger.level
-    logger.setLevel(defaults.LOG_LEVEL)
-
-    class MockNode:
-        internal_name = "test_node_id"
-
-        def _command_friendly_name(self):
-            return "test_node_id"
-
-    test_map_variable = {"a": "b"}
-    try:
-        assert utils.get_node_execution_command(
-            MockNode(), map_variable=test_map_variable
-        ) == (
-            "runnable execute-single-node test_run_id test_pipeline_file test_node_id "
-            f"--log-level WARNING --mode python --map-variable '{json.dumps(test_map_variable)}' --config test_configuration_file "
-            "--parameters-file test_parameters_file --tag test_tag"
-        )
-    finally:
-        logger.setLevel(old_level)
-
-
-def test_get_node_execution_command_overwrites_run_id_if_asked(mocker, monkeypatch):
-    import logging
-
-    mock_context = mocker.MagicMock()
-    mock_context.run_context.run_id = "test_run_id"
-    mock_context.run_context.pipeline_file = "test_pipeline_file"
-    mock_context.run_context.configuration_file = "test_configuration_file"
-    mock_context.run_context.parameters_file = "test_parameters_file"
-    mock_context.run_context.tag = "test_tag"
-
-    monkeypatch.setattr(utils, "context", mock_context)
-
-    class MockNode:
-        internal_name = "test_node_id"
-
-        def _command_friendly_name(self):
-            return "test_node_id"
-
-    logger = logging.getLogger(name="runnable")
-    old_level = logger.level
-    logger.setLevel(defaults.LOG_LEVEL)
-
-    test_map_variable = {"a": "b"}
-    try:
-        assert utils.get_node_execution_command(
-            MockNode(), map_variable=test_map_variable, over_write_run_id="this"
-        ) == (
-            "runnable execute-single-node this test_pipeline_file test_node_id "
-            f"--log-level WARNING --mode python --map-variable '{json.dumps(test_map_variable)}' --config test_configuration_file "
-            "--parameters-file test_parameters_file --tag test_tag"
-        )
-    finally:
-        logger.setLevel(old_level)
-
-
-def test_get_service_base_class_throws_exception_for_unknown_service():
-    with pytest.raises(Exception):
-        utils.get_service_base_class("Does not exist")

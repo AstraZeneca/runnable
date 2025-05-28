@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Dict
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults, utils
@@ -70,7 +70,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
     auto_remove_container: bool = True
     environment: Dict[str, str] = Field(default_factory=dict)
 
-    _is_local: bool = False
+    _should_setup_run_log_at_traversal: bool = PrivateAttr(default=True)
 
     _container_log_location = "/tmp/run_logs/"
     _container_catalog_location = "/tmp/catalog/"

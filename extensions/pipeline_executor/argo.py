@@ -28,7 +28,7 @@ from extensions.nodes.task import TaskNode
 # TODO: Should be part of a wider refactor
 # from extensions.nodes.torch import TorchNode
 from extensions.pipeline_executor import GenericPipelineExecutor
-from runnable import defaults, utils
+from runnable import defaults
 from runnable.defaults import MapVariableType
 from runnable.graph import Graph, search_node_by_internal_name
 from runnable.nodes import BaseNode
@@ -455,7 +455,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     """
 
     service_name: str = "argo"
-    _is_local: bool = False
+    _should_setup_run_log_at_traversal: bool = PrivateAttr(default=False)
     mock: bool = False
 
     model_config = ConfigDict(
@@ -543,7 +543,7 @@ class ArgoExecutor(GenericPipelineExecutor):
                 "{{inputs.parameters." + str(parameter.name) + "}}"
             )
 
-        fan_command = utils.get_fan_command(
+        fan_command = self._context.get_fan_command(
             mode=mode,
             node=node,
             run_id=self._run_id_as_parameter,

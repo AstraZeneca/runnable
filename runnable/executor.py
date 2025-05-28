@@ -34,7 +34,9 @@ class BaseExecutor(ABC, BaseModel):
     service_name: str = ""
     service_type: str = "executor"
 
-    _is_local: bool = PrivateAttr(default=False)
+    # Should have _should_setup_run_log_at_traversal, local, local_container, emulator is true
+    # False for everything else
+    _should_setup_run_log_at_traversal: bool = PrivateAttr(default=True)
 
     model_config = ConfigDict(extra="forbid")
 

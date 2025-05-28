@@ -261,53 +261,45 @@ def fan(
         parameters_file (str): The parameters being sent in to the application
 
     """
-    # from runnable import nodes
+    service_configurations = context.ServiceConfigurations(
+        configuration_file=configuration_file,
+        execution_context=context.ExecutionContext.PIPELINE,
+    )
+    configurations = {
+        "pipeline_definition_file": pipeline_file,
+        "parameters_file": parameters_file,
+        "tag": tag,
+        "run_id": run_id,
+        "execution_mode": mode,
+        "configuration_file": configuration_file,
+        **service_configurations.services,
+    }
 
-    # configuration_file = os.environ.get(
-    #     "RUNNABLE_CONFIGURATION_FILE", configuration_file
-    # )
+    logger.info("Resolved configurations:")
+    logger.info(json.dumps(configurations, indent=4))
 
-    # run_context = prepare_configurations(
-    #     configuration_file=configuration_file,
-    #     run_id=run_id,
-    #     tag=tag,
-    #     parameters_file=parameters_file,
-    # )
+    run_context = context.PipelineContext.model_validate(configurations)
+    assert run_context.dag
 
-    # assert isinstance(run_context.executor, BasePipelineExecutor)
+    step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
+    node_to_execute, _ = graph.search_node_by_internal_name(
+        run_context.dag, step_internal_name
+    )
 
-    # if mode == "yaml":
-    #     # Load the yaml file
-    #     set_pipeline_spec_from_yaml(run_context, pipeline_file)
-    # elif mode == "python":
-    #     # Call the SDK to get the dag
-    #     set_pipeline_spec_from_python(run_context, pipeline_file)
+    map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
-    # console.print("Working with context:")
-    # console.print(run_context)
-    # console.rule(style="[dark orange]")
-
-    # executor = run_context.executor
-    # utils.set_runnable_environment_variables(
-    #     run_id=run_id, configuration_file=configuration_file, tag=tag
-    # )
-
-    # step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
-    # node_to_execute, _ = graph.search_node_by_internal_name(
-    #     run_context.dag,  # type: ignore
-    #     step_internal_name,
-    # )
-
-    # map_variable_dict = utils.json_to_ordered_dict(map_variable)
-
-    # if in_or_out == "in":
-    #     logger.info("Fanning in for : %s", node_to_execute)
-    #     executor.fan_in(node=node_to_execute, map_variable=map_variable_dict)
-    # elif in_or_out == "out":
-    #     logger.info("Fanning out for : %s", node_to_execute)
-    #     executor.fan_out(node=node_to_execute, map_variable=map_variable_dict)
-    # else:
-    #     raise ValueError(f"Invalid mode {mode}")
+    if in_or_out == "in":
+        logger.info("Fanning in for : %s", node_to_execute)
+        run_context.pipeline_executor.fan_in(
+            node=node_to_execute, map_variable=map_variable_dict
+        )
+    elif in_or_out == "out":
+        logger.info("Fanning out for : %s", node_to_execute)
+        run_context.pipeline_executor.fan_out(
+            node=node_to_execute, map_variable=map_variable_dict
+        )
+    else:
+        raise ValueError(f"Invalid mode {mode}")
 
 
 # if __name__ == "__main__":

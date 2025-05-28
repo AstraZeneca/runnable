@@ -289,14 +289,6 @@ class PipelineContext(RunnableContext):
 
     pipeline_definition_file: str
 
-    # TODO: Can be removed
-    @computed_field
-    def from_sdk(self) -> bool:
-        """Check if the pipeline/job is from SDK."""
-        if self.execution_mode == ExecutionMode.PYTHON:
-            return True
-        return False
-
     @computed_field
     @cached_property
     def dag(self) -> Graph | None:
@@ -304,9 +296,6 @@ class PipelineContext(RunnableContext):
         if self.execution_mode == ExecutionMode.YAML:
             return get_pipeline_spec_from_yaml(self.pipeline_definition_file)
         elif self.execution_mode == ExecutionMode.PYTHON:
-            # If its local execution, we don't need to call the function to get dag
-            if self.pipeline_executor._is_local:
-                return None
             return get_pipeline_spec_from_python(self.pipeline_definition_file)
         else:
             raise ValueError(
@@ -359,10 +348,54 @@ class PipelineContext(RunnableContext):
         if self.tag:
             action = action + f"--tag {self.tag}"
 
-        console.print(
+        console.log(
             f"Generated command for node {node._command_friendly_name()}: {action}"
         )
 
+        return action
+
+    def get_fan_command(
+        self,
+        node: BaseNode,
+        mode: str,
+        run_id: str,
+        map_variable: defaults.MapVariableType = None,
+        log_level: str = "",
+    ) -> str:
+        """
+        Return the fan "in or out" command for this pipeline context.
+
+        Args:
+            node (BaseNode): The composite node that we are fanning in or out
+            mode (str): "in" or "out"
+            map_variable (dict, optional): If the node is a map, we have the map variable. Defaults to None.
+            log_level (str, optional): Log level. Defaults to "".
+
+        Returns:
+            str: The fan in or out command
+        """
+        log_level = log_level or logging.getLevelName(logger.getEffectiveLevel())
+        action = (
+            f"runnable fan {run_id} "
+            f"{node._command_friendly_name()} "
+            f"{self.pipeline_definition_file} "
+            f"{mode} "
+            f"--log-level {log_level}"
+        )
+        if self.configuration_file:
+            action += f" --config-file {self.configuration_file}"
+        if self.parameters_file:
+            action += f" --parameters-file {self.parameters_file}"
+        if map_variable:
+            action += f" --map-variable '{json.dumps(map_variable)}'"
+        if self.execution_mode == ExecutionMode.PYTHON:
+            action += " --mode python"
+        if self.tag:
+            action += f" --tag {self.tag}"
+
+        console.log(
+            f"Generated command for fan {mode} for node {node._command_friendly_name()}: {action}"
+        )
         return action
 
     def execute(self):
@@ -373,7 +406,8 @@ class PipelineContext(RunnableContext):
         console.rule(style="[dark orange]")
 
         # Prepare for graph execution
-        self.pipeline_executor._set_up_run_log(exists_ok=False)
+        if self.pipeline_executor._should_setup_run_log_at_traversal:
+            self.pipeline_executor._set_up_run_log(exists_ok=False)
 
         pipeline_execution_task = progress.add_task(
             "[dark_orange] Starting execution .. ", total=1
@@ -383,7 +417,7 @@ class PipelineContext(RunnableContext):
             progress.start()
             self.pipeline_executor.execute_graph(dag=self.dag)
 
-            if not self.pipeline_executor._is_local:
+            if not self.pipeline_executor._should_setup_run_log_at_traversal:
                 # non local executors just traverse the graph and do nothing
                 return {}
 
@@ -415,7 +449,7 @@ class PipelineContext(RunnableContext):
         finally:
             progress.stop()
 
-        if self.pipeline_executor._is_local:
+        if self.pipeline_executor._should_setup_run_log_at_traversal:
             return run_context.run_log_store.get_run_log_by_id(
                 run_id=run_context.run_id
             )

@@ -20,7 +20,7 @@ from runnable import console, defaults, names
 from runnable.defaults import MapVariableType
 
 if TYPE_CHECKING:  # pragma: no cover
-    from runnable.nodes import BaseNode
+    pass
 
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -340,52 +340,6 @@ def get_data_hash(file_name: str) -> str:
             file_hash.update(chunk)
 
     return file_hash.hexdigest()
-
-
-# TODO: This is not the right place for this.
-def get_fan_command(
-    mode: str,
-    node: BaseNode,
-    run_id: str,
-    map_variable: MapVariableType = None,
-    log_level: str = "",
-) -> str:
-    """
-    An utility function to return the fan "in or out" command
-
-    Args:
-        executor (BaseExecutor): The executor class
-        mode (str): in or out
-        node (BaseNode): The composite node that we are fanning in or out
-        run_id (str): The run id.
-        map_variable (dict, optional): If the node is a map, we have the map variable. Defaults to None.
-
-    Returns:
-        str: The fan in or out command
-    """
-    assert isinstance(context.run_context, context.PipelineContext)
-
-    log_level = log_level or logging.getLevelName(logger.getEffectiveLevel())
-    action = (
-        f"runnable fan {run_id} "
-        f"{node._command_friendly_name()} "  # step name
-        f"{context.run_context.pipeline_definition_file} "  # yaml or python
-        f"{mode} "  # in or out
-        f"--log-level {log_level} "
-    )
-    if context.run_context.configuration_file:
-        action = action + f" --config-file {context.run_context.configuration_file} "
-
-    if context.run_context.parameters_file:
-        action = action + f" --parameters-file {context.run_context.parameters_file}"
-
-    if map_variable:
-        action = action + f" --map-variable '{json.dumps(map_variable)}'"
-
-    if context.run_context.from_sdk:  # execution mode
-        action = action + " --mode python "
-
-    return action
 
 
 # TODO: This is not the right place for this.

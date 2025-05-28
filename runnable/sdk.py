@@ -830,9 +830,6 @@ class Pipeline(BaseModel):
 
         assert isinstance(run_context, context.PipelineContext)
 
-        if run_context.pipeline_executor._is_local:
-            run_context.dag = self.return_dag()
-
         run_context.execute()
 
 

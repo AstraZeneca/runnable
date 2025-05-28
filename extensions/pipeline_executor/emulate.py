@@ -31,7 +31,7 @@ class Emulator(GenericPipelineExecutor):
 
     service_name: str = "emulator"
 
-    _is_local: bool = PrivateAttr(default=False)
+    _should_setup_run_log_at_traversal: bool = PrivateAttr(default=True)
 
     def trigger_node_execution(
         self, node: BaseNode, map_variable: MapVariableType = None
