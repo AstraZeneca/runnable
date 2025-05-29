@@ -7,7 +7,7 @@ import sys
 from datetime import datetime
 from enum import Enum
 from functools import cached_property, partial
-from typing import Annotated, Any, Callable, Dict, List, Literal, Optional
+from typing import Annotated, Any, Callable, Dict, List, Optional
 
 from pydantic import (
     BaseModel,
@@ -155,12 +155,23 @@ class ServiceConfigurations(BaseModel):
 
     @field_validator("configuration_file", mode="before")
     @classmethod
-    def override_configuration_file(cls, configuration_file: str) -> str | None:
-        """Override the configuration file if provided."""
-        if os.environ.get(defaults.RUNNABLE_CONFIGURATION_FILE, None):
-            # If the env var is set, use it
-            return os.environ.get(defaults.RUNNABLE_CONFIGURATION_FILE)
-        return configuration_file
+    def override_configuration_file(cls, configuration_file: str | None) -> str | None:
+        """Determine the configuration file to use, following the order of precedence."""
+        # 1. Environment variable
+        env_config = os.environ.get(defaults.RUNNABLE_CONFIGURATION_FILE)
+        if env_config:
+            return env_config
+
+        # 2. User-provided at runtime
+        if configuration_file:
+            return configuration_file
+
+        # 3. Default user config file
+        if utils.does_file_exist(defaults.USER_CONFIG_FILE):
+            return defaults.USER_CONFIG_FILE
+
+        # 4. No config file
+        return None
 
     @computed_field
     @property
@@ -229,11 +240,6 @@ class RunnableContext(BaseModel):
     @classmethod
     def override_configuration_file(cls, configuration_file: str) -> str:
         """Override the configuration file if provided."""
-        if os.environ.get(defaults.RUNNABLE_CONFIGURATION_FILE, None):
-            # If the env var is set, use it
-            return os.environ.get(
-                defaults.RUNNABLE_CONFIGURATION_FILE, configuration_file
-            )
         return os.environ.get(defaults.RUNNABLE_CONFIGURATION_FILE, configuration_file)
 
     @field_validator("run_id", mode="before")
@@ -456,8 +462,6 @@ class PipelineContext(RunnableContext):
 
 
 class JobContext(RunnableContext):
-    kind: Literal["job"]
-
     job_executor: InstantiatedJobExecutor
     catalog: InstantiatedCatalog
     secrets: InstantiatedSecrets

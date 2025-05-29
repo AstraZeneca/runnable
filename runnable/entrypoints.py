@@ -7,17 +7,6 @@ from runnable import defaults, graph, nodes, utils
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-# def get_default_configs() -> RunnableConfig:
-#     """
-#     User can provide extensions as part of their code base, runnable-config.yaml provides the place to put them.
-#     """
-#     user_configs: RunnableConfig = {}
-#     if utils.does_file_exist(defaults.USER_CONFIG_FILE):
-#         user_configs = cast(RunnableConfig, utils.load_yaml(defaults.USER_CONFIG_FILE))
-
-#     return user_configs
-
-
 def execute_pipeline_yaml_spec(
     pipeline_file: str,
     configuration_file: str = "",
