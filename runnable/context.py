@@ -7,7 +7,7 @@ import sys
 from datetime import datetime
 from enum import Enum
 from functools import cached_property, partial
-from typing import Annotated, Any, Callable, Dict, List, Optional
+from typing import Annotated, Any, Callable, Dict, Optional
 
 from pydantic import (
     BaseModel,
@@ -469,47 +469,32 @@ class JobContext(RunnableContext):
     run_log_store: InstantiatedRunLogStore
 
     job_definition_file: str
-    job: InstantiatedJob
-    job_catalog_settings: Optional[List[str]] = Field(default=None)
-    # TODO: the typing may be wrong here
+    job: BaseTaskType
+    catalog_settings: Optional[list[str]] = Field(
+        default=None,
+        description="Catalog settings to be used for the job.",
+    )
 
-    @computed_field
-    @property
-    def from_sdk(self) -> bool:
-        """Check if the pipeline/job is from SDK."""
-        if self.job_definition_file.endswith(".py"):
-            return True
-        return False
+    def execute(self):
+        console.print("Working with context:")
+        console.print(run_context)
+        console.rule(style="[dark orange]")
 
+        try:
+            self.job_executor.submit_job(
+                self.job, catalog_settings=self.catalog_settings
+            )
+        finally:
+            self.job_executor.add_task_log_to_catalog("job")
 
-# class Context(BaseModel):
-#     executor: SerializeAsAny[BaseExecutor]
-#     run_log_store: SerializeAsAny[BaseRunLogStore]
-#     secrets_handler: SerializeAsAny[BaseSecrets]
-#     catalog_handler: SerializeAsAny[BaseCatalog]
-#     pickler: SerializeAsAny[BasePickler]
-#     progress: SerializeAsAny[Optional[Progress]] = Field(default=None, exclude=True)
+        logger.info(
+            "Executing the job from the user. We are still in the caller's compute environment"
+        )
 
-#     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-#     pipeline_file: Optional[str] = ""
-#     job_definition_file: Optional[str] = ""
-#     parameters_file: Optional[str] = ""
-#     configuration_file: Optional[str] = ""
-#     from_sdk: bool = False
-
-#     run_id: str = ""
-#     object_serialisation: bool = True
-#     return_objects: Dict[str, Any] = {}
-
-#     tag: str = ""
-#     variables: Dict[str, str] = {}
-
-#     dag: Optional[Graph] = None
-#     dag_hash: str = ""
-
-#     job: Optional[BaseTaskType] = None
-#     job_catalog_settings: Optional[List[str]] = []
+        if self.job_executor._should_setup_run_log_at_traversal:
+            return run_context.run_log_store.get_run_log_by_id(
+                run_id=run_context.run_id
+            )
 
 
 run_context: PipelineContext | JobContext = None  # type: ignore

@@ -173,7 +173,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
     mock: bool = False
     namespace: str = Field(default="default")
 
-    _is_local: bool = PrivateAttr(default=False)
+    _should_setup_run_log_at_traversal: bool = PrivateAttr(default=False)
     _volume_mounts: list[VolumeMount] = PrivateAttr(default_factory=lambda: [])
     _volumes: list[HostPathVolume | PVCVolume] = PrivateAttr(default_factory=lambda: [])
 
@@ -355,9 +355,9 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             case "chunked-fs":
                 self._context.run_log_store.log_folder = self._container_log_location
 
-        match self._context.catalog_handler.service_name:
+        match self._context.catalog.service_name:
             case "file-system":
-                self._context.catalog_handler.catalog_location = (
+                self._context.catalog.catalog_location = (
                     self._container_catalog_location
                 )
 
@@ -415,7 +415,7 @@ class MiniK8sJobExecutor(GenericK8sJobExecutor):
                     )
                 )
 
-        match self._context.catalog_handler.service_name:
+        match self._context.catalog.service_name:
             case "file-system":
                 self._volumes.append(
                     HostPathVolume(
@@ -503,7 +503,7 @@ class K8sJobExecutor(GenericK8sJobExecutor):
                     )
                 )
 
-        match self._context.catalog_handler.service_name:
+        match self._context.catalog.service_name:
             case "file-system":
                 self._volume_mounts.append(
                     VolumeMount(

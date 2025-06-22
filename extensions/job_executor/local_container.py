@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
 from extensions.job_executor import GenericJobExecutor
 from runnable import console, defaults, utils
@@ -23,7 +23,7 @@ class LocalContainerJobExecutor(GenericJobExecutor):
     auto_remove_container: bool = True
     environment: Dict[str, str] = Field(default_factory=dict)
 
-    _is_local: bool = False
+    _should_setup_run_log_at_traversal: bool = PrivateAttr(default=True)
 
     _container_log_location = "/tmp/run_logs/"
     _container_catalog_location = "/tmp/catalog/"
@@ -165,9 +165,9 @@ class LocalContainerJobExecutor(GenericJobExecutor):
                     "mode": "rw",
                 }
 
-        match self._context.catalog_handler.service_name:
+        match self._context.catalog.service_name:
             case "file-system":
-                catalog_location = self._context.catalog_handler.catalog_location
+                catalog_location = self._context.catalog.catalog_location
                 self._volumes[str(Path(catalog_location).resolve())] = {
                     "bind": f"{self._container_catalog_location}",
                     "mode": "rw",
@@ -188,9 +188,9 @@ class LocalContainerJobExecutor(GenericJobExecutor):
             case "chunked-fs":
                 self._context.run_log_store.log_folder = self._container_log_location
 
-        match self._context.catalog_handler.service_name:
+        match self._context.catalog.service_name:
             case "file-system":
-                self._context.catalog_handler.catalog_location = (
+                self._context.catalog.catalog_location = (
                     self._container_catalog_location
                 )
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import inspect
 import logging
-import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -26,7 +25,7 @@ from extensions.nodes.parallel import ParallelNode
 from extensions.nodes.stub import StubNode
 from extensions.nodes.success import SuccessNode
 from extensions.nodes.task import TaskNode
-from runnable import console, defaults, entrypoints, graph, utils
+from runnable import defaults, graph
 from runnable.executor import BaseJobExecutor
 from runnable.nodes import TraversalNode
 from runnable.tasks import BaseTaskType as RunnableTask
@@ -854,6 +853,15 @@ class BaseJob(BaseModel):
     def get_task(self) -> RunnableTask:
         raise NotImplementedError
 
+    def get_caller(self) -> str:
+        caller_stack = inspect.stack()[2]
+        relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
+
+        module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
+        module_to_call = f"{module_name}.{caller_stack.function}"
+
+        return module_to_call
+
     def return_catalog_settings(self) -> Optional[List[str]]:
         if self.catalog is None:
             return []
@@ -880,65 +888,32 @@ class BaseJob(BaseModel):
         if self._is_called_for_definition():
             # Immediately return as this call is only for getting the job definition
             return {}
+        from runnable import context
+
         logger.setLevel(log_level)
 
-        run_id = utils.generate_run_id(run_id=job_id)
-
-        parameters_file = os.environ.get("RUNNABLE_PARAMETERS_FILE", parameters_file)
-
-        tag = os.environ.get("RUNNABLE_tag", tag)
-
-        configuration_file = os.environ.get(
-            "RUNNABLE_CONFIGURATION_FILE", configuration_file
-        )
-
-        run_context = entrypoints.prepare_configurations(
+        service_configurations = context.ServiceConfigurations(
             configuration_file=configuration_file,
-            run_id=run_id,
-            tag=tag,
-            parameters_file=parameters_file,
-            is_job=True,
+            execution_context=context.ExecutionContext.PIPELINE,
         )
 
-        assert isinstance(run_context.executor, BaseJobExecutor)
-        run_context.from_sdk = True
+        configurations = {
+            "job_definition_file": self.get_caller(),
+            "parameters_file": parameters_file,
+            "tag": tag,
+            "run_id": job_id,
+            "execution_mode": context.ExecutionMode.PYTHON,
+            "configuration_file": configuration_file,
+            "job": self.get_task(),
+            "catalog_settings": self.return_catalog_settings(),
+            **service_configurations.services,
+        }
 
-        utils.set_runnable_environment_variables(
-            run_id=run_id, configuration_file=configuration_file, tag=tag
-        )
+        run_context = context.JobContext.model_validate(configurations)
 
-        console.print("Working with context:")
-        console.print(run_context)
-        console.rule(style="[dark orange]")
+        assert isinstance(run_context.job_executor, BaseJobExecutor)
 
-        if not run_context.executor._is_local:
-            # We are not working with executor that does not work in local environment
-            import inspect
-
-            caller_stack = inspect.stack()[1]
-            relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
-
-            module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
-            module_to_call = f"{module_name}.{caller_stack.function}"
-
-            run_context.job_definition_file = f"{module_to_call}.py"
-
-        job = self.get_task()
-        catalog_settings = self.return_catalog_settings()
-
-        try:
-            run_context.executor.submit_job(job, catalog_settings=catalog_settings)
-        finally:
-            run_context.executor.add_task_log_to_catalog("job")
-
-        logger.info(
-            "Executing the job from the user. We are still in the caller's compute environment"
-        )
-
-        if run_context.executor._is_local:
-            return run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id
-            )
+        run_context.execute()
 
 
 class PythonJob(BaseJob):
