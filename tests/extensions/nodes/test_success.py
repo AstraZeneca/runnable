@@ -1,6 +1,5 @@
 from unittest.mock import Mock
 
-import pytest
 
 from runnable import defaults
 from runnable.datastore import StepLog

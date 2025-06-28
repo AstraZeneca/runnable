@@ -4,11 +4,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from runnable import defaults, exceptions
+from runnable import defaults
 from runnable.datastore import (
     JsonParameter,
     MetricParameter,
-    ObjectParameter,
     StepAttempt,
 )
 from runnable.tasks import (

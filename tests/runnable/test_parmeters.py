@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 import pytest
 from pydantic import BaseModel, Field
 
-from runnable.datastore import JsonParameter, ObjectParameter
+from runnable.datastore import JsonParameter
 from runnable.parameters import (
     bind_args_for_pydantic_model,
     filter_arguments_for_func,

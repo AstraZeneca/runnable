@@ -1,5 +1,3 @@
-import pytest
-
 from extensions.nodes import fail, stub, success
 from runnable import sdk
 

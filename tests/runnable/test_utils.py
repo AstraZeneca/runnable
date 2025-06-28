@@ -1,11 +1,8 @@
-import json
-import os
 import sys
 
 import pytest
 
 from runnable import (
-    defaults,  # pylint: disable=import-error
     utils,  # pylint: disable=import-error
 )
 
