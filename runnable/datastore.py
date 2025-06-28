@@ -113,7 +113,7 @@ class ObjectParameter(BaseModel):
             return context.run_context.return_objects[self.value]
 
         # If the object was serialised, get it from the catalog
-        catalog_handler = context.run_context.catalog_handler
+        catalog_handler = context.run_context.catalog
         catalog_handler.get(name=self.file_name)
         obj = context.run_context.pickler.load(path=self.file_name)
         os.remove(self.file_name)  # Remove after loading
@@ -127,7 +127,7 @@ class ObjectParameter(BaseModel):
         # If the object was serialised, put it in the catalog
         context.run_context.pickler.dump(data=data, path=self.file_name)
 
-        catalog_handler = context.run_context.catalog_handler
+        catalog_handler = context.run_context.catalog
         catalog_handler.put(name=self.file_name)
         os.remove(self.file_name)  # Remove after loading
 
@@ -400,7 +400,7 @@ class RunLog(BaseModel):
         summary["Unique execution id"] = self.run_id
         summary["status"] = self.status
 
-        summary["Catalog Location"] = _context.catalog_handler.get_summary()
+        summary["Catalog Location"] = _context.catalog.get_summary()
         summary["Full Run log present at: "] = _context.run_log_store.get_summary()
 
         run_log = _context.run_log_store.get_run_log_by_id(
@@ -467,23 +467,29 @@ class RunLog(BaseModel):
         current_step = None
         current_branch = None
 
-        for i in range(len(dot_path)):
-            if i % 2:
-                # Its odd, so we are in branch
-                # Get the branch that holds the step
-                current_branch = current_step.branches[".".join(dot_path[: i + 1])]  # type: ignore
-                current_steps = current_branch.steps
-                logger.debug(f"Finding branch {i_name} in branch: {current_branch}")
-            else:
-                # Its even, so we are in step, we start here!
-                # Get the step that holds the branch
-                current_step = current_steps[".".join(dot_path[: i + 1])]
-                logger.debug(f"Finding branch for {i_name} in step: {current_step}")
+        try:
+            for i in range(len(dot_path)):
+                if i % 2:
+                    # Its odd, so we are in branch
+                    # Get the branch that holds the step
+                    current_branch = current_step.branches[".".join(dot_path[: i + 1])]  # type: ignore
+                    current_steps = current_branch.steps
+                    logger.debug(f"Finding branch {i_name} in branch: {current_branch}")
+                else:
+                    # Its even, so we are in step, we start here!
+                    # Get the step that holds the branch
+                    current_step = current_steps[".".join(dot_path[: i + 1])]
+                    logger.debug(f"Finding branch for {i_name} in step: {current_step}")
 
-        logger.debug(f"current branch : {current_branch}, current step {current_step}")
-        if current_branch and current_step:
-            return current_branch, current_step
+            logger.debug(
+                f"current branch : {current_branch}, current step {current_step}"
+            )
+            if current_branch and current_step:
+                return current_branch, current_step
+        except KeyError as _e:
+            raise exceptions.BranchLogNotFoundError(self.run_id, i_name) from _e
 
+        # If we are here, we have not found the branch
         raise exceptions.BranchLogNotFoundError(self.run_id, i_name)
 
     def search_step_by_internal_name(
@@ -513,23 +519,31 @@ class RunLog(BaseModel):
         current_steps = self.steps
         current_step = None
         current_branch = None
-        for i in range(len(dot_path)):
-            if i % 2:
-                # Its odd, so we are in brach name
-                current_branch = current_step.branches[".".join(dot_path[: i + 1])]  # type: ignore
-                current_steps = current_branch.steps
-                logger.debug(
-                    f"Finding step log for {i_name} in branch: {current_branch}"
-                )
-            else:
-                # Its even, so we are in step, we start here!
-                current_step = current_steps[".".join(dot_path[: i + 1])]
-                logger.debug(f"Finding step log for {i_name} in step: {current_step}")
+        try:
+            for i in range(len(dot_path)):
+                if i % 2:
+                    # Its odd, so we are in brach name
+                    current_branch = current_step.branches[".".join(dot_path[: i + 1])]  # type: ignore
+                    current_steps = current_branch.steps
+                    logger.debug(
+                        f"Finding step log for {i_name} in branch: {current_branch}"
+                    )
+                else:
+                    # Its even, so we are in step, we start here!
+                    current_step = current_steps[".".join(dot_path[: i + 1])]
+                    logger.debug(
+                        f"Finding step log for {i_name} in step: {current_step}"
+                    )
 
-        logger.debug(f"current branch : {current_branch}, current step {current_step}")
-        if current_branch and current_step:
-            return current_step, current_branch
+            logger.debug(
+                f"current branch : {current_branch}, current step {current_step}"
+            )
+            if current_branch and current_step:
+                return current_step, current_branch
+        except KeyError as _e:
+            raise exceptions.StepLogNotFoundError(self.run_id, i_name) from _e
 
+        # If we are here, we have not found the step
         raise exceptions.StepLogNotFoundError(self.run_id, i_name)
 
 
@@ -547,23 +561,6 @@ class BaseRunLogStore(ABC, BaseModel):
     @property
     def _context(self):
         return context.run_context
-
-        """
-        Retrieves a Job log from the database using the config and the job_id
-
-        Args:
-            job_id (str): The job_id of the job
-
-        Returns:
-            JobLog: The JobLog object identified by the job_id
-
-        Logically the method should:
-            * Returns the job_log defined by id from the data store defined by the config
-
-        Raises:
-            NotImplementedError: This is a base class and therefore has no default implementation
-            JobLogNotFoundError: If the job log for job_id is not found in the datastore
-        """
 
     @abstractmethod
     def create_run_log(

@@ -1,13 +1,19 @@
+import logging
 from pathlib import Path
 from typing import Dict, List, Union
 
 import pandas as pd
 from pydantic import BaseModel
 
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(message)s")
+logger = logging.getLogger(__name__)
+
 
 def hello():
     "The most basic function"
     print("Hello World!")
+    # The logs are captured in the catalog
+    logging.warning("This is a warning message.")
 
 
 def mocked_hello():

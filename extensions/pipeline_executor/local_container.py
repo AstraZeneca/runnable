@@ -2,12 +2,12 @@ import logging
 from pathlib import Path
 from typing import Dict
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
 from extensions.pipeline_executor import GenericPipelineExecutor
-from runnable import console, defaults, task_console, utils
+from runnable import defaults, utils
 from runnable.datastore import StepLog
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -70,7 +70,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
     auto_remove_container: bool = True
     environment: Dict[str, str] = Field(default_factory=dict)
 
-    _is_local: bool = False
+    _should_setup_run_log_at_traversal: bool = PrivateAttr(default=True)
 
     _container_log_location = "/tmp/run_logs/"
     _container_catalog_location = "/tmp/catalog/"
@@ -104,7 +104,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
             code_id.code_identifier_url = "local docker host"
             step_log.code_identities.append(code_id)
 
-    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         We are already in the container, we just execute the node.
         The node is already prepared for execution.
@@ -112,69 +112,8 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         self._use_volumes()
         return self._execute_node(node, map_variable)
 
-    def execute_from_graph(
-        self,
-        node: BaseNode,
-        map_variable: TypeMapVariable = None,
-    ):
-        """
-        This is the entry point to from the graph execution.
-
-        While the self.execute_graph is responsible for traversing the graph, this function is responsible for
-        actual execution of the node.
-
-        If the node type is:
-            * task : We can delegate to _execute_node after checking the eligibility for re-run in cases of a re-run
-            * success: We can delegate to _execute_node
-            * fail: We can delegate to _execute_node
-
-        For nodes that are internally graphs:
-            * parallel: Delegate the responsibility of execution to the node.execute_as_graph()
-            * dag: Delegate the responsibility of execution to the node.execute_as_graph()
-            * map: Delegate the responsibility of execution to the node.execute_as_graph()
-
-        Transpilers will NEVER use this method and will NEVER call ths method.
-        This method should only be used by interactive executors.
-
-        Args:
-            node (Node): The node to execute
-            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
-                    Defaults to None.
-        """
-        step_log = self._context.run_log_store.create_step_log(
-            node.name, node._get_step_log_name(map_variable)
-        )
-
-        self.add_code_identities(node=node, step_log=step_log)
-
-        step_log.step_type = node.node_type
-        step_log.status = defaults.PROCESSING
-
-        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-
-        logger.info(f"Executing node: {node.get_summary()}")
-
-        # Add the step log to the database as per the situation.
-        # If its a terminal node, complete it now
-        if node.node_type in ["success", "fail"]:
-            self._execute_node(node, map_variable=map_variable)
-            return
-
-        # We call an internal function to iterate the sub graphs and execute them
-        if node.is_composite:
-            node.execute_as_graph(map_variable=map_variable)
-            return
-
-        task_console.export_text(clear=True)
-
-        task_name = node._resolve_map_placeholders(node.internal_name, map_variable)
-        console.print(
-            f":runner: Executing the node {task_name} ... ", style="bold color(208)"
-        )
-        self.trigger_node_execution(node=node, map_variable=map_variable)
-
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: TypeMapVariable = None
+        self, node: BaseNode, map_variable: MapVariableType = None
     ):
         """
         We come into this step via execute from graph, use trigger job to spin up the container.
@@ -192,7 +131,9 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         logger.debug("Here is the resolved executor config")
         logger.debug(executor_config)
 
-        command = utils.get_node_execution_command(node, map_variable=map_variable)
+        command = self._context.get_node_callable_command(
+            node, map_variable=map_variable
+        )
 
         self._spin_container(
             node=node,
@@ -218,7 +159,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         self,
         node: BaseNode,
         command: str,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
         auto_remove_container: bool = True,
     ):
         """
@@ -294,6 +235,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         """
         Mount the volumes for the container
         """
+        # TODO: There should be an abstraction on top of service providers
         match self._context.run_log_store.service_name:
             case "file-system":
                 write_to = self._context.run_log_store.log_folder
@@ -308,17 +250,17 @@ class LocalContainerExecutor(GenericPipelineExecutor):
                     "mode": "rw",
                 }
 
-        match self._context.catalog_handler.service_name:
+        match self._context.catalog.service_name:
             case "file-system":
-                catalog_location = self._context.catalog_handler.catalog_location
+                catalog_location = self._context.catalog.catalog_location
                 self._volumes[str(Path(catalog_location).resolve())] = {
                     "bind": f"{self._container_catalog_location}",
                     "mode": "rw",
                 }
 
-        match self._context.secrets_handler.service_name:
+        match self._context.secrets.service_name:
             case "dotenv":
-                secrets_location = self._context.secrets_handler.location
+                secrets_location = self._context.secrets.location
                 self._volumes[str(Path(secrets_location).resolve())] = {
                     "bind": f"{self._container_secrets_location}",
                     "mode": "ro",
@@ -331,14 +273,12 @@ class LocalContainerExecutor(GenericPipelineExecutor):
             case "chunked-fs":
                 self._context.run_log_store.log_folder = self._container_log_location
 
-        match self._context.catalog_handler.service_name:
+        match self._context.catalog.service_name:
             case "file-system":
-                self._context.catalog_handler.catalog_location = (
+                self._context.catalog.catalog_location = (
                     self._container_catalog_location
                 )
 
-        match self._context.secrets_handler.service_name:
+        match self._context.secrets.service_name:
             case "dotenv":
-                self._context.secrets_handler.location = (
-                    self._container_secrets_location
-                )
+                self._context.secrets.location = self._container_secrets_location

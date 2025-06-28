@@ -1,14 +1,15 @@
 Examples in this section are ordered from simple to advanced.
-All examples have both python SDK and yaml representations.
+Most examples have both python SDK and yaml representations.
 
 Please use this as an index to find specific example.
 
 
 - [common](./common/): Has python functions/notebooks/scripts that are used across the examples
 
-- 01-tasks: Examples of the tasks that can be part of the pipeline.
+- 01-tasks: Tasks are the atomic unit of work. They can be ```stub```, ```python functions```,
+  ```notebooks```, ```shell``` scripts or ```torch``` scripts (experimental!!).
 
-    - [stub.py](./01-tasks/stub.py), [stub.yaml](./01-tasks/stub.yaml): demonstrates the concept of a stub.
+    - [stub.py](./01-tasks/stub.py), [stub.yaml](./01-tasks/stub.yaml): demonstrates the concept of a stub. Stubs are similar to ```pass``` of python.
 
     - [python_tasks.py](./01-tasks/python_tasks.py), [python_tasks.yaml](./01-tasks/python_tasks.yaml): uses python functions as tasks.
         The stdout/stderr of all the tasks are captured and stored in the catalog.

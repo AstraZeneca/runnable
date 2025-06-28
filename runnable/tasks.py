@@ -25,7 +25,7 @@ from runnable.datastore import (
     Parameter,
     StepAttempt,
 )
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -48,7 +48,29 @@ class TeeIO(io.StringIO):
         self.output_stream.flush()
 
 
-sys.stdout = TeeIO()
+@contextlib.contextmanager
+def redirect_output():
+    # Set the stream handlers to use the custom TeeIO class
+
+    # Backup the original stdout and stderr
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+
+    # Redirect stdout and stderr to custom TeeStream objects
+    sys.stdout = TeeIO(sys.stdout)
+    sys.stderr = TeeIO(sys.stderr)
+
+    # Replace stream for all StreamHandlers to use the new sys.stdout
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.stream = sys.stdout
+
+    try:
+        yield sys.stdout, sys.stderr
+    finally:
+        # Restore the original stdout and stderr
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
 
 
 class TaskReturns(BaseModel):
@@ -79,7 +101,7 @@ class BaseTaskType(BaseModel):
     def set_secrets_as_env_variables(self):
         # Preparing the environment for the task execution
         for key in self.secrets:
-            secret_value = context.run_context.secrets_handler.get(key)
+            secret_value = context.run_context.secrets.get(key)
             os.environ[key] = secret_value
 
     def delete_secrets_from_env_variables(self):
@@ -90,7 +112,7 @@ class BaseTaskType(BaseModel):
 
     def execute_command(
         self,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
     ) -> StepAttempt:
         """The function to execute the command.
 
@@ -130,7 +152,7 @@ class BaseTaskType(BaseModel):
         finally:
             self.delete_secrets_from_env_variables()
 
-    def resolve_unreduced_parameters(self, map_variable: TypeMapVariable = None):
+    def resolve_unreduced_parameters(self, map_variable: MapVariableType = None):
         """Resolve the unreduced parameters."""
         params = self._context.run_log_store.get_parameters(
             run_id=self._context.run_id
@@ -153,7 +175,7 @@ class BaseTaskType(BaseModel):
 
     @contextlib.contextmanager
     def execution_context(
-        self, map_variable: TypeMapVariable = None, allow_complex: bool = True
+        self, map_variable: MapVariableType = None, allow_complex: bool = True
     ):
         params = self.resolve_unreduced_parameters(map_variable=map_variable)
         logger.info(f"Parameters available for the execution: {params}")
@@ -267,7 +289,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     def execute_command(
         self,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
     ) -> StepAttempt:
         """Execute the notebook as defined by the command."""
         attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
@@ -289,13 +311,21 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     logger.info(
                         f"Calling {func} from {module} with {filtered_parameters}"
                     )
-
-                    out_file = TeeIO()
-                    with contextlib.redirect_stdout(out_file):
+                    context.progress.stop()  # redirecting stdout clashes with rich progress
+                    with redirect_output() as (buffer, stderr_buffer):
                         user_set_parameters = f(
                             **filtered_parameters
                         )  # This is a tuple or single value
-                    task_console.print(out_file.getvalue())
+
+                        print(
+                            stderr_buffer.getvalue()
+                        )  # To print the logging statements
+
+                    # TODO: Avoid double print!!
+                    with task_console.capture():
+                        task_console.log(buffer.getvalue())
+                        task_console.log(stderr_buffer.getvalue())
+                    context.progress.start()
                 except Exception as e:
                     raise exceptions.CommandCallError(
                         f"Function call: {self.command} did not succeed.\n"
@@ -478,14 +508,15 @@ class NotebookTaskType(BaseTaskType):
 
         return command
 
-    def get_notebook_output_path(self, map_variable: TypeMapVariable = None) -> str:
+    def get_notebook_output_path(self, map_variable: MapVariableType = None) -> str:
         tag = ""
         map_variable = map_variable or {}
         for key, value in map_variable.items():
             tag += f"{key}_{value}_"
 
-        if hasattr(self._context.executor, "_context_node"):
-            tag += self._context.executor._context_node.name
+        if isinstance(self._context, context.PipelineContext):
+            assert self._context.pipeline_executor._context_node
+            tag += self._context.pipeline_executor._context_node.name
 
         tag = "".join(x for x in tag if x.isalnum()).strip("-")
 
@@ -496,7 +527,7 @@ class NotebookTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
     ) -> StepAttempt:
         """Execute the python notebook as defined by the command.
 
@@ -551,12 +582,20 @@ class NotebookTaskType(BaseTaskType):
                 }
                 kwds.update(ploomber_optional_args)
 
-                out_file = TeeIO()
-                with contextlib.redirect_stdout(out_file):
-                    pm.execute_notebook(**kwds)
-                task_console.print(out_file.getvalue())
+                context.progress.stop()  # redirecting stdout clashes with rich progress
 
-                context.run_context.catalog_handler.put(name=notebook_output_path)
+                with redirect_output() as (buffer, stderr_buffer):
+                    pm.execute_notebook(**kwds)
+
+                    print(stderr_buffer.getvalue())  # To print the logging statements
+
+                with task_console.capture():
+                    task_console.log(buffer.getvalue())
+                    task_console.log(stderr_buffer.getvalue())
+
+                context.progress.start()
+
+                context.run_context.catalog.put(name=notebook_output_path)
 
                 client = PloomberClient.from_path(path=notebook_output_path)
                 namespace = client.get_namespace()
@@ -674,7 +713,7 @@ class ShellTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
     ) -> StepAttempt:
         # Using shell=True as we want to have chained commands to be executed in the same shell.
         """Execute the shell command as defined by the command.
@@ -698,7 +737,7 @@ class ShellTaskType(BaseTaskType):
         # Expose secrets as environment variables
         if self.secrets:
             for key in self.secrets:
-                secret_value = context.run_context.secrets_handler.get(key)
+                secret_value = context.run_context.secrets.get(key)
                 subprocess_env[key] = secret_value
 
         try:
@@ -724,6 +763,7 @@ class ShellTaskType(BaseTaskType):
                 capture = False
                 return_keys = {x.name: x for x in self.returns}
 
+                context.progress.stop()  # redirecting stdout clashes with rich progress
                 proc = subprocess.Popen(
                     command,
                     shell=True,
@@ -747,6 +787,7 @@ class ShellTaskType(BaseTaskType):
                         continue
                     task_console.print(line, style=defaults.warning_style)
 
+                context.progress.start()
                 output_parameters: Dict[str, Parameter] = {}
                 metrics: Dict[str, Parameter] = {}
 

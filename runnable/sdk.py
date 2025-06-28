@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import inspect
 import logging
-import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -16,27 +16,17 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from rich.progress import (
-    BarColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
-from rich.table import Column
 from typing_extensions import Self
 
 from extensions.nodes.conditional import ConditionalNode
-from extensions.nodes.nodes import (
-    FailNode,
-    MapNode,
-    ParallelNode,
-    StubNode,
-    SuccessNode,
-    TaskNode,
-)
-from runnable import console, defaults, entrypoints, exceptions, graph, utils
-from runnable.executor import BaseJobExecutor, BasePipelineExecutor
+from extensions.nodes.fail import FailNode
+from extensions.nodes.map import MapNode
+from extensions.nodes.parallel import ParallelNode
+from extensions.nodes.stub import StubNode
+from extensions.nodes.success import SuccessNode
+from extensions.nodes.task import TaskNode
+from runnable import defaults, graph
+from runnable.executor import BaseJobExecutor
 from runnable.nodes import TraversalNode
 from runnable.tasks import BaseTaskType as RunnableTask
 from runnable.tasks import TaskReturns
@@ -196,7 +186,7 @@ class BaseTask(BaseTraversal):
         )
 
     def as_pipeline(self) -> "Pipeline":
-        return Pipeline(steps=[self])  # type: ignore
+        return Pipeline(steps=[self], name=self.internal_name)  # type: ignore
 
 
 class PythonTask(BaseTask):
@@ -486,6 +476,9 @@ class Stub(BaseTraversal):
                 )
 
         return StubNode.parse_from_config(self.model_dump(exclude_none=True))
+
+    def as_pipeline(self) -> "Pipeline":
+        return Pipeline(steps=[self])
 
 
 class Parallel(BaseTraversal):
@@ -786,6 +779,15 @@ class Pipeline(BaseModel):
             return False
         return True
 
+    def get_caller(self) -> str:
+        caller_stack = inspect.stack()[2]
+        relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
+
+        module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
+        module_to_call = f"{module_name}.{caller_stack.function}"
+
+        return module_to_call
+
     def execute(
         self,
         configuration_file: str = "",
@@ -803,106 +805,31 @@ class Pipeline(BaseModel):
             # Immediately return as this call is only for getting the pipeline definition
             return {}
 
+        from runnable import context
+
         logger.setLevel(log_level)
 
-        run_id = utils.generate_run_id(run_id=run_id)
-
-        parameters_file = os.environ.get("RUNNABLE_PARAMETERS_FILE", parameters_file)
-
-        tag = os.environ.get("RUNNABLE_tag", tag)
-
-        configuration_file = os.environ.get(
-            "RUNNABLE_CONFIGURATION_FILE", configuration_file
-        )
-        run_context = entrypoints.prepare_configurations(
+        service_configurations = context.ServiceConfigurations(
             configuration_file=configuration_file,
-            run_id=run_id,
-            tag=tag,
-            parameters_file=parameters_file,
+            execution_context=context.ExecutionContext.PIPELINE,
         )
 
-        assert isinstance(run_context.executor, BasePipelineExecutor)
+        configurations = {
+            "pipeline_definition_file": self.get_caller(),
+            "parameters_file": parameters_file,
+            "tag": tag,
+            "run_id": run_id,
+            "execution_mode": context.ExecutionMode.PYTHON,
+            "configuration_file": configuration_file,
+            **service_configurations.services,
+        }
 
-        utils.set_runnable_environment_variables(
-            run_id=run_id, configuration_file=configuration_file, tag=tag
-        )
+        run_context = context.PipelineContext.model_validate(configurations)
+        context.run_context = run_context
 
-        dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
-        run_context.from_sdk = True
-        run_context.dag = graph.create_graph(dag_definition)
+        assert isinstance(run_context, context.PipelineContext)
 
-        console.print("Working with context:")
-        console.print(run_context)
-        console.rule(style="[dark orange]")
-
-        if not run_context.executor._is_local:
-            # We are not working with executor that does not work in local environment
-            import inspect
-
-            caller_stack = inspect.stack()[1]
-            relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
-
-            module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
-            module_to_call = f"{module_name}.{caller_stack.function}"
-
-            run_context.pipeline_file = f"{module_to_call}.py"
-            run_context.from_sdk = True
-
-        # Prepare for graph execution
-        run_context.executor._set_up_run_log(exists_ok=False)
-
-        with Progress(
-            SpinnerColumn(spinner_name="runner"),
-            TextColumn(
-                "[progress.description]{task.description}", table_column=Column(ratio=2)
-            ),
-            BarColumn(table_column=Column(ratio=1), style="dark_orange"),
-            TimeElapsedColumn(table_column=Column(ratio=1)),
-            console=console,
-            expand=True,
-        ) as progress:
-            pipeline_execution_task = progress.add_task(
-                "[dark_orange] Starting execution .. ", total=1
-            )
-            try:
-                run_context.progress = progress
-
-                run_context.executor.execute_graph(dag=run_context.dag)
-
-                if not run_context.executor._is_local:
-                    # non local executors just traverse the graph and do nothing
-                    return {}
-
-                run_log = run_context.run_log_store.get_run_log_by_id(
-                    run_id=run_context.run_id, full=False
-                )
-
-                if run_log.status == defaults.SUCCESS:
-                    progress.update(
-                        pipeline_execution_task,
-                        description="[green] Success",
-                        completed=True,
-                    )
-                else:
-                    progress.update(
-                        pipeline_execution_task,
-                        description="[red] Failed",
-                        completed=True,
-                    )
-                    raise exceptions.ExecutionFailedError(run_context.run_id)
-            except Exception as e:  # noqa: E722
-                console.print(e, style=defaults.error_style)
-                progress.update(
-                    pipeline_execution_task,
-                    description="[red] Errored execution",
-                    completed=True,
-                )
-                raise
-
-        if run_context.executor._is_local:
-            return run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id
-            )
+        run_context.execute()
 
 
 class BaseJob(BaseModel):
@@ -925,6 +852,15 @@ class BaseJob(BaseModel):
 
     def get_task(self) -> RunnableTask:
         raise NotImplementedError
+
+    def get_caller(self) -> str:
+        caller_stack = inspect.stack()[2]
+        relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
+
+        module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
+        module_to_call = f"{module_name}.{caller_stack.function}"
+
+        return module_to_call
 
     def return_catalog_settings(self) -> Optional[List[str]]:
         if self.catalog is None:
@@ -952,65 +888,32 @@ class BaseJob(BaseModel):
         if self._is_called_for_definition():
             # Immediately return as this call is only for getting the job definition
             return {}
+        from runnable import context
+
         logger.setLevel(log_level)
 
-        run_id = utils.generate_run_id(run_id=job_id)
-
-        parameters_file = os.environ.get("RUNNABLE_PARAMETERS_FILE", parameters_file)
-
-        tag = os.environ.get("RUNNABLE_tag", tag)
-
-        configuration_file = os.environ.get(
-            "RUNNABLE_CONFIGURATION_FILE", configuration_file
-        )
-
-        run_context = entrypoints.prepare_configurations(
+        service_configurations = context.ServiceConfigurations(
             configuration_file=configuration_file,
-            run_id=run_id,
-            tag=tag,
-            parameters_file=parameters_file,
-            is_job=True,
+            execution_context=context.ExecutionContext.JOB,
         )
 
-        assert isinstance(run_context.executor, BaseJobExecutor)
-        run_context.from_sdk = True
+        configurations = {
+            "job_definition_file": self.get_caller(),
+            "parameters_file": parameters_file,
+            "tag": tag,
+            "run_id": job_id,
+            "execution_mode": context.ExecutionMode.PYTHON,
+            "configuration_file": configuration_file,
+            "job": self.get_task(),
+            "catalog_settings": self.return_catalog_settings(),
+            **service_configurations.services,
+        }
 
-        utils.set_runnable_environment_variables(
-            run_id=run_id, configuration_file=configuration_file, tag=tag
-        )
+        run_context = context.JobContext.model_validate(configurations)
 
-        console.print("Working with context:")
-        console.print(run_context)
-        console.rule(style="[dark orange]")
+        assert isinstance(run_context.job_executor, BaseJobExecutor)
 
-        if not run_context.executor._is_local:
-            # We are not working with executor that does not work in local environment
-            import inspect
-
-            caller_stack = inspect.stack()[1]
-            relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
-
-            module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
-            module_to_call = f"{module_name}.{caller_stack.function}"
-
-            run_context.job_definition_file = f"{module_to_call}.py"
-
-        job = self.get_task()
-        catalog_settings = self.return_catalog_settings()
-
-        try:
-            run_context.executor.submit_job(job, catalog_settings=catalog_settings)
-        finally:
-            run_context.executor.add_task_log_to_catalog("job")
-
-        logger.info(
-            "Executing the job from the user. We are still in the caller's compute environment"
-        )
-
-        if run_context.executor._is_local:
-            return run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id
-            )
+        run_context.execute()
 
 
 class PythonJob(BaseJob):

@@ -12,6 +12,16 @@ step_1 -> step_4 -> fail
 This pattern is handy when you need to do something before eventually
 failing (eg: sending a notification, updating status, etc...)
 
+Corresponds to:
+try:
+    step1()  # Raises the exception
+    step2()
+    step3()
+except Exception as e:
+    step4()
+    raise e
+
+
 Run this pipeline as:
     python examples/02-sequential/on_failure_fail.py
 """
@@ -21,15 +31,15 @@ from runnable import Pipeline, PythonTask, Stub
 
 
 def main():
-    step_1 = PythonTask(name="step 1", function=raise_ex)  # This will fail
+    step_1 = PythonTask(name="step_1", function=raise_ex)  # This will fail
 
-    step_2 = Stub(name="step 2")
+    step_2 = Stub(name="step_2")
 
-    step_3 = Stub(name="step 3", terminate_with_success=True)
-    step_4 = Stub(name="step 4", terminate_with_failure=True)  # (1)
+    step_3 = Stub(name="step_3")
 
-    on_failure_pipeline = Pipeline(steps=[step_4])
-    step_1.on_failure = on_failure_pipeline  # (2)
+    step_4 = Stub(name="step_4", terminate_with_failure=True).as_pipeline()
+
+    step_1.on_failure = step_4  # (2)
 
     pipeline = Pipeline(
         steps=[step_1, step_2, step_3],

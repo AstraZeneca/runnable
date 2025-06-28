@@ -11,5 +11,5 @@ dag:
     shell:
       type: task
       command_type: shell
-      command: echo "hello world!!" # The path is relative to the root of the project.
+      command: echo "hello world!!"
       next: success

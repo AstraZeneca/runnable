@@ -30,7 +30,6 @@ def main():
     notebook_task = NotebookTask(
         name="hello notebook",
         notebook="examples/common/simple_notebook.ipynb",
-        terminate_with_success=True,
     )
 
     # The pipeline has a mix of tasks.

@@ -3,7 +3,7 @@ job-executor:
   config:
     pvc_claim_name: runnable
     config_path:
-    mock: true
+    mock: false
     namespace: enterprise-mlops
     jobSpec:
       activeDeadlineSeconds: 32000
@@ -30,15 +30,14 @@ job-executor:
             #       value: str
             image: harbor.csis.astrazeneca.net/mlops/runnable:latest
             # imagePullPolicy: Optional[str] = choose from [Always, Never, IfNotPresent]
-            resources:
-              limits:
-                cpu: "$"
-                memory: "3"
-                gpu: "1"
-              # requests:
-              #   cpu: "3"
-              #   memory: "3"
-              #   gpu: "1"
+            # resources:
+            #   limits:
+            #     cpu: "1"
+            #     memory: "3"
+            #   requests:
+            #     cpu: "3"
+            #     memory: "3"
+            #     gpu: "1"
             # volumeMounts:
             #   - name: str
             #     mountPath: str

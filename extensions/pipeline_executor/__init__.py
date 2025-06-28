@@ -13,7 +13,7 @@ from runnable import (
     utils,
 )
 from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.executor import BasePipelineExecutor
 from runnable.graph import Graph
 from runnable.nodes import BaseNode
@@ -40,7 +40,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
     @property
     def _context(self):
-        assert context.run_context
+        assert isinstance(context.run_context, context.PipelineContext)
         return context.run_context
 
     def _get_parameters(self) -> Dict[str, JsonParameter]:
@@ -104,7 +104,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         )
 
         # Update run_config
-        run_config = utils.get_run_config()
+        run_config = self._context.model_dump()
         logger.debug(f"run_config as seen by executor: {run_config}")
         self._context.run_log_store.set_run_config(
             run_id=self._context.run_id, run_config=run_config
@@ -154,12 +154,12 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         data_catalogs = []
         for name_pattern in node_catalog_settings.get(stage) or []:
             if stage == "get":
-                data_catalog = self._context.catalog_handler.get(
+                data_catalog = self._context.catalog.get(
                     name=name_pattern,
                 )
 
             elif stage == "put":
-                data_catalog = self._context.catalog_handler.put(
+                data_catalog = self._context.catalog.put(
                     name=name_pattern, allow_file_not_found_exc=allow_file_no_found_exc
                 )
             else:
@@ -189,14 +189,15 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             map_variable=map_variable,
         )
         task_console.save_text(log_file_name)
+        task_console.export_text(clear=True)
         # Put the log file in the catalog
-        self._context.catalog_handler.put(name=log_file_name)
+        self._context.catalog.put(name=log_file_name)
         os.remove(log_file_name)
 
     def _execute_node(
         self,
         node: BaseNode,
-        map_variable: TypeMapVariable = None,
+        map_variable: MapVariableType = None,
         mock: bool = False,
     ):
         """
@@ -250,6 +251,10 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         console.print(f"Summary of the step: {step_log.internal_name}")
         console.print(step_log.get_summary(), style=defaults.info_style)
 
+        self.add_task_log_to_catalog(
+            name=self._context_node.internal_name, map_variable=map_variable
+        )
+
         self._context_node = None
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
@@ -266,7 +271,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         """
         step_log.code_identities.append(utils.get_git_code_identity())
 
-    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This is the entry point to from the graph execution.
 
@@ -315,8 +320,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             node.execute_as_graph(map_variable=map_variable)
             return
 
-        task_console.export_text(clear=True)
-
         task_name = node._resolve_map_placeholders(node.internal_name, map_variable)
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
@@ -324,7 +327,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         self.trigger_node_execution(node=node, map_variable=map_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: TypeMapVariable = None
+        self, node: BaseNode, map_variable: MapVariableType = None
     ):
         """
         Call this method only if we are responsible for traversing the graph via
@@ -342,7 +345,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         pass
 
     def _get_status_and_next_node_name(
-        self, current_node: BaseNode, dag: Graph, map_variable: TypeMapVariable = None
+        self, current_node: BaseNode, dag: Graph, map_variable: MapVariableType = None
     ) -> tuple[str, str]:
         """
         Given the current node and the graph, returns the name of the next node to execute.
@@ -380,7 +383,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         return step_log.status, next_node_name
 
-    def execute_graph(self, dag: Graph, map_variable: TypeMapVariable = None):
+    def execute_graph(self, dag: Graph, map_variable: MapVariableType = None):
         """
         The parallelization is controlled by the nodes and not by this function.
 
@@ -409,7 +412,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 dag.internal_branch_name or "Graph",
                 map_variable,
             )
-            branch_execution_task = self._context.progress.add_task(
+            branch_execution_task = context.progress.add_task(
                 f"[dark_orange]Executing {branch_task_name}",
                 total=1,
             )
@@ -429,7 +432,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
             depth = " " * ((task_name.count(".")) or 1 - 1)
 
-            task_execution = self._context.progress.add_task(
+            task_execution = context.progress.add_task(
                 f"{depth}Executing {task_name}", total=1
             )
 
@@ -440,20 +443,20 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 )
 
                 if status == defaults.SUCCESS:
-                    self._context.progress.update(
+                    context.progress.update(
                         task_execution,
                         description=f"{depth}[green] {task_name} Completed",
                         completed=True,
                         overflow="fold",
                     )
                 else:
-                    self._context.progress.update(
+                    context.progress.update(
                         task_execution,
                         description=f"{depth}[red] {task_name} Failed",
                         completed=True,
                     )  # type ignore
             except Exception as e:  # noqa: E722
-                self._context.progress.update(
+                context.progress.update(
                     task_execution,
                     description=f"{depth}[red] {task_name} Errored",
                     completed=True,
@@ -461,11 +464,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 console.print(e, style=defaults.error_style)
                 logger.exception(e)
                 raise
-            finally:
-                # Add task log to the catalog
-                self.add_task_log_to_catalog(
-                    name=working_on.internal_name, map_variable=map_variable
-                )
 
             console.rule(style="[dark orange]")
 
@@ -475,7 +473,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             current_node = next_node_name
 
         if branch_execution_task:
-            self._context.progress.update(
+            context.progress.update(
                 branch_execution_task,
                 description=f"[green3] {branch_task_name} completed",
                 completed=True,
@@ -567,7 +565,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         return effective_node_config
 
-    def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def fan_out(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This method is used to appropriately fan-out the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
@@ -599,7 +597,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         node.fan_out(map_variable=map_variable)
 
-    def fan_in(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def fan_in(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This method is used to appropriately fan-in after the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.

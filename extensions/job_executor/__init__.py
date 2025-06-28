@@ -84,7 +84,6 @@ class GenericJobExecutor(BaseJobExecutor):
             run_id=self._context.run_id,
             tag=self._context.tag,
             status=defaults.PROCESSING,
-            dag_hash=self._context.dag_hash,
         )
         # Any interaction with run log store attributes should happen via API if available.
         self._context.run_log_store.set_parameters(
@@ -92,7 +91,7 @@ class GenericJobExecutor(BaseJobExecutor):
         )
 
         # Update run_config
-        run_config = utils.get_run_config()
+        run_config = self._context.model_dump()
         logger.debug(f"run_config as seen by executor: {run_config}")
         self._context.run_log_store.set_run_config(
             run_id=self._context.run_id, run_config=run_config
@@ -147,7 +146,7 @@ class GenericJobExecutor(BaseJobExecutor):
 
         data_catalogs = []
         for name_pattern in catalog_settings:
-            data_catalog = self._context.catalog_handler.put(
+            data_catalog = self._context.catalog.put(
                 name=name_pattern, allow_file_not_found_exc=allow_file_not_found_exc
             )
 
@@ -165,5 +164,5 @@ class GenericJobExecutor(BaseJobExecutor):
         )
         task_console.save_text(log_file_name)
         # Put the log file in the catalog
-        self._context.catalog_handler.put(name=log_file_name)
+        self._context.catalog.put(name=log_file_name)
         os.remove(log_file_name)

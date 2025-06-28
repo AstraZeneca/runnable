@@ -1,131 +1,187 @@
 import os
+from typing import Any, Dict, Optional
 
 import pytest
+from pydantic import BaseModel, Field
 
-from pydantic import BaseModel, ValidationError
-
-
-from runnable import defaults
 from runnable.datastore import JsonParameter
 from runnable.parameters import (
-    get_user_set_parameters,
     bind_args_for_pydantic_model,
     filter_arguments_for_func,
+    get_user_set_parameters,
 )
 
 
-def test_get_user_set_parameters_does_nothing_if_prefix_does_not_match(monkeypatch):
-    monkeypatch.setenv("random", "value")
-
-    assert get_user_set_parameters() == {}
-
-
-def test_get_user_set_parameters_removes_the_parameter_if_prefix_match_remove(
-    monkeypatch,
-):
-    monkeypatch.setenv(defaults.PARAMETER_PREFIX + "key", "1")
-
-    assert defaults.PARAMETER_PREFIX + "key" in os.environ
-
-    get_user_set_parameters(remove=True)
-
-    assert defaults.PARAMETER_PREFIX + "key" not in os.environ
+# Test Models
+class SimpleModel(BaseModel):
+    name: str
+    value: int
 
 
-def test_bind_args_for_pydantic_model_with_correct_params():
-    class MyModel(BaseModel):
-        a: int
-        b: str
-
-    params = {"a": 1, "b": "test"}
-    bound_model = bind_args_for_pydantic_model(params, MyModel)
-
-    assert isinstance(bound_model, MyModel)
-    assert bound_model.a == 1
-    assert bound_model.b == "test"
+class ComplexModel(BaseModel):
+    required: str
+    optional: Optional[str] = None
+    nested: SimpleModel
 
 
-def test_bind_args_for_pydantic_model_with_extra_params():
-    class MyModel(BaseModel):
-        a: int
-        b: str
-
-    params = {"a": 1, "b": "test", "c": 2}
-    bound_model = bind_args_for_pydantic_model(params, MyModel)
-
-    assert isinstance(bound_model, MyModel)
-    assert bound_model.a == 1
-    assert bound_model.b == "test"
+class ConfigModel(BaseModel):
+    name: str = Field(default="default")
+    settings: Dict[str, Any] = Field(default_factory=dict)
 
 
-def test_bind_args_for_pydantic_model_with_missing_params():
-    class MyModel(BaseModel):
-        a: int
-        b: str
-
-    params = {"a": 1}
-    with pytest.raises(ValidationError):
-        bind_args_for_pydantic_model(params, MyModel)
+# Test Functions
+def func_with_primitives(a: int, b: str, c: float = 0.0):
+    return a, b, c
 
 
-def test_filter_arguments_for_func_with_simple_arguments():
-    def func(a: int, b: str):
-        pass
+def func_with_model(model: SimpleModel, name: str = "default"):
+    return model, name
 
+
+def func_with_kwargs(name: str, **kwargs):
+    return name, kwargs
+
+
+@pytest.fixture
+def clean_env():
+    """Clean environment variables before and after tests"""
+    original_env = dict(os.environ)
+
+    # Clean env vars
+    for key in list(os.environ.keys()):
+        if key.startswith("RUNNABLE_PRM_"):
+            del os.environ[key]
+
+    yield
+
+    # Restore original env vars
+    os.environ.clear()
+    os.environ.update(original_env)
+
+
+# Tests for get_user_set_parameters
+def test_get_parameters_basic(clean_env):
+    """Test basic parameter retrieval"""
+    os.environ["RUNNABLE_PRM_STR"] = '"test"'
+    os.environ["RUNNABLE_PRM_INT"] = "42"
+    os.environ["RUNNABLE_PRM_BOOL"] = "true"
+
+    params = get_user_set_parameters()
+
+    assert "str" in params
+    assert params["str"].get_value() == "test"
+    assert params["int"].get_value() == 42
+    assert params["bool"].get_value() is True
+
+
+def test_get_parameters_complex_json(clean_env):
+    """Test parameter retrieval with complex JSON"""
+    os.environ["RUNNABLE_PRM_DICT"] = '{"key": "value", "nested": {"num": 42}}'
+    os.environ["RUNNABLE_PRM_LIST"] = "[1, 2, 3]"
+
+    params = get_user_set_parameters()
+
+    assert params["dict"].get_value() == {"key": "value", "nested": {"num": 42}}
+    assert params["list"].get_value() == [1, 2, 3]
+
+
+def test_get_parameters_invalid_json(clean_env):
+    """Test handling of invalid JSON"""
+    os.environ["RUNNABLE_PRM_INVALID"] = "not json"
+
+    params = get_user_set_parameters()
+    assert params["invalid"].get_value() == "not json"
+
+
+def test_get_parameters_with_removal(clean_env):
+    """Test parameter retrieval with removal"""
+    os.environ["RUNNABLE_PRM_TEST"] = '"value"'
+
+    params = get_user_set_parameters(remove=True)
+    assert "test" in params
+    assert "RUNNABLE_PRM_TEST" not in os.environ
+
+
+# Tests for filter_arguments_for_func
+def test_filter_args_primitives():
+    """Test filtering primitive type arguments"""
     params = {
-        "a": JsonParameter(kind="json", value=1),
+        "a": JsonParameter(kind="json", value=42),
         "b": JsonParameter(kind="json", value="test"),
+        "extra": JsonParameter(kind="json", value="ignored"),
     }
-    bound_args = filter_arguments_for_func(func, params)
 
-    assert bound_args == {"a": 1, "b": "test"}
-
-
-# def test_filter_arguments_for_func_with_pydantic_model_arguments():
-#     class MyModel(BaseModel):
-#         a: int
-#         b: str
-
-#     def func(inner: MyModel, c: str):
-#         pass
-
-#     params = {
-#         "inner": {"a": JsonParameter(kind="json", value=1), "b": JsonParameter(kind="json", value="test")},
-#         "c": JsonParameter(kind="json", value="test"),
-#     }
-#     bound_args = filter_arguments_for_func(func, params)
-
-#     assert bound_args == {"inner": MyModel(a=1, b="test"), "c": "test"}
+    filtered = filter_arguments_for_func(func_with_primitives, params)
+    assert filtered == {"a": 42, "b": "test"}
+    assert "extra" not in filtered
 
 
-def test_filter_arguments_for_func_with_missing_arguments_but_defaults_present():
-    def func(inner: int, c: str = "test"):
-        pass
+def test_filter_args_with_model():
+    """Test filtering with Pydantic model"""
+    model_data = {"name": "test", "value": 42}
+    params = {
+        "model": JsonParameter(kind="json", value=model_data),
+        "name": JsonParameter(kind="json", value="custom"),
+    }
 
-    params = {"inner": JsonParameter(kind="json", value=1)}
-    bound_args = filter_arguments_for_func(func, params)
-
-    assert bound_args == {"inner": 1}
-
-
-def test_filter_arguments_for_func_with_missing_arguments_and_no_defaults():
-    def func(inner: int, c: str):
-        pass
-
-    params = {"inner": JsonParameter(kind="json", value=1)}
-    with pytest.raises(
-        ValueError, match=r"Parameter c is required for func but not provided"
-    ):
-        _ = filter_arguments_for_func(func, params)
+    filtered = filter_arguments_for_func(func_with_model, params)
+    assert isinstance(filtered["model"], SimpleModel)
+    assert filtered["model"].name == "test"
+    assert filtered["model"].value == 42
+    assert filtered["name"] == "custom"
 
 
-def test_filter_arguments_for_func_with_map_variable_sent_in():
-    params = {"inner": JsonParameter(kind="json", value=1)}
+def test_filter_args_with_kwargs():
+    """Test filtering with kwargs"""
+    params = {
+        "name": JsonParameter(kind="json", value="test"),
+        "extra1": JsonParameter(kind="json", value=1),
+        "extra2": JsonParameter(kind="json", value="extra"),
+    }
 
-    def func(inner: int, first: int, second: str):
-        pass
+    filtered = filter_arguments_for_func(func_with_kwargs, params)
+    assert filtered["name"] == "test"
+    assert filtered["extra1"] == 1
+    assert filtered["extra2"] == "extra"
 
-    bound_args = filter_arguments_for_func(
-        func, params, map_variable={"first": 1, "second": "test"}
-    )
-    assert bound_args == {"inner": 1, "first": 1, "second": "test"}
+
+def test_filter_args_missing_required():
+    """Test handling of missing required arguments"""
+    params = {"b": JsonParameter(kind="json", value="test")}
+
+    with pytest.raises(ValueError) as exc_info:
+        filter_arguments_for_func(func_with_primitives, params)
+    assert "Parameter a is required" in str(exc_info.value)
+
+
+# Tests for bind_args_for_pydantic_model
+def test_bind_args_simple_model():
+    """Test binding arguments to simple model"""
+    params = {"name": "test", "value": 42}
+
+    model = bind_args_for_pydantic_model(params, SimpleModel)
+    assert isinstance(model, SimpleModel)
+    assert model.name == "test"
+    assert model.value == 42
+
+
+def test_bind_args_complex_model():
+    """Test binding arguments to complex model"""
+    params = {"required": "test", "nested": {"name": "nested", "value": 42}}
+
+    model = bind_args_for_pydantic_model(params, ComplexModel)
+    assert isinstance(model, ComplexModel)
+    assert model.required == "test"
+    assert model.optional is None
+    assert isinstance(model.nested, SimpleModel)
+    assert model.nested.name == "nested"
+
+
+def test_bind_args_with_extra_fields():
+    """Test binding with extra fields that should be ignored"""
+    params = {"name": "test", "extra": "ignored", "settings": {"key": "value"}}
+
+    model = bind_args_for_pydantic_model(params, ConfigModel)
+    assert model.name == "test"
+    assert model.settings == {"key": "value"}
+    assert not hasattr(model, "extra")

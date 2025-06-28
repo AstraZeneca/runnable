@@ -1,3 +1,0 @@
-# name: notebook job
-type: notebook
-command: examples/common/simple_notebook.ipynb # The path is relative to the root of the project.

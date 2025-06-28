@@ -22,6 +22,7 @@ WORKDIR /app
 ENV http_proxy=
 ENV https_proxy=
 
-RUN uv sync --index https://artifactory.astrazeneca.net/api/pypi/pypi-virtual/simple/ --frozen
+RUN uv sync --verbose  --frozen --extra examples --extra notebook --extra k8s
+
 
 ENV PATH="/app/.venv/bin:$PATH"

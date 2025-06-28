@@ -3,8 +3,10 @@ You can execute this pipeline by:
 
     python examples/01-tasks/scripts.py
 
-The command can be anything that can be executed in a shell.
-The stdout/stderr of the execution is captured as execution log and stored in the catalog.
+The command can be anything that can be
+executed in a shell.
+The stdout/stderr of the execution is
+captured as execution log and stored in the catalog.
 
 """
 
@@ -16,7 +18,6 @@ def main():
     hello_task = ShellTask(
         name="hello",
         command="echo 'Hello World!'",
-        terminate_with_success=True,
     )
 
     # The pipeline has only one step.
@@ -28,4 +29,5 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
     main()

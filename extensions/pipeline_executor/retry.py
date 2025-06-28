@@ -3,9 +3,9 @@ from functools import cached_property
 from typing import Any, Dict, Optional
 
 from extensions.pipeline_executor import GenericPipelineExecutor
-from runnable import context, defaults, exceptions
+from runnable import defaults, exceptions
 from runnable.datastore import RunLog
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -33,10 +33,6 @@ class RetryExecutor(GenericPipelineExecutor):
     _original_run_log: Optional[RunLog] = None
     _restart_initiated: bool = False
 
-    @property
-    def _context(self):
-        return context.run_context
-
     @cached_property
     def original_run_log(self):
         return self._context.run_log_store.get_run_log_by_id(
@@ -46,7 +42,7 @@ class RetryExecutor(GenericPipelineExecutor):
 
     def _set_up_for_re_run(self, params: Dict[str, Any]) -> None:
         # Sync the previous run log catalog to this one.
-        self._context.catalog_handler.sync_between_runs(
+        self._context.catalog.sync_between_runs(
             previous_run_id=self.run_id, run_id=self._context.run_id
         )
 
@@ -63,7 +59,7 @@ class RetryExecutor(GenericPipelineExecutor):
         # Should the parameters be copied from previous execution
         # self._set_up_for_re_run(params=params)
 
-    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This is the entry point to from the graph execution.
 
@@ -124,7 +120,7 @@ class RetryExecutor(GenericPipelineExecutor):
         self.execute_node(node=node, map_variable=map_variable)
 
     def _is_step_eligible_for_rerun(
-        self, node: BaseNode, map_variable: TypeMapVariable = None
+        self, node: BaseNode, map_variable: MapVariableType = None
     ):
         """
         In case of a re-run, this method checks to see if the previous run step status to determine if a re-run is
@@ -172,5 +168,5 @@ class RetryExecutor(GenericPipelineExecutor):
         self._restart_initiated = True
         return True
 
-    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
         self._execute_node(node, map_variable=map_variable)

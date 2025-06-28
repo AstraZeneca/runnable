@@ -13,6 +13,15 @@ dag:
     This pattern is handy when you need to do something before eventually
     failing (eg: sending a notification, updating status, etc...)
 
+    Corresponds to:
+    try:
+        step1()  # Raises the exception
+        step2()
+        step3()
+    except Exception as e:
+        step4()
+        raise e
+
     Run this pipeline as:
       runnable execute -f examples/02-sequential/default_fail.yaml
   start_at: step_1

@@ -21,13 +21,15 @@ from pydantic.alias_generators import to_camel
 from ruamel.yaml import YAML
 
 from extensions.nodes.conditional import ConditionalNode
-from extensions.nodes.nodes import MapNode, ParallelNode, TaskNode
+from extensions.nodes.map import MapNode
+from extensions.nodes.parallel import ParallelNode
+from extensions.nodes.task import TaskNode
 
 # TODO: Should be part of a wider refactor
 # from extensions.nodes.torch import TorchNode
 from extensions.pipeline_executor import GenericPipelineExecutor
-from runnable import defaults, utils
-from runnable.defaults import TypeMapVariable
+from runnable import defaults
+from runnable.defaults import MapVariableType
 from runnable.graph import Graph, search_node_by_internal_name
 from runnable.nodes import BaseNode
 
@@ -453,7 +455,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     """
 
     service_name: str = "argo"
-    _is_local: bool = False
+    _should_setup_run_log_at_traversal: bool = PrivateAttr(default=False)
     mock: bool = False
 
     model_config = ConfigDict(
@@ -535,13 +537,13 @@ class ArgoExecutor(GenericPipelineExecutor):
         parameters: Optional[list[Parameter]],
         task_name: str,
     ):
-        map_variable: TypeMapVariable = {}
+        map_variable: MapVariableType = {}
         for parameter in parameters or []:
             map_variable[parameter.name] = (  # type: ignore
                 "{{inputs.parameters." + str(parameter.name) + "}}"
             )
 
-        fan_command = utils.get_fan_command(
+        fan_command = self._context.get_fan_command(
             mode=mode,
             node=node,
             run_id=self._run_id_as_parameter,
@@ -606,17 +608,17 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         inputs = inputs or Inputs(parameters=[])
 
-        map_variable: TypeMapVariable = {}
+        map_variable: MapVariableType = {}
         for parameter in inputs.parameters or []:
             map_variable[parameter.name] = (  # type: ignore
                 "{{inputs.parameters." + str(parameter.name) + "}}"
             )
 
         # command = "runnable execute-single-node"
-        command = utils.get_node_execution_command(
+        command = self._context.get_node_callable_command(
             node=node,
-            over_write_run_id=self._run_id_as_parameter,
             map_variable=map_variable,
+            over_write_run_id=self._run_id_as_parameter,
             log_level=self._log_level_as_parameter,
         )
 
@@ -715,6 +717,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             assert parent_dag_template.dag
 
             parent_dag_template.dag.tasks.append(on_failure_task)
+
             self._gather_tasks_for_dag_template(
                 on_failure_dag,
                 dag=dag,
@@ -762,7 +765,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             depends = task_name
 
             match working_on.node_type:
-                case "task" | "success" | "stub":
+                case "task" | "success" | "stub" | "fail":
                     template_of_container = self._create_container_template(
                         working_on,
                         task_name=task_name,
@@ -958,7 +961,7 @@ class ArgoExecutor(GenericPipelineExecutor):
                 f,
             )
 
-    def _implicitly_fail(self, node: BaseNode, map_variable: TypeMapVariable):
+    def _implicitly_fail(self, node: BaseNode, map_variable: MapVariableType):
         assert self._context.dag
         _, current_branch = search_node_by_internal_name(
             dag=self._context.dag, internal_name=node.internal_name
@@ -1005,7 +1008,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         self._implicitly_fail(node, map_variable)
 
-    def fan_out(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def fan_out(self, node: BaseNode, map_variable: MapVariableType = None):
         # This could be the first step of the graph
         self._use_volumes()
 
@@ -1031,7 +1034,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             with open("/tmp/output.txt", mode="w", encoding="utf-8") as myfile:
                 json.dump(node.get_parameter_value(), myfile, indent=4)
 
-    def fan_in(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def fan_in(self, node: BaseNode, map_variable: MapVariableType = None):
         self._use_volumes()
         super().fan_in(node, map_variable)
 
@@ -1042,9 +1045,9 @@ class ArgoExecutor(GenericPipelineExecutor):
             case "chunked-fs":
                 self._context.run_log_store.log_folder = self._container_log_location
 
-        match self._context.catalog_handler.service_name:
+        match self._context.catalog.service_name:
             case "file-system":
-                self._context.catalog_handler.catalog_location = (
+                self._context.catalog.catalog_location = (
                     self._container_catalog_location
                 )
 

@@ -1,10 +1,10 @@
 import pytest
 
-from extensions.nodes.nodes import FailNode, StubNode, SuccessNode
-from runnable import (
-    exceptions,  # pylint: disable=import-error
-    graph,  # pylint: disable=import-error
-)
+from extensions.nodes.fail import FailNode
+from extensions.nodes.stub import StubNode
+from extensions.nodes.success import SuccessNode
+from runnable import exceptions  # pylint: disable=import-error
+from runnable import graph  # pylint: disable=import-error
 
 
 def get_new_graph(start_at="this", internal_branch_name="i_name"):
@@ -447,5 +447,9 @@ def test_missing_list_of_missing_neighbor_two_missing(mocked_graph):
         test_graph.add_node(node)
     missing_nodes = test_graph.missing_neighbors()
     assert len(missing_nodes) == 2
+    assert "middle" in missing_nodes
+    assert "fail" in missing_nodes
+    assert "middle" in missing_nodes
+    assert "fail" in missing_nodes
     assert "middle" in missing_nodes
     assert "fail" in missing_nodes

@@ -2,13 +2,36 @@ import importlib
 import os
 import subprocess
 from contextlib import contextmanager
+from datetime import datetime
 from functools import partial
 
 import pytest
 
 import tests.assertions as conditions
-from runnable import defaults
-from runnable.utils import generate_run_id
+from runnable import defaults, names
+
+
+def generate_run_id(run_id: str = "") -> str:
+    """Generate a new run_id.
+
+    If the input run_id is none, we create one based on time stamp.
+
+    Args:
+        run_id (str, optional): Input Run ID. Defaults to None
+
+    Returns:
+        str: A generated run_id
+    """
+    # If we are not provided with a run_id, check env var
+    if not run_id:
+        run_id = os.environ.get(defaults.ENV_RUN_ID, "")
+
+    # If both are not given, generate one
+    if not run_id:
+        now = datetime.now()
+        run_id = f"{names.get_random_name()}-{now.hour:02}{now.minute:02}"
+
+    return run_id
 
 
 def list_python_examples():
@@ -21,22 +44,14 @@ def runnable_context():
     from runnable import context as runnable_context
 
     try:
-        yield
+        yield runnable_context
     finally:
-        del os.environ[defaults.ENV_RUN_ID]
+        os.environ.pop(defaults.ENV_RUN_ID, None)
+        os.environ.pop("RUNNABLE_CONFIGURATION_FILE", None)
+        os.environ.pop("RUNNABLE_PRM_envvar", None)
+        print("Cleaning up runnable context")
         runnable_context.run_context = None
-
-
-@contextmanager
-def container_context():
-    with runnable_context():
-        os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
-            "examples/configs/local-container.yaml"
-        )
-        os.environ["RUNNABLE_PRM_envvar"] = "from env"
-        yield
-        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
-        del os.environ["RUNNABLE_PRM_envvar"]
+        runnable_context.progress = None
 
 
 @contextmanager
@@ -45,8 +60,6 @@ def minio_context():
         os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/minio.yaml"
         os.environ["RUNNABLE_PRM_envvar"] = "from env"
         yield
-        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
-        del os.environ["RUNNABLE_PRM_envvar"]
 
 
 @contextmanager
@@ -57,8 +70,6 @@ def chunked_minio_context():
         )
         os.environ["RUNNABLE_PRM_envvar"] = "from env"
         yield
-        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
-        del os.environ["RUNNABLE_PRM_envvar"]
 
 
 @contextmanager
@@ -69,8 +80,6 @@ def chunked_fs_context():
         )
         os.environ["RUNNABLE_PRM_envvar"] = "from env"
         yield
-        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
-        del os.environ["RUNNABLE_PRM_envvar"]
 
 
 @contextmanager
@@ -81,8 +90,6 @@ def mocked_context():
         )
         os.environ["RUNNABLE_PRM_envvar"] = "from env"
         yield
-        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
-        del os.environ["RUNNABLE_PRM_envvar"]
 
 
 @contextmanager
@@ -91,8 +98,6 @@ def patched_context():
         os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/08-mocking/patching.yaml"
         os.environ["RUNNABLE_PRM_envvar"] = "from env"
         yield
-        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
-        del os.environ["RUNNABLE_PRM_envvar"]
 
 
 @contextmanager
@@ -100,7 +105,14 @@ def default_context():
     with runnable_context():
         os.environ["RUNNABLE_PRM_envvar"] = "from env"
         yield
-        del os.environ["RUNNABLE_PRM_envvar"]
+
+
+@contextmanager
+def emulator_context():
+    with runnable_context():
+        os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/emulate.yaml"
+        os.environ["RUNNABLE_PRM_envvar"] = "from env"
+        yield
 
 
 @contextmanager
@@ -109,13 +121,14 @@ def argo_context():
         os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/configs/argo-config.yaml"
         yield
         subprocess.run(["argo", "lint", "--offline", "argo-pipeline.yaml"], check=True)
-        del os.environ["RUNNABLE_CONFIGURATION_FILE"]
 
 
 contexts = [
     default_context,
+    emulator_context,
     chunked_fs_context,
-]  # , mocked_context, argo_context]
+    # mocked_context,
+]
 
 # file, no_yaml, fails, ignore_contexts, parameters_file, assertions
 python_examples = [
@@ -195,22 +208,6 @@ python_examples = [
         ],
     ),
     (
-        "02-sequential/traversal_default_success",
-        False,
-        False,
-        [],
-        "",
-        [
-            partial(conditions.should_have_num_steps, 5),
-            partial(conditions.should_have_catalog_execution_logs),
-            partial(conditions.should_be_successful),
-            partial(conditions.should_step_be_successful, "hello stub"),
-            partial(conditions.should_step_be_successful, "hello python"),
-            partial(conditions.should_step_be_successful, "hello shell"),
-            partial(conditions.should_step_be_successful, "hello notebook"),
-        ],
-    ),
-    (
         "02-sequential/default_fail",
         False,
         True,
@@ -224,6 +221,7 @@ python_examples = [
             partial(conditions.should_step_be_failed, "step 2"),
         ],
     ),
+    # Seems to fail for argo
     (
         "02-sequential/on_failure_fail",
         False,
@@ -234,8 +232,8 @@ python_examples = [
             partial(conditions.should_have_num_steps, 3),
             partial(conditions.should_have_catalog_execution_logs),
             partial(conditions.should_be_failed),
-            partial(conditions.should_step_be_successful, "step 4"),
-            partial(conditions.should_step_be_failed, "step 1"),
+            partial(conditions.should_step_be_successful, "step_4"),
+            partial(conditions.should_step_be_failed, "step_1"),
         ],
     ),
     (
@@ -248,10 +246,11 @@ python_examples = [
             partial(conditions.should_have_num_steps, 3),
             partial(conditions.should_have_catalog_execution_logs),
             partial(conditions.should_be_successful),
-            partial(conditions.should_step_be_successful, "step 4"),
-            partial(conditions.should_step_be_failed, "step 1"),
+            partial(conditions.should_step_be_successful, "step_4"),
+            partial(conditions.should_step_be_failed, "step_1"),
         ],
     ),
+    # Need ot add conditional here
     (
         "03-parameters/static_parameters_python",
         False,
@@ -566,6 +565,7 @@ python_examples = [
             ),
         ],
     ),
+    # This is failing in argo
     (
         "04-catalog/catalog_on_fail",
         False,
@@ -660,7 +660,7 @@ python_examples = [
         [],
         "examples/common/initial_parameters.yaml",
         [
-            partial(conditions.should_have_num_steps, 3),
+            partial(conditions.should_have_num_steps, 2),
             partial(conditions.should_be_failed),
             partial(conditions.should_branch_have_steps, "map_state", "1", 2),
             partial(conditions.should_branch_have_steps, "map_state", "2", 5),
@@ -704,7 +704,7 @@ python_examples = [
 def test_python_examples(example, context):
     print(f"Testing {example}...")
 
-    mod, no_yaml, fails, ignore_contexts, _, assertions = example
+    mod, _, fails, ignore_contexts, _, assertions = example
     if context in ignore_contexts:
         return
 
@@ -719,12 +719,11 @@ def test_python_examples(example, context):
         try:
             os.environ[defaults.ENV_RUN_ID] = generate_run_id()
             f()
-            [asserttion() for asserttion in assertions]
-
         except exceptions.ExecutionFailedError:
             print("Example failed")
             if not fails:
                 raise
+        [asserttion() for asserttion in assertions]
 
 
 @pytest.mark.parametrize("example", list_python_examples())
@@ -756,8 +755,38 @@ def test_yaml_examples(example, context):
                 parameters_file=parameters_file,
                 run_id=os.environ[defaults.ENV_RUN_ID],
             )
-            [asserttion() for asserttion in assertions]
         except exceptions.ExecutionFailedError:
+            if not fails:
+                raise
+        [assertion() for assertion in assertions]
+
+
+argo_contexts = [argo_context]
+
+
+@pytest.mark.parametrize("example", list_python_examples())
+@pytest.mark.parametrize("context", argo_contexts)
+@pytest.mark.argo
+@pytest.mark.e2e
+def test_python_examples_argo(example, context):
+    print(f"Testing {example}...")
+
+    mod, _, fails, ignore_contexts, _, _ = example
+
+    context = context()
+
+    imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
+    f = getattr(imported_module, "main")
+
+    with context:
+        from runnable import exceptions
+
+        try:
+            os.environ[defaults.ENV_RUN_ID] = generate_run_id()
+            f()
+
+        except exceptions.ExecutionFailedError:
+            print("Example failed")
             if not fails:
                 raise
 
@@ -791,53 +820,6 @@ def test_python_examples_minio(example, context):
             print("Example failed")
             if not fails:
                 raise
-
-
-# @pytest.mark.parametrize("example", list_python_examples())
-# @pytest.mark.container
-# def test_python_examples_container(example):
-#     print(f"Testing {example}...")
-
-#     mod, fails, _ = example
-#     context = container_context()
-
-#     imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
-#     f = getattr(imported_module, "main")
-#     with context:
-#         from runnable import context, exceptions
-
-#         try:
-#             f()
-#         except exceptions.ExecutionFailedError:
-#             print("Example failed")
-#             if not fails:
-#                 raise
-#         finally:
-#             context.run_context = None
-
-
-# @pytest.mark.parametrize("example", list_python_examples())
-# @pytest.mark.container
-# def test_yaml_examples_container(example):
-#     print(f"Testing {example}...")
-#     file, fails, _ = example
-
-#     context = container_context()
-
-#     example_file = f"examples/{file}.yaml"
-#     parameters_file = "examples/common/initial_parameters.yaml"
-
-#     with context:
-#         from runnable import exceptions
-#         from runnable.entrypoints import execute_pipeline_yaml_spec
-
-#         try:
-#             execute_pipeline_yaml_spec(
-#                 pipeline_file=example_file, parameters_file=parameters_file
-#             )
-#         except exceptions.ExecutionFailedError:
-#             if not fails:
-#                 raise
 
 
 # TODO: add tests for jobs

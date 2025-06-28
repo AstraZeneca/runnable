@@ -1,16 +1,8 @@
 # ruff: noqa
 
-
-import logging
 import os
-from logging.config import dictConfig
 
 from rich.console import Console
-
-from runnable import defaults
-
-dictConfig(defaults.LOGGING_CONFIG)
-logger = logging.getLogger(defaults.LOGGER_NAME)
 
 console = Console(record=True)
 console.print(":runner: Lets go!!")

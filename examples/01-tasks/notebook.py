@@ -3,10 +3,12 @@ You can execute this pipeline by:
 
     python examples/01-tasks/notebook.py
 
-The notebook is executed in the same environment so any installed packages are available for the
+The notebook is executed in the same environment
+so any installed packages are available for the
 notebook.
 
-Upon successful execution, the output notebook with cell outputs is stored in the catalog.
+Upon successful execution, the output notebook with
+cell outputs is stored in the catalog.
 
 """
 
@@ -20,7 +22,6 @@ def main():
     hello_task = NotebookTask(
         name="hello",
         notebook="examples/common/simple_notebook.ipynb",
-        terminate_with_success=True,
     )
 
     # The pipeline has only one step.

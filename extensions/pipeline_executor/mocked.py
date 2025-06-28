@@ -4,10 +4,10 @@ from typing import Any, Dict, Type, cast
 
 from pydantic import ConfigDict, Field
 
-from extensions.nodes.nodes import TaskNode
+from extensions.nodes.task import TaskNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import context, defaults
-from runnable.defaults import TypeMapVariable
+from runnable.defaults import MapVariableType
 from runnable.nodes import BaseNode
 from runnable.tasks import BaseTaskType
 
@@ -36,7 +36,7 @@ class MockedExecutor(GenericPipelineExecutor):
     def _context(self):
         return context.run_context
 
-    def execute_from_graph(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This is the entry point to from the graph execution.
 
@@ -140,7 +140,7 @@ class MockedExecutor(GenericPipelineExecutor):
 
         return effective_node_config
 
-    def execute_node(self, node: BaseNode, map_variable: TypeMapVariable = None):
+    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         The entry point for all executors apart from local.
         We have already prepared for node execution.

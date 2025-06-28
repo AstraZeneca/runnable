@@ -7,7 +7,7 @@ from pydantic import Field, field_serializer, field_validator
 from runnable import console, defaults
 from runnable.datastore import Parameter
 from runnable.graph import Graph, create_graph
-from runnable.nodes import CompositeNode, TypeMapVariable
+from runnable.nodes import CompositeNode, MapVariableType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -124,7 +124,7 @@ class ConditionalNode(CompositeNode):
 
         raise Exception(f"Branch {branch_name} does not exist")
 
-    def fan_out(self, map_variable: TypeMapVariable = None):
+    def fan_out(self, map_variable: MapVariableType = None):
         """
         This method is restricted to creating branch logs.
         """
@@ -160,7 +160,7 @@ class ConditionalNode(CompositeNode):
                 "None of the branches were true. Please check your evaluate statements"
             )
 
-    def execute_as_graph(self, map_variable: TypeMapVariable = None):
+    def execute_as_graph(self, map_variable: MapVariableType = None):
         """
         This function does the actual execution of the sub-branches of the parallel node.
 
@@ -190,11 +190,13 @@ class ConditionalNode(CompositeNode):
             if result:
                 # if the condition is met, execute the graph
                 logger.debug(f"Executing graph for {branch}")
-                self._context.executor.execute_graph(branch, map_variable=map_variable)
+                self._context.pipeline_executor.execute_graph(
+                    branch, map_variable=map_variable
+                )
 
         self.fan_in(map_variable=map_variable)
 
-    def fan_in(self, map_variable: TypeMapVariable = None):
+    def fan_in(self, map_variable: MapVariableType = None):
         """
         The general fan in method for a node of type Parallel.
 

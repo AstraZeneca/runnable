@@ -223,56 +223,6 @@ def fan(
     )
 
 
-@app.command()
-def submit_job(
-    job_definition_file: Annotated[
-        str,
-        typer.Argument(
-            help=("The yaml file containing the job definition"),
-        ),
-    ],
-    config_file: Annotated[
-        str,
-        typer.Option(
-            "--config", "-c", help="The configuration file specifying the services"
-        ),
-    ] = "",
-    parameters_file: Annotated[
-        str,
-        typer.Option(
-            "--parameters",
-            "-p",
-            help="Parameters, in yaml,  accessible by the application",
-        ),
-    ] = "",
-    log_level: Annotated[
-        LogLevel,
-        typer.Option(
-            "--log-level",
-            help="The log level",
-            show_default=True,
-            case_sensitive=False,
-        ),
-    ] = LogLevel.WARNING,
-    tag: Annotated[str, typer.Option(help="A tag attached to the run")] = "",
-    run_id: Annotated[
-        str,
-        typer.Option(
-            help="An optional run_id, one would be generated if its not provided"
-        ),
-    ] = "",
-):
-    logger.setLevel(log_level.value)
-
-    entrypoints.execute_job_yaml_spec(
-        configuration_file=config_file,
-        job_definition_file=job_definition_file,
-        tag=tag,
-        run_id=run_id,
-        parameters_file=parameters_file,
-    )
-
-
 @app.command(hidden=True)
 def execute_job(
     job_definition_file: Annotated[
@@ -302,14 +252,6 @@ def execute_job(
             help="Parameters, in yaml,  accessible by the application",
         ),
     ] = "",
-    mode: Annotated[
-        ExecutionMode,
-        typer.Option(
-            "--mode",
-            "-m",
-            help="spec in yaml or python sdk",
-        ),
-    ] = ExecutionMode.YAML,
     log_level: Annotated[
         LogLevel,
         typer.Option(
@@ -326,7 +268,6 @@ def execute_job(
     entrypoints.execute_job_non_local(
         configuration_file=config_file,
         job_definition_file=job_definition_file,
-        mode=mode,
         tag=tag,
         run_id=run_id,
         parameters_file=parameters_file,

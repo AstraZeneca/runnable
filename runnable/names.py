@@ -306,7 +306,7 @@ left = [
     "chalky",
     "moist",
     "formal",
-    "brute force",
+    "force",
     "ancient",
     "wan",
     "square",

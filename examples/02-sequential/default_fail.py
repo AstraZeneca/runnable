@@ -7,9 +7,17 @@ In the below example, the progression would be as follows:
 
   step 1 >> step 2 >> fail
 
+Corresponds to:
+  try:
+      step1()
+      step2() # Raises the exception
+      step3()
+  except Exception as e:
+      raise e
 
 You can run this example by:
   python examples/02-sequential/default_fail.py
+
 """
 
 from examples.common.functions import hello, raise_ex
@@ -21,9 +29,7 @@ def main():
 
     step2 = PythonTask(name="step 2", function=raise_ex)  # This will fail
 
-    step3 = Stub(
-        name="step 3", terminate_with_success=True
-    )  # This step will not be executed
+    step3 = Stub(name="step 3")  # This step will not be executed
 
     pipeline = Pipeline(steps=[step1, step2, step3])
 
