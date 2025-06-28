@@ -909,8 +909,6 @@ class BaseJob(BaseModel):
             **service_configurations.services,
         }
 
-        print(f"Configurations: {configurations}")
-
         run_context = context.JobContext.model_validate(configurations)
 
         assert isinstance(run_context.job_executor, BaseJobExecutor)

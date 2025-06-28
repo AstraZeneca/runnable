@@ -22,7 +22,7 @@ WORKDIR /app
 ENV http_proxy=
 ENV https_proxy=
 
-RUN uv sync --verbose  --frozen --extra examples --extra notebook
+RUN uv sync --verbose  --frozen --extra examples --extra notebook --extra k8s
 
 
 ENV PATH="/app/.venv/bin:$PATH"
