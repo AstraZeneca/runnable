@@ -186,7 +186,7 @@ class BaseTask(BaseTraversal):
         )
 
     def as_pipeline(self) -> "Pipeline":
-        return Pipeline(steps=[self])  # type: ignore
+        return Pipeline(steps=[self], name=self.internal_name)  # type: ignore
 
 
 class PythonTask(BaseTask):
@@ -894,7 +894,7 @@ class BaseJob(BaseModel):
 
         service_configurations = context.ServiceConfigurations(
             configuration_file=configuration_file,
-            execution_context=context.ExecutionContext.PIPELINE,
+            execution_context=context.ExecutionContext.JOB,
         )
 
         configurations = {
@@ -908,6 +908,8 @@ class BaseJob(BaseModel):
             "catalog_settings": self.return_catalog_settings(),
             **service_configurations.services,
         }
+
+        print(f"Configurations: {configurations}")
 
         run_context = context.JobContext.model_validate(configurations)
 

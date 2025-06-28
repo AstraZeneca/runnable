@@ -221,6 +221,7 @@ python_examples = [
             partial(conditions.should_step_be_failed, "step 2"),
         ],
     ),
+    # Seems to fail for argo
     (
         "02-sequential/on_failure_fail",
         False,
@@ -245,8 +246,8 @@ python_examples = [
             partial(conditions.should_have_num_steps, 3),
             partial(conditions.should_have_catalog_execution_logs),
             partial(conditions.should_be_successful),
-            partial(conditions.should_step_be_successful, "step 4"),
-            partial(conditions.should_step_be_failed, "step 1"),
+            partial(conditions.should_step_be_successful, "step_4"),
+            partial(conditions.should_step_be_failed, "step_1"),
         ],
     ),
     # Need ot add conditional here
@@ -564,6 +565,7 @@ python_examples = [
             ),
         ],
     ),
+    # This is failing in argo
     (
         "04-catalog/catalog_on_fail",
         False,

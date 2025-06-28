@@ -515,6 +515,7 @@ class NotebookTaskType(BaseTaskType):
             tag += f"{key}_{value}_"
 
         if isinstance(self._context, context.PipelineContext):
+            assert self._context.pipeline_executor._context_node
             tag += self._context.pipeline_executor._context_node.name
 
         tag = "".join(x for x in tag if x.isalnum()).strip("-")

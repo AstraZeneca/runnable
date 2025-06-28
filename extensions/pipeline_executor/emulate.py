@@ -96,13 +96,13 @@ class Emulator(GenericPipelineExecutor):
         output = []
         try:
             while True:
-                line = process.stdout.readline()
+                line = process.stdout.readline()  # type: ignore
                 if not line and process.poll() is not None:
                     break
                 print(line, end="")
                 output.append(line)
         finally:
-            process.stdout.close()
+            process.stdout.close()  # type: ignore
 
         if process.returncode != 0:
             raise subprocess.CalledProcessError(

@@ -342,41 +342,6 @@ def get_data_hash(file_name: str) -> str:
     return file_hash.hexdigest()
 
 
-# TODO: This is not the right place for this.
-def get_job_execution_command(over_write_run_id: str = "") -> str:
-    """Get the execution command to run a job via command line.
-
-    This function should be used by all executors to submit jobs in remote environment
-    """
-    assert isinstance(context.run_context, context.JobContext)
-
-    run_id = context.run_context.run_id
-
-    if over_write_run_id:
-        run_id = over_write_run_id
-
-    log_level = logging.getLevelName(logger.getEffectiveLevel())
-
-    action = (
-        f"runnable execute-job {context.run_context.job_definition_file} {run_id} "
-        f" --log-level {log_level}"
-    )
-
-    if context.run_context.configuration_file:
-        action = action + f" --config {context.run_context.configuration_file}"
-
-    if context.run_context.parameters_file:
-        action = action + f" --parameters {context.run_context.parameters_file}"
-
-    if context.run_context.from_sdk:
-        action = action + " --mode python "
-
-    if context.run_context.tag:
-        action = action + f" --tag {context.run_context.tag}"
-
-    return action
-
-
 def json_to_ordered_dict(json_str: str) -> MapVariableType:
     """Decode a JSON str into OrderedDict.
 

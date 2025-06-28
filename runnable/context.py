@@ -67,6 +67,21 @@ def get_pipeline_spec_from_python(python_module: str) -> Graph:
     return dag
 
 
+def get_job_spec_from_python(job_file: str) -> BaseTaskType:
+    """
+    Reads the job file from a Python file and sets the job spec in the run context
+    """
+    # Import the module and call the function to get the job
+    module_file = job_file.rstrip(".py")
+    module, func = utils.get_module_and_attr_names(module_file)
+    sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
+    imported_module = importlib.import_module(module)
+
+    job = getattr(imported_module, func)().get_task()
+
+    return job
+
+
 def get_service_by_name(namespace: str, service_config: dict[str, Any], _) -> Any:  # noqa: ANN401, ANN001
     """Get the service by name."""
     service_config = service_config.copy()
@@ -105,18 +120,6 @@ def get_service(service: str) -> Callable:
     return partial(get_service_by_name, service)
 
 
-def get_task(service: str) -> Callable:
-    """Get the task by name.
-
-    Args:
-        service (str): service name.
-
-    Returns:
-        Callable: callable function of service.
-    """
-    return partial(get_service_by_name, service)
-
-
 InstantiatedCatalog = Annotated[BaseCatalog, BeforeValidator(get_service("catalog"))]
 InstantiatedSecrets = Annotated[BaseSecrets, BeforeValidator(get_service("secrets"))]
 InstantiatedPickler = Annotated[BasePickler, BeforeValidator(get_service("pickler"))]
@@ -129,7 +132,6 @@ InstantiatedPipelineExecutor = Annotated[
 InstantiatedJobExecutor = Annotated[
     BaseJobExecutor, BeforeValidator(get_service("job_executor"))
 ]
-InstantiatedJob = Annotated[BaseTaskType, BeforeValidator(get_task("tasks"))]
 
 
 class ExecutionMode(str, Enum):
@@ -173,7 +175,7 @@ class ServiceConfigurations(BaseModel):
         # 4. No config file
         return None
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def services(self) -> dict[str, Any]:
         """Get the effective services"""
@@ -266,7 +268,7 @@ class RunnableContext(BaseModel):
 
         global run_context
         if not run_context:
-            run_context = self
+            run_context = self  # type: ignore
 
         global progress
         progress = Progress(
@@ -295,7 +297,7 @@ class PipelineContext(RunnableContext):
 
     pipeline_definition_file: str
 
-    @computed_field
+    @computed_field  # type: ignore
     @cached_property
     def dag(self) -> Graph | None:
         """Get the dag."""
@@ -308,7 +310,7 @@ class PipelineContext(RunnableContext):
                 f"Invalid execution mode: {self.execution_mode}. Must be 'yaml' or 'python'."
             )
 
-    @computed_field
+    @computed_field  # type: ignore
     @cached_property
     def dag_hash(self) -> str:
         dag = self.dag
@@ -469,11 +471,43 @@ class JobContext(RunnableContext):
     run_log_store: InstantiatedRunLogStore
 
     job_definition_file: str
-    job: BaseTaskType
     catalog_settings: Optional[list[str]] = Field(
         default=None,
         description="Catalog settings to be used for the job.",
     )
+
+    @computed_field  # type: ignore
+    @cached_property
+    def job(self) -> BaseTaskType:
+        """Get the job."""
+        return get_job_spec_from_python(self.job_definition_file)
+
+    def get_job_callable_command(
+        self,
+        over_write_run_id: str = "",
+    ):
+        run_id = self.run_id
+
+        if over_write_run_id:
+            run_id = over_write_run_id
+
+        log_level = logging.getLevelName(logger.getEffectiveLevel())
+
+        action = (
+            f"runnable execute-job {self.job_definition_file} {run_id} "
+            f" --log-level {log_level}"
+        )
+
+        if self.configuration_file:
+            action = action + f" --config {self.configuration_file}"
+
+        if self.parameters_file:
+            action = action + f" --parameters {self.parameters_file}"
+
+        if self.tag:
+            action = action + f" --tag {self.tag}"
+
+        return action
 
     def execute(self):
         console.print("Working with context:")
@@ -486,6 +520,7 @@ class JobContext(RunnableContext):
             )
         finally:
             self.job_executor.add_task_log_to_catalog("job")
+            progress.stop()
 
         logger.info(
             "Executing the job from the user. We are still in the caller's compute environment"

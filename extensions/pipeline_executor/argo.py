@@ -717,6 +717,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             assert parent_dag_template.dag
 
             parent_dag_template.dag.tasks.append(on_failure_task)
+
             self._gather_tasks_for_dag_template(
                 on_failure_dag,
                 dag=dag,
@@ -764,7 +765,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             depends = task_name
 
             match working_on.node_type:
-                case "task" | "success" | "stub":
+                case "task" | "success" | "stub" | "fail":
                     template_of_container = self._create_container_template(
                         working_on,
                         task_name=task_name,

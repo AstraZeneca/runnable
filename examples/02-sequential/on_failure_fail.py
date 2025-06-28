@@ -36,9 +36,10 @@ def main():
     step_2 = Stub(name="step_2")
 
     step_3 = Stub(name="step_3")
-    on_failure_pipeline = Stub(name="step_4", terminate_with_failure=True).as_pipeline()
 
-    step_1.on_failure = on_failure_pipeline  # (2)
+    step_4 = Stub(name="step_4", terminate_with_failure=True).as_pipeline()
+
+    step_1.on_failure = step_4  # (2)
 
     pipeline = Pipeline(
         steps=[step_1, step_2, step_3],

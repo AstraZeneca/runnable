@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, PrivateAttr
 from pydantic.alias_generators import to_camel
 
 from extensions.job_executor import GenericJobExecutor
-from runnable import console, defaults, utils
+from runnable import console, context, defaults
 from runnable.datastore import DataCatalog, StepAttempt
 from runnable.tasks import BaseTaskType
 
@@ -258,8 +258,8 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             self._client.V1VolumeMount(**vol.model_dump())
             for vol in self._volume_mounts
         ]
-
-        command = utils.get_job_execution_command()
+        assert isinstance(self._context, context.JobContext)
+        command = self._context.get_job_callable_command()
 
         container_env = [
             self._client.V1EnvVar(**env.model_dump())

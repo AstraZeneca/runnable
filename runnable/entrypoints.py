@@ -104,49 +104,41 @@ def execute_single_node(
 def execute_job_non_local(
     job_definition_file: str,
     configuration_file: str = "",
-    mode: str = "yaml",
     tag: str = "",
     run_id: str = "",
     parameters_file: str = "",
 ):
-    ...
-    # run_id = utils.generate_run_id(run_id=run_id)
+    service_configurations = context.ServiceConfigurations(
+        configuration_file=configuration_file,
+        execution_context=context.ExecutionContext.JOB,
+    )
+    configurations = {
+        "job_definition_file": job_definition_file,
+        "parameters_file": parameters_file,
+        "tag": tag,
+        "run_id": run_id,
+        "configuration_file": configuration_file,
+        **service_configurations.services,
+    }
 
-    # run_context = prepare_configurations(
-    #     configuration_file=configuration_file,
-    #     run_id=run_id,
-    #     tag=tag,
-    #     parameters_file=parameters_file,
-    #     is_job=True,
-    # )
+    logger.info("Resolved configurations:")
+    logger.info(json.dumps(configurations, indent=4))
 
-    # assert isinstance(run_context.executor, BaseJobExecutor)
+    run_context = context.JobContext.model_validate(configurations)
+    assert run_context.job
 
-    # if mode == "yaml":
-    #     # Load the yaml file
-    #     set_job_spec_from_yaml(run_context, job_definition_file)
-    # elif mode == "python":
-    #     # Call the SDK to get the task
-    #     set_job_spec_from_python(run_context, job_definition_file)
+    logger.info("Executing the job in non-local mode")
+    logger.info("Job to execute: %s", run_context.job)
 
-    # assert run_context.job
+    try:
+        run_context.job_executor.execute_job(
+            run_context.job,
+            catalog_settings=run_context.catalog_settings,
+        )
+    finally:
+        run_context.job_executor.add_task_log_to_catalog("job")
 
-    # console.print("Working with context:")
-    # console.print(run_context)
-    # console.rule(style="[dark orange]")
-
-    # logger.info(
-    #     "Executing the job from the user. We are still in the caller's compute environment"
-    # )
-
-    # try:
-    #     run_context.executor.execute_job(
-    #         run_context.job, catalog_settings=run_context.job_catalog_settings
-    #     )
-    # finally:
-    #     run_context.executor.add_task_log_to_catalog("job")
-
-    # run_context.executor.send_return_code()
+    run_context.job_executor.send_return_code()
 
 
 def fan(

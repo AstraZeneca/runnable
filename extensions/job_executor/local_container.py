@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from pydantic import Field, PrivateAttr
 
 from extensions.job_executor import GenericJobExecutor
-from runnable import console, defaults, utils
+from runnable import console, context, defaults
 from runnable.datastore import DataCatalog, StepAttempt
 from runnable.tasks import BaseTaskType
 
@@ -100,7 +100,8 @@ class LocalContainerJobExecutor(GenericJobExecutor):
             ) from ex
 
         try:
-            command = utils.get_job_execution_command()
+            assert isinstance(self._context, context.JobContext)
+            command = self._context.get_job_callable_command()
             logger.info(f"Running the command {command}")
             print(command)
 
@@ -173,9 +174,9 @@ class LocalContainerJobExecutor(GenericJobExecutor):
                     "mode": "rw",
                 }
 
-        match self._context.secrets_handler.service_name:
+        match self._context.secrets.service_name:
             case "dotenv":
-                secrets_location = self._context.secrets_handler.location
+                secrets_location = self._context.secrets.location
                 self._volumes[str(Path(secrets_location).resolve())] = {
                     "bind": f"{self._container_secrets_location}",
                     "mode": "ro",
@@ -194,8 +195,6 @@ class LocalContainerJobExecutor(GenericJobExecutor):
                     self._container_catalog_location
                 )
 
-        match self._context.secrets_handler.service_name:
+        match self._context.secrets.service_name:
             case "dotenv":
-                self._context.secrets_handler.location = (
-                    self._container_secrets_location
-                )
+                self._context.secrets.location = self._container_secrets_location

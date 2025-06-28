@@ -1,0 +1,2 @@
+job-executor:
+  type: emulator # (1)

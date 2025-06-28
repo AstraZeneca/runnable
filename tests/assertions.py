@@ -1,9 +1,13 @@
 import os
 import re
+import sys
 from functools import lru_cache
 from pathlib import Path
 
-from runnable import defaults
+# Ensure the project root directory is in the Python path
+sys.path.insert(0, str(Path(__file__).parent.parent.absolute()))
+
+# We'll import defaults inside each function to avoid circular imports
 
 
 @lru_cache
@@ -15,6 +19,8 @@ def load_run_log(run_id):
 
 
 def should_be_successful():
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     assert (
@@ -23,12 +29,27 @@ def should_be_successful():
 
 
 def should_be_failed():
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     assert run_log.status == defaults.FAIL, f"Expected successful, got {run_log.status}"
 
 
+def should_have_job_and_status():
+    from runnable import defaults
+
+    run_id = os.environ[defaults.ENV_RUN_ID]
+    run_log = load_run_log(run_id)
+
+    assert run_log.job is not None, "Expected job to be set, but it is None"
+    assert run_log.status == defaults.SUCCESS
+    assert run_log.job.status == defaults.SUCCESS
+
+
 def should_have_num_steps(num_steps: int) -> None:
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     assert (
@@ -37,6 +58,8 @@ def should_have_num_steps(num_steps: int) -> None:
 
 
 def should_step_be_successful(step_name: str):
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     step = run_log.steps[step_name]
@@ -44,6 +67,8 @@ def should_step_be_successful(step_name: str):
 
 
 def should_step_be_failed(step_name: str):
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     step = run_log.steps[step_name]
@@ -51,6 +76,8 @@ def should_step_be_failed(step_name: str):
 
 
 def should_step_have_parameters(step_name: str, parameters: dict):
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     step = run_log.steps[step_name]
@@ -65,6 +92,8 @@ def should_step_have_parameters(step_name: str, parameters: dict):
 def should_branch_step_have_parameters(
     parent_step_name: str, branch_name: str, branch_step_name: str, key: str, value
 ):
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     step = run_log.steps[parent_step_name]
@@ -82,6 +111,8 @@ def should_branch_step_have_parameters(
 
 
 def should_step_have_output_parameters(step_name: str, parameters: dict):
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     step = run_log.steps[step_name]
@@ -93,7 +124,23 @@ def should_step_have_output_parameters(step_name: str, parameters: dict):
     assert parameters == func_parameters
 
 
+def should_job_have_output_parameters(parameters: dict):
+    from runnable import defaults
+
+    run_id = os.environ[defaults.ENV_RUN_ID]
+    run_log = load_run_log(run_id)
+    job = run_log.job
+    func_parameters = {
+        parameter: value.value
+        for parameter, value in job.attempts[0].output_parameters.items()
+    }
+
+    assert parameters == func_parameters
+
+
 def should_have_catalog_execution_logs():
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
 
@@ -113,6 +160,8 @@ def should_have_catalog_execution_logs():
 
 
 def should_have_catalog_contents(files: list[str]):
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
 
     contents = os.listdir(f".catalog/{run_id}")
@@ -126,6 +175,8 @@ def should_have_catalog_contents(files: list[str]):
 
 
 def should_branch_have_steps(step_name, branch_name: str, num_steps: int):
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     step = run_log.steps[step_name]
@@ -135,6 +186,8 @@ def should_branch_have_steps(step_name, branch_name: str, num_steps: int):
 
 
 def should_branch_be_successful(step_name, branch_name: str):
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     step = run_log.steps[step_name]
@@ -144,6 +197,8 @@ def should_branch_be_successful(step_name, branch_name: str):
 
 
 def should_branch_be_failed(step_name, branch_name: str):
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
     run_log = load_run_log(run_id)
     step = run_log.steps[step_name]
@@ -153,6 +208,8 @@ def should_branch_be_failed(step_name, branch_name: str):
 
 
 def should_have_notebook_output(name: str):
+    from runnable import defaults
+
     run_id = os.environ[defaults.ENV_RUN_ID]
 
     catalog_location = Path(f".catalog/{run_id}")
