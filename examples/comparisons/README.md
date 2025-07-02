@@ -1,7 +1,7 @@
-For the purpose of comparisons, consider the following function:
+To simplify the core of ```runnable```,  consider the following function:
 
 ```python
-def func(x: int, y:pd.DataFrame):
+def func(x: int, y: pd.DataFrame):
     # Access some data, input.csv
     # do something with the inputs.
     # Write a file called output.csv for downstream steps.
@@ -31,6 +31,14 @@ catalog = Catalog(get=["input.csv"], put=["output.csv"])
 # If the return parameter is an object, use pickled("z")
 func_task = PythonTask(name="function", function=func, returns=["z"], catalog=catalog)
 ```
+
+Briefly:
+
+1. The function remains the same as written
+2. The required data sets are put in place for the function execution
+3. The required input parameters are inspected and passed in from the available parameters
+4. After the function call, the return parameters are added to the parameter space
+5. The processed data is stored for future use.
 
 Below are the implementations in alternative frameworks. Note that
 the below are the best of our understanding of the frameworks, please let us
@@ -65,55 +73,13 @@ class Flow(FlowSpec)
         ...
 ```
 
-- The API between ```runnable``` and ```metaflow``` are comparable.
-- There is a mechanism for functions to accept/return parameters.
-- Both support parallel branches, arbitrary nesting of pipelines.
+Though the philosophy is similar, there are some implementation differences in:
 
-The differences:
+1. Dependency management - metaflow requiring decorators while runnable works in the project environment
+2. Dataflow - runnable moves data in and out via the configuration while in metaflow the user is expected to write code.
+3. Support for notebooks - runnable allows notebooks to be steps.
+4. Platform vs package - runnable is a package while metaflow takes a platform perspective
 
-##### dependency management:
-
-```runnable``` depends on the activated virtualenv for dependencies which is natural to python.
-Use custom docker images to provide the same environment in cloud based executions.
-
-```metaflow``` uses decorators (conda, pypi) to specify dependencies. This has an advantage
-of abstraction from docker ecosystem for the user.
-
-##### dataflow:
-
-In ```runnable```, data flow between steps is by an instruction in runnable to ```glob``` files in
-local disk and present them in the same structure to downstream steps.
-
-```metaflow``` needs a code based instruction to do so.
-
-##### notebooks:
-
-```runnable``` allows notebook as tasks. Notebooks can take JSON style inputs and can return
-pythonic objects for downstream steps.
-
-```metaflow``` does not support notebooks as tasks.
-
-##### infrastructure:
-
-```runnable```, in many ways, is just a transpiler to your chosen infrastructure.
-
-```metaflow``` is a platform with its own specified infrastructure.
-
-##### modular pipelines
-
-In ```runnable``` the individual pipelines of parallel and map states are
-pipelines themselves and can run in isolation. This is not true in ```metaflow```.
-
-##### unit testing pipelines
-
-```runnable``` pipelines are testable using ```mocked``` executor where the executables can be mocked/patched.
-In ```metaflow```, it depends on how the python function is wrapped in the pipeline.
-
-##### distributed training
-
-```metaflow``` supports distributed training.
-
-As of now, ```runnable``` does not support distributed training but is in the works.
 
 
 <hr style="border:2px dotted orange">
@@ -143,32 +109,9 @@ def create_pipeline(**kwargs) -> Pipeline:
 
 ```
 
-##### Footprint
 
-```kedro``` has a larger footprint in the domain code by the configuration files. It is tightly structured and
-provides a CLI to get started.
 
-To use ```runnable``` as part of the project requires
-adding a pipeline definition file (in python or yaml) and an optional configuration file.
+```kedro``` has a larger footprint in the domain code by the configuration files. It imposes
+a structure and code organization while runnable does not have an opinion on the code structure.
 
-##### dataflow
-
-Kedro needs the data flowing through the pipeline via ```catalog.yaml``` which
-provides a central place to understand the data.
-
-In ```runnable```, the data is presented to the individual tasks as
-requested by the ```catalog``` instruction.
-
-##### notebooks
-
-Kedro supports notebooks for exploration but not as tasks of the pipeline.
-
-##### dynamic pipelines
-
-```kedro``` does not support dynamic pipelines or map state.
-
-##### distributed training
-
-```kedro``` supports distributed training via a [plugin](https://github.com/getindata/kedro-azureml).
-
-As of now, ```runnable``` does not support distributed training but is in the works.
+```runnable``` supports notebooks, dynamic pipelines while kedro lacks support for these.

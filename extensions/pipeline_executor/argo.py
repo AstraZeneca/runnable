@@ -24,9 +24,6 @@ from extensions.nodes.conditional import ConditionalNode
 from extensions.nodes.map import MapNode
 from extensions.nodes.parallel import ParallelNode
 from extensions.nodes.task import TaskNode
-
-# TODO: Should be part of a wider refactor
-# from extensions.nodes.torch import TorchNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
 from runnable.defaults import MapVariableType
@@ -592,7 +589,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         task_name: str,
         inputs: Optional[Inputs] = None,
     ) -> ContainerTemplate:
-        assert node.node_type in ["task", "torch", "success", "stub", "fail"]
+        assert node.node_type in ["task", "success", "stub", "fail"]
 
         node_override = None
         if hasattr(node, "overrides"):
@@ -655,7 +652,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     def _set_env_vars_to_task(
         self, working_on: BaseNode, container_template: CoreContainerTemplate
     ):
-        if working_on.node_type not in ["task", "torch"]:
+        if working_on.node_type not in ["task"]:
             return
 
         global_envs: dict[str, str] = {}

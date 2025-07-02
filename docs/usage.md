@@ -20,7 +20,6 @@ They can be installed by ```"pip install runnable[<extra>]"```
 - ```notebook``` : enables notebooks as tasks/jobs
 - ```k8s``` : enables running jobs in kubernetes or minikube clusters
 - ```s3``` : enables using ```s3``` buckets for ```run log store``` and ```catalog```
-- ```torch``` : enables to run pytorch jobs or as tasks in pipeline
 
 
 ## Usage
@@ -53,26 +52,7 @@ runnable execute
 
 ### Execute a job
 
-Jobs defined in **runnable** can be either via [python sdk](reference.md) or ```yaml``` based definitions.
-
-The options are detailed below:
-
-```shell
-Usage: runnable submit-job [OPTIONS] JOB_DEFINITION_FILE
-
-╭─ Arguments ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ *    job_definition_file      TEXT  The yaml file containing the job definition [default: None] [required]                                         │
-╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --config      -c      TEXT                              The configuration file specifying the services                                             │
-│ --parameters  -p      TEXT                              Parameters, in yaml,  accessible by the application                                        │
-│ --log-level           [INFO|DEBUG|WARNING|ERROR|FATAL]  The log level [default: WARNING]                                                           │
-│ --tag                 TEXT                              A tag attached to the run                                                                  │
-│ --run-id              TEXT                              An optional run_id, one would be generated if its not provided                             │
-│ --help                                                  Show this message and exit.                                                                │
-╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-```
-
+Jobs defined in **runnable** can be either via [python sdk](reference.md)
 
 <hr style="border:2px dotted orange">
 
