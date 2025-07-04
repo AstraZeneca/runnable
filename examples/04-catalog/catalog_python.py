@@ -1,3 +1,9 @@
+"""
+You can execute this pipeline by:
+
+    python examples/04-catalog/catalog_python.py
+"""
+
 from examples.common.functions import read_files, write_files
 from runnable import Catalog, Pipeline, PythonTask, ShellTask
 

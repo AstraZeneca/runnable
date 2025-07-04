@@ -52,7 +52,7 @@ runnable execute
 
 ### Execute a job
 
-Jobs defined in **runnable** can be either via [python sdk](reference.md)
+Jobs defined in **runnable** can be via [python sdk](reference.md)
 
 <hr style="border:2px dotted orange">
 

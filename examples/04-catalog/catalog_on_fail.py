@@ -1,6 +1,9 @@
 """
 If a task fails, the put action of catalog will ignore files that are not present.
 
+You can execute this pipeline by:
+
+    python examples/04-catalog/catalog_on_fail.py
 """
 
 from runnable import Catalog, Pipeline, ShellTask

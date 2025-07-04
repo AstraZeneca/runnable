@@ -1,3 +1,9 @@
+"""
+You can execute this pipeline by:
+
+    python examples/07-map/map_fail.py
+"""
+
 from examples.common.functions import (
     assert_default_reducer,
     process_chunk_fail,

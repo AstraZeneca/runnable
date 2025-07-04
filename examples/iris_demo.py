@@ -1,4 +1,10 @@
 """
+You can execute this example by:
+
+    python examples/iris_demo.py
+"""
+
+"""
 Example of Logistic regression using scikit-learn
 https://scikit-learn.org/stable/auto_examples/linear_model/plot_iris_logistic.html
 """

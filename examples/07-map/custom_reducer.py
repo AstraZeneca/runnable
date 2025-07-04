@@ -17,6 +17,10 @@ for chunk in chunks:
 It is possible to use a custom reducer, for example, this reducer is a max of the collection.
 # Once the reducer is applied, processed is reduced to a single value.
 assert processed == max(chunk * 10 for chunk in chunks)
+
+You can execute this pipeline by:
+
+    python examples/07-map/custom_reducer.py
 """
 
 from examples.common.functions import (

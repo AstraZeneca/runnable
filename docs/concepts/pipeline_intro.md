@@ -1,35 +1,3 @@
-### Job
-
-Jobs are isolated unit of work which can be python functions, jupyter notebooks or shell scripts.
-
-
-
-Considering a simple function:
-
-```python
-def add_numbers(x: int, y: int):
-    return x + y
-```
-
-The runnable representation of it is:
-
-```python
-from functions import add_numbers
-from runnable import PythonJob
-
-job = PythonJob(function=add_numbers, returns[sum_of_numbers])
-
-```
-
-```PythonJob``` requires a function to call. The input parameters are passed in
-if they are defined as ```parameters``` of the execution.
-
-The return parameters are stored for future reference.
-
-
-
-<hr style="border:2px dotted orange">
-
 ### Pipeline
 
 Without any orchestrator, the simplest pipeline could be the below functions:

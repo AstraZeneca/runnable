@@ -24,10 +24,12 @@ Use this pattern to move files that are not dill friendly.
 
 All the files are stored in catalog.
 
-
 Run this pipeline as:
     python examples/04-catalog/catalog.py
 
+You can execute this pipeline by:
+
+    python examples/04-catalog/catalog.py
 """
 
 from examples.common.functions import read_files, write_files

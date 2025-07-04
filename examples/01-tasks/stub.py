@@ -13,6 +13,10 @@ This is a simple pipeline that does 3 steps in sequence.
 
     You can run this pipeline by:
        python examples/01-tasks/stub.py
+
+You can execute this pipeline by:
+
+    python examples/01-tasks/stub.py
 """
 
 from runnable import Pipeline, Stub

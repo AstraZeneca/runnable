@@ -1,3 +1,9 @@
+"""
+You can execute this pipeline by:
+
+    python examples/06-parallel/parallel.py
+"""
+
 from examples.common.functions import hello
 from runnable import NotebookTask, Parallel, Pipeline, PythonTask, ShellTask, Stub
 
@@ -40,7 +46,10 @@ def main():
     parallel_step = Parallel(
         name="parallel_step",
         terminate_with_success=True,
-        branches={"branch1": traversal(), "branch2": traversal()},
+        branches={
+            "branch1": traversal(),
+            "branch2": traversal(),
+        },
     )
 
     pipeline = Pipeline(steps=[parallel_step])
