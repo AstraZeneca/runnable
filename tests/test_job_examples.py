@@ -115,6 +115,14 @@ python_examples = [
             ),
         ],
     ),
+    (
+        "11-jobs/notebooks",
+        "",
+        [
+            partial(conditions.should_have_job_and_status),
+            partial(conditions.should_job_have_output_parameters, {}),
+        ],
+    ),
 ]
 
 
