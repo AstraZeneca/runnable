@@ -116,14 +116,22 @@ nav:
       - "Usage": "usage.md"
       - "Why runnable?": "why-runnable.md"
   - "Concepts":
-      - "concepts/index.md"
-      - "Tasks": concepts/task.md
-      - "Pipeline": "concepts/pipeline.md"
-      - "Parameters": "concepts/parameters.md"
-      - "Catalog": "concepts/catalog.md"
-      - "Secrets": "concepts/secrets.md"
-      - "Parallel": "concepts/parallel.md"
-      - "Map": "concepts/map.md"
+      - "Pipeline":
+          - "concepts/pipeline_intro.md"
+          - "Tasks": "concepts/task.md"
+          - "Pipeline": "concepts/pipeline.md"
+          - "Parallel": "concepts/parallel.md"
+          - "Map": "concepts/map.md"
+          - "Nesting": "concepts/nesting.md"
+      - "Job":
+          - "concepts/job_intro.md"
+      - "Parameters":
+          - "concepts/parameters.md"
+      - "Catalog":
+          - "concepts/catalog.md"
+      - "Secrets":
+          - "concepts/secrets.md"
+
   - "Reproducibility": "concepts/run-log.md"
   - "Run pipeline":
       - "configurations/overview.md"

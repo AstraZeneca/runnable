@@ -40,7 +40,6 @@ StepType = Union[
     "ShellTask",
     "Parallel",
     "Map",
-    "TorchTask",
     "Conditional",
 ]
 
@@ -270,27 +269,6 @@ class PythonTask(BaseTask):
         name = self.function.__name__
 
         return f"{module}.{name}"
-
-    def create_job(self) -> RunnableTask:
-        self.terminate_with_success = True
-        node = self.create_node()
-        return node.executable
-
-
-class TorchTask(BaseTask):
-    # entrypoint: str = Field(
-    #     alias="entrypoint", default="torch.distributed.run", frozen=True
-    # )
-    # args_to_torchrun: Dict[str, Any] = Field(
-    #     default_factory=dict, alias="args_to_torchrun"
-    # )
-
-    script_to_call: str
-    accelerate_config_file: str
-
-    @computed_field
-    def command_type(self) -> str:
-        return "torch"
 
     def create_job(self) -> RunnableTask:
         self.terminate_with_success = True
@@ -930,26 +908,6 @@ class PythonJob(BaseJob):
     def get_task(self) -> RunnableTask:
         # Piggy bank on existing tasks as a hack
         task = PythonTask(
-            name="dummy",
-            terminate_with_success=True,
-            **self.model_dump(exclude_defaults=True, exclude_none=True),
-        )
-        return task.create_node().executable
-
-
-class TorchJob(BaseJob):
-    # entrypoint: str = Field(default="torch.distributed.run", frozen=True)
-    # args_to_torchrun: dict[str, str | bool | int | float] = Field(
-    #     default_factory=dict
-    # )  # For example
-    # {"nproc_per_node": 2, "nnodes": 1,}
-
-    script_to_call: str  # For example train/script.py
-    accelerate_config_file: str
-
-    def get_task(self) -> RunnableTask:
-        # Piggy bank on existing tasks as a hack
-        task = TorchTask(
             name="dummy",
             terminate_with_success=True,
             **self.model_dump(exclude_defaults=True, exclude_none=True),

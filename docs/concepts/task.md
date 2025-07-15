@@ -26,7 +26,7 @@ Uses python functions as tasks.
         than the pipeline definition, if you are using Python SDK.
 
 
-    ```python linenums="1" hl_lines="29-33"
+    ```python linenums="1""
     --8<-- "examples/01-tasks/python_tasks.py"
     ```
 
@@ -54,7 +54,7 @@ Uses python functions as tasks.
 
             ```
 
-    ```yaml linenums="1" hl_lines="20-23"
+    ```yaml linenums="1""
     --8<-- "examples/01-tasks/python_tasks.yaml"
     ```
 
@@ -77,13 +77,13 @@ the name of the notebook and is also saved in the ```catalog``` for logging and 
 
 === "sdk"
 
-    ```python linenums="1" hl_lines="29-33"
+    ```python linenums="1""
     --8<-- "examples/01-tasks/notebook.py"
     ```
 
 === "yaml"
 
-    ```yaml linenums="1" hl_lines="27-31"
+    ```yaml linenums="1""
     --8<-- "examples/01-tasks/notebook.yaml"
     ```
 
@@ -102,13 +102,13 @@ ecosystem while shell provides a interface to non-python executables.
 
 === "sdk"
 
-    ```python linenums="1" hl_lines="22-26"
+    ```python linenums="1""
     --8<-- "examples/01-tasks/scripts.py"
     ```
 
 === "yaml"
 
-    ```yaml linenums="1" hl_lines="16-23"
+    ```yaml linenums="1""
     --8<-- "examples/01-tasks/scripts.yaml"
     ```
 
@@ -135,12 +135,12 @@ Stub nodes can take arbitrary number of parameters and is always a success.
 
 === "sdk"
 
-    ```python linenums="1" hl_lines="23 28 30"
+    ```python linenums="1""
     --8<-- "examples/01-tasks/stub.py"
     ```
 
 === "yaml"
 
-    ```yaml linenums="1" hl_lines="19-29"
+    ```yaml linenums="1""
     --8<-- "examples/01-tasks/stub.yaml"
     ```

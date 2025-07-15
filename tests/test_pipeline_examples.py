@@ -43,12 +43,15 @@ def list_python_examples():
 def runnable_context():
     from runnable import context as runnable_context
 
+    os.environ["FIX_RANDOM_TOSS"] = "heads"
+
     try:
         yield runnable_context
     finally:
         os.environ.pop(defaults.ENV_RUN_ID, None)
         os.environ.pop("RUNNABLE_CONFIGURATION_FILE", None)
         os.environ.pop("RUNNABLE_PRM_envvar", None)
+        os.environ.pop("FIX_RANDOM_TOSS", None)
         print("Cleaning up runnable context")
         runnable_context.run_context = None
         runnable_context.progress = None
@@ -221,7 +224,6 @@ python_examples = [
             partial(conditions.should_step_be_failed, "step 2"),
         ],
     ),
-    # Seems to fail for argo
     (
         "02-sequential/on_failure_fail",
         False,
@@ -250,7 +252,22 @@ python_examples = [
             partial(conditions.should_step_be_failed, "step_1"),
         ],
     ),
-    # Need ot add conditional here
+    (
+        "02-sequential/conditional",
+        True,
+        False,
+        [],
+        "",
+        [
+            partial(conditions.should_have_num_steps, 3),
+            # partial(conditions.should_have_catalog_execution_logs),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_successful, "toss_task"),
+            partial(conditions.should_step_be_successful, "conditional"),
+            partial(conditions.should_branch_have_steps, "conditional", "heads", 2),
+            # partial(conditions.should_branch_have_steps, "conditional", "tails", 1),
+        ],
+    ),
     (
         "03-parameters/static_parameters_python",
         False,
@@ -565,7 +582,6 @@ python_examples = [
             ),
         ],
     ),
-    # This is failing in argo
     (
         "04-catalog/catalog_on_fail",
         False,

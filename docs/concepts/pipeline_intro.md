@@ -1,3 +1,5 @@
+### Pipeline
+
 Without any orchestrator, the simplest pipeline could be the below functions:
 
 
@@ -47,8 +49,8 @@ pipeline.execute()
 - Tasks can [access and return](parameters.md/#access_returns) parameters.
 - Tasks can also share files between them using [catalog](catalog.md).
 - Tasks are stitched together as [pipeline](pipeline.md)
-- The execution environment is configured via # todo
-
+- The execution environment is configured via
+# TODO: figure this link
 
 ## Examples
 

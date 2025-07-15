@@ -6,7 +6,7 @@ from pydantic import ConfigDict, Field
 
 from extensions.nodes.task import TaskNode
 from extensions.pipeline_executor import GenericPipelineExecutor
-from runnable import context, defaults
+from runnable import defaults
 from runnable.defaults import MapVariableType
 from runnable.nodes import BaseNode
 from runnable.tasks import BaseTaskType
@@ -31,10 +31,6 @@ class MockedExecutor(GenericPipelineExecutor):
     model_config = ConfigDict(extra="ignore")
 
     patches: Dict[str, Any] = Field(default_factory=dict)
-
-    @property
-    def _context(self):
-        return context.run_context
 
     def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
         """

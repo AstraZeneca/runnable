@@ -24,8 +24,6 @@ from runnable.sdk import (  # noqa;
     ShellTask,
     Stub,
     Success,
-    TorchJob,
-    TorchTask,
     metric,
     pickled,
 )

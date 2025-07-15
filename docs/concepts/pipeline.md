@@ -108,9 +108,10 @@ This behavior can be over-ridden to follow a different path based on expected fa
 
 
 ```step 1``` fails as the function raises an exception.
-```step 4``` is an alternate node to a successful execution.
 
-```step 4``` is the step to execution in case of the failure.
+```step 4``` is a single node pipeline to execute if ```step1``` fails. The failure
+pipeline can have as many steps as needed.
+
 
 === "pseudo code"
 
@@ -126,7 +127,7 @@ This behavior can be over-ridden to follow a different path based on expected fa
 
 === "sdk"
 
-    ```python linenums="1" hl_lines="24 29 34 31"
+    ```python linenums="1""
     --8<-- "examples/02-sequential/on_failure_succeed.py"
     ```
 
@@ -135,7 +136,7 @@ This behavior can be over-ridden to follow a different path based on expected fa
 
 === "yaml"
 
-    ```yaml linenums="1" hl_lines="23 25 32-34"
+    ```yaml linenums="1""
     --8<-- "examples/02-sequential/on_failure_succeed.yaml"
     ```
 
@@ -143,9 +144,10 @@ This behavior can be over-ridden to follow a different path based on expected fa
 ### On failure fail
 
 ```step 1``` fails as the function raises an exception.
-```step 4``` is an alternate node to a successful execution.
 
-```step 4``` is the step to execution in case of the failure.
+```step 4``` is a single node pipeline to execute if ```step1``` fails. The failure
+pipeline can have as many steps as needed.
+
 
 === "pseudo code"
 
@@ -162,15 +164,13 @@ This behavior can be over-ridden to follow a different path based on expected fa
 
 === "sdk"
 
-    ```python linenums="1" hl_lines="24 29 34 31"
+    ```python linenums="1""
     --8<-- "examples/02-sequential/on_failure_fail.py"
     ```
-
-    1. ```terminate_with_failure``` is ```true``` traverses to fail node.
 
 
 === "yaml"
 
-    ```yaml linenums="1" hl_lines="23 25 32-34"
+    ```yaml linenums="1""
     --8<-- "examples/02-sequential/on_failure_fail.yaml"
     ```

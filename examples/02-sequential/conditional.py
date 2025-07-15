@@ -10,7 +10,14 @@ def when_tails_function():
 
 
 def toss_function():
+    import os
     import random
+
+    if "FIX_RANDOM_TOSS" in os.environ:
+        # Use the fixed value for testing
+        toss = os.environ["FIX_RANDOM_TOSS"]
+        print(f"Using fixed toss result: {toss}")
+        return toss
 
     # Simulate a coin toss
     toss = random.choice(["heads", "tails"])
@@ -51,4 +58,5 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
     main()

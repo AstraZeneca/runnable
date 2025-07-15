@@ -1,3 +1,12 @@
+"""
+from examples.common.functions import hello
+from runnable import NotebookTask, Parallel, Pipeline, PythonTask, ShellTask, Stub
+
+You can execute this pipeline by:
+
+    python examples/06-parallel/parallel_branch_fail.py
+"""
+
 from examples.common.functions import hello, raise_ex
 from runnable import NotebookTask, Parallel, Pipeline, PythonTask, ShellTask, Stub
 

@@ -64,7 +64,10 @@ The step ```Train Models``` is a parallel step that has the ```branches``` as th
 
     def main():
         train_models = Parallel(name="train models",
-                        branches={'baseline': get_baseline_pipeline, 'cnn': get_cnn_pipeline()},
+                        branches={
+                            'baseline': get_baseline_pipeline,
+                            'cnn': get_cnn_pipeline()
+                        },
                         terminate_with_success=True)
         pipeline = Pipeline(steps=[train_models])
 
@@ -123,12 +126,12 @@ The parallel step is considered successful only if all the branches of the step 
 
 === "sdk"
 
-    ```python linenums="1" hl_lines="53-57"
+    ```python linenums="1""
     --8<-- "examples/06-parallel/parallel.py"
     ```
 
 === "yaml"
 
-    ```yaml linenums="1" hl_lines="40-45"
+    ```yaml linenums="1""
     --8<-- "examples/06-parallel/parallel.yaml"
     ```
