@@ -1,0 +1,4 @@
+# Parameters for multi-CPU PyTorch DDP training
+learning_rate: 0.01
+num_epochs: 20
+batch_size: 32
