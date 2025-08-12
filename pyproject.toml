@@ -58,6 +58,9 @@ docs = [
 release = [
     "python-semantic-release>=9.15.2",
 ]
+examples-torch = [
+    "torch>=2.7.1",
+]
 
 [tool.uv.workspace]
 members = ["extensions/catalog",
