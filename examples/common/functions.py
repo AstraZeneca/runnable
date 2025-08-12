@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from typing import Dict, List, Union
 
@@ -122,6 +123,12 @@ def read_files():
         data = f.read()
 
     assert data.strip() == "hello world"
+
+
+def check_files_do_not_exist():
+    run_id = os.environ.get("RUNNABLE_RUN_ID")
+    assert not Path(f".catalog/{run_id}/df.csv").exists()
+    assert not Path(f".catalog/{run_id}/data_folder/data.txt").exists()
 
 
 def process_chunk(chunk: int):

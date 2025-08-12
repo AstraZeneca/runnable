@@ -57,7 +57,7 @@ class BaseCatalog(ABC, BaseModel):
 
     @abstractmethod
     def put(
-        self, name: str, allow_file_not_found_exc: bool = False
+        self, name: str, allow_file_not_found_exc: bool = False, store_copy: bool = True
     ) -> List[DataCatalog]:
         """
         Put the file by 'name' from the 'compute_data_folder' in the catalog for the run_id.
@@ -120,7 +120,10 @@ class DoNothingCatalog(BaseCatalog):
         return []
 
     def put(
-        self, name: str, allow_file_not_found_exc: bool = False
+        self,
+        name: str,
+        allow_file_not_found_exc: bool = False,
+        store_copy: bool = True,
     ) -> List[DataCatalog]:
         """
         Does nothing

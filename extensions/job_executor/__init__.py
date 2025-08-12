@@ -29,6 +29,7 @@ class GenericJobExecutor(BaseJobExecutor):
     @property
     def _context(self):
         assert context.run_context
+        assert isinstance(context.run_context, context.JobContext)
         return context.run_context
 
     def _get_parameters(self) -> Dict[str, JsonParameter]:
@@ -147,7 +148,9 @@ class GenericJobExecutor(BaseJobExecutor):
         data_catalogs = []
         for name_pattern in catalog_settings:
             data_catalog = self._context.catalog.put(
-                name=name_pattern, allow_file_not_found_exc=allow_file_not_found_exc
+                name=name_pattern,
+                allow_file_not_found_exc=allow_file_not_found_exc,
+                store_copy=self._context.catalog_store_copy,
             )
 
             logger.debug(f"Added data catalog: {data_catalog} to job log")

@@ -160,7 +160,9 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
             elif stage == "put":
                 data_catalog = self._context.catalog.put(
-                    name=name_pattern, allow_file_not_found_exc=allow_file_no_found_exc
+                    name=name_pattern,
+                    allow_file_not_found_exc=allow_file_no_found_exc,
+                    store_copy=node_catalog_settings.get("store_copy", True),
                 )
             else:
                 raise Exception(f"Stage {stage} not supported")
