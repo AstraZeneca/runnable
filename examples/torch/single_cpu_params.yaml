@@ -1,0 +1,4 @@
+# Parameters for single CPU PyTorch training
+learning_rate: 0.01
+num_epochs: 50
+batch_size: 32

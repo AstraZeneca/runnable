@@ -157,3 +157,4 @@ cov.xml
 data/
 
 minikube/
+.pth # For model saving and loading
