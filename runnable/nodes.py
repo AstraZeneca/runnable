@@ -411,11 +411,13 @@ class TraversalNode(BaseNode):
         return self.overrides.get(executor_type) or ""
 
 
+# Unfortunately, this is defined in 2 places. Look in SDK
 class CatalogStructure(BaseModel):
     model_config = ConfigDict(extra="forbid")  # Need to forbid
 
     get: List[str] = Field(default_factory=list)
     put: List[str] = Field(default_factory=list)
+    store_copy: bool = Field(default=True, alias="store_copy")
 
 
 class ExecutableNode(TraversalNode):

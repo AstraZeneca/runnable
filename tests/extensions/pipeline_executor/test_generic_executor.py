@@ -222,7 +222,7 @@ def test_sync_catalog_put(test_executor, mock_context, mocker):
 
     # Verify catalog.put was called with correct params
     mock_context.catalog.put.assert_called_once_with(
-        name="pattern1", allow_file_not_found_exc=True
+        name="pattern1", allow_file_not_found_exc=True, store_copy=True
     )
 
     # Verify result contains the data catalog

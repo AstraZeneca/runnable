@@ -98,6 +98,14 @@ python_examples = [
         ],
     ),
     (
+        "11-jobs/catalog_no_copy",
+        "",
+        [
+            partial(conditions.should_have_job_and_status),
+            partial(conditions.should_job_have_output_parameters, {}),
+        ],
+    ),
+    (
         "11-jobs/passing_parameters_python",
         "",
         [

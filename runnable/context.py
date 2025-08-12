@@ -475,6 +475,7 @@ class JobContext(RunnableContext):
         default=None,
         description="Catalog settings to be used for the job.",
     )
+    catalog_store_copy: bool = Field(default=True, alias="catalog_store_copy")
 
     @computed_field  # type: ignore
     @cached_property

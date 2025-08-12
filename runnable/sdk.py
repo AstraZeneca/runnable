@@ -60,6 +60,7 @@ class Catalog(BaseModel):
     Attributes:
         get (List[str]): List of glob patterns to get from central catalog to the compute data folder.
         put (List[str]): List of glob patterns to put into central catalog from the compute data folder.
+        store_copy (bool): Whether to store a copy of the data in the central catalog.
 
     Examples:
         >>> from runnable import Catalog
@@ -74,6 +75,7 @@ class Catalog(BaseModel):
     # compute_data_folder: str = Field(default="", alias="compute_data_folder")
     get: List[str] = Field(default_factory=list, alias="get")
     put: List[str] = Field(default_factory=list, alias="put")
+    store_copy: bool = Field(default=True, alias="store_copy")
 
 
 class BaseTraversal(ABC, BaseModel):
@@ -845,6 +847,11 @@ class BaseJob(BaseModel):
             return []
         return self.catalog.put
 
+    def return_bool_catalog_store_copy(self) -> bool:
+        if self.catalog is None:
+            return True
+        return self.catalog.store_copy
+
     def _is_called_for_definition(self) -> bool:
         """
         If the run context is set, we are coming in only to get the pipeline definition.
@@ -888,6 +895,7 @@ class BaseJob(BaseModel):
         }
 
         run_context = context.JobContext.model_validate(configurations)
+        run_context.catalog_store_copy = self.return_bool_catalog_store_copy()
 
         assert isinstance(run_context.job_executor, BaseJobExecutor)
 

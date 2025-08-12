@@ -345,5 +345,9 @@ def test_executable_node_parse_config():
     assert node.next_node == "next_step"
     assert node.max_attempts == 3
     assert node.on_failure == "failure_node"
-    assert node._get_catalog_settings() == {"get": ["input1"], "put": ["output1"]}
+    assert node._get_catalog_settings() == {
+        "get": ["input1"],
+        "put": ["output1"],
+        "store_copy": True,
+    }
     assert node._get_executor_config("local") == "custom_config"

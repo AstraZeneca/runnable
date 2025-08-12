@@ -583,6 +583,20 @@ python_examples = [
         ],
     ),
     (
+        "04-catalog/catalog_no_copy",
+        True,
+        False,
+        [],
+        "",
+        [
+            partial(conditions.should_have_num_steps, 4),
+            partial(conditions.should_have_catalog_execution_logs),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_successful, "generate_data_python"),
+            partial(conditions.should_step_be_successful, "check_files_do_not_exist"),
+        ],
+    ),
+    (
         "04-catalog/catalog_on_fail",
         False,
         False,
