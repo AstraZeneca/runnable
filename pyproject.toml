@@ -151,7 +151,7 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 
 # Release configuration
 [tool.semantic_release]
-commit_parser = "angular"
+commit_parser = "conventional"
 major_on_zero = true
 allow_zero_version = true
 tag_format = "{version}"
