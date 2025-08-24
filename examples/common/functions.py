@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 from pathlib import Path
@@ -30,6 +31,15 @@ def raise_ex():
 class ComplexParams(BaseModel):
     x: int
     foo: str
+
+
+def function_using_argparse(args: argparse.Namespace):
+    assert args.integer == 1
+    assert args.floater == 3.14
+    assert args.stringer == "hello"
+    assert args.envvar == "from env"
+    assert args.pydantic_param["x"] == 10
+    assert args.pydantic_param["foo"] == "bar"
 
 
 def read_initial_params_as_pydantic(
