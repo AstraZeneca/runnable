@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3 Flow Graph</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>Workflow Visualization</h1>
+    <svg id="workflow-graph"></svg>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        // Inject data from FastAPI (Python backend) directly into JavaScript
+        const graphData = {{ graph_data | tojson }};
+    </script>
+    <script src="/static/script.js"></script>
+</body>
+</html>
