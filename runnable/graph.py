@@ -329,7 +329,7 @@ def create_graph(dag_config: Dict[str, Any], internal_branch_name: str = "") -> 
     Returns:
         Graph: The created graph object
     """
-    description: str = dag_config.get("description", None)
+    description: str | None = dag_config.get("description", None)
     start_at: str = cast(
         str, dag_config.get("start_at")
     )  # Let the start_at be relative to the graph
