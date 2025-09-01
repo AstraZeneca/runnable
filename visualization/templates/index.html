@@ -3,20 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D3 Flow Graph</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>D3 Workflow Visualization</title>
+    <link rel="icon" type="image/png" href="/static/images/icon.png">
+    <!-- Load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for D3 elements not easily done with Tailwind */
+        .node-image {
+            /* Position the image correctly */
+            transform: translate(-16px, -16px);
+        }
+        .tooltip {
+            pointer-events: none;
+            transition: opacity 0.2s ease-in-out;
+            z-index: 1000;
+        }
+        /* Ensure links stay behind nodes for better clickability */
+        .links {
+            z-index: 1;
+        }
+        .nodes {
+            z-index: 2;
+        }
+    </style>
 </head>
-<body>
-    <h1>Workflow Visualization</h1>
-    <svg id="workflow-graph"></svg>
+<body class="bg-gray-100 font-sans antialiased flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div id="tooltip" class="tooltip"></div>
+    <div class="container bg-white rounded-xl shadow-lg p-6 max-w-4xl w-full text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Workflow Visualization</h1>
+
+        <div class="w-full h-auto overflow-hidden">
+            <svg id="workflow-graph" class="w-full h-96 border border-gray-200 rounded-lg bg-gray-50 transition-shadow duration-300 hover:shadow-xl"></svg>
+        </div>
+
+        <!-- Tooltip for node information -->
+        <div id="tooltip" class="absolute hidden opacity-0 bg-gray-800 text-white rounded-lg p-3 text-sm shadow-md"></div>
+    </div>
+
+    <!-- D3 Library -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 
     <script>
-        // Inject data from FastAPI (Python backend) directly into JavaScript
-        const graphData = {{ graph_data | tojson }};
+        // The graph data, embedded directly for a self-contained file
+        const graphData = {
+            "nodes": [
+                {"id": "Start", "label": "parallel", "group": "control"},
+                {
+                    "id": "Task1",
+                    "label": "task",
+                    "task_type": "python",
+                    "metadata": {
+                        "func": "process_data",
+                        "params": ["input_file"],
+                        "returns": ["clean_data"]
+                    },
+                    "group": "task-python"
+                },
+                {
+                    "id": "Task2",
+                    "label": "task",
+                    "task_type": "notebook",
+                    "metadata": {"path": "analysis.ipynb", "cell_count": 10},
+                    "group": "task-notebook"
+                },
+                {
+                    "id": "Task3",
+                    "label": "task",
+                    "task_type": "shell",
+                    "metadata": {"cmd": "ls -l /data", "user": "admin"},
+                    "group": "task-shell"
+                },
+                {
+                    "id": "Task4",
+                    "label": "task",
+                    "task_type": "python",
+                    "metadata": {
+                        "func": "model_predict",
+                        "params": ["model_path", "test_data"],
+                        "returns": ["predictions"]
+                    },
+                    "group": "task-python"
+                },
+                {"id": "End", "label": "success", "group": "control"}
+            ],
+            "links": [
+                {"source": "Start", "target": "Task1"},
+                {"source": "Start", "target": "Task2"},
+                {"source": "Task1", "target": "Task3"},
+                {"source": "Task2", "target": "Task3"},
+                {"source": "Task3", "target": "Task4"},
+                {"source": "Task4", "target": "End"}
+            ]
+        };
     </script>
-    <script src="/static/script.js"></script>
+    <script src="static/script.js"></script>
 </body>
 </html>
