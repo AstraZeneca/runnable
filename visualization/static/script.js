@@ -356,20 +356,66 @@ function renderGraph(graphData) {
 }
 
 // Fetch graph data from the API and render the graph
-async function fetchAndRenderGraph() {
+async function fetchAndRenderGraph(sourceFile, functionName) {
     try {
-        const response = await fetch('/graph-data');
+        const response = await fetch(`/graph-data?source_file=${encodeURIComponent(sourceFile)}&function=${encodeURIComponent(functionName)}`);
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            const errorData = await response.json();
+            throw new Error(errorData.detail);
         }
         const graphData = await response.json();
         renderGraph(graphData);
     } catch (error) {
         console.error('There has been a problem with your fetch operation:', error);
+
+        // Display error in UI
+        let errorElement = document.getElementById('graph-error');
+        if (!errorElement) {
+            errorElement = document.createElement('div');
+            errorElement.id = 'graph-error';
+            errorElement.className = 'text-red-600 mt-4 p-4 bg-red-100 rounded';
+            document.getElementById('loadGraphBtn').insertAdjacentElement('afterend', errorElement);
+        }
+        errorElement.textContent = error.message;
+        errorElement.style.display = 'block';
+        throw error; // Re-throw the error so the finally block in the click handler can hide the spinner
     }
 }
 
-fetchAndRenderGraph();
+// Create loading spinner element
+const loadingSpinner = document.createElement('div');
+loadingSpinner.id = 'loading-spinner';
+loadingSpinner.className = 'hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2';
+loadingSpinner.innerHTML = `
+    <div class="flex items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <span class="ml-3 text-gray-700">Loading graph...</span>
+    </div>
+`;
+document.body.appendChild(loadingSpinner);
+
+document.getElementById('loadGraphBtn').addEventListener('click', () => {
+    const sourceFile = document.getElementById('sourceFilePathInput').value;
+    const functionName = document.getElementById('functionNameInput').value;
+
+    if (sourceFile && functionName) {
+        // Show loading spinner
+        loadingSpinner.classList.remove('hidden');
+        // Clear any existing error messages
+        const errorElement = document.getElementById('graph-error');
+        if (errorElement) {
+            errorElement.style.display = 'none';
+        }
+
+        fetchAndRenderGraph(sourceFile, functionName)
+            .finally(() => {
+                // Hide loading spinner when done, regardless of success/failure
+                loadingSpinner.classList.add('hidden');
+            });
+    } else {
+        alert('Please enter a file path and a function name.');
+    }
+});
 
 
 // Handle window resize to make the SVG responsive

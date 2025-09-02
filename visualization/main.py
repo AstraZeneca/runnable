@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -79,22 +79,35 @@ async def read_root(request: Request):
     """
     Serves the main D3 graph visualization page.
     """
-    graph_data = get_graph_json_data()
-    return templates.TemplateResponse(
-        "index.html", {"request": request, "graph_data": graph_data}
-    )
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/graph-data", response_model=Dict[str, List[Dict[str, Any]]])
-async def get_graph_json_data():
+async def get_graph_json_data(source_file: str, function: str):
     """
     API endpoint to return the raw graph data as JSON.
     (Optional, could be used for client-side fetching if not using Jinja2 for data injection)
     """
-    source_file = "examples/02-sequential/traversal.py"
-    function = "main"
-    # return get_example_graph_data()
-    return convert_graph_to_d3(source_file, function)
+    try:
+        # Check if file exists first
+        if not Path(source_file).exists():
+            raise HTTPException(
+                status_code=404, detail=f"File not found: {source_file}"
+            )
+
+        # Try to convert and return the graph data
+        return convert_graph_to_d3(source_file, function)
+    except ImportError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except AttributeError:
+        raise HTTPException(
+            status_code=400, detail=f"Function '{function}' not found in {source_file}"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- FastAPI Endpoints ---
 
 
 def convert_graph_to_d3(
