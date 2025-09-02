@@ -4,6 +4,104 @@ const width = svgElement.clientWidth;
 const height = svgElement.clientHeight;
 const svg = d3.select(svgElement);
 
+// Create a container group for all elements that will be transformed
+const container = svg.append("g")
+    .attr("class", "zoom-container");
+
+// Add zoom behavior
+const zoom = d3.zoom()
+    .scaleExtent([0.1, 4]) // Min/max zoom level
+    .on("zoom", (event) => {
+        container.attr("transform", event.transform);
+    });
+
+// Apply zoom behavior to svg
+svg.call(zoom)
+    .call(zoom.transform, d3.zoomIdentity); // Start with identity transform
+
+// Add zoom controls
+const zoomControls = svg.append("g")
+    .attr("class", "zoom-controls")
+    .attr("transform", "translate(20, 20)"); // Position in top-left corner
+
+// Zoom in button
+zoomControls.append("rect")
+    .attr("class", "zoom-btn")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", 30)
+    .attr("height", 30)
+    .attr("rx", 5)
+    .attr("fill", "white")
+    .attr("stroke", "#6b7280")
+    .style("cursor", "pointer")
+    .on("click", () => {
+        svg.transition()
+            .duration(300)
+            .call(zoom.scaleBy, 1.3);
+    });
+
+zoomControls.append("text")
+    .attr("x", 15)
+    .attr("y", 20)
+    .attr("text-anchor", "middle")
+    .attr("fill", "#4b5563")
+    .style("font-size", "20px")
+    .style("pointer-events", "none")
+    .text("+");
+
+// Zoom out button
+zoomControls.append("rect")
+    .attr("class", "zoom-btn")
+    .attr("x", 0)
+    .attr("y", 40)
+    .attr("width", 30)
+    .attr("height", 30)
+    .attr("rx", 5)
+    .attr("fill", "white")
+    .attr("stroke", "#6b7280")
+    .style("cursor", "pointer")
+    .on("click", () => {
+        svg.transition()
+            .duration(300)
+            .call(zoom.scaleBy, 0.7);
+    });
+
+zoomControls.append("text")
+    .attr("x", 15)
+    .attr("y", 60)
+    .attr("text-anchor", "middle")
+    .attr("fill", "#4b5563")
+    .style("font-size", "20px")
+    .style("pointer-events", "none")
+    .text("−");
+
+// Reset zoom button
+zoomControls.append("rect")
+    .attr("class", "zoom-btn")
+    .attr("x", 0)
+    .attr("y", 80)
+    .attr("width", 30)
+    .attr("height", 30)
+    .attr("rx", 5)
+    .attr("fill", "white")
+    .attr("stroke", "#6b7280")
+    .style("cursor", "pointer")
+    .on("click", () => {
+        svg.transition()
+            .duration(300)
+            .call(zoom.transform, d3.zoomIdentity);
+    });
+
+zoomControls.append("text")
+    .attr("x", 15)
+    .attr("y", 100)
+    .attr("text-anchor", "middle")
+    .attr("fill", "#4b5563")
+    .style("font-size", "14px")
+    .style("pointer-events", "none")
+    .text("⟲");
+
 // Define arrow markers for directed links
 svg.append("defs").selectAll("marker")
     .data(["end"])
@@ -132,7 +230,7 @@ function renderGraph(graphData) {
         .force("y", d3.forceY(height / 2).strength(0.1));
 
     // Create links
-    const link = svg.append("g")
+    const link = container.append("g")
         .attr("class", "links")
         .selectAll("line")
         .data(graphData.links)
@@ -143,7 +241,7 @@ function renderGraph(graphData) {
         .attr("marker-end", "url(#end)");
 
     // Create Nodes as Images with text labels
-    const node = svg.append("g")
+    const node = container.append("g")
         .attr("class", "nodes")
         .selectAll("g")
         .data(sortedGraphDataNodes)
