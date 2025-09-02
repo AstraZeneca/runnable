@@ -19,19 +19,68 @@ svg.append("defs").selectAll("marker")
     .attr("d", "M0,-5L10,0L0,5")
     .attr("fill", "#6b7280");
 
+// Modal functionality
+function createModal() {
+    const modalHtml = `
+        <div id="metadataModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-gray-700">Node Metadata</h2>
+                    <button class="close-modal text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 flex justify-center items-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body mt-4 text-gray-600"></div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function showModal(content) {
+    const modal = document.getElementById('metadataModal');
+    const modalBody = modal.querySelector('.modal-body');
+    modalBody.innerHTML = content;
+    modal.classList.remove('hidden');
+}
+
+function setupModalEvents() {
+    const modal = document.getElementById('metadataModal');
+    const closeBtn = modal.querySelector('.close-modal');
+
+    closeBtn.onclick = () => modal.classList.add('hidden');
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            modal.classList.add('hidden');
+        }
+    };
+}
+
+// Create modal on page load
+createModal();
+setupModalEvents();
+
 // Tooltip functionality
 const tooltip = d3.select("#tooltip");
 
 function getNodeTooltipContent(d) {
-    let content = `<strong>ID:</strong> ${d.id}<br/>`;
-    content += `<strong>Type:</strong> ${d.label}<br/>`;
+    let content = `<div class="space-y-2">
+        <div><span class="font-semibold">ID:</span> ${d.id}</div>
+        <div><span class="font-semibold">Type:</span> ${d.label}</div>`;
     if (d.task_type) {
-        content += `<strong>Task Subtype:</strong> ${d.task_type}<br/>`;
-        content += `<strong>Metadata:</strong><br/>`;
+        content += `
+        <div><span class="font-semibold">Task Subtype:</span> ${d.task_type}</div>
+        <div class="mt-4">
+            <div class="font-semibold mb-2">Metadata:</div>
+            <div class="pl-4 space-y-1">`;
         for (const key in d.metadata) {
-            content += `&nbsp;&nbsp;&nbsp;${key}: ${JSON.stringify(d.metadata[key])}<br/>`;
+            content += `<div><span class="text-gray-700">${key}:</span> ${JSON.stringify(d.metadata[key])}</div>`;
         }
+        content += `</div></div>`;
     }
+    content += `</div>`;
     return content;
 }
 
@@ -102,7 +151,14 @@ function renderGraph(graphData) {
         .call(d3.drag()
             .on("start", dragstarted)
             .on("drag", dragged)
-            .on("end", dragended));
+            .on("end", dragended))
+        .on("click", (event, d) => {
+            // Prevent modal from opening if we're dragging
+            if (event.defaultPrevented) return;
+            // Show modal with detailed metadata
+            const content = getNodeTooltipContent(d);
+            showModal(content);
+        });
 
     // Append IMAGES for nodes
     node.append("image")
