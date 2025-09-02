@@ -18,7 +18,7 @@ from runnable.datastore import (
 )
 from runnable.defaults import MapVariableType
 from runnable.graph import Graph, create_graph
-from runnable.nodes import CompositeNode
+from runnable.nodes import CompositeNode, NodeInD3
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -347,4 +347,10 @@ class MapNode(CompositeNode):
 
         self._context.run_log_store.set_parameters(
             parameters=params, run_id=self._context.run_id
+        )
+
+    def to_d3_node(self) -> NodeInD3:
+        return NodeInD3(
+            id=self.internal_name,
+            label="map",
         )

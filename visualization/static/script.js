@@ -183,9 +183,14 @@ function getNodeTooltipContent(d) {
 }
 
 function renderGraph(graphData) {
+    const nodeIds = new Set(graphData.nodes.map(d => d.id));
+    const validLinks = graphData.links.filter(
+        link => nodeIds.has(link.source) && nodeIds.has(link.target)
+    );
+
     // A simple topological sort to order nodes for a left-to-right layout
     const nodeMap = new Map(graphData.nodes.map(d => [d.id, { ...d, dependencies: 0, dependents: 0 }]));
-    graphData.links.forEach(link => {
+    validLinks.forEach(link => {
         nodeMap.get(link.target).dependencies++;
         nodeMap.get(link.source).dependents++;
     });
@@ -207,7 +212,7 @@ function renderGraph(graphData) {
                 sortedNodes.push(node);
                 levels.set(node.id, currentLevel);
 
-                graphData.links.filter(link => link.source === node.id).forEach(link => {
+                validLinks.filter(link => link.source === node.id).forEach(link => {
                     queue.push(nodeMap.get(link.target));
                 });
             }
@@ -220,7 +225,7 @@ function renderGraph(graphData) {
 
     // Set up force simulation with horizontal positioning
     const simulation = d3.forceSimulation(sortedGraphDataNodes)
-        .force("link", d3.forceLink(graphData.links).id(d => d.id).distance(100))
+        .force("link", d3.forceLink(validLinks).id(d => d.id).distance(100))
         .force("charge", d3.forceManyBody().strength(-300))
         .force("x", d3.forceX(d => {
             const level = levels.get(d.id);
@@ -268,7 +273,7 @@ function renderGraph(graphData) {
             if (d.label === "parallel") return "static/images/parallel.png";
             if (d.label === "success") return "static/images/success.png";
             // Provide a default image for unknown types
-            return "static/images/default.png";
+            return "static/images/python.png";
         })
         .attr("width", 32)
         .attr("height", 32)

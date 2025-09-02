@@ -499,3 +499,78 @@ def search_branch_by_internal_name(dag: Graph, internal_name: str):
         return current_branch
 
     raise exceptions.BranchNotFoundError(internal_name)
+
+
+def get_visualization_data(graph: Graph) -> Dict[str, Any]:
+    """
+    Convert the graph into a D3 visualization friendly format with nodes and links.
+    Handles composite nodes (parallel, map, conditional) by recursively processing their embedded graphs.
+
+    Args:
+        graph: The Graph object to convert
+
+    Returns:
+        Dict with two keys:
+        - nodes: List of node objects with id, type, and name
+        - links: List of edge objects with source and target node ids
+    """
+    from extensions.nodes.conditional import ConditionalNode
+    from extensions.nodes.map import MapNode
+    from extensions.nodes.parallel import ParallelNode
+    from runnable.nodes import ExecutableNode
+
+    nodes = []
+    links = []
+    processed_nodes = set()
+
+    def process_node(node: BaseNode, parent_id: Optional[str] = None) -> str:
+        node_id = f"{node.internal_name}"
+
+        if node_id not in processed_nodes:
+            node_data = node.to_d3_node().model_dump(exclude_none=True)
+            nodes.append(node_data)
+            processed_nodes.add(node_id)
+
+            # Add link from parent if it exists
+            if parent_id:
+                links.append({"source": parent_id, "target": node_id})
+
+            # Handle composite nodes with embedded graphs
+            if isinstance(node, (ParallelNode, MapNode, ConditionalNode)):
+                if isinstance(node, ParallelNode):
+                    # Process each parallel branch
+                    for branch_name, branch in node.branches.items():
+                        branch_start = branch.get_node_by_name(branch.start_at)
+                        process_node(branch_start, node_id)
+
+                elif isinstance(node, MapNode):
+                    # Process map branch
+                    branch_start = node.branch.get_node_by_name(node.branch.start_at)
+                    process_node(branch_start, node_id)
+
+                elif isinstance(node, ConditionalNode):
+                    # Process each conditional branch
+                    for branch_name, branch in node.branches.items():
+                        branch_start = branch.get_node_by_name(branch.start_at)
+                        process_node(branch_start, node_id)
+                    if node.default:
+                        default_start = node.default.get_node_by_name(
+                            node.default.start_at
+                        )
+                        process_node(default_start, node_id)
+
+            # Add links to next and on_failure nodes if they exist
+            if isinstance(node, ExecutableNode):
+                next_nodes = node._get_neighbors()
+                for next_node_name in next_nodes:
+                    next_node = graph.get_node_by_name(next_node_name)
+                    next_id = process_node(next_node)
+                    links.append({"source": node_id, "target": next_id})
+
+        return node_id
+
+    # Start processing from the start node
+    start_node = graph.get_node_by_name(graph.start_at)
+    process_node(start_node)
+
+    return {"nodes": nodes, "links": links}

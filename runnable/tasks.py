@@ -209,6 +209,9 @@ class BaseTaskType(BaseModel):
                 parameters=diff_parameters, run_id=self._context.run_id
             )
 
+    def get_d3_metadata(self) -> dict[str, str]:
+        raise NotImplementedError
+
 
 def task_return_to_parameter(task_return: TaskReturns, value: Any) -> Parameter:
     # implicit support for pydantic models
@@ -286,6 +289,14 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     task_type: str = Field(default="python", serialization_alias="command_type")
     command: str
+
+    def get_d3_metadata(self) -> Dict[str, str]:
+        module, func = utils.get_module_and_attr_names(self.command)
+        return {
+            "module": module,
+            "function": func,
+            "returns": json.dumps([r.model_dump() for r in self.returns]),
+        }
 
     def execute_command(
         self,
@@ -439,6 +450,12 @@ class NotebookTaskType(BaseTaskType):
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
     optional_ploomber_args: dict = {}
+
+    def get_d3_metadata(self) -> Dict[str, str]:
+        return {
+            "notebook": self.command,
+            "returns": json.dumps([r.model_dump() for r in self.returns]),
+        }
 
     @field_validator("command")
     @classmethod
@@ -639,6 +656,12 @@ class ShellTaskType(BaseTaskType):
 
     task_type: str = Field(default="shell", serialization_alias="command_type")
     command: str
+
+    def get_d3_metadata(self) -> Dict[str, str]:
+        return {
+            "command": self.command[:50],
+            "returns": json.dumps([r.model_dump() for r in self.returns]),
+        }
 
     @field_validator("returns")
     @classmethod

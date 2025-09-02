@@ -7,7 +7,7 @@ from pydantic import Field, field_serializer, field_validator
 from runnable import console, defaults
 from runnable.datastore import Parameter
 from runnable.graph import Graph, create_graph
-from runnable.nodes import CompositeNode, MapVariableType
+from runnable.nodes import CompositeNode, MapVariableType, NodeInD3
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -241,3 +241,9 @@ class ConditionalNode(CompositeNode):
             step_log.status = defaults.FAIL
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+
+    def to_d3_node(self) -> NodeInD3:
+        return NodeInD3(
+            id=self.internal_name,
+            label="conditional",
+        )
