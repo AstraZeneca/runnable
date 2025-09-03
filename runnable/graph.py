@@ -561,11 +561,40 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
 
             # Add links to next and on_failure nodes if they exist
             if isinstance(node, ExecutableNode):
+                # Handle normal "next" links (success path)
+                if hasattr(node, "next_node") and node.next_node:
+                    next_node = graph.get_node_by_name(node.next_node)
+                    next_id = process_node(next_node)
+                    links.append(
+                        {"source": node_id, "target": next_id, "type": "success"}
+                    )
+
+                # Handle on_failure links (failure path)
+                if hasattr(node, "on_failure") and node.on_failure:
+                    failure_node = graph.get_node_by_name(node.on_failure)
+                    failure_id = process_node(failure_node)
+                    links.append(
+                        {"source": node_id, "target": failure_id, "type": "failure"}
+                    )
+
+                # For backward compatibility, also process all neighbors
+                # This handles cases where node might have other connection types
                 next_nodes = node._get_neighbors()
                 for next_node_name in next_nodes:
+                    # Skip nodes we've already handled explicitly
+                    if (
+                        hasattr(node, "next_node") and node.next_node == next_node_name
+                    ) or (
+                        hasattr(node, "on_failure")
+                        and node.on_failure == next_node_name
+                    ):
+                        continue
+
                     next_node = graph.get_node_by_name(next_node_name)
                     next_id = process_node(next_node)
-                    links.append({"source": node_id, "target": next_id})
+                    links.append(
+                        {"source": node_id, "target": next_id, "type": "default"}
+                    )
 
         return node_id
 

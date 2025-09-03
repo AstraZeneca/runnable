@@ -243,8 +243,19 @@ class ConditionalNode(CompositeNode):
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
     def to_d3_node(self) -> NodeInD3:
+        def get_display_string() -> str:
+            display = f"match {self.parameter}:\n"
+            for case in self.branches.keys():
+                display += f'    case "{case}":\n        ...\n'
+            if self.default:
+                display += "    case _:\n        ...\n"
+            return display
+
         return NodeInD3(
             id=self.internal_name,
             label="conditional",
-            metadata={"conditioned on": self.parameter},
+            metadata={
+                "conditioned on": self.parameter,
+                "display": get_display_string(),
+            },
         )

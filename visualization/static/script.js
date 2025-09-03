@@ -103,10 +103,8 @@ zoomControls.append("text")
     .text("⟲");
 
 // Define arrow markers for directed links
-svg.append("defs").selectAll("marker")
-    .data(["end"])
-    .enter().append("marker")
-    .attr("id", "end")
+svg.append("defs").append("marker")
+    .attr("id", "arrowhead")
     .attr("viewBox", "0 -5 10 10")
     .attr("refX", 20)
     .attr("refY", 0)
@@ -184,6 +182,15 @@ function getNodeTooltipContent(d) {
         </div>`;
     }
 
+    // Show display string if present in metadata
+    if (d.metadata && d.metadata.display) {
+        content += `
+        <div class="mt-4">
+            <div class="font-semibold mb-2">Display:</div>
+            <pre class="whitespace-pre-wrap bg-gray-100 p-2 rounded text-sm">${d.metadata.display}</pre>
+        </div>`;
+    }
+
     // Show metadata if available
     if (d.metadata && Object.keys(d.metadata).length > 0) {
         content += `
@@ -196,6 +203,8 @@ function getNodeTooltipContent(d) {
             if (typeof value === 'object') {
                 value = JSON.stringify(value, null, 2);
             }
+            // Don't duplicate display string
+            if (key === 'display') continue;
             content += `<div><span class="text-gray-700">${key}:</span> <code class="text-sm">${value}</code></div>`;
         }
         content += `</div></div>`;
@@ -260,16 +269,43 @@ function renderGraph(graphData) {
         }).strength(0.5))
         .force("y", d3.forceY(height / 2).strength(0.1));
 
-    // Create links
+    // Define marker for failure links - add red X marker
+    svg.append("defs")
+        .append("marker")
+        .attr("id", "failure-marker")
+        .attr("viewBox", "0 0 10 10")
+        .attr("refX", 5)
+        .attr("refY", 5)
+        .attr("markerWidth", 6)
+        .attr("markerHeight", 6)
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M 1,1 L 9,9 M 9,1 L 1,9")
+        .attr("stroke", "#e53e3e")
+        .attr("stroke-width", 1.5);
+
+    // Create links with differentiation between success and failure paths
     const link = container.append("g")
         .attr("class", "links")
         .selectAll("line")
         .data(graphData.links)
         .enter().append("line")
-        .attr("stroke", "#9ca3af")
-        .attr("stroke-width", 2)
-        .attr("stroke-opacity", 0.8)
-        .attr("marker-end", "url(#end)");
+        .attr("stroke", d => {
+            // Use different colors for success vs failure links
+            if (d.type === "failure") return "#e53e3e"; // Red for failure
+            if (d.type === "success") return "#38a169"; // Green for success
+            return "#9ca3af"; // Gray for default/other
+        })
+        .attr("stroke-width", d => {
+            return d.type === "failure" || d.type === "success" ? 2 : 1.5;
+        })
+        .attr("stroke-dasharray", d => {
+            return d.type === "failure" ? "5,5" : "none"; // Dashed line for failure paths
+        })
+        .attr("marker-end", d => {
+            return d.type === "failure" ? "url(#failure-marker)" : "url(#arrowhead)";
+        })
+        .attr("stroke-opacity", 0.8);
 
     // Create Nodes as Images with text labels
     const node = container.append("g")
@@ -293,11 +329,13 @@ function renderGraph(graphData) {
     node.append("image")
         .attr("xlink:href", d => {
             // Use relative paths to your local images
+            if (d.label === "conditional") return "static/images/conditional.png";
             if (d.task_type === "python") return "static/images/python.png";
             if (d.task_type === "notebook") return "static/images/notebook.png";
             if (d.task_type === "shell") return "static/images/shell.png";
             if (d.label === "parallel") return "static/images/parallel.png";
             if (d.label === "success") return "static/images/success.png";
+            if (d.label === "fail") return "static/images/failure.png";
             // Provide a default image for unknown types
             return "static/images/python.png";
         })
@@ -328,6 +366,14 @@ function renderGraph(graphData) {
             .delay(200)
             .style("display", "none");
     });
+
+    // Add tooltips for links to show their type
+    link.append("title")
+        .text(d => {
+            if (d.type === "failure") return "Failure Path";
+            if (d.type === "success") return "Success Path";
+            return "Default Path";
+        });
 
     // Update positions on each simulation tick
     simulation.on("tick", () => {
