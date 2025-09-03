@@ -1,9 +1,11 @@
 import importlib.util
+import os
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -82,29 +84,82 @@ async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-@app.get("/graph-data", response_model=Dict[str, List[Dict[str, Any]]])
-async def get_graph_json_data(source_file: str, function: str):
+@app.post("/upload")
+async def upload_file(file: UploadFile):
     """
-    API endpoint to return the raw graph data as JSON.
-    (Optional, could be used for client-side fetching if not using Jinja2 for data injection)
+    Handles file upload and stores it in a temporary directory.
+    Returns the temporary path for further processing.
+    """
+    if not file.filename or not file.filename.endswith(".py"):
+        raise HTTPException(status_code=400, detail="Please upload a Python (.py) file")
+
+    try:
+        # Create a temporary directory
+        temp_dir = tempfile.mkdtemp()
+        temp_path = os.path.join(temp_dir, file.filename)
+
+        # Save the uploaded file
+        content = await file.read()
+        with open(temp_path, "wb") as f:
+            f.write(content)
+
+        return {
+            "temp_path": temp_path,
+            "filename": file.filename,
+            "message": "File uploaded successfully. Please enter the function name manually.",
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
+
+@app.get("/graph-data")
+async def get_graph_json_data(temp_path: str, function: str):
+    """
+    API endpoint to return the raw graph data as JSON using the temporary file path.
     """
     try:
-        # Check if file exists first
-        if not Path(source_file).exists():
+        # Check if temporary file exists
+        if not Path(temp_path).exists():
             raise HTTPException(
-                status_code=404, detail=f"File not found: {source_file}"
+                status_code=404, detail=f"Temporary file not found: {temp_path}"
             )
 
         # Try to convert and return the graph data
-        return convert_graph_to_d3(source_file, function)
+        return convert_graph_to_d3(temp_path, function)
     except ImportError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except AttributeError:
         raise HTTPException(
-            status_code=400, detail=f"Function '{function}' not found in {source_file}"
+            status_code=400, detail=f"Function '{function}' not found in uploaded file"
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/cleanup")
+async def cleanup_temp_file(temp_path: str):
+    """
+    Cleans up the temporary file and directory.
+    """
+    try:
+        file_path = Path(temp_path)
+        if file_path.exists():
+            file_path.unlink()  # Remove the file
+
+            # Remove the temporary directory if it's empty
+            temp_dir = file_path.parent
+            try:
+                temp_dir.rmdir()
+            except OSError:
+                pass  # Directory not empty or other issues
+
+            return {"message": "Temporary file cleaned up successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Temporary file not found")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error cleaning up file: {str(e)}")
 
 
 # --- FastAPI Endpoints ---

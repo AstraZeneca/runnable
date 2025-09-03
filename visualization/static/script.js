@@ -167,22 +167,48 @@ function getNodeTooltipContent(d) {
     let content = `<div class="space-y-2">
         <div><span class="font-semibold">ID:</span> ${d.id}</div>
         <div><span class="font-semibold">Type:</span> ${d.label}</div>`;
+
+    // Show task subtype for task nodes
     if (d.task_type) {
+        content += `<div><span class="font-semibold">Task Subtype:</span> ${d.task_type}</div>`;
+    }
+
+    // Show condition for conditional nodes
+    if (d.label === 'conditional' && d.condition) {
         content += `
-        <div><span class="font-semibold">Task Subtype:</span> ${d.task_type}</div>
+        <div class="mt-4">
+            <div class="font-semibold mb-2">Condition:</div>
+            <div class="pl-4 bg-gray-50 p-2 rounded">
+                <code class="text-sm">${d.condition}</code>
+            </div>
+        </div>`;
+    }
+
+    // Show metadata if available
+    if (d.metadata && Object.keys(d.metadata).length > 0) {
+        content += `
         <div class="mt-4">
             <div class="font-semibold mb-2">Metadata:</div>
             <div class="pl-4 space-y-1">`;
         for (const key in d.metadata) {
-            content += `<div><span class="text-gray-700">${key}:</span> ${JSON.stringify(d.metadata[key])}</div>`;
+            let value = d.metadata[key];
+            // Pretty print objects and arrays
+            if (typeof value === 'object') {
+                value = JSON.stringify(value, null, 2);
+            }
+            content += `<div><span class="text-gray-700">${key}:</span> <code class="text-sm">${value}</code></div>`;
         }
         content += `</div></div>`;
     }
+
     content += `</div>`;
     return content;
 }
 
 function renderGraph(graphData) {
+    // Clear existing graph
+    container.selectAll("*").remove();
+
     const nodeIds = new Set(graphData.nodes.map(d => d.id));
     const validLinks = graphData.links.filter(
         link => nodeIds.has(link.source) && nodeIds.has(link.target)
@@ -356,9 +382,9 @@ function renderGraph(graphData) {
 }
 
 // Fetch graph data from the API and render the graph
-async function fetchAndRenderGraph(sourceFile, functionName) {
+async function fetchAndRenderGraph(tempPath, functionName) {
     try {
-        const response = await fetch(`/graph-data?source_file=${encodeURIComponent(sourceFile)}&function=${encodeURIComponent(functionName)}`);
+        const response = await fetch(`/graph-data?temp_path=${encodeURIComponent(tempPath)}&function=${encodeURIComponent(functionName)}`);
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.detail);
@@ -394,11 +420,76 @@ loadingSpinner.innerHTML = `
 `;
 document.body.appendChild(loadingSpinner);
 
-document.getElementById('loadGraphBtn').addEventListener('click', () => {
-    const sourceFile = document.getElementById('sourceFilePathInput').value;
-    const functionName = document.getElementById('functionNameInput').value;
+let currentTempPath = null;
 
-    if (sourceFile && functionName) {
+// File upload handler
+document.getElementById('uploadBtn').addEventListener('click', async () => {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    const uploadStatus = document.getElementById('uploadStatus');
+
+    if (!file) {
+        uploadStatus.textContent = 'Please select a file to upload.';
+        uploadStatus.className = 'text-sm text-red-600';
+        return;
+    }
+
+    if (!file.name.endsWith('.py')) {
+        uploadStatus.textContent = 'Please upload a Python (.py) file.';
+        uploadStatus.className = 'text-sm text-red-600';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        uploadStatus.textContent = 'Uploading...';
+        uploadStatus.className = 'text-sm text-blue-600';
+
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            currentTempPath = result.temp_path;
+            uploadStatus.textContent = `File uploaded successfully: ${result.filename}`;
+            uploadStatus.className = 'text-sm text-green-600';
+
+            // Enable the function input and load button
+            document.getElementById('functionNameInput').disabled = false;
+            updateLoadButtonState();
+
+        } else {
+            uploadStatus.textContent = `Error: ${result.detail}`;
+            uploadStatus.className = 'text-sm text-red-600';
+        }
+
+    } catch (error) {
+        uploadStatus.textContent = `Upload failed: ${error.message}`;
+        uploadStatus.className = 'text-sm text-red-600';
+    }
+});
+
+// Function to update load button state
+function updateLoadButtonState() {
+    const functionInput = document.getElementById('functionNameInput');
+    const loadBtn = document.getElementById('loadGraphBtn');
+
+    loadBtn.disabled = !currentTempPath || !functionInput.value.trim();
+}
+
+// Function input change handler
+document.getElementById('functionNameInput').addEventListener('input', updateLoadButtonState);
+
+// Load graph button handler
+document.getElementById('loadGraphBtn').addEventListener('click', () => {
+    const functionName = document.getElementById('functionNameInput').value.trim();
+
+    if (currentTempPath && functionName) {
         // Show loading spinner
         loadingSpinner.classList.remove('hidden');
         // Clear any existing error messages
@@ -407,13 +498,13 @@ document.getElementById('loadGraphBtn').addEventListener('click', () => {
             errorElement.style.display = 'none';
         }
 
-        fetchAndRenderGraph(sourceFile, functionName)
+        fetchAndRenderGraph(currentTempPath, functionName)
             .finally(() => {
                 // Hide loading spinner when done, regardless of success/failure
                 loadingSpinner.classList.add('hidden');
             });
     } else {
-        alert('Please enter a file path and a function name.');
+        alert('Please upload a file and enter a function name.');
     }
 });
 

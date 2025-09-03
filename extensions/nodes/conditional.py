@@ -246,4 +246,5 @@ class ConditionalNode(CompositeNode):
         return NodeInD3(
             id=self.internal_name,
             label="conditional",
+            metadata={"conditioned on": self.parameter},
         )
