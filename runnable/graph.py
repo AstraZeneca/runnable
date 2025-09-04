@@ -511,7 +511,7 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
 
     Returns:
         Dict with two keys:
-        - nodes: List of node objects with id, type, and name
+        - nodes: List of node objects with id, type, name, and alias
         - links: List of edge objects with source and target node ids
     """
     import rich.console
@@ -533,9 +533,12 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
         node: BaseNode, parent_id: Optional[str] = None, current_graph: Graph = graph
     ) -> str:
         node_id = f"{node.internal_name}"
+        node_alias = node.name  # Alias based on the node's name
 
         if node_id not in processed_nodes:
             node_data = node.to_d3_node().model_dump(exclude_none=True)
+            node_data["alias"] = node_alias  # Add alias to the node data
+            node_data["display_name"] = node_alias  # Use alias as the display name
             nodes.append(node_data)
             processed_nodes.add(node_id)
 

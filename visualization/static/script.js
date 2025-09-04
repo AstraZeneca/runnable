@@ -368,6 +368,7 @@ function renderGraph(graphData) {
             if (d.label === "parallel") return "static/images/parallel.png";
             if (d.label === "success") return "static/images/success.png";
             if (d.label === "fail") return "static/images/failure.png";
+            if (d.label === "stub") return "static/images/stub.png";
             // Provide a default image for unknown types
             return "static/images/python.png";
         })
@@ -379,7 +380,7 @@ function renderGraph(graphData) {
     node.append("text")
         .attr("dy", "2.5em")
         .attr("text-anchor", "middle")
-        .text(d => d.id)
+        .text(d => d.alias || d.id) // Use alias as display name if available, fallback to id
         .attr("font-size", "10px")
         .attr("fill", "#4b5563")
         .attr("pointer-events", "none");
