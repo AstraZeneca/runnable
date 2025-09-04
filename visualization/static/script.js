@@ -258,7 +258,28 @@ function renderGraph(graphData) {
     // Map the sorted nodes back to the original array to maintain order
     const sortedGraphDataNodes = graphData.nodes.sort((a, b) => levels.get(a.id) - levels.get(b.id));
 
-    // Set up force simulation with horizontal positioning
+    // Identify parallel branches for better positioning
+    const parallelBranches = new Map(); // Maps node id to its branch path
+    const branchY = new Map(); // Maps branch path to a y-position
+
+    // Find all branch paths in the graph
+    sortedGraphDataNodes.forEach(node => {
+        if (node.id) {
+            // Extract branch path from node id (format often includes branch names)
+            const parts = node.id.split('.');
+            if (parts.length > 1) {
+                const branchPath = parts.slice(0, -1).join('.');
+                parallelBranches.set(node.id, branchPath);
+
+                // If this is a new branch, assign it a y-position
+                if (!branchY.has(branchPath)) {
+                    branchY.set(branchPath, branchY.size);
+                }
+            }
+        }
+    });
+
+    // Set up force simulation with improved positioning for parallel branches
     const simulation = d3.forceSimulation(sortedGraphDataNodes)
         .force("link", d3.forceLink(validLinks).id(d => d.id).distance(100))
         .force("charge", d3.forceManyBody().strength(-300))
@@ -267,7 +288,18 @@ function renderGraph(graphData) {
             const totalLevels = Math.max(...Array.from(levels.values())) + 1;
             return (width / totalLevels) * (level + 0.5);
         }).strength(0.5))
-        .force("y", d3.forceY(height / 2).strength(0.1));
+        .force("y", d3.forceY(d => {
+            // Position nodes based on their branch
+            const branchPath = parallelBranches.get(d.id);
+            if (branchPath && branchY.has(branchPath)) {
+                // Calculate y position based on branch index
+                const branchCount = branchY.size;
+                const branchIndex = branchY.get(branchPath);
+                // Distribute branches evenly in the vertical space
+                return (height / (branchCount + 1)) * (branchIndex + 1);
+            }
+            return height / 2; // Default center position
+        }).strength(0.3));
 
     // Define marker for failure links - add red X marker
     svg.append("defs")
