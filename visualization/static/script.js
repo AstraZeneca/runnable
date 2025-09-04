@@ -4,6 +4,36 @@ const width = svgElement.clientWidth;
 const height = svgElement.clientHeight;
 const svg = d3.select(svgElement);
 
+// Simple Python syntax highlighter
+function highlightPythonSyntax(code) {
+    if (!code) return code;
+
+    // First escape any HTML to prevent XSS and unwanted HTML rendering
+    const escapeHTML = str => str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+    // Escape the code first
+    const escapedCode = escapeHTML(code);
+
+    // Replace Python keywords and other syntax elements with highlighted spans
+    return escapedCode
+        // Keywords
+        .replace(/\b(def|class|import|from|return|if|else|elif|for|while|try|except|finally|with|as|in|is|not|and|or|True|False|None)\b/g,
+                '<span class="keyword">$1</span>')
+        // Function calls
+        .replace(/(\w+)(\s*\()/g, '<span class="function">$1</span>$2')
+        // Strings
+        .replace(/(&quot;(?:[^&]|&amp;)*?&quot;)|(&apos;(?:[^&]|&amp;)*?&apos;)/g, '<span class="string">$1$2</span>')
+        // Numbers
+        .replace(/\b(\d+(\.\d+)?)\b/g, '<span class="number">$1</span>')
+        // Comments
+        .replace(/(#.*)$/gm, '<span class="comment">$1</span>');
+}
+
 // Create a container group for all elements that will be transformed
 const container = svg.append("g")
     .attr("class", "zoom-container");
@@ -161,7 +191,7 @@ setupModalEvents();
 // Tooltip functionality
 const tooltip = d3.select("#tooltip");
 
-function getNodeTooltipContent(d) {
+function getNodeTooltipContent(d, isTooltip = false) {
     let content = `<div class="space-y-2">
         <div><span class="font-semibold">ID:</span> ${d.id}</div>
         <div><span class="font-semibold">Type:</span> ${d.label}</div>`;
@@ -169,6 +199,12 @@ function getNodeTooltipContent(d) {
     // Show task subtype for task nodes
     if (d.task_type) {
         content += `<div><span class="font-semibold">Task Subtype:</span> ${d.task_type}</div>`;
+    }
+
+    // For tooltip, only show basic info (ID, Type, Subtype)
+    if (isTooltip) {
+        content += `</div>`;
+        return content;
     }
 
     // Show condition for conditional nodes
@@ -191,6 +227,20 @@ function getNodeTooltipContent(d) {
         </div>`;
     }
 
+    // Show function signature for Python tasks (only in modal, not in tooltip)
+    if (!isTooltip && d.label === 'task' && d.task_type === 'python' && d.metadata && d.metadata.signature) {
+        // Apply syntax highlighting to the code
+        const highlightedCode = highlightPythonSyntax(d.metadata.signature);
+        content += `
+        <div class="mt-4">
+            <div class="font-semibold mb-2">Function:</div>
+            <div class="code-block">
+                <div class="code-header">python</div>
+                <pre class="language-python whitespace-pre-wrap bg-gray-800 p-3 rounded-b text-sm overflow-x-auto font-mono text-gray-100">${highlightedCode}</pre>
+            </div>
+        </div>`;
+    }
+
     // Show metadata if available
     if (d.metadata && Object.keys(d.metadata).length > 0) {
         content += `
@@ -199,13 +249,23 @@ function getNodeTooltipContent(d) {
             <div class="pl-4 space-y-1">`;
         for (const key in d.metadata) {
             let value = d.metadata[key];
+            // Don't duplicate display string or signature
+            if (key === 'display' || key === 'signature') continue;
+
             // Pretty print objects and arrays
             if (typeof value === 'object') {
-                value = JSON.stringify(value, null, 2);
+                const jsonStr = JSON.stringify(value, null, 2);
+                content += `
+                <div class="mb-2">
+                    <span class="text-gray-700 font-semibold">${key}:</span>
+                    <div class="code-block mt-1">
+                        <div class="code-header">json</div>
+                        <pre class="whitespace-pre-wrap bg-gray-800 p-2 rounded-b text-sm overflow-x-auto font-mono text-gray-100">${jsonStr}</pre>
+                    </div>
+                </div>`;
+            } else {
+                content += `<div class="mb-1"><span class="text-gray-700 font-semibold">${key}:</span> <code class="bg-gray-100 px-1 py-0.5 rounded text-sm">${value}</code></div>`;
             }
-            // Don't duplicate display string
-            if (key === 'display') continue;
-            content += `<div><span class="text-gray-700">${key}:</span> <code class="text-sm">${value}</code></div>`;
         }
         content += `</div></div>`;
     }
@@ -352,8 +412,8 @@ function renderGraph(graphData) {
         .on("click", (event, d) => {
             // Prevent modal from opening if we're dragging
             if (event.defaultPrevented) return;
-            // Show modal with detailed metadata
-            const content = getNodeTooltipContent(d);
+            // Show modal with detailed metadata including signature
+            const content = getNodeTooltipContent(d, false); // false = not tooltip, show signature
             showModal(content);
         });
 
@@ -387,7 +447,7 @@ function renderGraph(graphData) {
 
     // Tooltip functionality
     node.on("mouseover", function(event, d) {
-        tooltip.html(getNodeTooltipContent(d))
+        tooltip.html(getNodeTooltipContent(d, true)) // true = is tooltip, don't show signature
             .style("left", (event.pageX + 10) + "px")
             .style("top", (event.pageY - 20) + "px")
             .style("display", "block")
