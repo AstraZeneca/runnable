@@ -196,6 +196,23 @@ function getNodeTooltipContent(d, isTooltip = false) {
         <div><span class="font-semibold">ID:</span> ${d.id}</div>
         <div><span class="font-semibold">Type:</span> ${d.label}</div>`;
 
+    // Show map-specific information
+    if (d.metadata && (d.label === "map" || (d.metadata.belongs_to_map && !isTooltip))) {
+        content += `<div class="mt-2 border-t pt-2">
+            <div class="font-semibold text-blue-600">Map Operation</div>`;
+
+        if (d.label === "map") {
+            content += `<div><span class="font-semibold">Iterates On:</span> ${d.metadata.iterate_on || "N/A"}</div>
+                <div><span class="font-semibold">Iterate As:</span> ${d.metadata.iterate_as || "N/A"}</div>`;
+        }
+
+        if (d.metadata.belongs_to_map) {
+            content += `<div><span class="font-semibold">Part of Map:</span> ${d.metadata.belongs_to_map}</div>`;
+        }
+
+        content += `</div>`;
+    }
+
     // Show task subtype for task nodes
     if (d.task_type) {
         content += `<div><span class="font-semibold">Task Subtype:</span> ${d.task_type}</div>`;
@@ -348,6 +365,18 @@ function renderGraph(graphData) {
             const totalLevels = Math.max(...Array.from(levels.values())) + 1;
             return (width / totalLevels) * (level + 0.5);
         }).strength(0.5))
+        // Add additional forces for nodes within the same map group to stay close together
+        .force("map-group", d => {
+            if (graphData.mapGroups && d.metadata && d.metadata.belongs_to_map) {
+                // Find related nodes in the same map group and pull them closer
+                const mapGroup = graphData.mapGroups.find(g => g.id === d.metadata.belongs_to_map);
+                if (mapGroup) {
+                    // Add an additional force to keep map-related nodes together
+                    return d3.forceY().strength(0.2);
+                }
+            }
+            return null;
+        })
         .force("y", d3.forceY(d => {
             // Position nodes based on their branch
             const branchPath = parallelBranches.get(d.id);
@@ -422,6 +451,7 @@ function renderGraph(graphData) {
         .attr("xlink:href", d => {
             // Use relative paths to your local images
             if (d.label === "conditional") return "static/images/conditional.png";
+            if (d.label === "map") return "static/images/parallel.png"; // Use parallel icon for map for now
             if (d.task_type === "python") return "static/images/python.png";
             if (d.task_type === "notebook") return "static/images/notebook.png";
             if (d.task_type === "shell") return "static/images/shell.png";
@@ -434,7 +464,44 @@ function renderGraph(graphData) {
         })
         .attr("width", 32)
         .attr("height", 32)
-        .attr("class", d => `node-image ${d.label} ${d.task_type ? 'task-' + d.task_type : ''}`);
+        .attr("class", d => {
+            // Log node info for debugging
+            console.log("Processing node:", d);
+
+            let classes = `node-image ${d.label} ${d.task_type ? 'task-' + d.task_type : ''}`;
+
+            // Add special styling for map nodes and their branch nodes
+            if (d.label === "map" || (d.metadata && d.metadata.node_type === "map")) {
+                classes += ' map-root-node';
+                console.log("Adding map-root-node class to:", d.id);
+            }
+
+            if (d.metadata && d.metadata.belongs_to_map) {
+                classes += ' map-branch-node';
+                console.log("Adding map-branch-node class to:", d.id);
+            }
+
+            return classes;
+        });
+
+    // Add a decorative border for map nodes
+    node.filter(d => d.label === "map" || (d.metadata && d.metadata.node_type === "map"))
+        .append("circle")
+        .attr("r", 20)
+        .attr("fill", "none")
+        .attr("stroke", "#3b82f6")
+        .attr("stroke-width", 2)
+        .attr("opacity", 0.8)
+        .attr("stroke-dasharray", "4,2");
+
+    // Add a small indicator for nodes that are part of a map branch
+    node.filter(d => d.metadata && d.metadata.belongs_to_map && d.label !== "map")
+        .append("circle")
+        .attr("r", 5)
+        .attr("cx", 16)
+        .attr("cy", -10)
+        .attr("fill", "#3b82f6")
+        .attr("opacity", 0.7);
 
     // Add a text label below the image
     node.append("text")
@@ -444,6 +511,87 @@ function renderGraph(graphData) {
         .attr("font-size", "10px")
         .attr("fill", "#4b5563")
         .attr("pointer-events", "none");
+
+    // Create decorative boxes around map branches if map groups exist
+    if (!graphData.mapGroups) {
+        console.log("No map groups found, initializing empty array");
+        graphData.mapGroups = [];
+    }
+
+    if (graphData.mapGroups.length > 0) {
+        console.log("Creating map group boxes for:", graphData.mapGroups);
+
+        // Add group containers for map branches
+        const mapGroups = container.append("g")
+            .attr("class", "map-groups")
+            .selectAll("g")
+            .data(graphData.mapGroups)
+            .enter()
+            .append("g")
+            .attr("class", "map-group")
+            .attr("id", d => `map-group-${d.id.replace(/\./g, '-')}`);
+
+        // Add rectangle around each map group
+        const mapBoxes = mapGroups.append("rect")
+            .attr("class", "map-box")
+            .attr("rx", 8) // Rounded corners
+            .attr("ry", 8)
+            .attr("fill", "none")
+            .attr("stroke", "#3b82f6") // Blue border
+            .attr("stroke-width", 1.5)
+            .attr("stroke-dasharray", "5,3") // Dashed line
+            .attr("opacity", 0.7)
+            .attr("pointer-events", "none"); // Don't interfere with clicks
+
+        // Add a label for the map operation
+        mapGroups.append("text")
+            .attr("class", "map-label")
+            .attr("fill", "#3b82f6")
+            .attr("font-size", "12px")
+            .attr("font-weight", "bold")
+            .text(d => {
+                console.log("Creating label for map group:", d);
+                // Ensure we have safe values for the label text
+                const iterateAs = d.iterate_as || "item";
+                const iterateOn = d.iterate_on || "items";
+                return `Map: For each ${iterateAs} in ${iterateOn}`;
+            })
+            .attr("pointer-events", "none");
+
+        // Update the positions of the map boxes during simulation
+        simulation.on("tick.mapboxes", () => {
+            mapGroups.each(function(d) {
+                const group = d3.select(this);
+                // Find positions of all nodes in this map group
+                const nodes = d.nodes.map(node => ({
+                    x: node.x,
+                    y: node.y
+                }));
+
+                if (nodes.length > 0) {
+                    // Calculate bounding box
+                    const minX = d3.min(nodes, node => node.x) - 25;
+                    const minY = d3.min(nodes, node => node.y) - 25;
+                    const maxX = d3.max(nodes, node => node.x) + 25;
+                    const maxY = d3.max(nodes, node => node.y) + 35;
+                    const width = Math.max(maxX - minX, 100); // Minimum width
+                    const height = Math.max(maxY - minY, 100); // Minimum height
+
+                    // Update rectangle position and size
+                    group.select("rect")
+                        .attr("x", minX)
+                        .attr("y", minY)
+                        .attr("width", width)
+                        .attr("height", height);
+
+                    // Update label position
+                    group.select("text")
+                        .attr("x", minX + 10)
+                        .attr("y", minY - 10);
+                }
+            });
+        });
+    }
 
     // Tooltip functionality
     node.on("mouseover", function(event, d) {
@@ -529,6 +677,10 @@ async function fetchAndRenderGraph(tempPath, functionName) {
             throw new Error(errorData.detail);
         }
         const graphData = await response.json();
+
+        // Process map nodes for visualization
+        processMapNodeData(graphData);
+
         renderGraph(graphData);
     } catch (error) {
         console.error('There has been a problem with your fetch operation:', error);
@@ -623,6 +775,73 @@ function updateLoadButtonState() {
 
 // Function input change handler
 document.getElementById('functionNameInput').addEventListener('input', updateLoadButtonState);
+
+// Process map nodes data to prepare for visual grouping
+function processMapNodeData(graphData) {
+    // Create a mapping of map root nodes
+    const mapRoots = new Map();
+
+    // Find all map root nodes and organize their related branch nodes
+    graphData.nodes.forEach(node => {
+        console.log("Examining node for map properties:", node);
+
+        // Identify map nodes either by label or metadata.node_type
+        const isMapNode = node.label === "map" || (node.metadata && node.metadata.node_type === "map");
+
+        // Check if node has map-related metadata
+        if (isMapNode) {
+            console.log("Found map node:", node);
+
+            // Get iteration metadata from node's metadata if available
+            const iterate_on = node.metadata?.iterate_on || "items";
+            const iterate_as = node.metadata?.iterate_as || "item";
+
+            console.log(`Map node ${node.id} iterates "${iterate_as}" over "${iterate_on}"`);
+
+            mapRoots.set(node.id, {
+                mapNode: node,
+                branchNodes: [],
+                iterate_on: iterate_on,
+                iterate_as: iterate_as
+            });
+        }
+
+        // If this node belongs to a map branch, record it
+        if (node.metadata && node.metadata.belongs_to_map) {
+            const mapId = node.metadata.belongs_to_map;
+            console.log(`Node ${node.id} belongs to map: ${mapId}`);
+
+            if (!mapRoots.has(mapId)) {
+                mapRoots.set(mapId, {
+                    mapNode: null,
+                    branchNodes: [],
+                    iterate_on: "unknown",
+                    iterate_as: "item"
+                });
+            }
+
+            mapRoots.get(mapId).branchNodes.push(node);
+        }
+    });
+
+    console.log("Map roots found:", mapRoots);
+
+    // Add the map info to graphData for later use in rendering
+    graphData.mapGroups = Array.from(mapRoots.entries()).map(([mapId, groupInfo]) => {
+        // Make sure we preserve the original map node metadata for visualization
+        const mapData = {
+            id: mapId,
+            nodes: [groupInfo.mapNode, ...groupInfo.branchNodes].filter(Boolean),
+            iterate_on: groupInfo.iterate_on,
+            iterate_as: groupInfo.iterate_as
+        };
+
+        // Debug
+        console.log("Created map group:", mapData);
+
+        return mapData;
+    });
+}
 
 // Load graph button handler
 document.getElementById('loadGraphBtn').addEventListener('click', () => {

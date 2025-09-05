@@ -530,7 +530,10 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
     processed_nodes = set()
 
     def process_node(
-        node: BaseNode, parent_id: Optional[str] = None, current_graph: Graph = graph
+        node: BaseNode,
+        parent_id: Optional[str] = None,
+        current_graph: Graph = graph,
+        map_node_id: Optional[str] = None,
     ) -> str:
         node_id = f"{node.internal_name}"
         node_alias = node.name  # Alias based on the node's name
@@ -539,6 +542,19 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
             node_data = node.to_d3_node().model_dump(exclude_none=True)
             node_data["alias"] = node_alias  # Add alias to the node data
             node_data["display_name"] = node_alias  # Use alias as the display name
+
+            # Add map-related metadata if this node is part of a map branch
+            if map_node_id:
+                if "metadata" not in node_data:
+                    node_data["metadata"] = {}
+
+                # Mark this node as being part of a map branch
+                node_data["metadata"]["belongs_to_map"] = map_node_id
+
+                # If this is the map node itself, add a special attribute
+                if node_id == map_node_id:
+                    node_data["metadata"]["is_map_root"] = True
+
             nodes.append(node_data)
             processed_nodes.add(node_id)
 
@@ -552,23 +568,35 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                     # Process each parallel branch
                     for _, branch in node.branches.items():
                         branch_start = branch.get_node_by_name(branch.start_at)
-                        process_node(branch_start, node_id, branch)
+                        process_node(
+                            branch_start, node_id, branch, map_node_id=map_node_id
+                        )
 
                 elif isinstance(node, MapNode):
                     # Process map branch
                     branch_start = node.branch.get_node_by_name(node.branch.start_at)
-                    process_node(branch_start, node_id, node.branch)
+                    # Process the branch with additional context about the map node
+                    process_node(
+                        branch_start, node_id, node.branch, map_node_id=node_id
+                    )
 
                 elif isinstance(node, ConditionalNode):
                     # Process each conditional branch
                     for _, branch in node.branches.items():
                         branch_start = branch.get_node_by_name(branch.start_at)
-                        process_node(branch_start, node_id, branch)
+                        process_node(
+                            branch_start, node_id, branch, map_node_id=map_node_id
+                        )
                     if node.default:
                         default_start = node.default.get_node_by_name(
                             node.default.start_at
                         )
-                        process_node(default_start, node_id, node.default)
+                        process_node(
+                            default_start,
+                            node_id,
+                            node.default,
+                            map_node_id=map_node_id,
+                        )
 
             # Add links to next and on_failure nodes if they exist
             if isinstance(node, ExecutableNode):
@@ -577,7 +605,10 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                     try:
                         next_node = current_graph.get_node_by_name(node.next_node)
                         next_id = process_node(
-                            next_node, None, current_graph=current_graph
+                            next_node,
+                            None,
+                            current_graph=current_graph,
+                            map_node_id=map_node_id,
                         )
                         links.append(
                             {"source": node_id, "target": next_id, "type": "success"}
@@ -592,7 +623,10 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                     try:
                         failure_node = current_graph.get_node_by_name(node.on_failure)
                         failure_id = process_node(
-                            failure_node, None, current_graph=current_graph
+                            failure_node,
+                            None,
+                            current_graph=current_graph,
+                            map_node_id=map_node_id,
                         )
                         links.append(
                             {"source": node_id, "target": failure_id, "type": "failure"}
@@ -618,7 +652,10 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                     try:
                         next_node = current_graph.get_node_by_name(next_node_name)
                         next_id = process_node(
-                            next_node, None, current_graph=current_graph
+                            next_node,
+                            None,
+                            current_graph=current_graph,
+                            map_node_id=map_node_id,
                         )
                         links.append(
                             {"source": node_id, "target": next_id, "type": "default"}
@@ -633,7 +670,7 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
     # Start processing from the start node
     start_node = graph.get_node_by_name(graph.start_at)
     try:
-        process_node(start_node, None, graph)
+        process_node(start_node, None, graph, map_node_id=None)
     except (exceptions.NodeNotFoundError, AttributeError, KeyError) as e:
         rich_print(f"Error processing node {start_node}: {e}")
 

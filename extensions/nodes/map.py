@@ -353,4 +353,13 @@ class MapNode(CompositeNode):
         return NodeInD3(
             id=self.internal_name,
             label="map",
+            metadata={
+                "node_type": "map",
+                "iterate_on": self.iterate_on,  # Parameter name containing the iterable
+                "iterate_as": self.iterate_as,  # Name used for each iteration
+                "map_branch_id": self.internal_name
+                + "."
+                + defaults.MAP_PLACEHOLDER,  # The branch identifier pattern
+                "is_composite": True,  # Flag indicating this is a composite node
+            },
         )
