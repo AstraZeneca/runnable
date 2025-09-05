@@ -45,14 +45,15 @@ def traversal():
 def main():
     parallel_step = Parallel(
         name="parallel_step",
-        terminate_with_success=True,
         branches={
             "branch1": traversal(),
             "branch2": traversal(),
         },
     )
 
-    pipeline = Pipeline(steps=[parallel_step])
+    continue_to = Stub(name="continue to")
+
+    pipeline = Pipeline(steps=[parallel_step, continue_to])
 
     pipeline.execute()
     return pipeline

@@ -543,7 +543,7 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
             node_data["alias"] = node_alias  # Add alias to the node data
             node_data["display_name"] = node_alias  # Use alias as the display name
 
-            # Add map-related metadata if this node is part of a map branch
+            # Add map or parallel related metadata if this node is part of a map branch or parallel branch
             if map_node_id:
                 if "metadata" not in node_data:
                     node_data["metadata"] = {}
@@ -554,6 +554,15 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                 # If this is the map node itself, add a special attribute
                 if node_id == map_node_id:
                     node_data["metadata"]["is_map_root"] = True
+
+            # Mark parallel nodes with special metadata
+            if isinstance(node, ParallelNode):
+                if "metadata" not in node_data:
+                    node_data["metadata"] = {}
+
+                # Add parallel node type to metadata
+                node_data["metadata"]["node_type"] = "parallel"
+                node_data["metadata"]["parallel_branch_id"] = node_id
 
             nodes.append(node_data)
             processed_nodes.add(node_id)
@@ -568,9 +577,29 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                     # Process each parallel branch
                     for _, branch in node.branches.items():
                         branch_start = branch.get_node_by_name(branch.start_at)
-                        process_node(
-                            branch_start, node_id, branch, map_node_id=map_node_id
-                        )
+                        process_node(branch_start, node_id, branch, map_node_id=node_id)
+
+                    # Handle next node connection after parallel branches complete
+                    if hasattr(node, "next_node") and node.next_node:
+                        try:
+                            next_node = current_graph.get_node_by_name(node.next_node)
+                            next_id = process_node(
+                                next_node,
+                                None,
+                                current_graph=current_graph,
+                                map_node_id=map_node_id,
+                            )
+                            links.append(
+                                {
+                                    "source": node_id,
+                                    "target": next_id,
+                                    "type": "success",
+                                }
+                            )
+                        except exceptions.NodeNotFoundError as e:
+                            rich_print(
+                                f"Warning: Next node '{node.next_node}' not found for parallel node '{node.name}': {e}"
+                            )
 
                 elif isinstance(node, MapNode):
                     # Process map branch

@@ -213,6 +213,18 @@ function getNodeTooltipContent(d, isTooltip = false) {
         content += `</div>`;
     }
 
+    // Show parallel-specific information
+    if (d.metadata && (d.label === "parallel" || (d.metadata.node_type === "parallel"))) {
+        content += `<div class="mt-2 border-t pt-2">
+            <div class="font-semibold text-purple-600">Parallel Operation</div>`;
+
+        if (d.metadata.node_type === "parallel") {
+            content += `<div><span class="font-semibold">Parallel Group ID:</span> ${d.metadata.parallel_branch_id || "N/A"}</div>`;
+        }
+
+        content += `</div>`;
+    }
+
     // Show task subtype for task nodes
     if (d.task_type) {
         content += `<div><span class="font-semibold">Task Subtype:</span> ${d.task_type}</div>`;
@@ -377,6 +389,38 @@ function renderGraph(graphData) {
             }
             return null;
         })
+        // Add special force to push parallel next nodes away from the parallel group
+        .force("parallel-next", d => {
+            // If this node is a next node of a parallel node, push it away
+            if (graphData.mapGroups) {
+                // Check if this node is a next node of any parallel node
+                const parallelGroups = graphData.mapGroups.filter(g =>
+                    g.type === 'parallel' &&
+                    g.nextNodeIds &&
+                    g.nextNodeIds.includes(d.id)
+                );
+
+                if (parallelGroups.length > 0) {
+                    // This is a next node of a parallel group
+                    // Create a much stronger force to push it far to the right
+
+                    // Find the source parallel node level
+                    const parentId = parallelGroups[0].id;
+                    const parentLevel = levels.get(parentId) || 0;
+
+                    // Force this node to be at least two levels to the right of its parent
+                    const targetLevel = parentLevel + 2;
+                    const targetX = (width / (Math.max(...Array.from(levels.values())) + 3)) * (targetLevel + 0.5);
+
+                    // Add a Y force to position it near the middle vertically
+                    d3.forceY(height / 2).strength(0.5)(d);
+
+                    // Use a maximum strength force to ensure separation
+                    return d3.forceX(targetX).strength(2.0);
+                }
+            }
+            return null;
+        })
         .force("y", d3.forceY(d => {
             // Position nodes based on their branch
             const branchPath = parallelBranches.get(d.id);
@@ -405,26 +449,66 @@ function renderGraph(graphData) {
         .attr("stroke", "#e53e3e")
         .attr("stroke-width", 1.5);
 
+    // Define a special marker for parallel next links
+    svg.append("defs")
+        .append("marker")
+        .attr("id", "parallel-arrow")
+        .attr("viewBox", "0 0 10 10")
+        .attr("refX", 5)
+        .attr("refY", 5)
+        .attr("markerWidth", 8)  // Slightly larger
+        .attr("markerHeight", 8) // Slightly larger
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M 0,0 L 10,5 L 0,10 Z") // Triangle
+        .attr("fill", "#9333ea"); // Purple to match parallel node color
+
     // Create links with differentiation between success and failure paths
+    // Use paths instead of lines for more flexibility with parallel node connections
     const link = container.append("g")
         .attr("class", "links")
-        .selectAll("line")
+        .selectAll("path")
         .data(graphData.links)
-        .enter().append("line")
+        .enter()
+        .append("path")
         .attr("stroke", d => {
-            // Use different colors for success vs failure links
+            // Check if this is a connection from a parallel node to its next node
+            const isParallelNextLink = graphData.mapGroups &&
+                graphData.mapGroups.some(group =>
+                    group.type === 'parallel' &&
+                    group.id === d.source &&
+                    group.nextNodeIds &&
+                    group.nextNodeIds.includes(d.target));
+
+            if (isParallelNextLink) return "#9333ea"; // Bright purple for parallel next connection
             if (d.type === "failure") return "#e53e3e"; // Red for failure
             if (d.type === "success") return "#38a169"; // Green for success
             return "#9ca3af"; // Gray for default/other
         })
+        .attr("fill", "none") // Important for paths
         .attr("stroke-width", d => {
-            return d.type === "failure" || d.type === "success" ? 2 : 1.5;
+            // Check if this is a connection from a parallel node to its next node
+            const isParallelNextLink = graphData.mapGroups &&
+                graphData.mapGroups.some(group =>
+                    group.type === 'parallel' &&
+                    group.id === d.source &&
+                    group.nextNodeIds &&
+                    group.nextNodeIds.includes(d.target));
+
+            return isParallelNextLink ? 2.5 : (d.type === "failure" || d.type === "success" ? 2 : 1.5);
         })
         .attr("stroke-dasharray", d => {
-            return d.type === "failure" ? "5,5" : "none"; // Dashed line for failure paths
+            const targetNode = sortedGraphDataNodes.find(n => n.id === d.target);
+            const isBranchLink = targetNode?.metadata?.belongs_to_map === d.source;
+
+            if (isBranchLink) return "4,4"; // Dashed for branch links
+
+            if (d.type === "failure") return "5,5"; // Dashed for failure paths
+            return "none";
         })
         .attr("marker-end", d => {
-            return d.type === "failure" ? "url(#failure-marker)" : "url(#arrowhead)";
+            if (d.type === "failure") return "url(#failure-marker)";
+            return "url(#arrowhead)";
         })
         .attr("stroke-opacity", 0.8);
 
@@ -476,9 +560,21 @@ function renderGraph(graphData) {
                 console.log("Adding map-root-node class to:", d.id);
             }
 
+            // Add special styling for parallel nodes
+            if (d.label === "parallel" || (d.metadata && d.metadata.node_type === "parallel")) {
+                classes += ' parallel-root-node';
+                console.log("Adding parallel-root-node class to:", d.id);
+            }
+
             if (d.metadata && d.metadata.belongs_to_map) {
                 classes += ' map-branch-node';
                 console.log("Adding map-branch-node class to:", d.id);
+
+                // If belongs_to_map has a parallel_ prefix, add special class
+                if (d.metadata.belongs_to_map.startsWith('parallel_')) {
+                    classes += ' parallel-branch-node';
+                    console.log("Adding parallel-branch-node class to:", d.id);
+                }
             }
 
             return classes;
@@ -489,18 +585,41 @@ function renderGraph(graphData) {
         .append("circle")
         .attr("r", 20)
         .attr("fill", "none")
-        .attr("stroke", "#3b82f6")
+        .attr("stroke", "#3b82f6")  // Blue for map nodes
         .attr("stroke-width", 2)
         .attr("opacity", 0.8)
         .attr("stroke-dasharray", "4,2");
 
-    // Add a small indicator for nodes that are part of a map branch
-    node.filter(d => d.metadata && d.metadata.belongs_to_map && d.label !== "map")
+    // Add a decorative border for parallel nodes
+    node.filter(d => d.label === "parallel" || (d.metadata && d.metadata.node_type === "parallel"))
+        .append("circle")
+        .attr("r", 20)
+        .attr("fill", "none")
+        .attr("stroke", "#9333ea")  // Purple for parallel nodes
+        .attr("stroke-width", 2)
+        .attr("opacity", 0.8)
+        .attr("stroke-dasharray", "4,2");
+
+    // Add a small indicator for nodes that are part of a map branch (blue)
+    node.filter(d => d.metadata && d.metadata.belongs_to_map &&
+                    !d.metadata.belongs_to_map.startsWith('parallel_') &&
+                    d.label !== "map")
         .append("circle")
         .attr("r", 5)
         .attr("cx", 16)
         .attr("cy", -10)
-        .attr("fill", "#3b82f6")
+        .attr("fill", "#3b82f6") // Blue for map branches
+        .attr("opacity", 0.7);
+
+    // Add a small indicator for nodes that are part of a parallel branch (purple)
+    node.filter(d => d.metadata && d.metadata.belongs_to_map &&
+                    d.metadata.belongs_to_map.startsWith('parallel_') &&
+                    d.label !== "parallel")
+        .append("circle")
+        .attr("r", 5)
+        .attr("cx", 16)
+        .attr("cy", -10)
+        .attr("fill", "#9333ea") // Purple for parallel branches
         .attr("opacity", 0.7);
 
     // Add a text label below the image
@@ -531,32 +650,36 @@ function renderGraph(graphData) {
             .attr("class", "map-group")
             .attr("id", d => `map-group-${d.id.replace(/\./g, '-')}`);
 
-        // Add rectangle around each map group
+        // Add rectangle around each map/parallel group
         const mapBoxes = mapGroups.append("rect")
-            .attr("class", "map-box")
+            .attr("class", d => d.type === 'parallel' ? "parallel-box" : "map-box")
             .attr("rx", 8) // Rounded corners
             .attr("ry", 8)
             .attr("fill", "none")
-            .attr("stroke", "#3b82f6") // Blue border
+            .attr("stroke", d => d.type === 'parallel' ? "#9333ea" : "#3b82f6") // Purple for parallel, blue for map
             .attr("stroke-width", 1.5)
             .attr("stroke-dasharray", "5,3") // Dashed line
             .attr("opacity", 0.7)
             .attr("pointer-events", "none"); // Don't interfere with clicks
 
-        // Add a label for the map operation
+        // Add a label for the map/parallel operation
         mapGroups.append("text")
-            .attr("class", "map-label")
-            .attr("fill", "#3b82f6")
+            .attr("class", d => d.type === 'parallel' ? "parallel-label" : "map-label")
+            .attr("fill", d => d.type === 'parallel' ? "#9333ea" : "#3b82f6") // Purple for parallel, blue for map
             .attr("font-size", "12px")
             .attr("font-weight", "bold")
             .text(d => {
-                console.log("Creating label for map group:", d);
-                // Ensure we have safe values for the label text
-                const iterateAs = d.iterate_as || "item";
-                const iterateOn = d.iterate_on || "items";
-                return `Map: For each ${iterateAs} in ${iterateOn}`;
+                console.log("Creating label for group:", d);
+                if (d.type === 'parallel') {
+                    return `Branch: ${d.branchName}`;
+                } else {
+                    // For map nodes
+                    return `Map Branch: ${d.branchName}`;
+                }
             })
             .attr("pointer-events", "none");
+
+        // Special connections are handled through the existing links to preserve the simulation's physics
 
         // Update the positions of the map boxes during simulation
         simulation.on("tick.mapboxes", () => {
@@ -618,35 +741,25 @@ function renderGraph(graphData) {
 
     // Update positions on each simulation tick
     simulation.on("tick", () => {
-        link
-            .attr("x1", d => {
-                const dx = d.target.x - d.source.x;
-                const dy = d.target.y - d.source.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const r = 16;
-                return d.source.x + (dx * r) / dist;
-            })
-            .attr("y1", d => {
-                const dx = d.target.x - d.source.x;
-                const dy = d.target.y - d.source.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const r = 16;
-                return d.source.y + (dy * r) / dist;
-            })
-            .attr("x2", d => {
-                const dx = d.source.x - d.target.x;
-                const dy = d.source.y - d.target.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const r = 16;
-                return d.target.x + (dx * r) / dist;
-            })
-            .attr("y2", d => {
-                const dx = d.source.x - d.target.x;
-                const dy = d.source.y - d.target.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const r = 16;
-                return d.target.y + (dy * r) / dist;
-            });
+        link.attr("d", d => {
+            const sourceX = d.source.x;
+            const sourceY = d.source.y;
+            const targetX = d.target.x;
+            const targetY = d.target.y;
+
+            const dx = targetX - sourceX;
+            const dy = targetY - sourceY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist === 0) return `M ${sourceX} ${sourceY}`; // Avoid division by zero
+            const r = 16; // Node radius
+
+            const sourceOffsetX = sourceX + (dx * r) / dist;
+            const sourceOffsetY = sourceY + (dy * r) / dist;
+            const targetOffsetX = targetX - (dx * r) / dist;
+            const targetOffsetY = targetY - (dy * r) / dist;
+
+            return `M ${sourceOffsetX} ${sourceOffsetY} L ${targetOffsetX} ${targetOffsetY}`;
+        });
 
         node.attr("transform", d => `translate(${d.x},${d.y})`);
     });
@@ -679,7 +792,7 @@ async function fetchAndRenderGraph(tempPath, functionName) {
         const graphData = await response.json();
 
         // Process map nodes for visualization
-        processMapNodeData(graphData);
+        processCompositeNodeData(graphData);
 
         renderGraph(graphData);
     } catch (error) {
@@ -776,17 +889,58 @@ function updateLoadButtonState() {
 // Function input change handler
 document.getElementById('functionNameInput').addEventListener('input', updateLoadButtonState);
 
-// Process map nodes data to prepare for visual grouping
-function processMapNodeData(graphData) {
-    // Create a mapping of map root nodes
-    const mapRoots = new Map();
+// Load Graph button event handler
+document.getElementById('loadGraphBtn').addEventListener('click', async () => {
+    const functionInput = document.getElementById('functionNameInput');
+    const functionName = functionInput.value.trim();
 
-    // Find all map root nodes and organize their related branch nodes
+    if (!currentTempPath) {
+        alert('Please upload a Python file first.');
+        return;
+    }
+
+    if (!functionName) {
+        alert('Please enter a function name.');
+        return;
+    }
+
+    // Show loading spinner
+    const spinner = document.getElementById('loading-spinner');
+    spinner.classList.remove('hidden');
+
+    // Hide any previous error messages
+    const errorElement = document.getElementById('graph-error');
+    if (errorElement) {
+        errorElement.style.display = 'none';
+    }
+
+    try {
+        await fetchAndRenderGraph(currentTempPath, functionName);
+    } catch (error) {
+        // Error handling is done in fetchAndRenderGraph
+        console.error('Failed to load graph:', error);
+    } finally {
+        // Hide loading spinner
+        spinner.classList.add('hidden');
+    }
+});
+
+// Process map nodes data to prepare for visual grouping
+function processCompositeNodeData(graphData) {
+    // Create a mapping of composite root nodes (map and parallel)
+    const mapRoots = new Map();
+    const parallelRoots = new Map();
+
+    // Track next nodes for parallel nodes to exclude them from bounding boxes
+    const parallelNextNodes = new Map();
+
+    // Find all composite root nodes and organize their related branch nodes
     graphData.nodes.forEach(node => {
-        console.log("Examining node for map properties:", node);
+        console.log("Examining node for composite properties:", node);
 
         // Identify map nodes either by label or metadata.node_type
         const isMapNode = node.label === "map" || (node.metadata && node.metadata.node_type === "map");
+        const isParallelNode = node.label === "parallel" || (node.metadata && node.metadata.node_type === "parallel");
 
         // Check if node has map-related metadata
         if (isMapNode) {
@@ -800,78 +954,141 @@ function processMapNodeData(graphData) {
 
             mapRoots.set(node.id, {
                 mapNode: node,
-                branchNodes: [],
+                branches: new Map(), // Changed from branchNodes: []
                 iterate_on: iterate_on,
                 iterate_as: iterate_as
             });
         }
 
-        // If this node belongs to a map branch, record it
-        if (node.metadata && node.metadata.belongs_to_map) {
-            const mapId = node.metadata.belongs_to_map;
-            console.log(`Node ${node.id} belongs to map: ${mapId}`);
+        // Check if node has parallel-related metadata
+        if (isParallelNode) {
+            console.log("Found parallel node:", node);
 
-            if (!mapRoots.has(mapId)) {
-                mapRoots.set(mapId, {
-                    mapNode: null,
-                    branchNodes: [],
-                    iterate_on: "unknown",
-                    iterate_as: "item"
-                });
-            }
-
-            mapRoots.get(mapId).branchNodes.push(node);
-        }
-    });
-
-    console.log("Map roots found:", mapRoots);
-
-    // Add the map info to graphData for later use in rendering
-    graphData.mapGroups = Array.from(mapRoots.entries()).map(([mapId, groupInfo]) => {
-        // Make sure we preserve the original map node metadata for visualization
-        const mapData = {
-            id: mapId,
-            nodes: [groupInfo.mapNode, ...groupInfo.branchNodes].filter(Boolean),
-            iterate_on: groupInfo.iterate_on,
-            iterate_as: groupInfo.iterate_as
-        };
-
-        // Debug
-        console.log("Created map group:", mapData);
-
-        return mapData;
-    });
-}
-
-// Load graph button handler
-document.getElementById('loadGraphBtn').addEventListener('click', () => {
-    const functionName = document.getElementById('functionNameInput').value.trim();
-
-    if (currentTempPath && functionName) {
-        // Show loading spinner
-        loadingSpinner.classList.remove('hidden');
-        // Clear any existing error messages
-        const errorElement = document.getElementById('graph-error');
-        if (errorElement) {
-            errorElement.style.display = 'none';
-        }
-
-        fetchAndRenderGraph(currentTempPath, functionName)
-            .finally(() => {
-                // Hide loading spinner when done, regardless of success/failure
-                loadingSpinner.classList.add('hidden');
+            parallelRoots.set(node.id, {
+                parallelNode: node,
+                branches: new Map() // Changed from branchNodes: []
             });
-    } else {
-        alert('Please upload a file and enter a function name.');
-    }
-});
 
+            // Find next node if there is a link from this parallel node
+            if (graphData.links) {
+                const nextLinks = graphData.links.filter(link => {
+                    if (link.source !== node.id) {
+                        return false;
+                    }
+                    // A "next" node is one that is NOT a direct child branch of the parallel node.
+                    // Child branches have `belongs_to_map` pointing to the parallel node's ID.
+                    const targetNode = graphData.nodes.find(n => n.id === link.target);
+                    return !(targetNode && targetNode.metadata && targetNode.metadata.belongs_to_map === node.id);
+                });
 
-// Handle window resize to make the SVG responsive
-window.addEventListener('resize', () => {
-    const newWidth = svgElement.clientWidth;
-    const newHeight = svgElement.clientHeight;
-    svg.attr("width", newWidth).attr("height", newHeight);
-    simulation.force("center", d3.forceCenter(newWidth / 2, newHeight / 2));
-    simulation.alpha(0.3).restart();
-});
+                if (nextLinks.length > 0) {
+                    // Store the next node id
+                    parallelNextNodes.set(node.id, nextLinks.map(link => link.target));
+                    console.log(`Parallel node ${node.id} has next nodes:`, nextLinks.map(link => link.target));
+                }
+            }
+        }
+
+        // If this node belongs to a map or parallel branch, record it
+        if (node.metadata && node.metadata.belongs_to_map) {
+            const parentId = node.metadata.belongs_to_map;
+
+            // Find the parent node to determine if it's a map or parallel
+            const parentNode = graphData.nodes.find(n => n.id === parentId);
+
+            if (parentNode) {
+                const isParentParallel = parentNode.label === "parallel" ||
+                                      (parentNode.metadata && parentNode.metadata.node_type === "parallel");
+
+                if (isParentParallel) {
+                    // This is a parallel branch node
+                    console.log(`Node ${node.id} belongs to parallel node: ${parentId}`);
+
+                    if (!parallelRoots.has(parentId)) {
+                        parallelRoots.set(parentId, {
+                            parallelNode: parentNode,
+                            branches: new Map() // Changed
+                        });
+                    }
+
+                    // NEW: group by branch
+                    let branchName = 'branch';
+                    if (node.id.startsWith(parentId + '.')) {
+                        branchName = node.id.substring(parentId.length + 1).split('.')[0];
+                    }
+                    const root = parallelRoots.get(parentId);
+                    if (!root.branches.has(branchName)) {
+                        root.branches.set(branchName, []);
+                    }
+                    root.branches.get(branchName).push(node);
+
+                } else {
+                    // This is a map branch node
+                    console.log(`Node ${node.id} belongs to map: ${parentId}`);
+
+                    if (!mapRoots.has(parentId)) {
+                        mapRoots.set(parentId, {
+                            mapNode: parentNode,
+                            branches: new Map(), // Changed
+                            iterate_on: parentNode.metadata?.iterate_on || "unknown",
+                            iterate_as: parentNode.metadata?.iterate_as || "item"
+                        });
+                    }
+
+                    // NEW: group by branch
+                    let branchName = 'branch';
+                    if (node.id.startsWith(parentId + '.')) {
+                        branchName = node.id.substring(parentId.length + 1).split('.')[0];
+                    }
+                    const root = mapRoots.get(parentId);
+                    if (!root.branches.has(branchName)) {
+                        root.branches.set(branchName, []);
+                    }
+                    root.branches.get(branchName).push(node);
+                }
+            } else {
+                // Fallback if parent node not found
+                console.log(`Parent node ${parentId} not found for node ${node.id}`);
+            }
+        }
+    });
+
+    // Initialize mapGroups array in graphData
+    graphData.mapGroups = [];
+
+    // Process map roots
+    mapRoots.forEach((value, key) => {
+        console.log(`Processing map root: ${key}`);
+        value.branches.forEach((branchNodes, branchName) => {
+            graphData.mapGroups.push({
+                id: `${key}-${branchName}`,
+                type: 'map',
+                nodes: branchNodes,
+                rootNode: value.mapNode,
+                branchName: branchName,
+                iterate_on: value.iterate_on,
+                iterate_as: value.iterate_as
+            });
+        });
+    });
+
+    // Process parallel roots
+    parallelRoots.forEach((value, key) => {
+        console.log(`Processing parallel root: ${key}`);
+
+        const nextNodeIds = parallelNextNodes.get(key) || [];
+
+        value.branches.forEach((branchNodes, branchName) => {
+            graphData.mapGroups.push({
+                id: `${key}-${branchName}`,
+                type: 'parallel',
+                nodes: branchNodes,
+                rootNode: value.parallelNode,
+                branchName: branchName,
+                nextNodeIds: nextNodeIds
+            });
+        });
+    });
+
+    console.log("Final mapGroups:", graphData.mapGroups);
+}
