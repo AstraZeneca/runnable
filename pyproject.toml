@@ -35,6 +35,15 @@ k8s = [
 s3 = [
     "cloudpathlib[s3]"
 ]
+examples-torch = [
+    "torch>=2.7.1",
+]
+ui = [
+    "fastapi>=0.95.0",
+    "jinja2>=3.1.2",
+    "uvicorn>=0.22.0",
+    "python-multipart>=0.0.5",
+]
 
 
 [dependency-groups]
@@ -56,9 +65,7 @@ docs = [
 release = [
     "python-semantic-release>=9.15.2",
 ]
-examples-torch = [
-    "torch>=2.7.1",
-]
+
 
 [tool.uv.workspace]
 members = ["extensions/catalog",
@@ -67,6 +74,7 @@ members = ["extensions/catalog",
         "extensions/pipeline_executor",
         "extensions/run_log_store",
         "extensions/secrets",
+        "visualization"
 ]
 
 [tool.uv.sources]
@@ -76,6 +84,7 @@ catalog = {workspace = true}
 run_log_store = {workspace = true}
 pipeline_executor = {workspace = true}
 job_executor = {workspace = true}
+visualization = {workspace = true}
 
 
 [project.scripts]

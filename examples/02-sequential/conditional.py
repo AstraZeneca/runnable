@@ -1,4 +1,4 @@
-from runnable import Conditional, Pipeline, PythonTask
+from runnable import Conditional, Pipeline, PythonTask, Stub
 
 
 def when_heads_function():
@@ -50,7 +50,9 @@ def main():
         function=toss_function,
         returns=["toss"],
     )
-    pipeline = Pipeline(steps=[toss_task, conditional])
+
+    continue_to = Stub(name="continue to")
+    pipeline = Pipeline(steps=[toss_task, conditional, continue_to])
 
     pipeline.execute()
 

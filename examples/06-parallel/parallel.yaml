@@ -39,7 +39,10 @@ dag:
   steps:
     parallel_step:
       type: parallel
-      next: success
+      next: continue_to
       branches:
         branch1: *branch
         branch2: *branch
+    continue_to:
+      type: stub
+      next: success

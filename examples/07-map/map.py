@@ -9,7 +9,7 @@ from examples.common.functions import (
     process_chunk,
     read_processed_chunk,
 )
-from runnable import Map, NotebookTask, Pipeline, PythonTask, ShellTask
+from runnable import Map, NotebookTask, Pipeline, PythonTask, ShellTask, Stub
 
 
 def iterable_branch(execute: bool = True):
@@ -101,8 +101,9 @@ def main():
     collect = PythonTask(
         name="collect",
         function=assert_default_reducer,
-        terminate_with_success=True,
     )
+
+    continue_to = Stub(name="continue to")
 
     pipeline = Pipeline(steps=[map_state, collect])
 
