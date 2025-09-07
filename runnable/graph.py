@@ -534,6 +534,7 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
         parent_id: Optional[str] = None,
         current_graph: Graph = graph,
         map_node_id: Optional[str] = None,
+        conditional_node_id: Optional[str] = None,
     ) -> str:
         node_id = f"{node.internal_name}"
         node_alias = node.name  # Alias based on the node's name
@@ -549,11 +550,23 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                     node_data["metadata"] = {}
 
                 # Mark this node as being part of a map branch
-                node_data["metadata"]["belongs_to_map"] = map_node_id
+                node_data["metadata"]["belongs_to_node"] = map_node_id
 
                 # If this is the map node itself, add a special attribute
                 if node_id == map_node_id:
                     node_data["metadata"]["is_map_root"] = True
+
+            # Add conditional related metadata if this node is part of a conditional branch
+            if conditional_node_id:
+                if "metadata" not in node_data:
+                    node_data["metadata"] = {}
+
+                # Mark this node as being part of a conditional branch
+                node_data["metadata"]["belongs_to_node"] = conditional_node_id
+
+                # If this is the conditional node itself, add a special attribute
+                if node_id == conditional_node_id:
+                    node_data["metadata"]["is_conditional_root"] = True
 
             # Mark parallel nodes with special metadata
             if isinstance(node, ParallelNode):
@@ -563,6 +576,15 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                 # Add parallel node type to metadata
                 node_data["metadata"]["node_type"] = "parallel"
                 node_data["metadata"]["parallel_branch_id"] = node_id
+
+            # Mark conditional nodes with special metadata
+            if isinstance(node, ConditionalNode):
+                if "metadata" not in node_data:
+                    node_data["metadata"] = {}
+
+                # Add conditional node type to metadata
+                node_data["metadata"]["node_type"] = "conditional"
+                node_data["metadata"]["conditional_branch_id"] = node_id
 
             nodes.append(node_data)
             processed_nodes.add(node_id)
@@ -577,7 +599,13 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                     # Process each parallel branch
                     for _, branch in node.branches.items():
                         branch_start = branch.get_node_by_name(branch.start_at)
-                        process_node(branch_start, node_id, branch, map_node_id=node_id)
+                        process_node(
+                            branch_start,
+                            node_id,
+                            branch,
+                            map_node_id=node_id,
+                            conditional_node_id=conditional_node_id,
+                        )
 
                     # Handle next node connection after parallel branches complete
                     if hasattr(node, "next_node") and node.next_node:
@@ -588,6 +616,7 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                                 None,
                                 current_graph=current_graph,
                                 map_node_id=map_node_id,
+                                conditional_node_id=conditional_node_id,
                             )
                             links.append(
                                 {
@@ -606,7 +635,11 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                     branch_start = node.branch.get_node_by_name(node.branch.start_at)
                     # Process the branch with additional context about the map node
                     process_node(
-                        branch_start, node_id, node.branch, map_node_id=node_id
+                        branch_start,
+                        node_id,
+                        node.branch,
+                        map_node_id=node_id,
+                        conditional_node_id=conditional_node_id,
                     )
 
                 elif isinstance(node, ConditionalNode):
@@ -614,7 +647,11 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                     for _, branch in node.branches.items():
                         branch_start = branch.get_node_by_name(branch.start_at)
                         process_node(
-                            branch_start, node_id, branch, map_node_id=map_node_id
+                            branch_start,
+                            node_id,
+                            branch,
+                            map_node_id=map_node_id,
+                            conditional_node_id=node_id,
                         )
                     if node.default:
                         default_start = node.default.get_node_by_name(
@@ -625,7 +662,31 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                             node_id,
                             node.default,
                             map_node_id=map_node_id,
+                            conditional_node_id=node_id,
                         )
+
+                    # Handle next node connection after conditional branches complete
+                    if hasattr(node, "next_node") and node.next_node:
+                        try:
+                            next_node = current_graph.get_node_by_name(node.next_node)
+                            next_id = process_node(
+                                next_node,
+                                None,
+                                current_graph=current_graph,
+                                map_node_id=map_node_id,
+                                conditional_node_id=conditional_node_id,
+                            )
+                            links.append(
+                                {
+                                    "source": node_id,
+                                    "target": next_id,
+                                    "type": "success",
+                                }
+                            )
+                        except exceptions.NodeNotFoundError as e:
+                            rich_print(
+                                f"Warning: Next node '{node.next_node}' not found for conditional node '{node.name}': {e}"
+                            )
 
             # Add links to next and on_failure nodes if they exist
             if isinstance(node, ExecutableNode):
@@ -638,6 +699,7 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                             None,
                             current_graph=current_graph,
                             map_node_id=map_node_id,
+                            conditional_node_id=conditional_node_id,
                         )
                         links.append(
                             {"source": node_id, "target": next_id, "type": "success"}
@@ -656,6 +718,7 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                             None,
                             current_graph=current_graph,
                             map_node_id=map_node_id,
+                            conditional_node_id=conditional_node_id,
                         )
                         links.append(
                             {"source": node_id, "target": failure_id, "type": "failure"}
@@ -685,6 +748,7 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
                             None,
                             current_graph=current_graph,
                             map_node_id=map_node_id,
+                            conditional_node_id=conditional_node_id,
                         )
                         links.append(
                             {"source": node_id, "target": next_id, "type": "default"}
@@ -699,7 +763,9 @@ def get_visualization_data(graph: Graph) -> Dict[str, Any]:
     # Start processing from the start node
     start_node = graph.get_node_by_name(graph.start_at)
     try:
-        process_node(start_node, None, graph, map_node_id=None)
+        process_node(
+            start_node, None, graph, map_node_id=None, conditional_node_id=None
+        )
     except (exceptions.NodeNotFoundError, AttributeError, KeyError) as e:
         rich_print(f"Error processing node {start_node}: {e}")
 

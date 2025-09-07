@@ -197,17 +197,17 @@ function getNodeTooltipContent(d, isTooltip = false) {
         <div><span class="font-semibold">Type:</span> ${d.label}</div>`;
 
     // Show map-specific information
-    if (d.metadata && (d.label === "map" || (d.metadata.belongs_to_map && !isTooltip))) {
+    if (d.metadata && (d.label === "map" || (d.metadata.belongs_to_node && !isTooltip))) {
         content += `<div class="mt-2 border-t pt-2">
-            <div class="font-semibold text-blue-600">Map Operation</div>`;
+            <div class="font-semibold text-blue-600">Composite Operation</div>`;
 
         if (d.label === "map") {
             content += `<div><span class="font-semibold">Iterates On:</span> ${d.metadata.iterate_on || "N/A"}</div>
                 <div><span class="font-semibold">Iterate As:</span> ${d.metadata.iterate_as || "N/A"}</div>`;
         }
 
-        if (d.metadata.belongs_to_map) {
-            content += `<div><span class="font-semibold">Part of Map:</span> ${d.metadata.belongs_to_map}</div>`;
+        if (d.metadata.belongs_to_node) {
+            content += `<div><span class="font-semibold">Part of Node:</span> ${d.metadata.belongs_to_node}</div>`;
         }
 
         content += `</div>`;
@@ -379,9 +379,9 @@ function renderGraph(graphData) {
         }).strength(0.5))
         // Add additional forces for nodes within the same map group to stay close together
         .force("map-group", d => {
-            if (graphData.mapGroups && d.metadata && d.metadata.belongs_to_map) {
+            if (graphData.mapGroups && d.metadata && d.metadata.belongs_to_node) {
                 // Find related nodes in the same map group and pull them closer
-                const mapGroup = graphData.mapGroups.find(g => g.id === d.metadata.belongs_to_map);
+                const mapGroup = graphData.mapGroups.find(g => g.id === d.metadata.belongs_to_node);
                 if (mapGroup) {
                     // Add an additional force to keep map-related nodes together
                     return d3.forceY().strength(0.2);
@@ -499,7 +499,7 @@ function renderGraph(graphData) {
         })
         .attr("stroke-dasharray", d => {
             const targetNode = sortedGraphDataNodes.find(n => n.id === d.target);
-            const isBranchLink = targetNode?.metadata?.belongs_to_map === d.source;
+            const isBranchLink = targetNode?.metadata?.belongs_to_node === d.source;
 
             if (isBranchLink) return "4,4"; // Dashed for branch links
 
@@ -566,12 +566,12 @@ function renderGraph(graphData) {
                 console.log("Adding parallel-root-node class to:", d.id);
             }
 
-            if (d.metadata && d.metadata.belongs_to_map) {
+            if (d.metadata && d.metadata.belongs_to_node) {
                 classes += ' map-branch-node';
                 console.log("Adding map-branch-node class to:", d.id);
 
-                // If belongs_to_map has a parallel_ prefix, add special class
-                if (d.metadata.belongs_to_map.startsWith('parallel_')) {
+                // If belongs_to_node has a parallel_ prefix, add special class
+                if (d.metadata.belongs_to_node.startsWith('parallel_')) {
                     classes += ' parallel-branch-node';
                     console.log("Adding parallel-branch-node class to:", d.id);
                 }
@@ -601,8 +601,8 @@ function renderGraph(graphData) {
         .attr("stroke-dasharray", "4,2");
 
     // Add a small indicator for nodes that are part of a map branch (blue)
-    node.filter(d => d.metadata && d.metadata.belongs_to_map &&
-                    !d.metadata.belongs_to_map.startsWith('parallel_') &&
+    node.filter(d => d.metadata && d.metadata.belongs_to_node &&
+                    !d.metadata.belongs_to_node.startsWith('parallel_') &&
                     d.label !== "map")
         .append("circle")
         .attr("r", 5)
@@ -612,8 +612,8 @@ function renderGraph(graphData) {
         .attr("opacity", 0.7);
 
     // Add a small indicator for nodes that are part of a parallel branch (purple)
-    node.filter(d => d.metadata && d.metadata.belongs_to_map &&
-                    d.metadata.belongs_to_map.startsWith('parallel_') &&
+    node.filter(d => d.metadata && d.metadata.belongs_to_node &&
+                    d.metadata.belongs_to_node.startsWith('parallel_') &&
                     d.label !== "parallel")
         .append("circle")
         .attr("r", 5)
@@ -976,9 +976,9 @@ function processCompositeNodeData(graphData) {
                         return false;
                     }
                     // A "next" node is one that is NOT a direct child branch of the parallel node.
-                    // Child branches have `belongs_to_map` pointing to the parallel node's ID.
+                    // Child branches have `belongs_to_node` pointing to the parallel node's ID.
                     const targetNode = graphData.nodes.find(n => n.id === link.target);
-                    return !(targetNode && targetNode.metadata && targetNode.metadata.belongs_to_map === node.id);
+                    return !(targetNode && targetNode.metadata && targetNode.metadata.belongs_to_node === node.id);
                 });
 
                 if (nextLinks.length > 0) {
@@ -990,8 +990,8 @@ function processCompositeNodeData(graphData) {
         }
 
         // If this node belongs to a map or parallel branch, record it
-        if (node.metadata && node.metadata.belongs_to_map) {
-            const parentId = node.metadata.belongs_to_map;
+        if (node.metadata && node.metadata.belongs_to_node) {
+            const parentId = node.metadata.belongs_to_node;
 
             // Find the parent node to determine if it's a map or parallel
             const parentNode = graphData.nodes.find(n => n.id === parentId);
