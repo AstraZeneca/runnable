@@ -259,7 +259,7 @@ python_examples = [
         [],
         "",
         [
-            partial(conditions.should_have_num_steps, 3),
+            partial(conditions.should_have_num_steps, 4),
             # partial(conditions.should_have_catalog_execution_logs),
             partial(conditions.should_be_successful),
             partial(conditions.should_step_be_successful, "toss_task"),
@@ -620,7 +620,7 @@ python_examples = [
         [],
         "",
         [
-            partial(conditions.should_have_num_steps, 2),
+            partial(conditions.should_have_num_steps, 3),
             partial(conditions.should_be_successful),
             partial(conditions.should_have_catalog_execution_logs),
             partial(conditions.should_branch_have_steps, "parallel_step", "branch1", 5),
