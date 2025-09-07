@@ -650,28 +650,46 @@ function renderGraph(graphData) {
             .attr("class", "map-group")
             .attr("id", d => `map-group-${d.id.replace(/\./g, '-')}`);
 
-        // Add rectangle around each map/parallel group
+        // Add rectangle around each map/parallel/conditional group
         const mapBoxes = mapGroups.append("rect")
-            .attr("class", d => d.type === 'parallel' ? "parallel-box" : "map-box")
+            .attr("class", d => {
+                if (d.type === 'parallel') return "parallel-box";
+                if (d.type === 'conditional') return "conditional-box";
+                return "map-box";
+            })
             .attr("rx", 8) // Rounded corners
             .attr("ry", 8)
             .attr("fill", "none")
-            .attr("stroke", d => d.type === 'parallel' ? "#9333ea" : "#3b82f6") // Purple for parallel, blue for map
+            .attr("stroke", d => {
+                if (d.type === 'parallel') return "#9333ea"; // Purple for parallel
+                if (d.type === 'conditional') return "#f59e0b"; // Orange for conditional
+                return "#3b82f6"; // Blue for map
+            })
             .attr("stroke-width", 1.5)
             .attr("stroke-dasharray", "5,3") // Dashed line
             .attr("opacity", 0.7)
             .attr("pointer-events", "none"); // Don't interfere with clicks
 
-        // Add a label for the map/parallel operation
+        // Add a label for the map/parallel/conditional operation
         mapGroups.append("text")
-            .attr("class", d => d.type === 'parallel' ? "parallel-label" : "map-label")
-            .attr("fill", d => d.type === 'parallel' ? "#9333ea" : "#3b82f6") // Purple for parallel, blue for map
+            .attr("class", d => {
+                if (d.type === 'parallel') return "parallel-label";
+                if (d.type === 'conditional') return "conditional-label";
+                return "map-label";
+            })
+            .attr("fill", d => {
+                if (d.type === 'parallel') return "#9333ea"; // Purple for parallel
+                if (d.type === 'conditional') return "#f59e0b"; // Orange for conditional
+                return "#3b82f6"; // Blue for map
+            })
             .attr("font-size", "12px")
             .attr("font-weight", "bold")
             .text(d => {
                 console.log("Creating label for group:", d);
                 if (d.type === 'parallel') {
                     return `Branch: ${d.branchName}`;
+                } else if (d.type === 'conditional') {
+                    return `Conditional Branch: ${d.branchName}`;
                 } else {
                     // For map nodes
                     return `Map Branch: ${d.branchName}`;
@@ -779,6 +797,9 @@ function renderGraph(graphData) {
     function dragended(event, d) {
         if (!event.active) simulation.alphaTarget(0);
     }
+
+    // Update text colors to match current theme after rendering
+    updateSVGTextColors();
 }
 
 // Fetch graph data from the API and render the graph
@@ -863,6 +884,11 @@ document.getElementById('uploadBtn').addEventListener('click', async () => {
             uploadStatus.textContent = `File uploaded successfully: ${result.filename}`;
             uploadStatus.className = 'text-sm text-green-600';
 
+            // Update the header with the file name
+            const fileNameDisplay = document.getElementById('file-name-display');
+            fileNameDisplay.textContent = `File: ${result.filename}`;
+            fileNameDisplay.classList.remove('hidden');
+
             // Enable the function input and load button
             document.getElementById('functionNameInput').disabled = false;
             updateLoadButtonState();
@@ -927,9 +953,10 @@ document.getElementById('loadGraphBtn').addEventListener('click', async () => {
 
 // Process map nodes data to prepare for visual grouping
 function processCompositeNodeData(graphData) {
-    // Create a mapping of composite root nodes (map and parallel)
+    // Create a mapping of composite root nodes (map, parallel, and conditional)
     const mapRoots = new Map();
     const parallelRoots = new Map();
+    const conditionalRoots = new Map();
 
     // Track next nodes for parallel nodes to exclude them from bounding boxes
     const parallelNextNodes = new Map();
@@ -941,6 +968,7 @@ function processCompositeNodeData(graphData) {
         // Identify map nodes either by label or metadata.node_type
         const isMapNode = node.label === "map" || (node.metadata && node.metadata.node_type === "map");
         const isParallelNode = node.label === "parallel" || (node.metadata && node.metadata.node_type === "parallel");
+        const isConditionalNode = node.label === "conditional" || (node.metadata && node.metadata.node_type === "conditional");
 
         // Check if node has map-related metadata
         if (isMapNode) {
@@ -989,6 +1017,16 @@ function processCompositeNodeData(graphData) {
             }
         }
 
+        // Check if node has conditional-related metadata
+        if (isConditionalNode) {
+            console.log("Found conditional node:", node);
+
+            conditionalRoots.set(node.id, {
+                conditionalNode: node,
+                branches: new Map()
+            });
+        }
+
         // If this node belongs to a map or parallel branch, record it
         if (node.metadata && node.metadata.belongs_to_node) {
             const parentId = node.metadata.belongs_to_node;
@@ -999,6 +1037,8 @@ function processCompositeNodeData(graphData) {
             if (parentNode) {
                 const isParentParallel = parentNode.label === "parallel" ||
                                       (parentNode.metadata && parentNode.metadata.node_type === "parallel");
+                const isParentConditional = parentNode.label === "conditional" ||
+                                          (parentNode.metadata && parentNode.metadata.node_type === "conditional");
 
                 if (isParentParallel) {
                     // This is a parallel branch node
@@ -1017,6 +1057,28 @@ function processCompositeNodeData(graphData) {
                         branchName = node.id.substring(parentId.length + 1).split('.')[0];
                     }
                     const root = parallelRoots.get(parentId);
+                    if (!root.branches.has(branchName)) {
+                        root.branches.set(branchName, []);
+                    }
+                    root.branches.get(branchName).push(node);
+
+                } else if (isParentConditional) {
+                    // This is a conditional branch node
+                    console.log(`Node ${node.id} belongs to conditional node: ${parentId}`);
+
+                    if (!conditionalRoots.has(parentId)) {
+                        conditionalRoots.set(parentId, {
+                            conditionalNode: parentNode,
+                            branches: new Map()
+                        });
+                    }
+
+                    // Group by branch (success/failure typically)
+                    let branchName = 'branch';
+                    if (node.id.startsWith(parentId + '.')) {
+                        branchName = node.id.substring(parentId.length + 1).split('.')[0];
+                    }
+                    const root = conditionalRoots.get(parentId);
                     if (!root.branches.has(branchName)) {
                         root.branches.set(branchName, []);
                     }
@@ -1090,5 +1152,117 @@ function processCompositeNodeData(graphData) {
         });
     });
 
+    // Process conditional roots
+    conditionalRoots.forEach((value, key) => {
+        console.log(`Processing conditional root: ${key}`);
+
+        value.branches.forEach((branchNodes, branchName) => {
+            graphData.mapGroups.push({
+                id: `${key}-${branchName}`,
+                type: 'conditional',
+                nodes: branchNodes,
+                rootNode: value.conditionalNode,
+                branchName: branchName
+            });
+        });
+    });
+
     console.log("Final mapGroups:", graphData.mapGroups);
 }
+
+// File input change handler to show selected file name
+document.getElementById('fileInput').addEventListener('change', function(event) {
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const file = event.target.files[0];
+
+    if (file) {
+        fileNameDisplay.textContent = `Selected: ${file.name}`;
+        fileNameDisplay.classList.remove('hidden');
+    } else {
+        fileNameDisplay.textContent = 'No file selected';
+        fileNameDisplay.classList.add('hidden');
+    }
+});
+
+// Dark mode toggle functionality
+function initTheme() {
+    // Check for saved theme preference or default to light mode
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.documentElement.classList.add('dark');
+        updateThemeToggle(true);
+    } else {
+        document.documentElement.classList.remove('dark');
+        updateThemeToggle(false);
+    }
+
+    // Update SVG text colors to match theme
+    updateSVGTextColors();
+}
+
+function updateThemeToggle(isDark) {
+    const toggle = document.getElementById('theme-toggle');
+    const lightIcon = document.getElementById('light-icon');
+    const darkIcon = document.getElementById('dark-icon');
+
+    if (isDark) {
+        toggle.setAttribute('aria-checked', 'true');
+        lightIcon.style.opacity = '0';
+        darkIcon.style.opacity = '1';
+    } else {
+        toggle.setAttribute('aria-checked', 'false');
+        lightIcon.style.opacity = '1';
+        darkIcon.style.opacity = '0';
+    }
+}
+
+function toggleTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    if (isDark) {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+        updateThemeToggle(false);
+    } else {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        updateThemeToggle(true);
+    }
+
+    // Update SVG text colors when theme changes
+    updateSVGTextColors();
+}
+
+function updateSVGTextColors() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const textColor = isDark ? "#d1d5db" : "#4b5563";
+
+    // Update zoom control text colors
+    svg.selectAll(".zoom-controls text").attr("fill", textColor);
+
+    // Update node text colors
+    svg.selectAll(".nodes text").attr("fill", textColor);
+}
+
+// Initialize theme on page load
+initTheme();
+
+// Add event listener for theme toggle
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+// Listen for system theme changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (!localStorage.getItem('theme')) {
+        if (e.matches) {
+            document.documentElement.classList.add('dark');
+            updateThemeToggle(true);
+        } else {
+            document.documentElement.classList.remove('dark');
+            updateThemeToggle(false);
+        }
+        // Update SVG text colors when system theme changes
+        updateSVGTextColors();
+    }
+});

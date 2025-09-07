@@ -3,10 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D3 Workflow Visualization</title>
+    <title>Runnable Workflow Visualization</title>
     <link rel="icon" type="image/png" href="/static/images/icon.png">
     <!-- Load Tailwind CSS from CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
     <style>
         /* Custom styles for D3 elements not easily done with Tailwind */
         .node-image {
@@ -53,34 +58,120 @@
         .language-python .string, .string { color: #f1fa8c; }
         .language-python .number, .number { color: #bd93f9; }
         .language-python .comment, .comment { color: #6272a4; }
+
+        /* Dark mode styles */
+        .dark .code-block {
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        .dark .code-header {
+            background-color: #1f2937;
+            color: #d1d5db;
+        }
+
+        /* SVG elements for dark mode */
+        .dark svg {
+            color: #e5e7eb;
+        }
+
+        /* Scrollbar styling for dark mode */
+        .dark::-webkit-scrollbar {
+            width: 8px;
+        }
+        .dark::-webkit-scrollbar-track {
+            background: #374151;
+        }
+        .dark::-webkit-scrollbar-thumb {
+            background: #6b7280;
+            border-radius: 4px;
+        }
+        .dark::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
     </style>
 </head>
-<body class="bg-gray-100 font-sans antialiased flex flex-col items-center justify-center min-h-screen p-4">
+<body class="bg-gray-100 dark:bg-gray-900 font-sans antialiased h-screen overflow-hidden transition-colors duration-200">
 
-    <div class="container bg-white rounded-xl shadow-lg p-6 max-w-4xl w-full text-center">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6">Workflow Visualization</h1>
+    <div class="flex h-full">
+        <!-- Left Sidebar -->
+        <div class="w-80 bg-white dark:bg-gray-800 shadow-lg p-6 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Workflow Visualization</h1>
 
-        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h2 class="text-lg font-semibold mb-3">Upload Python File</h2>
-            <div class="flex items-center space-x-4 mb-3">
-                <input type="file" id="fileInput" accept=".py" class="border rounded px-2 py-1 w-full">
-                <button id="uploadBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Upload</button>
+            <!-- File Upload Section -->
+            <div class="mb-8">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Upload Python File</h2>
+                <div class="space-y-3">
+                    <input type="file" id="fileInput" accept=".py"
+                           class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <button id="uploadBtn"
+                            class="w-full bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 font-medium">
+                        Upload File
+                    </button>
+                    <div id="uploadStatus" class="text-sm text-gray-600 dark:text-gray-400"></div>
+                </div>
             </div>
-            <div id="uploadStatus" class="text-sm text-gray-600"></div>
+
+            <!-- Function Selection Section -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Function Selection</h2>
+                <div class="space-y-3">
+                    <input type="text" id="functionNameInput" placeholder="Enter function name"
+                           class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           disabled>
+                    <button id="loadGraphBtn"
+                            class="w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled>
+                        Load Graph
+                    </button>
+                </div>
+            </div>
+
+            <!-- Instructions Section -->
+            <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                <h3 class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">Instructions</h3>
+                <ol class="text-xs text-blue-700 dark:text-blue-400 space-y-1">
+                    <li>1. Upload a Python file containing your pipeline</li>
+                    <li>2. Enter the function name to visualize</li>
+                    <li>3. Click "Load Graph" to generate the visualization</li>
+                </ol>
+            </div>
         </div>
 
-        <div class="mb-4 flex items-center space-x-4">
-            <input type="text" id="functionNameInput" placeholder="Enter function name" class="border rounded px-2 py-1 w-full" disabled>
-            <button id="loadGraphBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" disabled>Load Graph</button>
-        </div>
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
+            <!-- Header -->
+            <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+                <div>
+                    <h2 id="graph-title" class="text-xl font-semibold text-gray-800 dark:text-gray-200">Pipeline Visualization</h2>
+                    <p id="file-name-display" class="text-sm text-gray-500 dark:text-gray-400 mt-1 hidden">No file selected</p>
+                </div>
 
-        <div class="w-full h-auto overflow-hidden">
-            <svg id="workflow-graph" class="w-full h-96 border border-gray-200 rounded-lg bg-gray-50 transition-shadow duration-300 hover:shadow-xl"></svg>
-        </div>
+                <!-- Dark Mode Toggle -->
+                <button id="theme-toggle" class="relative inline-flex h-8 w-14 rounded-full bg-gray-200 dark:bg-gray-600 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" role="switch" aria-checked="false">
+                    <span class="sr-only">Toggle dark mode</span>
+                    <span id="toggle-dot" class="pointer-events-none inline-block h-6 w-6 translate-x-1 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out dark:translate-x-7 dark:bg-gray-300">
+                        <!-- Light mode icon -->
+                        <svg id="light-icon" class="h-4 w-4 m-1 text-yellow-500 transition-opacity duration-200" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+                        </svg>
+                        <!-- Dark mode icon -->
+                        <svg id="dark-icon" class="h-4 w-4 m-1 text-gray-700 transition-opacity duration-200 opacity-0 absolute top-0 left-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                        </svg>
+                    </span>
+                </button>
+            </div>
 
-        <!-- Tooltip for node information -->
-        <div id="tooltip" class="absolute hidden opacity-0 bg-gray-800 text-white rounded-lg p-3 text-sm shadow-md"></div>
+            <!-- Visualization Area -->
+            <div class="flex-1 p-6 overflow-hidden">
+                <div class="w-full h-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <svg id="workflow-graph" class="w-full h-full"></svg>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Tooltip for node information -->
+    <div id="tooltip" class="absolute hidden opacity-0 bg-gray-800 dark:bg-gray-700 text-white rounded-lg p-3 text-sm shadow-md z-50"></div>
 
     <!-- D3 Library -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
