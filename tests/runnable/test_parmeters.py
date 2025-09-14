@@ -152,7 +152,6 @@ def test_filter_args_missing_required():
 
     with pytest.raises(ValueError) as exc_info:
         filter_arguments_for_func(func_with_primitives, params)
-    assert "has parameters" in str(exc_info.value)
     assert "a" in str(exc_info.value)
     assert "not present" in str(exc_info.value)
 

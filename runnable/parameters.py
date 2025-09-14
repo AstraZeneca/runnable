@@ -3,7 +3,7 @@ import inspect
 import json
 import logging
 import os
-from typing import Any, Dict, Type
+from typing import Any, Dict, Type, get_origin
 
 from pydantic import BaseModel, ConfigDict
 from typing_extensions import Callable
@@ -97,7 +97,6 @@ def filter_arguments_for_func(
         params[key] = JsonParameter(kind="json", value=v)
 
     bound_args = {}
-    missing_required_args: list[str] = []
     var_keyword_param = None
     namespace_param = None
 
@@ -108,12 +107,12 @@ def filter_arguments_for_func(
             logger.warning(f"Ignoring parameter {name} as it is VAR_POSITIONAL")
             continue
 
-        # Check for **kwargs parameter
+        # Check for **kwargs parameter, we need to send in all the unnamed values in this as a dict
         if value.kind == inspect.Parameter.VAR_KEYWORD:
             var_keyword_param = name
             continue
 
-        # Check for argparse.Namespace parameter
+        # Check for argparse.Namespace parameter, we need to send in all the unnamed values in this as a namespace
         if value.annotation == argparse.Namespace:
             namespace_param = name
             continue
@@ -124,16 +123,17 @@ def filter_arguments_for_func(
                 # Default value is given in the function signature, we can use it
                 bound_args[name] = value.default
             else:
-                # This is a required parameter that's missing
-                missing_required_args.append(name)
+                # This is a required parameter that's missing - error immediately
+                raise ValueError(
+                    f"Function {func.__name__} has required parameter '{name}' that is not present in the parameters"
+                )
         else:
             # We have a parameter of this name, lets bind it
             param_value = params[name]
 
-            if (
-                inspect.isclass(value.annotation)
-                and issubclass(value.annotation, BaseModel)
-            ) and not isinstance(param_value, ObjectParameter):
+            if (issubclass(value.annotation, BaseModel)) and not isinstance(
+                param_value, ObjectParameter
+            ):
                 # Even if the annotation is a pydantic model, it can be passed as an object parameter
                 # We try to cast it as a pydantic model if asked
                 named_param = params[name].get_value()
@@ -147,22 +147,32 @@ def filter_arguments_for_func(
                 )
                 bound_args[name] = bound_model
 
-            elif value.annotation in [str, int, float, bool] and callable(
+            elif value.annotation is not inspect.Parameter.empty and callable(
                 value.annotation
             ):
                 # Cast it if its a primitive type. Ensure the type matches the annotation.
                 try:
-                    bound_args[name] = value.annotation(params[name].get_value())
+                    # Handle typing generics like Dict[str, int], List[str] by using their origin
+                    origin = get_origin(value.annotation)
+                    if origin is not None:
+                        # For generics like Dict[str, int], use dict() instead of Dict[str, int]()
+                        bound_args[name] = origin(params[name].get_value())
+                    else:
+                        # Regular callable types like int, str, float, etc.
+                        bound_args[name] = value.annotation(params[name].get_value())
                 except (ValueError, TypeError) as e:
+                    annotation_name = getattr(
+                        value.annotation, "__name__", str(value.annotation)
+                    )
                     raise ValueError(
-                        f"Cannot cast parameter '{name}' to {value.annotation.__name__}: {e}"
+                        f"Cannot cast parameter '{name}' to {annotation_name}: {e}"
                     )
             else:
                 # We do not know type of parameter, we send the value as found
                 bound_args[name] = params[name].get_value()
 
     # Find extra parameters (parameters in params but not consumed by regular function parameters)
-    consumed_param_names = set(bound_args.keys()) | set(missing_required_args)
+    consumed_param_names = set(bound_args.keys())
     extra_params = {k: v for k, v in params.items() if k not in consumed_param_names}
 
     # Second pass: Handle **kwargs and argparse.Namespace parameters
@@ -176,30 +186,6 @@ def filter_arguments_for_func(
         for param_name, param_value in extra_params.items():
             setattr(args_namespace, param_name, param_value.get_value())
         bound_args[namespace_param] = args_namespace
-    elif extra_params:
-        # Function doesn't accept **kwargs or namespace, but we have extra parameters
-        # This should only be an error if we also have missing required parameters
-        # or if the function truly can't handle the extra parameters
-        if missing_required_args:
-            # We have both missing required and extra parameters - this is an error
-            raise ValueError(
-                f"Function {func.__name__} has parameters {missing_required_args} that are not present in the parameters"
-            )
-        # If we only have extra parameters and no missing required ones, we just ignore the extras
-        # This allows for more flexible parameter passing
-
-    # Check for missing required parameters
-    if missing_required_args:
-        if var_keyword_param is None and namespace_param is None:
-            # No way to handle missing parameters
-            raise ValueError(
-                f"Function {func.__name__} has parameters {missing_required_args} that are not present in the parameters"
-            )
-        # If we have **kwargs or namespace, missing parameters might be handled there
-        # But if they're truly required (no default), we should still error
-        raise ValueError(
-            f"Function {func.__name__} has parameters {missing_required_args} that are not present in the parameters"
-        )
 
     return bound_args
 
