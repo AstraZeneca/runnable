@@ -14,7 +14,7 @@ AWS Step functions and Argo workflows support them.
 ## Example
 
 
-=== "python sdk"
+=== "Python SDK"
 
 
     You can run this pipeline by ```python examples/06-parallel/nesting.py```
@@ -23,7 +23,7 @@ AWS Step functions and Argo workflows support them.
     --8<-- "examples/06-parallel/nesting.py"
     ```
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     You can run this pipeline by ```runnable execute examples/parallel/nesting.yaml```
 

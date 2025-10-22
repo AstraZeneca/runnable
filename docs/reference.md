@@ -5,7 +5,7 @@ Please accompany the reference with  ```examples``` from
 
 ## PythonTask
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.PythonTask
         options:
@@ -14,7 +14,7 @@ Please accompany the reference with  ```examples``` from
             show_docstring_description: true
             heading_level: 3
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     --8<-- "runnable/tasks.py:python_reference"
 
@@ -23,7 +23,7 @@ Please accompany the reference with  ```examples``` from
 
 ## NotebookTask
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.NotebookTask
         options:
@@ -32,7 +32,7 @@ Please accompany the reference with  ```examples``` from
             show_docstring_description: true
             heading_level: 3
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     --8<-- "runnable/tasks.py:notebook_reference"
 
@@ -42,7 +42,7 @@ Please accompany the reference with  ```examples``` from
 
 ## ShellTask
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.ShellTask
         options:
@@ -51,7 +51,7 @@ Please accompany the reference with  ```examples``` from
             show_docstring_description: true
             heading_level: 3
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     --8<-- "runnable/tasks.py:notebook_reference"
 
@@ -60,7 +60,7 @@ Please accompany the reference with  ```examples``` from
 
 ## Stub
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.Stub
         options:
@@ -68,7 +68,7 @@ Please accompany the reference with  ```examples``` from
             show_bases: false
             heading_level: 3
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     --8<-- "runnable/extensions/nodes.py:stub_reference"
 
@@ -79,7 +79,7 @@ Please accompany the reference with  ```examples``` from
 
 ## Catalog
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.Catalog
         options:
@@ -87,7 +87,7 @@ Please accompany the reference with  ```examples``` from
             show_bases: false
             heading_level: 3
 
-=== "yaml"
+=== "YAML (Legacy)"
 
 
 
@@ -97,7 +97,7 @@ Please accompany the reference with  ```examples``` from
 
 ## Pipeline
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.Pipeline
         options:
@@ -108,14 +108,14 @@ Please accompany the reference with  ```examples``` from
             members:
               - execute
 
-=== "yaml"
+=== "YAML (Legacy)"
 
 
 
 ## Parallel
 
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.Parallel
         options:
@@ -124,7 +124,7 @@ Please accompany the reference with  ```examples``` from
             show_docstring_description: true
             heading_level: 3
 
-=== "yaml"
+=== "YAML (Legacy)"
 
 
 
@@ -132,7 +132,7 @@ Please accompany the reference with  ```examples``` from
 
 ## Map
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.Map
         options:
@@ -141,6 +141,6 @@ Please accompany the reference with  ```examples``` from
             show_docstring_description: true
             heading_level: 3
 
-=== "yaml"
+=== "YAML (Legacy)"
 
 <hr style="border:2px dotted orange">

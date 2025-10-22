@@ -56,7 +56,7 @@ and [stub](task.md/#stub).
 [API Documentation](../reference.md/#pipeline)
 
 
-=== "sdk"
+=== "Python SDK"
 
     - [x] The first step of the ```steps``` is the start of the workflow.
     - [x] The order of execution follows the order of the tasks in the list.
@@ -73,7 +73,7 @@ and [stub](task.md/#stub).
 
 
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     - [x] The first step  is the step corresponding to ```start_at```
     - [x] The mapping defined in the steps.
@@ -125,7 +125,7 @@ pipeline can have as many steps as needed.
 
     ```
 
-=== "sdk"
+=== "Python SDK"
 
     ```python linenums="1""
     --8<-- "examples/02-sequential/on_failure_succeed.py"
@@ -134,7 +134,7 @@ pipeline can have as many steps as needed.
     1. ```terminate_with_success``` is ```true``` traverses to success node.
 
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml linenums="1""
     --8<-- "examples/02-sequential/on_failure_succeed.yaml"
@@ -162,14 +162,14 @@ pipeline can have as many steps as needed.
 
     ```
 
-=== "sdk"
+=== "Python SDK"
 
     ```python linenums="1""
     --8<-- "examples/02-sequential/on_failure_fail.py"
     ```
 
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml linenums="1""
     --8<-- "examples/02-sequential/on_failure_fail.yaml"

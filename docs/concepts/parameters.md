@@ -45,7 +45,7 @@ Environmental variables over-ride ```yaml``` parameters.
 
     It is advised to ```cast``` the parameters in notebook tasks or shell.
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     Deeply nested yaml objects are supported.
 
@@ -121,7 +121,7 @@ consume(x, y) # consumes x, y as input arguments.
 
 and implemented in ```runnable``` as:
 
-=== "sdk"
+=== "Python SDK"
 
     ```python
     from runnable import PythonTask
@@ -130,7 +130,7 @@ and implemented in ```runnable``` as:
     consume_task = PythonTask(function="consume")
 
     ```
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml
     generate:
@@ -171,7 +171,7 @@ def consume(df: pd.Dataframe, score: float):
     ...
 ```
 
-=== "sdk"
+=== "Python SDK"
 
     ```python
     from runnable import metric, pickled, PythonTask
@@ -184,7 +184,7 @@ def consume(df: pd.Dataframe, score: float):
 
     ```
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml
     generate:
@@ -211,7 +211,7 @@ def consume(df: pd.Dataframe, score: float):
         --8<-- "examples/03-parameters/passing_parameters_python.py"
         ```
 
-    === "yaml"
+    === "YAML (Legacy)"
 
         ```yaml linenums="1" hl_lines="25-32"
         --8<-- "examples/03-parameters/passing_parameters_python.yaml"
@@ -232,7 +232,7 @@ def consume(df: pd.Dataframe, score: float):
         --8<-- "examples/03-parameters/passing_parameters_notebook.py"
         ```
 
-    === "yaml"
+    === "YAML (Legacy)"
 
         ```yaml linenums="1" hl_lines="21-28"
         --8<-- "examples/03-parameters/passing_parameters_notebook.yaml"
@@ -248,7 +248,7 @@ def consume(df: pd.Dataframe, score: float):
         --8<-- "examples/03-parameters/passing_parameters_shell.py"
         ```
 
-    === "yaml"
+    === "YAML (Legacy)"
 
         ```yaml linenums="1" hl_lines="26-31"
         --8<-- "examples/03-parameters/passing_parameters_shell.yaml"

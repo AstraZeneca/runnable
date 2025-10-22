@@ -67,7 +67,7 @@ reduce(score) # could be as simple as a list of scores indexed by i or a custom 
 The ```runnable``` syntax for the above example:
 
 
-=== "sdk"
+=== "Python SDK"
 
     ```python linenums="1"
     from runnable import PythonTask, Map, Pipeline
@@ -121,7 +121,7 @@ The ```runnable``` syntax for the above example:
     7. Present ```i``` as input argument to all tasks of ```iterable_branch```.
 
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml linenums="1"
     branch: &branch # (1)
@@ -198,13 +198,13 @@ The map step is considered successful only if all the branches of the step have 
 
     Uses the default reducer
 
-    === "sdk"
+    === "Python SDK"
 
         ```python linenums="1"
         --8<-- "examples/07-map/map.py"
         ```
 
-    === "yaml"
+    === "YAML (Legacy)"
 
         ```yaml linenums="1"
         --8<-- "examples/07-map/map.yaml"
@@ -214,13 +214,13 @@ The map step is considered successful only if all the branches of the step have 
 
     Differs from default reducer to a ```lambda *x: max(x)``` reducer.
 
-    === "sdk"
+    === "Python SDK"
 
         ```python linenums="1"
         --8<-- "examples/07-map/custom_reducer.py"
         ```
 
-    === "yaml"
+    === "YAML (Legacy)"
 
         ```yaml linenums="1"
         --8<-- "examples/07-map/custom_reducer.yaml"

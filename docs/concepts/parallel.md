@@ -48,7 +48,7 @@ The step ```Train Models``` is a parallel step that has the ```branches``` as th
 
 ## Syntax
 
-=== "sdk"
+=== "Python SDK"
 
     ```python linenums="1"
     from runnable import Pipeline, Parallel
@@ -76,7 +76,7 @@ The step ```Train Models``` is a parallel step that has the ```branches``` as th
         return pipeline
     ```
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml linenums="1"
     branch: &baseline
@@ -124,13 +124,13 @@ The parallel step is considered successful only if all the branches of the step 
 
 ## Complete example
 
-=== "sdk"
+=== "Python SDK"
 
     ```python linenums="1""
     --8<-- "examples/06-parallel/parallel.py"
     ```
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml linenums="1""
     --8<-- "examples/06-parallel/parallel.yaml"

@@ -28,7 +28,7 @@ The same can be represented in ```runnable``` as [catalog](../reference.md/#cata
 
 For example, the above snippet would be:
 
-=== "sdk"
+=== "Python SDK"
 
     ```python linenums="1"
 
@@ -44,7 +44,7 @@ For example, the above snippet would be:
     pipeline.execute()
     ```
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml linenums="1"
     dag:
@@ -74,13 +74,13 @@ For example, the above snippet would be:
 
 ## Example
 
-=== "sdk"
+=== "Python SDK"
 
     ```python linenums="1"
     --8<-- "examples/04-catalog/catalog.py"
     ```
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml linenums="1"
     --8<-- "examples/04-catalog/catalog.yaml"

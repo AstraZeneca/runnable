@@ -18,7 +18,7 @@ Uses python functions as tasks.
 
 ### Example
 
-=== "sdk"
+=== "Python SDK"
 
     !!! tip inline end "Structuring"
 
@@ -32,7 +32,7 @@ Uses python functions as tasks.
 
     <!-- Please refer to [field reference](../sdk.md/#runnable.PythonTask). -->
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     !!! example "Dotted path"
 
@@ -75,13 +75,13 @@ the name of the notebook and is also saved in the ```catalog``` for logging and 
 
 ### Example
 
-=== "sdk"
+=== "Python SDK"
 
     ```python linenums="1""
     --8<-- "examples/01-tasks/notebook.py"
     ```
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml linenums="1""
     --8<-- "examples/01-tasks/notebook.yaml"
@@ -100,13 +100,13 @@ ecosystem while shell provides a interface to non-python executables.
 
 ### Example
 
-=== "sdk"
+=== "Python SDK"
 
     ```python linenums="1""
     --8<-- "examples/01-tasks/scripts.py"
     ```
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml linenums="1""
     --8<-- "examples/01-tasks/scripts.yaml"
@@ -133,13 +133,13 @@ Stub nodes can take arbitrary number of parameters and is always a success.
     execute the additional steps.
 
 
-=== "sdk"
+=== "Python SDK"
 
     ```python linenums="1""
     --8<-- "examples/01-tasks/stub.py"
     ```
 
-=== "yaml"
+=== "YAML (Legacy)"
 
     ```yaml linenums="1""
     --8<-- "examples/01-tasks/stub.yaml"
