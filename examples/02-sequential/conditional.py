@@ -26,17 +26,17 @@ def toss_function():
 
 
 def main():
-    when_heads_pipeline = PythonTask(
+    when_heads_pipeline = PythonTask(  # [concept:branch-pipeline]
         name="when_heads_task",
         function=when_heads_function,
     ).as_pipeline()
 
-    when_tails_pipeline = PythonTask(
+    when_tails_pipeline = PythonTask(  # [concept:branch-pipeline]
         name="when_tails_task",
         function=when_tails_function,
     ).as_pipeline()
 
-    conditional = Conditional(
+    conditional = Conditional(  # [concept:conditional]
         name="conditional",
         branches={
             "heads": when_heads_pipeline,
@@ -45,16 +45,16 @@ def main():
         parameter="toss",
     )
 
-    toss_task = PythonTask(
+    toss_task = PythonTask(  # [concept:task-with-returns]
         name="toss_task",
         function=toss_function,
         returns=["toss"],
     )
 
-    continue_to = Stub(name="continue to")
-    pipeline = Pipeline(steps=[toss_task, conditional, continue_to])
+    continue_to = Stub(name="continue to")  # [concept:stub]
+    pipeline = Pipeline(steps=[toss_task, conditional, continue_to])  # [concept:pipeline]
 
-    pipeline.execute()
+    pipeline.execute()  # [concept:execution]
 
     return pipeline
 

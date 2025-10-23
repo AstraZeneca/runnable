@@ -48,63 +48,31 @@ The step ```Train Models``` is a parallel step that has the ```branches``` as th
 
 ## Syntax
 
-=== "Python SDK"
+```python linenums="1"
+from runnable import Pipeline, Parallel
+def get_baseline_pipeline():
+    ...
+    pipeline = Pipeline(...)
+    return pipeline
 
-    ```python linenums="1"
-    from runnable import Pipeline, Parallel
-    def get_baseline_pipeline():
-        ...
-        pipeline = Pipeline(...)
-        return pipeline
+def get_cnn_pipeline():
+    ...
+    pipeline = Pipeline(...)
+    return pipeline
 
-    def get_cnn_pipeline():
-        ...
-        pipeline = Pipeline(...)
-        return pipeline
+def main():
+    train_models = Parallel(name="train models",
+                    branches={
+                        'baseline': get_baseline_pipeline,
+                        'cnn': get_cnn_pipeline()
+                    },
+                    terminate_with_success=True)
+    pipeline = Pipeline(steps=[train_models])
 
-    def main():
-        train_models = Parallel(name="train models",
-                        branches={
-                            'baseline': get_baseline_pipeline,
-                            'cnn': get_cnn_pipeline()
-                        },
-                        terminate_with_success=True)
-        pipeline = Pipeline(steps=[train_models])
+    pipeline.execute
 
-        pipeline.execute
-
-        return pipeline
-    ```
-
-=== "YAML (Legacy)"
-
-    ```yaml linenums="1"
-    branch: &baseline
-    start_at: prepare
-    steps:
-        ...
-
-    branch: &cnn
-    start_at: train
-    steps:
-        ...
-
-    dag:
-    description: |
-        This example demonstrates the use of the Parallel step.
-
-        parallel step takes a mapping of branches which are pipelines themselves.
-
-    start_at: parallel_step
-    steps:
-        parallel_step:
-        type: parallel
-        next: success
-        branches:
-          baseline: *baseline
-          cnn: *cnn
-
-    ```
+    return pipeline
+```
 
 !!! warning "Execution"
 
@@ -124,14 +92,14 @@ The parallel step is considered successful only if all the branches of the step 
 
 ## Complete example
 
-=== "Python SDK"
+```python linenums="1"
+--8<-- "examples/06-parallel/parallel.py"
+```
 
-    ```python linenums="1""
-    --8<-- "examples/06-parallel/parallel.py"
-    ```
+Key concepts in this example:
 
-=== "YAML (Legacy)"
-
-    ```yaml linenums="1""
-    --8<-- "examples/06-parallel/parallel.yaml"
-    ```
+- `[concept:parallel]`: Creating a Parallel node with multiple branches
+- `[concept:branch-definition]`: Defining branches as pipelines (each branch runs the same `traversal()` pipeline)
+- `[concept:continuation]`: Task to continue after all parallel branches complete
+- `[concept:pipeline]`: Creating a pipeline that includes parallel execution
+- `[concept:execution]`: Running the pipeline - both branches execute simultaneously

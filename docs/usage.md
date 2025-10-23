@@ -26,7 +26,7 @@ They can be installed by ```"pip install runnable[<extra>]"```
 
 ### Execute a pipeline
 
-Pipelines defined in **runnable** can be either via [python sdk](reference.md) or ```yaml``` based definitions.
+Pipelines defined in **runnable** can be via the [python sdk](reference.md).
 
 
 The options are detailed below:
@@ -35,24 +35,14 @@ The options are detailed below:
 
 runnable execute
 
-╭─ Arguments ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ *    yaml_file      TEXT      The pipeline definition file [default: None] [required]                                                              │
-│      run_id         [RUN_ID]  An optional run_id, one would be generated if its not provided [env var: RUNNABLE_RUN_ID]                            │
-╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --config      -c      TEXT                              The configuration file specifying the services                                             │
-│ --parameters  -p      TEXT                              Parameters, in yaml,  accessible by the application                                        │
-│ --log-level           [INFO|DEBUG|WARNING|ERROR|FATAL]  The log level [default: WARNING]                                                           │
-│ --tag                 TEXT                              A tag attached to the run                                                                  │
-│ --help                                                  Show this message and exit.                                                                │
-╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+The runnable CLI is primarily used for running Python-based pipelines. While some legacy YAML functionality may still exist in the CLI, we recommend using the Python SDK for all new pipeline development.
 
 ```
 
 
 ### Execute a job
 
-Jobs defined in **runnable** can be via [python sdk](reference.md)
+Jobs defined in **runnable** can be via the [python sdk](reference.md)
 
 <hr style="border:2px dotted orange">
 

@@ -86,11 +86,11 @@ def iterable_branch(execute: bool = True):
 def main():
     # Create a map state which iterates over a list of chunks.
     # chunk is the value of the iterable.
-    map_state = Map(
+    map_state = Map(  # [concept:map]
         name="map_state",
-        iterate_on="chunks",
-        iterate_as="chunk",
-        branch=iterable_branch(execute=False),
+        iterate_on="chunks",  # [concept:iteration-parameter]
+        iterate_as="chunk",  # [concept:iterator-variable]
+        branch=iterable_branch(execute=False),  # [concept:branch-pipeline]
     )
 
     # Outside of the loop, processed is a list of all the processed chunks.
@@ -98,16 +98,16 @@ def main():
     # the value of processed_python is [10, 20, 30]
     # the value of processed_notebook is [100, 200, 300]
     # the value of processed_shell is [1000, 2000, 3000]
-    collect = PythonTask(
+    collect = PythonTask(  # [concept:collect-step]
         name="collect",
         function=assert_default_reducer,
     )
 
     continue_to = Stub(name="continue to")
 
-    pipeline = Pipeline(steps=[map_state, collect])
+    pipeline = Pipeline(steps=[map_state, collect])  # [concept:pipeline]
 
-    pipeline.execute(parameters_file="examples/common/initial_parameters.yaml")
+    pipeline.execute(parameters_file="examples/common/initial_parameters.yaml")  # [concept:execution]
 
     return pipeline
 

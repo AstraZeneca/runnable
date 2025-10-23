@@ -1,4 +1,3 @@
-
 In **runnable**, we use the words
 
 - ```workflows``` and ```pipeline``` interchangeably.
@@ -30,10 +29,10 @@ stateDiagram-v2
 
 
     [*] --> start_at
-    start_at --> step_2 : #9989;
-    step_2 --> step_3 : #9989;
-    step_3 --> step_4 : #9989;
-    step_4 --> success : #9989;
+    start_at --> step_2 : ✓
+    step_2 --> step_3 : ✓
+    step_3 --> step_4 : ✓
+    step_4 --> success : ✓
     success --> [*]
 ```
 
@@ -55,41 +54,22 @@ and [stub](task.md/#stub).
 
 [API Documentation](../reference.md/#pipeline)
 
+- [x] The first step of the ```steps``` is the start of the workflow.
+- [x] The order of execution follows the order of the tasks in the list.
+- [x] The terminal nodes ```success``` and ```fail``` are added automatically.
 
-=== "Python SDK"
+```python linenums="1"
+--8<-- "examples/02-sequential/traversal.py"
+```
 
-    - [x] The first step of the ```steps``` is the start of the workflow.
-    - [x] The order of execution follows the order of the tasks in the list.
-    - [x] The terminal nodes ```success``` and ```fail``` are added automatically.
+Key concepts in this example:
 
-    ```python linenums="1"
-    --8<-- "examples/02-sequential/traversal.py"
-    ```
-
-    1. Start the pipeline.
-    2. The order of the steps is the execution order
-
-
-
-
-
-=== "YAML (Legacy)"
-
-    - [x] The first step  is the step corresponding to ```start_at```
-    - [x] The mapping defined in the steps.
-    - [x] The ```next``` step after a successful execution of a ```step```.
-    - [x] ```success``` as ```next``` node implies successful execution of the pipeline.
-
-    ```yaml linenums="1"
-    --8<-- "examples/02-sequential/traversal.yaml"
-    ```
-
-    1. Start the pipeline at this step.
-    2. State the ```next``` node, if it succeeds.
-    3. Add the success and fail nodes.
-
-
-
+- `[concept:stub-task]`: Placeholder tasks for testing/development
+- `[concept:python-task]`: Execute Python functions
+- `[concept:shell-task]`: Execute shell commands
+- `[concept:notebook-task]`: Execute Jupyter notebooks
+- `[concept:pipeline]`: Creating a pipeline with multiple tasks in sequence
+- `[concept:execution]`: Running the pipeline - tasks execute in the order they appear in the steps list
 
 <br>
 
@@ -127,18 +107,17 @@ pipeline can have as many steps as needed.
 
 === "Python SDK"
 
-    ```python linenums="1""
+    ```python linenums="1"
     --8<-- "examples/02-sequential/on_failure_succeed.py"
     ```
 
-    1. ```terminate_with_success``` is ```true``` traverses to success node.
+    Key concepts in this example:
 
-
-=== "YAML (Legacy)"
-
-    ```yaml linenums="1""
-    --8<-- "examples/02-sequential/on_failure_succeed.yaml"
-    ```
+    - `[concept:failing-task]`: Task that will raise an exception (`raise_ex` function)
+    - `[concept:failure-pipeline]`: Pipeline to execute when a task fails (`.as_pipeline()`)
+    - `[concept:failure-handling]`: Assigning failure pipeline to task (`step_1.on_failure`)
+    - `[concept:pipeline]`: Creating a pipeline with failure-prone task
+    - `[concept:execution]`: Running the pipeline - recovery pattern converts failure into success
 
 
 ### On failure fail
@@ -164,13 +143,14 @@ pipeline can have as many steps as needed.
 
 === "Python SDK"
 
-    ```python linenums="1""
+    ```python linenums="1"
     --8<-- "examples/02-sequential/on_failure_fail.py"
     ```
 
+    Key concepts in this example:
 
-=== "YAML (Legacy)"
-
-    ```yaml linenums="1""
-    --8<-- "examples/02-sequential/on_failure_fail.yaml"
-    ```
+    - `[concept:failing-task]`: Task that will raise an exception (`raise_ex` function)
+    - `[concept:failure-pipeline-with-termination]`: Pipeline that terminates with failure (`terminate_with_failure=True`)
+    - `[concept:failure-handling]`: Assigning failure pipeline to task (`step_1.on_failure`)
+    - `[concept:pipeline]`: Creating a pipeline with failure-prone task
+    - `[concept:execution]`: Running the pipeline - cleanup pattern performs actions while still propagating the failure

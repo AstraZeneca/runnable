@@ -15,25 +15,25 @@ from runnable import NotebookTask, Pipeline, PythonTask, ShellTask, Stub
 
 
 def main():
-    stub_task = Stub(name="hello stub")
+    stub_task = Stub(name="hello stub")  # [concept:stub-task]
 
-    python_task = PythonTask(
+    python_task = PythonTask(  # [concept:python-task]
         name="hello python", function=hello, overrides={"argo": "smaller"}
     )
 
-    shell_task = ShellTask(
+    shell_task = ShellTask(  # [concept:shell-task]
         name="hello shell",
         command="echo 'Hello World!'",
     )
 
-    notebook_task = NotebookTask(
+    notebook_task = NotebookTask(  # [concept:notebook-task]
         name="hello notebook",
         notebook="examples/common/simple_notebook.ipynb",
     )
 
     # The pipeline has a mix of tasks.
     # The order of execution follows the order of the tasks in the list.
-    pipeline = Pipeline(
+    pipeline = Pipeline(  # [concept:pipeline]
         steps=[  # (2)
             stub_task,  # (1)
             python_task,
@@ -42,7 +42,7 @@ def main():
         ]
     )
 
-    pipeline.execute()
+    pipeline.execute()  # [concept:execution]
 
     return pipeline
 

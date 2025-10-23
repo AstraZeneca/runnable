@@ -4,7 +4,7 @@ They can be [python functions](#python_functions), [notebooks](#notebook),
 [shell scripts](#shell) or [stubs](#stub)
 
 In the below examples, highlighted lines of the code are the relevant bits while
-the rest of the python code (or yaml) defines and executes a pipeline that executes
+the rest of the python code defines and executes a pipeline that executes
 the python function/notebook/shell script/stubs.
 
 
@@ -18,47 +18,22 @@ Uses python functions as tasks.
 
 ### Example
 
-=== "Python SDK"
+!!! tip inline end "Structuring"
 
-    !!! tip inline end "Structuring"
+    It is best to keep the application specific functions in a different module
+    than the pipeline definition, if you are using Python SDK.
 
-        It is best to keep the application specific functions in a different module
-        than the pipeline definition, if you are using Python SDK.
+```python linenums="1"
+--8<-- "examples/01-tasks/python_tasks.py"
+```
 
+Key concepts in this example:
 
-    ```python linenums="1""
-    --8<-- "examples/01-tasks/python_tasks.py"
-    ```
+- `[concept:task]`: Creating a PythonTask that wraps your function
+- `[concept:pipeline]`: Building a pipeline with the task
+- `[concept:execution]`: Running the pipeline
 
-    <!-- Please refer to [field reference](../sdk.md/#runnable.PythonTask). -->
-
-=== "YAML (Legacy)"
-
-    !!! example "Dotted path"
-
-        Assuming the below project structure:
-
-        - The ```command``` for the ```outer_function``` should be ```outer_functions.outer_function```
-
-        - The ```command``` for ```inner_function``` should be ```module_inner.inner_functions.inner_function```
-
-
-            ```
-            ..
-            ├── outer_functions.py
-            │   ├── outer_function()
-            ├── module_inner
-            │   ├── inner_functions.py
-            │   |    ├── inner_function()
-            ..
-
-            ```
-
-    ```yaml linenums="1""
-    --8<-- "examples/01-tasks/python_tasks.yaml"
-    ```
-
-
+<!-- Please refer to [field reference](../sdk.md/#runnable.PythonTask). -->
 
 <hr style="border:2px dotted orange">
 
@@ -75,19 +50,15 @@ the name of the notebook and is also saved in the ```catalog``` for logging and 
 
 ### Example
 
-=== "Python SDK"
+```python linenums="1"
+--8<-- "examples/01-tasks/notebook.py"
+```
 
-    ```python linenums="1""
-    --8<-- "examples/01-tasks/notebook.py"
-    ```
+Key concepts in this example:
 
-=== "YAML (Legacy)"
-
-    ```yaml linenums="1""
-    --8<-- "examples/01-tasks/notebook.yaml"
-    ```
-
-
+- `[concept:notebook-task]`: Creating a NotebookTask that executes a Jupyter notebook
+- `[concept:pipeline]`: Building a pipeline with the task
+- `[concept:execution]`: Running the pipeline
 
 <hr style="border:2px dotted orange">
 
@@ -100,17 +71,15 @@ ecosystem while shell provides a interface to non-python executables.
 
 ### Example
 
-=== "Python SDK"
+```python linenums="1"
+--8<-- "examples/01-tasks/scripts.py"
+```
 
-    ```python linenums="1""
-    --8<-- "examples/01-tasks/scripts.py"
-    ```
+Key concepts in this example:
 
-=== "YAML (Legacy)"
-
-    ```yaml linenums="1""
-    --8<-- "examples/01-tasks/scripts.yaml"
-    ```
+- `[concept:shell-task]`: Creating a ShellTask that executes shell commands
+- `[concept:pipeline]`: Building a pipeline with the task
+- `[concept:execution]`: Running the pipeline
 
 
 ## Stub
@@ -132,15 +101,13 @@ Stub nodes can take arbitrary number of parameters and is always a success.
     During debugging, changing a node to ```stub``` will let you focus on the actual bug without having to
     execute the additional steps.
 
+```python linenums="1"
+--8<-- "examples/01-tasks/stub.py"
+```
 
-=== "Python SDK"
+Key concepts in this example:
 
-    ```python linenums="1""
-    --8<-- "examples/01-tasks/stub.py"
-    ```
-
-=== "YAML (Legacy)"
-
-    ```yaml linenums="1""
-    --8<-- "examples/01-tasks/stub.yaml"
-    ```
+- `[concept:stub-task]`: Creating placeholder tasks that always succeed
+- `[concept:stub-with-params]`: Stub tasks can take arbitrary parameters for flexibility
+- `[concept:pipeline]`: Building a pipeline with multiple tasks in sequence
+- `[concept:execution]`: Running the pipeline

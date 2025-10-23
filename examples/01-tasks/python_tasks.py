@@ -15,15 +15,15 @@ def main():
     # Create a tasks which calls the function "hello"
     # If this step executes successfully,
     # the pipeline will terminate with success
-    hello_task = PythonTask(
+    hello_task = PythonTask(  # [concept:task]
         name="hello",
         function=hello,
     )
 
     # The pipeline has only one step.
-    pipeline = Pipeline(steps=[hello_task])
+    pipeline = Pipeline(steps=[hello_task])  # [concept:pipeline]
 
-    pipeline.execute()
+    pipeline.execute()  # [concept:execution]
     return pipeline
 
 

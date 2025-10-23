@@ -108,23 +108,23 @@ def main():
     # Upon completion of the map state, all the parameters of the tasks
     # within the pipeline will be processed by the reducer.
     # In this case, the reducer is the max of all the processed chunks.
-    map_state = Map(
+    map_state = Map(  # [concept:map-with-custom-reducer]
         name="map state",
         iterate_on="chunks",
         iterate_as="chunk",
-        reducer="lambda *x: max(x)",
+        reducer="lambda *x: max(x)",  # [concept:custom-reducer]
         branch=iterable_branch(execute=False),
     )
 
-    collect = PythonTask(
+    collect = PythonTask(  # [concept:collect-step]
         name="collect",
         function=assert_custom_reducer,
         terminate_with_success=True,
     )
 
-    pipeline = Pipeline(steps=[map_state, collect])
+    pipeline = Pipeline(steps=[map_state, collect])  # [concept:pipeline]
 
-    pipeline.execute(parameters_file="examples/common/initial_parameters.yaml")
+    pipeline.execute(parameters_file="examples/common/initial_parameters.yaml")  # [concept:execution]
 
     return pipeline
 

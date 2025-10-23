@@ -66,103 +66,56 @@ reduce(score) # could be as simple as a list of scores indexed by i or a custom 
 
 The ```runnable``` syntax for the above example:
 
+```python linenums="1"
+from runnable import PythonTask, Map, Pipeline
 
-=== "Python SDK"
+def execute_first_step(i): # (1)
+    ...
 
-    ```python linenums="1"
-    from runnable import PythonTask, Map, Pipeline
+    return x # (2)
 
-    def execute_first_step(i): # (1)
-        ...
+def execute_second_step(i, x): # (3)
+    ...
 
-        return x # (2)
+def get_iterable_branch(): # (4)
+    first_step_task = PythonTask(name="execute_first_step",
+                    function="execute_first_step",
+                    returns=["x"])
 
-    def execute_second_step(i, x): # (3)
-        ...
+    second_step_task = PythonTask(name="execute_second_step",
+                    function="execute_second_step",
+                    terminate_with_success=True)
 
-    def get_iterable_branch(): # (4)
-        first_step_task = PythonTask(name="execute_first_step",
-                        function="execute_first_step",
-                        returns=["x"])
+    pipeline = Pipeline(steps=[first_step_task,second_step_task])
 
-        second_step_task = PythonTask(name="execute_second_step",
-                        function="execute_second_step",
-                        terminate_with_success=True)
+def main():
+    generate_task = PythonTask(name="generate_task",
+                        function="generate",
+                        returns=["iterable_parameter"]) # (5)
 
-        pipeline = Pipeline(steps=[first_step_task,second_step_task])
+    iterate_task = Map(name="iterate",
+                    branch=get_iterable_branch(),
+                    iterate_on="iterable_parameter", # (6)
+                    iterate_as="i",
+                    terminate_with_success=True) # (7)
 
-    def main():
-        generate_task = PythonTask(name="generate_task",
-                            function="generate",
-                            returns=["iterable_parameter"]) # (5)
+    pipeline = Pipeline(steps=[generate_task, iterate_task])
 
-        iterate_task = Map(name="iterate",
-                        branch=get_iterable_branch(),
-                        iterate_on="iterable_parameter", # (6)
-                        iterate_as="i",
-                        terminate_with_success=True) # (7)
+    pipeline.execute()
+    return pipeline
 
-        pipeline = Pipeline(steps=[generate_task, iterate_task])
+if __name__ == "__main__":
+    main()
 
-        pipeline.execute()
-        return pipeline
+```
 
-    if __name__ == "__main__":
-        main()
-
-    ```
-
-    1. Takes in an input parameter ```i```, the current value of the iteration.
-    2. returns a parameter ```x```.
-    3. ```i``` is the current value of iteration, ```x``` is the return parameter of function call at iteration ```i```.
-    4. returns a ```pipeline``` whose tasks are dependent on an iterable ```i```
-    5. returns the parameter ```iterable_parameter```.
-    6. loop over ```iterable_parameter``` executing ```iterable_branch``` over each value of ```i```.
-    7. Present ```i``` as input argument to all tasks of ```iterable_branch```.
-
-
-=== "YAML (Legacy)"
-
-    ```yaml linenums="1"
-    branch: &branch # (1)
-    start_at: execute_first_step
-    steps:
-      execute_first_step: # (2)
-        type: task
-        command: execute_first_step
-        next: execute_second_step
-        returns:
-          - x # (3)
-      execute_second_step:
-        type: task
-        command: execute_second_step # (4)
-        next: success
-
-
-    dag:
-    start_at: generate_task
-    steps:
-      generate_task:
-        type: task
-        command: generate
-        returns:
-          - iterable_parameter # (5)
-      iterate_task:
-        type: map
-        branch: *branch # (6)
-        iterate_on: iterable_parameter # (7)
-        iterate_as: i # (8)
-        next: success
-    ```
-
-    1. The pipeline to iterate over an iterable parameter
-    2. The ```task``` expects ```i```, the current value of iteration.
-    3. The ```task``` returns ```x```.
-    4. The ```task``` expects ```i```, the current value of iteration and ```x``` at the current iteration.
-    5. returns a iterable, ```iterable_parameter```.
-    6. the branch to iterate over
-    7. the parameter to iterate on, returned by a task ```generate_task```.
-    8. present the current value of iteration as ```i``` to all the tasks of the branch.
+1. Takes in an input parameter ```i```, the current value of the iteration.
+2. returns a parameter ```x```.
+3. ```i``` is the current value of iteration, ```x``` is the return parameter of function call at iteration ```i```.
+4. returns a ```pipeline``` whose tasks are dependent on an iterable ```i```
+5. returns the parameter ```iterable_parameter```.
+6. loop over ```iterable_parameter``` executing ```iterable_branch``` over each value of ```i```.
+7. Present ```i``` as input argument to all tasks of ```iterable_branch```.
 
 
 ## Reduce
@@ -194,34 +147,36 @@ The map step is considered successful only if all the branches of the step have 
 
 ## Complete example
 
-=== "Default reducer"
+### Default reducer
 
-    Uses the default reducer
+Uses the default reducer
 
-    === "Python SDK"
+```python linenums="1"
+--8<-- "examples/07-map/map.py"
+```
 
-        ```python linenums="1"
-        --8<-- "examples/07-map/map.py"
-        ```
+Key concepts in this example:
 
-    === "YAML (Legacy)"
+- `[concept:map]`: Creating a Map node that iterates over data chunks
+- `[concept:iteration-parameter]`: `iterate_on="chunks"` specifies the data to iterate over
+- `[concept:iterator-variable]`: `iterate_as="chunk"` names the current iteration value
+- `[concept:branch-pipeline]`: Each iteration executes the `iterable_branch` pipeline
+- `[concept:collect-step]`: Processing the aggregated results after map completion (default reduction - results collected into lists)
+- `[concept:pipeline]`: Creating pipeline with map and collect steps
+- `[concept:execution]`: Running the pipeline with parameters
 
-        ```yaml linenums="1"
-        --8<-- "examples/07-map/map.yaml"
-        ```
+### Custom reducer
 
-=== "Custom reducer"
+Differs from default reducer to a ```lambda *x: max(x)``` reducer.
 
-    Differs from default reducer to a ```lambda *x: max(x)``` reducer.
+```python linenums="1"
+--8<-- "examples/07-map/custom_reducer.py"
+```
 
-    === "Python SDK"
+Key concepts in this example:
 
-        ```python linenums="1"
-        --8<-- "examples/07-map/custom_reducer.py"
-        ```
-
-    === "YAML (Legacy)"
-
-        ```yaml linenums="1"
-        --8<-- "examples/07-map/custom_reducer.yaml"
-        ```
+- `[concept:map-with-custom-reducer]`: Creating a Map node with custom reduction logic
+- `[concept:custom-reducer]`: `lambda *x: max(x)` finds the maximum value instead of collecting all values
+- `[concept:collect-step]`: Processing the reduced results (single values instead of lists)
+- `[concept:pipeline]`: Creating pipeline with custom map and collect steps
+- `[concept:execution]`: Running the pipeline - demonstrates alternative aggregation (max, min, sum, etc.)

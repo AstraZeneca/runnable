@@ -43,19 +43,19 @@ def traversal():
 
 
 def main():
-    parallel_step = Parallel(
+    parallel_step = Parallel(  # [concept:parallel]
         name="parallel_step",
         branches={
-            "branch1": traversal(),
-            "branch2": traversal(),
+            "branch1": traversal(),  # [concept:branch-definition]
+            "branch2": traversal(),  # [concept:branch-definition]
         },
     )
 
-    continue_to = Stub(name="continue to")
+    continue_to = Stub(name="continue to")  # [concept:continuation]
 
-    pipeline = Pipeline(steps=[parallel_step, continue_to])
+    pipeline = Pipeline(steps=[parallel_step, continue_to])  # [concept:pipeline]
 
-    pipeline.execute()
+    pipeline.execute()  # [concept:execution]
     return pipeline
 
 

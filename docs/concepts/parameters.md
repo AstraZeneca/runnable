@@ -38,21 +38,19 @@ over-ridden by tasks of the pipeline.
 They can also be provided by environment variables prefixed by ```RUNNABLE_PRM_```.
 Environmental variables over-ride ```yaml``` parameters.
 
-
 !!! warning inline end "Type casting"
 
     Annotating the arguments of python function ensures the right data type of arguments.
 
     It is advised to ```cast``` the parameters in notebook tasks or shell.
 
-=== "YAML (Legacy)"
+=== "YAML"
 
     Deeply nested yaml objects are supported.
 
     ```yaml
     --8<-- "examples/common/initial_parameters.yaml"
     ```
-
 
 === "environment variables"
 
