@@ -4,7 +4,7 @@ Jobs are isolated unit of work which can be python functions, jupyter notebooks 
 
 Considering a simple function:
 
-```python
+```python linenums="1"
 def add_numbers(x: int, y: int):
     # save some data in data.csv
     return x + y
@@ -12,13 +12,13 @@ def add_numbers(x: int, y: int):
 
 The runnable representation of it is:
 
-```python
+```python linenums="1"
 from functions import add_numbers
 from runnable import PythonJob, Catalog
 
 write_catalog = Catalog(put=["data.csv"])
 job = PythonJob(function=add_numbers,
-                returns["sum_of_numbers"],
+                returns=["sum_of_numbers"],
                 catalog=write_catalog,
             )
 
@@ -38,14 +38,14 @@ process can be saved to the catalog.
 You can use Python functions as jobs in a pipeline, enabling flexible encapsulation of logic, parameter passing, result capturing, and cataloging of outputs.
 
 === "Basic Python Function as a Job"
-    ```python
+    ```python linenums="1"
     --8<-- "examples/11-jobs/python_tasks.py"
     ```
 
     The stdout (e.g., "Hello World!") and logs are captured and stored in the catalog for traceability.
 
 === "Writing Data to the Catalog"
-    ```python
+    ```python linenums="1"
     --8<-- "examples/11-jobs/catalog.py"
     ```
 
@@ -53,7 +53,7 @@ You can use Python functions as jobs in a pipeline, enabling flexible encapsulat
 
 === "Passing and Returning Parameters"
 
-    ```python
+    ```python linenums="1"
     --8<-- "examples/11-jobs/passing_parameters_python.py"
     ```
 
@@ -66,7 +66,7 @@ You can use Python functions as jobs in a pipeline, enabling flexible encapsulat
 You can also use Jupyter notebooks as jobs in your pipeline. This allows you to encapsulate notebook logic, capture outputs, and integrate notebooks seamlessly into your workflow.
 
 === "Notebook as a Job"
-    ```python
+    ```python linenums="1"
     --8<-- "examples/11-jobs/notebooks.py"
     ```
     The output of the notebook will be captured as execution log
@@ -79,7 +79,7 @@ You can also use Jupyter notebooks as jobs in your pipeline. This allows you to 
 You can also use shell scripts or commands as jobs in your pipeline. This allows you to execute any shell command, capture its output, and integrate it into your workflow.
 
 === "Shell Script"
-    ```python
+    ```python linenums="1"
     --8<-- "examples/11-jobs/scripts.py"
     ```
     The stdout and stderr of the shell command are captured as execution log and stored in the catalog for traceability.

@@ -5,7 +5,7 @@
 For example, in the below snippet, the parameters ```x``` and ```y``` are passed from
 ```generate``` to ```consume```.
 
-```python
+```python linenums="1"
 x, y = generate() # returns x and y as output
 consume(x, y) # consumes x, y as input arguments.
 ```
@@ -32,11 +32,7 @@ but can return json/pydantic/objects.
 
 ## Project parameters
 
-Project parameters can be defined using a ```yaml``` file. These parameters can then be
-over-ridden by tasks of the pipeline.
-
-They can also be provided by environment variables prefixed by ```RUNNABLE_PRM_```.
-Environmental variables over-ride ```yaml``` parameters.
+Project parameters can be provided by environment variables prefixed by ```RUNNABLE_PRM_```.
 
 !!! warning inline end "Type casting"
 
@@ -44,28 +40,17 @@ Environmental variables over-ride ```yaml``` parameters.
 
     It is advised to ```cast``` the parameters in notebook tasks or shell.
 
-=== "YAML"
+Parameters can be defined as environment variables:
 
-    Deeply nested yaml objects are supported.
+```shell
+export runnable_PRM_integer="1"
+export runnable_PRM_floater="3.14"
+export runnable_PRM_stringer="hello"
+export runnable_PRM_pydantic_param="{'x': 10, 'foo': bar}"
+export runnable_PRM_chunks="[1, 2, 3]"
+```
 
-    ```yaml
-    --8<-- "examples/common/initial_parameters.yaml"
-    ```
-
-=== "environment variables"
-
-    The yaml formatted parameters can also be defined as:
-
-    ```shell
-    export runnable_PRM_integer="1"
-    export runnable_PRM_floater="3.14"
-    export runnable_PRM_stringer="hello"
-    export runnable_PRM_pydantic_param="{'x': 10, 'foo': bar}"
-    export runnable_PRM_chunks="[1, 2, 3]"
-    ```
-
-    Parameters defined by environment variables override parameters defined by
-    ```yaml```. This can be useful to do a quick experimentation without changing code.
+This can be useful to do a quick experimentation without changing code.
 
 
 ### Accessing parameters
@@ -76,7 +61,7 @@ Environmental variables over-ride ```yaml``` parameters.
 
     Without annotations for nested params, they are sent in as dictionary.
 
-    ```python
+    ```python linenums="1"
     --8<-- "examples/03-parameters/static_parameters_python.py"
     ```
 
@@ -86,7 +71,7 @@ Environmental variables over-ride ```yaml``` parameters.
 
     The shell script has access to them as environmental variables.
 
-    ```python
+    ```python linenums="1"
     --8<-- "examples/03-parameters/static_parameters_non_python.py"
     ```
 
@@ -105,7 +90,7 @@ Tasks can return parameters which can then be accessed by downstream tasks.
 
 The syntax is inspired by:
 
-```python
+```python linenums="1"
 def generate():
     ...
     return x, y
@@ -121,25 +106,12 @@ and implemented in ```runnable``` as:
 
 === "Python SDK"
 
-    ```python
+    ```python linenums="1"
     from runnable import PythonTask
     # The returns syntax can be used for notebook and shell scripts too.
     generate_task = PythonTask(function="generate", returns=["x", "y"])
     consume_task = PythonTask(function="consume")
 
-    ```
-=== "YAML (Legacy)"
-
-    ```yaml
-    generate:
-    type: task
-    command: generate
-    next: consume
-    returns:
-        - name: x
-        - name: y
-    consume:
-    ...
     ```
 
 !!! warning "order of returns"
@@ -156,7 +128,7 @@ Returns marked as ```pickled``` in [python functions](task.md/#python-functions)
 
 ### Example
 
-```python
+```python linenums="1"
 import pandas as pd
 
 # Assuming a function return a pandas dataframe and a score
@@ -171,7 +143,7 @@ def consume(df: pd.Dataframe, score: float):
 
 === "Python SDK"
 
-    ```python
+    ```python linenums="1"
     from runnable import metric, pickled, PythonTask
 
     generate_task = PythonTask(function="generate",
@@ -182,21 +154,6 @@ def consume(df: pd.Dataframe, score: float):
 
     ```
 
-=== "YAML (Legacy)"
-
-    ```yaml
-    generate:
-    type: task
-    command: generate
-    next: consume
-    returns:
-        - name: df
-          kind: object
-        - name: score
-          kind: metric
-    consume:
-    ...
-    ```
 
 
 ## Complete Example
@@ -205,15 +162,10 @@ def consume(df: pd.Dataframe, score: float):
 
     === "python"
 
-        ```python linenums="1" hl_lines="28-34"
+        ```python linenums="1" hl_lines="26-37"
         --8<-- "examples/03-parameters/passing_parameters_python.py"
         ```
 
-    === "YAML (Legacy)"
-
-        ```yaml linenums="1" hl_lines="25-32"
-        --8<-- "examples/03-parameters/passing_parameters_python.yaml"
-        ```
 
 === "notebook"
 
@@ -226,15 +178,10 @@ def consume(df: pd.Dataframe, score: float):
 
     === "python"
 
-        ```python linenums="1" hl_lines="24-29"
+        ```python linenums="1" hl_lines="21-32"
         --8<-- "examples/03-parameters/passing_parameters_notebook.py"
         ```
 
-    === "YAML (Legacy)"
-
-        ```yaml linenums="1" hl_lines="21-28"
-        --8<-- "examples/03-parameters/passing_parameters_notebook.yaml"
-        ```
 
 === "shell"
 
@@ -242,12 +189,6 @@ def consume(df: pd.Dataframe, score: float):
 
     === "python"
 
-        ```python linenums="1" hl_lines="30-36"
+        ```python linenums="1" hl_lines="28-38"
         --8<-- "examples/03-parameters/passing_parameters_shell.py"
-        ```
-
-    === "YAML (Legacy)"
-
-        ```yaml linenums="1" hl_lines="26-31"
-        --8<-- "examples/03-parameters/passing_parameters_shell.yaml"
         ```

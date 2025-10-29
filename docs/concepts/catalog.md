@@ -44,33 +44,6 @@ For example, the above snippet would be:
     pipeline.execute()
     ```
 
-=== "YAML (Legacy)"
-
-    ```yaml linenums="1"
-    dag:
-      start_at: generate_data
-      steps:
-        generate:
-          type: task
-          command: examples.common.functions.write_files
-          catalog:
-            put:
-              - data.csv
-          next: consume
-        consume:
-          type: task
-          command_type: python
-          command: examples.common.functions.read_files
-          catalog:
-            get:
-              - df.csv
-              - data_folder/data.txt
-          next: success
-        success:
-          type: success
-        fail:
-            type: fail
-    ```
 
 ## Example
 
@@ -78,10 +51,4 @@ For example, the above snippet would be:
 
     ```python linenums="1"
     --8<-- "examples/04-catalog/catalog.py"
-    ```
-
-=== "YAML (Legacy)"
-
-    ```yaml linenums="1"
-    --8<-- "examples/04-catalog/catalog.yaml"
     ```

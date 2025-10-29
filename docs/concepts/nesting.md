@@ -22,11 +22,3 @@ AWS Step functions and Argo workflows support them.
     ```python linenums="1"
     --8<-- "examples/06-parallel/nesting.py"
     ```
-
-=== "YAML (Legacy)"
-
-    You can run this pipeline by ```runnable execute examples/parallel/nesting.yaml```
-
-    ```yaml linenums="1"
-    --8<-- "examples/06-parallel/nesting.yaml"
-    ```
