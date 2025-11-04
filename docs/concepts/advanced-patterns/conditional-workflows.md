@@ -14,9 +14,42 @@ flowchart TD
     E --> F
 ```
 
-```python linenums="1"
---8<-- "examples/02-sequential/conditional.py:39:56"
+```python
+from runnable import Conditional, Pipeline, PythonTask, Stub
+
+# Step 1: Make a decision
+toss_task = PythonTask(
+    function=toss_function,    # Returns "heads" or "tails"
+    returns=["toss"],          # Named return for conditional to use
+    name="toss_task"
+)
+
+# Step 2: Branch based on decision
+conditional = Conditional(
+    parameter="toss",          # Use the "toss" value from above
+    branches={
+        "heads": heads_pipeline,    # Run this if toss="heads"
+        "tails": tails_pipeline     # Run this if toss="tails"
+    },
+    name="conditional"
+)
+
+# Step 3: Continue after branching
+continue_step = Stub(name="continue_processing")
+
+pipeline = Pipeline(steps=[toss_task, conditional, continue_step])
+pipeline.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/02-sequential/conditional.py"
+    --8<-- "examples/02-sequential/conditional.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/02-sequential/conditional.py
+    ```
 
 ## How it works
 
@@ -27,16 +60,32 @@ flowchart TD
 
 ## The decision function
 
-```python linenums="1"
---8<-- "examples/02-sequential/conditional.py:12:26"
+```python
+import random
+
+def toss_function():
+    # Simulate a coin toss
+    toss = random.choice(["heads", "tails"])
+    print(f"Toss result: {toss}")
+    return toss  # Returns "heads" or "tails"
 ```
 
 Returns `"heads"` or `"tails"` - the conditional uses this to pick a branch.
 
 ## Branch pipelines
 
-```python linenums="1"
---8<-- "examples/02-sequential/conditional.py:29:37"
+```python
+def create_heads_pipeline():
+    return PythonTask(
+        function=when_heads_function,
+        name="when_heads_task"
+    ).as_pipeline()
+
+def create_tails_pipeline():
+    return PythonTask(
+        function=when_tails_function,
+        name="when_tails_task"
+    ).as_pipeline()
 ```
 
 Each branch is a complete pipeline that runs independently.

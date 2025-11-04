@@ -6,15 +6,27 @@ Both jobs and pipelines run your functions. The difference is **intent**.
 
 Perfect for standalone tasks:
 
-```python linenums="1"
+```python
+from runnable import PythonJob
+
 def analyze_sales_data():
     # Load data, run analysis, generate report
-    pass
+    return "Analysis complete!"
 
 # Job: Just run it
 job = PythonJob(function=analyze_sales_data)
 result = job.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/11-jobs/python_tasks.py"
+    --8<-- "examples/11-jobs/python_tasks.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/11-jobs/python_tasks.py
+    ```
 
 ### When to use jobs:
 
@@ -27,15 +39,17 @@ result = job.execute()
 
 Perfect for multi-step workflows:
 
-```python linenums="1"
+```python
+from runnable import Pipeline, PythonTask
+
 def load_data():
-    return raw_data
+    return {"users": 1000, "sales": 50000}
 
 def clean_data(raw_data):
-    return cleaned_data
+    return {"clean_users": raw_data["users"], "clean_sales": raw_data["sales"]}
 
 def train_model(cleaned_data):
-    return model
+    return f"Model trained on {cleaned_data['clean_users']} users"
 
 # Pipeline: Chain them together
 pipeline = Pipeline(steps=[
@@ -43,7 +57,18 @@ pipeline = Pipeline(steps=[
     PythonTask(function=clean_data, returns=["cleaned_data"]),
     PythonTask(function=train_model, returns=["model"])
 ])
+pipeline.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/03-parameters/passing_parameters_python.py"
+    --8<-- "examples/03-parameters/passing_parameters_python.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/03-parameters/passing_parameters_python.py
+    ```
 
 ### When to use pipelines:
 
@@ -56,18 +81,27 @@ pipeline = Pipeline(steps=[
 
 Here's the same function used both ways:
 
-```python linenums="1"
---8<-- "examples/common/functions.py:14:18"
+```python
+def hello():
+    "The most basic function"
+    print("Hello World!")
 ```
 
-**As a job** (from `examples/11-jobs/python_tasks.py`):
-```python linenums="1"
---8<-- "examples/11-jobs/python_tasks.py:7:13"
+**As a job:**
+```python
+from runnable import PythonJob
+
+job = PythonJob(function=hello)
+job.execute()
 ```
 
-**As a pipeline task** (from `examples/01-tasks/python_tasks.py`):
-```python linenums="1"
---8<-- "examples/01-tasks/python_tasks.py:7:17"
+**As a pipeline task:**
+```python
+from runnable import Pipeline, PythonTask
+
+task = PythonTask(function=hello, name="say_hello")
+pipeline = Pipeline(steps=[task])
+pipeline.execute()
 ```
 
 ## Quick decision guide

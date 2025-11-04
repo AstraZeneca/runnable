@@ -78,3 +78,17 @@ In the code snippets we are showing in getting started section, I see the value 
 bits of the code but it might be misleading to show only that as it is not perfectly executable.
 
 Is there a better way to document them? Plan it and brainstorm with me.
+
+
+## Run log
+
+Runnable has a rich logging to make workflows reproducible.
+
+For example, run any example from examples for example examples/04-catalog/catalog_python.py to understand the cataloging
+logging or examples/03-parameters/passing_parameters_python.py you will see that a .catalog directory and .run_log_store
+directory will be created with run logs and catalog stored.
+
+The run_id is a unique identifier of the run and the logs are captured against it.
+
+Run the above two examples like uv run script_name and analyse the output and the created files. Lets talk more about
+that after you see the results.

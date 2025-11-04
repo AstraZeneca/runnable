@@ -18,14 +18,36 @@ def send_report():
 
 **Step 1: Create and store files**
 
-```python linenums="1"
---8<-- "examples/04-catalog/catalog.py:29:35"
+```python
+from runnable import Catalog, PythonTask
+
+def write_files():
+    # Create your files
+    df.to_csv("df.csv")
+    with open("data_folder/data.txt", "w") as f:
+        f.write("Important data")
+
+# Store files automatically
+task1 = PythonTask(
+    function=write_files,
+    catalog=Catalog(put=["df.csv", "data_folder/data.txt"])
+)
 ```
 
 **Step 2: Retrieve and use files**
 
-```python linenums="1"
---8<-- "examples/04-catalog/catalog.py:37:43"
+```python
+def read_files():
+    # Files are automatically available here!
+    df = pd.read_csv("df.csv")  # ✅ File is there
+    with open("data_folder/data.txt") as f:
+        data = f.read()  # ✅ File is there
+
+# Get files automatically
+task2 = PythonTask(
+    function=read_files,
+    catalog=Catalog(get=["df.csv", "data_folder/data.txt"])
+)
 ```
 
 ## How it works
@@ -36,9 +58,34 @@ def send_report():
 
 ## Full workflow example
 
-```python linenums="1"
---8<-- "examples/04-catalog/catalog.py:29:52"
+```python
+from runnable import Pipeline, PythonTask, Catalog
+
+# Complete workflow with automatic file management
+pipeline = Pipeline(steps=[
+    PythonTask(
+        function=write_files,
+        catalog=Catalog(put=["df.csv", "data_folder/data.txt"]),
+        name="create_files"
+    ),
+    PythonTask(
+        function=read_files,
+        catalog=Catalog(get=["df.csv", "data_folder/data.txt"]),
+        name="process_files"
+    )
+])
+pipeline.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/04-catalog/catalog.py"
+    --8<-- "examples/04-catalog/catalog.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/04-catalog/catalog.py
+    ```
 
 ## Multiple files and folders
 

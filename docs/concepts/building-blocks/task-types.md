@@ -6,9 +6,24 @@ Runnable works with Python functions, Jupyter notebooks, and shell scripts. Use 
 
 Your regular functions work as-is:
 
-```python linenums="1"
---8<-- "examples/01-tasks/python_tasks.py:7:17"
+```python
+from runnable import Pipeline, PythonTask
+from examples.common.functions import hello
+
+task = PythonTask(function=hello, name="say_hello")
+pipeline = Pipeline(steps=[task])
+pipeline.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/01-tasks/python_tasks.py"
+    --8<-- "examples/01-tasks/python_tasks.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/01-tasks/python_tasks.py
+    ```
 
 Perfect for: Data processing, ML models, business logic
 
@@ -16,9 +31,26 @@ Perfect for: Data processing, ML models, business logic
 
 Run notebooks as pipeline steps:
 
-```python linenums="1"
---8<-- "examples/01-tasks/notebook.py:7:15"
+```python
+from runnable import Pipeline, NotebookTask
+
+task = NotebookTask(
+    name="analyze",
+    notebook="examples/common/simple_notebook.ipynb"
+)
+pipeline = Pipeline(steps=[task])
+pipeline.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/01-tasks/notebook.py"
+    --8<-- "examples/01-tasks/notebook.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/01-tasks/notebook.py
+    ```
 
 Perfect for: Exploration, visualization, reporting
 
@@ -26,9 +58,26 @@ Perfect for: Exploration, visualization, reporting
 
 Run any command-line tool:
 
-```python linenums="1"
---8<-- "examples/01-tasks/scripts.py:7:15"
+```python
+from runnable import Pipeline, ShellTask
+
+task = ShellTask(
+    name="greet",
+    command="echo 'Hello World!'"
+)
+pipeline = Pipeline(steps=[task])
+pipeline.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/01-tasks/scripts.py"
+    --8<-- "examples/01-tasks/scripts.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/01-tasks/scripts.py
+    ```
 
 Perfect for: System commands, external tools, legacy scripts
 
@@ -36,9 +85,27 @@ Perfect for: System commands, external tools, legacy scripts
 
 Use stubs when building workflows:
 
-```python linenums="1"
---8<-- "examples/01-tasks/stub.py:7:14"
+```python
+from runnable import Pipeline, Stub
+
+# Create placeholder steps that always succeed
+step1 = Stub(name="extract_data")
+step2 = Stub(name="process_data", what="placeholder")
+step3 = Stub(name="save_results")
+
+pipeline = Pipeline(steps=[step1, step2, step3])
+pipeline.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/01-tasks/stub.py"
+    --8<-- "examples/01-tasks/stub.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/01-tasks/stub.py
+    ```
 
 Perfect for: Testing pipeline structure, placeholder steps
 
@@ -46,9 +113,26 @@ Perfect for: Testing pipeline structure, placeholder steps
 
 Same workflow, different tools:
 
-```python linenums="1"
---8<-- "examples/02-sequential/traversal.py:13:25"
+```python
+from runnable import Pipeline, PythonTask, NotebookTask, ShellTask
+
+pipeline = Pipeline(steps=[
+    PythonTask(function=extract_data, returns=["raw_df"]),      # Python function
+    NotebookTask(notebook="clean.ipynb", returns=["clean_df"]), # Jupyter notebook
+    ShellTask(command="./analyze.sh", returns=["report_path"])  # Shell script
+])
+pipeline.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/02-sequential/traversal.py"
+    --8<-- "examples/02-sequential/traversal.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/02-sequential/traversal.py
+    ```
 
 Each task type can:
 

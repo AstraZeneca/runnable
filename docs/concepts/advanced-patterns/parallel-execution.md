@@ -21,9 +21,34 @@ flowchart TD
     H --> I
 ```
 
-```python linenums="1"
---8<-- "examples/06-parallel/parallel.py:46:59"
+```python
+from runnable import Parallel, Pipeline, Stub
+
+# Create the parallel step
+parallel_step = Parallel(
+    name="parallel_step",
+    branches={
+        "branch1": create_workflow(),  # Same workflow, independent execution
+        "branch2": create_workflow(),  # Same workflow, independent execution
+    }
+)
+
+# Continue after all branches complete
+continue_step = Stub(name="continue_processing")
+
+pipeline = Pipeline(steps=[parallel_step, continue_step])
+pipeline.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/06-parallel/parallel.py"
+    --8<-- "examples/06-parallel/parallel.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/06-parallel/parallel.py
+    ```
 
 ## How it works
 
@@ -34,8 +59,21 @@ flowchart TD
 
 ## Real workflow example
 
-```python linenums="1"
---8<-- "examples/06-parallel/parallel.py:11:42"
+```python
+def create_workflow():
+    from runnable import Pipeline, PythonTask, ShellTask, NotebookTask, Stub
+    from examples.common.functions import hello
+
+    # Each branch runs this same workflow independently
+    steps = [
+        Stub(name="hello_stub"),
+        PythonTask(function=hello, name="hello_python"),
+        ShellTask(command="echo 'Hello World!'", name="hello_shell"),
+        NotebookTask(notebook="examples/common/simple_notebook.ipynb",
+                    name="hello_notebook", terminate_with_success=True)
+    ]
+
+    return Pipeline(steps=steps)
 ```
 
 Each branch runs the same workflow independently - perfect for processing different data sources or running multiple models.
@@ -61,9 +99,31 @@ flowchart TD
     J --> K
 ```
 
-```python linenums="1"
---8<-- "examples/06-parallel/nesting.py:70:83"
+```python
+from runnable import Parallel, Pipeline
+
+# Nested parallel: Each branch is itself a parallel pipeline
+nested_parallel = Parallel(
+    name="nested_parallel",
+    branches={
+        "branch1": parallel_pipeline(),  # This is a parallel pipeline
+        "branch2": parallel_pipeline()   # This is also a parallel pipeline
+    }
+)
+
+pipeline = Pipeline(steps=[nested_parallel])
+pipeline.execute()
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/06-parallel/nesting.py"
+    --8<-- "examples/06-parallel/nesting.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/06-parallel/nesting.py
+    ```
 
 !!! tip "When to use parallel"
 

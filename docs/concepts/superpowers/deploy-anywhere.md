@@ -5,9 +5,12 @@ Here's the ultimate superpower: Same code runs everywhere. Just change the confi
 ## Your code never changes
 
 ```python
+from runnable import Pipeline, PythonTask
+
 def train_model():
     # Your model training logic
-    pass
+    print("Training model...")
+    return "model_v1.pkl"
 
 pipeline = Pipeline(steps=[
     PythonTask(function=train_model, name="training")
@@ -82,9 +85,30 @@ runnable execute my_pipeline.py --config prod-k8s.yaml
 
 From development to production:
 
-```python linenums="1"
---8<-- "examples/01-tasks/python_tasks.py:7:17"
+```python
+from runnable import Pipeline, PythonTask
+from examples.common.functions import hello
+
+# Same code, different environments
+task = PythonTask(function=hello, name="say_hello")
+pipeline = Pipeline(steps=[task])
+
+# Development: just run it
+pipeline.execute()
+
+# Production: same code, different config
+pipeline.execute(config="kubernetes.yaml")
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/01-tasks/python_tasks.py"
+    --8<-- "examples/01-tasks/python_tasks.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/01-tasks/python_tasks.py
+    ```
 
 **Dev environment:** Runs in 2 seconds on your laptop
 **Prod environment:** Runs on Kubernetes with monitoring, logging, and auto-scaling

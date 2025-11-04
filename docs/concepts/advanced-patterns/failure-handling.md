@@ -14,9 +14,28 @@ flowchart TD
     E[Step 3] -.->|Never runs| F[❌]
 ```
 
-```python linenums="1"
---8<-- "examples/02-sequential/default_fail.py:27:36"
+```python
+from runnable import Pipeline, PythonTask, Stub
+from examples.common.functions import hello, raise_ex
+
+# Normal pipeline - fails on any error
+step1 = PythonTask(name="step_1", function=hello)
+step2 = PythonTask(name="step_2", function=raise_ex)  # This will fail!
+step3 = Stub(name="step_3")                           # Never runs
+
+pipeline = Pipeline(steps=[step1, step2, step3])
+pipeline.execute()  # Stops at step2 failure
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/02-sequential/default_fail.py"
+    --8<-- "examples/02-sequential/default_fail.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/02-sequential/default_fail.py
+    ```
 
 **Flow:** `step 1` → `step 2` (fails) → pipeline stops
 
@@ -33,9 +52,33 @@ flowchart TD
     G[Step 3] -.->|Skipped| H[❌]
 ```
 
-```python linenums="1"
---8<-- "examples/02-sequential/on_failure_succeed.py:32:45"
+```python
+from runnable import Pipeline, PythonTask, Stub
+from examples.common.functions import raise_ex
+
+# Create recovery pipeline
+recovery_pipeline = Stub(name="recovery_step").as_pipeline()
+
+# Set up failure handling
+step_1 = PythonTask(name="step_1", function=raise_ex)  # This will fail
+step_1.on_failure = recovery_pipeline                   # Run this instead
+
+step_2 = Stub(name="step_2")  # Skipped (normal flow interrupted)
+step_3 = Stub(name="step_3")  # Skipped (normal flow interrupted)
+
+pipeline = Pipeline(steps=[step_1, step_2, step_3])
+pipeline.execute()  # Runs: step_1 → fails → recovery_pipeline → success!
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/02-sequential/on_failure_succeed.py"
+    --8<-- "examples/02-sequential/on_failure_succeed.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/02-sequential/on_failure_succeed.py
+    ```
 
 **Flow:** `step_1` (fails) → `step_4` → success
 

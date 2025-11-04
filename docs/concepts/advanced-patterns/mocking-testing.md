@@ -20,9 +20,28 @@ Test your pipeline structure and logic without running expensive operations.
 
 Replace any task with a stub during development:
 
-```python linenums="1"
---8<-- "examples/01-tasks/stub.py:7:14"
+```python
+from runnable import Pipeline, Stub
+
+# Replace expensive operations with stubs
+data_extraction = Stub(name="extract_data")         # Instead of slow API calls
+model_training = Stub(name="train_model")           # Instead of hours of training
+report_generation = Stub(name="generate_report")   # Instead of complex rendering
+
+# Test your pipeline structure
+pipeline = Pipeline(steps=[data_extraction, model_training, report_generation])
+pipeline.execute()  # Runs instantly, tests workflow logic
 ```
+
+??? example "See complete runnable code"
+    ```python title="examples/01-tasks/stub.py"
+    --8<-- "examples/01-tasks/stub.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/01-tasks/stub.py
+    ```
 
 Stubs act like real tasks but do nothing - perfect for testing structure.
 
