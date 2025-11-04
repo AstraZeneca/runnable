@@ -32,26 +32,72 @@ but can return json/pydantic/objects.
 
 ## Project parameters
 
-Project parameters can be provided by environment variables prefixed by ```RUNNABLE_PRM_```.
+Project parameters are values that can be provided to your pipeline from external sources. Runnable supports two main approaches for providing project parameters:
 
-!!! warning inline end "Type casting"
+1. **YAML files** - Define parameters in structured configuration files
+2. **Environment variables** - Set parameters using environment variables with the `RUNNABLE_PRM_` prefix
+
+!!! info "Parameter Priority"
+
+    Environment variables take precedence over YAML-based parameters. If the same parameter is defined in both a YAML file and as an environment variable, the environment variable value will be used.
+
+### YAML-based parameters
+
+Parameters can be defined in YAML files and passed to the pipeline execution:
+
+```yaml title="parameters.yaml"
+integer: 1
+floater: 3.14
+stringer: hello
+pydantic_param:
+  x: 10
+  foo: bar
+chunks: [1, 2, 3]
+```
+
+The YAML file is then used during pipeline execution:
+
+```python
+pipeline.execute(parameters_file="parameters.yaml")
+```
+
+### Environment variable parameters
+
+Parameters can also be defined as environment variables prefixed by ```RUNNABLE_PRM_```:
+
+```shell
+export RUNNABLE_PRM_integer="1"
+export RUNNABLE_PRM_floater="3.14"
+export RUNNABLE_PRM_stringer="hello"
+export RUNNABLE_PRM_pydantic_param="{'x': 10, 'foo': 'bar'}"
+export RUNNABLE_PRM_chunks="[1, 2, 3]"
+```
+
+Environment variables are useful for:
+
+- Quick experimentation without changing code
+- Different configurations across environments (dev/staging/prod)
+- Overriding specific parameters in YAML files
+
+!!! warning "Type casting"
 
     Annotating the arguments of python function ensures the right data type of arguments.
 
     It is advised to ```cast``` the parameters in notebook tasks or shell.
 
-Parameters can be defined as environment variables:
 
-```shell
-export runnable_PRM_integer="1"
-export runnable_PRM_floater="3.14"
-export runnable_PRM_stringer="hello"
-export runnable_PRM_pydantic_param="{'x': 10, 'foo': bar}"
-export runnable_PRM_chunks="[1, 2, 3]"
+### Parameter override example
+
+The following example demonstrates how environment variables override YAML parameters:
+
+```python linenums="1"
+--8<-- "examples/03-parameters/static_parameters_python.py"
 ```
 
-This can be useful to do a quick experimentation without changing code.
-
+In this example:
+- The YAML file (`examples/common/initial_parameters.yaml`) defines base parameter values
+- The environment variable `RUNNABLE_PRM_envvar` is set to `"from env"`
+- When the pipeline executes, it uses values from the YAML file for most parameters, but the `envvar` parameter comes from the environment variable, demonstrating the override behavior
 
 ### Accessing parameters
 
@@ -61,15 +107,13 @@ This can be useful to do a quick experimentation without changing code.
 
     Without annotations for nested params, they are sent in as dictionary.
 
-    ```python linenums="1"
-    --8<-- "examples/03-parameters/static_parameters_python.py"
-    ```
-
 === "notebook & shell"
 
     The notebook has cell tagged with ```parameters``` which are substituted at run time.
 
     The shell script has access to them as environmental variables.
+
+    Both notebook and shell tasks receive parameters from the same sources (YAML files and environment variables) with the same priority system.
 
     ```python linenums="1"
     --8<-- "examples/03-parameters/static_parameters_non_python.py"
@@ -81,7 +125,7 @@ This can be useful to do a quick experimentation without changing code.
 
 ### access
 
-The access of parameters returned by upstream tasks is similar to [project parameters](#project-parameters)
+The access of parameters returned by upstream tasks is similar to project parameters (see above section)
 
 
 ### returns

@@ -115,7 +115,24 @@ nav:
       - "Introduction": "index.md"
       - "Usage": "usage.md"
       - "Why runnable?": "why-runnable.md"
-  - "Concepts":
+  - "Getting Started":
+      - "From Python to Runnable": "getting-started/your-first-function.md"
+      - "Adding Your Data": "getting-started/handling-data.md"
+      - "Connecting Functions": "getting-started/connecting-functions.md"
+  - "Building Blocks":
+      - "Jobs vs Pipelines": "concepts/building-blocks/jobs-vs-pipelines.md"
+      - "Task Types": "concepts/building-blocks/task-types.md"
+  - "Superpowers":
+      - "Parameters From Outside": "concepts/superpowers/parameters-from-outside.md"
+      - "File Management": "concepts/superpowers/file-management.md"
+      - "Deploy Anywhere": "concepts/superpowers/deploy-anywhere.md"
+  - "Advanced Patterns":
+      - "Parallel Execution": "concepts/advanced-patterns/parallel-execution.md"
+      - "Map Patterns": "concepts/advanced-patterns/map-patterns.md"
+      - "Conditional Workflows": "concepts/advanced-patterns/conditional-workflows.md"
+      - "Failure Handling": "concepts/advanced-patterns/failure-handling.md"
+      - "Mocking and Testing": "concepts/advanced-patterns/mocking-testing.md"
+  - "Advanced Concepts":
       - "Pipeline":
           - "concepts/pipeline_intro.md"
           - "Tasks": "concepts/task.md"
