@@ -125,6 +125,7 @@ nav:
   - "Superpowers":
       - "Parameters From Outside": "concepts/superpowers/parameters-from-outside.md"
       - "File Management": "concepts/superpowers/file-management.md"
+      - "Reproducibility": "concepts/superpowers/reproducibility.md"
       - "Deploy Anywhere": "concepts/superpowers/deploy-anywhere.md"
   - "Advanced Patterns":
       - "Parallel Execution": "concepts/advanced-patterns/parallel-execution.md"
@@ -132,7 +133,6 @@ nav:
       - "Conditional Workflows": "concepts/advanced-patterns/conditional-workflows.md"
       - "Failure Handling": "concepts/advanced-patterns/failure-handling.md"
       - "Mocking and Testing": "concepts/advanced-patterns/mocking-testing.md"
-  - "Reproducibility": "concepts/run-log.md"
   - "Run pipeline":
       - "configurations/overview.md"
       - "Executor":
