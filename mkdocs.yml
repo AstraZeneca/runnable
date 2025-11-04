@@ -133,6 +133,8 @@ nav:
       - "Conditional Workflows": "concepts/advanced-patterns/conditional-workflows.md"
       - "Failure Handling": "concepts/advanced-patterns/failure-handling.md"
       - "Mocking and Testing": "concepts/advanced-patterns/mocking-testing.md"
+  - "Comparisons":
+      - "vs Kedro": "comparisons/kedro.md"
   - "Run pipeline":
       - "configurations/overview.md"
       - "Executor":
