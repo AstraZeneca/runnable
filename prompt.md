@@ -123,3 +123,53 @@ In superpowers/deploy anywhere - the kubernetes.yaml is specific to jobs.
 
 
 In advanced patterns/parallel-execution - the infinite nesting is a mix and match between any of the complex pipelines, not just parallel
+
+in advanced patterns/map - the reducer could be a function too which is mentioned as a dot pattern. (my_module.my_function.). The function should accept a list and can return
+what ever should be stored for future.
+
+
+
+
+## Job Configs
+
+Runnable makes it easier to run jobs in different environments via configs. The configuration of the environment
+is provided via a config. Lets delve deeper into each configuration.  The configuration is always defined
+as the fields of pydantic model, ignore any private fields which are __ style.
+
+The fields are the one that the user can provide as part of the configuration and most of them have sensible
+defaults.
+
+All the configs which are mentioned here are in extensions/job_executor/
+
+
+### Local job
+
+The local job has not many fields, the only field is ```mock``` which tells the executor to just mock all the executions.
+
+### Local container
+
+The configuration is from local_container.py and the configuration is:
+
+```
+docker_image: str
+mock: bool = False
+auto_remove_container: bool = True
+environment: Dict[str, str] = Field(default_factory=dict)
+```
+
+
+### kubernetes style
+
+The configuration is present in k8s.py. A note that this is made to work both in minikube settings and full blown k8s settings. And the fields are nested pydantic models, so to understand a config you might have to expand the model.
+
+The config for this is:
+
+```
+    config_path: Optional[str] = None # The location of k8s config file with creds
+    job_spec: Spec
+    mock: bool = False
+    namespace: str = Field(default="default")
+
+```
+
+When dealing with real k8s cluster, runnable needs a pvc claim for it to work.

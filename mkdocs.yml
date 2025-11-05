@@ -135,6 +135,7 @@ nav:
       - "Mocking and Testing": "concepts/advanced-patterns/mocking-testing.md"
   - "Comparisons":
       - "vs Kedro": "comparisons/kedro.md"
+      - "vs Metaflow": "comparisons/metaflow.md"
   - "Run pipeline":
       - "configurations/overview.md"
       - "Executor":
