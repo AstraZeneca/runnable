@@ -468,18 +468,187 @@ kedro run
 
 ---
 
-## 📊 Side-by-Side Comparison
+## 📊 Comprehensive Feature Comparison
 
-| Aspect | Runnable | Kedro |
-|--------|----------|-------|
-| **Files needed** | 1 Python file | 15+ files across directories |
-| **Configuration** | Optional (inline parameters) | Mandatory YAML files |
-| **Learning curve** | 5 minutes | 2-3 days |
-| **Time to first run** | Immediate | Hours (setup + learning) |
-| **Your existing code** | Zero changes needed | Must refactor to fit patterns |
-| **Parallel execution** | `Parallel()` - explicit and clear | Automatic but less obvious |
-| **Local to production** | Same code, different config | Requires external orchestrators |
-| **Debugging** | Standard Python debugging | Kedro-specific tooling needed |
+### Core Workflow Features
+
+| Feature | Runnable | Kedro | Winner |
+|---------|----------|-------|---------|
+| **Pipeline Definition** | Single Python file | Multiple files + YAML | 🟢 Runnable |
+| **Task Types** | Python, Notebooks, Shell, Stubs | Python nodes (primarily) | 🟢 Runnable |
+| **Parameter Passing** | Automatic flow between tasks | Explicit catalog + parameters | 🟢 Runnable |
+| **Parallel Execution** | `Parallel()` - explicit control | Automatic dependency resolution | 🟡 Tie |
+| **Conditional Logic** | `Conditional()` with branches | Custom node logic | 🟢 Runnable |
+| **Map/Reduce** | Native `Map()` with custom reducers | Manual implementation | 🟢 Runnable |
+| **Failure Handling** | `on_failure` pipeline redirection | Hook-based custom handling | 🟡 Tie |
+
+### Data Management
+
+| Feature | Runnable | Kedro | Winner |
+|---------|----------|-------|---------|
+| **File Handling** | Simple `Catalog(put/get)` | Rich catalog.yml definitions | 🟡 Tie |
+| **Data Versioning** | Basic (via run IDs) | Advanced timestamp versioning | 🔴 Kedro |
+| **Data Validation** | Manual in your functions | Built-in dataset validation | 🔴 Kedro |
+| **Storage Backends** | File, S3, Minio via plugins | 20+ built-in dataset types | 🔴 Kedro |
+| **Data Lineage** | Automatic via run logs | Kedro-viz visualization | 🟡 Tie |
+| **Schema Evolution** | Manual handling | Built-in schema validation | 🔴 Kedro |
+
+### Development Experience
+
+| Feature | Runnable | Kedro | Winner |
+|---------|----------|-------|---------|
+| **Learning Curve** | 5-10 minutes | 2-3 days | 🟢 Runnable |
+| **Code Changes** | Zero refactoring needed | Must fit Kedro patterns | 🟢 Runnable |
+| **IDE Support** | Standard Python tooling | Kedro-specific extensions | 🟢 Runnable |
+| **Debugging** | Native Python debugging | Framework-specific debugging | 🟢 Runnable |
+| **Testing** | Standard pytest + Stubs | Rich testing utilities | 🟡 Tie |
+| **Hot Reloading** | Standard Python imports | Kedro session management | 🟢 Runnable |
+
+### Production & Operations
+
+| Feature | Runnable | Kedro | Winner |
+|---------|----------|-------|---------|
+| **Local Development** | Instant - just run Python | Kedro CLI required | 🟢 Runnable |
+| **Environment Portability** | Same code everywhere | Requires deployment strategy | 🟢 Runnable |
+| **Container Support** | Built-in via config | Manual Dockerization | 🟢 Runnable |
+| **Kubernetes** | Native executor | Requires external tools | 🟢 Runnable |
+| **Argo Workflows** | Native executor | Requires kedro-argo plugin | 🟢 Runnable |
+| **Monitoring** | Basic run logs | Rich hooks ecosystem | 🔴 Kedro |
+| **Experiment Tracking** | Basic via run IDs | MLflow integration | 🔴 Kedro |
+
+### Reproducibility & Governance
+
+| Feature | Runnable | Kedro | Winner |
+|---------|----------|-------|---------|
+| **Run Tracking** | Automatic unique IDs + metadata | Manual experiment setup | 🟢 Runnable |
+| **Code Versioning** | Automatic git commit tracking | Manual version management | 🟢 Runnable |
+| **Parameter Tracking** | Full parameter flow capture | Explicit parameter logging | 🟢 Runnable |
+| **Audit Trails** | Complete JSON logs | Custom hook implementation | 🟢 Runnable |
+| **Data Governance** | Basic file tracking | Rich catalog governance | 🔴 Kedro |
+| **Compliance** | Basic logging | Enterprise-grade features | 🔴 Kedro |
+
+### Ecosystem & Integration
+
+| Feature | Runnable | Kedro | Winner |
+|---------|----------|-------|---------|
+| **Plugin System** | Entry points architecture | Rich plugin ecosystem | 🔴 Kedro |
+| **MLOps Integration** | Basic via shell tasks | Native MLflow, Airflow, etc. | 🔴 Kedro |
+| **Visualization** | Basic via logs | Advanced kedro-viz | 🔴 Kedro |
+| **Community** | Smaller, growing | Large, established | 🔴 Kedro |
+| **Documentation** | Growing | Comprehensive | 🔴 Kedro |
+| **Enterprise Support** | Basic | AstraZeneca backing | 🔴 Kedro |
+
+## 🟢 What Runnable Excels At
+
+### **Unique Advantages**
+
+1. **Zero Framework Lock-in**
+   - Your functions remain pure Python
+   - No refactoring of existing code required
+   - Easy to extract logic if you change frameworks
+
+2. **Environment Portability**
+   ```python
+   # Same exact code
+   pipeline.execute()                     # Local
+   pipeline.execute(config="k8s.yaml")   # Kubernetes
+   pipeline.execute(config="argo.yaml")   # Argo Workflows
+   ```
+
+3. **Advanced Workflow Patterns**
+   - Native `Parallel()`, `Map()`, `Conditional()`
+   - Complex branching and merging logic
+   - Custom reducers and failure handling
+
+4. **Instant Productivity**
+   - 5-minute setup vs days
+   - No learning curve for existing Python developers
+   - Immediate execution without CLI tools
+
+5. **Mixed Task Types**
+   ```python
+   Pipeline(steps=[
+       PythonTask(function=preprocess),      # Python
+       NotebookTask(notebook="explore.ipynb"), # Jupyter
+       ShellTask(command="./deploy.sh")      # Shell
+   ])
+   ```
+
+6. **Automatic Reproducibility**
+   - Every run gets unique ID and complete metadata
+   - Git commit tracking without setup
+   - Parameter flow capture built-in
+
+## 🔴 What Runnable Lacks (Kedro's Strengths)
+
+### **Where Kedro is Superior**
+
+1. **Data Catalog Sophistication**
+   - 20+ built-in dataset types with validation
+   - Advanced versioning with timestamps
+   - Schema evolution and data quality checks
+
+2. **Enterprise Features**
+   - Rich data governance capabilities
+   - Compliance and audit features
+   - Enterprise-grade data lineage
+
+3. **MLOps Ecosystem**
+   - Native MLflow integration
+   - Airflow deployment patterns
+   - Established ML workflow conventions
+
+4. **Visualization & Monitoring**
+   - Advanced pipeline visualization (kedro-viz)
+   - Rich experiment tracking
+   - Sophisticated monitoring hooks
+
+5. **Team Collaboration**
+   - Opinionated project structure enforces consistency
+   - Standardized patterns across large teams
+   - Better for 50+ person data science organizations
+
+6. **Plugin Ecosystem**
+   - Mature plugin architecture
+   - Many contributed integrations
+   - Active community contributions
+
+## 🎯 Honest Trade-off Analysis
+
+### **Choose Runnable When:**
+- **Team size**: 1-10 developers
+- **Priority**: Speed and simplicity
+- **Existing code**: Want to reuse without changes
+- **Deployment**: Need multi-environment portability
+- **Workflows**: Complex branching/parallel patterns
+- **Timeline**: Need to be productive immediately
+
+### **Choose Kedro When:**
+- **Team size**: 10+ data scientists
+- **Priority**: Governance and standardization
+- **Data complexity**: Heavy ETL with validation needs
+- **Enterprise**: Need compliance and audit features
+- **MLOps maturity**: Want established integration patterns
+- **Timeline**: Can invest weeks in setup for long-term benefits
+
+### **The Bottom Line**
+
+**Runnable trades enterprise sophistication for developer productivity.**
+
+If you're a small-to-medium team that wants to get ML pipelines running quickly across environments, Runnable's simplicity wins decisively.
+
+If you're an enterprise with complex data governance needs and large teams requiring standardization, Kedro's sophistication may justify its complexity overhead.
+
+## 📊 Quick Decision Matrix
+
+| Your Situation | Recommended Choice | Why |
+|----------------|-------------------|-----|
+| Startup/small team building ML products | 🟢 **Runnable** | Speed to market, simple deployment |
+| Individual data scientist | 🟢 **Runnable** | Zero learning curve, works with existing code |
+| Medium team (5-15 people) | 🟡 **Either** | Depends on governance vs speed priority |
+| Large enterprise (50+ data scientists) | 🔴 **Kedro** | Standardization and governance benefits |
+| Heavy ETL/data engineering focus | 🔴 **Kedro** | Rich catalog and validation features |
+| Complex ML deployment requirements | 🟢 **Runnable** | Multi-environment portability |
 
 ## 💡 The Numbers Don't Lie
 

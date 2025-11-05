@@ -108,3 +108,18 @@ that after you see the results.
 - Highlight that the fact that the domain code can exist elsewhere and not part of the runnable wrappers
 - If I am not wrong, kedro need not have data in such a heirarchial fashion, it is only a recommendation. Correct me \
   if I am wrong.
+
+
+## Bugs
+
+Not all return types are support by all jobs or tasks.
+
+Python related jobs or tasks can return anything and accept anything.
+
+Notebook jobs or tasks can only accept JSON friendly inputs (string, integer etc) but can return anything
+Shell jobs or tasks can only accept JSON friend inputs and are exposed as environmental variables and can only return json friendly outputs from environmental variables
+
+In superpowers/deploy anywhere - the kubernetes.yaml is specific to jobs.
+
+
+In advanced patterns/parallel-execution - the infinite nesting is a mix and match between any of the complex pipelines, not just parallel

@@ -5,12 +5,14 @@ Test your pipeline structure and logic without running expensive operations.
 ## Why mock?
 
 **Test pipeline logic:**
+
 - Verify workflow structure
 - Test parameter flow
 - Check conditional branches
 - Validate failure handling
 
 **Without the cost:**
+
 - Skip slow ML training
 - Avoid external API calls
 - Test with fake data
@@ -136,16 +138,19 @@ def test_failure_recovery():
 ## Mocking strategies
 
 **Development:**
+
 - Start with stubs for all tasks
 - Implement one task at a time
 - Test each addition independently
 
 **Testing:**
+
 - Mock external dependencies
 - Use deterministic test data
 - Test edge cases and failures
 
 **Staging:**
+
 - Mix real and mocked components
 - Test with production-like data
 - Validate performance characteristics

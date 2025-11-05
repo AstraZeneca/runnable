@@ -137,6 +137,7 @@ map_state = Map(
     ```
 
 Common reducers:
+
 - `"lambda *x: max(x)"` → Maximum value
 - `"lambda *x: sum(x)"` → Sum all values
 - `"lambda *x: len(x)"` → Count items
@@ -145,6 +146,7 @@ Common reducers:
 ## When to use map
 
 **Perfect for:**
+
 - Processing file collections
 - Batch processing data chunks
 - Cross-validation in ML

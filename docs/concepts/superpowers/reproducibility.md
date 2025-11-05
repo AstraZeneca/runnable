@@ -212,12 +212,14 @@ pipeline.execute()
 ## Why this matters
 
 **Without automatic tracking:**
+
 - ❌ "It worked last week" debugging sessions
 - ❌ Lost parameter combinations that worked
 - ❌ No way to reproduce important results
 - ❌ Manual documentation that gets stale
 
 **With Runnable's tracking:**
+
 - ✅ Every run is completely reproducible
 - ✅ Compare results across different runs
 - ✅ Debug with full execution context

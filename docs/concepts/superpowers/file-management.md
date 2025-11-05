@@ -100,12 +100,14 @@ catalog=Catalog(get=["results.csv", "model.pkl"])
 ## Why this matters
 
 **Without catalog:**
+
 - ❌ Manual path management
 - ❌ Files get lost between environments
 - ❌ Hard to reproduce workflows
 - ❌ Cleanup is manual
 
 **With catalog:**
+
 - ✅ Automatic file management
 - ✅ Works across different environments
 - ✅ Perfect reproducibility
