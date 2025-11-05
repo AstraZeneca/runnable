@@ -92,3 +92,19 @@ The run_id is a unique identifier of the run and the logs are captured against i
 
 Run the above two examples like uv run script_name and analyse the output and the created files. Lets talk more about
 that after you see the results.
+
+
+## Comparison kedro
+
+- Ensure that the return types and inputs are annotated in functions
+- Runnable does not have or need int(x) in returns
+- runnable cannot work with data that is not part of the catalog yet, so the first step which does a catalog get  \
+  will fail. The alternate and recommended way is to either have them as part of the file structure which is less ideal \
+  or have them in central storage like S3 and access it. Using s3 has an advantage as we can start to version it and \
+  also we can use secrets to safely access them.
+- The parameters which are used cannot be sent into runnable pipeline execute as ```parameters={"max_depth": 15}``` \
+  They should be either defined by a parameters file in yaml or via environmental variables. Use defaults but override
+  them before execution in the demonstration code.
+- Highlight that the fact that the domain code can exist elsewhere and not part of the runnable wrappers
+- If I am not wrong, kedro need not have data in such a heirarchial fashion, it is only a recommendation. Correct me \
+  if I am wrong.

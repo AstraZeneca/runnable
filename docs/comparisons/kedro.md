@@ -26,11 +26,11 @@ from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
 import joblib
 
-def load_and_clean_data():
+def load_and_clean_data() -> dict:
     """Load multiple data sources and clean them."""
-    # Load from multiple sources
-    customers = pd.read_csv("customers.csv")
-    transactions = pd.read_csv("transactions.csv")
+    # Load from S3 or central storage (not local files that don't exist yet)
+    customers = pd.read_csv("s3://bucket/raw-data/customers.csv")
+    transactions = pd.read_csv("s3://bucket/raw-data/transactions.csv")
 
     # Clean and merge
     data = customers.merge(transactions, on="customer_id")
@@ -46,7 +46,7 @@ def load_and_clean_data():
 
     return {"n_samples": len(X), "n_features": X.shape[1]}
 
-def train_random_forest(n_samples, n_features, max_depth=10):
+def train_random_forest(n_samples: int, n_features: int, max_depth: int = 10) -> dict:
     """Train Random Forest model."""
     X = pd.read_csv("features.csv")
     y = pd.read_csv("target.csv").values.ravel()
@@ -60,7 +60,7 @@ def train_random_forest(n_samples, n_features, max_depth=10):
     accuracy = model.score(X, y)
     return {"model_type": "RandomForest", "accuracy": accuracy}
 
-def train_xgboost(n_samples, n_features, max_depth=10):
+def train_xgboost(n_samples: int, n_features: int, max_depth: int = 10) -> dict:
     """Train XGBoost model."""
     X = pd.read_csv("features.csv")
     y = pd.read_csv("target.csv").values.ravel()
@@ -74,7 +74,7 @@ def train_xgboost(n_samples, n_features, max_depth=10):
     accuracy = model.score(X, y)
     return {"model_type": "XGBoost", "accuracy": accuracy}
 
-def select_best_model(model_results):
+def select_best_model(model_results: list) -> dict:
     """Compare models and select the best one."""
     # model_results is a list from parallel execution
     best_model = max(model_results, key=lambda x: x['accuracy'])
@@ -91,7 +91,7 @@ def select_best_model(model_results):
 
     return best_model
 
-def generate_report(best_model, data_stats):
+def generate_report(best_model: dict, data_stats: dict) -> dict:
     """Generate final ML report."""
     report = f"""
     ML Pipeline Report
@@ -115,11 +115,12 @@ def generate_report(best_model, data_stats):
 # Define the pipeline
 def create_pipeline():
     # Step 1: Data preparation
+    # Note: Domain code exists separately - we just wrap it here
     data_prep = PythonTask(
         function=load_and_clean_data,
-        returns=[("n_samples", "json"), ("n_features", "json")],
+        returns=["n_samples", "n_features"],  # Simple returns, no type annotations needed
         catalog=Catalog(
-            get=["customers.csv", "transactions.csv"],
+            # No 'get' - data comes from S3/central storage, not local catalog
             put=["features.csv", "target.csv"]
         ),
         name="data_preparation"
@@ -131,7 +132,7 @@ def create_pipeline():
         branches={
             "random_forest": PythonTask(
                 function=train_random_forest,
-                returns=[("rf_results", "json")],
+                returns=["rf_results"],
                 catalog=Catalog(
                     get=["features.csv", "target.csv"],
                     put=["rf_model.pkl"]
@@ -141,7 +142,7 @@ def create_pipeline():
 
             "xgboost": PythonTask(
                 function=train_xgboost,
-                returns=[("xgb_results", "json")],
+                returns=["xgb_results"],
                 catalog=Catalog(
                     get=["features.csv", "target.csv"],
                     put=["xgb_model.pkl"]
@@ -154,7 +155,7 @@ def create_pipeline():
     # Step 3: Model selection
     model_selection = PythonTask(
         function=select_best_model,
-        returns=[("best_model", "json")],
+        returns=["best_model"],
         catalog=Catalog(
             get=["rf_model.pkl", "xgb_model.pkl"],
             put=["best_model.pkl"]
@@ -165,7 +166,7 @@ def create_pipeline():
     # Step 4: Report generation
     reporting = PythonTask(
         function=generate_report,
-        returns=[("report", "json")],
+        returns=["report"],
         catalog=Catalog(put=["ml_report.txt"]),
         name="generate_report"
     )
@@ -178,8 +179,14 @@ def create_pipeline():
     ])
 
 if __name__ == "__main__":
+    # Create parameters file for proper Runnable parameter handling
+    import yaml
+    with open("parameters.yaml", "w") as f:
+        yaml.dump({"max_depth": 15}, f)
+
     pipeline = create_pipeline()
-    result = pipeline.execute(parameters={"max_depth": 15})
+    # Parameters via file (recommended) or environment variables, not inline
+    result = pipeline.execute(parameters_file="parameters.yaml")
     print(f"Pipeline completed! Run ID: {result.run_id}")
 ```
 
@@ -190,13 +197,28 @@ uv run ml_pipeline.py
 
 **That's it.** One file, runs immediately, works locally and in production.
 
+!!! note "Domain Code Separation"
+
+    Notice how your **business logic functions remain pure Python** - no framework dependencies. You could import these functions from completely separate modules:
+
+    ```python
+    # Import from your existing codebase
+    from my_ml_library.preprocessing import load_and_clean_data
+    from my_ml_library.models import train_random_forest, train_xgboost
+    from my_ml_library.evaluation import select_best_model
+    from my_ml_library.reporting import generate_report
+
+    # Just wrap them with Runnable - no changes to your domain code needed
+    ```
+
 ---
 
 ## 🔴 The Kedro Way: Configuration Heavy
 
 The same pipeline in Kedro requires **multiple files and directories**:
 
-### Project Structure Required
+### Project Structure (Kedro's Recommended Layout)
+*Note: While this specific directory structure is Kedro's recommendation rather than a strict requirement, most teams follow this pattern for consistency:*
 ```
 ml-kedro-project/
 ├── conf/
