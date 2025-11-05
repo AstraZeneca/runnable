@@ -487,7 +487,7 @@ kedro run
 | Feature | Runnable | Kedro | Winner |
 |---------|----------|-------|---------|
 | **File Handling** | Simple `Catalog(put/get)` | Rich catalog.yml definitions | 🟡 Tie |
-| **Data Versioning** | Basic (via run IDs) | Advanced timestamp versioning | 🔴 Kedro |
+| **Data Versioning** | Content-based MD5 hashing | Timestamp-based versioning | 🟢 Runnable |
 | **Data Validation** | Manual in your functions | Built-in dataset validation | 🔴 Kedro |
 | **Storage Backends** | File, S3, Minio via plugins | 20+ built-in dataset types | 🔴 Kedro |
 | **Data Lineage** | Automatic via run logs | Kedro-viz visualization | 🟡 Tie |
@@ -579,14 +579,49 @@ kedro run
    - Git commit tracking without setup
    - Parameter flow capture built-in
 
+7. **Superior Data Versioning**
+   ```json
+   {
+     "name": "model_data.csv",
+     "data_hash": "8650858600ce25b35e978ecb162414d9",
+     "catalog_relative_path": "run-123/model_data.csv"
+   }
+   ```
+   - **Content-based hashing**: Detects actual data changes, not just timestamps
+   - **Smart large file handling**: Uses last 5MB for performance on big datasets
+   - **True deduplication**: Identical content = same hash, regardless of when created
+
+### **Why Content Hashing Beats Timestamps**
+
+**Runnable's Approach:**
+```python
+# Same data = same hash, always
+file_v1 = "customers.csv"  # Hash: abc123
+file_v2 = "customers_copy.csv"  # Same content → Hash: abc123
+file_v3 = "customers_modified.csv"  # Different content → Hash: def456
+```
+
+**Problems with Timestamp Versioning:**
+- ❌ **False changes**: File touched but content unchanged → new "version"
+- ❌ **Missed duplicates**: Same content, different timestamps → separate versions
+- ❌ **Clock skew issues**: Different machines = timestamp inconsistencies
+- ❌ **No content verification**: Can't detect corruption or partial writes
+
+**Runnable's Content Hash Advantages:**
+- ✅ **True change detection**: Only creates new version when content actually changes
+- ✅ **Automatic deduplication**: Identical files share same hash regardless of name/time
+- ✅ **Data integrity**: Hash mismatch immediately reveals corruption
+- ✅ **Performance optimized**: Last 5MB sampling for large files (TBs)
+
 ## 🔴 What Runnable Lacks (Kedro's Strengths)
 
 ### **Where Kedro is Superior**
 
 1. **Data Catalog Sophistication**
    - 20+ built-in dataset types with validation
-   - Advanced versioning with timestamps
+   - Rich dataset abstractions and transformations
    - Schema evolution and data quality checks
+   - *Note: Timestamp versioning is less robust than content hashing*
 
 2. **Enterprise Features**
    - Rich data governance capabilities
