@@ -15,19 +15,18 @@ from runnable import Pipeline, ShellTask
 
 def main():
     # If this step executes successfully, the pipeline will terminate with success
-    hello_task = ShellTask(
+    hello_task = ShellTask(  # [concept:shell-task]
         name="hello",
         command="echo 'Hello World!'",
     )
 
     # The pipeline has only one step.
-    pipeline = Pipeline(steps=[hello_task])
+    pipeline = Pipeline(steps=[hello_task])  # [concept:pipeline]
 
-    pipeline.execute()
+    pipeline.execute()  # [concept:execution]
 
     return pipeline
 
 
 if __name__ == "__main__":
-    main()
     main()

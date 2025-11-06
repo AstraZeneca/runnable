@@ -19,15 +19,15 @@ def main():
     # Execute the notebook present in examples/common/simple_notebook.ipynb.
     # The path is relative to the project root.
     # If this step executes successfully, the pipeline will terminate with success
-    hello_task = NotebookTask(
+    hello_task = NotebookTask(  # [concept:notebook-task]
         name="hello",
         notebook="examples/common/simple_notebook.ipynb",
     )
 
     # The pipeline has only one step.
-    pipeline = Pipeline(steps=[hello_task])
+    pipeline = Pipeline(steps=[hello_task])  # [concept:pipeline]
 
-    pipeline.execute()
+    pipeline.execute()  # [concept:execution]
 
     return pipeline
 

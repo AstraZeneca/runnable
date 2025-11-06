@@ -1,13 +1,179 @@
 
-Execute all the steps of the pipeline in containers.
+# Local Container Pipeline Execution
 
-- [x] Provides a way to test the containers and the execution of the pipeline in local environment.
-- [x] Any failure in cloud native container environments can be replicated in local environments.
-- [x] Ability to provide specialized compute environments for different steps of the pipeline.
-- [ ] The scalability is still constrained by the resources in local environment.
+Execute pipelines sequentially using Docker containers for environment isolation - perfect for testing container-based deployments locally.
 
+!!! tip "Container Setup Made Simple"
 
-## Configuration
+    Just build a Docker image from your project root - it automatically includes your code, dependencies, and environment!
+
+    ```bash
+    docker build -t my-project:latest .
+    ```
+
+## Getting Started
+
+### Basic Configuration
+
+```yaml
+pipeline-executor:
+  type: local-container
+  config:
+    docker_image: "my-project:latest"
+```
+
+## Simple Example
+
+=== "pipeline.py"
+
+    ```python
+    from runnable import Pipeline, PythonTask
+
+    def hello_from_container():
+        import platform
+        print(f"Hello from container running: {platform.platform()}")
+        return "success"
+
+    def main():
+        task = PythonTask(
+            function=hello_from_container,
+            name="hello"
+        )
+
+        pipeline = Pipeline(steps=[task])
+        pipeline.execute()
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+=== "config.yaml"
+
+    ```yaml
+    pipeline-executor:
+      type: local-container
+      config:
+        docker_image: "my-project:latest"
+    ```
+
+=== "Run It"
+
+    ```bash
+    # Set configuration and run
+    RUNNABLE_CONFIGURATION_FILE=config.yaml uv run pipeline.py
+    ```
+
+!!! info "Container Isolation"
+
+    Each task runs in a fresh container, giving you clean isolation between steps.
+
+## Why Use Containers Locally?
+
+!!! success "Perfect for Production Testing"
+
+    **Environment reproduction**: Test exactly what runs in production
+
+    - ✅ **Dependency isolation**: Each step gets a clean container environment
+    - ✅ **Local validation**: Catch container issues before cloud deployment
+    - ✅ **Multiple environments**: Different containers for different pipeline steps
+
+!!! note "Sequential Execution Model"
+
+    - 🔄 **One step at a time**: Runs sequentially like the local executor
+    - 🐳 **Container per step**: Each task gets a fresh, isolated container
+    - 💻 **Local resources**: Still uses your machine's CPU/memory limits
+
+## Advanced Usage
+
+### Dynamic Container Images
+
+!!! example "Runtime Image Selection"
+
+    Use different images at runtime with environment variables:
+
+    ```yaml
+    pipeline-executor:
+      type: local-container
+      config:
+        docker_image: $my_docker_image
+    ```
+
+    ```bash
+    # Set the image dynamically
+    export RUNNABLE_VAR_my_docker_image="my-project:v2.0"
+    RUNNABLE_CONFIGURATION_FILE=config.yaml uv run pipeline.py
+    ```
+
+### Step-Specific Containers
+
+Different steps can use different container images:
+
+=== "pipeline.py"
+
+    ```python
+    from runnable import Pipeline, ShellTask
+
+    def main():
+        # Uses default container
+        step1 = ShellTask(
+            name="python_analysis",
+            command="python --version && python analyze.py"
+        )
+
+        # Uses specialized R container
+        step2 = ShellTask(
+            name="r_modeling",
+            command="Rscript model.R",
+            overrides={"local-container": "r_override"}
+        )
+
+        pipeline = Pipeline(steps=[step1, step2])
+        pipeline.execute()
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+=== "config.yaml"
+
+    ```yaml
+    pipeline-executor:
+      type: local-container
+      config:
+        docker_image: "my-python:latest"  # Default for most steps
+      overrides:
+        r_override:
+          docker_image: "my-r-env:latest"  # Specialized R environment
+    ```
+
+### Debugging Failed Containers
+
+!!! tip "Debug Failed Containers"
+
+    Keep containers around for debugging:
+
+    ```yaml
+    pipeline-executor:
+      type: local-container
+      config:
+        docker_image: "my-project:latest"
+        auto_remove_container: false  # Keep failed containers
+    ```
+
+    Then inspect the failed container:
+
+    ```bash
+    # List containers to find the failed one
+    docker ps -a
+
+    # Get into the failed container
+    docker exec -it <container-id> /bin/bash
+
+    # Or check its logs
+    docker logs <container-id>
+    ```
+
+## Configuration Reference
 
 ::: extensions.pipeline_executor.local_container.LocalContainerExecutor
     options:
@@ -17,34 +183,23 @@ Execute all the steps of the pipeline in containers.
         show_docstring_description: true
         heading_level: 3
 
+## When to Use Local Container
 
-!!! tip "Debugging"
+!!! question "Choose Local Container When"
 
-    ```auto_remove_container``` allows you to run the failed container independently to
-    identify the issue that caused the failure.
+    - Testing container-based deployments before going to cloud
+    - Need environment isolation between pipeline steps
+    - Want to replicate production container behavior locally
+    - Different steps require different software environments
 
+!!! abstract "Use Regular Local Executor When"
 
-All the examples in the concepts section can be executed using the below configuration:
+    - Simple development and experimentation
+    - All steps use the same environment
+    - Want fastest possible execution (no container overhead)
 
-```yaml
-pipeline-executor:
-  type: local-container
-  config:
-    docker_image: <your docker image>
-```
+!!! success "Upgrade to Cloud Executors When"
 
-## Dynamic docker image
-
-The docker image can provided at the run time by using environmental variables.
-
-For example:
-
-```yaml
-pipeline-executor:
-  type: local-container
-  config:
-    docker_image: $docker_image
-```
-
-The ```$docker_image``` will be replaced by the environmental variable
-```RUNNABLE_VAR_docker_image``` during run time. The same rule applies to overrides too.
+    - Need true parallel execution ([Argo](argo.md))
+    - Want distributed compute resources
+    - Running production workloads

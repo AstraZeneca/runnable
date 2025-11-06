@@ -44,12 +44,12 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.sections
-    - navigation.expand
+    # - navigation.expand  # Disabled to keep sections collapsed by default
     - navigation.instant
     - navigation.instant.progress
     - navigation.tracking
     - navigation.footer
-    # - navigation.indexes
+    - navigation.indexes  # Enable section index pages
 
 # Extensions
 markdown_extensions:
@@ -111,37 +111,43 @@ extra_css:
   - css/extra.css
 
 nav:
-  - "runnable":
-      - "Introduction": "index.md"
-      - "Usage": "usage.md"
-      - "Why runnable?": "why-runnable.md"
-  - "Concepts":
-      - "Pipeline":
-          - "concepts/pipeline_intro.md"
-          - "Tasks": "concepts/task.md"
-          - "Pipeline": "concepts/pipeline.md"
-          - "Parallel": "concepts/parallel.md"
-          - "Map": "concepts/map.md"
-          - "Nesting": "concepts/nesting.md"
-      - "Job":
-          - "concepts/job_intro.md"
-      - "Parameters":
-          - "concepts/parameters.md"
-      - "Catalog":
-          - "concepts/catalog.md"
-      - "Secrets":
-          - "concepts/secrets.md"
-
-  - "Reproducibility": "concepts/run-log.md"
-  - "Run pipeline":
+  - "Home": "index.md"
+  - "Usage Examples": "usage.md"
+  - "Core Concepts":
+      - "Jobs vs Pipelines": "concepts/building-blocks/jobs-vs-pipelines.md"
+      - "Task Types": "concepts/building-blocks/task-types.md"
+      - "From Functions to Tasks": "getting-started/your-first-function.md"
+      - "Handling Data": "getting-started/handling-data.md"
+      - "Connecting Functions": "getting-started/connecting-functions.md"
+      - "Parameters From Outside": "concepts/superpowers/parameters-from-outside.md"
+      - "File Management": "concepts/superpowers/file-management.md"
+      - "Reproducibility": "concepts/superpowers/reproducibility.md"
+      - "Run Log": "concepts/run-log.md"
+  - "Advanced Patterns":
+      - "Parallel Execution": "concepts/advanced-patterns/parallel-execution.md"
+      - "Map Patterns": "concepts/advanced-patterns/map-patterns.md"
+      - "Conditional Workflows": "concepts/advanced-patterns/conditional-workflows.md"
+      - "Failure Handling": "concepts/advanced-patterns/failure-handling.md"
+      - "Mocking and Testing": "concepts/advanced-patterns/mocking-testing.md"
+  - "Production":
+      - "Deploy Anywhere": "concepts/superpowers/deploy-anywhere.md"
       - "configurations/overview.md"
-      - "Executor":
+      - "Pipeline Execution":
+          - "configurations/executors/overview.md"
           - "local": "configurations/executors/local.md"
-          # - "mocked": "configurations/executors/mocked.md"
-          # - "retry": "configurations/executors/mocked.md"
           - "local-container": "configurations/executors/local-container.md"
           - "argo workflows": "configurations/executors/argo.md"
+          - "mocked": "configurations/executors/mocked.md"
+          - "retry": "configurations/executors/retry.md"
+      - "Job Execution":
+          - "configurations/job-executors/overview.md"
+          - "Local": "configurations/job-executors/local.md"
+          - "Local Container": "configurations/job-executors/local-container.md"
+          - "Kubernetes": "configurations/job-executors/kubernetes.md"
       - "Run log": "configurations/run-log.md"
       - "Catalog": "configurations/catalog.md"
       - "Secrets": "configurations/secrets.md"
+  - "Compare":
+      - "vs Kedro": "comparisons/kedro.md"
+      - "vs Metaflow": "comparisons/metaflow.md"
   - "Reference": "reference.md"

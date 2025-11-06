@@ -45,12 +45,22 @@ By default, ```runnable``` uses:
 - local file system for cataloging data flowing through the pipeline.
 - wrapper around system environment variables for accessing secrets.
 
-This can be over-ridden by ```configuration```. For example, the below configuration uses
+This can be over-ridden by ```configuration```. Configuration is now primarily done through the Python SDK, which provides more flexibility and type safety.
 
-- argo workflows as execution engine.
-- mounted pvc for storing the run log.
-- mounted pvc for storing the catalog.
-- kubernetes secrets exposed to the container as secrets provider.
+!!! warning "Legacy YAML Configuration"
+
+    YAML-based configuration is being phased out in favor of Python-based configuration. The example below shows the legacy YAML format for reference only.
+
+For example, a configuration that uses:
+
+- argo workflows as execution engine
+- mounted pvc for storing the run log
+- mounted pvc for storing the catalog
+- kubernetes secrets exposed to the container as secrets provider
+
+Would be configured through the Python SDK configuration system (see individual configuration pages for Python examples).
+
+For reference, the legacy YAML configuration would have looked like:
 
 ```yaml
 executor:

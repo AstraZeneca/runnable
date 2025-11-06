@@ -31,20 +31,20 @@ from runnable import Pipeline, PythonTask, Stub
 
 
 def main():
-    step_1 = PythonTask(name="step_1", function=raise_ex)  # This will fail
+    step_1 = PythonTask(name="step_1", function=raise_ex)  # [concept:failing-task]
 
     step_2 = Stub(name="step_2")
 
     step_3 = Stub(name="step_3")
 
-    step_4 = Stub(name="step_4", terminate_with_failure=True).as_pipeline()
+    step_4 = Stub(name="step_4", terminate_with_failure=True).as_pipeline()  # [concept:failure-pipeline-with-termination]
 
-    step_1.on_failure = step_4  # (2)
+    step_1.on_failure = step_4  # [concept:failure-handling]
 
-    pipeline = Pipeline(
+    pipeline = Pipeline(  # [concept:pipeline]
         steps=[step_1, step_2, step_3],
     )
-    pipeline.execute()
+    pipeline.execute()  # [concept:execution]
 
     return pipeline
 

@@ -24,18 +24,18 @@ from runnable import Pipeline, Stub
 
 def main():
     # this will always succeed
-    step1 = Stub(name="step1")
+    step1 = Stub(name="step1")  # [concept:stub-task]
 
     # It takes arbitrary arguments
     # Useful for temporarily silencing steps within
     # mature pipelines
-    step2 = Stub(name="step2", what="is this thing")
+    step2 = Stub(name="step2", what="is this thing")  # [concept:stub-with-params]
 
-    step3 = Stub(name="step3")
+    step3 = Stub(name="step3")  # [concept:stub-task]
 
-    pipeline = Pipeline(steps=[step1, step2, step3])
+    pipeline = Pipeline(steps=[step1, step2, step3])  # [concept:pipeline]
 
-    pipeline.execute()
+    pipeline.execute()  # [concept:execution]
 
     # A function that creates pipeline should always return a
     # Pipeline object

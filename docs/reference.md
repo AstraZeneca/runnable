@@ -5,7 +5,7 @@ Please accompany the reference with  ```examples``` from
 
 ## PythonTask
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.PythonTask
         options:
@@ -14,16 +14,13 @@ Please accompany the reference with  ```examples``` from
             show_docstring_description: true
             heading_level: 3
 
-=== "yaml"
-
-    --8<-- "runnable/tasks.py:python_reference"
 
 <hr style="border:2px dotted orange">
 
 
 ## NotebookTask
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.NotebookTask
         options:
@@ -32,17 +29,13 @@ Please accompany the reference with  ```examples``` from
             show_docstring_description: true
             heading_level: 3
 
-=== "yaml"
-
-    --8<-- "runnable/tasks.py:notebook_reference"
-
 
 <hr style="border:2px dotted orange">
 
 
 ## ShellTask
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.ShellTask
         options:
@@ -51,26 +44,18 @@ Please accompany the reference with  ```examples``` from
             show_docstring_description: true
             heading_level: 3
 
-=== "yaml"
-
-    --8<-- "runnable/tasks.py:notebook_reference"
-
 
 <hr style="border:2px dotted orange">
 
 ## Stub
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.Stub
         options:
             show_root_heading: true
             show_bases: false
             heading_level: 3
-
-=== "yaml"
-
-    --8<-- "runnable/extensions/nodes.py:stub_reference"
 
 
 
@@ -79,7 +64,7 @@ Please accompany the reference with  ```examples``` from
 
 ## Catalog
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.Catalog
         options:
@@ -87,7 +72,6 @@ Please accompany the reference with  ```examples``` from
             show_bases: false
             heading_level: 3
 
-=== "yaml"
 
 
 
@@ -97,7 +81,7 @@ Please accompany the reference with  ```examples``` from
 
 ## Pipeline
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.Pipeline
         options:
@@ -108,14 +92,13 @@ Please accompany the reference with  ```examples``` from
             members:
               - execute
 
-=== "yaml"
 
 
 
 ## Parallel
 
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.Parallel
         options:
@@ -124,7 +107,6 @@ Please accompany the reference with  ```examples``` from
             show_docstring_description: true
             heading_level: 3
 
-=== "yaml"
 
 
 
@@ -132,7 +114,7 @@ Please accompany the reference with  ```examples``` from
 
 ## Map
 
-=== "sdk"
+=== "Python SDK"
 
     ::: runnable.Map
         options:
@@ -141,6 +123,5 @@ Please accompany the reference with  ```examples``` from
             show_docstring_description: true
             heading_level: 3
 
-=== "yaml"
 
 <hr style="border:2px dotted orange">
