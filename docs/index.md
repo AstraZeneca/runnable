@@ -80,4 +80,10 @@ The difference between native driver and runnable orchestration:
 - [x] Reproducible by default, runnable stores metadata about code/data/config for every execution.
 - [x] The pipeline is `runnable` in any environment.
 
+## Ready to Try It Yourself?
+
+Transform your own Python functions in 30 seconds:
+
+**[Get Started →](get-started.md)**
+
 <hr style="border:2px dotted orange">

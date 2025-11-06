@@ -113,14 +113,15 @@ extra_css:
 nav:
   - "Quick Start":
       - "Introduction": "index.md"
-      - "Your First Pipeline": "getting-started/your-first-function.md"
-      - "Adding Data": "getting-started/handling-data.md"
-      - "Connecting Functions": "getting-started/connecting-functions.md"
+      - "Get Started": "get-started.md"
       - "Usage Examples": "usage.md"
       - "Why Runnable?": "why-runnable.md"
   - "Core Concepts":
       - "Jobs vs Pipelines": "concepts/building-blocks/jobs-vs-pipelines.md"
       - "Task Types": "concepts/building-blocks/task-types.md"
+      - "From Functions to Tasks": "getting-started/your-first-function.md"
+      - "Handling Data": "getting-started/handling-data.md"
+      - "Connecting Functions": "getting-started/connecting-functions.md"
       - "Parameters From Outside": "concepts/superpowers/parameters-from-outside.md"
       - "File Management": "concepts/superpowers/file-management.md"
       - "Reproducibility": "concepts/superpowers/reproducibility.md"
