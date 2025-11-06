@@ -111,11 +111,9 @@ extra_css:
   - css/extra.css
 
 nav:
-  - "Quick Start":
-      - "Introduction": "index.md"
-      - "Get Started": "get-started.md"
-      - "Usage Examples": "usage.md"
-      - "Why Runnable?": "why-runnable.md"
+  - "Home": "index.md"
+  - "Usage Examples": "usage.md"
+  - "Why Runnable?": "why-runnable.md"
   - "Core Concepts":
       - "Jobs vs Pipelines": "concepts/building-blocks/jobs-vs-pipelines.md"
       - "Task Types": "concepts/building-blocks/task-types.md"

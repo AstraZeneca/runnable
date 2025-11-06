@@ -9,81 +9,174 @@
 <a href="https://www.flaticon.com/free-icons/runner" title="runner icons">Runner icons created by Leremy - Flaticon</a>
 </span>
 
+Transform any Python function into a portable, trackable pipeline in seconds.
 
 <hr style="border:2px dotted orange">
 
-## Example
+## Step 1: Install (10 seconds)
 
-The below data science flavored code is a well-known
-[iris example from scikit-learn](https://scikit-learn.org/stable/auto_examples/linear_model/plot_iris_logistic.html).
-
-
-```python linenums="1"
---8<-- "examples/iris_demo.py"
+```bash
+pip install runnable
 ```
 
+## Step 2: Your Function (unchanged!)
 
-1. Return two serialized objects X and Y.
-2. Store the file `iris_logistic.png` for future reference.
-3. Define the sequence of tasks.
-4. Define a pipeline with the tasks
-
-The difference between native driver and runnable orchestration:
-
-!!! tip inline end "Notebooks and Shell scripts"
-
-    You can execute notebooks and shell scripts too!!
-
-    They can be written just as you would want them, *plain old notebooks and scripts*.
-
-
-
-
-<div class="annotate" markdown>
-
-```diff
-
-- X, Y = load_data()
-+load_data_task = PythonTask(
-+    function=load_data,
-+     name="load_data",
-+     returns=[pickled("X"), pickled("Y")], (1)
-+    )
-
--logreg = model_fit(X, Y, C=1.0)
-+model_fit_task = PythonTask(
-+   function=model_fit,
-+   name="model_fit",
-+   returns=[pickled("logreg")],
-+   )
-
--generate_plots(X, Y, logreg)
-+generate_plots_task = PythonTask(
-+   function=generate_plots,
-+   name="generate_plots",
-+   terminate_with_success=True,
-+   catalog=Catalog(put=["iris_logistic.png"]), (2)
-+   )
-
-
-+pipeline = Pipeline(
-+   steps=[load_data_task, model_fit_task, generate_plots_task], (3)
-
+```python
+# Your existing function - zero changes needed
+def analyze_sales():
+    total_revenue = 50000
+    best_product = "widgets"
+    return total_revenue, best_product
 ```
-</div>
 
+## Step 3: Make It Runnable (2 lines)
+
+```python
+# Add 2 lines → Make it runnable everywhere
+from runnable import PythonJob
+PythonJob(function=analyze_sales).execute()
+```
+
+## 🎉 Success!
+
+You just made your first function runnable and got:
+- ✅ **Automatic tracking**: execution logs, timestamps, results saved
+- ✅ **Reproducible runs**: full execution history and metadata
+- ✅ **Environment portability**: runs the same on laptop, containers, Kubernetes
+
+**Your code now runs anywhere without changes!**
 
 ---
 
-- [x] ```Domain``` code remains completely independent of ```driver``` code.
-- [x] The ```driver``` function has an equivalent and intuitive runnable expression
-- [x] Reproducible by default, runnable stores metadata about code/data/config for every execution.
-- [x] The pipeline is `runnable` in any environment.
+## Want to See More?
 
-## Ready to Try It Yourself?
+### 🔧 Same Code, Different Parameters (2 minutes)
 
-Transform your own Python functions in 30 seconds:
+Change parameters without touching your code:
 
-**[Get Started →](get-started.md)**
+```python
+# Function accepts parameters
+def forecast_growth(revenue, growth_rate):
+    return revenue * (1 + growth_rate) ** 3
+
+from runnable import PythonJob
+PythonJob(function=forecast_growth).execute()
+
+# Run different scenarios anywhere:
+# Local: RUNNABLE_PRM_revenue=100000 RUNNABLE_PRM_growth_rate=0.05 python forecast.py
+# Container: same command, same results
+# Kubernetes: same command, same results
+
+# ✨ Every run tracked with parameters - reproducible everywhere
+```
+
+??? example "See complete parameter example"
+    ```python title="examples/03-parameters/passing_parameters_python.py"
+    --8<-- "examples/03-parameters/passing_parameters_python.py"
+    ```
+
+    **Try it:** `uv run examples/03-parameters/passing_parameters_python.py`
+
+**Why bother?** No more "what parameters gave us those good results?" - tracked automatically across all environments.
+
+---
+
+### 🔗 Chain Functions, No Glue Code (3 minutes)
+
+Build workflows that run anywhere unchanged:
+
+```python
+# Your existing functions
+def load_customer_data():
+    customers = {"count": 1500, "segments": ["premium", "standard"]}
+    return customers
+
+def analyze_segments(customer_data):  # Name matches = automatic connection
+    analysis = {"premium_pct": 30, "growth_potential": "high"}
+    return analysis
+
+# What you used to write (glue code):
+# customer_data = load_customer_data()
+# analysis = analyze_segments(customer_data)
+
+# What Runnable needs (same logic, no glue):
+from runnable import Pipeline, PythonTask
+Pipeline(steps=[
+    PythonTask(function=load_customer_data, returns=["customer_data"]),
+    PythonTask(function=analyze_segments, returns=["analysis"])
+]).execute()
+
+# Same pipeline runs unchanged on:
+# • Your laptop (development)
+# • Docker containers (testing)
+# • Kubernetes (production)
+
+# ✨ Write once, run anywhere - zero deployment rewrites
+```
+
+??? example "See complete pipeline example"
+    ```python title="examples/02-sequential/simple.py"
+    --8<-- "examples/02-sequential/simple.py"
+    ```
+
+    **Try it:** `uv run examples/02-sequential/simple.py`
+
+**Why bother?** No more "it works locally but breaks in production" - same code, guaranteed same behavior.
+
+---
+
+### 🚀 Mix Python + Notebooks (5 minutes)
+
+Different tools, portable workflows:
+
+```python
+# Python prepares data, notebook analyzes - works everywhere
+def prepare_dataset():
+    clean_data = {"sales": [100, 200, 300], "regions": ["north", "south"]}
+    return clean_data
+
+from runnable import Pipeline, PythonTask, NotebookTask
+Pipeline(steps=[
+    PythonTask(function=prepare_dataset, returns=["dataset"]),
+    NotebookTask(notebook_path="deep_analysis.ipynb", returns=["insights"])
+]).execute()
+
+# This exact pipeline runs unchanged on:
+# • Local Jupyter setup
+# • Containerized environments
+# • Cloud Kubernetes clusters
+
+# ✨ No more environment setup headaches or "works on my machine"
+```
+
+??? example "See complete mixed workflow"
+    ```python title="examples/02-sequential/traversal.py"
+    --8<-- "examples/02-sequential/traversal.py"
+    ```
+
+    **Try it:** `uv run examples/02-sequential/traversal.py`
+
+**Why bother?** Your entire data science workflow becomes truly portable - no environment-specific rewrites.
+
+---
+
+## What's Next?
+
+You've seen how Runnable transforms your code for portability and tracking. Ready to go deeper?
+
+**🎯 Master the Concepts** → [Jobs vs Pipelines](concepts/building-blocks/jobs-vs-pipelines.md)
+Learn when to use single jobs vs multi-step pipelines
+
+**📊 Handle Your Data** → [Task Types](concepts/building-blocks/task-types.md)
+Work with returns, parameters, and different data types
+
+**⚡ See Real Examples** → [Usage Examples](usage.md)
+Browse practical patterns and real-world scenarios
+
+**🚀 Deploy Anywhere** → [Production Guide](configurations/overview.md)
+Scale from laptop to containers to Kubernetes
+
+**🔍 Compare Alternatives** → [Why Runnable?](why-runnable.md)
+Understand how Runnable compares to other tools
 
 <hr style="border:2px dotted orange">
