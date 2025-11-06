@@ -176,7 +176,71 @@ Browse practical patterns and real-world scenarios
 **🚀 Deploy Anywhere** → [Production Guide](configurations/overview.md)
 Scale from laptop to containers to Kubernetes
 
-**🔍 Compare Alternatives** → [Why Runnable?](why-runnable.md)
-Understand how Runnable compares to other tools
+**🔍 Compare Alternatives** → [Compare Tools](comparisons/kedro.md)
+See how Runnable compares to Kedro, Metaflow, and other orchestration tools
+
+---
+
+## Why Choose Runnable?
+
+<div class="grid cards" markdown>
+
+-   :material-clock-fast:{ .lg .middle } __Easy to adopt, its mostly your code__
+
+    ---
+
+    Your application code remains as it is. Runnable exists outside of it.
+
+    - No API's or decorators or any imposed structure.
+
+    [:octicons-arrow-right-24: Getting started](#step-1-install-10-seconds)
+
+-    :building_construction:{ .lg .middle } __Bring your infrastructure__
+
+    ---
+
+    ```runnable``` is not a platform. It works with your platforms.
+
+    - ```runnable``` composes pipeline definitions suited to your infrastructure.
+
+    [:octicons-arrow-right-24: Infrastructure](configurations/overview.md)
+
+-   :memo:{ .lg .middle } __Reproducibility__
+
+    ---
+
+    Runnable tracks key information to reproduce the execution. All this happens without
+    any additional code.
+
+    [:octicons-arrow-right-24: Run Log](concepts/run-log.md)
+
+-   :repeat:{ .lg .middle } __Retry failures__
+
+    ---
+
+    Debug any failure in your local development environment.
+
+    [:octicons-arrow-right-24: Advanced Patterns](concepts/advanced-patterns/failure-handling.md)
+
+-   :microscope:{ .lg .middle } __Testing__
+
+    ---
+
+    Unit test your code and pipelines.
+
+    - mock/patch the steps of the pipeline
+    - test your functions as you normally do.
+
+    [:octicons-arrow-right-24: Testing Guide](concepts/advanced-patterns/mocking-testing.md)
+
+-   :broken_heart:{ .lg .middle } __Move on__
+
+    ---
+
+    Moving away from runnable is as simple as deleting relevant files.
+
+    - Your application code remains as it is.
+
+</div>
 
 <hr style="border:2px dotted orange">

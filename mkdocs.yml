@@ -113,7 +113,6 @@ extra_css:
 nav:
   - "Home": "index.md"
   - "Usage Examples": "usage.md"
-  - "Why Runnable?": "why-runnable.md"
   - "Core Concepts":
       - "Jobs vs Pipelines": "concepts/building-blocks/jobs-vs-pipelines.md"
       - "Task Types": "concepts/building-blocks/task-types.md"
@@ -123,6 +122,7 @@ nav:
       - "Parameters From Outside": "concepts/superpowers/parameters-from-outside.md"
       - "File Management": "concepts/superpowers/file-management.md"
       - "Reproducibility": "concepts/superpowers/reproducibility.md"
+      - "Run Log": "concepts/run-log.md"
   - "Advanced Patterns":
       - "Parallel Execution": "concepts/advanced-patterns/parallel-execution.md"
       - "Map Patterns": "concepts/advanced-patterns/map-patterns.md"
@@ -135,10 +135,10 @@ nav:
       - "Pipeline Execution":
           - "configurations/executors/overview.md"
           - "local": "configurations/executors/local.md"
-          # - "mocked": "configurations/executors/mocked.md"
-          # - "retry": "configurations/executors/mocked.md"
           - "local-container": "configurations/executors/local-container.md"
           - "argo workflows": "configurations/executors/argo.md"
+          - "mocked": "configurations/executors/mocked.md"
+          - "retry": "configurations/executors/retry.md"
       - "Job Execution":
           - "configurations/job-executors/overview.md"
           - "Local": "configurations/job-executors/local.md"
