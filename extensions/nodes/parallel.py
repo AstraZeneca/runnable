@@ -6,7 +6,7 @@ from pydantic import Field, field_serializer
 from runnable import defaults
 from runnable.defaults import MapVariableType
 from runnable.graph import Graph, create_graph
-from runnable.nodes import CompositeNode, NodeInD3
+from runnable.nodes import CompositeNode
 
 
 class ParallelNode(CompositeNode):
@@ -157,9 +157,3 @@ class ParallelNode(CompositeNode):
             step_log.status = defaults.FAIL
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-
-    def to_d3_node(self) -> NodeInD3:
-        return NodeInD3(
-            id=self.internal_name,
-            label="parallel",
-        )

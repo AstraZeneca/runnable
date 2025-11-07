@@ -6,7 +6,7 @@ from pydantic import Field
 from runnable import datastore, defaults
 from runnable.datastore import StepLog
 from runnable.defaults import MapVariableType
-from runnable.nodes import NodeInD3, TerminalNode
+from runnable.nodes import TerminalNode
 
 
 class SuccessNode(TerminalNode):
@@ -70,9 +70,3 @@ class SuccessNode(TerminalNode):
         step_log.attempts.append(attempt_log)
 
         return step_log
-
-    def to_d3_node(self) -> NodeInD3:
-        return NodeInD3(
-            id=self.internal_name,
-            label="success",
-        )

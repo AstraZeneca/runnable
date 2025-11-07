@@ -274,57 +274,5 @@ def execute_job(
     )
 
 
-@app.command()
-def ui(
-    host: Annotated[
-        str,
-        typer.Option(
-            "--host",
-            "-h",
-            help="The host to bind the server to",
-        ),
-    ] = "127.0.0.1",
-    port: Annotated[
-        int,
-        typer.Option(
-            "--port",
-            "-p",
-            help="The port to bind the server to",
-        ),
-    ] = 8000,
-    reload: Annotated[
-        bool,
-        typer.Option(
-            "--reload",
-            help="Enable auto-reload for development",
-        ),
-    ] = False,
-):
-    """
-    Start the web UI for pipeline visualization.
-
-    This command starts a FastAPI web server that provides a user interface
-    for visualizing and exploring runnable pipelines.
-    """
-    try:
-        import uvicorn
-
-        from visualization.main import app as web_app
-    except ImportError:
-        typer.echo(
-            "UI dependencies not installed. Install with: pip install runnable[ui]",
-            err=True,
-        )
-        raise typer.Exit(1)
-
-    typer.echo(f"Starting web UI at http://{host}:{port}")
-    uvicorn.run(
-        web_app,
-        host=host,
-        port=port,
-        reload=reload,
-    )
-
-
 if __name__ == "__main__":
     app()

@@ -7,7 +7,7 @@ from pydantic import ConfigDict, Field
 from runnable import datastore, defaults
 from runnable.datastore import StepLog
 from runnable.defaults import MapVariableType
-from runnable.nodes import ExecutableNode, NodeInD3
+from runnable.nodes import ExecutableNode
 from runnable.tasks import BaseTaskType, create_task
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -90,17 +90,3 @@ class TaskNode(ExecutableNode):
         step_log.attempts.append(attempt_log)
 
         return step_log
-
-    def to_d3_node(self) -> NodeInD3:
-        """
-        Convert the task node to a D3 node representation.
-
-        Returns:
-            NodeInD3: The D3 node representation of the task node.
-        """
-        return NodeInD3(
-            id=self.internal_name,
-            label="task",
-            task_type=self.executable.task_type,
-            metadata=self.executable.get_d3_metadata(),
-        )
