@@ -274,5 +274,88 @@ def execute_job(
     )
 
 
+@app.command()
+def visualize(
+    run_id: Annotated[str, typer.Argument(help="The run ID to visualize")],
+    svg: Annotated[
+        bool,
+        typer.Option(
+            "--svg", help="Generate SVG diagram in addition to console output"
+        ),
+    ] = False,
+    output: Annotated[
+        str,
+        typer.Option("--output", "-o", help="Custom output path for SVG file"),
+    ] = "",
+    log_level: Annotated[
+        LogLevel,
+        typer.Option(
+            "--log-level",
+            help="The log level",
+            show_default=True,
+            case_sensitive=False,
+        ),
+    ] = LogLevel.WARNING,
+):
+    """
+    Visualize a pipeline execution by run ID.
+
+    This command provides visualization of pipeline structure and execution details
+    from run logs. It shows the DAG structure, execution timing, and status information.
+
+    Examples:
+        runnable visualize online-lamport-0645
+        runnable visualize sophisticated-wright-0644 --svg
+        runnable visualize online-lamport --svg --output my_pipeline.svg
+    """
+    logger.setLevel(log_level.value)
+
+    from runnable.viz import visualize_run_by_id
+
+    output_svg = None
+    if svg:
+        output_svg = output if output else f"{run_id}_diagram.svg"
+
+    visualize_run_by_id(run_id, output_svg)
+
+
+@app.command()
+def analyze(
+    run_log_dir: Annotated[
+        str,
+        typer.Option("--dir", "-d", help="Directory containing run log files"),
+    ] = ".run_log_store",
+    limit: Annotated[
+        int,
+        typer.Option("--limit", "-l", help="Maximum number of recent runs to analyze"),
+    ] = 10,
+    log_level: Annotated[
+        LogLevel,
+        typer.Option(
+            "--log-level",
+            help="The log level",
+            show_default=True,
+            case_sensitive=False,
+        ),
+    ] = LogLevel.WARNING,
+):
+    """
+    Analyze recent pipeline runs and show summary statistics.
+
+    This command analyzes run logs in the specified directory and provides
+    insights into pipeline execution patterns, success rates, and performance.
+
+    Examples:
+        runnable analyze
+        runnable analyze --limit 20
+        runnable analyze --dir /path/to/logs --limit 5
+    """
+    logger.setLevel(log_level.value)
+
+    from runnable.viz import analyze_run_logs
+
+    analyze_run_logs(run_log_dir, limit)
+
+
 if __name__ == "__main__":
     app()
