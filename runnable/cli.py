@@ -283,6 +283,27 @@ def visualize(
             "--svg", help="Generate SVG diagram in addition to console output"
         ),
     ] = False,
+    interactive: Annotated[
+        bool,
+        typer.Option(
+            "--interactive",
+            "-i",
+            help="Generate interactive SVG with clickable metadata (requires web browser)",
+        ),
+    ] = False,
+    html: Annotated[
+        bool,
+        typer.Option(
+            "--html", help="Generate rich HTML dashboard with comprehensive analytics"
+        ),
+    ] = False,
+    open_browser: Annotated[
+        bool,
+        typer.Option(
+            "--open/--no-open",
+            help="Automatically open the generated file in default browser",
+        ),
+    ] = True,
     output: Annotated[
         str,
         typer.Option("--output", "-o", help="Custom output path for SVG file"),
@@ -307,16 +328,28 @@ def visualize(
         runnable visualize online-lamport-0645
         runnable visualize sophisticated-wright-0644 --svg
         runnable visualize online-lamport --svg --output my_pipeline.svg
+        runnable visualize online-lamport --interactive
+        runnable visualize online-lamport --html --output dashboard.html
+        runnable visualize online-lamport --html --no-open
     """
     logger.setLevel(log_level.value)
 
-    from runnable.viz import visualize_run_by_id
+    from runnable.viz import visualize_run_by_id_enhanced
 
-    output_svg = None
-    if svg:
-        output_svg = output if output else f"{run_id}_diagram.svg"
+    output_file = None
+    visualization_type = "console"
 
-    visualize_run_by_id(run_id, output_svg)
+    if html:
+        visualization_type = "html"
+        output_file = output if output else f"{run_id}_dashboard.html"
+    elif interactive:
+        visualization_type = "interactive"
+        output_file = output if output else f"{run_id}_diagram.svg"
+    elif svg:
+        visualization_type = "svg"
+        output_file = output if output else f"{run_id}_diagram.svg"
+
+    visualize_run_by_id_enhanced(run_id, output_file, visualization_type, open_browser)
 
 
 @app.command()
