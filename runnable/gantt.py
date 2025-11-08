@@ -106,8 +106,29 @@ class GanttVisualizer:
         dag_nodes = (
             self.run_log_data.get("run_config", {}).get("dag", {}).get("nodes", {})
         )
+
+        # For composite pipeline steps, we need to check both the full step name and the clean name
+        dag_node = None
         if step_name in dag_nodes:
             dag_node = dag_nodes[step_name]
+        else:
+            # Try to find by clean name (for composite pipeline sub-steps)
+            clean_name = step_data.get("name", step_name)
+            if clean_name in dag_nodes:
+                dag_node = dag_nodes[clean_name]
+            else:
+                # Look in branch structures for composite nodes
+                for node_name, node_data in dag_nodes.items():
+                    if node_data.get("is_composite") and "branches" in node_data:
+                        for branch_name, branch_data in node_data["branches"].items():
+                            branch_nodes = branch_data.get("nodes", {})
+                            if clean_name in branch_nodes:
+                                dag_node = branch_nodes[clean_name]
+                                break
+                    if dag_node:
+                        break
+
+        if dag_node:
             metadata["command"] = dag_node.get("command", "")
             metadata["command_type"] = dag_node.get("command_type", "")
 
