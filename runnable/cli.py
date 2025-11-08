@@ -390,5 +390,51 @@ def analyze(
     analyze_run_logs(run_log_dir, limit)
 
 
+@app.command()
+def timeline(
+    run_id: Annotated[
+        str, typer.Argument(help="The run ID to visualize as a timeline")
+    ],
+    output: Annotated[
+        str,
+        typer.Option("--output", "-o", help="Output HTML file path"),
+    ] = "",
+    open_browser: Annotated[
+        bool,
+        typer.Option(
+            "--open/--no-open",
+            help="Automatically open the generated file in default browser",
+        ),
+    ] = True,
+    log_level: Annotated[
+        LogLevel,
+        typer.Option(
+            "--log-level",
+            help="The log level",
+            show_default=True,
+            case_sensitive=False,
+        ),
+    ] = LogLevel.WARNING,
+):
+    """
+    Visualize pipeline execution as a Gantt chart timeline.
+
+    This command creates timeline visualizations that are particularly effective
+    for understanding composite nodes (parallel, map, conditional) because they
+    show temporal relationships and hierarchical structure clearly.
+
+    Examples:
+        runnable timeline forgiving-joliot-0645
+        runnable timeline parallel-run --output timeline.html
+        runnable timeline complex-pipeline --no-open
+    """
+    logger.setLevel(log_level.value)
+
+    from runnable.gantt import visualize_gantt
+
+    output_file = output if output else f"{run_id}_timeline.html"
+    visualize_gantt(run_id, output_file, open_browser)
+
+
 if __name__ == "__main__":
     app()
