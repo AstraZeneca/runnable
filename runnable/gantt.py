@@ -151,6 +151,30 @@ class GanttVisualizer:
                 list(output_params.keys()) if output_params else []
             )
 
+            # Extract parameter values for display
+            metadata["input_param_values"] = {}
+            metadata["output_param_values"] = {}
+
+            if input_params:
+                for key, param_data in input_params.items():
+                    if isinstance(param_data, dict) and "value" in param_data:
+                        # Only show json and metric parameters, exclude pickled
+                        param_kind = param_data.get("kind", "")
+                        if param_kind in ("json", "metric"):
+                            metadata["input_param_values"][key] = str(
+                                param_data["value"]
+                            )
+
+            if output_params:
+                for key, param_data in output_params.items():
+                    if isinstance(param_data, dict) and "value" in param_data:
+                        # Only show json and metric parameters, exclude pickled
+                        param_kind = param_data.get("kind", "")
+                        if param_kind in ("json", "metric"):
+                            metadata["output_param_values"][key] = str(
+                                param_data["value"]
+                            )
+
         # Extract catalog operations
         catalog_data = step_data.get("data_catalog", [])
         for item in catalog_data:
@@ -208,10 +232,18 @@ class GanttVisualizer:
             branches = step_data.get("branches", {})
             if branches:
                 for branch_name, branch_data in branches.items():
+                    # Extract proper branch display name
+                    if "." in branch_name:
+                        # For map states like "map_state.1" -> "1"
+                        branch_display = branch_name.split(".")[-1]
+                    else:
+                        # For conditional branches like "conditional.tails" -> "tails"
+                        branch_display = branch_name.split(".")[-1]
+
                     # Add a branch header
                     timeline_items.append(
                         {
-                            "name": f"Branch: {branch_name.split('.')[-1]}",
+                            "name": f"Branch: {branch_display}",
                             "start": None,
                             "end": None,
                             "duration_ms": 0,
@@ -259,31 +291,65 @@ class GanttVisualizer:
                             }
                         )
 
-        # Sort timeline items to group by composite -> branch1 (header + steps) -> branch2 (header + steps) -> remaining
+        # Build DAG execution order for proper sorting
+        dag_nodes = (
+            self.run_log_data.get("run_config", {}).get("dag", {}).get("nodes", {})
+        )
+        start_at = (
+            self.run_log_data.get("run_config", {}).get("dag", {}).get("start_at", "")
+        )
+
+        # Create logical order based on DAG flow
+        logical_order = {}
+        current_node = start_at
+        order_index = 0
+
+        # Build execution order following the DAG
+        while current_node and current_node in dag_nodes:
+            logical_order[current_node] = order_index
+            order_index += 1
+            current_node = dag_nodes[current_node].get("next_node")
+
+        # Sort timeline items respecting logical DAG flow
         def sort_key(item):
+            step_name = item["name"]
             branch_name = item.get("branch", "")
 
-            # Extract branch number for ordering
-            if "branch1" in branch_name:
-                branch_order = "1"
-            elif "branch2" in branch_name:
-                branch_order = "2"
-            else:
-                branch_order = "9"
+            # Get logical order for the step
+            dag_order = logical_order.get(step_name, 999)
+
+            # For composite steps, get the parent's order
+            if item["parent"]:
+                dag_order = logical_order.get(item["parent"], 999)
+
+            # Extract branch number for ordering within composite nodes
+            branch_order = "1"
+            if branch_name:
+                # For map states like "map_state.1", "map_state.2", etc.
+                if "." in branch_name and branch_name.split(".")[-1].isdigit():
+                    branch_parts = branch_name.split(".")
+                    branch_order = branch_parts[-1].zfill(3)  # Pad for proper sorting
+                # For parallel branches like "parallel_step.branch1", "parallel_step.branch2"
+                elif "branch1" in branch_name or "tails" in branch_name:
+                    branch_order = "1"
+                elif "branch2" in branch_name or "heads" in branch_name:
+                    branch_order = "2"
+                # For conditional branches (fallback)
+                else:
+                    branch_order = "1"
 
             if item["is_composite"]:
-                return (0, item["start"] or datetime.min)  # Composite nodes first
+                # Composite steps: show at their DAG position
+                return (dag_order, 0, item["start"] or datetime.min)
             elif item["step_type"] == "branch":
-                return (
-                    1,
-                    branch_order,
-                    "0",
-                )  # Branch headers first within their branch
+                # Branch headers: right after their parent composite step
+                return (dag_order, 1, branch_order, "0")
             elif item["parent"] and item.get("branch"):
-                # Branch steps grouped by branch, then by execution time
-                return (1, branch_order, "1", item["start"] or datetime.min)
+                # Branch steps: after their branch header
+                return (dag_order, 1, branch_order, "1", item["start"] or datetime.min)
             else:
-                return (9, item["start"] or datetime.min)  # Regular items last
+                # Regular items: at their DAG position
+                return (dag_order, 2, item["start"] or datetime.min)
 
         timeline_items.sort(key=sort_key)
         self.timeline_data = timeline_items
@@ -480,6 +546,36 @@ class GanttVisualizer:
         if catalog_info:
             details.append(" | ".join(catalog_info))
 
+        # Parameters with values
+        input_params = metadata.get("input_parameters", [])
+        output_params = metadata.get("output_parameters", [])
+        input_values = metadata.get("input_param_values", {})
+        output_values = metadata.get("output_param_values", {})
+
+        if input_params:
+            param_details = []
+            for param in input_params[:2]:
+                # Only show parameters with safe values (json/metric only)
+                if param in input_values:
+                    param_details.append(f"{param}={input_values[param]}")
+            if param_details:
+                param_str = ", ".join(param_details) + (
+                    "..." if len(input_params) > 2 else ""
+                )
+                details.append(f"🔗 In: {param_str}")
+
+        if output_params:
+            param_details = []
+            for param in output_params[:2]:
+                # Only show parameters with safe values (json/metric only)
+                if param in output_values:
+                    param_details.append(f"{param}={output_values[param]}")
+            if param_details:
+                param_str = ", ".join(param_details) + (
+                    "..." if len(output_params) > 2 else ""
+                )
+                details.append(f"🔗 Out: {param_str}")
+
         # Start time - just show time, not full timestamp
         start_time = metadata.get("start_time", "")
         if start_time:
@@ -527,22 +623,6 @@ class GanttVisualizer:
         if get_ops:
             get_str = ", ".join(get_ops[:2]) + ("..." if len(get_ops) > 2 else "")
             details.append(f"📥 GET: {get_str}")
-
-        # Parameters
-        input_params = metadata.get("input_parameters", [])
-        output_params = metadata.get("output_parameters", [])
-
-        if input_params:
-            param_str = ", ".join(input_params[:2]) + (
-                "..." if len(input_params) > 2 else ""
-            )
-            details.append(f"🔗 In: {param_str}")
-
-        if output_params:
-            param_str = ", ".join(output_params[:2]) + (
-                "..." if len(output_params) > 2 else ""
-            )
-            details.append(f"🔗 Out: {param_str}")
 
         return " | ".join(details)
 
@@ -647,8 +727,8 @@ class GanttVisualizer:
 
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: #f8fafc;
-            color: #1e293b;
+            background: #ffffff;
+            color: #1a202c;
             line-height: 1.6;
         }}
 
@@ -667,31 +747,35 @@ class GanttVisualizer:
         }}
 
         .timeline-header {{
-            background: white;
+            background: #ffffff;
             border-radius: 8px;
             padding: 1.5rem;
             margin-bottom: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: #1a202c;
         }}
 
         .gantt-container {{
-            background: white;
+            background: #ffffff;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             overflow: hidden;
+            color: #1a202c;
         }}
 
         .timeline-scale {{
-            background: #f1f5f9;
+            background: #f7fafc;
             border-bottom: 2px solid #e2e8f0;
             padding: 0.5rem 1rem;
             font-family: monospace;
             font-size: 0.875rem;
             display: grid;
             grid-template-columns: 300px 1fr;
+            color: #2d3748;
+            font-weight: 600;
         }}
 
         .scale-markers {{
@@ -720,6 +804,8 @@ class GanttVisualizer:
             align-items: center;
             gap: 0.5rem;
             position: relative;
+            color: #1a202c;
+            font-weight: 500;
         }}
 
         .step-info:hover::before {{
@@ -782,8 +868,8 @@ class GanttVisualizer:
 
         .tooltip {{
             position: absolute;
-            background: #1f2937;
-            color: white;
+            background: #1a202c;
+            color: #ffffff;
             padding: 0.75rem;
             border-radius: 6px;
             font-size: 0.875rem;
@@ -793,7 +879,8 @@ class GanttVisualizer:
             transition: opacity 0.2s ease;
             max-width: 400px;
             line-height: 1.4;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            border: 1px solid #4a5568;
         }}
 
         .tooltip.show {{ opacity: 1; }}
@@ -816,9 +903,10 @@ class GanttVisualizer:
         }}
 
         .branch-name {{
-            font-weight: 600;
-            color: #0ea5e9;
+            font-weight: 700;
+            color: #1e40af;
             font-size: 0.95rem;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.8);
         }}
 
         .branch-separator {{
@@ -1153,8 +1241,24 @@ class GanttVisualizer:
             metadata = item.get("metadata", {})
             command = metadata.get("command", "").replace('"', "&quot;")
             command_type = metadata.get("command_type", "")
-            input_params = ",".join(metadata.get("input_parameters", []))
-            output_params = ",".join(metadata.get("output_parameters", []))
+
+            # Include parameter values in the data attributes (only json and metric, exclude pickled)
+            input_params = []
+            input_values = metadata.get("input_param_values", {})
+            for param in metadata.get("input_parameters", []):
+                # Only include parameters that have safe values (json/metric only)
+                if param in input_values:
+                    input_params.append(f"{param}={input_values[param]}")
+            input_params_str = ",".join(input_params)
+
+            output_params = []
+            output_values = metadata.get("output_param_values", {})
+            for param in metadata.get("output_parameters", []):
+                # Only include parameters that have safe values (json/metric only)
+                if param in output_values:
+                    output_params.append(f"{param}={output_values[param]}")
+            output_params_str = ",".join(output_params)
+
             catalog_put = ",".join(
                 metadata.get("catalog_operations", {}).get("put", [])
             )
@@ -1180,8 +1284,8 @@ class GanttVisualizer:
                              data-start="{item['start'].strftime('%H:%M:%S.%f')[:-3] if item['start'] else ''}"
                              data-command="{command}"
                              data-command-type="{command_type}"
-                             data-input-params="{input_params}"
-                             data-output-params="{output_params}"
+                             data-input-params="{input_params_str}"
+                             data-output-params="{output_params_str}"
                              data-catalog-put="{catalog_put}"
                              data-catalog-get="{catalog_get}"
                              data-attempts="{attempts}">
