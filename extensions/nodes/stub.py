@@ -7,7 +7,7 @@ from pydantic import ConfigDict, Field
 from runnable import datastore, defaults
 from runnable.datastore import StepLog
 from runnable.defaults import MapVariableType
-from runnable.nodes import ExecutableNode, NodeInD3
+from runnable.nodes import ExecutableNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -87,9 +87,3 @@ class StubNode(ExecutableNode):
         step_log.attempts.append(attempt_log)
 
         return step_log
-
-    def to_d3_node(self) -> NodeInD3:
-        return NodeInD3(
-            id=self.internal_name,
-            label="stub",
-        )

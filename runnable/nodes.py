@@ -15,13 +15,6 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 # --8<-- [start:docs]
 
 
-class NodeInD3(BaseModel):
-    id: str
-    label: str
-    task_type: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
-
-
 class BaseNode(ABC, BaseModel):
     """
     Base class with common functionality provided for a Node of a graph.
@@ -374,15 +367,6 @@ class BaseNode(ABC, BaseModel):
 
         Returns:
             Dict[str, Any]: _description_
-        """
-
-    @abstractmethod
-    def to_d3_node(self) -> NodeInD3:
-        """
-        Convert the node to a D3 node representation.
-
-        Returns:
-            NodeInD3: The D3 node representation of the current node.
         """
 
 

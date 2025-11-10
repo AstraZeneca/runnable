@@ -1,0 +1,511 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: argo-
+  labels: {}
+  namespace: enterprise-mlops
+spec:
+  activeDeadlineSeconds: 86400
+  arguments:
+    parameters:
+      - name: integer
+        value: 1
+      - name: floater
+        value: 3.14
+      - name: stringer
+        value: hello
+      - name: run_id
+        value: '{{workflow.uid}}'
+      - name: log_level
+        value: INFO
+  entrypoint: runnable-dag
+  nodeSelector: {}
+  serviceAccountName: default-editor
+  templateDefaults:
+    activeDeadlineSeconds: 86400
+    failFast: true
+    nodeSelector: {}
+  templates:
+    - name: map-state-lwwtwi-fan-out
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - fan
+          - '{{workflow.parameters.run_id}}'
+          - map_state
+          - examples.07-map.map_fail.main
+          - out
+          - --log-level
+          - WARNING
+          - --config-file
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+          - --mode
+          - python
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_PRM_integer
+            value: '{{workflow.parameters.integer}}'
+          - name: RUNNABLE_PRM_floater
+            value: '{{workflow.parameters.floater}}'
+          - name: RUNNABLE_PRM_stringer
+            value: '{{workflow.parameters.stringer}}'
+          - name: RUNNABLE_PRM_run_id
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_PRM_log_level
+            value: '{{workflow.parameters.log_level}}'
+          - name: error_on_existing_run_id
+            value: 'true'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+      inputs:
+        parameters: []
+      outputs:
+        parameters:
+          - name: iterate-on
+            valueFrom:
+              path: /tmp/output.txt
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: map-state-execute-python-14liic
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.map_fail.main
+          - map_state.map_variable_placeholder.execute_python
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --map-variable
+          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: argo_env
+            value: argo
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: '1'
+          requests:
+            memory: 500Mi
+            cpu: '0.5'
+      inputs:
+        parameters:
+          - name: chunk
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: map-state-execute-notebook-9sm589
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.map_fail.main
+          - map_state.map_variable_placeholder.execute_notebook
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --map-variable
+          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: argo_env
+            value: argo
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: '1'
+          requests:
+            memory: 500Mi
+            cpu: '0.5'
+      inputs:
+        parameters:
+          - name: chunk
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: map-state-execute-shell-2twjpr
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.map_fail.main
+          - map_state.map_variable_placeholder.execute_shell
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --map-variable
+          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: argo_env
+            value: argo
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: '1'
+          requests:
+            memory: 500Mi
+            cpu: '0.5'
+      inputs:
+        parameters:
+          - name: chunk
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: map-state-read-processed-chunk-0orzjy
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.map_fail.main
+          - map_state.map_variable_placeholder.read%processed%chunk
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --map-variable
+          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: argo_env
+            value: argo
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: '1'
+          requests:
+            memory: 500Mi
+            cpu: '0.5'
+      inputs:
+        parameters:
+          - name: chunk
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: map-state-success-boppnv
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.map_fail.main
+          - map_state.map_variable_placeholder.success
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --map-variable
+          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+        imagePullPolicy: Always
+        env: []
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: '1'
+          requests:
+            memory: 500Mi
+            cpu: '0.5'
+      inputs:
+        parameters:
+          - name: chunk
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: map-state-lwwtwi-branch
+      dag:
+        tasks:
+          - name: map-state-execute-python-14liic
+            template: map-state-execute-python-14liic
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{inputs.parameters.chunk}}'
+            depends: ''
+          - name: map-state-execute-notebook-9sm589
+            template: map-state-execute-notebook-9sm589
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{inputs.parameters.chunk}}'
+            depends: map-state-execute-python-14liic.Succeeded
+          - name: map-state-execute-shell-2twjpr
+            template: map-state-execute-shell-2twjpr
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{inputs.parameters.chunk}}'
+            depends: map-state-execute-notebook-9sm589.Succeeded
+          - name: map-state-read-processed-chunk-0orzjy
+            template: map-state-read-processed-chunk-0orzjy
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{inputs.parameters.chunk}}'
+            depends: map-state-execute-shell-2twjpr.Succeeded
+          - name: map-state-success-boppnv
+            template: map-state-success-boppnv
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{inputs.parameters.chunk}}'
+            depends: map-state-read-processed-chunk-0orzjy.Succeeded
+      inputs:
+        parameters:
+          - name: chunk
+      failFast: true
+    - name: map-state-lwwtwi-fan-in
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - fan
+          - '{{workflow.parameters.run_id}}'
+          - map_state
+          - examples.07-map.map_fail.main
+          - in
+          - --log-level
+          - WARNING
+          - --config-file
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+          - --mode
+          - python
+        imagePullPolicy: Always
+        env: []
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+      inputs:
+        parameters: []
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: map-state-lwwtwi
+      dag:
+        tasks:
+          - name: map-state-lwwtwi-fan-out
+            template: map-state-lwwtwi-fan-out
+            arguments:
+              parameters: []
+          - name: map-state-lwwtwi-branch
+            template: map-state-lwwtwi-branch
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{item}}'
+            withParam: '{{tasks.map-state-lwwtwi-fan-out.outputs.parameters.iterate-on}}'
+            depends: map-state-lwwtwi-fan-out.Succeeded
+          - name: map-state-lwwtwi-fan-in
+            template: map-state-lwwtwi-fan-in
+            arguments:
+              parameters: []
+            depends: map-state-lwwtwi-branch.Succeeded ||
+              map-state-lwwtwi-branch.Failed
+      failFast: false
+    - name: collect-ra8sa4
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.map_fail.main
+          - collect
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: argo_env
+            value: argo
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: '1'
+          requests:
+            memory: 500Mi
+            cpu: '0.5'
+      inputs:
+        parameters: []
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: success-tz9fze
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.map_fail.main
+          - success
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+        imagePullPolicy: Always
+        env: []
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: '1'
+          requests:
+            memory: 500Mi
+            cpu: '0.5'
+      inputs:
+        parameters: []
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: runnable-dag
+      dag:
+        tasks:
+          - name: map-state-lwwtwi
+            template: map-state-lwwtwi
+            arguments:
+              parameters: []
+            depends: ''
+          - name: collect-ra8sa4
+            template: collect-ra8sa4
+            arguments:
+              parameters: []
+            depends: map-state-lwwtwi.Succeeded
+          - name: success-tz9fze
+            template: success-tz9fze
+            arguments:
+              parameters: []
+            depends: collect-ra8sa4.Succeeded
+      failFast: true
+  volumes:
+    - name: runnable
+      persistentVolumeClaim:
+        claimName: runnable
+        readOnly: false
