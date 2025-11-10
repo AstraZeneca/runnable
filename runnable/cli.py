@@ -426,10 +426,10 @@ def _generate_html_timeline_from_file(
         viz.generate_html_timeline(output_file)
 
         if open_browser:
-            from runnable.viz import _open_in_browser
-
-            # Fix the browser opening issue by using absolute path
-            _open_in_browser(Path(output_file).absolute())
+            import webbrowser
+            file_path = Path(output_file).absolute()
+            print(f"🌐 Opening timeline in browser: {file_path.name}")
+            webbrowser.open(file_path.as_uri())
     except Exception as e:
         print(f"❌ Error generating HTML: {e}")
 
