@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 
 from runnable import defaults, entrypoints
+from runnable.gantt import SimpleVisualizer, generate_html_timeline, visualize_simple
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -291,7 +292,7 @@ def timeline(
             "--console/--no-console",
             help="Show console timeline output (default: true)",
         ),
-    ] = None,
+    ] = True,
     open_browser: Annotated[
         bool,
         typer.Option(
@@ -343,8 +344,6 @@ def timeline(
         runnable timeline simple-run --no-console --no-open       # HTML only, no browser
     """
     logger.setLevel(log_level.value)
-
-    from runnable.viz_simple import generate_html_timeline, visualize_simple
 
     # Determine if input is a file path or run ID
     if os.path.exists(run_id_or_path) or run_id_or_path.endswith(".json"):
@@ -402,7 +401,6 @@ def timeline(
 
 def _visualize_simple_from_file(json_file_path, show_summary: bool = False) -> None:
     """Visualize timeline from JSON file path."""
-    from runnable.viz_simple import SimpleVisualizer
 
     try:
         viz = SimpleVisualizer(json_file_path)
@@ -417,9 +415,6 @@ def _generate_html_timeline_from_file(
     json_file_path, output_file: str, open_browser: bool = True
 ) -> None:
     """Generate HTML timeline from JSON file path."""
-    from pathlib import Path
-
-    from runnable.viz_simple import SimpleVisualizer
 
     try:
         viz = SimpleVisualizer(json_file_path)
@@ -427,6 +422,7 @@ def _generate_html_timeline_from_file(
 
         if open_browser:
             import webbrowser
+
             file_path = Path(output_file).absolute()
             print(f"🌐 Opening timeline in browser: {file_path.name}")
             webbrowser.open(file_path.as_uri())

@@ -1,60 +1,93 @@
 """
-Gantt chart visualization for Runnable pipeline execution timelines.
+Simplified visualization for Runnable pipeline execution.
 
-This module provides timeline-based visualization that naturally handles
-composite nodes like parallel, map, and conditional executions by showing
-their temporal relationships and hierarchical structure.
+This module provides lightweight, reusable components that understand
+the composite pipeline structure documented in the run logs.
 """
 
 import json
-from pathlib import Path
-from typing import Any, Dict, Optional, Union, Tuple
+from dataclasses import dataclass
 from datetime import datetime
-
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich import box
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
-class GanttVisualizer:
-    """
-    Timeline-based visualizer for pipeline execution using Gantt chart principles.
+@dataclass
+class StepInfo:
+    """Clean representation of a pipeline step."""
 
-    This approach is particularly effective for composite nodes because:
-    - Parallel branches are shown as overlapping time bars
-    - Hierarchical structure is clear through indentation
-    - Performance bottlenecks are immediately visible
-    - Execution flow follows natural time progression
-    """
+    name: str
+    internal_name: str
+    status: str
+    step_type: str
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
+    duration_ms: float
+    level: int  # 0=top-level, 1=branch, 2=nested
+    parent: Optional[str]
+    branch: Optional[str]
+    command: str
+    command_type: str
+    input_params: List[str]
+    output_params: List[str]
+    catalog_ops: Dict[str, List[str]]
 
-    def __init__(self, run_log_path: Union[str, Path]):
+
+class StepHierarchyParser:
+    """Parse internal names to understand pipeline hierarchy."""
+
+    @staticmethod
+    def parse_internal_name(internal_name: str) -> Dict[str, str]:
         """
-        Initialize with run log data.
+        Parse internal name into components.
 
-        Args:
-            run_log_path: Path to JSON run log file
+        Examples:
+        - "hello" -> {"step": "hello"}
+        - "parallel_step.branch1.hello_stub" -> {
+            "composite": "parallel_step",
+            "branch": "branch1",
+            "step": "hello_stub"
+          }
         """
-        self.run_log_path = Path(run_log_path)
-        self.run_log_data = None
-        self.timeline_data = []
-        self.global_start = None
-        self.global_end = None
-        self.total_duration_ms = 0
+        parts = internal_name.split(".")
 
-        self.load_run_log()
-        self.analyze_timeline()
+        if len(parts) == 1:
+            return {"step": parts[0]}
+        elif len(parts) == 2:
+            return {"composite": parts[0], "branch": parts[1]}
+        elif len(parts) == 3:
+            return {"composite": parts[0], "branch": parts[1], "step": parts[2]}
+        else:
+            # Handle deeper nesting if needed
+            return {
+                "composite": parts[0],
+                "branch": ".".join(parts[1:-1]),
+                "step": parts[-1],
+            }
 
-    def load_run_log(self) -> None:
-        """Load and parse run log data."""
-        if not self.run_log_path.exists():
-            raise FileNotFoundError(f"Run log not found: {self.run_log_path}")
+    @staticmethod
+    def get_step_level(internal_name: str) -> int:
+        """Determine hierarchy level from internal name."""
+        parts = internal_name.split(".")
+        if len(parts) == 1:
+            return 0  # Top-level step
+        elif len(parts) == 2:
+            return 1  # Branch level (for composite step parent)
+        else:
+            return 2  # Branch step
 
-        with open(self.run_log_path, "r") as f:
-            self.run_log_data = json.load(f)
+
+class TimelineExtractor:
+    """Extract chronological timeline from run log."""
+
+    def __init__(self, run_log_data: Dict[str, Any]):
+        self.run_log_data = run_log_data
+        self.dag_nodes = (
+            run_log_data.get("run_config", {}).get("dag", {}).get("nodes", {})
+        )
 
     def parse_time(self, time_str: str) -> Optional[datetime]:
-        """Parse ISO timestamp string to datetime object."""
+        """Parse ISO timestamp string."""
         try:
             return datetime.fromisoformat(time_str) if time_str else None
         except (ValueError, TypeError):
@@ -63,17 +96,12 @@ class GanttVisualizer:
     def get_step_timing(
         self, step_data: Dict[str, Any]
     ) -> Tuple[Optional[datetime], Optional[datetime], float]:
-        """
-        Extract timing information from step data.
-
-        Returns:
-            Tuple of (start_time, end_time, duration_ms)
-        """
+        """Extract timing from step attempts."""
         attempts = step_data.get("attempts", [])
         if not attempts:
             return None, None, 0
 
-        attempt = attempts[0]  # Use first attempt
+        attempt = attempts[0]
         start = self.parse_time(attempt.get("start_time"))
         end = self.parse_time(attempt.get("end_time"))
 
@@ -83,652 +111,410 @@ class GanttVisualizer:
 
         return None, None, 0
 
-    def _extract_step_metadata(
-        self, step_name: str, step_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        Extract comprehensive metadata for a step.
+    def find_dag_node(self, internal_name: str, clean_name: str) -> Dict[str, Any]:
+        """Find DAG node info for command details."""
+        # Try direct lookup first
+        if clean_name in self.dag_nodes:
+            return self.dag_nodes[clean_name]
 
-        Returns metadata including command, parameters, catalog operations, etc.
-        """
-        metadata = {
-            "command": "",
-            "command_type": "",
-            "attempts": 0,
-            "input_parameters": [],
-            "output_parameters": [],
-            "catalog_operations": {"put": [], "get": []},
-            "start_time": "",
-            "end_time": "",
-        }
+        # For composite steps, look in branch structures
+        hierarchy = StepHierarchyParser.parse_internal_name(internal_name)
+        if "composite" in hierarchy:
+            composite_node = self.dag_nodes.get(hierarchy["composite"], {})
+            if composite_node.get("is_composite"):
+                branches = composite_node.get("branches", {})
+                branch_key = hierarchy.get("branch", "")
 
-        # Get DAG node information for command details
-        dag_nodes = (
-            self.run_log_data.get("run_config", {}).get("dag", {}).get("nodes", {})
-        )
+                if branch_key in branches:
+                    branch_nodes = branches[branch_key].get("nodes", {})
+                    if clean_name in branch_nodes:
+                        return branch_nodes[clean_name]
+                # For map nodes, the branch structure might be different
+                elif "branch" in composite_node:  # Map node structure
+                    branch_nodes = composite_node["branch"].get("nodes", {})
+                    if clean_name in branch_nodes:
+                        return branch_nodes[clean_name]
 
-        # For composite pipeline steps, we need to check both the full step name and the clean name
-        dag_node = None
-        if step_name in dag_nodes:
-            dag_node = dag_nodes[step_name]
+        return {}
+
+    def _format_parameter_value(self, value: Any, kind: str) -> str:
+        """Format parameter value for display."""
+        if kind == "metric":
+            if isinstance(value, (int, float)):
+                return f"{value:.3g}"
+            return str(value)
+
+        if isinstance(value, str):
+            # Truncate long strings
+            if len(value) > 50:
+                return f'"{value[:47]}..."'
+            return f'"{value}"'
+        elif isinstance(value, (list, tuple)):
+            if len(value) > 3:
+                preview = ", ".join(str(v) for v in value[:3])
+                return f"[{preview}, ...+{len(value)-3}]"
+            return str(value)
+        elif isinstance(value, dict):
+            if len(value) > 2:
+                keys = list(value.keys())[:2]
+                preview = ", ".join(f'"{k}": {value[k]}' for k in keys)
+                return f"{{{preview}, ...+{len(value)-2}}}"
+            return str(value)
         else:
-            # Try to find by clean name (for composite pipeline sub-steps)
-            clean_name = step_data.get("name", step_name)
-            if clean_name in dag_nodes:
-                dag_node = dag_nodes[clean_name]
-            else:
-                # Look in branch structures for composite nodes
-                for node_name, node_data in dag_nodes.items():
-                    if node_data.get("is_composite") and "branches" in node_data:
-                        for branch_name, branch_data in node_data["branches"].items():
-                            branch_nodes = branch_data.get("nodes", {})
-                            if clean_name in branch_nodes:
-                                dag_node = branch_nodes[clean_name]
-                                break
-                    if dag_node:
-                        break
+            return str(value)
 
-        if dag_node:
-            metadata["command"] = dag_node.get("command", "")
-            metadata["command_type"] = dag_node.get("command_type", "")
+    def extract_timeline(self) -> List[StepInfo]:
+        """Extract all steps in chronological order."""
+        steps = []
 
-        # Get execution details
+        # Process top-level steps
+        for step_name, step_data in self.run_log_data.get("steps", {}).items():
+            step_info = self._create_step_info(step_name, step_data)
+            steps.append(step_info)
+
+            # Process branches if they exist
+            branches = step_data.get("branches", {})
+            for branch_name, branch_data in branches.items():
+                # Add branch steps
+                for sub_step_name, sub_step_data in branch_data.get(
+                    "steps", {}
+                ).items():
+                    sub_step_info = self._create_step_info(
+                        sub_step_name,
+                        sub_step_data,
+                        parent=step_name,
+                        branch=branch_name,
+                    )
+                    steps.append(sub_step_info)
+
+        # Sort by start time for chronological order
+        return sorted(steps, key=lambda x: x.start_time or datetime.min)
+
+    def _create_step_info(
+        self,
+        step_name: str,
+        step_data: Dict[str, Any],
+        parent: Optional[str] = None,
+        branch: Optional[str] = None,
+    ) -> StepInfo:
+        """Create StepInfo from raw step data."""
+        internal_name = step_data.get("internal_name", step_name)
+        clean_name = step_data.get("name", step_name)
+
+        # Get timing
+        start, end, duration = self.get_step_timing(step_data)
+
+        # Get command info from DAG
+        dag_node = self.find_dag_node(internal_name, clean_name)
+        command = dag_node.get("command", "")
+        command_type = dag_node.get("command_type", "")
+
+        # Extract parameters with detailed metadata (exclude pickled/object types)
+        input_params = []
+        output_params = []
+        catalog_ops: Dict[str, List[str]] = {"put": [], "get": []}
+
         attempts = step_data.get("attempts", [])
-        metadata["attempts"] = len(attempts)
-
         if attempts:
-            attempt = attempts[0]  # Use first attempt
-            metadata["start_time"] = attempt.get("start_time", "")
-            metadata["end_time"] = attempt.get("end_time", "")
+            attempt = attempts[0]
+            input_param_data = attempt.get("input_parameters", {})
+            output_param_data = attempt.get("output_parameters", {})
 
-            # Extract parameters
-            input_params = attempt.get("input_parameters", {})
-            output_params = attempt.get("output_parameters", {})
-            metadata["input_parameters"] = (
-                list(input_params.keys()) if input_params else []
-            )
-            metadata["output_parameters"] = (
-                list(output_params.keys()) if output_params else []
-            )
+            # Process input parameters (exclude object/pickled types)
+            for name, param in input_param_data.items():
+                if isinstance(param, dict):
+                    kind = param.get("kind", "")
+                    if kind in ("json", "metric"):
+                        value = param.get("value", "")
+                        # Format value for display
+                        formatted_value = self._format_parameter_value(value, kind)
+                        input_params.append(f"{name}={formatted_value}")
+                    # Skip object/pickled parameters entirely
 
-            # Extract parameter values for display
-            metadata["input_param_values"] = {}
-            metadata["output_param_values"] = {}
-
-            if input_params:
-                for key, param_data in input_params.items():
-                    if isinstance(param_data, dict) and "value" in param_data:
-                        # Only show json and metric parameters, exclude pickled
-                        param_kind = param_data.get("kind", "")
-                        if param_kind in ("json", "metric"):
-                            metadata["input_param_values"][key] = str(
-                                param_data["value"]
-                            )
-
-            if output_params:
-                for key, param_data in output_params.items():
-                    if isinstance(param_data, dict) and "value" in param_data:
-                        # Only show json and metric parameters, exclude pickled
-                        param_kind = param_data.get("kind", "")
-                        if param_kind in ("json", "metric"):
-                            metadata["output_param_values"][key] = str(
-                                param_data["value"]
-                            )
+            # Process output parameters (exclude object/pickled types)
+            for name, param in output_param_data.items():
+                if isinstance(param, dict):
+                    kind = param.get("kind", "")
+                    if kind in ("json", "metric"):
+                        value = param.get("value", "")
+                        # Format value for display
+                        formatted_value = self._format_parameter_value(value, kind)
+                        output_params.append(f"{name}={formatted_value}")
+                    # Skip object/pickled parameters entirely
 
         # Extract catalog operations
         catalog_data = step_data.get("data_catalog", [])
         for item in catalog_data:
             stage = item.get("stage", "")
+            name = item.get("name", "")
             if stage == "put":
-                metadata["catalog_operations"]["put"].append(item.get("name", ""))
+                catalog_ops["put"].append(name)
             elif stage == "get":
-                metadata["catalog_operations"]["get"].append(item.get("name", ""))
+                catalog_ops["get"].append(name)
 
-        return metadata
-
-    def analyze_timeline(self) -> None:
-        """
-        Analyze run log to extract timeline data for all steps including composite nodes.
-
-        This builds a hierarchical timeline structure that can handle:
-        - Simple sequential steps
-        - Composite nodes (parallel, map, conditional) with sub-steps
-        - Branch execution (sequential locally, showing logical structure)
-        """
-        if not self.run_log_data:
-            return
-
-        all_times = []
-        timeline_items = []
-
-        # Process top-level steps
-        for step_name, step_data in self.run_log_data.get("steps", {}).items():
-            start, end, duration = self.get_step_timing(step_data)
-            is_composite = bool(step_data.get("branches"))
-
-            # Get additional metadata
-            metadata = self._extract_step_metadata(step_name, step_data)
-
-            # For composite steps, we still show them as top-level items
-            if start and end:
-                all_times.extend([start, end])
-
-            timeline_items.append(
-                {
-                    "name": step_name,
-                    "start": start,
-                    "end": end,
-                    "duration_ms": duration,
-                    "status": step_data.get("status", "UNKNOWN"),
-                    "step_type": step_data.get("step_type", "task"),
-                    "level": 0,
-                    "is_composite": is_composite,
-                    "parent": None,
-                    "metadata": metadata,
-                }
-            )
-
-            # Process branches if they exist (composite nodes)
-            branches = step_data.get("branches", {})
-            if branches:
-                for branch_name, branch_data in branches.items():
-                    # Extract proper branch display name
-                    if "." in branch_name:
-                        # For map states like "map_state.1" -> "1"
-                        branch_display = branch_name.split(".")[-1]
-                    else:
-                        # For conditional branches like "conditional.tails" -> "tails"
-                        branch_display = branch_name.split(".")[-1]
-
-                    # Add a branch header
-                    timeline_items.append(
-                        {
-                            "name": f"Branch: {branch_display}",
-                            "start": None,
-                            "end": None,
-                            "duration_ms": 0,
-                            "status": branch_data.get("status", "UNKNOWN"),
-                            "step_type": "branch",
-                            "level": 1,
-                            "is_composite": False,
-                            "parent": step_name,
-                            "branch": branch_name,
-                            "metadata": {},
-                        }
-                    )
-
-                    # Process sub-steps within each branch
-                    for sub_step_name, sub_step_data in branch_data.get(
-                        "steps", {}
-                    ).items():
-                        sub_start, sub_end, sub_duration = self.get_step_timing(
-                            sub_step_data
-                        )
-
-                        if sub_start and sub_end:
-                            all_times.extend([sub_start, sub_end])
-
-                        # Get metadata for sub-step
-                        sub_metadata = self._extract_step_metadata(
-                            sub_step_name, sub_step_data
-                        )
-
-                        timeline_items.append(
-                            {
-                                "name": sub_step_data.get(
-                                    "name", sub_step_name
-                                ),  # Use clean name
-                                "start": sub_start,
-                                "end": sub_end,
-                                "duration_ms": sub_duration,
-                                "status": sub_step_data.get("status", "UNKNOWN"),
-                                "step_type": sub_step_data.get("step_type", "task"),
-                                "level": 2,  # Branch sub-steps are level 2
-                                "is_composite": False,
-                                "parent": step_name,
-                                "branch": branch_name,
-                                "metadata": sub_metadata,
-                            }
-                        )
-
-        # Build DAG execution order for proper sorting
-        dag_nodes = (
-            self.run_log_data.get("run_config", {}).get("dag", {}).get("nodes", {})
-        )
-        start_at = (
-            self.run_log_data.get("run_config", {}).get("dag", {}).get("start_at", "")
+        return StepInfo(
+            name=clean_name,
+            internal_name=internal_name,
+            status=step_data.get("status", "UNKNOWN"),
+            step_type=step_data.get("step_type", "task"),
+            start_time=start,
+            end_time=end,
+            duration_ms=duration,
+            level=StepHierarchyParser.get_step_level(internal_name),
+            parent=parent,
+            branch=branch,
+            command=command,
+            command_type=command_type,
+            input_params=input_params,
+            output_params=output_params,
+            catalog_ops=catalog_ops,
         )
 
-        # Create logical order based on DAG flow
-        logical_order = {}
-        current_node = start_at
-        order_index = 0
 
-        # Build execution order following the DAG
-        while current_node and current_node in dag_nodes:
-            logical_order[current_node] = order_index
-            order_index += 1
-            current_node = dag_nodes[current_node].get("next_node")
+class SimpleVisualizer:
+    """Simple, lightweight pipeline visualizer."""
 
-        # Sort timeline items respecting logical DAG flow
-        def sort_key(item):
-            step_name = item["name"]
-            branch_name = item.get("branch", "")
+    def __init__(self, run_log_path: Union[str, Path]):
+        self.run_log_path = Path(run_log_path)
+        self.run_log_data = self._load_run_log()
+        self.extractor = TimelineExtractor(self.run_log_data)
+        self.timeline = self.extractor.extract_timeline()
 
-            # Get logical order for the step
-            dag_order = logical_order.get(step_name, 999)
+    def _load_run_log(self) -> Dict[str, Any]:
+        """Load run log JSON."""
+        if not self.run_log_path.exists():
+            raise FileNotFoundError(f"Run log not found: {self.run_log_path}")
 
-            # For composite steps, get the parent's order
-            if item["parent"]:
-                dag_order = logical_order.get(item["parent"], 999)
+        with open(self.run_log_path, "r") as f:
+            return json.load(f)
 
-            # Extract branch number for ordering within composite nodes
-            branch_order = "1"
-            if branch_name:
-                # For map states like "map_state.1", "map_state.2", etc.
-                if "." in branch_name and branch_name.split(".")[-1].isdigit():
-                    branch_parts = branch_name.split(".")
-                    branch_order = branch_parts[-1].zfill(3)  # Pad for proper sorting
-                # For parallel branches like "parallel_step.branch1", "parallel_step.branch2"
-                elif "branch1" in branch_name or "tails" in branch_name:
-                    branch_order = "1"
-                elif "branch2" in branch_name or "heads" in branch_name:
-                    branch_order = "2"
-                # For conditional branches (fallback)
-                else:
-                    branch_order = "1"
-
-            if item["is_composite"]:
-                # Composite steps: show at their DAG position
-                return (dag_order, 0, item["start"] or datetime.min)
-            elif item["step_type"] == "branch":
-                # Branch headers: right after their parent composite step
-                return (dag_order, 1, branch_order, "0")
-            elif item["parent"] and item.get("branch"):
-                # Branch steps: after their branch header
-                return (dag_order, 1, branch_order, "1", item["start"] or datetime.min)
-            else:
-                # Regular items: at their DAG position
-                return (dag_order, 2, item["start"] or datetime.min)
-
-        timeline_items.sort(key=sort_key)
-        self.timeline_data = timeline_items
-
-        # Calculate global timeline bounds
-        if all_times:
-            self.global_start = min(all_times)
-            self.global_end = max(all_times)
-            self.total_duration_ms = (
-                self.global_end - self.global_start
-            ).total_seconds() * 1000
-
-    def print_gantt_console(self) -> None:
-        """
-        Print a Rich-enhanced console timeline representation.
-
-        This provides a clean text-based timeline with:
-        - Dark terminal friendly colors
-        - Simple duration bars (not cascading)
-        - Metadata in the left column for better readability
-        - Sequential timeline understanding
-        """
-        if not self.timeline_data:
-            console = Console()
-            console.print("❌ No timeline data available", style="bright_red")
-            return
-
-        console = Console(width=120)
+    def print_simple_timeline(self) -> None:
+        """Print a clean console timeline."""
         run_id = self.run_log_data.get("run_id", "unknown")
         status = self.run_log_data.get("status", "UNKNOWN")
 
-        # Create header with dark terminal friendly colors
-        status_color = (
-            "bright_green"
-            if status == "SUCCESS"
-            else "bright_red"
-            if status == "FAIL"
-            else "bright_yellow"
-        )
-        header_text = f"⏱️  Pipeline Timeline - [bold white]{run_id}[/bold white]\n"
-        header_text += f"Total Duration: [bold white]{self.total_duration_ms:.1f}ms[/bold white] | "
-        header_text += f"Status: [bold {status_color}]{status}[/bold {status_color}]"
+        print(f"\n🔄 Pipeline Timeline - {run_id}")
+        print(f"Status: {status}")
+        print("=" * 80)
 
-        console.print(Panel(header_text, box=box.ROUNDED, style="bright_blue"))
-        console.print()
-
-        # Create main timeline table with better spacing
-        table = Table(show_header=True, header_style="bold bright_blue", box=box.SIMPLE)
-        table.add_column("Step & Details", style="bright_white", width=60)
-        table.add_column("Duration", justify="right", style="bright_magenta", width=12)
-        table.add_column("Progress Bar", width=40)
-
+        # Group by composite steps for better display
+        current_composite = None
         current_branch = None
 
-        for item in self.timeline_data:
-            # Handle branch headers (no timing info)
-            if item["step_type"] == "branch":
-                branch_name = item["name"]
-                indent = "  " * item["level"]
-
-                # Add horizontal separator between branches (but not before first branch)
-                if current_branch is not None:
-                    separator = (
-                        f"{indent}[dim bright_black]{'─' * 50}[/dim bright_black]"
-                    )
-                    table.add_row(separator, "", "")
-
-                branch_row = (
-                    f"{indent}[bold bright_cyan]├─ {branch_name}[/bold bright_cyan]"
-                )
-                table.add_row(branch_row, "", "")
-                current_branch = item["branch"]
+        for step in self.timeline:
+            # Skip composite steps themselves (they have no timing)
+            if (
+                step.step_type in ["parallel", "map", "conditional"]
+                and not step.start_time
+            ):
                 continue
 
-            # For regular steps, check if we need to switch branches
-            if item.get("branch") and item["branch"] != current_branch:
-                # This shouldn't happen with proper sorting, but let's handle it
-                current_branch = item["branch"]
+            # Detect composite/branch changes
+            hierarchy = StepHierarchyParser.parse_internal_name(step.internal_name)
+            composite = hierarchy.get("composite")
+            branch = hierarchy.get("branch")
 
-            # Calculate simple duration bar (not cascading)
-            if self.total_duration_ms > 0 and item["duration_ms"] > 0:
-                duration_percentage = item["duration_ms"] / self.total_duration_ms
-                bar_width = 30  # Fixed width for progress bar
-                duration_width = max(1, int(duration_percentage * bar_width))
-            else:
-                duration_width = 1 if item["duration_ms"] > 0 else 0
+            # Show composite header
+            if composite and composite != current_composite:
+                print(f"\n🔀 {composite} ({self._get_composite_type(composite)})")
+                current_composite = composite
+                current_branch = None
 
-            # Create indentation and icons
-            indent = "  " * item["level"]
+            # Show branch header
+            if branch and branch != current_branch:
+                branch_display = self._format_branch_name(composite or "", branch)
+                print(f"  ├─ Branch: {branch_display}")
+                current_branch = branch
 
-            # Status styling - bright colors for dark terminals
-            if item["status"] == "SUCCESS":
-                status_style = "bright_green"
-                status_icon = "✅"
-            elif item["status"] == "FAIL":
-                status_style = "bright_red"
-                status_icon = "❌"
-            else:
-                status_style = "bright_yellow"
-                status_icon = "⏸️"
+            # Show step
+            indent = (
+                "  " if step.level == 0 else "    " if step.level == 1 else "      "
+            )
+            status_emoji = (
+                "✅"
+                if step.status == "SUCCESS"
+                else "❌"
+                if step.status == "FAIL"
+                else "⏸️"
+            )
 
-            # Type icons
+            # Type icon
             type_icons = {
                 "task": "⚙️",
-                "parallel": "🔀",
-                "map": "🔁",
-                "conditional": "🔀",
                 "stub": "📝",
                 "success": "✅",
                 "fail": "❌",
+                "parallel": "🔀",
+                "map": "🔁",
+                "conditional": "🔀",
             }
-            type_icon = type_icons.get(item["step_type"], "⚙️")
+            type_icon = type_icons.get(step.step_type, "⚙️")
 
-            # Format step name with metadata below
-            step_name = f"{indent}{type_icon} [{status_style}]{status_icon}[/{status_style}] [bold bright_white]{item['name']}[/bold bright_white]"
+            timing = f"({step.duration_ms:.1f}ms)" if step.duration_ms > 0 else ""
 
-            # For composite nodes, add indication
-            if item.get("is_composite"):
-                step_name += (
-                    f" [dim bright_magenta]({item['step_type']})[/dim bright_magenta]"
-                )
+            print(f"{indent}{type_icon} {status_emoji} {step.name} {timing}")
 
-            # Add metadata right below the step name
-            metadata = item.get("metadata", {})
-            if metadata:
-                metadata_line = self._format_rich_metadata_inline(metadata)
-                if metadata_line:
-                    step_name += f"\n{indent}   [dim bright_cyan]{metadata_line}[/dim bright_cyan]"
+            # Show metadata for tasks
+            if step.step_type == "task" and (
+                step.command
+                or step.input_params
+                or step.output_params
+                or step.catalog_ops["put"]
+                or step.catalog_ops["get"]
+            ):
+                if step.command:
+                    cmd_short = (
+                        step.command[:50] + "..."
+                        if len(step.command) > 50
+                        else step.command
+                    )
+                    print(f"{indent}   📝 {step.command_type.upper()}: {cmd_short}")
 
-            # Duration with color coding based on performance
-            duration_ms = item["duration_ms"]
-            if duration_ms == 0:
-                duration_text = "[dim]0.0ms[/dim]"
-            elif duration_ms < 10:
-                duration_color = "bright_green"
-                duration_text = (
-                    f"[{duration_color}]{duration_ms:.1f}ms[/{duration_color}]"
-                )
-            elif duration_ms < 100:
-                duration_color = "bright_yellow"
-                duration_text = (
-                    f"[{duration_color}]{duration_ms:.1f}ms[/{duration_color}]"
-                )
-            else:
-                duration_color = "bright_red"
-                duration_text = (
-                    f"[{duration_color}]{duration_ms:.1f}ms[/{duration_color}]"
-                )
+                # Show input parameters - compact horizontal display
+                if step.input_params:
+                    params_display = " • ".join(step.input_params)
+                    print(f"{indent}   📥 {params_display}")
 
-            # Create simple progress bar
-            if duration_width > 0:
-                bar_color = (
-                    "bright_green"
-                    if item["status"] == "SUCCESS"
-                    else "bright_red"
-                    if item["status"] == "FAIL"
-                    else "bright_yellow"
-                )
-                progress_bar = f"[{bar_color}]{'█' * duration_width}[/{bar_color}]"
-            else:
-                progress_bar = ""
+                # Show output parameters - compact horizontal display
+                if step.output_params:
+                    params_display = " • ".join(step.output_params)
+                    print(f"{indent}   📤 {params_display}")
 
-            table.add_row(step_name, duration_text, progress_bar)
+                # Show catalog operations - compact horizontal display
+                if step.catalog_ops.get("put") or step.catalog_ops.get("get"):
+                    catalog_items = []
+                    if step.catalog_ops.get("put"):
+                        catalog_items.extend(
+                            [f"PUT:{item}" for item in step.catalog_ops["put"]]
+                        )
+                    if step.catalog_ops.get("get"):
+                        catalog_items.extend(
+                            [f"GET:{item}" for item in step.catalog_ops["get"]]
+                        )
+                    if catalog_items:
+                        catalog_display = " • ".join(catalog_items)
+                        print(f"{indent}   💾 {catalog_display}")
 
-        console.print(table)
-        console.print()
+        print("=" * 80)
 
-    def _format_rich_metadata_inline(self, metadata: Dict[str, Any]) -> str:
-        """Format metadata for inline display in the step column."""
-        details = []
+    def _get_composite_type(self, composite_name: str) -> str:
+        """Get composite node type from DAG."""
+        dag_nodes = (
+            self.run_log_data.get("run_config", {}).get("dag", {}).get("nodes", {})
+        )
+        node = dag_nodes.get(composite_name, {})
+        return node.get("node_type", "composite")
 
-        # Command information - keep it concise
-        if metadata.get("command") and metadata.get("command_type"):
-            command = metadata["command"]
-            # Truncate long commands more aggressively for inline display
-            if len(command) > 40:
-                command = command[:37] + "..."
-            details.append(f"{metadata['command_type'].upper()}: {command}")
+    def _format_branch_name(self, composite: str, branch: str) -> str:
+        """Format branch name based on composite type."""
+        # Remove composite prefix if present
+        if branch.startswith(f"{composite}."):
+            branch_clean = branch[len(f"{composite}.") :]
+        else:
+            branch_clean = branch
 
-        # Catalog operations
-        catalog_ops = metadata.get("catalog_operations", {})
-        put_ops = catalog_ops.get("put", [])
-        get_ops = catalog_ops.get("get", [])
+        # Check if it's a map iteration (numeric)
+        if branch_clean.isdigit():
+            return f"Iteration {branch_clean}"
 
-        catalog_info = []
-        if put_ops:
-            put_str = ", ".join(put_ops[:2]) + ("..." if len(put_ops) > 2 else "")
-            catalog_info.append(f"📤 {put_str}")
+        return branch_clean
 
-        if get_ops:
-            get_str = ", ".join(get_ops[:2]) + ("..." if len(get_ops) > 2 else "")
-            catalog_info.append(f"📥 {get_str}")
+    def print_execution_summary(self) -> None:
+        """Print execution summary table."""
+        run_id = self.run_log_data.get("run_id", "unknown")
 
-        if catalog_info:
-            details.append(" | ".join(catalog_info))
+        print(f"\n📊 Execution Summary - {run_id}")
+        print("=" * 80)
 
-        # Parameters with values
-        input_params = metadata.get("input_parameters", [])
-        output_params = metadata.get("output_parameters", [])
-        input_values = metadata.get("input_param_values", {})
-        output_values = metadata.get("output_param_values", {})
+        # Filter to actual executed steps (with timing)
+        executed_steps = [step for step in self.timeline if step.start_time]
 
-        if input_params:
-            param_details = []
-            for param in input_params[:2]:
-                # Only show parameters with safe values (json/metric only)
-                if param in input_values:
-                    param_details.append(f"{param}={input_values[param]}")
-            if param_details:
-                param_str = ", ".join(param_details) + (
-                    "..." if len(input_params) > 2 else ""
-                )
-                details.append(f"🔗 In: {param_str}")
+        if not executed_steps:
+            print("No executed steps found")
+            return
 
-        if output_params:
-            param_details = []
-            for param in output_params[:2]:
-                # Only show parameters with safe values (json/metric only)
-                if param in output_values:
-                    param_details.append(f"{param}={output_values[param]}")
-            if param_details:
-                param_str = ", ".join(param_details) + (
-                    "..." if len(output_params) > 2 else ""
-                )
-                details.append(f"🔗 Out: {param_str}")
+        # Table header
+        print(f"{'Step':<30} {'Status':<10} {'Duration':<12} {'Type':<10}")
+        print("-" * 80)
 
-        # Start time - just show time, not full timestamp
-        start_time = metadata.get("start_time", "")
-        if start_time:
-            try:
-                parsed_time = datetime.fromisoformat(start_time)
-                time_str = parsed_time.strftime("%H:%M:%S.%f")[:-3]
-                details.append(f"🕐 {time_str}")
-            except (ValueError, TypeError):
-                pass
+        total_duration = 0
+        success_count = 0
 
-        return " • ".join(details)
-
-    def _format_rich_metadata(self, metadata: Dict[str, Any], level: int) -> str:
-        """Format metadata for Rich display in a compact format."""
-        details = []
-
-        # Command information
-        if metadata.get("command") and metadata.get("command_type"):
-            command = (
-                metadata["command"][:50] + "..."
-                if len(metadata["command"]) > 50
-                else metadata["command"]
+        for step in executed_steps:
+            status_emoji = (
+                "✅"
+                if step.status == "SUCCESS"
+                else "❌"
+                if step.status == "FAIL"
+                else "⏸️"
             )
-            details.append(f"📝 {metadata['command_type'].upper()}: {command}")
-
-        # Start time
-        start_time = metadata.get("start_time", "")
-        if start_time:
-            try:
-                parsed_time = datetime.fromisoformat(start_time)
-                time_str = parsed_time.strftime("%H:%M:%S.%f")[:-3]
-                details.append(f"🕐 {time_str}")
-            except (ValueError, TypeError):
-                pass
-
-        # Catalog operations
-        catalog_ops = metadata.get("catalog_operations", {})
-        put_ops = catalog_ops.get("put", [])
-        get_ops = catalog_ops.get("get", [])
-
-        if put_ops:
-            put_str = ", ".join(put_ops[:2]) + ("..." if len(put_ops) > 2 else "")
-            details.append(f"📤 PUT: {put_str}")
-
-        if get_ops:
-            get_str = ", ".join(get_ops[:2]) + ("..." if len(get_ops) > 2 else "")
-            details.append(f"📥 GET: {get_str}")
-
-        return " | ".join(details)
-
-    def _print_step_metadata(self, metadata: Dict[str, Any], level: int) -> None:
-        """Print formatted metadata for a step."""
-        indent = "  " * (level + 1)  # Extra indentation for metadata
-
-        # Command information
-        if metadata.get("command"):
-            command_type = metadata.get("command_type", "").upper()
-            command = metadata.get("command", "")
-            print(f"{indent}📝 {command_type}: {command}")
-
-        # Execution details
-        details = []
-        if metadata.get("attempts", 0) > 1:
-            details.append(f"Attempts: {metadata['attempts']}")
-
-        start_time = metadata.get("start_time", "")
-        if start_time:
-            try:
-                parsed_time = datetime.fromisoformat(start_time)
-                time_str = parsed_time.strftime("%H:%M:%S.%f")[:-3]
-                details.append(f"Started: {time_str}")
-            except (ValueError, TypeError):
-                pass
-
-        if details:
-            print(f"{indent}📊 {' | '.join(details)}")
-
-        # Parameters
-        input_params = metadata.get("input_parameters", [])
-        output_params = metadata.get("output_parameters", [])
-        param_info = []
-
-        if input_params:
-            param_info.append(
-                f"In: {', '.join(input_params[:3])}{'...' if len(input_params) > 3 else ''}"
-            )
-        if output_params:
-            param_info.append(
-                f"Out: {', '.join(output_params[:3])}{'...' if len(output_params) > 3 else ''}"
+            duration_text = (
+                f"{step.duration_ms:.1f}ms" if step.duration_ms > 0 else "0.0ms"
             )
 
-        if param_info:
-            print(f"{indent}🔗 Parameters: {' | '.join(param_info)}")
+            # Truncate long names
+            display_name = step.name[:28] + ".." if len(step.name) > 30 else step.name
 
-        # Catalog operations
-        catalog_ops = metadata.get("catalog_operations", {})
-        put_ops = catalog_ops.get("put", [])
-        get_ops = catalog_ops.get("get", [])
+            print(
+                f"{display_name:<30} {status_emoji}{step.status:<9} {duration_text:<12} {step.step_type:<10}"
+            )
 
-        if put_ops or get_ops:
-            catalog_info = []
-            if put_ops:
-                catalog_info.append(
-                    f"📤 PUT: {', '.join(put_ops[:2])}{'...' if len(put_ops) > 2 else ''}"
-                )
-            if get_ops:
-                catalog_info.append(
-                    f"📥 GET: {', '.join(get_ops[:2])}{'...' if len(get_ops) > 2 else ''}"
-                )
-            print(f"{indent}📁 Catalog: {' | '.join(catalog_info)}")
+            total_duration += int(step.duration_ms)
+            if step.status == "SUCCESS":
+                success_count += 1
 
-        # Add a small separator for readability
-        if (
-            metadata.get("command")
-            or input_params
-            or output_params
-            or put_ops
-            or get_ops
-        ):
-            print()
+        print("-" * 80)
+        success_rate = (
+            (success_count / len(executed_steps)) * 100 if executed_steps else 0
+        )
+        overall_status = self.run_log_data.get("status", "UNKNOWN")
+        overall_emoji = "✅" if overall_status == "SUCCESS" else "❌"
 
-    def generate_html_gantt(
+        print(
+            f"Total Duration: {total_duration:.1f}ms | Success Rate: {success_rate:.1f}% | Status: {overall_emoji} {overall_status}"
+        )
+
+    def generate_html_timeline(
         self, output_path: Optional[Union[str, Path]] = None
     ) -> str:
         """
-        Generate an interactive HTML Gantt chart.
+        Generate an interactive HTML timeline visualization.
 
-        This creates a rich web-based timeline visualization with:
-        - Zoomable timeline
-        - Hover tooltips with detailed info
-        - Expandable/collapsible composite nodes
-        - Color coding for status and performance
+        This creates a lightweight HTML version with:
+        - Clean timeline layout
+        - Hover tooltips with metadata
+        - Expandable composite sections
+        - Timing bars proportional to execution duration
         """
-        if not self.timeline_data:
-            return "<html><body>No timeline data available</body></html>"
-
         run_id = self.run_log_data.get("run_id", "unknown")
         status = self.run_log_data.get("status", "UNKNOWN")
 
-        # Generate HTML with embedded CSS and JavaScript
+        # Calculate total timeline for proportional bars
+        executed_steps = [step for step in self.timeline if step.start_time]
+        if executed_steps:
+            earliest = min(
+                step.start_time for step in executed_steps if step.start_time
+            )
+            latest = max(step.end_time for step in executed_steps if step.end_time)
+            total_duration_ms = (
+                (latest - earliest).total_seconds() * 1000 if latest and earliest else 1
+            )
+        else:
+            total_duration_ms = 1
+
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pipeline Gantt Chart - {run_id}</title>
+    <title>Pipeline Timeline - {run_id}</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: #ffffff;
-            color: #1a202c;
+            background: #f8fafc;
+            color: #1e293b;
             line-height: 1.6;
         }}
 
@@ -746,119 +532,128 @@ class GanttVisualizer:
             padding: 0 1rem;
         }}
 
+        .timeline-card {{
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }}
+
         .timeline-header {{
-            background: #ffffff;
-            border-radius: 8px;
+            background: #f8fafc;
             padding: 1.5rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-bottom: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            color: #1a202c;
         }}
 
-        .gantt-container {{
-            background: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: hidden;
-            color: #1a202c;
+        .timeline-content {{
+            padding: 1rem;
         }}
 
-        .timeline-scale {{
-            background: #f7fafc;
-            border-bottom: 2px solid #e2e8f0;
-            padding: 0.5rem 1rem;
-            font-family: monospace;
-            font-size: 0.875rem;
+        .step-row {{
             display: grid;
-            grid-template-columns: 300px 1fr;
-            color: #2d3748;
-            font-weight: 600;
-        }}
-
-        .scale-markers {{
-            position: relative;
-            height: 30px;
-            background: linear-gradient(to right, #e2e8f0 0%, #e2e8f0 100%);
-            border-radius: 4px;
-        }}
-
-        .timeline-row {{
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            border-bottom: 1px solid #f1f5f9;
-            min-height: 40px;
+            grid-template-columns: 300px 1fr 80px;
             align-items: center;
-            transition: background-color 0.2s ease;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.2s ease;
+            gap: 1rem;
+            min-height: 40px;
+            overflow: visible;
         }}
 
-        .timeline-row:hover {{
+        .step-row:hover {{
             background: #f8fafc;
         }}
 
         .step-info {{
-            padding: 0.5rem 1rem;
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            position: relative;
-            color: #1a202c;
+            flex-direction: column;
+            gap: 0.25rem;
             font-weight: 500;
+            min-height: 24px;
+            justify-content: flex-start;
+            overflow: visible;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }}
 
-        .step-info:hover::before {{
-            content: "Click to expand details";
-            position: absolute;
-            top: -1.5rem;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1f2937;
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            white-space: nowrap;
-            z-index: 100;
-            opacity: 0;
-            animation: fadeIn 0.2s ease forwards;
+        .step-level-0 {{ padding-left: 0; }}
+        .step-level-1 {{ padding-left: 1rem; }}
+        .step-level-2 {{ padding-left: 2rem; }}
+
+        .composite-header {{
+            background: #e0f2fe !important;
+            border-left: 4px solid #0277bd;
+            font-weight: 600;
+            color: #01579b;
         }}
 
-        @keyframes fadeIn {{
-            to {{ opacity: 1; }}
+        .branch-header {{
+            background: #f3e5f5 !important;
+            border-left: 4px solid #7b1fa2;
+            font-weight: 600;
+            color: #4a148c;
         }}
 
-        .step-level-0 {{ padding-left: 1rem; }}
-        .step-level-1 {{ padding-left: 2rem; }}
-        .step-level-2 {{ padding-left: 3rem; }}
-
-        .step-icon {{
-            font-size: 1.1em;
-        }}
-
-        .status-success {{ color: #16a34a; }}
-        .status-fail {{ color: #dc2626; }}
-
-        .timeline-bar-container {{
+        .gantt-container {{
             position: relative;
-            height: 24px;
-            margin: 0 1rem;
-            background: #f1f5f9;
+            height: 30px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
             border-radius: 4px;
+            min-width: 100%;
+            overflow: hidden;
         }}
 
-        .timeline-bar {{
+        .gantt-bar {{
             position: absolute;
-            top: 4px;
-            height: 16px;
+            top: 3px;
+            height: 24px;
             border-radius: 3px;
             transition: all 0.2s ease;
             cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.3);
+        }}
+
+        .gantt-bar:hover {{
+            transform: scaleY(1.1);
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }}
+
+        .time-grid {{
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-left: 1px solid #e2e8f0;
+            opacity: 0.3;
+        }}
+
+        .time-scale {{
+            position: relative;
+            height: 20px;
+            background: #f1f5f9;
+            border-bottom: 1px solid #d1d5db;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }}
+
+        .time-marker {{
+            position: absolute;
+            top: 0;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding-left: 4px;
+            font-weight: 500;
         }}
 
         .timeline-bar:hover {{
-            transform: scaleY(1.2);
+            transform: scaleY(1.1);
             z-index: 10;
         }}
 
@@ -866,304 +661,128 @@ class GanttVisualizer:
         .bar-fail {{ background: linear-gradient(90deg, #ef4444, #dc2626); }}
         .bar-unknown {{ background: linear-gradient(90deg, #f59e0b, #d97706); }}
 
-        .tooltip {{
-            position: absolute;
-            background: #1a202c;
-            color: #ffffff;
-            padding: 0.75rem;
-            border-radius: 6px;
+        .duration-text {{
+            font-family: monospace;
             font-size: 0.875rem;
-            z-index: 1000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-            max-width: 400px;
-            line-height: 1.4;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            border: 1px solid #4a5568;
-        }}
-
-        .tooltip.show {{ opacity: 1; }}
-
-        .status-badge {{
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
             font-weight: 600;
         }}
 
-        .badge-success {{ background: #dcfce7; color: #16a34a; }}
-        .badge-fail {{ background: #fecaca; color: #dc2626; }}
-        .badge-unknown {{ background: #fef3c7; color: #d97706; }}
+        .duration-fast {{ color: #16a34a; }}
+        .duration-medium {{ color: #f59e0b; }}
+        .duration-slow {{ color: #dc2626; }}
 
-        .branch-header {{
-            background: #f8fafc !important;
-            border-top: 2px solid #e2e8f0;
-            border-bottom: 1px solid #e2e8f0;
+        .status-success {{ color: #16a34a; }}
+        .status-fail {{ color: #dc2626; }}
+        .status-unknown {{ color: #f59e0b; }}
+
+        .expandable {{
+            cursor: pointer;
+            user-select: none;
         }}
 
-        .branch-name {{
-            font-weight: 700;
-            color: #1e40af;
-            font-size: 0.95rem;
-            text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+        .expandable:hover {{
+            background: #e2e8f0 !important;
         }}
 
-        .branch-separator {{
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(to right, #0ea5e9, transparent);
-            border-radius: 1px;
-            margin: auto;
+        .step-header.expandable {{
+            padding: 0.25rem;
+            border-radius: 4px;
+            margin: -0.25rem;
+        }}
+
+        .step-header.expandable:hover {{
+            background: #f1f5f9 !important;
+        }}
+
+        .collapsible-content {{
+            max-height: none;
+            overflow: visible;
+            transition: max-height 0.3s ease;
+        }}
+
+        .collapsible-content.collapsed {{
+            max-height: 0;
+            overflow: hidden;
+        }}
+
+        .summary-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }}
+
+        .summary-card {{
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            text-align: center;
+        }}
+
+        .summary-number {{
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }}
+
+        .summary-label {{
+            color: #64748b;
+            font-size: 0.875rem;
         }}
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>⏱️ Pipeline Execution Timeline</h1>
-        <p>Gantt Chart Visualization</p>
+        <h1>🔄 Pipeline Timeline Visualization</h1>
+        <p>Interactive execution analysis for {run_id}</p>
     </div>
 
     <div class="container">
-        <div class="timeline-header">
-            <div>
-                <h2>Run ID: {run_id}</h2>
-                <p>Total Duration: {self.total_duration_ms:.1f}ms</p>
-            </div>
-            <div>
-                <span class="status-badge badge-{status.lower()}">
-                    {status}
-                </span>
-            </div>
-        </div>
-
-        <div class="gantt-container">
-            <div class="timeline-scale">
-                <div><strong>Pipeline Steps</strong></div>
-                <div class="scale-markers" id="timeline-scale">
-                    <!-- Scale markers will be added by JavaScript -->
+        <div class="timeline-card">
+            <div class="timeline-header">
+                <div>
+                    <h2>Run ID: {run_id}</h2>
+                    <p>Status: <span class="status-{status.lower()}">{status}</span></p>
+                </div>
+                <div>
+                    <span class="duration-text">Total: {total_duration_ms:.1f}ms</span>
                 </div>
             </div>
 
-            <div id="timeline-rows">
-                {self._generate_timeline_rows_html()}
+            <div class="timeline-content">
+                {self._generate_html_timeline_rows(total_duration_ms)}
             </div>
         </div>
+
+        {self._generate_html_summary()}
     </div>
 
-    <div class="tooltip" id="tooltip"></div>
-
     <script>
-        const totalDuration = {self.total_duration_ms};
+        // Collapsible sections
+        document.querySelectorAll('.expandable').forEach(element => {{
+            element.addEventListener('click', () => {{
+                let content;
 
-        // Generate timeline scale markers
-        function generateTimelineScale() {{
-            const scaleContainer = document.getElementById('timeline-scale');
-            const markerCount = 10;
-
-            for (let i = 0; i <= markerCount; i++) {{
-                const percentage = (i / markerCount) * 100;
-                const timeMs = (percentage / 100) * totalDuration;
-
-                const marker = document.createElement('div');
-                marker.style.position = 'absolute';
-                marker.style.left = percentage + '%';
-                marker.style.top = '0';
-                marker.style.width = '1px';
-                marker.style.height = '100%';
-                marker.style.background = '#94a3b8';
-
-                const label = document.createElement('div');
-                label.style.position = 'absolute';
-                label.style.left = percentage + '%';
-                label.style.top = '100%';
-                label.style.transform = 'translateX(-50%)';
-                label.style.fontSize = '0.75rem';
-                label.style.color = '#64748b';
-                label.textContent = Math.round(timeMs) + 'ms';
-
-                scaleContainer.appendChild(marker);
-                scaleContainer.appendChild(label);
-            }}
-        }}
-
-        // Enhanced tooltip functionality with rich metadata
-        const tooltip = document.getElementById('tooltip');
-
-        document.querySelectorAll('.timeline-bar').forEach(bar => {{
-            bar.addEventListener('mouseenter', (e) => {{
-                const stepName = e.target.dataset.step;
-                const duration = e.target.dataset.duration;
-                const status = e.target.dataset.status;
-                const startTime = e.target.dataset.start;
-                const command = e.target.dataset.command || '';
-                const commandType = e.target.dataset.commandType || '';
-                const inputParams = e.target.dataset.inputParams || '';
-                const outputParams = e.target.dataset.outputParams || '';
-                const catalogPut = e.target.dataset.catalogPut || '';
-                const catalogGet = e.target.dataset.catalogGet || '';
-                const attempts = e.target.dataset.attempts || '1';
-
-                let tooltipContent = `<strong>${{stepName}}</strong><br>
-                    Duration: ${{duration}}ms | Status: ${{status}}<br>
-                    Started: ${{startTime}}`;
-
-                // Add command information
-                if (command && commandType) {{
-                    tooltipContent += `<br><br><strong>📝 ${{commandType.toUpperCase()}}:</strong> ${{command}}`;
+                // Handle step metadata (using data-target)
+                if (element.dataset.target) {{
+                    content = document.getElementById(element.dataset.target);
+                }} else {{
+                    // Handle composite sections (using nextElementSibling)
+                    content = element.nextElementSibling;
                 }}
 
-                // Add execution details
-                const details = [];
-                if (attempts > 1) {{
-                    details.push(`Attempts: ${{attempts}}`);
-                }}
-                if (details.length > 0) {{
-                    tooltipContent += `<br><strong>📊 Execution:</strong> ${{details.join(' | ')}}`;
-                }}
+                if (content && content.classList.contains('collapsible-content')) {{
+                    content.classList.toggle('collapsed');
 
-                // Add parameters
-                const paramInfo = [];
-                if (inputParams) {{
-                    const params = inputParams.split(',').slice(0, 3);
-                    paramInfo.push(`In: ${{params.join(', ')}}${{inputParams.split(',').length > 3 ? '...' : ''}}`);
+                    // Update expand/collapse indicator
+                    const indicator = element.querySelector('.expand-indicator');
+                    if (indicator) {{
+                        indicator.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
+                    }}
                 }}
-                if (outputParams) {{
-                    const params = outputParams.split(',').slice(0, 3);
-                    paramInfo.push(`Out: ${{params.join(', ')}}${{outputParams.split(',').length > 3 ? '...' : ''}}`);
-                }}
-                if (paramInfo.length > 0) {{
-                    tooltipContent += `<br><strong>🔗 Parameters:</strong> ${{paramInfo.join(' | ')}}`;
-                }}
-
-                // Add catalog operations
-                const catalogInfo = [];
-                if (catalogPut) {{
-                    const putOps = catalogPut.split(',').slice(0, 2);
-                    catalogInfo.push(`📤 PUT: ${{putOps.join(', ')}}${{catalogPut.split(',').length > 2 ? '...' : ''}}`);
-                }}
-                if (catalogGet) {{
-                    const getOps = catalogGet.split(',').slice(0, 2);
-                    catalogInfo.push(`📥 GET: ${{getOps.join(', ')}}${{catalogGet.split(',').length > 2 ? '...' : ''}}`);
-                }}
-                if (catalogInfo.length > 0) {{
-                    tooltipContent += `<br><strong>📁 Catalog:</strong> ${{catalogInfo.join(' | ')}}`;
-                }}
-
-                tooltip.innerHTML = tooltipContent;
-                tooltip.classList.add('show');
-            }});
-
-            bar.addEventListener('mousemove', (e) => {{
-                tooltip.style.left = e.pageX + 10 + 'px';
-                tooltip.style.top = e.pageY - 10 + 'px';
-            }});
-
-            bar.addEventListener('mouseleave', () => {{
-                tooltip.classList.remove('show');
             }});
         }});
-
-        // Click to expand functionality
-        document.querySelectorAll('.timeline-row').forEach(row => {{
-            const stepInfo = row.querySelector('.step-info');
-            stepInfo.style.cursor = 'pointer';
-
-            stepInfo.addEventListener('click', () => {{
-                const existingDetails = row.querySelector('.step-details');
-                if (existingDetails) {{
-                    existingDetails.remove();
-                    return;
-                }}
-
-                const bar = row.querySelector('.timeline-bar');
-                const stepName = bar.dataset.step;
-                const command = bar.dataset.command || '';
-                const commandType = bar.dataset.commandType || '';
-                const inputParams = bar.dataset.inputParams || '';
-                const outputParams = bar.dataset.outputParams || '';
-                const catalogPut = bar.dataset.catalogPut || '';
-                const catalogGet = bar.dataset.catalogGet || '';
-                const attempts = bar.dataset.attempts || '1';
-                const startTime = bar.dataset.start;
-
-                const detailsDiv = document.createElement('div');
-                detailsDiv.className = 'step-details';
-                detailsDiv.style.cssText = `
-                    grid-column: 1 / -1;
-                    background: #f8fafc;
-                    padding: 1rem;
-                    font-size: 0.875rem;
-                    border-top: 1px solid #e2e8f0;
-                    line-height: 1.6;
-                `;
-
-                let detailsContent = '';
-
-                // Command information
-                if (command && commandType) {{
-                    detailsContent += `<div style="margin-bottom: 0.5rem;"><strong>📝 ${{commandType.toUpperCase()}}:</strong> ${{command}}</div>`;
-                }}
-
-                // Execution details
-                const details = [];
-                if (attempts > 1) {{
-                    details.push(`Attempts: ${{attempts}}`);
-                }}
-                details.push(`Started: ${{startTime}}`);
-                if (details.length > 0) {{
-                    detailsContent += `<div style="margin-bottom: 0.5rem;"><strong>📊 Execution:</strong> ${{details.join(' | ')}}</div>`;
-                }}
-
-                // Parameters
-                const paramInfo = [];
-                if (inputParams) {{
-                    paramInfo.push(`<strong>Input:</strong> ${{inputParams.split(',').join(', ')}}`);
-                }}
-                if (outputParams) {{
-                    paramInfo.push(`<strong>Output:</strong> ${{outputParams.split(',').join(', ')}}`);
-                }}
-                if (paramInfo.length > 0) {{
-                    detailsContent += `<div style="margin-bottom: 0.5rem;"><strong>🔗 Parameters:</strong><br>`;
-                    paramInfo.forEach(info => detailsContent += `&nbsp;&nbsp;• ${{info}}<br>`);
-                    detailsContent += `</div>`;
-                }}
-
-                // Catalog operations
-                const catalogInfo = [];
-                if (catalogPut) {{
-                    catalogInfo.push(`<strong>PUT Operations:</strong> ${{catalogPut.split(',').join(', ')}}`);
-                }}
-                if (catalogGet) {{
-                    catalogInfo.push(`<strong>GET Operations:</strong> ${{catalogGet.split(',').join(', ')}}`);
-                }}
-                if (catalogInfo.length > 0) {{
-                    detailsContent += `<div><strong>📁 Catalog Operations:</strong><br>`;
-                    catalogInfo.forEach(info => detailsContent += `&nbsp;&nbsp;• ${{info}}<br>`);
-                    detailsContent += `</div>`;
-                }}
-
-                if (!detailsContent) {{
-                    detailsContent = '<div style="color: #64748b;">No additional metadata available</div>';
-                }}
-
-                detailsContent += '<div style="margin-top: 0.5rem; font-size: 0.75rem; color: #64748b;">Click to collapse</div>';
-
-                detailsContent = `<div style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease;">${{detailsContent}}</div>`;
-
-                detailsDiv.innerHTML = detailsContent;
-                row.appendChild(detailsDiv);
-
-                // Animate expansion
-                setTimeout(() => {{
-                    const content = detailsDiv.querySelector('div');
-                    content.style.maxHeight = content.scrollHeight + 'px';
-                }}, 10);
-            }});
-        }});
-
-        // Initialize
-        generateTimelineScale();
     </script>
 </body>
 </html>"""
@@ -1171,141 +790,312 @@ class GanttVisualizer:
         # Save to file if path provided
         if output_path:
             Path(output_path).write_text(html_content)
-            print(f"Gantt chart saved to: {output_path}")
+            print(f"HTML timeline saved to: {output_path}")
 
         return html_content
 
-    def _generate_timeline_rows_html(self) -> str:
-        """Generate HTML for timeline rows."""
+    def _generate_html_timeline_rows(self, total_duration_ms: float) -> str:
+        """Generate HTML rows for the Gantt chart timeline display."""
+        executed_steps = [
+            step for step in self.timeline if step.start_time and step.end_time
+        ]
+
+        if not executed_steps:
+            return "<div>No executed steps found</div>"
+
+        # Calculate the absolute timeline
+        earliest_start = min(
+            step.start_time for step in executed_steps if step.start_time
+        )
+        latest_end = max(step.end_time for step in executed_steps if step.end_time)
+        total_timeline_ms = (
+            (latest_end - earliest_start).total_seconds() * 1000
+            if latest_end and earliest_start
+            else 1
+        )
+
+        # Generate time scale and Gantt rows
+        time_scale_html = self._generate_time_scale(total_timeline_ms)
+        gantt_rows_html = self._generate_gantt_rows(
+            executed_steps, earliest_start, total_timeline_ms
+        )
+
+        return time_scale_html + "\n" + gantt_rows_html
+
+    def _generate_time_scale(self, total_timeline_ms: float) -> str:
+        """Generate the time scale header for the Gantt chart."""
+        # Create time markers at regular intervals
+        num_markers = 10
+        interval_ms = total_timeline_ms / num_markers
+
+        markers_html = []
+        for i in range(num_markers + 1):
+            time_ms = i * interval_ms
+            position_percent = (time_ms / total_timeline_ms) * 100
+            time_display = (
+                f"{time_ms:.0f}ms" if time_ms < 1000 else f"{time_ms/1000:.1f}s"
+            )
+
+            markers_html.append(f"""
+                <div class="time-marker" style="left: {position_percent:.1f}%;">
+                    {time_display}
+                </div>
+            """)
+
+            # Add grid line (except for the first one)
+            if i > 0:
+                markers_html.append(
+                    f'<div class="time-grid" style="left: {position_percent:.1f}%;"></div>'
+                )
+
+        return f"""
+            <div class="step-row" style="border-bottom: 2px solid #d1d5db;">
+                <div class="step-info">
+                    <strong>Timeline</strong>
+                </div>
+                <div class="time-scale">
+                    {"".join(markers_html)}
+                </div>
+                <div></div>
+            </div>
+        """
+
+    def _generate_gantt_rows(
+        self, executed_steps: List, earliest_start, total_timeline_ms: float
+    ) -> str:
+        """Generate HTML rows for the Gantt chart display."""
         html_parts = []
 
-        for item in self.timeline_data:
-            # Handle branch headers in HTML
-            if item["step_type"] == "branch":
-                branch_name = item["name"]
-                level_class = f"step-level-{item['level']}"
+        # Group by composite steps for better display
+        current_composite = None
+        current_branch = None
+
+        for step in executed_steps:
+            # Calculate timing positions for Gantt chart
+            start_offset_ms = (step.start_time - earliest_start).total_seconds() * 1000
+            start_percent = (start_offset_ms / total_timeline_ms) * 100
+            width_percent = (step.duration_ms / total_timeline_ms) * 100
+
+            # Detect composite/branch changes
+            hierarchy = StepHierarchyParser.parse_internal_name(step.internal_name)
+            composite = hierarchy.get("composite")
+            branch = hierarchy.get("branch")
+
+            # Show composite header
+            if composite and composite != current_composite:
+                composite_type = self._get_composite_type(composite)
+                composite_id = f"composite-{composite.replace(' ', '-')}"
 
                 html_parts.append(f"""
-                    <div class="timeline-row branch-header">
-                        <div class="step-info {level_class}">
-                            <span class="step-icon">🌿</span>
-                            <span class="branch-name">{branch_name}</span>
+                    <div class="step-row composite-header expandable" data-composite="{composite}">
+                        <div class="step-info step-level-0">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="expand-indicator">▼</span>
+                                🔀 <strong>{composite}</strong> ({composite_type})
+                            </div>
                         </div>
-                        <div class="timeline-bar-container">
-                            <div class="branch-separator"></div>
-                        </div>
+                        <div class="gantt-container"></div>
+                        <div></div>
                     </div>
                 """)
-                continue
 
-            # Calculate bar position and width
-            if self.total_duration_ms > 0 and item["start"] and item["duration_ms"] > 0:
-                start_offset_ms = (
-                    item["start"] - self.global_start
-                ).total_seconds() * 1000
-                start_percentage = (start_offset_ms / self.total_duration_ms) * 100
-                width_percentage = (item["duration_ms"] / self.total_duration_ms) * 100
-            else:
-                start_percentage = 0
-                width_percentage = 0.5  # Minimum width for visibility
+                # Start collapsible content
+                html_parts.append(
+                    f'<div class="collapsible-content" id="{composite_id}">'
+                )
+                current_composite = composite
+                current_branch = None
 
-            # Status and styling
-            status_class = item["status"].lower()
+            # Show branch header for parallel/map steps
+            if branch and branch != current_branch:
+                branch_display = self._format_branch_name(composite or "", branch)
+
+                html_parts.append(f"""
+                    <div class="step-row branch-header">
+                        <div class="step-info step-level-1">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                🌿 <strong>Branch: {branch_display}</strong>
+                            </div>
+                        </div>
+                        <div class="gantt-container"></div>
+                        <div></div>
+                    </div>
+                """)
+                current_branch = branch
+
+            # Status styling
+            status_class = step.status.lower()
             bar_class = (
                 f"bar-{status_class}"
                 if status_class in ["success", "fail"]
                 else "bar-unknown"
             )
 
-            # Type icon
+            # Type icon and status emoji
             type_icons = {
                 "task": "⚙️",
-                "parallel": "🔀",
-                "map": "🔁",
                 "stub": "📝",
                 "success": "✅",
                 "fail": "❌",
+                "parallel": "🔀",
+                "map": "🔁",
+                "conditional": "🔀",
             }
-            type_icon = type_icons.get(item["step_type"], "⚙️")
-
-            # Status emoji
+            type_icon = type_icons.get(step.step_type, "⚙️")
             status_emoji = (
                 "✅"
-                if item["status"] == "SUCCESS"
+                if step.status == "SUCCESS"
                 else "❌"
-                if item["status"] == "FAIL"
+                if step.status == "FAIL"
                 else "⏸️"
             )
 
-            # Extract metadata for data attributes
-            metadata = item.get("metadata", {})
-            command = metadata.get("command", "").replace('"', "&quot;")
-            command_type = metadata.get("command_type", "")
+            # Build parameter display - compact horizontal format
+            param_info = []
 
-            # Include parameter values in the data attributes (only json and metric, exclude pickled)
-            input_params = []
-            input_values = metadata.get("input_param_values", {})
-            for param in metadata.get("input_parameters", []):
-                # Only include parameters that have safe values (json/metric only)
-                if param in input_values:
-                    input_params.append(f"{param}={input_values[param]}")
-            input_params_str = ",".join(input_params)
+            if step.input_params:
+                params_text = " • ".join(step.input_params)
+                param_info.append(
+                    f'<div style="color: #059669; font-size: 0.7rem; margin-top: 0.2rem; font-family: monospace; word-break: break-all; line-height: 1.3;">📥 {params_text}</div>'
+                )
 
-            output_params = []
-            output_values = metadata.get("output_param_values", {})
-            for param in metadata.get("output_parameters", []):
-                # Only include parameters that have safe values (json/metric only)
-                if param in output_values:
-                    output_params.append(f"{param}={output_values[param]}")
-            output_params_str = ",".join(output_params)
+            if step.output_params:
+                params_text = " • ".join(step.output_params)
+                param_info.append(
+                    f'<div style="color: #dc2626; font-size: 0.7rem; margin-top: 0.2rem; font-family: monospace; word-break: break-all; line-height: 1.3;">📤 {params_text}</div>'
+                )
 
-            catalog_put = ",".join(
-                metadata.get("catalog_operations", {}).get("put", [])
-            )
-            catalog_get = ",".join(
-                metadata.get("catalog_operations", {}).get("get", [])
-            )
-            attempts = str(metadata.get("attempts", 1))
+            if step.catalog_ops.get("put") or step.catalog_ops.get("get"):
+                catalog_items = []
+                if step.catalog_ops.get("put"):
+                    catalog_items.extend(
+                        [f"PUT:{item}" for item in step.catalog_ops["put"]]
+                    )
+                if step.catalog_ops.get("get"):
+                    catalog_items.extend(
+                        [f"GET:{item}" for item in step.catalog_ops["get"]]
+                    )
+                if catalog_items:
+                    catalog_text = " • ".join(catalog_items)
+                    param_info.append(
+                        f'<div style="color: #7c3aed; font-size: 0.7rem; margin-top: 0.2rem; font-family: monospace; word-break: break-all; line-height: 1.3;">💾 {catalog_text}</div>'
+                    )
+
+            # Create unique ID for this step's metadata
+            step_id = f"step-{step.internal_name.replace('.', '-')}-{step.start_time.isoformat()}"
 
             html_parts.append(f"""
-                <div class="timeline-row">
-                    <div class="step-info step-level-{item["level"]}">
-                        <span class="step-icon">{type_icon}</span>
-                        <span class="status-success" title="{item["status"]}">{status_emoji}</span>
-                        <span title="{item["name"]}">{item["name"][:25]}{'...' if len(item["name"]) > 25 else ''}</span>
-                        <small>({item["duration_ms"]:.1f}ms)</small>
-                    </div>
-                    <div class="timeline-bar-container">
-                        <div class="timeline-bar {bar_class}"
-                             style="left: {start_percentage:.2f}%; width: {max(0.5, width_percentage):.2f}%;"
-                             data-step="{item["name"]}"
-                             data-duration="{item["duration_ms"]:.1f}"
-                             data-status="{item["status"]}"
-                             data-start="{item['start'].strftime('%H:%M:%S.%f')[:-3] if item['start'] else ''}"
-                             data-command="{command}"
-                             data-command-type="{command_type}"
-                             data-input-params="{input_params_str}"
-                             data-output-params="{output_params_str}"
-                             data-catalog-put="{catalog_put}"
-                             data-catalog-get="{catalog_get}"
-                             data-attempts="{attempts}">
+                <div class="step-row">
+                    <div class="step-info step-level-{step.level}">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;" class="step-header expandable" data-target="{step_id}">
+                            <span class="expand-indicator" style="font-size: 0.8rem; color: #6b7280;">{'▼' if param_info else ''}</span>
+                            {type_icon} {status_emoji} <strong>{step.name}</strong>
                         </div>
+                        {f'<div style="color: #64748b; font-size: 0.75rem; margin-top: 0.25rem;"><strong>{step.command_type.upper()}:</strong> {step.command[:40]}{"..." if len(step.command) > 40 else ""}</div>' if step.command else ''}
+                        <div class="step-metadata collapsible-content collapsed" id="{step_id}">
+                            {''.join(param_info)}
+                        </div>
+                    </div>
+                    <div class="gantt-container">
+                        <div class="gantt-bar {bar_class}"
+                             style="left: {start_percent:.2f}%; width: {max(width_percent, 0.5):.2f}%;"
+                             title="{step.name}: {step.duration_ms:.1f}ms">
+                        </div>
+                    </div>
+                    <div style="font-family: monospace; font-size: 0.75rem; color: #6b7280;">
+                        {step.duration_ms:.1f}ms
                     </div>
                 </div>
             """)
 
-        return "".join(html_parts)
+        # Close any open composite sections
+        if current_composite:
+            html_parts.append("</div>")  # Close collapsible-content
+
+        return "\n".join(html_parts)
+
+    def _generate_html_summary(self) -> str:
+        """Generate HTML summary cards."""
+        executed_steps = [step for step in self.timeline if step.start_time]
+        total_duration = sum(step.duration_ms for step in executed_steps)
+        success_count = sum(1 for step in executed_steps if step.status == "SUCCESS")
+        success_rate = (
+            (success_count / len(executed_steps)) * 100 if executed_steps else 0
+        )
+
+        # Find slowest step
+        slowest_step = (
+            max(executed_steps, key=lambda x: x.duration_ms) if executed_steps else None
+        )
+
+        return f"""
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-number status-success">{len(executed_steps)}</div>
+                <div class="summary-label">Total Steps</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number duration-medium">{total_duration:.1f}ms</div>
+                <div class="summary-label">Total Duration</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number {'status-success' if success_rate == 100 else 'status-fail'}">{success_rate:.1f}%</div>
+                <div class="summary-label">Success Rate</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number duration-slow">{'%.1fms' % slowest_step.duration_ms if slowest_step else 'N/A'}</div>
+                <div class="summary-label">Slowest Step<br><small>{slowest_step.name if slowest_step else 'N/A'}</small></div>
+            </div>
+        </div>
+        """
 
 
-def visualize_gantt(
-    run_id: str, output_file: Optional[str] = None, open_browser: bool = True
+def visualize_simple(
+    run_id: str, show_summary: bool = False, output_html: Optional[str] = None
 ) -> None:
     """
-    Convenience function to visualize pipeline execution as a Gantt chart.
+    Simple visualization of a pipeline run.
+
+    Args:
+        run_id: Run ID to visualize
+        show_summary: Whether to show execution summary (deprecated, timeline has enough info)
+        output_html: Optional path to save HTML timeline
+    """
+    # Find run log file
+    run_log_dir = Path(".run_log_store")
+    log_file = run_log_dir / f"{run_id}.json"
+
+    if not log_file.exists():
+        # Try partial match
+        matching_files = [f for f in run_log_dir.glob("*.json") if run_id in f.stem]
+        if matching_files:
+            log_file = matching_files[0]
+        else:
+            print(f"❌ Run log not found for: {run_id}")
+            return
+
+    print(f"📊 Visualizing: {log_file.stem}")
+
+    viz = SimpleVisualizer(log_file)
+    viz.print_simple_timeline()
+
+    if show_summary:
+        viz.print_execution_summary()
+
+    # Generate HTML if requested
+    if output_html:
+        viz.generate_html_timeline(output_html)
+
+
+def generate_html_timeline(
+    run_id: str, output_file: str, open_browser: bool = True
+) -> None:
+    """
+    Generate HTML timeline for a specific run ID.
 
     Args:
         run_id: The run ID to visualize
-        output_file: Optional output HTML file path
+        output_file: Output HTML file path
         open_browser: Whether to open the result in browser
     """
     from pathlib import Path
@@ -1323,21 +1113,29 @@ def visualize_gantt(
             print(f"❌ Run log not found for: {run_id}")
             return
 
-    print(f"⏱️  Generating Gantt chart for: {log_file.stem}")
+    print(f"🌐 Generating HTML timeline for: {log_file.stem}")
 
-    # Create visualizer
-    gantt = GanttVisualizer(log_file)
+    # Create visualizer and generate HTML
+    viz = SimpleVisualizer(log_file)
+    viz.generate_html_timeline(output_file)
 
-    # Show console timeline
-    gantt.print_gantt_console()
+    if open_browser:
+        import webbrowser
 
-    # Generate HTML if requested
-    if output_file:
-        gantt.generate_html_gantt(output_file)
+        file_path = Path(output_file).absolute()
+        print(f"🌐 Opening timeline in browser: {file_path.name}")
+        webbrowser.open(file_path.as_uri())
 
-        if open_browser:
-            import webbrowser
 
-            file_path = Path(output_file).absolute()
-            print(f"🌐 Opening Gantt chart in browser: {file_path.name}")
-            webbrowser.open(file_path.as_uri())
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) > 1:
+        if len(sys.argv) > 2 and sys.argv[2].endswith(".html"):
+            # Generate HTML: python viz_simple.py <run_id> <output.html>
+            generate_html_timeline(sys.argv[1], sys.argv[2])
+        else:
+            # Console visualization: python viz_simple.py <run_id>
+            visualize_simple(sys.argv[1])
+    else:
+        print("Usage: python viz_simple.py <run_id> [output.html]")
