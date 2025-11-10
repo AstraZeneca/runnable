@@ -158,3 +158,8 @@ data/
 
 minikube/
 .pth # For model saving and loading
+
+# Generated visualization files
+*_timeline.html
+*_dashboard.html
+*_diagram.svg
