@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Parameter Tooltip Test</title>
+    <style>
+        body { font-family: system-ui, sans-serif; padding: 2rem; }
+        .test-bar {
+            width: 200px;
+            height: 30px;
+            background: #22c55e;
+            border-radius: 4px;
+            margin: 1rem 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .tooltip {
+            position: absolute;
+            background: #1e293b;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            max-width: 400px;
+            z-index: 1000;
+        }
+        .tooltip.show { opacity: 1; }
+        .metadata-label { font-weight: 600; color: #a78bfa; }
+    </style>
+</head>
+<body>
+    <h1>Parameter Tooltip Test</h1>
+
+    <div class="test-bar"
+         data-step="toss_task"
+         data-output-params="toss=&quot;heads&quot;"
+         data-input-params="">
+        Hover: toss_task (with output param)
+    </div>
+
+    <div class="test-bar"
+         data-step="when_heads_task"
+         data-input-params="toss=&quot;heads&quot;"
+         data-output-params="">
+        Hover: when_heads_task (with input param)
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        const tooltip = document.getElementById('tooltip');
+
+        document.querySelectorAll('.test-bar').forEach(bar => {
+            bar.addEventListener('mouseenter', (e) => {
+                const stepName = e.target.dataset.step;
+                const inputParams = e.target.dataset.inputParams || '';
+                const outputParams = e.target.dataset.outputParams || '';
+
+                let content = `<div><span class="metadata-label">Step:</span> ${stepName}</div>`;
+
+                if (inputParams) {
+                    content += `<div style="margin-top: 0.5rem;"><span class="metadata-label">Input Parameters:</span> ${inputParams}</div>`;
+                }
+
+                if (outputParams) {
+                    content += `<div style="margin-top: 0.5rem;"><span class="metadata-label">Output Parameters:</span> ${outputParams}</div>`;
+                }
+
+                tooltip.innerHTML = content;
+                tooltip.classList.add('show');
+            });
+
+            bar.addEventListener('mousemove', (e) => {
+                tooltip.style.left = e.pageX + 10 + 'px';
+                tooltip.style.top = e.pageY - 10 + 'px';
+            });
+
+            bar.addEventListener('mouseleave', () => {
+                tooltip.classList.remove('show');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 import logging
+import os
 from enum import Enum
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -275,130 +277,21 @@ def execute_job(
 
 
 @app.command()
-def visualize(
-    run_id: Annotated[str, typer.Argument(help="The run ID to visualize")],
-    svg: Annotated[
-        bool,
-        typer.Option(
-            "--svg", help="Generate SVG diagram in addition to console output"
-        ),
-    ] = False,
-    interactive: Annotated[
-        bool,
-        typer.Option(
-            "--interactive",
-            "-i",
-            help="Generate interactive SVG with clickable metadata (requires web browser)",
-        ),
-    ] = False,
-    html: Annotated[
-        bool,
-        typer.Option(
-            "--html", help="Generate rich HTML dashboard with comprehensive analytics"
-        ),
-    ] = False,
-    open_browser: Annotated[
-        bool,
-        typer.Option(
-            "--open/--no-open",
-            help="Automatically open the generated file in default browser",
-        ),
-    ] = True,
-    output: Annotated[
-        str,
-        typer.Option("--output", "-o", help="Custom output path for SVG file"),
-    ] = "",
-    log_level: Annotated[
-        LogLevel,
-        typer.Option(
-            "--log-level",
-            help="The log level",
-            show_default=True,
-            case_sensitive=False,
-        ),
-    ] = LogLevel.WARNING,
-):
-    """
-    Visualize a pipeline execution by run ID.
-
-    This command provides visualization of pipeline structure and execution details
-    from run logs. It shows the DAG structure, execution timing, and status information.
-
-    Examples:
-        runnable visualize online-lamport-0645
-        runnable visualize sophisticated-wright-0644 --svg
-        runnable visualize online-lamport --svg --output my_pipeline.svg
-        runnable visualize online-lamport --interactive
-        runnable visualize online-lamport --html --output dashboard.html
-        runnable visualize online-lamport --html --no-open
-    """
-    logger.setLevel(log_level.value)
-
-    from runnable.viz import visualize_run_by_id_enhanced
-
-    output_file = None
-    visualization_type = "console"
-
-    if html:
-        visualization_type = "html"
-        output_file = output if output else f"{run_id}_dashboard.html"
-    elif interactive:
-        visualization_type = "interactive"
-        output_file = output if output else f"{run_id}_diagram.svg"
-    elif svg:
-        visualization_type = "svg"
-        output_file = output if output else f"{run_id}_diagram.svg"
-
-    visualize_run_by_id_enhanced(run_id, output_file, visualization_type, open_browser)
-
-
-@app.command()
-def analyze(
-    run_log_dir: Annotated[
-        str,
-        typer.Option("--dir", "-d", help="Directory containing run log files"),
-    ] = ".run_log_store",
-    limit: Annotated[
-        int,
-        typer.Option("--limit", "-l", help="Maximum number of recent runs to analyze"),
-    ] = 10,
-    log_level: Annotated[
-        LogLevel,
-        typer.Option(
-            "--log-level",
-            help="The log level",
-            show_default=True,
-            case_sensitive=False,
-        ),
-    ] = LogLevel.WARNING,
-):
-    """
-    Analyze recent pipeline runs and show summary statistics.
-
-    This command analyzes run logs in the specified directory and provides
-    insights into pipeline execution patterns, success rates, and performance.
-
-    Examples:
-        runnable analyze
-        runnable analyze --limit 20
-        runnable analyze --dir /path/to/logs --limit 5
-    """
-    logger.setLevel(log_level.value)
-
-    from runnable.viz import analyze_run_logs
-
-    analyze_run_logs(run_log_dir, limit)
-
-
-@app.command()
 def timeline(
-    run_id: Annotated[
-        str, typer.Argument(help="The run ID to visualize as a timeline")
+    run_id_or_path: Annotated[
+        str, typer.Argument(help="Run ID to visualize, or path to JSON run log file")
     ],
     output: Annotated[
         str,
         typer.Option("--output", "-o", help="Output HTML file path"),
     ] = "",
+    console: Annotated[
+        bool,
+        typer.Option(
+            "--console/--no-console",
+            help="Show console timeline output (default: true)",
+        ),
+    ] = None,
     open_browser: Annotated[
         bool,
         typer.Option(
@@ -417,23 +310,128 @@ def timeline(
     ] = LogLevel.WARNING,
 ):
     """
-    Visualize pipeline execution as a Gantt chart timeline.
+    Visualize pipeline execution as an interactive timeline.
 
-    This command creates timeline visualizations that are particularly effective
-    for understanding composite nodes (parallel, map, conditional) because they
-    show temporal relationships and hierarchical structure clearly.
+    This command creates lightweight timeline visualizations that effectively
+    show composite nodes (parallel, map, conditional) with hierarchical structure,
+    timing information, and execution metadata.
+
+    The new visualization system provides:
+    - Clean console output with hierarchical display
+    - Interactive HTML with hover tooltips and expandable sections
+    - Proper support for all composite pipeline types
+    - Rich metadata including commands, parameters, and catalog operations
+
+    By default, shows console output AND generates HTML file with browser opening.
+
+    Input Options:
+    - Run ID: Looks up JSON file in .run_log_store/ directory
+    - JSON Path: Direct path to run log JSON file (flexible for any config)
 
     Examples:
-        runnable timeline forgiving-joliot-0645
-        runnable timeline parallel-run --output timeline.html
-        runnable timeline complex-pipeline --no-open
+        # Using Run ID (looks in .run_log_store/)
+        runnable timeline forgiving-joliot-0645                    # Console + HTML + browser
+        runnable timeline parallel-run --output custom.html       # Console + custom HTML + browser
+
+        # Using JSON file path (any location)
+        runnable timeline /path/to/my-run.json                    # Console + HTML + browser
+        runnable timeline ../logs/pipeline-run.json --no-open     # Console + HTML, no browser
+        runnable timeline ~/experiments/run.json --no-console     # HTML + browser only
+
+        # Other options
+        runnable timeline complex-pipeline --no-open              # Console + HTML, no browser
+        runnable timeline simple-run --no-console --no-open       # HTML only, no browser
     """
     logger.setLevel(log_level.value)
 
-    from runnable.gantt import visualize_gantt
+    from runnable.viz_simple import generate_html_timeline, visualize_simple
 
-    output_file = output if output else f"{run_id}_timeline.html"
-    visualize_gantt(run_id, output_file, open_browser)
+    # Determine if input is a file path or run ID
+    if os.path.exists(run_id_or_path) or run_id_or_path.endswith(".json"):
+        # Input is a file path
+        json_file_path = Path(run_id_or_path)
+        if not json_file_path.exists():
+            print(f"❌ JSON file not found: {json_file_path}")
+            return
+
+        # Extract run ID from the file for default naming
+        run_id = json_file_path.stem
+        mode = "file"
+    else:
+        # Input is a run ID - use existing behavior
+        run_id = run_id_or_path
+        json_file_path = None
+        mode = "run_id"
+
+    # Default console behavior: always show console output
+    show_console = console if console is not None else True
+
+    if output:
+        # Generate HTML file with console output
+        output_file = output
+        print(f"🌐 Generating timeline: {output_file}")
+
+        if show_console:
+            # Show console output first, then generate HTML
+            if mode == "file":
+                _visualize_simple_from_file(json_file_path, show_summary=False)
+            else:
+                visualize_simple(run_id, show_summary=False)
+            print(f"\n🌐 Generating HTML timeline: {output_file}")
+
+        if mode == "file":
+            _generate_html_timeline_from_file(json_file_path, output_file, open_browser)
+        else:
+            generate_html_timeline(run_id, output_file, open_browser)
+    else:
+        # Default behavior: show console + generate HTML with browser
+        if show_console:
+            if mode == "file":
+                _visualize_simple_from_file(json_file_path, show_summary=False)
+            else:
+                visualize_simple(run_id, show_summary=False)
+
+        # Always generate HTML file and open browser by default
+        output_file = f"{run_id}_timeline.html"
+        print(f"\n🌐 Generating HTML timeline: {output_file}")
+        if mode == "file":
+            _generate_html_timeline_from_file(json_file_path, output_file, open_browser)
+        else:
+            generate_html_timeline(run_id, output_file, open_browser)
+
+
+def _visualize_simple_from_file(json_file_path, show_summary: bool = False) -> None:
+    """Visualize timeline from JSON file path."""
+    from runnable.viz_simple import SimpleVisualizer
+
+    try:
+        viz = SimpleVisualizer(json_file_path)
+        viz.print_simple_timeline()
+        if show_summary:
+            viz.print_execution_summary()
+    except Exception as e:
+        print(f"❌ Error reading JSON file: {e}")
+
+
+def _generate_html_timeline_from_file(
+    json_file_path, output_file: str, open_browser: bool = True
+) -> None:
+    """Generate HTML timeline from JSON file path."""
+    from pathlib import Path
+
+    from runnable.viz_simple import SimpleVisualizer
+
+    try:
+        viz = SimpleVisualizer(json_file_path)
+        viz.generate_html_timeline(output_file)
+
+        if open_browser:
+            from runnable.viz import _open_in_browser
+
+            # Fix the browser opening issue by using absolute path
+            _open_in_browser(Path(output_file).absolute())
+    except Exception as e:
+        print(f"❌ Error generating HTML: {e}")
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Union
 from datetime import datetime
 
 from runnable.graph import Graph
+from runnable.viz_simple import SimpleVisualizer
 
 
 def _open_in_browser(file_path: Path) -> None:
@@ -2314,6 +2315,56 @@ def visualize_run_by_id_enhanced(
                 _open_in_browser(file_path)
             else:
                 print(f"🔗 Open manually: file://{file_path}")
+
+
+def visualize_run_by_id_simple(
+    run_id: str,
+    output_html: Optional[str] = None,
+    show_console: bool = True,
+    open_browser: bool = True,
+) -> None:
+    """
+    Enhanced visualization using the simplified timeline approach.
+
+    Args:
+        run_id: The run ID to visualize
+        output_html: Optional path for HTML output
+        show_console: Whether to show console timeline
+        open_browser: Whether to open HTML in browser
+    """
+    from pathlib import Path
+
+    # Find run log file
+    run_log_dir = Path(".run_log_store")
+    log_file = run_log_dir / f"{run_id}.json"
+
+    if not log_file.exists():
+        # Try partial match
+        matching_files = [f for f in run_log_dir.glob("*.json") if run_id in f.stem]
+        if matching_files:
+            log_file = matching_files[0]
+        else:
+            print(f"❌ Run log not found for: {run_id}")
+            print("\n💡 Available recent runs:")
+            analyze_run_logs(limit=5)
+            return
+
+    print(f"📊 Enhanced Visualization: {log_file.stem}")
+    print("=" * 60)
+
+    # Create simple visualizer
+    viz = SimpleVisualizer(log_file)
+
+    if show_console:
+        viz.print_simple_timeline()
+        viz.print_execution_summary()
+
+    if output_html:
+        print(f"\n🌐 Generating Interactive HTML: {output_html}")
+        viz.generate_html_timeline(output_html)
+
+        if open_browser:
+            _open_in_browser(Path(output_html))
 
 
 def visualize_run_by_id(run_id: str, output_svg: Optional[str] = None) -> None:
