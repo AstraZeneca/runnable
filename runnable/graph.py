@@ -499,3 +499,274 @@ def search_branch_by_internal_name(dag: Graph, internal_name: str):
         return current_branch
 
     raise exceptions.BranchNotFoundError(internal_name)
+
+
+def get_visualization_data(graph: Graph) -> Dict[str, Any]:
+    """
+    Convert the graph into a D3 visualization friendly format with nodes and links.
+    Handles composite nodes (parallel, map, conditional) by recursively processing their embedded graphs.
+
+    Args:
+        graph: The Graph object to convert
+
+    Returns:
+        Dict with two keys:
+        - nodes: List of node objects with id, type, name, and alias
+        - links: List of edge objects with source and target node ids
+    """
+    import rich.console
+
+    from extensions.nodes.conditional import ConditionalNode
+    from extensions.nodes.map import MapNode
+    from extensions.nodes.parallel import ParallelNode
+    from runnable.nodes import ExecutableNode
+
+    rich_print = rich.console.Console().print
+
+    rich_print(graph)
+
+    nodes = []
+    links = []
+    processed_nodes = set()
+
+    def process_node(
+        node: BaseNode,
+        parent_id: Optional[str] = None,
+        current_graph: Graph = graph,
+        map_node_id: Optional[str] = None,
+        conditional_node_id: Optional[str] = None,
+    ) -> str:
+        node_id = f"{node.internal_name}"
+        node_alias = node.name  # Alias based on the node's name
+
+        if node_id not in processed_nodes:
+            node_data = node.to_d3_node().model_dump(exclude_none=True)
+            node_data["alias"] = node_alias  # Add alias to the node data
+            node_data["display_name"] = node_alias  # Use alias as the display name
+
+            # Add map or parallel related metadata if this node is part of a map branch or parallel branch
+            if map_node_id:
+                if "metadata" not in node_data:
+                    node_data["metadata"] = {}
+
+                # Mark this node as being part of a map branch
+                node_data["metadata"]["belongs_to_node"] = map_node_id
+
+                # If this is the map node itself, add a special attribute
+                if node_id == map_node_id:
+                    node_data["metadata"]["is_map_root"] = True
+
+            # Add conditional related metadata if this node is part of a conditional branch
+            if conditional_node_id:
+                if "metadata" not in node_data:
+                    node_data["metadata"] = {}
+
+                # Mark this node as being part of a conditional branch
+                node_data["metadata"]["belongs_to_node"] = conditional_node_id
+
+                # If this is the conditional node itself, add a special attribute
+                if node_id == conditional_node_id:
+                    node_data["metadata"]["is_conditional_root"] = True
+
+            # Mark parallel nodes with special metadata
+            if isinstance(node, ParallelNode):
+                if "metadata" not in node_data:
+                    node_data["metadata"] = {}
+
+                # Add parallel node type to metadata
+                node_data["metadata"]["node_type"] = "parallel"
+                node_data["metadata"]["parallel_branch_id"] = node_id
+
+            # Mark conditional nodes with special metadata
+            if isinstance(node, ConditionalNode):
+                if "metadata" not in node_data:
+                    node_data["metadata"] = {}
+
+                # Add conditional node type to metadata
+                node_data["metadata"]["node_type"] = "conditional"
+                node_data["metadata"]["conditional_branch_id"] = node_id
+
+            nodes.append(node_data)
+            processed_nodes.add(node_id)
+
+            # Add link from parent if it exists
+            if parent_id:
+                links.append({"source": parent_id, "target": node_id})
+
+            # Handle composite nodes with embedded graphs
+            if isinstance(node, (ParallelNode, MapNode, ConditionalNode)):
+                if isinstance(node, ParallelNode):
+                    # Process each parallel branch
+                    for _, branch in node.branches.items():
+                        branch_start = branch.get_node_by_name(branch.start_at)
+                        process_node(
+                            branch_start,
+                            node_id,
+                            branch,
+                            map_node_id=node_id,
+                            conditional_node_id=conditional_node_id,
+                        )
+
+                    # Handle next node connection after parallel branches complete
+                    if hasattr(node, "next_node") and node.next_node:
+                        try:
+                            next_node = current_graph.get_node_by_name(node.next_node)
+                            next_id = process_node(
+                                next_node,
+                                None,
+                                current_graph=current_graph,
+                                map_node_id=map_node_id,
+                                conditional_node_id=conditional_node_id,
+                            )
+                            links.append(
+                                {
+                                    "source": node_id,
+                                    "target": next_id,
+                                    "type": "success",
+                                }
+                            )
+                        except exceptions.NodeNotFoundError as e:
+                            rich_print(
+                                f"Warning: Next node '{node.next_node}' not found for parallel node '{node.name}': {e}"
+                            )
+
+                elif isinstance(node, MapNode):
+                    # Process map branch
+                    branch_start = node.branch.get_node_by_name(node.branch.start_at)
+                    # Process the branch with additional context about the map node
+                    process_node(
+                        branch_start,
+                        node_id,
+                        node.branch,
+                        map_node_id=node_id,
+                        conditional_node_id=conditional_node_id,
+                    )
+
+                elif isinstance(node, ConditionalNode):
+                    # Process each conditional branch
+                    for _, branch in node.branches.items():
+                        branch_start = branch.get_node_by_name(branch.start_at)
+                        process_node(
+                            branch_start,
+                            node_id,
+                            branch,
+                            map_node_id=map_node_id,
+                            conditional_node_id=node_id,
+                        )
+                    if node.default:
+                        default_start = node.default.get_node_by_name(
+                            node.default.start_at
+                        )
+                        process_node(
+                            default_start,
+                            node_id,
+                            node.default,
+                            map_node_id=map_node_id,
+                            conditional_node_id=node_id,
+                        )
+
+                    # Handle next node connection after conditional branches complete
+                    if hasattr(node, "next_node") and node.next_node:
+                        try:
+                            next_node = current_graph.get_node_by_name(node.next_node)
+                            next_id = process_node(
+                                next_node,
+                                None,
+                                current_graph=current_graph,
+                                map_node_id=map_node_id,
+                                conditional_node_id=conditional_node_id,
+                            )
+                            links.append(
+                                {
+                                    "source": node_id,
+                                    "target": next_id,
+                                    "type": "success",
+                                }
+                            )
+                        except exceptions.NodeNotFoundError as e:
+                            rich_print(
+                                f"Warning: Next node '{node.next_node}' not found for conditional node '{node.name}': {e}"
+                            )
+
+            # Add links to next and on_failure nodes if they exist
+            if isinstance(node, ExecutableNode):
+                # Handle normal "next" links (success path)
+                if hasattr(node, "next_node") and node.next_node:
+                    try:
+                        next_node = current_graph.get_node_by_name(node.next_node)
+                        next_id = process_node(
+                            next_node,
+                            None,
+                            current_graph=current_graph,
+                            map_node_id=map_node_id,
+                            conditional_node_id=conditional_node_id,
+                        )
+                        links.append(
+                            {"source": node_id, "target": next_id, "type": "success"}
+                        )
+                    except exceptions.NodeNotFoundError as e:
+                        rich_print(
+                            f"Warning: Next node '{node.next_node}' not found for node '{node.name}': {e}"
+                        )
+
+                # Handle on_failure links (failure path)
+                if hasattr(node, "on_failure") and node.on_failure:
+                    try:
+                        failure_node = current_graph.get_node_by_name(node.on_failure)
+                        failure_id = process_node(
+                            failure_node,
+                            None,
+                            current_graph=current_graph,
+                            map_node_id=map_node_id,
+                            conditional_node_id=conditional_node_id,
+                        )
+                        links.append(
+                            {"source": node_id, "target": failure_id, "type": "failure"}
+                        )
+                    except exceptions.NodeNotFoundError as e:
+                        rich_print(
+                            f"Warning: On-failure node '{node.on_failure}' not found for node '{node.name}': {e}"
+                        )
+
+                # For backward compatibility, also process all neighbors
+                # This handles cases where node might have other connection types
+                next_nodes = node._get_neighbors()
+                for next_node_name in next_nodes:
+                    # Skip nodes we've already handled explicitly
+                    if (
+                        hasattr(node, "next_node") and node.next_node == next_node_name
+                    ) or (
+                        hasattr(node, "on_failure")
+                        and node.on_failure == next_node_name
+                    ):
+                        continue
+
+                    try:
+                        next_node = current_graph.get_node_by_name(next_node_name)
+                        next_id = process_node(
+                            next_node,
+                            None,
+                            current_graph=current_graph,
+                            map_node_id=map_node_id,
+                            conditional_node_id=conditional_node_id,
+                        )
+                        links.append(
+                            {"source": node_id, "target": next_id, "type": "default"}
+                        )
+                    except exceptions.NodeNotFoundError as e:
+                        rich_print(
+                            f"Warning: Neighbor node '{next_node_name}' not found for node '{node.name}': {e}"
+                        )
+
+        return node_id
+
+    # Start processing from the start node
+    start_node = graph.get_node_by_name(graph.start_at)
+    try:
+        process_node(
+            start_node, None, graph, map_node_id=None, conditional_node_id=None
+        )
+    except (exceptions.NodeNotFoundError, AttributeError, KeyError) as e:
+        rich_print(f"Error processing node {start_node}: {e}")
+
+    return {"nodes": nodes, "links": links}

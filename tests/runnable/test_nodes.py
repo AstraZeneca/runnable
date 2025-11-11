@@ -6,7 +6,7 @@ from runnable import (  # pylint: disable=import-error  # pylint: disable=import
 )
 from runnable.datastore import StepLog
 from runnable.graph import Graph
-from runnable.nodes import StepLog
+from runnable.nodes import NodeInD3, StepLog
 
 
 class TestNode(nodes.BaseNode):
@@ -71,6 +71,7 @@ class TestNode(nodes.BaseNode):
             "internal_name": self.internal_name,
         }
 
+    def to_d3_node(self) -> NodeInD3: ...
 
 
 class TestTraversalNode(nodes.TraversalNode):
@@ -108,6 +109,7 @@ class TestTraversalNode(nodes.TraversalNode):
             "on_failure": self.on_failure,
         }
 
+    def to_d3_node(self) -> NodeInD3: ...
 
 
 class TestExecutableNode(nodes.ExecutableNode):
@@ -177,6 +179,7 @@ class TestExecutableNode(nodes.ExecutableNode):
             "catalog": self.catalog.model_dump() if self.catalog else {},
         }
 
+    def to_d3_node(self) -> NodeInD3: ...
 
 
 # Add these imports if not present

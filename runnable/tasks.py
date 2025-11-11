@@ -209,6 +209,9 @@ class BaseTaskType(BaseModel):
                 parameters=diff_parameters, run_id=self._context.run_id
             )
 
+    def get_d3_metadata(self) -> dict[str, str]:
+        raise NotImplementedError
+
 
 def task_return_to_parameter(task_return: TaskReturns, value: Any) -> Parameter:
     # implicit support for pydantic models
@@ -286,6 +289,72 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     task_type: str = Field(default="python", serialization_alias="command_type")
     command: str
+
+    def get_d3_metadata(self) -> Dict[str, str]:
+        module, func = utils.get_module_and_attr_names(self.command)
+
+        # Import inspect module to get function signature
+        import inspect
+
+        def format_type_annotation(annotation):
+            """Format type annotation in a more readable way"""
+            if annotation == inspect._empty:
+                return "Any"
+            elif hasattr(annotation, "__name__"):
+                return annotation.__name__
+            elif hasattr(annotation, "__origin__"):
+                # Handle typing types like List, Dict, etc.
+                origin = (
+                    annotation.__origin__.__name__
+                    if hasattr(annotation.__origin__, "__name__")
+                    else str(annotation.__origin__)
+                )
+                args = ", ".join(
+                    format_type_annotation(arg) for arg in annotation.__args__
+                )
+                return f"{origin}[{args}]"
+            else:
+                # Fall back to string representation without 'typing.'
+                return str(annotation).replace("typing.", "")
+
+        # Import the module and get the function
+        sys.path.insert(0, os.getcwd())
+        try:
+            imported_module = importlib.import_module(module)
+            f = getattr(imported_module, func)
+
+            # Get function signature
+            sig = inspect.signature(f)
+
+            # Format parameters with type annotations
+            params_list = []
+            for param_name, param in sig.parameters.items():
+                type_annotation = format_type_annotation(param.annotation)
+                params_list.append(f"{param_name}: {type_annotation}")
+
+            params_str = ", ".join(params_list)
+
+            # Format returns based on self.returns or use "None" if no returns specified
+            if self.returns:
+                returns_str = ", ".join([f"{r.name}({r.kind})" for r in self.returns])
+            else:
+                returns_str = "None"
+
+            # Format function signature
+            signature = f"def {func}({params_str}) -> {returns_str}:"
+
+            return {
+                "module": module,
+                "function": func,
+                "signature": signature,
+            }
+        except Exception as e:
+            logger.warning(f"Could not inspect function {self.command}: {str(e)}")
+            return {
+                "module": module,
+                "function": func,
+                "signature": f"def {func}(...) -> ...",
+            }
 
     def execute_command(
         self,
@@ -439,6 +508,11 @@ class NotebookTaskType(BaseTaskType):
     task_type: str = Field(default="notebook", serialization_alias="command_type")
     command: str
     optional_ploomber_args: dict = {}
+
+    def get_d3_metadata(self) -> Dict[str, str]:
+        return {
+            "notebook": self.command,
+        }
 
     @field_validator("command")
     @classmethod
@@ -639,6 +713,11 @@ class ShellTaskType(BaseTaskType):
 
     task_type: str = Field(default="shell", serialization_alias="command_type")
     command: str
+
+    def get_d3_metadata(self) -> Dict[str, str]:
+        return {
+            "command": self.command[:50],
+        }
 
     @field_validator("returns")
     @classmethod

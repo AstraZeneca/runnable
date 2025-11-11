@@ -1,0 +1,67 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f4f4f4;
+}
+
+h1 {
+    color: #333;
+}
+
+#workflow-graph {
+    border: 1px solid #ccc;
+    background-color: #fff;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Node Styling based on 'label' */
+.node-type-task {
+    fill: #ADD8E6; /* Light Blue */
+    stroke: #6495ED;
+    stroke-width: 2px;
+}
+
+.node-type-parallel {
+    fill: #FFD700; /* Gold */
+    stroke: #DAA520;
+    stroke-width: 2px;
+}
+
+.node-type-success {
+    fill: #90EE90; /* Light Green */
+    stroke: #32CD32;
+    stroke-width: 2px;
+}
+
+/* Task Subtype Styling */
+.task-subtype-python {
+    fill: #87CEEB; /* Sky Blue */
+}
+
+.task-subtype-notebook {
+    fill: #F0E68C; /* Khaki */
+}
+
+.task-subtype-shell {
+    fill: #B0C4DE; /* Light Steel Blue */
+}
+
+/* Tooltip */
+.tooltip {
+    position: absolute;
+    text-align: left;
+    padding: 8px;
+    font-size: 12px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    z-index: 1000; /* Ensure tooltip is on top */
+}
+
+.tooltip strong {
+    color: #333;
+}
