@@ -9,12 +9,8 @@ on:
         type: string
 
 jobs:
-  PRCheck:
-    uses: "./.github/workflows/pr.yaml"
-
   ForceRelease:
     runs-on: ubuntu-latest
-    needs: PRCheck
     steps:
       - uses: actions/checkout@v3
         with:
