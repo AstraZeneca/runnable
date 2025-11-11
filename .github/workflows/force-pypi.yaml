@@ -1,0 +1,113 @@
+name: Force PyPI Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to release (e.g., v1.2.3)'
+        required: true
+        type: string
+
+jobs:
+  PRCheck:
+    uses: "./.github/workflows/pr.yaml"
+
+  ForceRelease:
+    runs-on: ubuntu-latest
+    needs: PRCheck
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag }}
+
+      - name: Validate tag exists
+        run: |
+          if ! git tag -l | grep -q "^${{ inputs.tag }}$"; then
+            echo "Error: Tag '${{ inputs.tag }}' does not exist"
+            exit 1
+          fi
+          echo "Tag '${{ inputs.tag }}' found"
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: "Set up Python"
+        run: uv python install
+
+      - run: |
+          uv sync --only-group release --frozen
+
+      - name: Extract version from tag
+        id: extract_version
+        run: |
+          # Remove 'v' prefix if present
+          VERSION="${{ inputs.tag }}"
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Publish to PyPI
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          APPLY_TAG: ${{ steps.extract_version.outputs.version }}
+        run: |
+          uvx --from=toml-cli toml set --toml-path=pyproject.toml project.version $APPLY_TAG
+          uv build
+          uv publish --token $PYPI_TOKEN
+
+      - name: test_installation
+        run: uv run --with runnable --no-project -- python -c "import runnable"
+
+      - name: "Create or update release"
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        uses: "actions/github-script@v6"
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          script: |
+            try {
+              // Check if release already exists
+              let release;
+              try {
+                const existingRelease = await github.rest.repos.getReleaseByTag({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag: process.env.RELEASE_TAG,
+                });
+
+                // Release exists, update it
+                release = await github.rest.repos.updateRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: existingRelease.data.id,
+                  name: process.env.RELEASE_TAG,
+                  body: `Force PyPI release for tag ${process.env.RELEASE_TAG}`,
+                  draft: false,
+                  prerelease: false,
+                });
+                console.log(`Updated existing release for ${process.env.RELEASE_TAG}`);
+              } catch (error) {
+                if (error.status === 404) {
+                  // Release doesn't exist, create it
+                  release = await github.rest.repos.createRelease({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    tag_name: process.env.RELEASE_TAG,
+                    name: process.env.RELEASE_TAG,
+                    body: `Force PyPI release for tag ${process.env.RELEASE_TAG}`,
+                    draft: false,
+                    prerelease: false,
+                    generate_release_notes: true,
+                  });
+                  console.log(`Created new release for ${process.env.RELEASE_TAG}`);
+                } else {
+                  throw error;
+                }
+              }
+
+              core.exportVariable('RELEASE_ID', release.data.id);
+              core.exportVariable('RELEASE_UPLOAD_URL', release.data.upload_url);
+            } catch (error) {
+              core.setFailed(error.message);
+            }

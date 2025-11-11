@@ -161,6 +161,7 @@ dag:
 - GitHub Actions handle CI/CD
 - Supports alpha releases from `alpha-*` branches
 - Main release branch is `main`
+- Never EVER put a ! in the prefix of commit as it triggers a major release.
 
 ## Testing Strategy
 
