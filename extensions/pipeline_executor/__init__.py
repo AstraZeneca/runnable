@@ -407,16 +407,15 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         previous_node = None
         logger.info(f"Running the execution with {current_node}")
 
-        branch_execution_task = None
         branch_task_name: str = ""
         if dag.internal_branch_name:
             branch_task_name = BaseNode._resolve_map_placeholders(
                 dag.internal_branch_name or "Graph",
                 map_variable,
             )
-            branch_execution_task = context.progress.add_task(
-                f"[dark_orange]Executing {branch_task_name}",
-                total=1,
+            console.print(
+                f":runner: Executing the branch {branch_task_name} ... ",
+                style="bold color(208)",
             )
 
         while True:
@@ -432,12 +431,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
             logger.debug(f"Creating execution log for {working_on}")
 
-            depth = " " * ((task_name.count(".")) or 1 - 1)
-
-            task_execution = context.progress.add_task(
-                f"{depth}Executing {task_name}", total=1
-            )
-
             try:
                 self.execute_from_graph(working_on, map_variable=map_variable)
                 status, next_node_name = self._get_status_and_next_node_name(
@@ -445,24 +438,15 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 )
 
                 if status == defaults.SUCCESS:
-                    context.progress.update(
-                        task_execution,
-                        description=f"{depth}[green] {task_name} Completed",
-                        completed=True,
-                        overflow="fold",
+                    console.print(
+                        f":white_check_mark: Node {task_name} succeeded",
                     )
                 else:
-                    context.progress.update(
-                        task_execution,
-                        description=f"{depth}[red] {task_name} Failed",
-                        completed=True,
-                    )  # type ignore
+                    console.print(
+                        f":x: Node {task_name} failed",
+                    )
             except Exception as e:  # noqa: E722
-                context.progress.update(
-                    task_execution,
-                    description=f"{depth}[red] {task_name} Errored",
-                    completed=True,
-                )
+                console.print(":x: Error during execution", style="bold red")
                 console.print(e, style=defaults.error_style)
                 logger.exception(e)
                 raise
@@ -473,13 +457,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 break
 
             current_node = next_node_name
-
-        if branch_execution_task:
-            context.progress.update(
-                branch_execution_task,
-                description=f"[green3] {branch_task_name} completed",
-                completed=True,
-            )
 
         run_log = self._context.run_log_store.get_branch_log(
             working_on._get_branch_log_name(map_variable), self._context.run_id

@@ -49,7 +49,7 @@ class TeeIO(io.StringIO):
 
 
 @contextlib.contextmanager
-def redirect_output():
+def redirect_output(console=None):
     # Set the stream handlers to use the custom TeeIO class
 
     # Backup the original stdout and stderr
@@ -67,6 +67,34 @@ def redirect_output():
 
     try:
         yield sys.stdout, sys.stderr
+
+        # After execution, send captured content to console for recording
+        if console:
+            stdout_content = sys.stdout.getvalue()
+            stderr_content = sys.stderr.getvalue()
+
+            if stdout_content.strip():
+                # Create a null file to prevent display while recording
+                import io
+
+                null_file = io.StringIO()
+                original_console_file = console._file
+                console._file = null_file
+                try:
+                    console.print(stdout_content, end="")
+                finally:
+                    console._file = original_console_file
+
+            if stderr_content.strip():
+                import io
+
+                null_file = io.StringIO()
+                original_console_file = console._file
+                console._file = null_file
+                try:
+                    console.print(stderr_content, end="", style="red")
+                finally:
+                    console._file = original_console_file
     finally:
         # Restore the original stdout and stderr
         sys.stdout = original_stdout
@@ -311,21 +339,13 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     logger.info(
                         f"Calling {func} from {module} with {filtered_parameters}"
                     )
-                    context.progress.stop()  # redirecting stdout clashes with rich progress
-                    with redirect_output() as (buffer, stderr_buffer):
+                    with redirect_output(console=task_console) as (
+                        buffer,
+                        stderr_buffer,
+                    ):
                         user_set_parameters = f(
                             **filtered_parameters
                         )  # This is a tuple or single value
-
-                        print(
-                            stderr_buffer.getvalue()
-                        )  # To print the logging statements
-
-                    # TODO: Avoid double print!!
-                    with task_console.capture():
-                        task_console.log(buffer.getvalue())
-                        task_console.log(stderr_buffer.getvalue())
-                    context.progress.start()
                 except Exception as e:
                     raise exceptions.CommandCallError(
                         f"Function call: {self.command} did not succeed.\n"
@@ -522,18 +542,8 @@ class NotebookTaskType(BaseTaskType):
                 }
                 kwds.update(ploomber_optional_args)
 
-                context.progress.stop()  # redirecting stdout clashes with rich progress
-
-                with redirect_output() as (buffer, stderr_buffer):
+                with redirect_output(console=task_console) as (buffer, stderr_buffer):
                     pm.execute_notebook(**kwds)
-
-                    print(stderr_buffer.getvalue())  # To print the logging statements
-
-                with task_console.capture():
-                    task_console.log(buffer.getvalue())
-                    task_console.log(stderr_buffer.getvalue())
-
-                context.progress.start()
 
                 context.run_context.catalog.put(name=notebook_output_path)
 
@@ -703,7 +713,6 @@ class ShellTaskType(BaseTaskType):
                 capture = False
                 return_keys = {x.name: x for x in self.returns}
 
-                context.progress.stop()  # redirecting stdout clashes with rich progress
                 proc = subprocess.Popen(
                     command,
                     shell=True,
@@ -727,7 +736,6 @@ class ShellTaskType(BaseTaskType):
                         continue
                     task_console.print(line, style=defaults.warning_style)
 
-                context.progress.start()
                 output_parameters: Dict[str, Parameter] = {}
                 metrics: Dict[str, Parameter] = {}
 
