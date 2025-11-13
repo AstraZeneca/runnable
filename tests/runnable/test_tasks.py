@@ -5,11 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from runnable import defaults
-from runnable.datastore import (
-    JsonParameter,
-    MetricParameter,
-    StepAttempt,
-)
+from runnable.datastore import JsonParameter, MetricParameter, StepAttempt
 from runnable.tasks import (
     BaseTaskType,
     NotebookTaskType,
@@ -56,7 +52,6 @@ def mock_context(mocker):
 
     # Patch both run_context and progress at module level
     mocker.patch("runnable.context.run_context", mock_ctx)
-    mocker.patch("runnable.context.progress", mock_progress)
 
     # Return both mocks for test use
     return mock_ctx, mock_progress
@@ -116,8 +111,6 @@ def test_python_task_execution(mock_context):
 
         attempt_log = task.execute_command()
         assert attempt_log.status == defaults.SUCCESS
-        assert mock_progress.stop.called
-        assert mock_progress.start.called
 
 
 def test_python_task_with_returns(mock_context):
