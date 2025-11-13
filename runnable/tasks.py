@@ -14,6 +14,8 @@ from string import Template
 from typing import Any, Dict, List, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from rich.segment import Segment
+from rich.style import Style
 from stevedore import driver
 
 import runnable.context as context
@@ -32,16 +34,41 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 
 class TeeIO(io.StringIO):
     """
-    A custom class to write to the buffer and the output stream at the same time.
+    A custom class to write to the buffer, output stream, and Rich console simultaneously.
+
+    This implementation directly adds to Rich Console's internal recording buffer using
+    proper Segment objects, avoiding the infinite recursion that occurs when using
+    Rich Console's print() method.
     """
 
-    def __init__(self, output_stream=sys.stdout):
+    def __init__(
+        self, output_stream=sys.stdout, rich_console=None, stream_type="stdout"
+    ):
         super().__init__()
         self.output_stream = output_stream
+        self.rich_console = rich_console
+        self.stream_type = stream_type
 
     def write(self, s):
-        super().write(s)  # Write to the buffer
-        self.output_stream.write(s)  # Write to the output stream
+        if s:  # Only process non-empty strings
+            super().write(s)  # Write to the buffer for later retrieval
+            self.output_stream.write(s)  # Display immediately
+
+            # Record directly to Rich's internal buffer using proper Segments
+            # Note: We record ALL content including newlines, not just stripped content
+            if self.rich_console:
+                if self.stream_type == "stderr":
+                    # Red style for stderr
+                    style = Style(color="red")
+                    segment = Segment(s, style)
+                else:
+                    # No style for stdout
+                    segment = Segment(s)
+
+                # Add to Rich's record buffer (no recursion!)
+                self.rich_console._record_buffer.append(segment)
+
+        return len(s) if s else 0
 
     def flush(self):
         super().flush()
@@ -50,55 +77,42 @@ class TeeIO(io.StringIO):
 
 @contextlib.contextmanager
 def redirect_output(console=None):
-    # Set the stream handlers to use the custom TeeIO class
+    """
+    Context manager that captures output to both display and Rich console recording.
 
+    This implementation uses TeeIO which directly records to Rich Console's internal
+    buffer, eliminating the need for post-processing and avoiding infinite recursion.
+
+    Args:
+        console: Rich Console instance for recording (typically task_console)
+    """
     # Backup the original stdout and stderr
     original_stdout = sys.stdout
     original_stderr = sys.stderr
 
-    # Redirect stdout and stderr to custom TeeStream objects
-    sys.stdout = TeeIO(sys.stdout)
-    sys.stderr = TeeIO(sys.stderr)
+    # Create TeeIO instances that handle display + Rich console recording simultaneously
+    sys.stdout = TeeIO(original_stdout, rich_console=console, stream_type="stdout")
+    sys.stderr = TeeIO(original_stderr, rich_console=console, stream_type="stderr")
 
-    # Replace stream for all StreamHandlers to use the new sys.stdout
+    # Update logging handlers to use the new stdout
+    original_streams = []
     for handler in logging.getLogger().handlers:
         if isinstance(handler, logging.StreamHandler):
+            original_streams.append((handler, handler.stream))
             handler.stream = sys.stdout
 
     try:
         yield sys.stdout, sys.stderr
-
-        # After execution, send captured content to console for recording
-        if console:
-            stdout_content = sys.stdout.getvalue()
-            stderr_content = sys.stderr.getvalue()
-
-            if stdout_content.strip():
-                # Create a null file to prevent display while recording
-                import io
-
-                null_file = io.StringIO()
-                original_console_file = console._file
-                console._file = null_file
-                try:
-                    console.print(stdout_content, end="")
-                finally:
-                    console._file = original_console_file
-
-            if stderr_content.strip():
-                import io
-
-                null_file = io.StringIO()
-                original_console_file = console._file
-                console._file = null_file
-                try:
-                    console.print(stderr_content, end="", style="red")
-                finally:
-                    console._file = original_console_file
     finally:
         # Restore the original stdout and stderr
         sys.stdout = original_stdout
         sys.stderr = original_stderr
+
+        # Restore logging handler streams
+        for handler, original_stream in original_streams:
+            handler.stream = original_stream
+
+        # No additional Rich console processing needed - TeeIO handles it directly!
 
 
 class TaskReturns(BaseModel):
