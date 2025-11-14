@@ -45,6 +45,10 @@ class StepInfo:
     catalog_ops: Dict[str, List[str]]
     # Enhanced parameter information
     parameters: Optional["ParameterInfo"] = None
+    # Error and attempt information
+    error_message: Optional[str] = None
+    attempt_count: int = 0
+    max_attempts: int = 1
 
 
 class StepHierarchyParser:
@@ -319,6 +323,26 @@ class TimelineExtractor:
                         output_params.append(f"{name}={formatted_value}")
                     # Skip object/pickled parameters entirely
 
+        # Extract error information and attempt details
+        error_message = None
+        attempt_count = len(attempts)
+        max_attempts = 1  # Default, will be updated from DAG if available
+
+        # Get max_attempts from DAG node
+        max_attempts = dag_node.get("max_attempts", 1)
+
+        # Extract error message from failed attempts
+        if attempts and step_data.get("status") == "FAIL":
+            # Find the failed attempt (usually the last one)
+            failed_attempt = None
+            for attempt in reversed(attempts):
+                if attempt.get("status") == "FAIL":
+                    failed_attempt = attempt
+                    break
+
+            if failed_attempt and failed_attempt.get("message"):
+                error_message = failed_attempt["message"].strip()
+
         # Extract catalog operations
         catalog_data = step_data.get("data_catalog", [])
         for item in catalog_data:
@@ -351,6 +375,9 @@ class TimelineExtractor:
             output_params=output_params,
             catalog_ops=catalog_ops,
             parameters=parameters,
+            error_message=error_message,
+            attempt_count=attempt_count,
+            max_attempts=max_attempts,
         )
 
 
@@ -436,6 +463,21 @@ class SimpleVisualizer:
             timing = f"({step.duration_ms:.1f}ms)" if step.duration_ms > 0 else ""
 
             print(f"{indent}{type_icon} {status_emoji} {step.name} {timing}")
+
+            # Show error information for failed steps
+            if step.status == "FAIL" and step.error_message:
+                error_lines = step.error_message.split("\n")
+                # Show first line of error, truncated if too long
+                error_preview = (
+                    error_lines[0][:100] + "..."
+                    if len(error_lines[0]) > 100
+                    else error_lines[0]
+                )
+                print(f"{indent}   💥 Error: {error_preview}")
+                if step.attempt_count > 1:
+                    print(
+                        f"{indent}   🔄 Failed after {step.attempt_count}/{step.max_attempts} attempts"
+                    )
 
             # Show metadata for tasks
             if step.step_type == "task" and (
@@ -1047,8 +1089,24 @@ class SimpleVisualizer:
                             <div><strong>Type:</strong> ${{stepData.step_type}}</div>
                             <div><strong>Duration:</strong> ${{perfEmoji}} ${{stepData.duration_ms.toFixed(1)}}ms</div>
                             <div><strong>Time:</strong> ${{stepData.start_time}} → ${{stepData.end_time}}</div>
+                            ${{stepData.attempt_count > 1 ? `<div><strong>Attempts:</strong> ${{stepData.attempt_count}}/${{stepData.max_attempts}}</div>` : ''}}
                         </div>
                     </div>
+
+                    ${{stepData.error_message ? `
+                    <div class="sidebar-section">
+                        <h4 style="color: #dc2626;">💥 Error Details</h4>
+                        <div class="param-item" style="background: #fef2f2; border-left-color: #dc2626; color: #991b1b; white-space: pre-wrap; font-family: monospace; font-size: 0.75rem; line-height: 1.4;">
+                            ${{stepData.error_message}}
+                        </div>
+                        ${{stepData.attempt_count > 1 ? `
+                        <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #6b7280;">
+                            ⚠️ Step failed after ${{stepData.attempt_count}} attempt(s)
+                        </div>
+                        ` : ''}}
+                    </div>
+                    ` : ''}}
+
 
                     ${{stepData.command ? `
                     <div class="sidebar-section">
@@ -1429,6 +1487,9 @@ class SimpleVisualizer:
                 "iteration_vars": step.parameters.iteration_vars,
             },
             "catalog_ops": step.catalog_ops,
+            "error_message": step.error_message,
+            "attempt_count": step.attempt_count,
+            "max_attempts": step.max_attempts,
         }
 
         return json.dumps(data)
