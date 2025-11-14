@@ -14,6 +14,8 @@ from string import Template
 from typing import Any, Dict, List, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from rich.segment import Segment
+from rich.style import Style
 from stevedore import driver
 
 import runnable.context as context
@@ -32,16 +34,41 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 
 class TeeIO(io.StringIO):
     """
-    A custom class to write to the buffer and the output stream at the same time.
+    A custom class to write to the buffer, output stream, and Rich console simultaneously.
+
+    This implementation directly adds to Rich Console's internal recording buffer using
+    proper Segment objects, avoiding the infinite recursion that occurs when using
+    Rich Console's print() method.
     """
 
-    def __init__(self, output_stream=sys.stdout):
+    def __init__(
+        self, output_stream=sys.stdout, rich_console=None, stream_type="stdout"
+    ):
         super().__init__()
         self.output_stream = output_stream
+        self.rich_console = rich_console
+        self.stream_type = stream_type
 
     def write(self, s):
-        super().write(s)  # Write to the buffer
-        self.output_stream.write(s)  # Write to the output stream
+        if s:  # Only process non-empty strings
+            super().write(s)  # Write to the buffer for later retrieval
+            self.output_stream.write(s)  # Display immediately
+
+            # Record directly to Rich's internal buffer using proper Segments
+            # Note: We record ALL content including newlines, not just stripped content
+            if self.rich_console:
+                if self.stream_type == "stderr":
+                    # Red style for stderr
+                    style = Style(color="red")
+                    segment = Segment(s, style)
+                else:
+                    # No style for stdout
+                    segment = Segment(s)
+
+                # Add to Rich's record buffer (no recursion!)
+                self.rich_console._record_buffer.append(segment)
+
+        return len(s) if s else 0
 
     def flush(self):
         super().flush()
@@ -49,20 +76,29 @@ class TeeIO(io.StringIO):
 
 
 @contextlib.contextmanager
-def redirect_output():
-    # Set the stream handlers to use the custom TeeIO class
+def redirect_output(console=None):
+    """
+    Context manager that captures output to both display and Rich console recording.
 
+    This implementation uses TeeIO which directly records to Rich Console's internal
+    buffer, eliminating the need for post-processing and avoiding infinite recursion.
+
+    Args:
+        console: Rich Console instance for recording (typically task_console)
+    """
     # Backup the original stdout and stderr
     original_stdout = sys.stdout
     original_stderr = sys.stderr
 
-    # Redirect stdout and stderr to custom TeeStream objects
-    sys.stdout = TeeIO(sys.stdout)
-    sys.stderr = TeeIO(sys.stderr)
+    # Create TeeIO instances that handle display + Rich console recording simultaneously
+    sys.stdout = TeeIO(original_stdout, rich_console=console, stream_type="stdout")
+    sys.stderr = TeeIO(original_stderr, rich_console=console, stream_type="stderr")
 
-    # Replace stream for all StreamHandlers to use the new sys.stdout
+    # Update logging handlers to use the new stdout
+    original_streams = []
     for handler in logging.getLogger().handlers:
         if isinstance(handler, logging.StreamHandler):
+            original_streams.append((handler, handler.stream))
             handler.stream = sys.stdout
 
     try:
@@ -71,6 +107,12 @@ def redirect_output():
         # Restore the original stdout and stderr
         sys.stdout = original_stdout
         sys.stderr = original_stderr
+
+        # Restore logging handler streams
+        for handler, original_stream in original_streams:
+            handler.stream = original_stream
+
+        # No additional Rich console processing needed - TeeIO handles it directly!
 
 
 class TaskReturns(BaseModel):
@@ -311,21 +353,13 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     logger.info(
                         f"Calling {func} from {module} with {filtered_parameters}"
                     )
-                    context.progress.stop()  # redirecting stdout clashes with rich progress
-                    with redirect_output() as (buffer, stderr_buffer):
+                    with redirect_output(console=task_console) as (
+                        buffer,
+                        stderr_buffer,
+                    ):
                         user_set_parameters = f(
                             **filtered_parameters
                         )  # This is a tuple or single value
-
-                        print(
-                            stderr_buffer.getvalue()
-                        )  # To print the logging statements
-
-                    # TODO: Avoid double print!!
-                    with task_console.capture():
-                        task_console.log(buffer.getvalue())
-                        task_console.log(stderr_buffer.getvalue())
-                    context.progress.start()
                 except Exception as e:
                     raise exceptions.CommandCallError(
                         f"Function call: {self.command} did not succeed.\n"
@@ -522,18 +556,8 @@ class NotebookTaskType(BaseTaskType):
                 }
                 kwds.update(ploomber_optional_args)
 
-                context.progress.stop()  # redirecting stdout clashes with rich progress
-
-                with redirect_output() as (buffer, stderr_buffer):
+                with redirect_output(console=task_console) as (buffer, stderr_buffer):
                     pm.execute_notebook(**kwds)
-
-                    print(stderr_buffer.getvalue())  # To print the logging statements
-
-                with task_console.capture():
-                    task_console.log(buffer.getvalue())
-                    task_console.log(stderr_buffer.getvalue())
-
-                context.progress.start()
 
                 context.run_context.catalog.put(name=notebook_output_path)
 
@@ -703,7 +727,6 @@ class ShellTaskType(BaseTaskType):
                 capture = False
                 return_keys = {x.name: x for x in self.returns}
 
-                context.progress.stop()  # redirecting stdout clashes with rich progress
                 proc = subprocess.Popen(
                     command,
                     shell=True,
@@ -727,7 +750,6 @@ class ShellTaskType(BaseTaskType):
                         continue
                     task_console.print(line, style=defaults.warning_style)
 
-                context.progress.start()
                 output_parameters: Dict[str, Parameter] = {}
                 metrics: Dict[str, Parameter] = {}
 
