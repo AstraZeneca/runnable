@@ -42,7 +42,7 @@ class StepInfo:
     command_type: str
     input_params: List[str]
     output_params: List[str]
-    catalog_ops: Dict[str, List[str]]
+    catalog_ops: Dict[str, List[Dict[str, str]]]
     # Enhanced parameter information
     parameters: Optional["ParameterInfo"] = None
     # Error and attempt information
@@ -293,7 +293,7 @@ class TimelineExtractor:
         # Extract parameters with detailed metadata (exclude pickled/object types)
         input_params = []
         output_params = []
-        catalog_ops: Dict[str, List[str]] = {"put": [], "get": []}
+        catalog_ops: Dict[str, List[Dict[str, str]]] = {"put": [], "get": []}
 
         attempts = step_data.get("attempts", [])
         if attempts:
@@ -343,15 +343,20 @@ class TimelineExtractor:
             if failed_attempt and failed_attempt.get("message"):
                 error_message = failed_attempt["message"].strip()
 
-        # Extract catalog operations
+        # Extract catalog operations with detailed information
         catalog_data = step_data.get("data_catalog", [])
         for item in catalog_data:
             stage = item.get("stage", "")
-            name = item.get("name", "")
-            if stage == "put":
-                catalog_ops["put"].append(name)
-            elif stage == "get":
-                catalog_ops["get"].append(name)
+            if stage in ("put", "get"):
+                catalog_info = {
+                    "name": item.get("name", ""),
+                    "data_hash": item.get("data_hash", "")[:8] + "..."
+                    if item.get("data_hash")
+                    else "",  # Show first 8 chars
+                    "catalog_path": item.get("catalog_relative_path", ""),
+                    "stage": stage,
+                }
+                catalog_ops[stage].append(catalog_info)
 
         # Create parameter categorization for better display
         parameters = self._categorize_parameters(
@@ -510,11 +515,11 @@ class SimpleVisualizer:
                     catalog_items = []
                     if step.catalog_ops.get("put"):
                         catalog_items.extend(
-                            [f"PUT:{item}" for item in step.catalog_ops["put"]]
+                            [f"PUT:{item['name']}" for item in step.catalog_ops["put"]]
                         )
                     if step.catalog_ops.get("get"):
                         catalog_items.extend(
-                            [f"GET:{item}" for item in step.catalog_ops["get"]]
+                            [f"GET:{item['name']}" for item in step.catalog_ops["get"]]
                         )
                     if catalog_items:
                         catalog_display = " • ".join(catalog_items)
@@ -1154,14 +1159,34 @@ class SimpleVisualizer:
                     ${{(stepData.catalog_ops.put.length > 0 || stepData.catalog_ops.get.length > 0) ? `
                     <div class="sidebar-section">
                         <h4>💾 Data Operations</h4>
-                        <div class="param-grid">
-                            ${{stepData.catalog_ops.put.map(item =>
-                                `<div class="param-item output">PUT: ${{item}}</div>`
-                            ).join('')}}
-                            ${{stepData.catalog_ops.get.map(item =>
-                                `<div class="param-item input">GET: ${{item}}</div>`
-                            ).join('')}}
+                        ${{stepData.catalog_ops.get.length > 0 ? `
+                        <div style="margin-bottom: 1rem;">
+                            <h5 style="color: #059669; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">📥 CATALOG INPUTS</h5>
+                            <div class="param-grid">
+                                ${{stepData.catalog_ops.get.map(item =>
+                                    `<div class="param-item input" style="font-family: monospace;">
+                                        <div style="font-weight: 600; margin-bottom: 0.25rem;">${{item.name}}</div>
+                                        <div style="font-size: 0.7rem; opacity: 0.8;">Hash: ${{item.data_hash}}</div>
+                                        <div style="font-size: 0.7rem; opacity: 0.8;">Path: ${{item.catalog_path}}</div>
+                                    </div>`
+                                ).join('')}}
+                            </div>
                         </div>
+                        ` : ''}}
+                        ${{stepData.catalog_ops.put.length > 0 ? `
+                        <div>
+                            <h5 style="color: #dc2626; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">📤 CATALOG OUTPUTS</h5>
+                            <div class="param-grid">
+                                ${{stepData.catalog_ops.put.map(item =>
+                                    `<div class="param-item output" style="font-family: monospace;">
+                                        <div style="font-weight: 600; margin-bottom: 0.25rem;">${{item.name}}</div>
+                                        <div style="font-size: 0.7rem; opacity: 0.8;">Hash: ${{item.data_hash}}</div>
+                                        <div style="font-size: 0.7rem; opacity: 0.8;">Path: ${{item.catalog_path}}</div>
+                                    </div>`
+                                ).join('')}}
+                            </div>
+                        </div>
+                        ` : ''}}
                     </div>
                     ` : ''}}
 
@@ -1405,11 +1430,11 @@ class SimpleVisualizer:
                 catalog_items = []
                 if step.catalog_ops.get("put"):
                     catalog_items.extend(
-                        [f"PUT:{item}" for item in step.catalog_ops["put"]]
+                        [f"PUT:{item['name']}" for item in step.catalog_ops["put"]]
                     )
                 if step.catalog_ops.get("get"):
                     catalog_items.extend(
-                        [f"GET:{item}" for item in step.catalog_ops["get"]]
+                        [f"GET:{item['name']}" for item in step.catalog_ops["get"]]
                     )
                 if catalog_items:
                     catalog_text = " • ".join(catalog_items)
