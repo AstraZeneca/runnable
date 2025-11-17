@@ -275,7 +275,7 @@ python_examples = [
         [],
         "examples/common/initial_parameters.yaml",
         [
-            partial(conditions.should_have_num_steps, 3),
+            partial(conditions.should_have_num_steps, 5),
             partial(conditions.should_have_catalog_execution_logs),
             partial(conditions.should_be_successful),
             partial(conditions.should_step_be_successful, "read_params_as_pydantic"),

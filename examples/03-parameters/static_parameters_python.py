@@ -25,6 +25,8 @@ Run this pipeline as:
 import os
 
 from examples.common.functions import (
+    function_using_argparse,
+    function_using_kwargs,
     read_initial_params_as_json,
     read_initial_params_as_pydantic,
 )
@@ -49,12 +51,26 @@ def main():
 
     read_params_as_json = PythonTask(
         function=read_initial_params_as_json,
-        terminate_with_success=True,
         name="read_params_as_json",
     )
 
+    using_argparse = PythonTask(
+        function=function_using_argparse,
+        name="function_using_argparse",
+    )
+
+    using_kwargs = PythonTask(
+        function=function_using_kwargs,
+        name="function_using_kwargs",
+    )
+
     pipeline = Pipeline(
-        steps=[read_params_as_pydantic, read_params_as_json],
+        steps=[
+            read_params_as_pydantic,
+            read_params_as_json,
+            using_argparse,
+            using_kwargs,
+        ],
     )
 
     _ = pipeline.execute(parameters_file="examples/common/initial_parameters.yaml")

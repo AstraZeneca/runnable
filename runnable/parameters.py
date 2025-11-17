@@ -146,7 +146,9 @@ def filter_arguments_for_func(
                     named_param, value.annotation
                 )
                 bound_args[name] = bound_model
-
+            elif isinstance(param_value, ObjectParameter):
+                # Directly pass the object parameter value
+                bound_args[name] = param_value.get_value()
             elif value.annotation is not inspect.Parameter.empty and callable(
                 value.annotation
             ):
