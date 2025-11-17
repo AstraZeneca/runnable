@@ -1,0 +1,35 @@
+# Data Science Pipeline 101 - Configuration Parameters
+#
+# This file contains all the configurable parameters for our ML pipeline.
+# You can modify these values to experiment with different settings.
+
+# Data Loading Parameters
+dataset_name: "wine"
+
+# Data Preprocessing Parameters
+test_size: 0.2        # Fraction of data to use for testing (20%)
+random_state: 42      # Random seed for reproducibility
+
+# Model Training Parameters
+model_type: "random_forest"   # Options: "random_forest", "logistic_regression"
+
+# Random Forest specific parameters
+n_estimators: 100     # Number of trees in the forest
+max_depth: null       # Maximum depth of trees (null = no limit)
+min_samples_split: 2  # Minimum samples required to split a node
+min_samples_leaf: 1   # Minimum samples required at a leaf node
+
+# Alternative: Logistic Regression parameters (uncomment to use)
+# model_type: "logistic_regression"
+# max_iter: 1000      # Maximum number of iterations
+# C: 1.0              # Regularization strength
+
+# You can experiment with different configurations:
+#
+# For a smaller, faster model:
+# n_estimators: 50
+# max_depth: 5
+#
+# For potentially better performance:
+# n_estimators: 200
+# max_depth: null

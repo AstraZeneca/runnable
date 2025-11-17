@@ -59,6 +59,13 @@ docs = [
 release = [
     "python-semantic-release>=9.15.2",
 ]
+tutorial = [
+    "matplotlib>=3.10.7",
+    "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
+    "torch>=2.8.0",
+    "torchvision>=0.23.0",
+]
 
 
 [tool.uv.workspace]
