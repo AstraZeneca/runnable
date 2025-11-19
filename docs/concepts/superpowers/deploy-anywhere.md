@@ -29,11 +29,6 @@ pipeline.execute()  # Runs on your laptop
 pipeline.execute(config="container.yaml")  # Runs in Docker
 ```
 
-### ☸️ Kubernetes cluster
-```python
-pipeline.execute(config="kubernetes.yaml")  # Runs on K8s
-```
-
 ### ☁️ Cloud platforms
 ```python
 pipeline.execute(config="argo.yaml")  # Runs on Argo Workflows
@@ -43,28 +38,51 @@ pipeline.execute(config="argo.yaml")  # Runs on Argo Workflows
 
 **Local config** (fast for development):
 ```yaml title="local.yaml"
-run_log_store:
+pipeline-executor:
+  type: local # (1)
+
+run-log-store:
   type: file-system
-  config:
-    log_folder: ".run_logs"
 
 catalog:
-  type: file-system
-  config:
-    compute_data_folder: ".catalog"
+  type: file-system # (3)
+
+secrets:
+  type: env-secrets # (4)
+
 ```
 
-**Kubernetes config** (production scale):
+**Argo config** (production scale):
 ```yaml title="kubernetes.yaml"
-run_log_store:
-  type: k8s-pvc
+pipeline-executor:
+  type: "argo" # (1)
   config:
-    persistent_volume_claim: runnable-pvc
+    pvc_for_runnable: runnable
+    defaults:
+      image: $docker_image # (3)
+      resources:
+        limits:
+          cpu: "1"
+          memory: 1Gi
+        requests:
+          cpu: "0.5"
+          memory: 500Mi
+      env:
+        - name: argo_env
+          value: "argo"
+    argoWorkflow:
+      metadata:
+        generateName: "argo-" # (2)
+        namespace: my_namespace
+      spec:
+        serviceAccountName: "default-editor"
 
-catalog:
-  type: s3
+
+run-log-store: # (4)
+  type: chunked-fs
   config:
-    bucket: my-production-bucket
+    log_folder: /mnt/run_log_store
+
 ```
 
 ## The power of environment-agnostic code

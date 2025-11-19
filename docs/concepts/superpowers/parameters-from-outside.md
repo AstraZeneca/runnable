@@ -36,9 +36,14 @@ Run with parameters:
 ```python
 from runnable import Pipeline, PythonTask
 
-task = PythonTask(function=read_initial_params_as_pydantic)
-pipeline = Pipeline(steps=[task])
-pipeline.execute(parameters_file="parameters.yaml")
+def main():
+    task = PythonTask(function=read_initial_params_as_pydantic)
+    pipeline = Pipeline(steps=[task])
+    pipeline.execute(parameters_file="parameters.yaml")
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -63,12 +68,18 @@ export RUNNABLE_PRM_envvar="from env"  # This overrides YAML!
 
 ```python
 import os
+from runnable import Pipeline, PythonTask
 
-# Set environment variable in code (for demo)
-os.environ["RUNNABLE_PRM_envvar"] = "from env"
+def main():
+    task = PythonTask(function=read_initial_params_as_pydantic)
+    pipeline = Pipeline(steps=[task])
 
-# Same pipeline execution as before
-pipeline.execute(parameters_file="parameters.yaml")
+    # Same pipeline execution as before
+    pipeline.execute(parameters_file="parameters.yaml")
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## 🏆 Environment variables win
@@ -83,17 +94,60 @@ If you have both YAML and environment variables, environment variables take prio
 
 **Same code, different behavior:**
 
-```python
-# Development
+```bash
+# Option 1: Individual parameter overrides
 export RUNNABLE_PRM_dataset="small_test_data.csv"
-pipeline.execute()
+uv run my_pipeline.py
 
-# Production
 export RUNNABLE_PRM_dataset="full_production_data.csv"
-pipeline.execute()
+uv run my_pipeline.py
+
+# Option 2: Complete parameter file switching
+export RUNNABLE_PARAMETERS_FILE="configs/dev.yaml"
+uv run my_pipeline.py
+
+export RUNNABLE_PARAMETERS_FILE="configs/prod.yaml"
+uv run my_pipeline.py
 ```
 
 **No code changes needed!**
+
+## Method 3: Dynamic parameter files
+
+Switch parameter files without changing code using `RUNNABLE_PARAMETERS_FILE`:
+
+```bash
+# Use different parameter files for different environments
+export RUNNABLE_PARAMETERS_FILE="dev-parameters.yaml"
+export RUNNABLE_PARAMETERS_FILE="prod-parameters.yaml"
+export RUNNABLE_PARAMETERS_FILE="staging-parameters.yaml"
+```
+
+```python
+from runnable import Pipeline, PythonTask
+
+def main():
+    task = PythonTask(function=read_initial_params_as_pydantic)
+    pipeline = Pipeline(steps=[task])
+
+    # No need to specify parameters_file - uses RUNNABLE_PARAMETERS_FILE
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
+```
+
+**Powerful deployment pattern:**
+```bash
+# Development
+export RUNNABLE_PARAMETERS_FILE="configs/dev.yaml"
+uv run my_pipeline.py
+
+# Production
+export RUNNABLE_PARAMETERS_FILE="configs/prod.yaml"
+uv run my_pipeline.py  # Same code, different parameters!
+```
 
 ## Complex parameters work too
 
@@ -107,6 +161,12 @@ export RUNNABLE_PRM_features='["age", "income", "location"]'
 
 !!! tip "Pro tip"
 
-    Use YAML files for default parameters, environment variables for overrides. Perfect for different environments (dev/staging/prod).
+    **Three-layer flexibility:**
+
+    1. **Code-specified**: `pipeline.execute(parameters_file="base.yaml")`
+    2. **Environment override**: `RUNNABLE_PARAMETERS_FILE="prod.yaml"` (overrides code)
+    3. **Individual parameters**: `RUNNABLE_PRM_key="value"` (overrides both)
+
+    Perfect for different environments (dev/staging/prod) without code changes!
 
 Next: Learn about [automatic file management](file-management.md) between tasks.

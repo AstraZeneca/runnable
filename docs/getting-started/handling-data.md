@@ -20,18 +20,23 @@ In job mode, you can name your return values for better tracking and storage:
 ```python
 from runnable import PythonJob, pickled, metric
 
-job = PythonJob(
-    function=write_parameter,
-    returns=[
-        pickled("df"),        # For pandas DataFrames
-        "integer",            # Simple types work as-is
-        "floater",
-        "stringer",
-        "pydantic_param",     # Pydantic models handled automatically
-        metric("score")       # Mark metrics for monitoring
-    ]
-)
-job.execute()
+def main():
+    job = PythonJob(
+        function=write_parameter,
+        returns=[
+            pickled("df"),        # For pandas DataFrames
+            "integer",            # Simple types work as-is
+            "floater",
+            "stringer",
+            "pydantic_param",     # Pydantic models handled automatically
+            metric("score")       # Mark metrics for monitoring
+        ]
+    )
+    job.execute()
+    return job
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -106,14 +111,14 @@ returns=["count", "status", "results"]
 
     Name your returns clearly. `["df", "score"]` is better than `["output1", "output2"]`.
 
-!!! info "Works with all task types"
+!!! info "Parameter types across task types"
 
-    Everything you've learned here works identically with:
+    The `returns=[]` syntax works across all task types, but parameter type support varies:
 
-    - **Python functions** (`PythonTask`, `PythonJob`)
-    - **Jupyter notebooks** (`NotebookTask`, `NotebookJob`)
-    - **Shell scripts** (`ShellTask`, `ShellJob`)
+    - **Python functions** (`PythonTask`, `PythonJob`): Full support for all parameter types (primitive, pickled, pydantic, metric)
+    - **Jupyter notebooks** (`NotebookTask`, `NotebookJob`): Can receive primitives only, can return all types
+    - **Shell scripts** (`ShellTask`, `ShellJob`): Limited to primitive types for both input and output
 
-    Same `returns=[]` syntax, same data types, same parameter passing. Only the execution environment changes!
+    Choose your parameter types based on the task types in your workflow!
 
 Next: Learn how to [connect functions](connecting-functions.md) in workflows.

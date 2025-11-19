@@ -27,17 +27,22 @@ Same functions, automatic parameter passing:
 ```python
 from runnable import Pipeline, PythonTask, pickled, metric
 
-# Step 1: Create data with named outputs
-step1 = PythonTask(
-    function=write_parameter,
-    returns=[pickled("df"), "integer", "floater", "stringer", "pydantic_param", metric("score")]
-)
+def main():
+    # Step 1: Create data with named outputs
+    step1 = PythonTask(
+        function=write_parameter,
+        returns=[pickled("df"), "integer", "floater", "stringer", "pydantic_param", metric("score")]
+    )
 
-# Step 2: Process data - parameters matched automatically!
-step2 = PythonTask(function=read_parameter)
+    # Step 2: Process data - parameters matched automatically!
+    step2 = PythonTask(function=read_parameter)
 
-pipeline = Pipeline(steps=[step1, step2])
-pipeline.execute()
+    pipeline = Pipeline(steps=[step1, step2])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ✨ **Magic**: The `df` returned by `write_parameter` automatically becomes the `df` parameter for `read_parameter`.
@@ -65,12 +70,18 @@ Python functions, notebooks, and shell scripts all work together:
 ```python
 from runnable import Pipeline, PythonTask, NotebookTask, ShellTask
 
-pipeline = Pipeline(steps=[
-    PythonTask(function=create_data, returns=[pickled("df")]),
-    NotebookTask(notebook_path="process.ipynb", returns=["processed_df"]),
-    ShellTask(command="./analyze.sh", returns=["report_path"]),
-    PythonTask(function=send_email)  # Gets report_path automatically
-])
+def main():
+    pipeline = Pipeline(steps=[
+        PythonTask(function=create_data, returns=[pickled("df")]),
+        NotebookTask(notebook_path="process.ipynb", returns=["processed_df"]),
+        ShellTask(command="./analyze.sh", returns=["report_path"]),
+        PythonTask(function=send_email)  # Gets report_path automatically
+    ])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -87,18 +98,51 @@ pipeline = Pipeline(steps=[
 
     Return names must match parameter names. `returns=["data"]` → `def process(data):`
 
-!!! info "Universal pattern"
+!!! info "Parameter Type Compatibility"
 
-    This automatic parameter passing works seamlessly between **any** task types:
+    Parameter passing works between task types, but with important constraints based on data types and how each task type receives parameters:
+
+    **How Parameters Are Passed:**
+
+    | Task Type | How Parameters Are Received | Input Parameters | Output Parameters |
+    |-----------|----------------------------|------------------|------------------|
+    | **Python** | Function arguments | All types (primitive, pickled, pydantic, metric) | All types (primitive, pickled, pydantic, metric) |
+    | **Notebook** | Tagged parameter cells (variables replaced) | Python primitives only (int, str, float, list, dict) | All types (primitive, pickled, pydantic, metric) |
+    | **Shell** | Environment variables | Python primitives only (int, str, float, list, dict) | Python primitives only (int, str, float, list, dict) |
+
+    **Notebook Parameter Mechanism:**
+
+    Notebooks receive parameters through tagged cells where variable values are replaced:
 
     ```python
-    Pipeline(steps=[
-        PythonTask(function=extract_data, returns=["raw_df"]),      # Python →
-        NotebookTask(notebook_path="clean.ipynb", returns=["df"]), # → Notebook →
-        ShellTask(command="./analyze.sh", returns=["report"])      # → Shell
-    ])
+    # In your notebook's first cell (tagged as "parameters"):
+    count = None      # This will be replaced with actual value
+    status = None     # This will be replaced with actual value
     ```
 
-    Whether it's Python → Python, Notebook → Shell, or any combination - parameters flow automatically!
+    **✅ This works:**
+    ```python
+    def main():
+        Pipeline(steps=[
+            PythonTask(function=extract_data, returns=["count", "status"]),    # primitives →
+            NotebookTask(notebook="clean.ipynb", returns=["df"]),              # → notebook receives via parameter cells
+            PythonTask(function=analyze, returns=["report"])                   # → python can receive pickled df
+        ]).execute()
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+    **❌ This won't work:**
+    ```python
+    def main():
+        Pipeline(steps=[
+            PythonTask(function=create_model, returns=[pickled("model")]),     # pickled object →
+            NotebookTask(notebook="use_model.ipynb")                           # → notebook can't receive pickled objects!
+        ]).execute()
+
+    if __name__ == "__main__":
+        main()
+    ```
 
 Next: Understand [when to use jobs vs pipelines](../concepts/building-blocks/jobs-vs-pipelines.md).

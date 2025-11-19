@@ -18,13 +18,18 @@ flowchart TD
 from runnable import Pipeline, PythonTask, Stub
 from examples.common.functions import hello, raise_ex
 
-# Normal pipeline - fails on any error
-step1 = PythonTask(name="step_1", function=hello)
-step2 = PythonTask(name="step_2", function=raise_ex)  # This will fail!
-step3 = Stub(name="step_3")                           # Never runs
+def main():
+    # Normal pipeline - fails on any error
+    step1 = PythonTask(name="step_1", function=hello)
+    step2 = PythonTask(name="step_2", function=raise_ex)  # This will fail!
+    step3 = Stub(name="step_3")                           # Never runs
 
-pipeline = Pipeline(steps=[step1, step2, step3])
-pipeline.execute()  # Stops at step2 failure
+    pipeline = Pipeline(steps=[step1, step2, step3])
+    pipeline.execute()  # Stops at step2 failure
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -56,18 +61,23 @@ flowchart TD
 from runnable import Pipeline, PythonTask, Stub
 from examples.common.functions import raise_ex
 
-# Create recovery pipeline
-recovery_pipeline = Stub(name="recovery_step").as_pipeline()
+def main():
+    # Create recovery pipeline
+    recovery_pipeline = Stub(name="recovery_step").as_pipeline()
 
-# Set up failure handling
-step_1 = PythonTask(name="step_1", function=raise_ex)  # This will fail
-step_1.on_failure = recovery_pipeline                   # Run this instead
+    # Set up failure handling
+    step_1 = PythonTask(name="step_1", function=raise_ex)  # This will fail
+    step_1.on_failure = recovery_pipeline                   # Run this instead
 
-step_2 = Stub(name="step_2")  # Skipped (normal flow interrupted)
-step_3 = Stub(name="step_3")  # Skipped (normal flow interrupted)
+    step_2 = Stub(name="step_2")  # Skipped (normal flow interrupted)
+    step_3 = Stub(name="step_3")  # Skipped (normal flow interrupted)
 
-pipeline = Pipeline(steps=[step_1, step_2, step_3])
-pipeline.execute()  # Runs: step_1 → fails → recovery_pipeline → success!
+    pipeline = Pipeline(steps=[step_1, step_2, step_3])
+    pipeline.execute()  # Runs: step_1 → fails → recovery_pipeline → success!
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -106,26 +116,31 @@ flowchart TD
 
 ### Data fallback
 ```python
+# Example failure handling configuration (partial code)
 fetch_latest_data_task.on_failure = use_cached_data_pipeline
 ```
 
 ### Retry with different settings
 ```python
+# Example failure handling configuration (partial code)
 fast_model_task.on_failure = robust_model_pipeline
 ```
 
 ### Error reporting
 ```python
+# Example failure handling configuration (partial code)
 critical_task.on_failure = send_alert_pipeline
 ```
 
 ### Graceful degradation
 ```python
+# Example failure handling configuration (partial code)
 feature_extraction_task.on_failure = use_simple_features_pipeline
 ```
 
 ## Failure pipeline example
 
+**Helper function (creates a recovery pipeline):**
 ```python
 def create_fallback_pipeline():
     log_error = PythonTask(
@@ -141,7 +156,7 @@ def create_fallback_pipeline():
 
     return Pipeline(steps=[log_error, use_backup])
 
-# Use it
+# Usage example (partial code)
 main_task.on_failure = create_fallback_pipeline()
 ```
 

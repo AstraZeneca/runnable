@@ -29,17 +29,23 @@ def analyze_sales():
     return total_revenue, best_product
 ```
 
-## Step 3: Make It Runnable (2 lines)
+## Step 3: Make It Runnable
 
 ```python
-# Add 2 lines → Make it runnable everywhere
+# Add main function → Make it runnable everywhere
 from runnable import PythonJob
-PythonJob(function=analyze_sales).execute()
+
+def main():
+    PythonJob(function=analyze_sales).execute()
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## 🎉 Success!
 
 You just made your first function runnable and got:
+
 - ✅ **Automatic tracking**: execution logs, timestamps, results saved
 - ✅ **Reproducible runs**: full execution history and metadata
 - ✅ **Environment portability**: runs the same on laptop, containers, Kubernetes
@@ -60,7 +66,12 @@ def forecast_growth(revenue, growth_rate):
     return revenue * (1 + growth_rate) ** 3
 
 from runnable import PythonJob
-PythonJob(function=forecast_growth).execute()
+
+def main():
+    PythonJob(function=forecast_growth).execute()
+
+if __name__ == "__main__":
+    main()
 
 # Run different scenarios anywhere:
 # Local: RUNNABLE_PRM_revenue=100000 RUNNABLE_PRM_growth_rate=0.05 python forecast.py
@@ -71,11 +82,11 @@ PythonJob(function=forecast_growth).execute()
 ```
 
 ??? example "See complete parameter example"
-    ```python title="examples/03-parameters/passing_parameters_python.py"
-    --8<-- "examples/03-parameters/passing_parameters_python.py"
+    ```python title="examples/11-jobs/passing_parameters_python.py"
+    --8<-- "examples/11-jobs/passing_parameters_python.py"
     ```
 
-    **Try it:** `uv run examples/03-parameters/passing_parameters_python.py`
+    **Try it:** `uv run examples/11-jobs/passing_parameters_python.py`
 
 **Why bother?** No more "what parameters gave us those good results?" - tracked automatically across all environments.
 
@@ -101,10 +112,15 @@ def analyze_segments(customer_data):  # Name matches = automatic connection
 
 # What Runnable needs (same logic, no glue):
 from runnable import Pipeline, PythonTask
-Pipeline(steps=[
-    PythonTask(function=load_customer_data, returns=["customer_data"]),
-    PythonTask(function=analyze_segments, returns=["analysis"])
-]).execute()
+
+def main():
+    Pipeline(steps=[
+        PythonTask(function=load_customer_data, returns=["customer_data"]),
+        PythonTask(function=analyze_segments, returns=["analysis"])
+    ]).execute()
+
+if __name__ == "__main__":
+    main()
 
 # Same pipeline runs unchanged on:
 # • Your laptop (development)
@@ -115,11 +131,11 @@ Pipeline(steps=[
 ```
 
 ??? example "See complete pipeline example"
-    ```python title="examples/02-sequential/simple.py"
-    --8<-- "examples/02-sequential/simple.py"
+    ```python title="examples/02-sequential/traversal.py"
+    --8<-- "examples/02-sequential/traversal.py"
     ```
 
-    **Try it:** `uv run examples/02-sequential/simple.py`
+    **Try it:** `uv run examples/02-sequential/traversal.py`
 
 **Why bother?** No more "it works locally but breaks in production" - same code, guaranteed same behavior.
 
@@ -136,10 +152,15 @@ def prepare_dataset():
     return clean_data
 
 from runnable import Pipeline, PythonTask, NotebookTask
-Pipeline(steps=[
-    PythonTask(function=prepare_dataset, returns=["dataset"]),
-    NotebookTask(notebook_path="deep_analysis.ipynb", returns=["insights"])
-]).execute()
+
+def main():
+    Pipeline(steps=[
+        PythonTask(function=prepare_dataset, returns=["dataset"]),
+        NotebookTask(notebook_path="deep_analysis.ipynb", returns=["insights"])
+    ]).execute()
+
+if __name__ == "__main__":
+    main()
 
 # This exact pipeline runs unchanged on:
 # • Local Jupyter setup

@@ -179,7 +179,7 @@ The docs explain the contextual example first and then show a detailed working e
 
 When writing docs always use code from examples directory and always use code snippets to avoid duplication
 
-Remember that when writing lists in md, there should be an empty line between the list - and the preceding line
+Remember that when writing lists in md, there should be an empty line between the list and the preceding line. This applies to all lists, including those following headings, text, or other elements
 
 
 I prefer to give prompts in a visual editor and I have my prompts in a file called prompt.md.

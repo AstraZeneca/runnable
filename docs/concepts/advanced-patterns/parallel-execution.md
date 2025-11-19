@@ -24,20 +24,25 @@ flowchart TD
 ```python
 from runnable import Parallel, Pipeline, Stub
 
-# Create the parallel step
-parallel_step = Parallel(
-    name="parallel_step",
-    branches={
-        "branch1": create_workflow(),  # Same workflow, independent execution
-        "branch2": create_workflow(),  # Same workflow, independent execution
-    }
-)
+def main():
+    # Create the parallel step
+    parallel_step = Parallel(
+        name="parallel_step",
+        branches={
+            "branch1": create_workflow(),  # Same workflow, independent execution
+            "branch2": create_workflow(),  # Same workflow, independent execution
+        }
+    )
 
-# Continue after all branches complete
-continue_step = Stub(name="continue_processing")
+    # Continue after all branches complete
+    continue_step = Stub(name="continue_processing")
 
-pipeline = Pipeline(steps=[parallel_step, continue_step])
-pipeline.execute()
+    pipeline = Pipeline(steps=[parallel_step, continue_step])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -59,6 +64,7 @@ pipeline.execute()
 
 ## Real workflow example
 
+**Helper function (creates the workflow for each branch):**
 ```python
 def create_workflow():
     from runnable import Pipeline, PythonTask, ShellTask, NotebookTask, Stub
@@ -102,17 +108,22 @@ flowchart TD
 ```python
 from runnable import Parallel, Pipeline
 
-# Nested parallel: Each branch is itself a parallel pipeline
-nested_parallel = Parallel(
-    name="nested_parallel",
-    branches={
-        "branch1": parallel_pipeline(),  # This is a parallel pipeline
-        "branch2": parallel_pipeline()   # This is also a parallel pipeline
-    }
-)
+def main():
+    # Nested parallel: Each branch is itself a parallel pipeline
+    nested_parallel = Parallel(
+        name="nested_parallel",
+        branches={
+            "branch1": parallel_pipeline(),  # This is a parallel pipeline
+            "branch2": parallel_pipeline()   # This is also a parallel pipeline
+        }
+    )
 
-pipeline = Pipeline(steps=[nested_parallel])
-pipeline.execute()
+    pipeline = Pipeline(steps=[nested_parallel])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"

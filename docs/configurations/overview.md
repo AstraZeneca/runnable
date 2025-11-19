@@ -1,4 +1,4 @@
-Once a [pipeline is defined](../concepts/index.md), ```runnable``` can execute the pipeline in different environments
+Once a [pipeline is defined](../concepts/building-blocks/jobs-vs-pipelines.md), ```runnable``` can execute the pipeline in different environments
 by changing a configuration. Neither the pipeline definition or the data science code needs to change at all.
 
 

@@ -25,14 +25,19 @@ Replace any task with a stub during development:
 ```python
 from runnable import Pipeline, Stub
 
-# Replace expensive operations with stubs
-data_extraction = Stub(name="extract_data")         # Instead of slow API calls
-model_training = Stub(name="train_model")           # Instead of hours of training
-report_generation = Stub(name="generate_report")   # Instead of complex rendering
+def main():
+    # Replace expensive operations with stubs
+    data_extraction = Stub(name="extract_data")         # Instead of slow API calls
+    model_training = Stub(name="train_model")           # Instead of hours of training
+    report_generation = Stub(name="generate_report")   # Instead of complex rendering
 
-# Test your pipeline structure
-pipeline = Pipeline(steps=[data_extraction, model_training, report_generation])
-pipeline.execute()  # Runs instantly, tests workflow logic
+    # Test your pipeline structure
+    pipeline = Pipeline(steps=[data_extraction, model_training, report_generation])
+    pipeline.execute()  # Runs instantly, tests workflow logic
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -52,6 +57,8 @@ Stubs act like real tasks but do nothing - perfect for testing structure.
 Replace expensive operations during testing:
 
 ```python
+# Example task replacement (partial code)
+
 # Production version
 expensive_training_task = PythonTask(
     name="train_model",
@@ -97,6 +104,7 @@ executor:
 
 ### Test workflow structure
 ```python
+# Example test function (partial code)
 def test_pipeline_structure():
     # Use stubs for all tasks
     pipeline = create_pipeline_with_stubs()
@@ -106,6 +114,7 @@ def test_pipeline_structure():
 
 ### Test parameter flow
 ```python
+# Example test function (partial code)
 def test_parameter_passing():
     # Mock first task to return known data
     # Verify second task receives correct parameters
@@ -116,6 +125,7 @@ def test_parameter_passing():
 
 ### Test conditional paths
 ```python
+# Example test function (partial code)
 def test_conditional_branches():
     # Mock decision function to return specific values
     # Verify correct branch executes
@@ -127,6 +137,7 @@ def test_conditional_branches():
 
 ### Test failure handling
 ```python
+# Example test function (partial code)
 def test_failure_recovery():
     # Mock task to always fail
     # Verify recovery pipeline executes

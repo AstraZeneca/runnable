@@ -24,19 +24,33 @@ flowchart TD
 ```python
 from runnable import Map, Pipeline, PythonTask
 
-# Create a map step that processes each chunk
-map_state = Map(
-    name="process_chunks",
-    iterate_on="chunks",           # Parameter name containing [1, 2, 3]
-    iterate_as="chunk",           # Each iteration gets chunk=1, chunk=2, chunk=3
-    branch=create_processing_workflow()  # Same workflow runs for each chunk
-)
+def main():
+    # Create a map step that processes each chunk
+    map_state = Map(
+        name="process_chunks",
+        iterate_on="chunks",           # Parameter name containing [1, 2, 3]
+        iterate_as="chunk",           # Each iteration gets chunk=1, chunk=2, chunk=3
+        branch=create_processing_workflow()  # Same workflow runs for each chunk
+    )
 
-# Collect results after all iterations
-collect_results = PythonTask(function=collect_all_results, name="collect")
+    # Collect results after all iterations
+    collect_results = PythonTask(function=collect_all_results, name="collect")
 
-pipeline = Pipeline(steps=[map_state, collect_results])
-pipeline.execute(parameters_file="parameters.yaml")  # Contains chunks: [1, 2, 3]
+    pipeline = Pipeline(steps=[map_state, collect_results])
+    pipeline.execute(parameters_file="parameters.yaml")  # Contains chunks: [1, 2, 3]
+    return pipeline
+
+# Helper function to create the processing workflow
+def create_processing_workflow():
+    # Implementation details in complete example below
+    pass
+
+def collect_all_results():
+    # Implementation details in complete example below
+    pass
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -62,6 +76,7 @@ for chunk in chunks:
 
 Each iteration runs this pipeline with different `chunk` values:
 
+**Helper function (creates the workflow for each iteration):**
 ```python
 def create_processing_workflow():
     from runnable import Pipeline, PythonTask, NotebookTask, ShellTask
@@ -110,20 +125,28 @@ flowchart TD
 ```
 
 ```python
-from runnable import Map
+from runnable import Map, Pipeline
 
-# Use custom reducer to aggregate results
-map_state = Map(
-    name="process_with_max",
-    iterate_on="chunks",                    # [1, 2, 3]
-    iterate_as="chunk",
-    reducer="lambda *x: max(x)",           # Take maximum instead of collecting all
-    branch=create_processing_workflow()
-)
+def main():
+    # Use custom reducer to aggregate results
+    map_state = Map(
+        name="process_with_max",
+        iterate_on="chunks",                    # [1, 2, 3]
+        iterate_as="chunk",
+        reducer="lambda *x: max(x)",           # Take maximum instead of collecting all
+        branch=create_processing_workflow()
+    )
+
+    pipeline = Pipeline(steps=[map_state])
+    pipeline.execute(parameters_file="parameters.yaml")  # Contains chunks: [1, 2, 3]
+    return pipeline
 
 # Results: processed_python = max(10, 20, 30) = 30
 #          processed_notebook = max(100, 200, 300) = 300
 #          processed_shell = max(1000, 2000, 3000) = 3000
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -136,12 +159,48 @@ map_state = Map(
     uv run examples/07-map/custom_reducer.py
     ```
 
-Common reducers:
+### Reducer Options
+
+**Lambda functions:**
 
 - `"lambda *x: max(x)"` → Maximum value
 - `"lambda *x: sum(x)"` → Sum all values
 - `"lambda *x: len(x)"` → Count items
 - `"lambda *x: x[0]"` → Take first result only
+
+**Python functions in dot notation:**
+
+You can also reference Python functions using dot notation:
+
+```python
+# If you have a function in a module
+# my_module.py:
+def custom_max_reducer(*results):
+    return max(results)
+
+# Use it in Map with dot notation
+map_state = Map(
+    name="process_with_custom_reducer",
+    iterate_on="chunks",
+    iterate_as="chunk",
+    reducer="my_module.custom_max_reducer",  # Reference function by module path
+    branch=create_processing_workflow()
+)
+```
+
+**Built-in function references:**
+
+```python
+# Use built-in functions
+reducer="max"           # Built-in max function
+reducer="sum"           # Built-in sum function
+reducer="len"           # Built-in len function
+
+# Use functions from standard library modules
+reducer="statistics.mean"     # Average of results
+reducer="statistics.median"   # Median of results
+reducer="operator.add"        # Sum using operator module
+```
 
 ## When to use map
 

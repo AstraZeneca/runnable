@@ -13,9 +13,14 @@ def analyze_sales_data():
     # Load data, run analysis, generate report
     return "Analysis complete!"
 
-# Job: Just run it
-job = PythonJob(function=analyze_sales_data)
-result = job.execute()
+def main():
+    # Job: Just run it
+    job = PythonJob(function=analyze_sales_data)
+    result = job.execute()
+    return job
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -51,13 +56,18 @@ def clean_data(raw_data):
 def train_model(cleaned_data):
     return f"Model trained on {cleaned_data['clean_users']} users"
 
-# Pipeline: Chain them together
-pipeline = Pipeline(steps=[
-    PythonTask(function=load_data, returns=["raw_data"]),
-    PythonTask(function=clean_data, returns=["cleaned_data"]),
-    PythonTask(function=train_model, returns=["model"])
-])
-pipeline.execute()
+def main():
+    # Pipeline: Chain them together
+    pipeline = Pipeline(steps=[
+        PythonTask(function=load_data, returns=["raw_data"]),
+        PythonTask(function=clean_data, returns=["cleaned_data"]),
+        PythonTask(function=train_model, returns=["model"])
+    ])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -91,18 +101,51 @@ def hello():
 ```python
 from runnable import PythonJob
 
-job = PythonJob(function=hello)
-job.execute()
+def main():
+    job = PythonJob(function=hello)
+    job.execute()
+    return job
+
+if __name__ == "__main__":
+    main()
 ```
 
 **As a pipeline task:**
 ```python
 from runnable import Pipeline, PythonTask
 
-task = PythonTask(function=hello, name="say_hello")
-pipeline = Pipeline(steps=[task])
-pipeline.execute()
+def main():
+    task = PythonTask(function=hello, name="say_hello")
+    pipeline = Pipeline(steps=[task])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
+
+!!! tip "Syntactic sugar for single-step pipelines"
+
+    For single-step pipelines, you can use the `.as_pipeline()` method for cleaner code:
+
+    **Instead of this:**
+    ```python
+    def main():
+        task = PythonTask(function=hello, name="say_hello")
+        pipeline = Pipeline(steps=[task])
+        pipeline.execute()
+        return pipeline
+    ```
+
+    **Write this:**
+    ```python
+    def main():
+        pipeline = PythonTask(function=hello, name="say_hello").as_pipeline()
+        pipeline.execute()
+        return pipeline
+    ```
+
+    Much cleaner! Works with any task type: `PythonTask`, `NotebookTask`, `ShellTask`, etc.
 
 ## Quick decision guide
 

@@ -17,28 +17,33 @@ flowchart TD
 ```python
 from runnable import Conditional, Pipeline, PythonTask, Stub
 
-# Step 1: Make a decision
-toss_task = PythonTask(
-    function=toss_function,    # Returns "heads" or "tails"
-    returns=["toss"],          # Named return for conditional to use
-    name="toss_task"
-)
+def main():
+    # Step 1: Make a decision
+    toss_task = PythonTask(
+        function=toss_function,    # Returns "heads" or "tails"
+        returns=["toss"],          # Named return for conditional to use
+        name="toss_task"
+    )
 
-# Step 2: Branch based on decision
-conditional = Conditional(
-    parameter="toss",          # Use the "toss" value from above
-    branches={
-        "heads": heads_pipeline,    # Run this if toss="heads"
-        "tails": tails_pipeline     # Run this if toss="tails"
-    },
-    name="conditional"
-)
+    # Step 2: Branch based on decision
+    conditional = Conditional(
+        parameter="toss",          # Use the "toss" value from above
+        branches={
+            "heads": create_heads_pipeline(),    # Run this if toss="heads"
+            "tails": create_tails_pipeline()     # Run this if toss="tails"
+        },
+        name="conditional"
+    )
 
-# Step 3: Continue after branching
-continue_step = Stub(name="continue_processing")
+    # Step 3: Continue after branching
+    continue_step = Stub(name="continue_processing")
 
-pipeline = Pipeline(steps=[toss_task, conditional, continue_step])
-pipeline.execute()
+    pipeline = Pipeline(steps=[toss_task, conditional, continue_step])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -60,6 +65,7 @@ pipeline.execute()
 
 ## The decision function
 
+**Helper function (makes the decision):**
 ```python
 import random
 
@@ -74,6 +80,7 @@ Returns `"heads"` or `"tails"` - the conditional uses this to pick a branch.
 
 ## Branch pipelines
 
+**Helper functions (create the branch pipelines):**
 ```python
 def create_heads_pipeline():
     return PythonTask(
@@ -106,35 +113,41 @@ flowchart TD
 
 **Data validation:**
 ```python
-# Check data quality, route accordingly
-parameter="data_quality"  # returns "good", "needs_cleaning", "invalid"
-branches={
-    "good": analysis_pipeline,
-    "needs_cleaning": cleanup_then_analysis_pipeline,
-    "invalid": error_handling_pipeline
-}
+# Example conditional configuration (partial code)
+conditional = Conditional(
+    parameter="data_quality",  # returns "good", "needs_cleaning", "invalid"
+    branches={
+        "good": analysis_pipeline,
+        "needs_cleaning": cleanup_then_analysis_pipeline,
+        "invalid": error_handling_pipeline
+    }
+)
 ```
 
 **Model selection:**
 ```python
-# Choose model based on data size
-parameter="dataset_size"  # returns "small", "medium", "large"
-branches={
-    "small": simple_model_pipeline,
-    "medium": ensemble_pipeline,
-    "large": distributed_training_pipeline
-}
+# Example conditional configuration (partial code)
+conditional = Conditional(
+    parameter="dataset_size",  # returns "small", "medium", "large"
+    branches={
+        "small": simple_model_pipeline,
+        "medium": ensemble_pipeline,
+        "large": distributed_training_pipeline
+    }
+)
 ```
 
 **Environment routing:**
 ```python
-# Different behavior per environment
-parameter="environment"  # returns "dev", "staging", "prod"
-branches={
-    "dev": fast_testing_pipeline,
-    "staging": full_validation_pipeline,
-    "prod": production_pipeline
-}
+# Example conditional configuration (partial code)
+conditional = Conditional(
+    parameter="environment",  # returns "dev", "staging", "prod"
+    branches={
+        "dev": fast_testing_pipeline,
+        "staging": full_validation_pipeline,
+        "prod": production_pipeline
+    }
+)
 ```
 
 !!! tip "Conditional tips"

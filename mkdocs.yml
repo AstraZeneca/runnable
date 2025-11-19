@@ -113,16 +113,21 @@ extra_css:
 nav:
   - "Home": "index.md"
   - "Usage Examples": "usage.md"
-  - "Core Concepts":
+  - "Jobs":
+      - "jobs/index.md"
+      - "Your First Job": "jobs/first-job.md"
+      - "Working with Data": "jobs/working-with-data.md"
+      - "Parameters & Environment": "jobs/parameters.md"
+      - "File Storage": "jobs/file-storage.md"
+      - "Job Types": "jobs/job-types.md"
+  - "Pipelines":
       - "Jobs vs Pipelines": "concepts/building-blocks/jobs-vs-pipelines.md"
       - "Task Types": "concepts/building-blocks/task-types.md"
-      - "From Functions to Tasks": "getting-started/your-first-function.md"
       - "Handling Data": "getting-started/handling-data.md"
       - "Connecting Functions": "getting-started/connecting-functions.md"
       - "Parameters From Outside": "concepts/superpowers/parameters-from-outside.md"
       - "File Management": "concepts/superpowers/file-management.md"
       - "Reproducibility": "concepts/superpowers/reproducibility.md"
-      - "Run Log": "concepts/run-log.md"
   - "Advanced Patterns":
       - "Parallel Execution": "concepts/advanced-patterns/parallel-execution.md"
       - "Map Patterns": "concepts/advanced-patterns/map-patterns.md"

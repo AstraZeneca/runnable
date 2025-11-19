@@ -10,9 +10,14 @@ Your regular functions work as-is:
 from runnable import Pipeline, PythonTask
 from examples.common.functions import hello
 
-task = PythonTask(function=hello, name="say_hello")
-pipeline = Pipeline(steps=[task])
-pipeline.execute()
+def main():
+    task = PythonTask(function=hello, name="say_hello")
+    pipeline = Pipeline(steps=[task])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -34,12 +39,17 @@ Run notebooks as pipeline steps:
 ```python
 from runnable import Pipeline, NotebookTask
 
-task = NotebookTask(
-    name="analyze",
-    notebook="examples/common/simple_notebook.ipynb"
-)
-pipeline = Pipeline(steps=[task])
-pipeline.execute()
+def main():
+    task = NotebookTask(
+        name="analyze",
+        notebook="examples/common/simple_notebook.ipynb"
+    )
+    pipeline = Pipeline(steps=[task])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -61,12 +71,17 @@ Run any command-line tool:
 ```python
 from runnable import Pipeline, ShellTask
 
-task = ShellTask(
-    name="greet",
-    command="echo 'Hello World!'"
-)
-pipeline = Pipeline(steps=[task])
-pipeline.execute()
+def main():
+    task = ShellTask(
+        name="greet",
+        command="echo 'Hello World!'"
+    )
+    pipeline = Pipeline(steps=[task])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -88,13 +103,18 @@ Use stubs when building workflows:
 ```python
 from runnable import Pipeline, Stub
 
-# Create placeholder steps that always succeed
-step1 = Stub(name="extract_data")
-step2 = Stub(name="process_data", what="placeholder")
-step3 = Stub(name="save_results")
+def main():
+    # Create placeholder steps that always succeed
+    step1 = Stub(name="extract_data")
+    step2 = Stub(name="process_data", what="placeholder")
+    step3 = Stub(name="save_results")
 
-pipeline = Pipeline(steps=[step1, step2, step3])
-pipeline.execute()
+    pipeline = Pipeline(steps=[step1, step2, step3])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -116,12 +136,17 @@ Same workflow, different tools:
 ```python
 from runnable import Pipeline, PythonTask, NotebookTask, ShellTask
 
-pipeline = Pipeline(steps=[
-    PythonTask(function=extract_data, returns=["raw_df"]),      # Python function
-    NotebookTask(notebook="clean.ipynb", returns=["clean_df"]), # Jupyter notebook
-    ShellTask(command="./analyze.sh", returns=["report_path"])  # Shell script
-])
-pipeline.execute()
+def main():
+    pipeline = Pipeline(steps=[
+        PythonTask(function=extract_data, returns=["raw_df"]),      # Python function
+        NotebookTask(notebook="clean.ipynb", returns=["clean_df"]), # Jupyter notebook
+        ShellTask(command="./analyze.sh", returns=["report_path"])  # Shell script
+    ])
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
 ??? example "See complete runnable code"
@@ -147,5 +172,19 @@ Each task type can:
     - **Notebooks**: Great for exploration and reports with visualizations
     - **Shell**: Perfect for calling existing tools or system commands
     - **Stubs**: Useful for testing workflow structure
+
+!!! tip "Quick single-step pipeline creation"
+
+    Need a single task as a pipeline? Use the `.as_pipeline()` shortcut:
+
+    ```python
+    # Instead of wrapping manually
+    pipeline = Pipeline(steps=[PythonTask(function=analyze)])
+
+    # Use the shortcut
+    pipeline = PythonTask(function=analyze).as_pipeline()
+    ```
+
+    Works with all task types: `PythonTask`, `NotebookTask`, `ShellTask`, `Stub`.
 
 Next: Learn how to add [external configuration](../superpowers/parameters-from-outside.md) without changing your code.
