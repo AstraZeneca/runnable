@@ -1,0 +1,13 @@
+pipeline-executor:
+  type: local
+  config:
+    enable_parallel: true
+
+run-log-store:
+  type: file-system
+
+catalog:
+  type: file-system
+
+secrets:
+  type: env-secrets

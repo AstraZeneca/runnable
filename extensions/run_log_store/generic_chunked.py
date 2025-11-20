@@ -31,6 +31,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
     """
 
     service_name: str = ""
+    supports_parallel_writes: bool = True
 
     class LogTypes(Enum):
         RUN_LOG = "RunLog"

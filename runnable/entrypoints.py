@@ -101,6 +101,41 @@ def execute_single_node(
     run_context.pipeline_executor.send_return_code()
 
 
+def execute_single_branch(
+    branch_name: str,
+    branch: graph.Graph,
+    run_context: context.PipelineContext,
+    map_variable: dict = None,
+):
+    """
+    Execute a single branch in a separate process for parallel execution.
+
+    This function is designed to be called by multiprocessing to execute
+    individual branches of parallel and map nodes.
+
+    Args:
+        branch_name (str): The name/identifier of the branch
+        branch (Graph): The graph object representing the branch to execute
+        run_context (PipelineContext): The pipeline execution context
+        map_variable (dict, optional): Map variables for the execution
+    """
+    logger.info(f"Executing single branch: {branch_name}")
+
+    try:
+        # Set the context in the global context module to ensure all components have access
+        import runnable.context as context_module
+
+        context_module.run_context = run_context
+
+        # Execute the branch using the pipeline executor
+        run_context.pipeline_executor.execute_graph(branch, map_variable=map_variable)
+        logger.info(f"Branch {branch_name} completed successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Branch {branch_name} failed with error: {e}")
+        return False
+
+
 def execute_job_non_local(
     job_definition_file: str,
     configuration_file: str = "",
@@ -207,6 +242,10 @@ def fan(
     else:
         raise ValueError(f"Invalid mode {mode}")
 
+
+if __name__ == "__main__":
+    # This is only for perf testing purposes.
+    execute_single_branch()
 
 # if __name__ == "__main__":
 #     # This is only for perf testing purposes.

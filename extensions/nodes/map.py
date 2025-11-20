@@ -4,6 +4,7 @@ import os
 import sys
 from collections import OrderedDict
 from copy import deepcopy
+from multiprocessing import Pool
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 from pydantic import Field
@@ -241,6 +242,40 @@ class MapNode(CompositeNode):
 
         self.fan_out(map_variable=map_variable)
 
+        # Check if parallel execution is enabled and supported
+        enable_parallel = getattr(
+            self._context.pipeline_executor, "enable_parallel", False
+        )
+        supports_parallel_writes = getattr(
+            self._context.run_log_store, "supports_parallel_writes", False
+        )
+
+        # Check if we're using a local executor (local or local-container)
+        executor_service_name = getattr(
+            self._context.pipeline_executor, "service_name", ""
+        )
+        is_local_executor = executor_service_name in ["local", "local-container"]
+
+        if enable_parallel and is_local_executor:
+            if not supports_parallel_writes:
+                logger.warning(
+                    "Parallel execution was requested but the run log store does not support parallel writes. "
+                    "Falling back to sequential execution. Consider using a run log store with "
+                    "supports_parallel_writes=True for parallel execution."
+                )
+                self._execute_map_sequentially(iterate_on, map_variable)
+            else:
+                logger.info("Executing map iterations in parallel")
+                self._execute_map_in_parallel(iterate_on, map_variable)
+        else:
+            self._execute_map_sequentially(iterate_on, map_variable)
+
+        self.fan_in(map_variable=map_variable)
+
+    def _execute_map_sequentially(
+        self, iterate_on: List, map_variable: MapVariableType = None
+    ):
+        """Execute map iterations sequentially (original behavior)."""
         for iter_variable in iterate_on:
             effective_map_variable = map_variable or OrderedDict()
             effective_map_variable[self.iterate_as] = iter_variable
@@ -249,7 +284,40 @@ class MapNode(CompositeNode):
                 self.branch, map_variable=effective_map_variable
             )
 
-        self.fan_in(map_variable=map_variable)
+    def _execute_map_in_parallel(
+        self, iterate_on: List, map_variable: MapVariableType = None
+    ):
+        """Execute map iterations in parallel using multiprocessing."""
+        from runnable.entrypoints import execute_single_branch
+
+        # Prepare arguments for each iteration
+        iteration_args = []
+        for iter_variable in iterate_on:
+            effective_map_variable = map_variable or OrderedDict()
+            effective_map_variable[self.iterate_as] = iter_variable
+
+            branch_name = f"{self.internal_name}.{iter_variable}"
+            iteration_args.append(
+                (branch_name, self.branch, self._context, effective_map_variable)
+            )
+
+        # Use multiprocessing Pool to execute iterations in parallel
+        with Pool() as pool:
+            results = pool.starmap(execute_single_branch, iteration_args)
+
+        # Check if any iteration failed
+        if not all(results):
+            failed_iterations = [
+                iter_variable
+                for (_, _, _, effective_map_variable), result in zip(
+                    iteration_args, results
+                )
+                if not result
+                for iter_variable in iterate_on
+                if effective_map_variable[self.iterate_as] == iter_variable
+            ]
+            logger.error(f"The following map iterations failed: {failed_iterations}")
+            # Note: The actual failure handling and status update will be done in fan_in()
 
     def fan_in(self, map_variable: MapVariableType = None):
         """

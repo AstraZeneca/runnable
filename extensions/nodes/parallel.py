@@ -1,4 +1,6 @@
+import logging
 from copy import deepcopy
+from multiprocessing import Pool
 from typing import Any, Dict, cast
 
 from pydantic import Field, field_serializer
@@ -7,6 +9,8 @@ from runnable import defaults
 from runnable.defaults import MapVariableType
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode
+
+logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
 class ParallelNode(CompositeNode):
@@ -113,12 +117,65 @@ class ParallelNode(CompositeNode):
         """
         self.fan_out(map_variable=map_variable)
 
+        # Check if parallel execution is enabled and supported
+        enable_parallel = getattr(
+            self._context.pipeline_executor, "enable_parallel", False
+        )
+        supports_parallel_writes = getattr(
+            self._context.run_log_store, "supports_parallel_writes", False
+        )
+
+        # Check if we're using a local executor (local or local-container)
+        executor_service_name = getattr(
+            self._context.pipeline_executor, "service_name", ""
+        )
+        is_local_executor = executor_service_name in ["local", "local-container"]
+
+        if enable_parallel and is_local_executor:
+            if not supports_parallel_writes:
+                logger.warning(
+                    "Parallel execution was requested but the run log store does not support parallel writes. "
+                    "Falling back to sequential execution. Consider using a run log store with "
+                    "supports_parallel_writes=True for parallel execution."
+                )
+                self._execute_sequentially(map_variable)
+            else:
+                logger.info("Executing branches in parallel")
+                self._execute_in_parallel(map_variable)
+        else:
+            self._execute_sequentially(map_variable)
+
+        self.fan_in(map_variable=map_variable)
+
+    def _execute_sequentially(self, map_variable: MapVariableType = None):
+        """Execute branches sequentially (original behavior)."""
         for _, branch in self.branches.items():
             self._context.pipeline_executor.execute_graph(
                 branch, map_variable=map_variable
             )
 
-        self.fan_in(map_variable=map_variable)
+    def _execute_in_parallel(self, map_variable: MapVariableType = None):
+        """Execute branches in parallel using multiprocessing."""
+        from runnable.entrypoints import execute_single_branch
+
+        # Prepare arguments for each branch
+        branch_args = []
+        for branch_name, branch in self.branches.items():
+            branch_args.append((branch_name, branch, self._context, map_variable))
+
+        # Use multiprocessing Pool to execute branches in parallel
+        with Pool() as pool:
+            results = pool.starmap(execute_single_branch, branch_args)
+
+        # Check if any branch failed
+        if not all(results):
+            failed_branches = [
+                branch_name
+                for (branch_name, _, _, _), result in zip(branch_args, results)
+                if not result
+            ]
+            logger.error(f"The following branches failed: {failed_branches}")
+            # Note: The actual failure handling and status update will be done in fan_in()
 
     def fan_in(self, map_variable: MapVariableType = None):
         """

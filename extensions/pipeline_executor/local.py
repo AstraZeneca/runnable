@@ -27,6 +27,7 @@ class LocalExecutor(GenericPipelineExecutor):
     """
 
     service_name: str = "local"
+    enable_parallel: bool = Field(default=False)
 
     object_serialisation: bool = Field(default=True)
 
