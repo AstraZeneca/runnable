@@ -50,7 +50,8 @@ WARNING:This is a warning message.
 ```
 
 **3. Automatic Storage**
-- Execution logs captured in `.catalog/{run-id}/`
+
+- Execution logs captured in `catalog`
 - Unique run ID generated for tracking
 - All output preserved automatically
 
@@ -71,6 +72,38 @@ Each execution gets a unique, memorable run ID:
 - `feasible-booth-0628`
 
 These organize your catalog and make runs easy to find.
+
+### Custom Run IDs
+
+Control execution tracking with custom identifiers:
+
+```bash
+# Set custom run ID for tracking and debugging
+export RUNNABLE_RUN_ID="experiment-learning-rate-comparison-v1"
+uv run training_job.py
+```
+
+**Benefits:**
+
+- **Easy identification** in logs and run history
+- **Consistent naming** across related executions
+- **Better debugging** when tracking specific experiments
+- **Integration** with external systems using predictable IDs
+
+```bash
+# Example: A/B testing with clear run IDs
+export RUNNABLE_RUN_ID="model-comparison-baseline-v1"
+uv run baseline_job.py
+
+export RUNNABLE_RUN_ID="model-comparison-experimental-v1"
+uv run experimental_job.py
+```
+
+!!! tip "Default vs Custom Run IDs"
+
+    **Without RUNNABLE_RUN_ID:** Auto-generated names like `null-panini-0628`
+
+    **With RUNNABLE_RUN_ID:** Your custom identifier `experiment-learning-rate-comparison-v1`
 
 ## Job Types at a Glance
 

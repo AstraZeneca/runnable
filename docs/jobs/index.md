@@ -99,14 +99,6 @@ job.execute(parameters_file="config.yaml")
 - Results stored in catalog
 - Reproducible execution history
 
-### 🔄 **Error Recovery**
-```python
-try:
-    job.execute()
-except Exception as e:
-    print(f"Job failed: {e}")
-    # Handle failure gracefully
-```
 
 ## When to Use Jobs vs Pipelines
 

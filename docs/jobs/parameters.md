@@ -160,23 +160,6 @@ model_type: "random_forest"
 max_depth: 10
 ```
 
-### Environment-Specific Files
-
-**dev.yaml:**
-```yaml
-database_url: "sqlite:///dev.db"
-log_level: "DEBUG"
-sample_data: true
-data_limit: 1000
-```
-
-**prod.yaml:**
-```yaml
-database_url: "postgresql://prod.db:5432/app"
-log_level: "INFO"
-sample_data: false
-data_limit: null
-```
 
 ## Parameter Validation
 
@@ -198,19 +181,134 @@ def process_data(
     return {"processed": True}
 ```
 
+## Converting from Argparse Scripts
+
+**Zero-code migration**: Existing argparse functions work directly with PythonJobs! Runnable automatically converts YAML parameters to `argparse.Namespace` objects.
+
+### Your Existing Argparse Script
+
+```python title="single_cpu_args.py"
+import argparse
+import torch
+# ... other imports
+
+def run_single_cpu_training(args: argparse.Namespace):
+    """Training function that expects parsed arguments."""
+    print(f"Learning Rate: {args.learning_rate}, Epochs: {args.num_epochs}")
+    print(f"Batch Size: {args.batch_size}")
+
+    # Use args.learning_rate, args.num_epochs, args.batch_size
+    # ... training logic
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Single-CPU PyTorch Training")
+    parser.add_argument("--learning_rate", type=float, default=0.01)
+    parser.add_argument("--num_epochs", type=int, default=50)
+    parser.add_argument("--batch_size", type=int, default=32)
+
+    args = parser.parse_args()
+    run_single_cpu_training(args)
+```
+
+**Current usage:** `python single_cpu_args.py --learning_rate 0.05 --num_epochs 100`
+
+### Direct PythonJob Integration
+
+**No code changes needed** - just wrap your existing function:
+
+```python title="argparse_job.py"
+from my_module import run_single_cpu_training  # Your existing function!
+from runnable import PythonJob
+
+def main():
+    # Use your argparse function directly - no modifications needed
+    training_job = PythonJob(function=run_single_cpu_training)
+
+    # Runnable automatically converts YAML to argparse.Namespace
+    training_job.execute(parameters_file="training_params.yaml")
+
+    return training_job
+
+if __name__ == "__main__":
+    main()
+```
+
+**Create parameter file** (matches your argparse arguments):
+```yaml title="training_params.yaml"
+learning_rate: 0.01
+num_epochs: 50
+batch_size: 32
+```
+
+**New usage:** `uv run argparse_job.py` - same function, zero code changes!
+
+??? example "See complete working example"
+    ```python title="examples/torch/single_cpu_args.py"
+    --8<-- "examples/torch/single_cpu_args.py"
+    ```
+
+!!! success "Magic conversion"
+
+    Runnable automatically creates an `argparse.Namespace` object from your YAML parameters. Your function receives exactly what it expects - no code changes required!
+
+### Migration Benefits
+
+**🔄 Replace command-line complexity:**
+```bash
+# Before: Long command lines
+python script.py --learning_rate 0.05 --num_epochs 100 --batch_size 64
+
+# After: Clean execution
+uv run training_job.py
+```
+
+**🔗 Pipeline integration:**
+```python
+# Your argparse function becomes a pipeline step
+from runnable import Pipeline, PythonTask
+
+pipeline = Pipeline(steps=[
+    PythonTask(function=preprocess_data),
+    PythonTask(function=run_single_cpu_training),  # Zero changes needed!
+    PythonTask(function=evaluate_model)
+])
+```
+
+!!! tip "Keep both versions"
+
+    Your original argparse script continues working unchanged. The PythonJob version gives you additional capabilities without any migration risk!
+
 ## Best Practices
 
-### ✅ **Environment Variables for Flexibility**
+### ✅ **Use the Three-Layer System**
+Combine all parameter methods for maximum flexibility:
+
+```python
+# 1. Base config in code
+job.execute(parameters_file="base_config.yaml")
+
+# 2. Environment-specific file
+export RUNNABLE_PARAMETERS_FILE="prod_overrides.yaml"
+
+# 3. Individual runtime tweaks
+export RUNNABLE_PRM_debug=true
+```
+
+### ✅ **Environment Variables for Deployment Values**
+Use env vars for values that differ between environments:
+
 ```bash
-# Use env vars for values that change between environments
+# Production deployment
 export RUNNABLE_PRM_database_url="postgresql://prod:5432/app"
 export RUNNABLE_PRM_api_key="prod-key-123"
 export RUNNABLE_PRM_debug=false
 ```
 
-### ✅ **Parameter Files for Complex Config**
+### ✅ **YAML for Complex Configuration**
+Keep structured config in parameter files:
+
 ```yaml
-# Use YAML for complex, structured configuration
+# Complex nested configuration
 model_settings:
   learning_rate: 0.01
   layers: [128, 64, 32]
@@ -220,18 +318,6 @@ data_pipeline:
   source: "s3://bucket/data/"
   transformations: ["normalize", "encode_categoricals"]
   validation_split: 0.2
-```
-
-### ✅ **Layered Configuration Strategy**
-```bash
-# Base configuration in code
-job.execute(parameters_file="base_config.yaml")
-
-# Environment-specific overrides
-export RUNNABLE_PARAMETERS_FILE="prod_overrides.yaml"
-
-# Individual tweaks
-export RUNNABLE_PRM_debug=true
 ```
 
 ## What's Next?

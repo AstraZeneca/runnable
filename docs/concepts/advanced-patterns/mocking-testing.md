@@ -79,10 +79,14 @@ Use different configs for testing vs production:
 
 **examples/08-mocking/mocked-config-simple.yaml:**
 ```yaml
-executor:
+catalog:
+  type: file-system
+
+run-log-store:
+  type: file-system
+
+pipeline-executor:
   type: mocked
-  override:
-    train_model: mock_trained_model
 ```
 
 **No code changes needed** - same pipeline, different behavior.
@@ -93,57 +97,124 @@ Override specific functions for testing:
 
 **examples/08-mocking/mocked-config-unittest.yaml:**
 ```yaml
-executor:
+catalog:
+  type: file-system
+
+run-log-store:
+  type: file-system
+
+pipeline-executor:
   type: mocked
-  override:
-    expensive_api_call: return_test_data
-    slow_processing: return_mock_results
+  config:
+    patches:
+      step 1:
+        command: exit 0
 ```
 
-## Testing patterns
+**Advanced patching example:**
+```yaml
+executor:
+  type: mocked
+  config:
+    patches:
+      hello python:
+        command: examples.common.functions.mocked_hello
+      hello shell:
+        command: echo "hello from mocked"
+      hello notebook:
+        command: examples/common/simple_notebook_mocked.ipynb
+```
+
+## Testing patterns with mock executor
 
 ### Test workflow structure
 ```python
-# Example test function (partial code)
-def test_pipeline_structure():
-    # Use stubs for all tasks
-    pipeline = create_pipeline_with_stubs()
-    result = pipeline.execute()
-    assert result.is_success()
+from runnable import Pipeline, PythonTask
+
+def main():
+    # Your actual pipeline
+    pipeline = Pipeline(steps=[
+        PythonTask(function=extract_data, name="extract"),
+        PythonTask(function=transform_data, name="transform"),
+        PythonTask(function=load_data, name="load")
+    ])
+
+    # Execute with mock configuration to test structure
+    pipeline.execute(configuration_file="examples/08-mocking/mocked-config-simple.yaml")
+    return pipeline
 ```
 
-### Test parameter flow
-```python
-# Example test function (partial code)
-def test_parameter_passing():
-    # Mock first task to return known data
-    # Verify second task receives correct parameters
-    pipeline = create_pipeline_with_mocks()
-    pipeline.execute()
-    # Assertions about parameter values
+### Test with patched functions
+```yaml
+# test-config.yaml - Mock specific tasks
+pipeline-executor:
+  type: mocked
+  config:
+    patches:
+      extract:
+        command: examples.test.functions.mock_extract_data
+      transform:
+        command: examples.test.functions.mock_transform_data
 ```
 
-### Test conditional paths
 ```python
-# Example test function (partial code)
-def test_conditional_branches():
-    # Mock decision function to return specific values
-    # Verify correct branch executes
-    for condition in ["branch_a", "branch_b"]:
-        pipeline = create_test_pipeline(mock_condition=condition)
-        result = pipeline.execute()
-        # Assert correct branch was taken
+def main():
+    pipeline = Pipeline(steps=[
+        PythonTask(function=extract_data, name="extract"),
+        PythonTask(function=transform_data, name="transform"),
+        PythonTask(function=load_data, name="load")
+    ])
+
+    # Test with patched functions
+    pipeline.execute(configuration_file="test-config.yaml")
+    return pipeline
 ```
 
-### Test failure handling
+### Test failure scenarios
+```yaml
+# failure-test-config.yaml - Mock failure conditions
+pipeline-executor:
+  type: mocked
+  config:
+    patches:
+      extract:
+        command: exit 1  # Simulate failure
+```
+
 ```python
-# Example test function (partial code)
-def test_failure_recovery():
-    # Mock task to always fail
-    # Verify recovery pipeline executes
-    pipeline = create_pipeline_with_failing_mock()
-    result = pipeline.execute()
-    assert result.is_success()  # Recovery worked
+def main():
+    pipeline = Pipeline(steps=[
+        PythonTask(function=extract_data, name="extract", on_failure="handle_failure"),
+        PythonTask(function=handle_failure, name="handle_failure"),
+        PythonTask(function=load_data, name="load")
+    ])
+
+    # Test failure handling
+    pipeline.execute(configuration_file="failure-test-config.yaml")
+    return pipeline
+```
+
+### Test conditional branches
+```yaml
+# branch-test-config.yaml - Mock decision outcomes
+pipeline-executor:
+  type: mocked
+  config:
+    patches:
+      decision_task:
+        command: echo "branch_a"  # Force specific branch
+```
+
+```python
+def main():
+    pipeline = Pipeline(steps=[
+        PythonTask(function=make_decision, name="decision_task"),
+        # Conditional logic based on decision_task output
+    ])
+
+    # Test specific branch execution
+    pipeline.execute(configuration_file="branch-test-config.yaml")
+    return pipeline
 ```
 
 ## Mocking strategies

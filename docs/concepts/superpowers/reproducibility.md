@@ -231,12 +231,34 @@ pipeline.execute()
 # Tag important runs
 pipeline.execute(tag="production-candidate")
 
-# Custom run IDs
-pipeline.execute(run_id="experiment-learning-rate-001")
-
 # Environment-specific tracking
 pipeline.execute(config="configs/production.yaml")
 ```
+
+### Custom Run IDs via Environment
+
+Control pipeline execution tracking with custom identifiers:
+
+```bash
+# Set custom run ID for tracking and debugging
+export RUNNABLE_RUN_ID="experiment-learning-rate-001"
+uv run ml_pipeline.py
+
+# Daily ETL runs with dates
+export RUNNABLE_RUN_ID="etl-daily-$(date +%Y-%m-%d)"
+uv run data_pipeline.py
+
+# Experiment tracking with git context
+export RUNNABLE_RUN_ID="experiment-$(git branch --show-current)-v2"
+uv run research_pipeline.py
+```
+
+**Benefits for reproducibility:**
+
+- **Predictable naming** for experiment tracking
+- **Easy identification** in run history and logs
+- **Integration** with external systems and CI/CD
+- **Consistent tracking** across related pipeline executions
 
 ## Run ID patterns
 

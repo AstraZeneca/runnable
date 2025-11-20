@@ -194,35 +194,6 @@ catalog = Catalog(put=["processed_data.parquet", "summary.csv"], store_copy=Fals
 job = PythonJob(function=process_large_dataset, catalog=catalog)
 ```
 
-## Viewing Stored Files
-
-### Check Catalog Contents
-```bash
-# List all runs
-ls .catalog/
-
-# View files from specific run
-ls .catalog/{run-id}/
-
-# Check file contents
-cat .catalog/{run-id}/results.csv
-```
-
-### Programmatic Access
-```python
-def main():
-    job = PythonJob(function=my_function, catalog=my_catalog)
-    job.execute()
-
-    # Get run information
-    run_log = job.get_run_log()
-    run_id = run_log.run_id
-
-    print(f"Files stored in: .catalog/{run_id}/")
-
-    return job
-```
-
 ## Catalog Structure
 
 Jobs organize files by run ID:

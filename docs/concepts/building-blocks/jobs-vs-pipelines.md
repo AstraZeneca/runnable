@@ -124,29 +124,6 @@ if __name__ == "__main__":
     main()
 ```
 
-!!! tip "Syntactic sugar for single-step pipelines"
-
-    For single-step pipelines, you can use the `.as_pipeline()` method for cleaner code:
-
-    **Instead of this:**
-    ```python
-    def main():
-        task = PythonTask(function=hello, name="say_hello")
-        pipeline = Pipeline(steps=[task])
-        pipeline.execute()
-        return pipeline
-    ```
-
-    **Write this:**
-    ```python
-    def main():
-        pipeline = PythonTask(function=hello, name="say_hello").as_pipeline()
-        pipeline.execute()
-        return pipeline
-    ```
-
-    Much cleaner! Works with any task type: `PythonTask`, `NotebookTask`, `ShellTask`, etc.
-
 ## Quick decision guide
 
 | I want to... | Use |
@@ -162,4 +139,7 @@ if __name__ == "__main__":
 
     Start with a job to test your function, then move it into a pipeline when you're ready to build a workflow.
 
-Next: Learn about [different task types](task-types.md) (Python, notebooks, shell scripts).
+## What's Next?
+
+- **[Pipeline Parameters](pipeline-parameters.md)** - Configure pipelines with parameters and custom run IDs
+- **[Task Types](task-types.md)** - Different ways to define pipeline steps (Python, notebooks, shell scripts)

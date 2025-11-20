@@ -192,24 +192,6 @@ def main():
 | Data pipeline steps | **ShellJob** | Chain existing pipeline tools |
 | API integration | **PythonJob** | Handle responses and error cases |
 
-## Combining Job Types
-
-Different Jobs can work together in larger workflows:
-
-```python
-# Step 1: Preprocess with shell tools
-preprocessing = ShellJob(command="./preprocess_data.sh")
-
-# Step 2: Analysis with Python
-def analyze_data():
-    # Load preprocessed data and analyze
-    return results
-
-analysis = PythonJob(function=analyze_data, returns=["results"])
-
-# Step 3: Report with notebook
-reporting = NotebookJob(notebook="generate_report.ipynb")
-```
 
 ## Job Execution Context 🔍
 
