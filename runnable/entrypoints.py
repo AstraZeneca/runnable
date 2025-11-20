@@ -119,6 +119,9 @@ def execute_single_branch(
         run_context (PipelineContext): The pipeline execution context
         map_variable (dict, optional): Map variables for the execution
     """
+    # Set up branch-specific logging
+    _setup_branch_logging(branch_name)
+
     logger.info(f"Executing single branch: {branch_name}")
 
     try:
@@ -134,6 +137,67 @@ def execute_single_branch(
     except Exception as e:
         logger.error(f"Branch {branch_name} failed with error: {e}")
         return False
+
+
+def _setup_branch_logging(branch_name: str):
+    """
+    Set up branch-specific logging with prefixes to organize parallel execution logs.
+
+    Args:
+        branch_name (str): The name of the branch to use as a prefix
+    """
+    import logging
+    import sys
+
+    # Create a custom formatter that includes the branch name
+    class BranchFormatter(logging.Formatter):
+        def __init__(self, branch_name: str):
+            self.branch_name = branch_name
+            # Extract just the meaningful part of the branch name for cleaner display
+            self.display_name = self._get_display_name(branch_name)
+            super().__init__()
+
+        def _get_display_name(self, branch_name: str) -> str:
+            """Extract a clean display name from the full branch name."""
+            # For parallel branches like 'parallel_step.branch1', use 'branch1'
+            # For map branches like 'map_state.1', use 'iter:1'
+            if "." in branch_name:
+                parts = branch_name.split(".")
+                if len(parts) >= 2:
+                    last_part = parts[-1]
+                    # Check if it looks like a map iteration (numeric)
+                    if last_part.isdigit():
+                        return f"iter:{last_part}"
+                    else:
+                        return last_part
+            return branch_name
+
+        def format(self, record):
+            # Add branch prefix to the message
+            original_msg = record.getMessage()
+            record.msg = f"[{self.display_name}] {original_msg}"
+            record.args = ()
+
+            # Use a simple format for clarity
+            return f"{record.levelname}:{record.msg}"
+
+    # Get the root logger and add our custom formatter
+    root_logger = logging.getLogger()
+
+    # Remove existing handlers to avoid duplicate logs
+    for handler in root_logger.handlers[:]:
+        if hasattr(handler, "_branch_handler"):
+            root_logger.removeHandler(handler)
+
+    # Create a new handler with branch-specific formatting
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(BranchFormatter(branch_name))
+    handler._branch_handler = True  # Mark it as our custom handler
+    handler.setLevel(logging.INFO)
+
+    # Add the handler to the root logger
+    root_logger.addHandler(handler)
+    root_logger.setLevel(logging.INFO)
 
 
 def execute_job_non_local(
