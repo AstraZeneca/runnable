@@ -136,11 +136,51 @@ if __name__ == "__main__":
     uv run examples/06-parallel/nesting.py
     ```
 
+## Execution Environment
+
+Parallel execution behavior depends on your pipeline executor:
+
+| Executor | Parallel Support | Configuration Required |
+|----------|------------------|------------------------|
+| **Local** | ✅ Conditional | `enable_parallel: true` + `chunked-fs` run log store |
+| **Local Container** | ✅ Conditional | `enable_parallel: true` + `chunked-fs` run log store |
+| **Argo Workflows** | ✅ Always | Built-in parallel orchestration |
+
+### Enable Local Parallel Execution
+
+To run examples with parallel processing on your local machine:
+
+=== "Configuration"
+
+    ```yaml title="parallel_config.yaml"
+    pipeline-executor:
+      type: local  # or local-container
+      config:
+        enable_parallel: true
+
+    run-log-store:
+      type: chunked-fs  # Required for parallel writes
+
+    catalog:
+      type: file-system
+    ```
+
+=== "Execute"
+
+    ```bash
+    # Run with parallel configuration
+    RUNNABLE_CONFIGURATION_FILE=parallel_config.yaml uv run examples/06-parallel/parallel.py
+    ```
+
+!!! info "Automatic Fallback"
+
+    If you don't configure parallel execution, local executors automatically run branches sequentially - examples still work perfectly!
+
 !!! tip "When to use parallel"
 
-    - Independent data processing streams
-    - Running multiple ML models
-    - Parallel feature engineering
-    - Processing different file formats
+    - **Independent data processing** streams
+    - **Running multiple ML models** simultaneously
+    - **Parallel feature engineering** on different datasets
+    - **Processing different file formats** concurrently
 
 Next: Learn about [map patterns](map-patterns.md) for iterative processing.

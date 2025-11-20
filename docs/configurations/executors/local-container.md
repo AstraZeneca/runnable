@@ -1,7 +1,7 @@
 
 # Local Container Pipeline Execution
 
-Execute pipelines sequentially using Docker containers for environment isolation - perfect for testing container-based deployments locally.
+Execute pipelines using Docker containers with optional parallel processing - perfect for testing container-based deployments locally with environment isolation.
 
 !!! tip "Container Setup Made Simple"
 
@@ -77,11 +77,86 @@ pipeline-executor:
     - ✅ **Local validation**: Catch container issues before cloud deployment
     - ✅ **Multiple environments**: Different containers for different pipeline steps
 
-!!! note "Sequential Execution Model"
+!!! note "Execution Models"
 
-    - 🔄 **One step at a time**: Runs sequentially like the local executor
+    **Sequential (Default)**:
+    - 🔄 **One step at a time**: Tasks run sequentially for simplicity
     - 🐳 **Container per step**: Each task gets a fresh, isolated container
-    - 💻 **Local resources**: Still uses your machine's CPU/memory limits
+    - 💻 **Local resources**: Uses your machine's CPU/memory limits
+
+    **Parallel (Optional)**:
+    - ⚡ **Parallel branches**: `parallel` and `map` nodes can run simultaneously
+    - 🐳 **Multiple containers**: Each branch gets its own container
+    - 📋 **Requires compatible run log store**: Use `chunked-fs` for parallel writes
+
+## Parallel Execution
+
+Enable parallel processing for container-based workflows:
+
+=== "pipeline.py"
+
+    ```python
+    from runnable import Pipeline, PythonTask, Parallel
+
+    def process_in_container(data_chunk):
+        import platform
+        print(f"Processing chunk {data_chunk} on {platform.platform()}")
+        return f"processed_{data_chunk}"
+
+    def main():
+        # Parallel branches that run in separate containers
+        parallel_node = Parallel(
+            name="container_parallel",
+            branches={
+                "process_a": [PythonTask(function=process_in_container, name="task_a")],
+                "process_b": [PythonTask(function=process_in_container, name="task_b")],
+                "process_c": [PythonTask(function=process_in_container, name="task_c")]
+            }
+        )
+
+        pipeline = Pipeline(steps=[parallel_node])
+
+        # Execute with parallel container support
+        pipeline.execute(configuration_file="parallel_container.yaml")
+
+        return pipeline
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+=== "parallel_container.yaml"
+
+    ```yaml
+    pipeline-executor:
+      type: local-container
+      config:
+        docker_image: "my-project:latest"
+        enable_parallel: true
+
+    # Required for parallel execution
+    run-log-store:
+      type: chunked-fs
+
+    catalog:
+      type: file-system
+    ```
+
+=== "Run It"
+
+    ```bash
+    # Build your image first
+    docker build -t my-project:latest .
+
+    # Run with parallel containers
+    uv run pipeline.py
+    ```
+
+!!! success "Parallel Container Benefits"
+
+    - **True isolation**: Each parallel branch runs in its own container
+    - **Resource utilization**: Uses multiple CPU cores simultaneously
+    - **Production testing**: Test parallel behavior before deploying to Kubernetes
 
 ## Advanced Usage
 

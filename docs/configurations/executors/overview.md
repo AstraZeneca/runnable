@@ -6,24 +6,32 @@ Configure how multi-step workflows are orchestrated and executed across differen
 
 | Executor | Use Case | Environment | Execution Model |
 |----------|----------|-------------|-----------------|
-| [Local](local.md) | Development | Local machine | **Sequential only** (minimal overhead) |
-| [Local Container](local-container.md) | Isolated development | Docker containers* | **Sequential only** (minimal overhead) |
-| [Argo Workflows](argo.md) | Production | Kubernetes* | **Parallel + Sequential** (full orchestration) |
+| [Local](local.md) | Development | Local machine | **Sequential + Conditional Parallel*** |
+| [Local Container](local-container.md) | Isolated development | Docker containers** | **Sequential + Conditional Parallel*** |
+| [Argo Workflows](argo.md) | Production | Kubernetes** | **Parallel + Sequential** (full orchestration) |
 
-*_Container environments easily match local setup (just build from project root!)_
+*_Parallel execution requires `enable_parallel: true` and compatible run log store_
+**_Container environments easily match local setup (just build from project root!)_
 
 ## Execution Models
 
-### Sequential Execution (Local Executors)
+### Local Execution Models
 
-**Local** and **Local Container** executors run tasks sequentially to minimize overhead:
+**Local** and **Local Container** executors support both sequential and parallel execution:
 
+#### Sequential Execution (Default)
 - ✅ **Fast startup**: No orchestration overhead
 - ✅ **Simple debugging**: Linear execution, easy to trace
 - ✅ **Resource efficient**: Single process, minimal memory usage
-- ❌ **No parallelization**: Tasks run one after another
+- ✅ **Universal compatibility**: Works with all run log stores
 
-**Best for**: Development, debugging, small workflows, single-machine execution
+#### Conditional Parallel Execution
+- ✅ **Optional parallelization**: Enable with `enable_parallel: true`
+- ✅ **Automatic fallback**: Falls back to sequential if run log store doesn't support parallel writes
+- ✅ **Local multiprocessing**: Uses your machine's multiple cores
+- ⚠️ **Run log store dependency**: Requires `chunked-fs` or compatible run log store
+
+**Best for**: Development, debugging, small-to-medium workflows, single-machine execution
 
 ### Parallel Execution (Orchestrated Executors)
 

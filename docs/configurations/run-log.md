@@ -1,8 +1,18 @@
-Along with tracking the progress and status of the execution of the pipeline, run log
-also keeps a track of parameters, experiment tracking metrics, data flowing through
-the pipeline and any reproducibility metrics emitted by the tasks of the pipeline.
+# Run Log Store Configuration
 
-Please refer here for detailed [information about run log](../concepts/run-log.md).
+Run log stores track pipeline execution progress, parameters, metrics, data flow, and reproducibility information.
+
+The choice of run log store affects **parallel execution capabilities** for local executors.
+
+Please refer to [run log concepts](../concepts/run-log.md) for detailed information.
+
+## Parallel Execution Compatibility
+
+| Store Type | Parallel Support | Use Case |
+|------------|------------------|----------|
+| `buffered` | ❌ Race conditions | Testing only |
+| `file-system` | ❌ Race conditions | **Sequential development** |
+| `chunked-fs` | ✅ **Thread-safe** | **Parallel local execution** |
 
 
 ## buffered
@@ -10,10 +20,10 @@ Please refer here for detailed [information about run log](../concepts/run-log.m
 Stores all the run log in-memory. The run log is not persisted and destroyed immediately
 after the execution is complete.
 
-!!! warning inline end "Parallel execution"
+!!! warning inline end "No Parallel Support"
 
-    ```buffered``` run log stores suffers from race conditions when two tasks
-    need to update status concurrently.
+    `buffered` run log stores suffer from race conditions during concurrent writes.
+    Not suitable for parallel execution with local executors.
 
 
 ### Configuration
@@ -31,11 +41,11 @@ Stores the run log as a ```json``` file in the file-system accessible by all the
 of the pipeline.
 
 
-!!! warning inline end "Parallel execution"
+!!! warning inline end "No Parallel Support"
 
-    ```file-system``` based run log stores suffers from race conditions when two tasks
-    need to update status concurrently. Use ```chunked``` version to avoid this behavior
-    or disable parallelism.
+    `file-system` run log stores suffer from race conditions during concurrent writes.
+
+    **For parallel execution**: Use `chunked-fs` instead, or keep `enable_parallel: false`.
 
 
 
@@ -239,8 +249,13 @@ run_log_store:
 
 ## chunked-fs
 
-Chunked file system is similar to the ```file-system``` but stores concents of the run log
-that have concurrency blocks in separate files.
+**Parallel execution ready!** Chunked file system stores run log contents in separate files to support concurrent writes without race conditions.
+
+!!! success inline end "Parallel Execution Supported"
+
+    `chunked-fs` stores are **thread-safe** and fully support parallel execution with local executors.
+
+    Perfect for enabling `enable_parallel: true` with local and local-container executors.
 
 
 ### Configuration
