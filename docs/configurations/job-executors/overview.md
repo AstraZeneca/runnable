@@ -10,8 +10,13 @@ Execute individual tasks across different environments with flexible runtime con
 from runnable import PythonJob
 from examples.common.functions import hello
 
-job = PythonJob(function=hello)
-job.execute()  # Single task execution
+def main():
+    job = PythonJob(function=hello)
+    job.execute()  # Single task execution
+    return job
+
+if __name__ == "__main__":
+    main()
 ```
 
 **Pipelines**: Orchestrate multiple connected tasks
@@ -20,20 +25,25 @@ job.execute()  # Single task execution
 from runnable import Pipeline, PythonTask
 from examples.common.functions import hello
 
-pipeline = Pipeline(steps=[
-    PythonTask(function=hello, name="task1"),
-    PythonTask(function=hello, name="task2")
-])
-pipeline.execute()  # Multi-task workflow
+def main():
+    pipeline = Pipeline(steps=[
+        PythonTask(function=hello, name="task1"),
+        PythonTask(function=hello, name="task2")
+    ])
+    pipeline.execute()  # Multi-task workflow
+    return pipeline
+
+if __name__ == "__main__":
+    main()
 ```
 
-## Choose Your Environment
+## Available Job Executors
 
-| Environment | Use Case | Required Config | Examples |
-|-------------|----------|----------------|----------|
-| [Local](local.md) | Quick development | None | `job.execute()` |
-| [Local Container](local-container.md) | Isolated execution | Docker image | Container isolation |
-| [Kubernetes](kubernetes.md) | Production scale | K8s job spec | Resource limits, PVC |
+| Executor | Use Case | Environment | Execution Model |
+|----------|----------|-------------|-----------------|
+| [Local](local.md) | Development | Local machine | **Direct execution** |
+| [Local Container](local-container.md) | Isolated development | Docker containers | **Containerized execution** |
+| [Kubernetes](kubernetes.md) | Production | Kubernetes cluster | **Distributed execution** |
 
 ## Configuration Pattern
 
@@ -50,26 +60,45 @@ job-executor:
 ```bash
 # Keep configuration separate from code
 export RUNNABLE_CONFIGURATION_FILE=config.yaml
-python my_job.py
+uv run my_job.py
 
 # Or inline for different environments
-RUNNABLE_CONFIGURATION_FILE=production.yaml python my_job.py
+RUNNABLE_CONFIGURATION_FILE=production.yaml uv run my_job.py
 ```
 
 **Alternative** (inline in code):
 ```python
-job.execute(config="config.yaml")
+job.execute(configuration_file="config.yaml")
 ```
 
 !!! info "Examples Directory"
 
     Complete working examples are available in `examples/11-jobs/`. Each example includes both Python code and YAML configuration files you can run immediately.
 
-## Quick Decision Tree
+## Choosing the Right Executor
 
-- **Just developing locally?** → [Local](local.md)
-- **Need environment isolation?** → [Local Container](local-container.md)
-- **Deploying to production?** → [Kubernetes](kubernetes.md)
+### Development & Testing
+- **[Local](local.md)**: Quick development, debugging, simple tasks
+- **[Local Container](local-container.md)**: Isolated development, dependency consistency
+
+### Production Deployment
+- **[Kubernetes](kubernetes.md)**: Production scale, resource management, distributed execution
+
+### When to Use Job Execution
+
+Choose job execution when you need:
+
+- **Single task execution** without workflow orchestration
+- **Independent tasks** that don't share data with other steps
+- **Simple execution** without complex dependencies
+
+### When to Use Pipeline Execution Instead
+
+For multi-task workflows, consider [Pipeline Execution](../executors/overview.md):
+
+- **Multi-step workflows** with dependencies between tasks
+- **Cross-step data passing** via parameters or catalog
+- **Complex orchestration** with parallel branches or conditional logic
 
 ## Next Steps
 

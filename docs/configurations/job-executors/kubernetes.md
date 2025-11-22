@@ -1,19 +1,29 @@
 # Kubernetes Job Execution
 
-Execute jobs on Kubernetes clusters with full production capabilities including resource management, persistence, and scalability.
+Execute jobs on Kubernetes clusters with production-grade resource management, persistence, and scalability.
 
-## When to Use
+## Why Use Kubernetes Execution?
 
-- **Production deployment**: Scalable, managed execution environment
-- **Resource management**: CPU, memory, GPU limits and requests
-- **Persistent storage**: Shared data across job runs
-- **Multi-node clusters**: Leverage cluster resources and scheduling
+!!! success "Production Benefits"
+
+    **Enterprise-ready orchestration**: Production-scale job execution with Kubernetes
+
+    - 🏗️ **Resource management**: CPU, memory, GPU limits and requests
+    - 💾 **Persistent storage**: Shared data across job runs
+    - 🔄 **Scalability**: Leverage multi-node cluster resources
+    - 📊 **Monitoring**: Native Kubernetes observability and logging
+
+!!! note "Trade-offs"
+
+    - 🐳 **Infrastructure requirement**: Needs Kubernetes cluster setup
+    - ⚙️ **Complexity**: More moving parts than local executors
+    - 🚀 **Pod overhead**: ~10-30 seconds startup time
 
 ## Kubernetes Variants
 
-Runnable provides three Kubernetes job executors for different cluster setups:
+Runnable provides two Kubernetes job executors for different cluster setups:
 
-=== "Production K8s"
+=== "Production Kubernetes"
 
     **Use for**: Real Kubernetes clusters with persistent storage
 
@@ -26,22 +36,10 @@ Runnable provides three Kubernetes job executors for different cluster setups:
           template:
             spec:
               container:
-                image: "recommendation-engine:v2.1.3"  # REQUIRED - your project image
+                image: "my-project:v1.0"  # REQUIRED - your project image
     ```
 
-    !!! tip "Environment Parity Made Simple"
-
-        Your Kubernetes container just needs to match your local environment. **Easy setup**:
-
-        ```bash
-        # Build from your project root
-        docker build -t my-project:v1.0 .
-        docker push your-registry.com/my-project:v1.0
-        ```
-
-        Container automatically inherits your local setup! ✨
-
-=== "Minikube"
+=== "Minikube Development"
 
     **Use for**: Local Kubernetes development with minikube
 
@@ -53,238 +51,175 @@ Runnable provides three Kubernetes job executors for different cluster setups:
           template:
             spec:
               container:
-                image: "data-pipeline:minikube"  # REQUIRED - your project image for minikube
+                image: "my-project:latest"  # REQUIRED - your project image
     ```
 
-    !!! tip "Environment Parity Made Simple"
+!!! tip "Container Setup Made Simple"
 
-        Container setup is easy - just build from your project root!
+    Just build a Docker image from your project root and push to your registry:
 
-        ```bash
-        docker build -t my-project:minikube .
-        ```
+    ```bash
+    # Build from your project root
+    docker build -t my-project:v1.0 .
+    docker push your-registry.com/my-project:v1.0
+    ```
 
 !!! info "Standard Kubernetes Job Specification"
 
-    The `jobSpec` configuration follows the standard [Kubernetes Job API specification](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/job-v1/). Runnable doesn't invent a new schema - it uses native Kubernetes Job configuration, so you can reference the official Kubernetes documentation for all available fields and options.
+    The `jobSpec` configuration follows the standard [Kubernetes Job API specification](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/job-v1/). Runnable uses native Kubernetes Job configuration - you can reference the official Kubernetes documentation for all available fields and options.
 
-## Essential Configuration
+## Getting Started
 
-### Production Kubernetes
+### Simple Example
 
-**Required fields**:
+=== "job.py"
+
+    ```python
+    from runnable import PythonJob
+    from examples.common.functions import hello
+
+    def main():
+        job = PythonJob(function=hello)
+        job.execute()  # Configuration via RUNNABLE_CONFIGURATION_FILE
+        return job
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+=== "k8s-config.yaml"
+
+    ```yaml
+    job-executor:
+      type: k8s-job
+      config:
+        pvc_claim_name: "runnable-storage"
+        jobSpec:
+          template:
+            spec:
+              container:
+                image: "my-project:v1.0"
+    ```
+
+**Run the Kubernetes job:**
+```bash
+# Push your image to registry first
+docker push your-registry.com/my-project:v1.0
+
+# Run with Kubernetes executor
+RUNNABLE_CONFIGURATION_FILE=k8s-config.yaml uv run job.py
+```
+
+!!! info "Pod Execution"
+
+    Your job runs in a Kubernetes pod with isolated resources and access to cluster storage.
+
+## Configuration Reference
+
+### Production Kubernetes (k8s-job)
 
 ```yaml
 job-executor:
   type: k8s-job
   config:
-    pvc_claim_name: "runnable-storage"  # PVC for data persistence
-    jobSpec:
+    pvc_claim_name: "runnable-storage"  # Required: PVC for data persistence
+    namespace: "default"               # Optional: Kubernetes namespace
+    config_path: null                  # Optional: Path to kubeconfig file
+    mock: false                        # Optional: Skip execution for testing
+    jobSpec:                          # Required: Kubernetes Job specification
       template:
         spec:
           container:
-            image: "harbor.company.com/ml-team/sentiment-analysis:v1.4.2"
+            image: "my-project:v1.0"   # Required: Docker image to use
+            env:                       # Optional: Environment variables
+              - name: "LOG_LEVEL"
+                value: "INFO"
+            resources:                 # Optional: Resource limits
+              limits:
+                cpu: "2"
+                memory: "4Gi"
+              requests:
+                cpu: "1"
+                memory: "2Gi"
 ```
 
-### Minikube Development
-
-**Required fields**:
+### Minikube Development (mini-k8s-job)
 
 ```yaml
 job-executor:
   type: mini-k8s-job
   config:
-    jobSpec:
+    namespace: "default"               # Optional: Kubernetes namespace
+    mock: false                        # Optional: Skip execution for testing
+    jobSpec:                          # Required: Kubernetes Job specification
       template:
         spec:
           container:
-            image: "analytics-pipeline:minikube-v1.0"
+            image: "my-project:latest" # Required: Docker image to use
 ```
 
-## Common Customizations
+### Common Configuration Options
 
-### Namespace and Configuration
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `pvc_claim_name` | str | **Yes (k8s-job)** | PVC name for data persistence |
+| `jobSpec.template.spec.container.image` | str | **Yes** | Docker image for job execution |
+| `namespace` | str | No | Kubernetes namespace (default: "default") |
+| `config_path` | str | No | Path to kubeconfig file |
+| `mock` | bool | No | Simulate execution without creating job |
 
-```yaml
-job-executor:
-  type: k8s-job
-  config:
-    namespace: "ml-workloads"          # Default: "default"
-    config_path: "/path/to/kubeconfig" # Optional: custom kubeconfig
-    pvc_claim_name: "runnable-storage"
-    jobSpec:
-      template:
-        spec:
-          container:
-            image: "fraud-detection-service:v1.0.0"
-```
+## Complete Example
 
-### Resource Limits
-
-```yaml
-job-executor:
-  type: k8s-job
-  config:
-    pvc_claim_name: "runnable-storage"
-    jobSpec:
-      template:
-        spec:
-          container:
-            image: "customer-segmentation:v3.2.1"
-            resources:
-              limits:
-                cpu: "4"
-                memory: "8Gi"
-                nvidia.com/gpu: "1"
-              requests:
-                cpu: "2"
-                memory: "4Gi"
-```
-
-### Environment Variables
-
-```yaml
-job-executor:
-  type: k8s-job
-  config:
-    pvc_claim_name: "runnable-storage"
-    jobSpec:
-      template:
-        spec:
-          container:
-            image: "time-series-forecaster:latest"
-            env:
-              - name: "DATABASE_URL"
-                value: "postgresql://db:5432/prod"
-              - name: "LOG_LEVEL"
-                value: "INFO"
-```
-
-## Advanced Configuration
-
-### Job Timeouts and Retry Policy
-
-```yaml
-job-executor:
-  type: k8s-job
-  config:
-    pvc_claim_name: "runnable-storage"
-    jobSpec:
-      activeDeadlineSeconds: 3600  # 1 hour timeout
-      backoffLimit: 3              # Retry up to 3 times
-      template:
-        spec:
-          restartPolicy: "Never"   # Don't restart failed pods
-          container:
-            image: "time-series-forecaster:latest"
-```
-
-### Node Selection and Tolerations
-
-??? example "Advanced scheduling"
-
-    ```yaml
-    job-executor:
-      type: k8s-job
-      config:
-        pvc_claim_name: "runnable-storage"
-        jobSpec:
-          template:
-            spec:
-              nodeSelector:
-                node-type: "gpu-node"
-              tolerations:
-                - key: "gpu"
-                  operator: "Equal"
-                  value: "true"
-                  effect: "NoSchedule"
-              container:
-                image: "deep-learning-trainer:v2.0-gpu"
-                resources:
-                  limits:
-                    nvidia.com/gpu: "2"
-    ```
-
-### Custom Volumes
-
-??? example "Additional storage"
-
-    ```yaml
-    job-executor:
-      type: k8s-job
-      config:
-        pvc_claim_name: "runnable-storage"
-        jobSpec:
-          template:
-            spec:
-              volumes:
-                - name: "data-cache"
-                  hostPath:
-                    path: "/mnt/fast-ssd"
-              container:
-                image: "time-series-forecaster:latest"
-                volumeMounts:
-                  - name: "data-cache"
-                    mountPath: "/cache"
-    ```
-
-## Complete Examples
-
-=== "Production Setup"
+=== "python_tasks.py"
 
     ```python title="examples/11-jobs/python_tasks.py"
-    --8<-- "examples/11-jobs/python_tasks.py"
+    from examples.common.functions import hello
+    from runnable import PythonJob
+
+    def main():
+        job = PythonJob(function=hello)
+        job.execute()
+        return job
+
+    if __name__ == "__main__":
+        main()
     ```
 
-    ```yaml title="examples/11-jobs/k8s-job.yaml"
-    --8<-- "examples/11-jobs/k8s-job.yaml"
+=== "k8s-job.yaml"
+
+    ```yaml title="examples/11-jobs/k8s-job.yaml (simplified)"
+    job-executor:
+      type: "k8s-job"
+      config:
+        pvc_claim_name: runnable
+        namespace: enterprise-mlops
+        jobSpec:
+          template:
+            spec:
+              container:
+                image: harbor.csis.astrazeneca.net/mlops/runnable:latest
     ```
 
-    ```bash
-    # Recommended: Environment variable approach
-    export RUNNABLE_CONFIGURATION_FILE=examples/11-jobs/k8s-job.yaml
-    uv run examples/11-jobs/python_tasks.py
+**Run the example:**
+```bash
+# Push your image to the registry
+docker push harbor.csis.astrazeneca.net/mlops/runnable:latest
 
-    # Alternative: Inline config flag
-    uv run examples/11-jobs/python_tasks.py --config examples/11-jobs/k8s-job.yaml
-    ```
-
-=== "Minikube Setup"
-
-    ```yaml title="examples/11-jobs/mini-k8s-job.yaml"
-    --8<-- "examples/11-jobs/mini-k8s-job.yaml"
-    ```
-
-    ```bash
-    # First setup minikube volumes
-    minikube mount $HOME/workspace/runnable/.run_log_store:/volume/run_logs &
-    minikube mount $HOME/workspace/runnable/.catalog:/volume/catalog &
-
-    # Then run the job (recommended approach)
-    export RUNNABLE_CONFIGURATION_FILE=examples/11-jobs/mini-k8s-job.yaml
-    uv run examples/11-jobs/python_tasks.py
-
-    # Alternative: inline config
-    uv run examples/11-jobs/python_tasks.py --config examples/11-jobs/mini-k8s-job.yaml
-    ```
+# Run with Kubernetes executor
+RUNNABLE_CONFIGURATION_FILE=examples/11-jobs/k8s-job.yaml uv run examples/11-jobs/python_tasks.py
+```
 
 ## Prerequisites
 
-### Kubernetes Access
+### Kubernetes Setup
 
+**Verify cluster access:**
 ```bash
-# Verify cluster access
 kubectl cluster-info
-
-# Check available nodes
 kubectl get nodes
-
-# Verify namespace exists (or create it)
-kubectl create namespace ml-workloads
 ```
 
-### Persistent Volume Claim (Production)
-
+**Create PVC for production (k8s-job only):**
 ```yaml title="runnable-pvc.yaml"
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -302,115 +237,37 @@ spec:
 kubectl apply -f runnable-pvc.yaml
 ```
 
-### Service Account Permissions
-
-```yaml title="runnable-rbac.yaml"
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: runnable-executor
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: job-executor
-rules:
-- apiGroups: ["batch"]
-  resources: ["jobs"]
-  verbs: ["create", "get", "list", "delete"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: runnable-job-executor
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: job-executor
-subjects:
-- kind: ServiceAccount
-  name: runnable-executor
-```
-
-## Configuration Reference
-
-### Essential Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `jobSpec.template.spec.container.image` | str | **Yes** | Docker image for job execution |
-| `pvc_claim_name` | str | **Yes (prod)** | PVC name for data persistence |
-
-### Common Fields
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `namespace` | str | `"default"` | Kubernetes namespace |
-| `config_path` | str | `None` | Path to kubeconfig file |
-| `mock` | bool | `false` | Simulate execution without creating job |
-
-### Job Specification
-
-The `jobSpec` follows the standard [Kubernetes Job API](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/job-v1/) with these commonly used fields:
-
-- `activeDeadlineSeconds`: Job timeout in seconds (default: 7200)
-- `backoffLimit`: Number of retries (default: 6)
-- `template.spec.restartPolicy`: Pod restart policy (default: "Never")
-- `template.spec.container`: Container specification
-- `template.spec.nodeSelector`: Node selection constraints
-- `template.spec.tolerations`: Node taint tolerations
-
-## Volume Management
-
-Runnable automatically manages volumes for:
-
-- **Run logs**: Job execution metadata and logs
-- **Catalog**: Data artifacts and intermediate results
-- **Secrets**: Environment variables and configuration
-
-Volume mounting strategy:
-
-- **Production**: Uses PVC for shared, persistent storage
-- **Minikube**: Uses host path volumes for local development
-- **Custom**: Define additional volumes in `jobSpec.template.spec.volumes`
-
 ## Troubleshooting
 
 ### Common Issues
 
-**Job stuck in Pending**:
+!!! warning "Job Stuck in Pending"
 
-```bash
-# Check pod status
-kubectl get pods -l job-name=<run-id>
+    **Problem**: Pod doesn't start
 
-# Describe pod for events
-kubectl describe pod <pod-name>
-```
+    **Solution**:
+    ```bash
+    # Check pod status and events
+    kubectl get pods -l job-name=<run-id>
+    kubectl describe pod <pod-name>
+    ```
 
-**Image pull errors**:
+!!! warning "Image Pull Errors"
 
-```bash
-# Check image exists and is accessible
-docker pull <your-image>
+    **Problem**: Cannot pull container image
 
-# Verify image pull secrets if using private registry
-kubectl get secrets
-```
+    **Solution**:
+    ```bash
+    # Verify image exists and is accessible
+    docker pull <your-image>
 
-**Resource constraints**:
-
-```bash
-# Check node resources
-kubectl describe nodes
-
-# Check resource quotas
-kubectl describe quota -n <namespace>
-```
+    # Check image pull secrets for private registries
+    kubectl get secrets
+    ```
 
 ### Debug Mode
 
-Enable mock mode for testing:
+Test job configuration without creating actual pods:
 
 ```yaml
 job-executor:
@@ -422,22 +279,22 @@ job-executor:
       template:
         spec:
           container:
-            image: "time-series-forecaster:latest"
+            image: "my-project:latest"
 ```
-
-## Performance Considerations
-
-- **Pod startup time**: ~10-30 seconds depending on image size
-- **Resource allocation**: Set appropriate requests/limits
-- **Storage I/O**: PVC performance varies by storage class
-- **Network**: Consider cluster networking for external dependencies
 
 ## When to Use Other Executors
 
 Consider alternatives when you need:
 
-- **Local development**: → [Local](local.md) or [Local Container](local-container.md)
-- **Simple containerization**: → [Local Container](local-container.md)
+!!! abstract "Local Development"
+
+    **[Local](local.md)**: For simple development without container overhead
+
+    **[Local Container](local-container.md)**: For containerized development without Kubernetes
+
+!!! note "Simpler Infrastructure"
+
+    **[Local Container](local-container.md)**: When you need containers but not full Kubernetes orchestration
 
 ---
 

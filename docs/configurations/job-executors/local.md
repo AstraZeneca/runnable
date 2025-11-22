@@ -1,23 +1,51 @@
 # Local Job Execution
 
-Execute jobs directly on your local machine without containerization or orchestration.
+Execute jobs directly on your local machine without containerization or orchestration - perfect for development, experimentation, and simple task execution.
 
-## When to Use
+## Why Use Local Execution?
 
-- **Quick development**: Rapid iteration and debugging
-- **Simple tasks**: No special environment requirements
-- **Getting started**: Learning Runnable without complexity
-- **Local resources**: Direct access to local files and environment
+!!! success "Development Benefits"
 
-## Quick Start
+    **Fast iteration**: No container overhead or deployment complexity
 
-```python
-from runnable import PythonJob
-from examples.common.functions import hello
+    - ⚡ **Instant execution**: Direct code execution on your machine
+    - 🛠️ **Easy debugging**: Full access to development tools and debuggers
+    - 📁 **Direct file access**: No mount points or volume mapping needed
+    - 🔄 **Quick changes**: Edit and run immediately
 
-job = PythonJob(function=hello)
-job.execute()  # Uses local executor by default
-```
+!!! note "Trade-offs"
+
+    - 🏠 **Local only**: Runs on your development machine
+    - 🔗 **No isolation**: Shares your system environment
+    - 💻 **Single machine**: Limited to local compute resources
+
+## Getting Started
+
+### Simple Example
+
+=== "job.py"
+
+    ```python
+    from runnable import PythonJob
+    from examples.common.functions import hello
+
+    def main():
+        job = PythonJob(function=hello)
+        job.execute()  # Uses local executor by default
+        return job
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+=== "Run It"
+
+    ```bash
+    # No configuration needed - local is the default
+    uv run job.py
+    ```
+
+**Result**: Your job runs directly on your machine using the current Python environment.
 
 ## Configuration
 
@@ -26,12 +54,15 @@ job.execute()  # Uses local executor by default
 Local execution is the **default** - no configuration file needed:
 
 ```python
-job.execute()  # Automatically uses local executor
+def main():
+    job = PythonJob(function=my_function)
+    job.execute()  # Automatically uses local executor
+    return job
 ```
 
 ### Optional Configuration
 
-If you want to be explicit or add options:
+When you need explicit configuration or testing options:
 
 ```yaml title="local-job.yaml"
 job-executor:
@@ -40,23 +71,38 @@ job-executor:
     mock: false  # Set to true for testing workflow logic
 ```
 
-```python
-job.execute(config="local-job.yaml")
+**Recommended Usage** (via environment variable):
+```bash
+export RUNNABLE_CONFIGURATION_FILE=local-job.yaml
+uv run my_job.py
 ```
 
-## Configuration Options
+**Alternative** (inline in code):
+```python
+def main():
+    job = PythonJob(function=my_function)
+    job.execute(configuration_file="local-job.yaml")
+    return job
+```
 
-### Essential Options
+## Configuration Reference
 
-**No required fields** - all configuration is optional.
+```yaml
+job-executor:
+  type: local
+  config:
+    mock: false  # Optional: Skip actual execution for testing
+```
 
-### Available Options
+### Configuration Options
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `mock` | bool | `false` | Skip actual execution, simulate success |
+| `mock` | bool | `false` | Skip actual execution, simulate success for testing |
 
-??? example "Mock execution for testing"
+!!! example "Mock Execution for Testing"
+
+    Test your job workflow without running actual code:
 
     ```yaml
     job-executor:
@@ -65,28 +111,30 @@ job.execute(config="local-job.yaml")
         mock: true  # Simulate execution without running code
     ```
 
-    Useful for:
+    **Use cases:**
 
-    - Testing workflow logic
+    - Testing job workflow logic
     - Validating job configuration
-    - Dry-run scenarios
+    - Dry-run scenarios during development
 
 ## Complete Example
 
-=== "Python Code"
+=== "python_tasks.py"
 
     ```python title="examples/11-jobs/python_tasks.py"
-    --8<-- "examples/11-jobs/python_tasks.py"
+    from examples.common.functions import hello
+    from runnable import PythonJob
+
+    def main():
+        job = PythonJob(function=hello)
+        job.execute()
+        return job
+
+    if __name__ == "__main__":
+        main()
     ```
 
-=== "Run It"
-
-    ```bash
-    # No config needed - runs locally by default
-    uv run examples/11-jobs/python_tasks.py
-    ```
-
-=== "With Explicit Config"
+=== "With Configuration"
 
     ```yaml title="local-config.yaml"
     job-executor:
@@ -95,14 +143,14 @@ job.execute(config="local-job.yaml")
         mock: false
     ```
 
-    ```bash
-    # Recommended: Environment variable approach
-    export RUNNABLE_CONFIGURATION_FILE=local-config.yaml
-    uv run examples/11-jobs/python_tasks.py
+**Run the example:**
+```bash
+# No config needed - runs locally by default
+uv run examples/11-jobs/python_tasks.py
 
-    # Alternative: Inline config flag
-    uv run examples/11-jobs/python_tasks.py --config local-config.yaml
-    ```
+# Or with explicit configuration
+RUNNABLE_CONFIGURATION_FILE=local-config.yaml uv run examples/11-jobs/python_tasks.py
+```
 
 ## Environment Variables
 
@@ -110,44 +158,62 @@ Local jobs have direct access to your environment variables:
 
 ```python
 import os
+from runnable import PythonJob
 
-def my_function():
+def access_environment():
     db_url = os.getenv('DATABASE_URL', 'sqlite://default.db')
     return f"Using database: {db_url}"
 
-job = PythonJob(function=my_function)
-job.execute()
+def main():
+    job = PythonJob(function=access_environment)
+    job.execute()
+    return job
 ```
 
 ## File Access
 
-Direct access to local filesystem:
+Direct access to local filesystem without mount points:
 
 ```python
+from runnable import PythonJob
+
 def process_file():
     with open('data/input.csv', 'r') as f:
-        # Process file directly
+        # Process file directly from local filesystem
         return len(f.readlines())
 
-job = PythonJob(function=process_file)
-job.execute()
+def main():
+    job = PythonJob(function=process_file)
+    job.execute()
+    return job
 ```
 
 ## Performance Characteristics
 
-- **Fast startup**: No container overhead
-- **Direct I/O**: No network or mount overhead
-- **Full system access**: All local resources available
-- **No isolation**: Shares environment with your system
+!!! success "Local Execution Benefits"
 
-## When to Graduate
+    - **Fast startup**: No container or orchestration overhead
+    - **Direct I/O**: No network or mount overhead for file access
+    - **Full system access**: All local resources and tools available
+    - **Instant debugging**: Use your IDE debugger directly
 
-Consider upgrading to other executors when you need:
+!!! warning "Limitations"
 
-- **Environment isolation**: → [Local Container](local-container.md)
-- **Production deployment**: → [Kubernetes](kubernetes.md)
-- **Consistent environments**: → [Local Container](local-container.md)
-- **Resource limits**: → [Kubernetes](kubernetes.md)
+    - **No isolation**: Shares environment with your system
+    - **Single machine**: Limited to local compute resources
+    - **Environment drift**: Different behavior across development machines
+
+## When to Upgrade
+
+Consider other executors when you need:
+
+!!! abstract "Environment Consistency"
+
+    **[Local Container](local-container.md)**: For isolated, reproducible environments
+
+!!! success "Production Deployment"
+
+    **[Kubernetes](kubernetes.md)**: For production workloads with resource management
 
 ---
 
