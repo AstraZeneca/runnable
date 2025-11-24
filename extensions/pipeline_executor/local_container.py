@@ -198,7 +198,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
                 command=command,
                 auto_remove=False,
                 volumes=self._volumes,
-                network_mode="host",
+                # network_mode="host",
                 environment=environment,
             )
 

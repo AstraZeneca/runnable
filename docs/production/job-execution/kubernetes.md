@@ -2,6 +2,13 @@
 
 Execute jobs on Kubernetes clusters with production-grade resource management, persistence, and scalability.
 
+!!! info "Installation Required"
+
+    Kubernetes execution requires the optional Kubernetes dependency:
+    ```bash
+    pip install runnable[k8s]
+    ```
+
 ## Why Use Kubernetes Execution?
 
 !!! success "Production Benefits"
@@ -298,4 +305,4 @@ Consider alternatives when you need:
 
 ---
 
-**Related:** [Pipeline Argo Workflows](../executors/argo.md) | [All Job Executors](overview.md)
+**Related:** [Pipeline Argo Workflows](../pipeline-execution/argo.md) | [All Job Executors](overview.md)

@@ -3,6 +3,13 @@
 
 Execute pipelines using Docker containers with optional parallel processing - perfect for testing container-based deployments locally with environment isolation.
 
+!!! info "Installation Required"
+
+    Container execution requires the optional Docker dependency:
+    ```bash
+    pip install runnable[docker]
+    ```
+
 !!! tip "Container Setup Made Simple"
 
     Just build a Docker image from your project root - it automatically includes your code, dependencies, and environment!
@@ -56,12 +63,11 @@ pipeline-executor:
         docker_image: "my-project:latest"
     ```
 
-=== "Run It"
+**Run the pipeline:**
+```bash
+RUNNABLE_CONFIGURATION_FILE=config.yaml uv run pipeline.py
+```
 
-    ```bash
-    # Set configuration and run
-    RUNNABLE_CONFIGURATION_FILE=config.yaml uv run pipeline.py
-    ```
 
 !!! info "Container Isolation"
 
@@ -80,11 +86,13 @@ pipeline-executor:
 !!! note "Execution Models"
 
     **Sequential (Default)**:
+
     - 🔄 **One step at a time**: Tasks run sequentially for simplicity
     - 🐳 **Container per step**: Each task gets a fresh, isolated container
     - 💻 **Local resources**: Uses your machine's CPU/memory limits
 
     **Parallel (Optional)**:
+
     - ⚡ **Parallel branches**: `parallel` and `map` nodes can run simultaneously
     - 🐳 **Multiple containers**: Each branch gets its own container
     - 📋 **Requires compatible run log store**: Use `chunked-fs` for parallel writes
@@ -142,15 +150,15 @@ Enable parallel processing for container-based workflows:
       type: file-system
     ```
 
-=== "Run It"
+**Run with parallel containers:**
+```bash
+# Build your image first
+docker build -t my-project:latest .
 
-    ```bash
-    # Build your image first
-    docker build -t my-project:latest .
+# Execute the pipeline
+uv run pipeline.py
+```
 
-    # Run with parallel containers
-    uv run pipeline.py
-    ```
 
 !!! success "Parallel Container Benefits"
 
@@ -181,7 +189,13 @@ Enable parallel processing for container-based workflows:
 
 ### Step-Specific Containers
 
-Different steps can use different container images:
+Different steps can use different container images - useful when you need specialized environments for different parts of your pipeline.
+
+**How it works:**
+
+1. **Define multiple configurations** in your config file using `overrides`
+2. **Reference the override** in your task using the `overrides` parameter
+3. **Each task runs** in its specified container environment
 
 === "pipeline.py"
 
@@ -189,17 +203,17 @@ Different steps can use different container images:
     from runnable import Pipeline, ShellTask
 
     def main():
-        # Uses default container
+        # Uses default Python container (from main config)
         step1 = ShellTask(
             name="python_analysis",
             command="python --version && python analyze.py"
         )
 
-        # Uses specialized R container
+        # Uses specialized R container (from "r_override" configuration)
         step2 = ShellTask(
             name="r_modeling",
             command="Rscript model.R",
-            overrides={"local-container": "r_override"}
+            overrides={"local-container": "r_override"}  # References config below
         )
 
         pipeline = Pipeline(steps=[step1, step2])
@@ -208,6 +222,14 @@ Different steps can use different container images:
     if __name__ == "__main__":
         main()
     ```
+
+    !!! info "Understanding the Override"
+
+        `overrides={"local-container": "r_override"}` means:
+
+        - **"local-container"**: The executor type we're overriding
+        - **"r_override"**: The name of the override configuration (defined in config.yaml)
+        - **Result**: This task will use the R container instead of the default Python container
 
 === "config.yaml"
 
@@ -250,13 +272,22 @@ Different steps can use different container images:
 
 ## Configuration Reference
 
-::: extensions.pipeline_executor.local_container.LocalContainerExecutor
-    options:
-        show_root_heading: false
-        show_bases: false
-        members: false
-        show_docstring_description: true
-        heading_level: 3
+```yaml
+pipeline-executor:
+  type: local-container
+  config:
+    docker_image: "my-project:latest"  # Required: Docker image to use
+    enable_parallel: false             # Enable parallel execution
+    auto_remove_container: true        # Remove containers after execution
+    environment:                       # Environment variables for containers
+      VAR_NAME: "value"
+    overrides:                        # Step-specific configurations
+      alt_config:
+        docker_image: "alternative:latest"
+        auto_remove_container: false
+        environment:
+          SPECIAL_VAR: "special_value"
+```
 
 ## When to Use Local Container
 

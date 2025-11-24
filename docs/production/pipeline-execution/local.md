@@ -93,11 +93,11 @@ Enable parallel processing for `parallel` and `map` nodes:
       type: file-system
     ```
 
-=== "Run It"
 
-    ```bash
-    uv run pipeline.py
-    ```
+**Run the pipeline:**
+```bash
+uv run pipeline.py
+```
 
 !!! success "Automatic Fallback"
 
@@ -105,50 +105,24 @@ Enable parallel processing for `parallel` and `map` nodes:
 
 ## Parallel Execution Requirements
 
-For parallel execution to work:
+For parallel execution to work, you need:
 
-1. **Enable in config**: Set `enable_parallel: true`
-2. **Compatible run log store**: Use `chunked-fs` or other stores with `supports_parallel_writes: True`
+1. **Enable parallel**: Set `enable_parallel: true` in pipeline executor config
+2. **Compatible run log store**: Use `chunked-fs` (file-system doesn't support parallel writes)
 
-### Compatible Run Log Stores
-
-| Store Type | Parallel Support | Use Case |
-|------------|------------------|----------|
+| Run Log Store | Parallel Support | Use Case |
+|---------------|------------------|----------|
 | `file-system` | ❌ Sequential only | Simple development |
 | `chunked-fs` | ✅ **Parallel ready** | **Parallel local execution** |
 
-### Example Configurations
+## Configuration Reference
 
-**Sequential (works everywhere):**
-```yaml
-pipeline-executor:
-  type: local
-  # enable_parallel: false (default)
-
-run-log-store:
-  type: file-system  # Any store works
-```
-
-**Parallel (requires chunked-fs):**
 ```yaml
 pipeline-executor:
   type: local
   config:
     enable_parallel: true
-
-run-log-store:
-  type: chunked-fs  # Required for parallel
 ```
-
-## Configuration Reference
-
-::: extensions.pipeline_executor.local.LocalExecutor
-    options:
-        show_root_heading: false
-        show_bases: false
-        members: false
-        show_docstring_description: true
-        heading_level: 3
 
 ## When to Use Local Execution
 
@@ -159,16 +133,20 @@ run-log-store:
     - **Small to medium datasets** that fit in local memory
     - **Iterative development** with fast execution cycles
 
-!!! info "Parallel vs Sequential"
+### Sequential vs Parallel
 
-    **Use parallel when:**
-    - You have independent `parallel` or `map` branches
-    - Your machine has multiple cores to utilize
-    - You're testing parallel patterns before deploying to production
+**Use sequential (default) when:**
 
-    **Use sequential when:**
-    - Simple linear pipelines
-    - Steps depend heavily on each other
-    - You want minimal overhead and complexity
+- Simple linear pipelines
+- Steps depend heavily on each other
+- You want minimal overhead and complexity
 
-All the conceptual examples use `local` executors for simplicity.
+**Use parallel when:**
+
+- You have independent `parallel` or `map` branches
+- Your machine has multiple cores to utilize
+- You're testing parallel patterns before deploying to production
+
+!!! tip "Development Foundation"
+
+    All the conceptual examples use `local` executors for simplicity. Start here, then move to production executors when ready.

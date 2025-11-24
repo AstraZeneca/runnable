@@ -1,4 +1,4 @@
-Once a [pipeline is defined](../concepts/building-blocks/jobs-vs-pipelines.md), ```runnable``` can execute the pipeline in different environments
+Once a [pipeline is defined](../pipelines/jobs-vs-pipelines.md), ```runnable``` can execute the pipeline in different environments
 by changing a configuration. Neither the pipeline definition or the data science code needs to change at all.
 
 
@@ -35,6 +35,15 @@ To execute the functions, we need:
 - Mechanism to make variables, ```x``` and ```y```, available to functions: achieved by ```run_log_store```.
 - Mechanism to recreate the file system structure for accessing ```data```:  achieved by ```catalog```.
 - Populate secrets as environment variables: configured by ```secrets```.
+
+!!! success "Extensible Architecture"
+
+    **Your infrastructure, your way**: All components use a plugin-based architecture. Build custom executors, catalogs, run log stores, and task types for any platform or execution model.
+
+    - 🔌 **Custom executors**: Deploy to any platform (cloud services, HPC clusters, edge devices)
+    - 💾 **Custom storage**: Integrate with existing data infrastructure (data warehouses, lakes, corporate storage)
+    - 📊 **Custom logging**: Send execution data to your monitoring/logging systems
+    - 🛠️ **Custom task types**: Support any execution model beyond Python/Shell/Notebook
 
 <hr style="border:2px dotted orange">
 

@@ -26,7 +26,7 @@ They can be installed by ```"pip install runnable[<extra>]"```
 
 ### Execute a pipeline
 
-Pipelines defined in **runnable** can be via the [python sdk](reference.md).
+Pipelines defined in **runnable** can be via the python sdk.
 
 
 The options are detailed below:
@@ -42,7 +42,7 @@ The runnable CLI is primarily used for running Python-based pipelines. While som
 
 ### Execute a job
 
-Jobs defined in **runnable** can be via the [python sdk](reference.md)
+Jobs defined in **runnable** can be via the python sdk
 
 <hr style="border:2px dotted orange">
 

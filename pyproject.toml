@@ -35,9 +35,6 @@ k8s = [
 s3 = [
     "cloudpathlib[s3]"
 ]
-examples-torch = [
-    "torch>=2.7.1",
-]
 
 
 [dependency-groups]
@@ -84,7 +81,12 @@ catalog = {workspace = true}
 run_log_store = {workspace = true}
 pipeline_executor = {workspace = true}
 job_executor = {workspace = true}
-
+torch = [
+  { index = "pytorch-cpu", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+]
+torchvision = [
+  { index = "pytorch-cpu", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+]
 
 [project.scripts]
 runnable = 'runnable.cli:app'
@@ -152,7 +154,6 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "python" = "runnable.tasks:PythonTaskType"
 "shell" = "runnable.tasks:ShellTaskType"
 "notebook" = "runnable.tasks:NotebookTaskType"
-"torch" = "runnable.tasks:TorchTaskType"
 
 
 # Release configuration
@@ -176,3 +177,9 @@ patch_tags = ["fix", "perf"]
 other_allowed_tags = ["build", "chore", "ci", "docs", "style", "refactor", "test"]
 allowed_tags = ["feat", "fix", "perf", "build", "chore", "ci", "docs", "style", "refactor", "test"]
 default_bump_level = 0
+
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

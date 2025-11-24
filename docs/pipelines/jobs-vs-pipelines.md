@@ -139,6 +139,13 @@ if __name__ == "__main__":
 
     Start with a job to test your function, then move it into a pipeline when you're ready to build a workflow.
 
+!!! info "Custom Execution Models"
+
+    **Need to run jobs beyond Python, Shell, and Notebooks?** Create custom task types and executors for any infrastructure or execution model using Runnable's extensible plugin architecture.
+
+    → **[Custom Job Executors](../production/job-execution/custom-job-executors.md)**
+    → **[Custom Pipeline Executors](../production/pipeline-execution/custom-pipeline-executors.md)**
+
 ## What's Next?
 
 - **[Pipeline Parameters](pipeline-parameters.md)** - Configure pipelines with parameters and custom run IDs

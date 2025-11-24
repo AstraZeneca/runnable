@@ -1,10 +1,17 @@
 # Argo Workflows Pipeline Execution
 
-Scale your pipelines to the cloud with true parallel execution using [Argo Workflows](https://argo-workflows.readthedocs.io/en/latest/) - the most powerful execution environment for production ML workflows.
+Scale your pipelines to the cloud with distributed parallel execution using [Argo Workflows](https://argo-workflows.readthedocs.io/en/latest/) - the most powerful execution environment for production ML workflows.
 
-!!! success "True Parallel Execution"
+!!! info "Installation Required"
 
-    **Finally, full parallelization!** Unlike local executors, Argo runs your `parallel` and `map` nodes simultaneously across multiple pods, dramatically speeding up your pipelines.
+    Argo Workflows execution requires the optional Kubernetes dependency:
+    ```bash
+    pip install runnable[k8s]
+    ```
+
+!!! success "Distributed Parallel Execution"
+
+    **Cloud-scale parallelization!** Argo runs your `parallel` and `map` nodes across multiple Kubernetes pods, providing distributed computing power and elastic scaling beyond what's possible on a single machine.
 
 ## Getting Started
 
@@ -76,15 +83,15 @@ pipeline-executor:
         output_file: "workflow.yaml"
     ```
 
-=== "Run It"
+**Generate and deploy the workflow:**
+```bash
+# Generate Argo workflow
+RUNNABLE_CONFIGURATION_FILE=config.yaml uv run pipeline.py
 
-    ```bash
-    # Generate Argo workflow
-    RUNNABLE_CONFIGURATION_FILE=config.yaml uv run pipeline.py
+# Deploy to your Kubernetes cluster
+kubectl apply -f workflow.yaml
+```
 
-    # Deploy to your Kubernetes cluster (via your infrastructure team)
-    kubectl apply -f workflow.yaml
-    ```
 
 !!! info "Parallel Execution"
 
@@ -94,10 +101,10 @@ pipeline-executor:
 
 !!! success "Cloud-Scale Benefits"
 
-    **True parallelization**: `parallel` and `map` nodes run simultaneously
+    **Distributed parallelization**: `parallel` and `map` nodes run across multiple pods
 
-    - ⚡ **Faster pipelines**: Utilize multiple CPU cores across pods
-    - 🔄 **Elastic scaling**: Kubernetes automatically manages resources
+    - ⚡ **Faster pipelines**: Utilize multiple machines and CPU cores across your cluster
+    - 🔄 **Elastic scaling**: Kubernetes automatically manages resources and scaling
     - 🏗️ **Production ready**: Battle-tested in enterprise environments
     - 📊 **Rich monitoring**: Native Kubernetes and Argo UI integration
 
@@ -355,17 +362,19 @@ pipeline-executor:
 
 !!! question "Choose Argo When"
 
-    - Need true parallel execution of `parallel` and `map` nodes
+    - Need distributed parallel execution across multiple machines
     - Running production ML workloads at scale
     - Want elastic resource management (auto-scaling)
     - Have Kubernetes infrastructure available
     - Need specialized compute for different tasks (CPUs, GPUs, memory)
+    - Require more parallelism than a single machine can provide
 
 !!! abstract "Use Local Container When"
 
     - Testing container-based pipelines before cloud deployment
-    - Don't need parallel execution
+    - Single-machine parallel execution is sufficient
     - Want simpler setup and debugging
+    - Don't need distributed computing resources
 
 !!! note "Use Local Executor When"
 

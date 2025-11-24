@@ -277,4 +277,4 @@ Each ID is unique and helps you easily reference specific runs in conversations 
     - Keep your git repo clean for reliable code tracking
     - Use the catalog for all data that flows between steps
 
-Next: Learn how to [deploy anywhere](deploy-anywhere.md) while keeping the same reproducibility guarantees.
+Next: Learn how to [deploy anywhere](../production/deploy-anywhere.md) while keeping the same reproducibility guarantees.

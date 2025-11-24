@@ -217,4 +217,4 @@ Consider other executors when you need:
 
 ---
 
-**Related:** [Pipeline Local Execution](../executors/local.md) | [All Job Executors](overview.md)
+**Related:** [Pipeline Local Execution](../pipeline-execution/local.md) | [All Job Executors](overview.md)

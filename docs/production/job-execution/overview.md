@@ -75,6 +75,53 @@ job.execute(configuration_file="config.yaml")
 
     Complete working examples are available in `examples/11-jobs/`. Each example includes both Python code and YAML configuration files you can run immediately.
 
+## Custom Job Executors
+
+**Need to run jobs on your unique infrastructure?** Runnable's plugin architecture makes it simple to build custom job executors for any compute platform.
+
+!!! success "No Vendor Lock-in"
+
+    **Your infrastructure, your way**: Execute jobs on AWS Batch, Azure Container Apps, HPC clusters, or any custom compute platform.
+
+    - 🔌 **Cloud batch services**: AWS Batch, Azure Container Apps, Google Cloud Run Jobs
+    - 🏢 **HPC integration**: Slurm, PBS, custom job schedulers
+    - 🎯 **Specialized hardware**: GPUs, TPUs, edge devices
+    - 🔐 **Enterprise platforms**: Custom orchestrators, proprietary compute services
+
+### Building Custom Job Executors
+
+Learn how to create production-ready custom job executors with our comprehensive development guide:
+
+**[📖 Custom Job Executors Development Guide](custom-job-executors.md)**
+
+The guide covers:
+
+- **Complete AWS Batch implementation** showing the full integration pattern
+- **Job submission & monitoring workflow** that works with any compute platform
+- **Plugin registration and configuration** for seamless integration with Runnable
+- **Testing and debugging** strategies for custom executors
+
+!!! example "Quick Example"
+
+    Create a custom executor in just 3 steps:
+
+    1. **Implement the interface** by extending `GenericJobExecutor`
+    2. **Register via entry point** in your `pyproject.toml`
+    3. **Configure via YAML** for your users
+
+    ```python
+    from extensions.job_executor import GenericJobExecutor
+
+    class MyCustomJobExecutor(GenericJobExecutor):
+        service_name: str = "my-platform"
+
+        def submit_job(self, job, catalog_settings=None):
+            # Your platform integration here
+            pass
+    ```
+
+**Ready to build?** See the [full development guide](custom-job-executors.md) for complete implementation details.
+
 ## Choosing the Right Executor
 
 ### Development & Testing
@@ -94,7 +141,7 @@ Choose job execution when you need:
 
 ### When to Use Pipeline Execution Instead
 
-For multi-task workflows, consider [Pipeline Execution](../executors/overview.md):
+For multi-task workflows, consider [Pipeline Execution](../pipeline-execution/overview.md):
 
 - **Multi-step workflows** with dependencies between tasks
 - **Cross-step data passing** via parameters or catalog
@@ -110,4 +157,4 @@ For multi-task workflows, consider [Pipeline Execution](../executors/overview.md
 
 !!! tip "Multi-Task Workflows"
 
-    For orchestrating multiple connected tasks, see [Pipeline Execution](../executors/local.md) which provides workflow management and cross-step data passing.
+    For orchestrating multiple connected tasks, see [Pipeline Execution](../pipeline-execution/local.md) which provides workflow management and cross-step data passing.

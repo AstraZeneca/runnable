@@ -117,7 +117,4 @@ job.execute(parameters_file="config.yaml")
 
 ## What's Next?
 
-- **[Getting Started](getting-started.md)** - Step-by-step guide to your first Job
-- **[Configuration](configuration.md)** - Advanced Job options and settings
-- **[Examples](examples.md)** - Real-world Job patterns and use cases
-- **[Jobs vs Pipelines](../concepts/building-blocks/jobs-vs-pipelines.md)** - Detailed comparison and decision guide
+- **[Jobs vs Pipelines](../pipelines/jobs-vs-pipelines.md)** - Detailed comparison and decision guide

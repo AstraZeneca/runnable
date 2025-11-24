@@ -1,9 +1,32 @@
 # Job Types
 
-Explore different types of Jobs for various execution scenarios.
+Execute different types of tasks through runnable's extensible job type system.
 
-## Shell Jobs 🔧
+## The Core Insight
 
+**All job types follow the same pattern**: They wrap a `TaskType` that handles the actual execution, with runnable providing the context, logging, and infrastructure.
+
+## Built-in Job Types
+
+### Python Jobs 🐍
+Execute Python functions with full context tracking:
+
+```python
+from runnable import PythonJob
+
+def my_analysis():
+    return {"result": "success"}
+
+def main():
+    job = PythonJob(function=my_analysis, returns=["result"])
+    job.execute()
+    return job
+
+if __name__ == "__main__":
+    main()
+```
+
+### Shell Jobs 🔧
 Execute shell commands with full context tracking:
 
 ```python
@@ -18,61 +41,15 @@ if __name__ == "__main__":
     main()
 ```
 
-??? example "See complete runnable code"
-    ```python title="examples/11-jobs/scripts.py"
-    --8<-- "examples/11-jobs/scripts.py"
-    ```
-
-    **Try it now:**
-    ```bash
-    uv run examples/11-jobs/scripts.py
-    ```
-
-### Shell Job Features
-
-- **Command output**: Stdout captured in execution logs
-- **Environment variables**: `RUNNABLE_RUN_ID` and `PWD` automatically available
-- **Exit codes**: Success/failure tracked automatically
-
-### Common Shell Job Patterns
-
-```python
-# File processing
-ShellJob(command="python data_processing.py input.csv output.csv")
-
-# System operations
-ShellJob(command="tar -czf backup.tar.gz /data")
-
-# External tools
-ShellJob(command="curl -X POST https://api.example.com/webhook")
-
-# Data pipeline steps
-ShellJob(command="./preprocess_data.sh && ./run_analysis.sh")
-
-# Docker containers
-ShellJob(command="docker run --rm -v $(pwd):/data my-analysis:latest")
-```
-
-### Shell Job with Parameters
-
-Shell Jobs support the same parameter system:
-
-```python
-def main():
-    job = ShellJob(command="python analysis.py --input {input_file} --output {output_dir}")
-    job.execute(parameters_file="config.yaml")
-    return job
-```
-
-**config.yaml:**
-```yaml
-input_file: "data/sales.csv"
-output_dir: "results/"
-```
-
-## Notebook Jobs 📓
-
+### Notebook Jobs 📓
 Execute Jupyter notebooks with complete output preservation:
+
+!!! info "Installation Required"
+
+    Notebook execution requires the optional notebook dependency:
+    ```bash
+    pip install runnable[notebook]
+    ```
 
 ```python
 from runnable import NotebookJob
@@ -86,117 +63,19 @@ if __name__ == "__main__":
     main()
 ```
 
-??? example "See complete runnable code"
-    ```python title="examples/11-jobs/notebooks.py"
-    --8<-- "examples/11-jobs/notebooks.py"
-    ```
+## Job Execution Context
 
-    **Try it now:**
-    ```bash
-    uv run examples/11-jobs/notebooks.py
-    ```
+All Job types share the same rich execution context and features:
 
-### Notebook Job Features
+### Common Features Across All Job Types
 
-- **Executed notebook**: Complete notebook with outputs saved as `{notebook}-_out.ipynb`
-- **Directory structure**: Maintains original path in catalog
-- **Cell outputs**: All print statements, plots, and results captured
-- **Progress tracking**: Shows cell execution progress during run
+- **Parameters**: All jobs support the same parameter system (files, environment variables)
+- **Catalog**: File storage and retrieval using glob patterns
+- **Return values**: Specify what data to capture and store
+- **Secrets**: Access to environment variables and secret management
+- **Run logs**: Complete execution tracking and metadata
 
-### Notebook Storage Structure
-
-```
-.catalog/dry-lichterman-0628/
-├── examples/
-│   └── common/
-│       └── simple_notebook-_out.ipynb  # Executed notebook with outputs
-└── jobXLV.execution.log                # Execution log
-```
-
-### Notebook Job Patterns
-
-```python
-# Data analysis notebook
-NotebookJob(notebook="analysis/monthly_report.ipynb")
-
-# Model training notebook
-NotebookJob(notebook="ml/train_model.ipynb")
-
-# Visualization notebook
-NotebookJob(notebook="reports/create_charts.ipynb")
-
-# Research notebook with parameters
-job = NotebookJob(notebook="research/experiment.ipynb")
-job.execute(parameters_file="experiment_config.yaml")
-```
-
-### Notebooks with Parameters
-
-Notebooks can receive parameters through parameter injection:
-
-**notebook.ipynb** (cell 1):
-```python
-# Parameters will be injected here automatically
-dataset_path = "default.csv"  # Will be overridden
-model_type = "random_forest"  # Will be overridden
-```
-
-**Job execution:**
-```python
-def main():
-    job = NotebookJob(notebook="analysis.ipynb")
-    job.execute(parameters={
-        "dataset_path": "prod_data.csv",
-        "model_type": "gradient_boost"
-    })
-    return job
-```
-
-## Python Jobs (Review) 🐍
-
-The most flexible Job type for custom functions:
-
-```python
-from runnable import PythonJob
-
-def my_analysis():
-    # Custom analysis logic
-    return {"result": "success"}
-
-def main():
-    job = PythonJob(
-        function=my_analysis,
-        returns=["result"]
-    )
-    job.execute()
-    return job
-```
-
-### Python Job Advantages
-
-- **Full flexibility**: Complete control over execution logic
-- **Return values**: Specify exactly what to store
-- **Type safety**: Function parameters validated automatically
-- **Debugging**: Easy to test functions independently
-
-## Choosing the Right Job Type
-
-| Use Case | Best Job Type | Why |
-|----------|---------------|-----|
-| Custom data analysis | **PythonJob** | Full control, return values, type safety |
-| System operations | **ShellJob** | Leverage existing scripts and tools |
-| Interactive analysis | **NotebookJob** | Visual outputs, step-by-step exploration |
-| File processing | **ShellJob** | Use command-line tools directly |
-| Model training | **PythonJob** or **NotebookJob** | Python for code, Notebook for exploration |
-| Report generation | **NotebookJob** | Rich outputs with plots and formatting |
-| Data pipeline steps | **ShellJob** | Chain existing pipeline tools |
-| API integration | **PythonJob** | Handle responses and error cases |
-
-
-## Job Execution Context 🔍
-
-All Job types share the same rich execution context:
-
+### Execution Context Example
 ```
 JobContext(
     execution_mode='python',           # or 'shell', 'notebook'
@@ -210,45 +89,163 @@ JobContext(
 )
 ```
 
-## Best Practices
+### Choosing the Right Job Type
 
-### ✅ **Choose Based on Task Nature**
+| Use Case | Best Job Type | Why |
+|----------|---------------|-----|
+| Custom data analysis | **PythonJob** | Full control, return values, type safety |
+| System operations | **ShellJob** | Leverage existing scripts and tools |
+| Interactive analysis | **NotebookJob** | Visual outputs, step-by-step exploration |
+| File processing | **ShellJob** | Use command-line tools directly |
+| Model training | **PythonJob** or **NotebookJob** | Python for code, Notebook for exploration |
+| Report generation | **NotebookJob** | Rich outputs with plots and formatting |
+
+## The Plugin System
+
+**Job types are pluggable** - runnable automatically discovers and loads custom job types via entry points.
+
+### How Jobs Work Internally
+
+**Every job type follows the same pattern**:
+
+1. **Job wrapper**: Provides the user API (`PythonJob`, `ShellJob`, etc.)
+2. **Task type**: Handles the actual execution (`PythonTaskType`, `ShellTaskType`, etc.)
+3. **Entry point registration**: Makes it discoverable
+
 ```python
-# Data science exploration -> Notebook
-NotebookJob(notebook="explore_data.ipynb")
+# Built-in jobs are registered like this:
+[project.entry-points.'jobs']
+"python" = "runnable.sdk:PythonJob"
+"shell" = "runnable.sdk:ShellJob"
+"notebook" = "runnable.sdk:NotebookJob"
 
-# Production analysis function -> Python
-PythonJob(function=production_analysis)
-
-# System integration -> Shell
-ShellJob(command="./deploy_model.sh")
+[project.entry-points.'tasks']
+"python" = "runnable.tasks:PythonTaskType"
+"shell" = "runnable.tasks:ShellTaskType"
+"notebook" = "runnable.tasks:NotebookTaskType"
 ```
 
-### ✅ **Use Parameters for Flexibility**
-```python
-# All Job types support parameters
-job.execute(parameters_file="config.yaml")
+## Building Custom Job Types
 
-# Environment variables work across all types
-# export RUNNABLE_PRM_environment=production
+Create new job types for your specific execution needs:
+
+### 1. Implement the Task Type
+```python
+# my_package/tasks.py
+from runnable.tasks import BaseTaskType
+
+class RTaskType(BaseTaskType):
+    """Execute R scripts with full runnable integration"""
+    task_type: str = "r"
+    script_path: str = Field(...)
+
+    def execute_command(self, **kwargs):
+        # Your R execution logic
+        command = f"Rscript {self.script_path}"
+        # Run command and return StepAttempt
+        pass
 ```
 
-### ✅ **Organize Outputs Appropriately**
+### 2. Create the Job Wrapper
 ```python
-# Python Job - specify returns
-PythonJob(function=analysis, returns=["results", metric("accuracy")])
+# my_package/jobs.py
+from runnable.sdk import BaseJob
 
-# Shell/Notebook Jobs - use catalog for files
-catalog = Catalog(put=["output.csv", "plots/"])
-ShellJob(command="./analysis.sh", catalog=catalog)
+class RJob(BaseJob):
+    script_path: str = Field(...)
+
+    def get_task(self) -> RTaskType:
+        return RTaskType(
+            script_path=self.script_path,
+            **self.model_dump(exclude_defaults=True)
+        )
 ```
 
-## What's Next?
+### 3. Register Both Entry Points
+```toml
+# pyproject.toml
+[project.entry-points.'tasks']
+"r" = "my_package.tasks:RTaskType"
 
-You now understand all Job types! Final topics:
+[project.entry-points.'jobs']
+"r" = "my_package.jobs:RJob"
+```
 
-- **[Configuration](configuration.md)** - Advanced Job options and settings
-- **[Examples](examples.md)** - Real-world Job patterns and use cases
-- **[Jobs vs Pipelines](../concepts/building-blocks/jobs-vs-pipelines.md)** - When to move to multi-step workflows
+### 4. Use Your Custom Job
+```python
+from my_package.jobs import RJob
 
-Ready for advanced configuration? Continue to **[Configuration](configuration.md)**!
+def main():
+    job = RJob(script_path="analysis.R")
+    job.execute()
+    return job
+```
+
+## Integration Advantage
+
+**🔑 Key Benefit**: Custom job types live entirely in **your codebase**, enabling domain-specific execution models.
+
+### Complete Control & Customization
+
+```python
+# In your private repository
+# company-analytics/jobs/proprietary_jobs.py
+
+class CompanyAnalyticsJob(BaseJob):
+    """Execute proprietary analytics with company-specific integrations"""
+    dataset_id: str = Field(...)
+    compliance_level: str = Field(default="confidential")
+
+    def get_task(self) -> CompanyAnalyticsTaskType:
+        # Your proprietary task implementation
+        pass
+```
+
+**Integration benefits:**
+
+- **🔒 Proprietary Tools**: Integrate with internal analytics platforms, databases, or custom tools
+- **🏢 Domain-Specific**: Create job types for your specific business logic (financial modeling, scientific computing, etc.)
+- **💼 Compliance**: Implement organization-specific security, audit, and governance requirements
+- **🔧 Standardization**: Create reusable job types across teams and projects
+
+### Reusable Job Libraries
+
+```python
+# Internal package: company-runnable-jobs
+from company_runnable_jobs import (
+    FinancialModelingJob,     # Company financial calculations
+    ComplianceReportJob,      # SOX/regulatory reporting
+    DataScienceJob,          # Your ML platform integration
+    CustomerAnalyticsJob,    # CRM and analytics integration
+)
+
+# Teams use your standardized job types
+job = FinancialModelingJob(
+    model_type="monte_carlo",
+    compliance_required=True
+)
+job.execute()
+```
+
+**This makes runnable a platform for creating your company's custom execution ecosystem** - from simple scripts to complex domain-specific workflows.
+
+## Need Help?
+
+**Custom job types involve understanding both the task execution model and your target tool's integration requirements.**
+
+!!! question "Get Support"
+
+    **We're here to help you succeed!** Building custom job types involves:
+
+    - Understanding runnable's task execution lifecycle
+    - Integrating with external tools and platforms
+    - Proper error handling and result management
+    - Plugin registration and discovery
+
+    **Don't hesitate to reach out:**
+
+    - 📧 **Contact the team** for architecture guidance and integration support
+    - 🤝 **Collaboration opportunities** - we're interested in supporting domain-specific integrations
+    - 📖 **Documentation feedback** - help us improve these guides based on your implementation experience
+
+Your success with custom job types helps the entire runnable community!

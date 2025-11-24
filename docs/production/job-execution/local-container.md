@@ -2,6 +2,13 @@
 
 Execute jobs in Docker containers on your local machine for environment isolation and consistency - perfect for testing containerized deployments locally.
 
+!!! info "Installation Required"
+
+    Container execution requires the optional Docker dependency:
+    ```bash
+    pip install runnable[docker]
+    ```
+
 !!! tip "Container Setup Made Simple"
 
     Just build a Docker image from your project root - it automatically includes your code, dependencies, and environment!
@@ -258,4 +265,4 @@ Consider other executors when you need:
 
 ---
 
-**Related:** [Pipeline Container Execution](../executors/local-container.md) | [All Job Executors](overview.md)
+**Related:** [Pipeline Container Execution](../pipeline-execution/local-container.md) | [All Job Executors](overview.md)

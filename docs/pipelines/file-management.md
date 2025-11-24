@@ -317,4 +317,4 @@ if __name__ == "__main__":
     - **Use `store_copy=False` for large files** to save disk space and improve performance.
     - **Check `.catalog/{run-id}/` for complete execution traceability** - no need to dig through environment-specific logs!
 
-Next: See how the same code can [run anywhere](deploy-anywhere.md) with different configurations.
+Next: See how the same code can [run anywhere](../production/deploy-anywhere.md) with different configurations.

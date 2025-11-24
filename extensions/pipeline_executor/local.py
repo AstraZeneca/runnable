@@ -22,6 +22,8 @@ class LocalExecutor(GenericPipelineExecutor):
     ```yaml
     pipeline-executor:
       type: local
+      config:
+        enable_parallel: false  # Enable parallel execution for parallel/map nodes
     ```
 
     """
@@ -29,6 +31,7 @@ class LocalExecutor(GenericPipelineExecutor):
     service_name: str = "local"
     enable_parallel: bool = Field(default=False)
 
+    # TODO: Not fully done
     object_serialisation: bool = Field(default=True)
 
     _is_local: bool = PrivateAttr(default=True)

@@ -250,7 +250,5 @@ catalog = Catalog(put=[
 You can now store Job outputs automatically! Next topics:
 
 - **[Job Types](job-types.md)** - Shell and Notebook Jobs
-- **[Configuration](configuration.md)** - Advanced Job options and settings
-- **[Examples](examples.md)** - Real-world Job patterns
 
 Ready to explore different Job types? Continue to **[Job Types](job-types.md)**!

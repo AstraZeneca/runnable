@@ -145,4 +145,4 @@ if __name__ == "__main__":
         main()
     ```
 
-Next: Understand [when to use jobs vs pipelines](../concepts/building-blocks/jobs-vs-pipelines.md).
+Next: Understand [when to use jobs vs pipelines](jobs-vs-pipelines.md).

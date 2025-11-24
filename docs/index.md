@@ -13,11 +13,22 @@ Transform any Python function into a portable, trackable pipeline in seconds.
 
 <hr style="border:2px dotted orange">
 
-## Step 1: Install (10 seconds)
+## Step 1: Install
 
 ```bash
 pip install runnable
 ```
+
+!!! tip "Optional Features"
+
+    Install optional features as needed:
+    ```bash
+    pip install runnable[notebook]    # Jupyter notebook execution
+    pip install runnable[docker]     # Container execution
+    pip install runnable[k8s]        # Kubernetes execution
+    pip install runnable[s3]         # S3 storage backend
+    pip install runnable[examples]   # Example dependencies
+    ```
 
 ## Step 2: Your Function (unchanged!)
 
@@ -185,19 +196,19 @@ if __name__ == "__main__":
 
 You've seen how Runnable transforms your code for portability and tracking. Ready to go deeper?
 
-**🎯 Master the Concepts** → [Jobs vs Pipelines](concepts/building-blocks/jobs-vs-pipelines.md)
+**🎯 Master the Concepts** → [Jobs vs Pipelines](pipelines/jobs-vs-pipelines.md)
 Learn when to use single jobs vs multi-step pipelines
 
-**📊 Handle Your Data** → [Task Types](concepts/building-blocks/task-types.md)
+**📊 Handle Your Data** → [Task Types](pipelines/task-types.md)
 Work with returns, parameters, and different data types
 
 **⚡ See Real Examples** → [Usage Examples](usage.md)
 Browse practical patterns and real-world scenarios
 
-**🚀 Deploy Anywhere** → [Production Guide](configurations/overview.md)
+**🚀 Deploy Anywhere** → [Production Guide](production/overview.md)
 Scale from laptop to containers to Kubernetes
 
-**🔍 Compare Alternatives** → [Compare Tools](comparisons/kedro.md)
+**🔍 Compare Alternatives** → [Compare Tools](compare/kedro.md)
 See how Runnable compares to Kedro, Metaflow, and other orchestration tools
 
 ---
@@ -214,7 +225,7 @@ See how Runnable compares to Kedro, Metaflow, and other orchestration tools
 
     - No API's or decorators or any imposed structure.
 
-    [:octicons-arrow-right-24: Getting started](#step-1-install-10-seconds)
+    [:octicons-arrow-right-24: Getting started](jobs/index.md)
 
 -    :building_construction:{ .lg .middle } __Bring your infrastructure__
 
@@ -223,8 +234,9 @@ See how Runnable compares to Kedro, Metaflow, and other orchestration tools
     ```runnable``` is not a platform. It works with your platforms.
 
     - ```runnable``` composes pipeline definitions suited to your infrastructure.
+    - **Extensible plugin architecture**: Build custom executors, storage backends, and task types for any platform.
 
-    [:octicons-arrow-right-24: Infrastructure](configurations/overview.md)
+    [:octicons-arrow-right-24: Infrastructure](production/deploy-anywhere.md)
 
 -   :memo:{ .lg .middle } __Reproducibility__
 
@@ -233,7 +245,7 @@ See how Runnable compares to Kedro, Metaflow, and other orchestration tools
     Runnable tracks key information to reproduce the execution. All this happens without
     any additional code.
 
-    [:octicons-arrow-right-24: Run Log](concepts/run-log.md)
+    [:octicons-arrow-right-24: Run Log](production/run-log.md)
 
 -   :repeat:{ .lg .middle } __Retry failures__
 
@@ -241,7 +253,7 @@ See how Runnable compares to Kedro, Metaflow, and other orchestration tools
 
     Debug any failure in your local development environment.
 
-    [:octicons-arrow-right-24: Advanced Patterns](concepts/advanced-patterns/failure-handling.md)
+    [:octicons-arrow-right-24: Advanced Patterns](advanced-patterns/failure-handling.md)
 
 -   :microscope:{ .lg .middle } __Testing__
 
@@ -252,7 +264,7 @@ See how Runnable compares to Kedro, Metaflow, and other orchestration tools
     - mock/patch the steps of the pipeline
     - test your functions as you normally do.
 
-    [:octicons-arrow-right-24: Testing Guide](concepts/advanced-patterns/mocking-testing.md)
+    [:octicons-arrow-right-24: Testing Guide](advanced-patterns/mocking-testing.md)
 
 -   :broken_heart:{ .lg .middle } __Move on__
 

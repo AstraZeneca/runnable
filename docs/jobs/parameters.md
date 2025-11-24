@@ -262,17 +262,6 @@ python script.py --learning_rate 0.05 --num_epochs 100 --batch_size 64
 uv run training_job.py
 ```
 
-**🔗 Pipeline integration:**
-```python
-# Your argparse function becomes a pipeline step
-from runnable import Pipeline, PythonTask
-
-pipeline = Pipeline(steps=[
-    PythonTask(function=preprocess_data),
-    PythonTask(function=run_single_cpu_training),  # Zero changes needed!
-    PythonTask(function=evaluate_model)
-])
-```
 
 !!! tip "Keep both versions"
 
@@ -326,6 +315,5 @@ Your Jobs are now fully configurable! Next topics:
 
 - **[File Storage](file-storage.md)** - Store files created during execution
 - **[Job Types](job-types.md)** - Shell and Notebook Jobs
-- **[Configuration](configuration.md)** - Advanced Job options
 
 Ready to store files from your Jobs? Continue to **[File Storage](file-storage.md)**!

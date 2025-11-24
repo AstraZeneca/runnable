@@ -16,6 +16,7 @@ from runnable.tasks import BaseTaskType
 logger = logging.getLogger(defaults.NAME)
 
 
+# TODO: Secrets should be exposed
 class Operator(str, Enum):
     NOT_IN = "NotIn"
     EXISTS = "Exists"
