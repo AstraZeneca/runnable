@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from pickle import PicklingError
 from string import Template
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from rich.segment import Segment
@@ -854,13 +854,13 @@ def create_task(kwargs_for_init) -> BaseTaskType:
     kwargs = convert_binary_to_string(kwargs)
 
     try:
-        task_mgr = driver.DriverManager(
+        task_mgr: driver.DriverManager = driver.DriverManager(
             namespace="tasks",
             name=command_type,
             invoke_on_load=True,
             invoke_kwds=kwargs,
         )
-        return task_mgr.driver
+        return cast(BaseTaskType, task_mgr.driver)
     except Exception as _e:
         msg = (
             f"Could not find the task type {command_type}. Please ensure you have installed "

@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Optional
 
 import runnable.context as context
 from runnable import defaults, graph, nodes, utils
@@ -105,7 +106,7 @@ def execute_single_branch(
     branch_name: str,
     branch: graph.Graph,
     run_context: context.PipelineContext,
-    map_variable: dict = None,
+    map_variable: Optional[dict] = None,
 ):
     """
     Execute a single branch in a separate process for parallel execution.
@@ -192,7 +193,7 @@ def _setup_branch_logging(branch_name: str):
     # Create a new handler with branch-specific formatting
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(BranchFormatter(branch_name))
-    handler._branch_handler = True  # Mark it as our custom handler
+    handler._branch_handler = True  # type: ignore  # Mark it as our custom handler
     handler.setLevel(logging.INFO)
 
     # Add the handler to the root logger
@@ -309,7 +310,8 @@ def fan(
 
 if __name__ == "__main__":
     # This is only for perf testing purposes.
-    execute_single_branch()
+    # execute_single_branch()  # Missing required arguments
+    pass
 
 # if __name__ == "__main__":
 #     # This is only for perf testing purposes.

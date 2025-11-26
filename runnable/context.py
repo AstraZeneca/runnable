@@ -87,7 +87,7 @@ def get_service_by_name(namespace: str, service_config: dict[str, Any], _) -> An
         f"Trying to get a service of {namespace} with config: {service_config}"
     )
     try:
-        mgr = driver.DriverManager(
+        mgr: driver.DriverManager = driver.DriverManager(
             namespace=namespace,  # eg: reader
             name=kind,  # eg: csv, pdf
             invoke_on_load=True,
