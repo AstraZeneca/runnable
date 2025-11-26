@@ -96,7 +96,7 @@ Learn how to create production-ready custom job executors with our comprehensive
 
 The guide covers:
 
-- **Complete AWS Batch implementation** showing the full integration pattern
+- **AWS Batch integration example** showing key integration patterns
 - **Job submission & monitoring workflow** that works with any compute platform
 - **Plugin registration and configuration** for seamless integration with Runnable
 - **Testing and debugging** strategies for custom executors
@@ -120,7 +120,7 @@ The guide covers:
             pass
     ```
 
-**Ready to build?** See the [full development guide](custom-job-executors.md) for complete implementation details.
+**Ready to build?** See the [full development guide](custom-job-executors.md) for implementation patterns and examples.
 
 ## Choosing the Right Executor
 

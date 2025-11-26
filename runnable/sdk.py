@@ -29,7 +29,7 @@ from runnable import defaults, graph
 from runnable.executor import BaseJobExecutor
 from runnable.nodes import TraversalNode
 from runnable.tasks import BaseTaskType as RunnableTask
-from runnable.tasks import TaskReturns
+from runnable.tasks import TaskReturns, create_task
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -272,11 +272,6 @@ class PythonTask(BaseTask):
 
         return f"{module}.{name}"
 
-    def create_job(self) -> RunnableTask:
-        self.terminate_with_success = True
-        node = self.create_node()
-        return node.executable
-
 
 class NotebookTask(BaseTask):
     """
@@ -357,11 +352,6 @@ class NotebookTask(BaseTask):
     def command_type(self) -> str:
         return "notebook"
 
-    def create_job(self) -> RunnableTask:
-        self.terminate_with_success = True
-        node = self.create_node()
-        return node.executable
-
 
 class ShellTask(BaseTask):
     """
@@ -420,11 +410,6 @@ class ShellTask(BaseTask):
     @computed_field
     def command_type(self) -> str:
         return "shell"
-
-    def create_job(self) -> RunnableTask:
-        self.terminate_with_success = True
-        node = self.create_node()
-        return node.executable
 
 
 class Stub(BaseTraversal):
@@ -813,11 +798,27 @@ class Pipeline(BaseModel):
 
 
 class BaseJob(BaseModel):
-    catalog: Optional[Catalog] = Field(default=None, alias="catalog")
+    catalog: Optional[Catalog] = Field(default=None, alias="catalog", exclude=True)
     returns: List[Union[str, TaskReturns]] = Field(
         default_factory=list, alias="returns"
     )
     secrets: List[str] = Field(default_factory=list)
+
+    @field_validator("returns", mode="before")
+    @classmethod
+    def serialize_returns(
+        cls, returns: List[Union[str, TaskReturns]]
+    ) -> List[TaskReturns]:
+        task_returns = []
+
+        for x in returns:
+            if isinstance(x, str):
+                task_returns.append(TaskReturns(name=x, kind="json"))
+                continue
+            # Its already task returns
+            task_returns.append(x)
+
+        return task_returns
 
     @field_validator("catalog", mode="after")
     @classmethod
@@ -831,7 +832,7 @@ class BaseJob(BaseModel):
         return catalog
 
     def get_task(self) -> RunnableTask:
-        raise NotImplementedError
+        return create_task(self.model_dump(by_alias=True, exclude_none=True))
 
     def get_caller(self) -> str:
         caller_stack = inspect.stack()[2]
@@ -903,9 +904,9 @@ class BaseJob(BaseModel):
 
 
 class PythonJob(BaseJob):
-    function: Callable = Field()
+    function: Callable = Field(exclude=True)
+    command_type: str = Field(default="python")
 
-    @property
     @computed_field
     def command(self) -> str:
         module = self.function.__module__
@@ -913,40 +914,15 @@ class PythonJob(BaseJob):
 
         return f"{module}.{name}"
 
-    def get_task(self) -> RunnableTask:
-        # Piggy bank on existing tasks as a hack
-        task = PythonTask(
-            name="dummy",
-            terminate_with_success=True,
-            **self.model_dump(exclude_defaults=True, exclude_none=True),
-        )
-        return task.create_node().executable
-
 
 class NotebookJob(BaseJob):
     notebook: str = Field(serialization_alias="command")
     optional_ploomber_args: Optional[Dict[str, Any]] = Field(
         default=None, alias="optional_ploomber_args"
     )
-
-    def get_task(self) -> RunnableTask:
-        # Piggy bank on existing tasks as a hack
-        task = NotebookTask(
-            name="dummy",
-            terminate_with_success=True,
-            **self.model_dump(exclude_defaults=True, exclude_none=True),
-        )
-        return task.create_node().executable
+    command_type: str = Field(default="notebook")
 
 
 class ShellJob(BaseJob):
     command: str = Field(alias="command")
-
-    def get_task(self) -> RunnableTask:
-        # Piggy bank on existing tasks as a hack
-        task = ShellTask(
-            name="dummy",
-            terminate_with_success=True,
-            **self.model_dump(exclude_defaults=True, exclude_none=True),
-        )
-        return task.create_node().executable
+    command_type: str = Field(default="shell")

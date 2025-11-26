@@ -8,7 +8,7 @@ Configure how multi-step workflows are orchestrated and executed across differen
 |----------|----------|-------------|-----------------|
 | [Local](local.md) | Development | Local machine | **Sequential + Conditional Parallel*** |
 | [Local Container](local-container.md) | Isolated development | Docker containers** | **Sequential + Conditional Parallel*** |
-| [Argo Workflows](argo.md) | Production | Kubernetes** | **Parallel + Sequential** (full orchestration) |
+| [Argo Workflows](argo.md) | Production | Argo cluster | **Parallel + Sequential** (full orchestration) |
 | [Mocked](mocked.md) | Testing & validation | Local machine | **Simulation** (no actual execution) |
 
 *_Parallel execution requires `enable_parallel: true` and compatible run log store_
@@ -22,12 +22,14 @@ Configure how multi-step workflows are orchestrated and executed across differen
 **Local** and **Local Container** executors support both sequential and parallel execution:
 
 #### Sequential Execution (Default)
+
 - ✅ **Fast startup**: No orchestration overhead
 - ✅ **Simple debugging**: Linear execution, easy to trace
 - ✅ **Resource efficient**: Single process, minimal memory usage
 - ✅ **Universal compatibility**: Works with all run log stores
 
 #### Conditional Parallel Execution
+
 - ✅ **Optional parallelization**: Enable with `enable_parallel: true`
 - ✅ **Automatic fallback**: Falls back to sequential if run log store doesn't support parallel writes
 - ✅ **Local multiprocessing**: Uses your machine's multiple cores
@@ -184,4 +186,4 @@ For single task execution, consider [Job Execution](../job-execution/overview.md
 
 ---
 
-**Related:** [Job Execution Overview](../job-execution/overview.md) | [Configuration Overview](../overview.md)
+**Related:** [Job Execution Overview](../job-execution/overview.md) | [Configuration Overview](../deploy-anywhere.md)

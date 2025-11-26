@@ -140,7 +140,6 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 [project.entry-points.'pickler']
 "pickle" = "runnable.pickler:NativePickler"
 
-
 [project.entry-points.'nodes']
 "task" = "extensions.nodes.task:TaskNode"
 "fail" = "extensions.nodes.fail:FailNode"

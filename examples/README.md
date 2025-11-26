@@ -1,94 +1,177 @@
-Examples in this section are ordered from simple to advanced.
-Most examples have both python SDK and yaml representations.
+# Runnable Examples 🚀
 
-Please use this as an index to find specific example.
+**Complete, tested examples showing how to use Runnable for jobs and pipelines.**
 
+All examples are fully working Python code that you can run immediately with `uv run`. Every example follows the correct patterns and includes proper configuration files.
 
-- [common](./common/): Has python functions/notebooks/scripts that are used across the examples
+## 🎯 What's Provided
 
-- 01-tasks: Tasks are the atomic unit of work. They can be ```stub```, ```python functions```,
-  ```notebooks```, ```shell``` scripts or ```torch``` scripts (experimental!!).
+**📋 Every example includes:**
 
-    - [stub.py](./01-tasks/stub.py), [stub.yaml](./01-tasks/stub.yaml): demonstrates the concept of a stub. Stubs are similar to ```pass``` of python.
+- ✅ **Complete Python code** following the correct `main()` return patterns
+- ✅ **Configuration files** for different execution environments
+- ✅ **Clear instructions** on how to run with `uv run`
+- ✅ **CI tested** to ensure they always work
 
-    - [python_tasks.py](./01-tasks/python_tasks.py), [python_tasks.yaml](./01-tasks/python_tasks.yaml): uses python functions as tasks.
-        The stdout/stderr of all the tasks are captured and stored in the catalog.
+## 🚀 Quick Start
 
-    - [notebook.py](./01-tasks/notebook.py), [notebook.yaml](./01-tasks/notebook.yaml): uses notebooks as tasks
-        The executed notebook is captured in the catalog.
+```bash
+# Clone the repository
+git clone https://github.com/AstraZeneca/runnable.git
+cd runnable
 
-    - [scripts.py](./01-tasks/scripts.py), [scripts.yaml](./01-tasks/scripts.yaml): uses shell scripts as tasks
-        The stdout/stderr of all scripts are captured and stored in the catalog.
+# Run any example immediately
+uv run examples/01-tasks/python_tasks.py
+uv run examples/11-jobs/python_tasks.py
+uv run examples/02-sequential/traversal.py
+```
 
----
+## 📁 Examples Directory Structure
 
+### 🔧 **Basic Task Types** (`01-tasks/`)
+Learn the fundamental building blocks of Runnable pipelines:
 
-This section has examples on stitching these tasks together for complex operations.
-We only show sequential pipeline while parallel and dynamic pipelines are
-shown in later sections.
+- **[python_tasks.py](01-tasks/python_tasks.py)** - Execute Python functions as pipeline tasks
+- **[notebook.py](01-tasks/notebook.py)** - Execute Jupyter notebooks as tasks
+- **[scripts.py](01-tasks/scripts.py)** - Execute shell commands as tasks
+- **[stub.py](01-tasks/stub.py)** - Placeholder tasks for testing workflow structure
 
-- 02-sequential: Examples of stitching tasks together including behavior in case of failures.
+### 🔗 **Sequential Workflows** (`02-sequential/`)
+Build multi-step pipelines with proper flow control:
 
-    - [traversal.py](./02-sequential/traversal.py), [traversal.yaml](./02-sequential/traversal.yaml): A pipeline which is a mixed bag of notebooks, python functions and shell scripts.
+- **[traversal.py](02-sequential/traversal.py)** - Mixed pipeline: Python + notebooks + shell scripts
+- **[conditional.py](02-sequential/conditional.py)** - Conditional branching based on parameters
+- **[default_fail.py](02-sequential/default_fail.py)** - Default failure handling behavior
+- **[on_failure_fail.py](02-sequential/on_failure_fail.py)** - Custom failure handling
+- **[on_failure_succeed.py](02-sequential/on_failure_succeed.py)** - Recovery from failures
 
-    - [default_fail.py](./02-sequential/default_fail.py), [default_fail.yaml](./02-sequential/default_fail.yaml): The default failure behavior.
+### ⚙️ **Configuration & Parameters** (`03-parameters/`)
+Pass data and configuration between tasks:
 
-    - [on_failure_fail](./02-sequential/on_failure_fail.py), [on_faliure_fail.yaml](./02-sequential/on_failure_fail.yaml) On failure of a step, do some action and fail
+- **[passing_parameters_python.py](03-parameters/passing_parameters_python.py)** - Parameter passing between Python tasks
+- **[passing_parameters_notebook.py](03-parameters/passing_parameters_notebook.py)** - Parameters with Jupyter notebooks
+- **[passing_parameters_shell.py](03-parameters/passing_parameters_shell.py)** - Parameters with shell scripts
+- **[static_parameters_python.py](03-parameters/static_parameters_python.py)** - Static configuration parameters
 
-    - [on_failure_success.py](./02-sequential/on_failure_succeed.py), [on_failure_success.yaml](./02-sequential/on_failure_succeed.yaml): On failure of a step, take a different route and succeed
+### 📁 **File Management** (`04-catalog/`)
+Handle file storage and sharing between tasks:
 
+- **[catalog.py](04-catalog/catalog.py)** - File sharing between different task types
+- **[catalog_python.py](04-catalog/catalog_python.py)** - Python-specific file handling
+- **[catalog_no_copy.py](04-catalog/catalog_no_copy.py)** - Hash-only tracking for large files
+- **[catalog_on_fail.py](04-catalog/catalog_on_fail.py)** - File handling during failures
 
----
+### ⚡ **Parallel Execution** (`06-parallel/`)
+Run multiple tasks simultaneously:
 
-This section has examples on communicating between tasks during execution.
-We only focusses on "parameters" while the next section focusses on "files".
+- **[parallel.py](06-parallel/parallel.py)** - Basic parallel execution
+- **[parallel_branch_fail.py](06-parallel/parallel_branch_fail.py)** - Handling failures in parallel branches
+- **[nesting.py](06-parallel/nesting.py)** - Nested parallel and sequential workflows
 
-- 03: Examples of passing parameters between tasks of a pipeline.
+### 🔁 **Iterative Processing** (`07-map/`)
+Process data collections with map operations:
 
-    Below table summarizes the input/output types of different task types. For ex: notebooks can only take JSON serializable
-    parameters as input but can return json/pydantic/objects. Any python object that could be serialized using "dill" can be used.
+- **[map.py](07-map/map.py)** - Basic map operation over data
+- **[map_fail.py](07-map/map_fail.py)** - Error handling in map operations
+- **[custom_reducer.py](07-map/custom_reducer.py)** - Custom result aggregation
 
-    |          | Input                    | Output                   |
-    | -------- | :---------------------:  | :----------------------: |
-    | python   | json, pydantic, object   | json, pydantic, object   |
-    | notebook | json                     | json, pydantic, object   |
-    | shell    | json                     | json                     |
+### 🎯 **Single Job Execution** (`11-jobs/`)
+Execute standalone jobs (not pipelines):
 
+- **[python_tasks.py](11-jobs/python_tasks.py)** - Execute Python functions as jobs
+- **[notebooks.py](11-jobs/notebooks.py)** - Execute Jupyter notebooks as jobs
+- **[scripts.py](11-jobs/scripts.py)** - Execute shell commands as jobs
+- **[catalog.py](11-jobs/catalog.py)** - File management in jobs
+- **[catalog_no_copy.py](11-jobs/catalog_no_copy.py)** - Hash-only file tracking
+- **[passing_parameters_python.py](11-jobs/passing_parameters_python.py)** - Parameter handling in jobs
 
-    - [static_parameters_python.py](./03-parameters/static_parameters_python.py), [static_parameters_python.yaml](./03-parameters/static_parameters_python.yaml): A pipeline to show the access of static or known parameters by python tasks.
+### ⚙️ **Configuration Files** (`configs/`)
+Ready-to-use configuration for different environments:
 
-        Any environment variables prefixed by RUNNABLE_PRM_ are recognized as parameters and
-        can override parameters defined by the file.
+- **[default.yaml](configs/default.yaml)** - Basic local execution
+- **[local-container.yaml](configs/local-container.yaml)** - Docker container execution
+- **[parallel_enabled.yaml](configs/parallel_enabled.yaml)** - Parallel execution settings
+- **[argo-config.yaml](configs/argo-config.yaml)** - Argo Workflows production setup
+- **[k8s-job.yaml](11-jobs/k8s-job.yaml)** - Kubernetes job execution
+- **[minio.yaml](configs/minio.yaml)** - MinIO object storage
+- **[in-memory.yaml](configs/in-memory.yaml)** - In-memory testing configuration
 
-    - [static_parameters_non_python.py](./03-parameters/static_parameters_non_python.py), [static_parameters_non_python.yaml](./03-parameters/static_parameters_non_python.yaml): A pipeline to show the access of static or known parameters by python tasks.
+### 🧩 **Common Utilities** (`common/`)
+Shared functions, notebooks, and scripts used across examples:
 
-        Any environment variables prefixed by RUNNABLE_PRM_ are recognized as parameters and
-        can override parameters defined by the file.
+- **[functions.py](common/functions.py)** - Common Python functions
+- **[simple_notebook.ipynb](common/simple_notebook.ipynb)** - Example Jupyter notebook
 
-    - [passing_parameters_python.py](./03-parameters/passing_parameters_python.py), [passing_parameters_python.yaml](./03-parameters/passing_parameters_python.yaml): shows the mechanism of passing parameters (JSON serializable, objects, pydantic models) and registering metrics between python tasks.
+## 📚 How to Use Examples
 
-    - [passing_parameters_notebook.py](./03-parameters/passing_parameters_notebook.py), [passing_parameters_notebook.yaml](./03-parameters/passing_parameters_notebook.yaml): shows the mechanism of passing parameters between notebook tasks. Please note that
-    we cannot inject pydantic models or objects into the notebook but can capture them as return values.
+### 🏃 **Run Examples Immediately**
+All examples work out of the box:
 
-    - [passing_parameters_shell.py](./03-parameters/passing_parameters_shell.py), [passing_parameters_shell.yaml](./03-parameters/passing_parameters_shell.yaml): shows the mechanism of passing parameters between shell tasks. Please note that
-    we cannot inject/capture pydantic models or objects in shells.
+```bash
+# Basic task execution
+uv run examples/01-tasks/python_tasks.py
 
----
+# Sequential workflow
+uv run examples/02-sequential/traversal.py
 
-This section focusses on moving files between tasks.
+# Parallel execution
+uv run examples/06-parallel/parallel.py
 
-- 04: Examples of moving files between tasks of the pipeline.
+# Single job execution
+uv run examples/11-jobs/python_tasks.py
+```
 
-    - [catalog.py](./04-catalog/catalog.py), [catalog.yaml](./04-catalog/catalog.yaml): demonstrate moving files between python, shell and notebook tasks.
+### 🔧 **Use Different Configurations**
+Run the same code in different environments:
 
----
+```bash
+# Local execution (default)
+uv run examples/01-tasks/python_tasks.py
 
-This section focusses on exposing secrets to tasks. All secrets are exposed as environment
-variables. The secrets are destroyed after the completion of the task.
+# Container execution
+RUNNABLE_CONFIGURATION_FILE=examples/configs/local-container.yaml uv run examples/01-tasks/python_tasks.py
 
+# Parallel execution
+RUNNABLE_CONFIGURATION_FILE=examples/configs/parallel_enabled.yaml uv run examples/06-parallel/parallel.py
+```
 
----
+### 📊 **Parameter Examples**
+Pass parameters from environment or files:
 
-Below are the examples of constructing parallel graphs and nested graphs.
+```bash
+# Environment parameters
+RUNNABLE_PRM_my_parameter="test_value" uv run examples/03-parameters/static_parameters_python.py
 
-Creating parallel graphs is simple as the branches are themselves pipelines.
+# Parameter files
+RUNNABLE_PARAMETERS_FILE=examples/03-parameters/parameters.yaml uv run examples/03-parameters/passing_parameters_python.py
+```
+
+## 🎓 Learning Path
+
+**New to Runnable?** Follow this progression:
+
+1. **Start Simple**: `examples/11-jobs/python_tasks.py` - Single job execution
+2. **Add Workflows**: `examples/02-sequential/traversal.py` - Multi-step pipelines
+3. **Handle Data**: `examples/03-parameters/passing_parameters_python.py` - Parameter passing
+4. **Manage Files**: `examples/04-catalog/catalog.py` - File storage and sharing
+5. **Scale Up**: `examples/06-parallel/parallel.py` - Parallel execution
+6. **Go Advanced**: `examples/07-map/map.py` - Iterative processing
+
+## 💡 Key Patterns
+
+**All examples demonstrate:**
+
+- ✅ **Correct main() pattern** - Always return job/pipeline objects
+- ✅ **Environment configuration** - Use `RUNNABLE_CONFIGURATION_FILE`
+- ✅ **Parameter management** - Both static and dynamic parameters
+- ✅ **Error handling** - Proper failure management
+- ✅ **File management** - Catalog integration for data persistence
+- ✅ **Multi-environment** - Same code runs locally, in containers, on Kubernetes
+
+## 🔍 Need Help?
+
+- 📖 **[Full Documentation](https://astrazeneca.github.io/runnable/)** - Complete guides and API reference
+- 🎯 **[Jobs vs Pipelines](https://astrazeneca.github.io/runnable/pipelines/jobs-vs-pipelines/)** - Choose the right approach
+- 🚀 **[Production Guide](https://astrazeneca.github.io/runnable/production/deploy-anywhere/)** - Deploy to any environment
+
+**Every example is tested and documented - pick one and start building!** 🚀

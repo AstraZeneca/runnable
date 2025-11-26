@@ -19,7 +19,7 @@ def main():
     task = PythonTask(function=hello, name="say_hello")
     pipeline = Pipeline(steps=[task])
     pipeline.execute()
-    return pipeline
+    return pipeline  # REQUIRED: Always return the pipeline object
 
 if __name__ == "__main__":
     main()
@@ -40,7 +40,7 @@ def main():
     )
     pipeline = Pipeline(steps=[task])
     pipeline.execute()
-    return pipeline
+    return pipeline  # REQUIRED: Always return the pipeline object
 
 if __name__ == "__main__":
     main()
@@ -61,7 +61,7 @@ def main():
     )
     pipeline = Pipeline(steps=[task])
     pipeline.execute()
-    return pipeline
+    return pipeline  # REQUIRED: Always return the pipeline object
 
 if __name__ == "__main__":
     main()
@@ -82,7 +82,7 @@ def main():
         Stub(name="save_results")
     ])
     pipeline.execute()
-    return pipeline
+    return pipeline  # REQUIRED: Always return the pipeline object
 
 if __name__ == "__main__":
     main()
@@ -113,10 +113,11 @@ def main():
         ShellTask(name="analyze", command="./analyze.sh", returns=["report_path"])
     ])
     pipeline.execute()
-    return pipeline
+    return pipeline  # REQUIRED: Always return the pipeline object
 ```
 
 Each task type provides the same capabilities:
+
 - **Parameter access**: `{previous_step_return}` interpolation
 - **Configuration**: Same YAML/environment variable system
 - **Catalog integration**: File storage and retrieval
@@ -129,6 +130,7 @@ Each task type provides the same capabilities:
 ### How Pipeline Tasks Work Internally
 
 **Every task type follows the same pattern**:
+
 1. **Task class**: Provides the pipeline API (`PythonTask`, `ShellTask`, etc.)
 2. **Task type**: Handles the actual execution (`PythonTaskType`, `ShellTaskType`, etc.)
 3. **Entry point registration**: Makes it discoverable
@@ -155,7 +157,12 @@ class RTaskType(BaseTaskType):
     task_type: str = "r"
     script_path: str = Field(...)
 
-    def execute_command(self, **kwargs):
+    # Any pydantic validators
+
+    def execute_command(
+        self,
+        map_variable: MapVariableType = None,
+    ) -> StepAttempt:
         # Your R execution logic
         command = f"Rscript {self.script_path}"
         # Run command and return StepAttempt
@@ -169,18 +176,11 @@ from runnable.sdk import BaseTask
 
 class RTask(BaseTask):
     """R script execution in pipelines"""
+    # The fields should match the fields of the corresponding task
     script_path: str = Field(...)
 
-    @property
-    def command_type(self) -> str:
-        return "r"
-
-    def create_job(self) -> RTaskType:
-        self.terminate_with_success = True
-        return RTaskType(
-            script_path=self.script_path,
-            **self.model_dump(exclude_defaults=True)
-        )
+    # Should match to the key used in the plugin
+    command_type: str = Field(default="r")
 ```
 
 ### 3. Register the Task Type
@@ -201,7 +201,7 @@ def main():
         PythonTask(name="postprocess", function=process_r_results)
     ])
     pipeline.execute()
-    return pipeline
+    return pipeline  # REQUIRED: Always return the pipeline object
 ```
 
 ## Integration Advantage

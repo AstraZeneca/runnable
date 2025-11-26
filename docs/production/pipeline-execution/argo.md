@@ -2,12 +2,14 @@
 
 Scale your pipelines to the cloud with distributed parallel execution using [Argo Workflows](https://argo-workflows.readthedocs.io/en/latest/) - the most powerful execution environment for production ML workflows.
 
-!!! info "Installation Required"
+!!! info "No Additional Dependencies"
 
-    Argo Workflows execution requires the optional Kubernetes dependency:
+    **Argo Workflows execution works with the base runnable installation** - no additional dependencies required:
     ```bash
-    pip install runnable[k8s]
+    pip install runnable
     ```
+
+    **Note**: The `runnable[k8s]` dependency is only needed for Kubernetes **job executors** (`k8s-job`, `mini-k8s-job`), not for Argo Workflows pipeline execution.
 
 !!! success "Distributed Parallel Execution"
 
@@ -264,7 +266,7 @@ kubectl apply -f workflow.yaml
 
 !!! warning "Infrastructure Requirements"
 
-    **Before using Argo**: Ensure your Kubernetes cluster has Argo Workflows installed and configured
+    **Before using Argo**: Ensure your cluster has Argo Workflows installed and configured (Argo can run on Kubernetes or standalone)
 
 !!! tip "Service Compatibility"
 

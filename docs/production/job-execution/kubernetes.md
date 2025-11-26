@@ -198,19 +198,19 @@ job-executor:
     job-executor:
       type: "k8s-job"
       config:
-        pvc_claim_name: runnable
-        namespace: enterprise-mlops
+        pvc_claim_name: runnable-storage
+        namespace: default
         jobSpec:
           template:
             spec:
               container:
-                image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+                image: your-registry.com/your-project:latest
     ```
 
 **Run the example:**
 ```bash
 # Push your image to the registry
-docker push harbor.csis.astrazeneca.net/mlops/runnable:latest
+docker push your-registry.com/your-project:latest
 
 # Run with Kubernetes executor
 RUNNABLE_CONFIGURATION_FILE=examples/11-jobs/k8s-job.yaml uv run examples/11-jobs/python_tasks.py

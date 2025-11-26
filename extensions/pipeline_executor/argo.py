@@ -30,6 +30,8 @@ from runnable.defaults import MapVariableType
 from runnable.graph import Graph, search_node_by_internal_name
 from runnable.nodes import BaseNode
 
+# TODO: Do we need a PVC if we are using remote storage?
+
 
 class BaseModelWIthConfig(BaseModel, use_enum_values=True):
     model_config = ConfigDict(

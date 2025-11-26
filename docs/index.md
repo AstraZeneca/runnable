@@ -25,7 +25,7 @@ pip install runnable
     ```bash
     pip install runnable[notebook]    # Jupyter notebook execution
     pip install runnable[docker]     # Container execution
-    pip install runnable[k8s]        # Kubernetes execution
+    pip install runnable[k8s]        # Kubernetes job executors
     pip install runnable[s3]         # S3 storage backend
     pip install runnable[examples]   # Example dependencies
     ```
@@ -47,7 +47,9 @@ def analyze_sales():
 from runnable import PythonJob
 
 def main():
-    PythonJob(function=analyze_sales).execute()
+    job = PythonJob(function=analyze_sales)
+    job.execute()
+    return job  # REQUIRED: Always return the job object
 
 if __name__ == "__main__":
     main()
@@ -79,7 +81,9 @@ def forecast_growth(revenue, growth_rate):
 from runnable import PythonJob
 
 def main():
-    PythonJob(function=forecast_growth).execute()
+    job = PythonJob(function=forecast_growth)
+    job.execute()
+    return job  # REQUIRED: Always return the job object
 
 if __name__ == "__main__":
     main()
@@ -125,10 +129,12 @@ def analyze_segments(customer_data):  # Name matches = automatic connection
 from runnable import Pipeline, PythonTask
 
 def main():
-    Pipeline(steps=[
+    pipeline = Pipeline(steps=[
         PythonTask(function=load_customer_data, returns=["customer_data"]),
         PythonTask(function=analyze_segments, returns=["analysis"])
-    ]).execute()
+    ])
+    pipeline.execute()
+    return pipeline  # REQUIRED: Always return the pipeline object
 
 if __name__ == "__main__":
     main()
@@ -165,10 +171,12 @@ def prepare_dataset():
 from runnable import Pipeline, PythonTask, NotebookTask
 
 def main():
-    Pipeline(steps=[
+    pipeline = Pipeline(steps=[
         PythonTask(function=prepare_dataset, returns=["dataset"]),
-        NotebookTask(notebook_path="deep_analysis.ipynb", returns=["insights"])
-    ]).execute()
+        NotebookTask(notebook="deep_analysis.ipynb", returns=["insights"])
+    ])
+    pipeline.execute()
+    return pipeline  # REQUIRED: Always return the pipeline object
 
 if __name__ == "__main__":
     main()
@@ -192,6 +200,41 @@ if __name__ == "__main__":
 
 ---
 
+## 🔍 Complete Working Examples
+
+**All examples in this documentation are fully working code!** Every code snippet comes from the `examples/` directory with complete, tested implementations.
+
+!!! example "Repository Examples"
+
+    **📁 [Browse All Examples](https://github.com/AstraZeneca/runnable/tree/main/examples)**
+
+    Complete, tested examples organized by topic:
+
+    - **`examples/01-tasks/`** - Basic task types (Python, notebooks, shell scripts)
+    - **`examples/02-sequential/`** - Multi-step workflows and conditional logic
+    - **`examples/03-parameters/`** - Configuration and parameter passing
+    - **`examples/04-catalog/`** - File storage and data management
+    - **`examples/06-parallel/`** - Parallel execution patterns
+    - **`examples/07-map/`** - Iterative processing over data
+    - **`examples/11-jobs/`** - Single job execution examples
+    - **`examples/configs/`** - Configuration files for different environments
+
+    **📋 All examples include:**
+
+    - ✅ Complete Python code following the correct patterns
+    - ✅ Configuration files for different execution environments
+    - ✅ Instructions on how to run them with `uv run`
+    - ✅ Tested in CI to ensure they always work
+
+**🚀 Quick Start**: Pick any example and run it immediately:
+```bash
+git clone https://github.com/AstraZeneca/runnable.git
+cd runnable
+uv run examples/01-tasks/python_tasks.py
+```
+
+---
+
 ## What's Next?
 
 You've seen how Runnable transforms your code for portability and tracking. Ready to go deeper?
@@ -202,10 +245,13 @@ Learn when to use single jobs vs multi-step pipelines
 **📊 Handle Your Data** → [Task Types](pipelines/task-types.md)
 Work with returns, parameters, and different data types
 
-**⚡ See Real Examples** → [Usage Examples](usage.md)
-Browse practical patterns and real-world scenarios
+**👁️ Visualize Execution** → [Pipeline Visualization](pipelines/visualization.md)
+Interactive timelines showing execution flow and timing
 
-**🚀 Deploy Anywhere** → [Production Guide](production/overview.md)
+**⚡ See Real Examples** → [Browse Repository Examples](https://github.com/AstraZeneca/runnable/tree/main/examples)
+All working examples with full code in the `examples/` directory
+
+**🚀 Deploy Anywhere** → [Production Guide](production/deploy-anywhere.md)
 Scale from laptop to containers to Kubernetes
 
 **🔍 Compare Alternatives** → [Compare Tools](compare/kedro.md)

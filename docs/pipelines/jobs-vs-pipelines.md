@@ -16,8 +16,8 @@ def analyze_sales_data():
 def main():
     # Job: Just run it
     job = PythonJob(function=analyze_sales_data)
-    result = job.execute()
-    return job
+    job.execute()
+    return job  # REQUIRED: Always return the job object
 
 if __name__ == "__main__":
     main()
@@ -64,7 +64,7 @@ def main():
         PythonTask(function=train_model, returns=["model"])
     ])
     pipeline.execute()
-    return pipeline
+    return pipeline  # REQUIRED: Always return the pipeline object
 
 if __name__ == "__main__":
     main()
@@ -104,7 +104,7 @@ from runnable import PythonJob
 def main():
     job = PythonJob(function=hello)
     job.execute()
-    return job
+    return job  # REQUIRED: Always return the job object
 
 if __name__ == "__main__":
     main()
@@ -118,7 +118,7 @@ def main():
     task = PythonTask(function=hello, name="say_hello")
     pipeline = Pipeline(steps=[task])
     pipeline.execute()
-    return pipeline
+    return pipeline  # REQUIRED: Always return the pipeline object
 
 if __name__ == "__main__":
     main()
@@ -139,6 +139,44 @@ if __name__ == "__main__":
 
     Start with a job to test your function, then move it into a pipeline when you're ready to build a workflow.
 
+!!! warning "Essential Pattern: Always Return Objects"
+
+    **Both jobs and pipelines must be returned from your `main()` function.** This pattern is critical for:
+
+    **🔍 Execution Tracking**: Runnable tracks run status, timing, and metadata through the returned object
+
+    **📊 Result Access**: The returned object contains execution results, logs, and run IDs
+
+    **🔗 Integration**: External tools and monitoring systems need the object for further processing
+
+    **🐛 Debugging**: Error details and execution context are accessible via the returned object
+
+    **❌ Missing returns break functionality:**
+    ```python
+    def main():
+        job = PythonJob(function=my_function)
+        job.execute()
+        # Missing return - loses execution tracking!
+
+    def main():
+        pipeline = Pipeline(steps=[...])
+        pipeline.execute()
+        # Missing return - no access to results!
+    ```
+
+    **✅ Always use this pattern:**
+    ```python
+    def main():
+        job = PythonJob(function=my_function)
+        job.execute()
+        return job  # Essential for Runnable's execution model
+
+    def main():
+        pipeline = Pipeline(steps=[...])
+        pipeline.execute()
+        return pipeline  # Required for result access and tracking
+    ```
+
 !!! info "Custom Execution Models"
 
     **Need to run jobs beyond Python, Shell, and Notebooks?** Create custom task types and executors for any infrastructure or execution model using Runnable's extensible plugin architecture.
@@ -150,3 +188,4 @@ if __name__ == "__main__":
 
 - **[Pipeline Parameters](pipeline-parameters.md)** - Configure pipelines with parameters and custom run IDs
 - **[Task Types](task-types.md)** - Different ways to define pipeline steps (Python, notebooks, shell scripts)
+- **[Visualization](visualization.md)** - Visualize pipeline execution with interactive timelines

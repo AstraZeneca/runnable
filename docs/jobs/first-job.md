@@ -13,7 +13,7 @@ from runnable import PythonJob
 def main():
     job = PythonJob(function=hello)
     job.execute()
-    return job
+    return job  # REQUIRED: Always return the job object
 
 if __name__ == "__main__":
     main()
@@ -27,6 +27,31 @@ if __name__ == "__main__":
     **Try it now:**
     ```bash
     uv run examples/11-jobs/python_tasks.py
+    ```
+
+!!! warning "Always Return the Job Object"
+
+    **Your `main()` function must return the job object.** This is required for:
+
+    - **Execution tracking** - Runnable needs the job object to track execution status
+    - **Metadata access** - The returned object contains run IDs, execution logs, and results
+    - **Integration compatibility** - External tools expect the job object for further processing
+    - **Debugging support** - Access to execution context and error details
+
+    **❌ Without return:**
+    ```python
+    def main():
+        job = PythonJob(function=hello)
+        job.execute()
+        # Missing return - breaks Runnable's execution model!
+    ```
+
+    **✅ Correct pattern:**
+    ```python
+    def main():
+        job = PythonJob(function=hello)
+        job.execute()
+        return job  # Required for proper execution tracking
     ```
 
 ## What Happens When You Run It

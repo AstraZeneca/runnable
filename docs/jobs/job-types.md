@@ -113,12 +113,6 @@ JobContext(
 3. **Entry point registration**: Makes it discoverable
 
 ```python
-# Built-in jobs are registered like this:
-[project.entry-points.'jobs']
-"python" = "runnable.sdk:PythonJob"
-"shell" = "runnable.sdk:ShellJob"
-"notebook" = "runnable.sdk:NotebookJob"
-
 [project.entry-points.'tasks']
 "python" = "runnable.tasks:PythonTaskType"
 "shell" = "runnable.tasks:ShellTaskType"
@@ -139,11 +133,15 @@ class RTaskType(BaseTaskType):
     task_type: str = "r"
     script_path: str = Field(...)
 
-    def execute_command(self, **kwargs):
+    def execute_command(
+        self,
+        map_variable: MapVariableType = None,
+    ) -> StepAttempt:
         # Your R execution logic
         command = f"Rscript {self.script_path}"
         # Run command and return StepAttempt
         pass
+
 ```
 
 ### 2. Create the Job Wrapper
@@ -152,23 +150,19 @@ class RTaskType(BaseTaskType):
 from runnable.sdk import BaseJob
 
 class RJob(BaseJob):
+    # The name of the plugin of Task
+    command_type: str = Field(default="r")
+
+    # The fields should be the same as the corresponding task definition
     script_path: str = Field(...)
 
-    def get_task(self) -> RTaskType:
-        return RTaskType(
-            script_path=self.script_path,
-            **self.model_dump(exclude_defaults=True)
-        )
 ```
 
-### 3. Register Both Entry Points
+### 3. Register Task Entry Point
 ```toml
 # pyproject.toml
 [project.entry-points.'tasks']
 "r" = "my_package.tasks:RTaskType"
-
-[project.entry-points.'jobs']
-"r" = "my_package.jobs:RJob"
 ```
 
 ### 4. Use Your Custom Job

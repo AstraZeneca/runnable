@@ -35,6 +35,7 @@ def main():
 ```
 
 **What happens internally:**
+
 1. `Parallel` (SDK class) provides the user API
 2. `create_node()` method converts to `ParallelNode` (execution implementation)
 3. `ParallelNode` handles the actual parallel branch coordination
@@ -47,6 +48,7 @@ def main():
 ### How Pipeline Nodes Work Internally
 
 **Every node type follows the same pattern**:
+
 1. **Node class**: Provides the pipeline API (`Parallel`, `Map`, etc.)
 2. **Node implementation**: Handles the actual execution logic (`ParallelNode`, `MapNode`, etc.)
 3. **Entry point registration**: Makes it discoverable

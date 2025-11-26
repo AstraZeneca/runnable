@@ -295,6 +295,6 @@ The guide provides:
             pass
     ```
 
-**Ready to build?** See the [development guide](custom-run-log-stores.md) for complete implementation patterns.
+**Ready to build?** See the [development guide](custom-run-log-stores.md) for implementation patterns and examples.
 
 ---

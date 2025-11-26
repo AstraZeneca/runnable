@@ -112,7 +112,6 @@ extra_css:
 
 nav:
   - "Home": "index.md"
-  - "Usage Examples": "usage.md"
   - "Jobs":
       - "jobs/index.md"
       - "Your First Job": "jobs/first-job.md"
@@ -129,6 +128,7 @@ nav:
       - "Pipeline Parameters": "pipelines/pipeline-parameters.md"
       - "File Management": "pipelines/file-management.md"
       - "Reproducibility": "pipelines/reproducibility.md"
+      - "Visualization": "pipelines/visualization.md"
   - "Advanced Patterns":
       - "Parallel Execution": "advanced-patterns/parallel-execution.md"
       - "Map Patterns": "advanced-patterns/map-patterns.md"
