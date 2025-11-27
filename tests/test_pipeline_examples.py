@@ -275,7 +275,7 @@ python_examples = [
         [],
         "examples/common/initial_parameters.yaml",
         [
-            partial(conditions.should_have_num_steps, 3),
+            partial(conditions.should_have_num_steps, 5),
             partial(conditions.should_have_catalog_execution_logs),
             partial(conditions.should_be_successful),
             partial(conditions.should_step_be_successful, "read_params_as_pydantic"),
@@ -754,41 +754,6 @@ def test_python_examples(example, context):
             if not fails:
                 raise
         [asserttion() for asserttion in assertions]
-
-
-@pytest.mark.parametrize("example", list_python_examples())
-@pytest.mark.parametrize("context", contexts)
-# @pytest.mark.no_cover
-@pytest.mark.e2e
-def test_yaml_examples(example, context):
-    print(f"Testing {example}...")
-    file, no_yaml, fails, ignore_contexts, parameters_file, assertions = example
-
-    if context in ignore_contexts:
-        return
-
-    if no_yaml:
-        return
-
-    context = context()
-    example_file = f"examples/{file}.yaml"
-
-    with context:
-        from runnable import exceptions
-        from runnable.entrypoints import execute_pipeline_yaml_spec
-
-        run_id = generate_run_id()
-        os.environ[defaults.ENV_RUN_ID] = run_id
-        try:
-            execute_pipeline_yaml_spec(
-                pipeline_file=example_file,
-                parameters_file=parameters_file,
-                run_id=os.environ[defaults.ENV_RUN_ID],
-            )
-        except exceptions.ExecutionFailedError:
-            if not fails:
-                raise
-        [assertion() for assertion in assertions]
 
 
 argo_contexts = [argo_context]

@@ -1,0 +1,47 @@
+# PyTorch Distributed Training Tutorial - Configuration Parameters
+#
+# This file contains all configurable parameters for distributed training.
+# The pipeline will spawn multiple processes for parallel training using PyTorch DDP.
+
+# Distributed Training Configuration
+world_size: 4                    # Number of processes to spawn (should not exceed CPU cores)
+epochs: 10                       # Number of training epochs
+batch_size: 64                   # Batch size per process (total effective batch = batch_size * world_size)
+learning_rate: 0.001             # Learning rate for optimizer
+
+# Model Architecture Parameters
+hidden_size: 256                 # Hidden layer size in neural network
+input_size: 784                  # Input feature size (28x28 for MNIST-like data)
+num_classes: 10                  # Number of output classes
+
+# Dataset Parameters
+num_samples: 20000               # Total number of synthetic samples to generate
+train_split: 0.8                 # Fraction of data used for training (rest for validation)
+
+# Alternative Configurations:
+#
+# For faster experimentation (fewer samples, smaller model):
+# num_samples: 5000
+# hidden_size: 128
+# epochs: 5
+# world_size: 2
+#
+# For more intensive training (larger model, more data):
+# num_samples: 50000
+# hidden_size: 512
+# epochs: 20
+# batch_size: 128
+#
+# For single-process comparison (disable distributed):
+# world_size: 1
+# batch_size: 256  # Larger batch since only one process
+#
+# CPU-optimized settings:
+# world_size: 8    # Use all CPU cores if available
+# batch_size: 32   # Smaller batch per process for memory efficiency
+
+# Notes:
+# - Total effective batch size = batch_size * world_size
+# - world_size should not exceed available CPU cores
+# - Larger world_size may improve training speed but uses more memory
+# - Synthetic dataset is generated for demonstration; replace with real data as needed

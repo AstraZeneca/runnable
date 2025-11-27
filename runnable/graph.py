@@ -379,9 +379,9 @@ def create_node(name: str, step_config: dict, internal_branch_name: Optional[str
         node_type = step_config.pop(
             "type"
         )  # Remove the type as it is not used in node creation.
-        node_mgr: BaseNode = driver.DriverManager(
-            namespace="nodes", name=node_type
-        ).driver
+        node_mgr: BaseNode = cast(
+            BaseNode, driver.DriverManager(namespace="nodes", name=node_type).driver
+        )
 
         next_node = step_config.pop("next", None)
 

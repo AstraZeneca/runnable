@@ -21,6 +21,7 @@ from runnable.datastore import (
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
+# TODO: Should this be complex?
 class EntityNotFoundError(Exception):
     pass
 
@@ -31,6 +32,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
     """
 
     service_name: str = ""
+    supports_parallel_writes: bool = True
 
     class LogTypes(Enum):
         RUN_LOG = "RunLog"

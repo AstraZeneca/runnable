@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Optional
 
 import runnable.context as context
 from runnable import defaults, graph, nodes, utils
@@ -99,6 +100,105 @@ def execute_single_node(
     )
 
     run_context.pipeline_executor.send_return_code()
+
+
+def execute_single_branch(
+    branch_name: str,
+    branch: graph.Graph,
+    run_context: context.PipelineContext,
+    map_variable: Optional[dict] = None,
+):
+    """
+    Execute a single branch in a separate process for parallel execution.
+
+    This function is designed to be called by multiprocessing to execute
+    individual branches of parallel and map nodes.
+
+    Args:
+        branch_name (str): The name/identifier of the branch
+        branch (Graph): The graph object representing the branch to execute
+        run_context (PipelineContext): The pipeline execution context
+        map_variable (dict, optional): Map variables for the execution
+    """
+    # Set up branch-specific logging
+    _setup_branch_logging(branch_name)
+
+    logger.info(f"Executing single branch: {branch_name}")
+
+    try:
+        # Set the context in the global context module to ensure all components have access
+        import runnable.context as context_module
+
+        context_module.run_context = run_context
+
+        # Execute the branch using the pipeline executor
+        run_context.pipeline_executor.execute_graph(branch, map_variable=map_variable)
+        logger.info(f"Branch {branch_name} completed successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Branch {branch_name} failed with error: {e}")
+        return False
+
+
+def _setup_branch_logging(branch_name: str):
+    """
+    Set up branch-specific logging with prefixes to organize parallel execution logs.
+
+    Args:
+        branch_name (str): The name of the branch to use as a prefix
+    """
+    import logging
+    import sys
+
+    # Create a custom formatter that includes the branch name
+    class BranchFormatter(logging.Formatter):
+        def __init__(self, branch_name: str):
+            self.branch_name = branch_name
+            # Extract just the meaningful part of the branch name for cleaner display
+            self.display_name = self._get_display_name(branch_name)
+            super().__init__()
+
+        def _get_display_name(self, branch_name: str) -> str:
+            """Extract a clean display name from the full branch name."""
+            # For parallel branches like 'parallel_step.branch1', use 'branch1'
+            # For map branches like 'map_state.1', use 'iter:1'
+            if "." in branch_name:
+                parts = branch_name.split(".")
+                if len(parts) >= 2:
+                    last_part = parts[-1]
+                    # Check if it looks like a map iteration (numeric)
+                    if last_part.isdigit():
+                        return f"iter:{last_part}"
+                    else:
+                        return last_part
+            return branch_name
+
+        def format(self, record):
+            # Add branch prefix to the message
+            original_msg = record.getMessage()
+            record.msg = f"[{self.display_name}] {original_msg}"
+            record.args = ()
+
+            # Use a simple format for clarity
+            return f"{record.levelname}:{record.msg}"
+
+    # Get the root logger and add our custom formatter
+    root_logger = logging.getLogger()
+
+    # Remove existing handlers to avoid duplicate logs
+    for handler in root_logger.handlers[:]:
+        if hasattr(handler, "_branch_handler"):
+            root_logger.removeHandler(handler)
+
+    # Create a new handler with branch-specific formatting
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(BranchFormatter(branch_name))
+    handler._branch_handler = True  # type: ignore  # Mark it as our custom handler
+    handler.setLevel(logging.INFO)
+
+    # Add the handler to the root logger
+    root_logger.addHandler(handler)
+    root_logger.setLevel(logging.INFO)
 
 
 def execute_job_non_local(
@@ -207,6 +307,11 @@ def fan(
     else:
         raise ValueError(f"Invalid mode {mode}")
 
+
+if __name__ == "__main__":
+    # This is only for perf testing purposes.
+    # execute_single_branch()  # Missing required arguments
+    pass
 
 # if __name__ == "__main__":
 #     # This is only for perf testing purposes.

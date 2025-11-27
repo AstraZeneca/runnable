@@ -554,6 +554,7 @@ class BaseRunLogStore(ABC, BaseModel):
 
     service_name: str = ""
     service_type: str = "run_log_store"
+    supports_parallel_writes: bool = False
 
     @abstractmethod
     def get_summary(self) -> Dict[str, Any]: ...

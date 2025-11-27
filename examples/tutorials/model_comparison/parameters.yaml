@@ -1,0 +1,44 @@
+# ML Model Comparison Tutorial - Configuration Parameters
+#
+# This file contains all configurable parameters for comparing multiple ML models.
+# The pipeline will train 4 different algorithms in parallel and compare their performance.
+
+# Dataset Configuration
+dataset_name: "breast_cancer"  # Options: "breast_cancer", "wine", "digits"
+test_size: 0.2                 # Fraction of data to use for testing
+random_state: 42              # Random seed for reproducibility
+
+# Random Forest Parameters
+n_estimators: 100             # Number of trees in the forest
+max_depth: null               # Maximum depth of trees (null = no limit)
+min_samples_split: 2          # Minimum samples required to split a node
+
+# Logistic Regression Parameters
+C: 1.0                        # Regularization strength (smaller = more regularization)
+max_iter: 1000                # Maximum number of iterations
+
+# SVM Parameters
+# C: 1.0                      # Regularization parameter (same as LR, will be shared)
+kernel: "rbf"                 # Kernel type: "linear", "poly", "rbf", "sigmoid"
+
+# K-Nearest Neighbors Parameters
+n_neighbors: 5                # Number of neighbors to consider
+weights: "uniform"            # Weight function: "uniform" or "distance"
+
+# Alternative Dataset Configurations:
+#
+# For Wine Dataset (3 classes, 13 features):
+# dataset_name: "wine"
+# n_neighbors: 3
+#
+# For Digits Dataset (10 classes, 64 features):
+# dataset_name: "digits"
+# n_estimators: 200
+# C: 10.0
+# n_neighbors: 7
+#
+# For more challenging classification:
+# test_size: 0.3
+# C: 0.1                      # More regularization
+# kernel: "linear"            # Simpler SVM kernel
+# n_neighbors: 10             # More neighbors for KNN

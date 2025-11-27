@@ -5,7 +5,7 @@
 **Transform any Python function into a portable, trackable pipeline in seconds.**
 
 <p align="center">
-<a href="https://pypi.org/project/runnable/"><img alt="python:" src="https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg"></a>
+<a href="https://pypi.org/project/runnable/"><img alt="python:" src="https://img.shields.io/badge/python-3.10+-blue.svg"></a>
 <a href="https://pypi.org/project/runnable/"><img alt="Pypi" src="https://badge.fury.io/py/runnable.svg"></a>
 <a href="https://github.com/AstraZeneca/runnable/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a>
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
@@ -26,11 +26,16 @@ def analyze_sales():
     return total_revenue, best_product
 ```
 
-**Make it runnable everywhere (2 lines):**
+**Make it runnable everywhere:**
 
 ```python
 from runnable import PythonJob
-PythonJob(function=analyze_sales).execute()
+
+def main():
+    PythonJob(function=analyze_sales).execute()
+
+if __name__ == "__main__":
+    main()
 ```
 
 **🎉 Success!** Your function now runs the same on laptop, containers, and Kubernetes with automatic tracking and reproducibility.
@@ -46,10 +51,15 @@ def analyze_segments(customer_data):  # Name matches = automatic connection
 
 # What Runnable needs (same logic, no glue):
 from runnable import Pipeline, PythonTask
-Pipeline(steps=[
-    PythonTask(function=load_customer_data, returns=["customer_data"]),
-    PythonTask(function=analyze_segments, returns=["analysis"])
-]).execute()
+
+def main():
+    Pipeline(steps=[
+        PythonTask(function=load_customer_data, returns=["customer_data"]),
+        PythonTask(function=analyze_segments, returns=["analysis"])
+    ]).execute()
+
+if __name__ == "__main__":
+    main()
 ```
 
 **Same pipeline runs unchanged on laptop, containers, and Kubernetes.**
@@ -58,6 +68,16 @@ Pipeline(steps=[
 
 ```bash
 pip install runnable
+```
+
+**For development:**
+```bash
+uv sync --all-extras --dev
+```
+
+**Run examples:**
+```bash
+uv run examples/01-tasks/python_tasks.py
 ```
 
 ## 📊 Why Choose Runnable?

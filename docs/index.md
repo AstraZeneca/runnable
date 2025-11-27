@@ -13,11 +13,22 @@ Transform any Python function into a portable, trackable pipeline in seconds.
 
 <hr style="border:2px dotted orange">
 
-## Step 1: Install (10 seconds)
+## Step 1: Install
 
 ```bash
 pip install runnable
 ```
+
+!!! tip "Optional Features"
+
+    Install optional features as needed:
+    ```bash
+    pip install runnable[notebook]    # Jupyter notebook execution
+    pip install runnable[docker]     # Container execution
+    pip install runnable[k8s]        # Kubernetes job executors
+    pip install runnable[s3]         # S3 storage backend
+    pip install runnable[examples]   # Example dependencies
+    ```
 
 ## Step 2: Your Function (unchanged!)
 
@@ -29,17 +40,25 @@ def analyze_sales():
     return total_revenue, best_product
 ```
 
-## Step 3: Make It Runnable (2 lines)
+## Step 3: Make It Runnable
 
 ```python
-# Add 2 lines → Make it runnable everywhere
+# Add main function → Make it runnable everywhere
 from runnable import PythonJob
-PythonJob(function=analyze_sales).execute()
+
+def main():
+    job = PythonJob(function=analyze_sales)
+    job.execute()
+    return job  # REQUIRED: Always return the job object
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## 🎉 Success!
 
 You just made your first function runnable and got:
+
 - ✅ **Automatic tracking**: execution logs, timestamps, results saved
 - ✅ **Reproducible runs**: full execution history and metadata
 - ✅ **Environment portability**: runs the same on laptop, containers, Kubernetes
@@ -60,7 +79,14 @@ def forecast_growth(revenue, growth_rate):
     return revenue * (1 + growth_rate) ** 3
 
 from runnable import PythonJob
-PythonJob(function=forecast_growth).execute()
+
+def main():
+    job = PythonJob(function=forecast_growth)
+    job.execute()
+    return job  # REQUIRED: Always return the job object
+
+if __name__ == "__main__":
+    main()
 
 # Run different scenarios anywhere:
 # Local: RUNNABLE_PRM_revenue=100000 RUNNABLE_PRM_growth_rate=0.05 python forecast.py
@@ -71,11 +97,11 @@ PythonJob(function=forecast_growth).execute()
 ```
 
 ??? example "See complete parameter example"
-    ```python title="examples/03-parameters/passing_parameters_python.py"
-    --8<-- "examples/03-parameters/passing_parameters_python.py"
+    ```python title="examples/11-jobs/passing_parameters_python.py"
+    --8<-- "examples/11-jobs/passing_parameters_python.py"
     ```
 
-    **Try it:** `uv run examples/03-parameters/passing_parameters_python.py`
+    **Try it:** `uv run examples/11-jobs/passing_parameters_python.py`
 
 **Why bother?** No more "what parameters gave us those good results?" - tracked automatically across all environments.
 
@@ -101,10 +127,17 @@ def analyze_segments(customer_data):  # Name matches = automatic connection
 
 # What Runnable needs (same logic, no glue):
 from runnable import Pipeline, PythonTask
-Pipeline(steps=[
-    PythonTask(function=load_customer_data, returns=["customer_data"]),
-    PythonTask(function=analyze_segments, returns=["analysis"])
-]).execute()
+
+def main():
+    pipeline = Pipeline(steps=[
+        PythonTask(function=load_customer_data, returns=["customer_data"]),
+        PythonTask(function=analyze_segments, returns=["analysis"])
+    ])
+    pipeline.execute()
+    return pipeline  # REQUIRED: Always return the pipeline object
+
+if __name__ == "__main__":
+    main()
 
 # Same pipeline runs unchanged on:
 # • Your laptop (development)
@@ -115,11 +148,11 @@ Pipeline(steps=[
 ```
 
 ??? example "See complete pipeline example"
-    ```python title="examples/02-sequential/simple.py"
-    --8<-- "examples/02-sequential/simple.py"
+    ```python title="examples/02-sequential/traversal.py"
+    --8<-- "examples/02-sequential/traversal.py"
     ```
 
-    **Try it:** `uv run examples/02-sequential/simple.py`
+    **Try it:** `uv run examples/02-sequential/traversal.py`
 
 **Why bother?** No more "it works locally but breaks in production" - same code, guaranteed same behavior.
 
@@ -136,10 +169,17 @@ def prepare_dataset():
     return clean_data
 
 from runnable import Pipeline, PythonTask, NotebookTask
-Pipeline(steps=[
-    PythonTask(function=prepare_dataset, returns=["dataset"]),
-    NotebookTask(notebook_path="deep_analysis.ipynb", returns=["insights"])
-]).execute()
+
+def main():
+    pipeline = Pipeline(steps=[
+        PythonTask(function=prepare_dataset, returns=["dataset"]),
+        NotebookTask(notebook="deep_analysis.ipynb", returns=["insights"])
+    ])
+    pipeline.execute()
+    return pipeline  # REQUIRED: Always return the pipeline object
+
+if __name__ == "__main__":
+    main()
 
 # This exact pipeline runs unchanged on:
 # • Local Jupyter setup
@@ -160,23 +200,61 @@ Pipeline(steps=[
 
 ---
 
+## 🔍 Complete Working Examples
+
+**All examples in this documentation are fully working code!** Every code snippet comes from the `examples/` directory with complete, tested implementations.
+
+!!! example "Repository Examples"
+
+    **📁 [Browse All Examples](https://github.com/AstraZeneca/runnable/tree/main/examples)**
+
+    Complete, tested examples organized by topic:
+
+    - **`examples/01-tasks/`** - Basic task types (Python, notebooks, shell scripts)
+    - **`examples/02-sequential/`** - Multi-step workflows and conditional logic
+    - **`examples/03-parameters/`** - Configuration and parameter passing
+    - **`examples/04-catalog/`** - File storage and data management
+    - **`examples/06-parallel/`** - Parallel execution patterns
+    - **`examples/07-map/`** - Iterative processing over data
+    - **`examples/11-jobs/`** - Single job execution examples
+    - **`examples/configs/`** - Configuration files for different environments
+
+    **📋 All examples include:**
+
+    - ✅ Complete Python code following the correct patterns
+    - ✅ Configuration files for different execution environments
+    - ✅ Instructions on how to run them with `uv run`
+    - ✅ Tested in CI to ensure they always work
+
+**🚀 Quick Start**: Pick any example and run it immediately:
+```bash
+git clone https://github.com/AstraZeneca/runnable.git
+cd runnable
+uv run examples/01-tasks/python_tasks.py
+```
+
+---
+
 ## What's Next?
 
 You've seen how Runnable transforms your code for portability and tracking. Ready to go deeper?
 
-**🎯 Master the Concepts** → [Jobs vs Pipelines](concepts/building-blocks/jobs-vs-pipelines.md)
+**🎯 Master the Concepts** → [Jobs vs Pipelines](pipelines/jobs-vs-pipelines.md)
 Learn when to use single jobs vs multi-step pipelines
 
-**📊 Handle Your Data** → [Task Types](concepts/building-blocks/task-types.md)
+**📊 Handle Your Data** → [Task Types](pipelines/task-types.md)
 Work with returns, parameters, and different data types
 
-**⚡ See Real Examples** → [Usage Examples](usage.md)
-Browse practical patterns and real-world scenarios
+**👁️ Visualize Execution** → [Pipeline Visualization](pipelines/visualization.md)
+Interactive timelines showing execution flow and timing
 
-**🚀 Deploy Anywhere** → [Production Guide](configurations/overview.md)
+**⚡ See Real Examples** → [Browse Repository Examples](https://github.com/AstraZeneca/runnable/tree/main/examples)
+All working examples with full code in the `examples/` directory
+
+**🚀 Deploy Anywhere** → [Production Guide](production/deploy-anywhere.md)
 Scale from laptop to containers to Kubernetes
 
-**🔍 Compare Alternatives** → [Compare Tools](comparisons/kedro.md)
+**🔍 Compare Alternatives** → [Compare Tools](compare/kedro.md)
 See how Runnable compares to Kedro, Metaflow, and other orchestration tools
 
 ---
@@ -193,7 +271,7 @@ See how Runnable compares to Kedro, Metaflow, and other orchestration tools
 
     - No API's or decorators or any imposed structure.
 
-    [:octicons-arrow-right-24: Getting started](#step-1-install-10-seconds)
+    [:octicons-arrow-right-24: Getting started](jobs/index.md)
 
 -    :building_construction:{ .lg .middle } __Bring your infrastructure__
 
@@ -202,8 +280,9 @@ See how Runnable compares to Kedro, Metaflow, and other orchestration tools
     ```runnable``` is not a platform. It works with your platforms.
 
     - ```runnable``` composes pipeline definitions suited to your infrastructure.
+    - **Extensible plugin architecture**: Build custom executors, storage backends, and task types for any platform.
 
-    [:octicons-arrow-right-24: Infrastructure](configurations/overview.md)
+    [:octicons-arrow-right-24: Infrastructure](production/deploy-anywhere.md)
 
 -   :memo:{ .lg .middle } __Reproducibility__
 
@@ -212,7 +291,7 @@ See how Runnable compares to Kedro, Metaflow, and other orchestration tools
     Runnable tracks key information to reproduce the execution. All this happens without
     any additional code.
 
-    [:octicons-arrow-right-24: Run Log](concepts/run-log.md)
+    [:octicons-arrow-right-24: Run Log](production/run-log.md)
 
 -   :repeat:{ .lg .middle } __Retry failures__
 
@@ -220,7 +299,7 @@ See how Runnable compares to Kedro, Metaflow, and other orchestration tools
 
     Debug any failure in your local development environment.
 
-    [:octicons-arrow-right-24: Advanced Patterns](concepts/advanced-patterns/failure-handling.md)
+    [:octicons-arrow-right-24: Advanced Patterns](advanced-patterns/failure-handling.md)
 
 -   :microscope:{ .lg .middle } __Testing__
 
@@ -231,7 +310,7 @@ See how Runnable compares to Kedro, Metaflow, and other orchestration tools
     - mock/patch the steps of the pipeline
     - test your functions as you normally do.
 
-    [:octicons-arrow-right-24: Testing Guide](concepts/advanced-patterns/mocking-testing.md)
+    [:octicons-arrow-right-24: Testing Guide](advanced-patterns/mocking-testing.md)
 
 -   :broken_heart:{ .lg .middle } __Move on__
 

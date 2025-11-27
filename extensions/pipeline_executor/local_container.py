@@ -66,6 +66,8 @@ class LocalContainerExecutor(GenericPipelineExecutor):
     """
 
     service_name: str = "local-container"
+    enable_parallel: bool = Field(default=False)
+
     docker_image: str
     auto_remove_container: bool = True
     environment: Dict[str, str] = Field(default_factory=dict)
@@ -196,7 +198,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
                 command=command,
                 auto_remove=False,
                 volumes=self._volumes,
-                network_mode="host",
+                # network_mode="host",
                 environment=environment,
             )
 

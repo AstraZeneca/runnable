@@ -163,3 +163,6 @@ minikube/
 *_timeline.html
 *_dashboard.html
 *_diagram.svg
+
+# Test Dockerfile
+Dockerfile.test

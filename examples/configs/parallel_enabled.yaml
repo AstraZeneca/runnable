@@ -1,0 +1,13 @@
+pipeline-executor:
+  type: local # (1)
+  config:
+    enable_parallel: true
+
+run-log-store:
+  type: chunked-fs
+
+catalog:
+  type: file-system # (3)
+
+secrets:
+  type: env-secrets # (4)

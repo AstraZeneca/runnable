@@ -1,0 +1,232 @@
+# 🔄 Map Patterns
+
+Process collections of data with the same workflow - like a for loop for pipelines.
+
+## The basic pattern
+
+```mermaid
+flowchart TD
+    A[Start] --> B[Map Step]
+    B --> C["chunks = 1, 2, 3"]
+    C --> D{For each chunk}
+    D --> E[Process chunk=1]
+    D --> F[Process chunk=2]
+    D --> G[Process chunk=3]
+    E --> H[Result: 10]
+    F --> I[Result: 20]
+    G --> J[Result: 30]
+    H --> K["Collect: 10, 20, 30"]
+    I --> K
+    J --> K
+    K --> L[Continue]
+```
+
+```python
+from runnable import Map, Pipeline, PythonTask
+
+def main():
+    # Create a map step that processes each chunk
+    map_state = Map(
+        name="process_chunks",
+        iterate_on="chunks",           # Parameter name containing [1, 2, 3]
+        iterate_as="chunk",           # Each iteration gets chunk=1, chunk=2, chunk=3
+        branch=create_processing_workflow()  # Same workflow runs for each chunk
+    )
+
+    # Collect results after all iterations
+    collect_results = PythonTask(function=collect_all_results, name="collect")
+
+    pipeline = Pipeline(steps=[map_state, collect_results])
+    pipeline.execute(parameters_file="parameters.yaml")  # Contains chunks: [1, 2, 3]
+    return pipeline
+
+# Helper function to create the processing workflow
+def create_processing_workflow():
+    # Implementation details in complete example below
+    pass
+
+def collect_all_results():
+    # Implementation details in complete example below
+    pass
+
+if __name__ == "__main__":
+    main()
+```
+
+??? example "See complete runnable code"
+    ```python title="examples/07-map/map.py"
+    --8<-- "examples/07-map/map.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/07-map/map.py
+    ```
+
+Like writing:
+```python
+chunks = [1, 2, 3]
+results = []
+for chunk in chunks:
+    result = process_chunk(chunk)
+    results.append(result)
+```
+
+## The branch workflow
+
+Each iteration runs this pipeline with different `chunk` values:
+
+**Helper function (creates the workflow for each iteration):**
+```python
+def create_processing_workflow():
+    from runnable import Pipeline, PythonTask, NotebookTask, ShellTask
+
+    # Process chunk through multiple steps
+    python_step = PythonTask(
+        function=process_chunk,           # chunk=1 → processed_python=10
+        returns=["processed_python"]
+    )
+
+    notebook_step = NotebookTask(
+        notebook="process_chunk.ipynb",   # processed_python=10 → processed_notebook=100
+        returns=["processed_notebook"]
+    )
+
+    shell_step = ShellTask(
+        command="./process_chunk.sh",     # processed_notebook=100 → processed_shell=1000
+        returns=["processed_shell"]
+    )
+
+    return Pipeline(steps=[python_step, notebook_step, shell_step])
+```
+
+Each iteration runs the same pipeline structure:
+
+```mermaid
+flowchart LR
+    A[chunk] --> B[Python Task]
+    B --> C[Notebook Task]
+    C --> D[Shell Task]
+    D --> E[Read Task]
+    E --> F[returns: processed]
+```
+
+## 🔧 Custom reducers
+
+By default, map collects all results into lists. Customize this with reducers:
+
+```mermaid
+flowchart TD
+    A["Results: 10, 20, 30"] --> B{Reducer}
+    B --> C["Default: 10, 20, 30"]
+    B --> D[Max: 30]
+    B --> E[Sum: 60]
+    B --> F[Count: 3]
+```
+
+```python
+from runnable import Map, Pipeline
+
+def main():
+    # Use custom reducer to aggregate results
+    map_state = Map(
+        name="process_with_max",
+        iterate_on="chunks",                    # [1, 2, 3]
+        iterate_as="chunk",
+        reducer="lambda *x: max(x)",           # Take maximum instead of collecting all
+        branch=create_processing_workflow()
+    )
+
+    pipeline = Pipeline(steps=[map_state])
+    pipeline.execute(parameters_file="parameters.yaml")  # Contains chunks: [1, 2, 3]
+    return pipeline
+
+# Results: processed_python = max(10, 20, 30) = 30
+#          processed_notebook = max(100, 200, 300) = 300
+#          processed_shell = max(1000, 2000, 3000) = 3000
+
+if __name__ == "__main__":
+    main()
+```
+
+??? example "See complete runnable code"
+    ```python title="examples/07-map/custom_reducer.py"
+    --8<-- "examples/07-map/custom_reducer.py"
+    ```
+
+    **Try it now:**
+    ```bash
+    uv run examples/07-map/custom_reducer.py
+    ```
+
+### Reducer Options
+
+**Lambda functions:**
+
+- `"lambda *x: max(x)"` → Maximum value
+- `"lambda *x: sum(x)"` → Sum all values
+- `"lambda *x: len(x)"` → Count items
+- `"lambda *x: x[0]"` → Take first result only
+
+**Python functions in dot notation:**
+
+You can also reference Python functions using dot notation:
+
+```python
+# If you have a function in a module
+# my_module.py:
+def custom_max_reducer(*results):
+    return max(results)
+
+# Use it in Map with dot notation
+map_state = Map(
+    name="process_with_custom_reducer",
+    iterate_on="chunks",
+    iterate_as="chunk",
+    reducer="my_module.custom_max_reducer",  # Reference function by module path
+    branch=create_processing_workflow()
+)
+```
+
+**Built-in function references:**
+
+```python
+# Use built-in functions
+reducer="max"           # Built-in max function
+reducer="sum"           # Built-in sum function
+reducer="len"           # Built-in len function
+
+# Use functions from standard library modules
+reducer="statistics.mean"     # Average of results
+reducer="statistics.median"   # Median of results
+reducer="operator.add"        # Sum using operator module
+```
+
+## When to use map
+
+**Perfect for:**
+
+- Processing file collections
+- Batch processing data chunks
+- Cross-validation in ML
+- Parameter sweeps
+- A/B testing multiple variants
+
+**Example use cases:**
+```python
+# Process multiple datasets
+iterate_on="datasets", iterate_as="dataset"
+
+# Test hyperparameters
+iterate_on="learning_rates", iterate_as="lr"
+
+# Handle batch processing
+iterate_on="file_paths", iterate_as="file_path"
+```
+
+!!! tip "Map vs Parallel"
+
+    - **Map**: Same workflow, different data (for loop)
+    - **Parallel**: Different workflows, same time (independent tasks)
+
+Next: Learn about [conditional workflows](conditional-workflows.md).

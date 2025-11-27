@@ -1,0 +1,23 @@
+# Parameters for standard PyTorch training
+# These can be used with runnable's parameter system
+epochs: 10
+batch_size: 64
+learning_rate: 0.001
+
+
+input_size: 784
+hidden_size: 128
+num_classes: 10
+
+
+num_samples: 10000
+seed: 42
+
+num_workers: 2
+log_interval: 100
+save_interval: 5
+output_dir: "training_output"
+
+distributed:
+  world_size: 2
+  backend: "gloo"

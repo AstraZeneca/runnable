@@ -19,6 +19,8 @@ app = typer.Typer(
     ),
 )
 
+# TODO: Cron job for K8's.
+
 
 class LogLevel(str, Enum):
     INFO = "INFO"
@@ -38,7 +40,7 @@ class FanMode(str, Enum):
     OUT = "out"
 
 
-@app.command()
+@app.command(hidden=True)
 def execute(
     yaml_file: Annotated[str, typer.Argument(help="The pipeline definition file")],
     config_file: Annotated[

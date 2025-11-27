@@ -16,6 +16,18 @@ from runnable.utils import remove_prefix
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
+def _safe_issubclass_basemodel(annotation) -> bool:
+    """Safely check if annotation is BaseModel, handling any type annotation."""
+    try:
+        return inspect.isclass(annotation) and issubclass(annotation, BaseModel)
+    except TypeError:
+        # Handle generic types
+        origin = get_origin(annotation)
+        if origin and inspect.isclass(origin):
+            return issubclass(origin, BaseModel)
+        return False
+
+
 def get_user_set_parameters(remove: bool = False) -> Dict[str, JsonParameter]:
     """
     Scans the environment variables for any user returned parameters that have a prefix runnable_PRM_.
@@ -131,7 +143,7 @@ def filter_arguments_for_func(
             # We have a parameter of this name, lets bind it
             param_value = params[name]
 
-            if (issubclass(value.annotation, BaseModel)) and not isinstance(
+            if _safe_issubclass_basemodel(value.annotation) and not isinstance(
                 param_value, ObjectParameter
             ):
                 # Even if the annotation is a pydantic model, it can be passed as an object parameter
@@ -146,7 +158,9 @@ def filter_arguments_for_func(
                     named_param, value.annotation
                 )
                 bound_args[name] = bound_model
-
+            elif isinstance(param_value, ObjectParameter):
+                # Directly pass the object parameter value
+                bound_args[name] = param_value.get_value()
             elif value.annotation is not inspect.Parameter.empty and callable(
                 value.annotation
             ):

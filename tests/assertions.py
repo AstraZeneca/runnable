@@ -174,6 +174,9 @@ def should_have_catalog_contents(files: list[str]):
         ), "No match found in the list."
 
 
+# TODO: No copy assertion
+
+
 def should_branch_have_steps(step_name, branch_name: str, num_steps: int):
     from runnable import defaults
 

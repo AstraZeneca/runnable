@@ -33,13 +33,22 @@ class ComplexParams(BaseModel):
     foo: str
 
 
-def function_using_argparse(args: argparse.Namespace):
-    assert args.integer == 1
+def function_using_argparse(integer: int, args: argparse.Namespace):
+    assert integer == 1
     assert args.floater == 3.14
     assert args.stringer == "hello"
     assert args.envvar == "from env"
     assert args.pydantic_param["x"] == 10
     assert args.pydantic_param["foo"] == "bar"
+
+
+def function_using_kwargs(integer: int, **kwargs):
+    assert integer == 1
+    assert kwargs["floater"] == 3.14
+    assert kwargs["stringer"] == "hello"
+    assert kwargs["envvar"] == "from env"
+    assert kwargs["pydantic_param"]["x"] == 10
+    assert kwargs["pydantic_param"]["foo"] == "bar"
 
 
 def read_initial_params_as_pydantic(
