@@ -1,0 +1,6 @@
+# Large Random Forest experiment
+test_size: 0.25
+n_estimators: 200
+random_state: 123
+model_path: "models/large_forest.pkl"
+results_path: "results/large_forest_results.json"

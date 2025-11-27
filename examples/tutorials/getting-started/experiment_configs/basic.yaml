@@ -1,0 +1,6 @@
+# Basic experiment configuration
+test_size: 0.2
+n_estimators: 50
+random_state: 42
+model_path: "models/basic_model.pkl"
+results_path: "results/basic_results.json"
