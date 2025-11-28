@@ -169,7 +169,6 @@ Dockerfile.test
 
 
 # Arfifacts
-examples/configs/chunked-minio.yaml
 examples/tutorials/getting-started/X_test.csv
 examples/tutorials/getting-started/X_train.csv
 examples/tutorials/getting-started/data.csv
