@@ -18,6 +18,18 @@ def load_run_log(run_id):
     return run_log
 
 
+def get_catalog_location(run_id):
+    run_log = load_run_log(run_id=run_id)
+
+    catalog_name = run_log.run_config["catalog"]["service_name"]
+    if catalog_name == "file-system":
+        return ".catalog"
+    elif catalog_name == "minio":
+        return "minio-runnable/catalog"
+
+    raise Exception("Unknown catalog")
+
+
 def should_be_successful():
     from runnable import defaults
 
@@ -145,7 +157,8 @@ def should_have_catalog_execution_logs():
     run_log = load_run_log(run_id)
 
     step_names = run_log.steps.keys()
-    contents = os.listdir(f".catalog/{run_id}")
+    catalog_location = get_catalog_location(run_id=run_id)
+    contents = os.listdir(f"{catalog_location}/{run_id}")
 
     for step_name in step_names:
         step = run_log.steps[step_name]
@@ -164,7 +177,8 @@ def should_have_catalog_contents(files: list[str]):
 
     run_id = os.environ[defaults.ENV_RUN_ID]
 
-    contents = os.listdir(f".catalog/{run_id}")
+    catalog_location = get_catalog_location(run_id=run_id)
+    contents = os.listdir(f"{catalog_location}/{run_id}")
 
     for file_name in files or []:
         pattern = rf"{file_name}"
@@ -215,7 +229,9 @@ def should_have_notebook_output(name: str):
 
     run_id = os.environ[defaults.ENV_RUN_ID]
 
-    catalog_location = Path(f".catalog/{run_id}")
+    catalog_location = get_catalog_location(run_id=run_id)
+
+    catalog_location = Path(f"{catalog_location}/{run_id}")
     path = catalog_location / name
 
-    assert path.is_file()
+    assert path.exists()

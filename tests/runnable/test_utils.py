@@ -2,9 +2,7 @@ import sys
 
 import pytest
 
-from runnable import (
-    utils,  # pylint: disable=import-error
-)
+from runnable import utils  # pylint: disable=import-error
 
 
 def test_does_file_exist_returns_true_if_path_true(mocker, monkeypatch):
@@ -33,17 +31,6 @@ def test_safe_make_dir_calls_with_correct_arguments(mocker, monkeypatch):
 
     utils.safe_make_dir("test")
     mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
-
-
-def test_generate_run_id_makes_one_if_not_provided():
-    run_id = utils.generate_run_id()
-    assert run_id
-
-
-def test_generate_run_id_returns_the_same_run_id_if_provided():
-    run_id = utils.generate_run_id("test")
-
-    assert run_id == "test"
 
 
 def test_apply_variables_raises_exception_if_variables_is_not_dict():

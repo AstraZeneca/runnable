@@ -1,9 +1,17 @@
+# TO make minio work
+# The bucket should exist.
+# Lets create it from the minio-runnable folder
+# mkdir -p minio-runnable/catalog minio-runnable/run-logs
+# minio server --address localhost:9002 minio-runnable
+#
+
+
 catalog:
   type: minio
   config:
-    bucket: runnable/catalog
+    bucket: catalog
 
 run-log-store:
   type: minio
   config:
-    bucket: runnable/run-logs
+    bucket: run-logs
