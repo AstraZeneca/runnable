@@ -223,7 +223,12 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         )
         # create volumes and volume mounts for the job
         self._create_volumes()
-        self.submit_k8s_job(job)
+
+        # Branch based on whether scheduling is configured
+        if self.schedule:
+            self.submit_k8s_cronjob(job)
+        else:
+            self.submit_k8s_job(job)
 
     def execute_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
         """

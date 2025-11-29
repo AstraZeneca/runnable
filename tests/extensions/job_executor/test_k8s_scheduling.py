@@ -134,3 +134,68 @@ def test_cronjob_has_correct_schedule_and_job_template():
 
             assert cronjob.spec.schedule == "0 2 * * *"
             assert cronjob.spec.job_template is not None
+
+
+def test_submit_job_creates_cronjob_when_schedule_present():
+    """Test that submit_job calls submit_k8s_cronjob when schedule is configured"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "schedule": "0 2 * * *",
+        "mock": True
+    }
+    executor = GenericK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "test-run-123"
+    mock_context.run_log_store = Mock()
+    mock_context.run_log_store.create_job_log.return_value = Mock()
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Mock the methods we'll call using patch
+    with patch("runnable.context.run_context", mock_context):
+        with patch.object(executor, '_set_up_run_log'):
+            with patch.object(executor, '_create_volumes'):
+                # Use patch to mock (not wrap) the methods so they don't actually execute
+                with patch.object(GenericK8sJobExecutor, 'submit_k8s_cronjob') as mock_cronjob:
+                    with patch.object(GenericK8sJobExecutor, 'submit_k8s_job') as mock_job:
+                        mock_task = Mock(spec=BaseTaskType)
+                        executor.submit_job(mock_task, catalog_settings=[])
+
+                        # Should call cronjob method, not regular job method
+                        mock_cronjob.assert_called_once_with(mock_task)
+                        mock_job.assert_not_called()
+
+
+def test_submit_job_creates_regular_job_when_no_schedule():
+    """Test that submit_job calls submit_k8s_job when schedule is not configured"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "mock": True
+    }
+    executor = GenericK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "test-run-123"
+    mock_context.run_log_store = Mock()
+    mock_context.run_log_store.create_job_log.return_value = Mock()
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Mock the methods we'll call using patch
+    with patch("runnable.context.run_context", mock_context):
+        with patch.object(executor, '_set_up_run_log'):
+            with patch.object(executor, '_create_volumes'):
+                # Use patch to mock (not wrap) the methods so they don't actually execute
+                with patch.object(GenericK8sJobExecutor, 'submit_k8s_cronjob') as mock_cronjob:
+                    with patch.object(GenericK8sJobExecutor, 'submit_k8s_job') as mock_job:
+                        mock_task = Mock(spec=BaseTaskType)
+                        executor.submit_job(mock_task, catalog_settings=[])
+
+                        # Should call regular job method, not cronjob method
+                        mock_job.assert_called_once_with(mock_task)
+                        mock_cronjob.assert_not_called()
