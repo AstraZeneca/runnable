@@ -496,6 +496,8 @@ def test_documentation_examples_are_valid():
         "0 * * * *",  # Every hour
         "0 9 * * 1",  # Monday at 9 AM
         "*/15 * * * *",  # Every 15 minutes
+        "30 3 * * 0",  # Sunday at 3:30 AM
+        "0 0 1 * *",  # First day of month at midnight
     ]
 
     for schedule in examples:
@@ -505,3 +507,43 @@ def test_documentation_examples_are_valid():
         }
         executor = GenericK8sJobExecutor(**config)
         assert executor.schedule == schedule
+
+
+def test_documentation_schedule_reference_examples():
+    """Test all schedule reference examples from documentation"""
+    reference_examples = [
+        "* * * * *",  # Every minute
+        "*/5 * * * *",  # Every 5 minutes
+        "30 * * * *",  # Every hour at 30 minutes past
+        "0 */6 * * *",  # Every 6 hours
+        "0 12 * * *",  # Every day at noon
+        "0 9 * * 1-5",  # Every weekday at 9 AM
+        "0 0 * * 6",  # Every Saturday at midnight
+        "0 8 1-7 * 1",  # First Monday of every month at 8 AM
+    ]
+
+    for schedule in reference_examples:
+        config = {
+            "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+            "schedule": schedule,
+        }
+        executor = GenericK8sJobExecutor(**config)
+        assert executor.schedule == schedule
+
+
+def test_invalid_schedule_formats_from_documentation():
+    """Test that invalid schedule formats mentioned in docs are rejected"""
+    invalid_schedules = [
+        "0 2 * *",  # Too few fields (4 instead of 5)
+        "0 0 2 * * *",  # Too many fields (6 instead of 5)
+        "",  # Empty string
+        "invalid",  # Single word
+    ]
+
+    for schedule in invalid_schedules:
+        config = {
+            "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+            "schedule": schedule,
+        }
+        with pytest.raises(ValidationError, match="valid cron expression"):
+            GenericK8sJobExecutor(**config)

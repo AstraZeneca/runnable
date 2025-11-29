@@ -159,6 +159,7 @@ nav:
           - "Local": "production/job-execution/local.md"
           - "Local Container": "production/job-execution/local-container.md"
           - "Kubernetes": "production/job-execution/kubernetes.md"
+          - "Kubernetes Scheduling": "production/job-execution/k8s-scheduling.md"
           - "Custom Job Executors": "production/job-execution/custom-job-executors.md"
       - "Run log": "production/run-log.md"
       - "Custom Run Log Stores": "production/custom-run-log-stores.md"
