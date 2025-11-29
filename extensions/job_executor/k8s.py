@@ -224,11 +224,8 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         # create volumes and volume mounts for the job
         self._create_volumes()
 
-        # Branch based on whether scheduling is configured
-        if self.schedule:
-            self.submit_k8s_cronjob(job)
-        else:
-            self.submit_k8s_job(job)
+        # submit_k8s_job now handles both regular jobs and cronjobs
+        self.submit_k8s_job(job)
 
     def execute_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
         """
@@ -279,6 +276,11 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         return client
 
     def submit_k8s_job(self, task: BaseTaskType):
+        """
+        Submit a Kubernetes Job or CronJob based on whether schedule is configured.
+        This method builds the job specification once and then creates either a Job or CronJob.
+        """
+        # Build volume mounts
         if self.job_spec.template.spec.container.volume_mounts:
             self._volume_mounts += self.job_spec.template.spec.container.volume_mounts
 
@@ -286,14 +288,18 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             self._client.V1VolumeMount(**vol.model_dump())
             for vol in self._volume_mounts
         ]
+
+        # Get command
         assert isinstance(self._context, context.JobContext)
         command = self._context.get_job_callable_command()
 
+        # Build container env
         container_env = [
             self._client.V1EnvVar(**env.model_dump())
             for env in self.job_spec.template.spec.container.env
         ]
 
+        # Build container
         base_container = self._client.V1Container(
             command=shlex.split(command),
             env=container_env,
@@ -308,6 +314,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             ),
         )
 
+        # Build volumes
         if self.job_spec.template.spec.volumes:
             self._volumes += self.job_spec.template.spec.volumes
 
@@ -315,6 +322,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             self._client.V1Volume(**vol.model_dump()) for vol in self._volumes
         ]
 
+        # Build tolerations
         tolerations = None
         if self.job_spec.template.spec.tolerations:
             tolerations = [
@@ -322,111 +330,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
                 for toleration in self.job_spec.template.spec.tolerations
             ]
 
-        pod_spec = self._client.V1PodSpec(
-            containers=[base_container],
-            # volumes=[vol.model_dump(by_alias=True) for vol in spec_volumes],
-            volumes=spec_volumes,
-            tolerations=tolerations,
-            **self.job_spec.template.spec.model_dump(
-                exclude_none=True, exclude={"container", "volumes", "tolerations"}
-            ),
-        )
-
-        pod_template_metadata = None
-        if self.job_spec.template.metadata:
-            pod_template_metadata = self._client.V1ObjectMeta(
-                **self.job_spec.template.metadata.model_dump(exclude_none=True)
-            )
-
-        pod_template = self._client.V1PodTemplateSpec(
-            spec=pod_spec,
-            metadata=pod_template_metadata,
-        )
-
-        job_spec = client.V1JobSpec(
-            template=pod_template,
-            **self.job_spec.model_dump(exclude_none=True, exclude={"template"}),
-        )
-
-        job = client.V1Job(
-            api_version="batch/v1",
-            kind="Job",
-            metadata=client.V1ObjectMeta(name=self._context.run_id),
-            spec=job_spec,
-        )
-
-        logger.info(f"Submitting job: {job.__dict__}")
-        if self.mock:
-            logger.info(job.__dict__)
-            return
-
-        try:
-            k8s_batch = self._client.BatchV1Api()
-            response = k8s_batch.create_namespaced_job(
-                body=job,
-                _preload_content=False,
-                pretty=True,
-                namespace=self.namespace,
-            )
-            logger.debug(f"Kubernetes job response: {response}")
-        except Exception as e:
-            logger.exception(e)
-            print(e)
-            raise
-
-    def submit_k8s_cronjob(self, task: BaseTaskType):
-        """
-        Submit a Kubernetes CronJob instead of a regular Job.
-        Reuses the existing job spec building logic but wraps it in a CronJob.
-        """
-        # Reuse existing volume mount logic
-        if self.job_spec.template.spec.container.volume_mounts:
-            self._volume_mounts += self.job_spec.template.spec.container.volume_mounts
-
-        container_volume_mounts = [
-            self._client.V1VolumeMount(**vol.model_dump())
-            for vol in self._volume_mounts
-        ]
-
-        assert isinstance(self._context, context.JobContext)
-        command = self._context.get_job_callable_command()
-
-        container_env = [
-            self._client.V1EnvVar(**env.model_dump())
-            for env in self.job_spec.template.spec.container.env
-        ]
-
-        # Build container (reuse existing logic)
-        base_container = self._client.V1Container(
-            command=shlex.split(command),
-            env=container_env,
-            name="default",
-            volume_mounts=container_volume_mounts,
-            resources=self.job_spec.template.spec.container.resources.model_dump(
-                by_alias=True, exclude_none=True
-            ),
-            **self.job_spec.template.spec.container.model_dump(
-                exclude_none=True,
-                exclude={"volume_mounts", "command", "env", "resources"},
-            ),
-        )
-
-        # Build volumes (reuse existing logic)
-        if self.job_spec.template.spec.volumes:
-            self._volumes += self.job_spec.template.spec.volumes
-
-        spec_volumes = [
-            self._client.V1Volume(**vol.model_dump()) for vol in self._volumes
-        ]
-
-        tolerations = None
-        if self.job_spec.template.spec.tolerations:
-            tolerations = [
-                self._client.V1Toleration(**toleration.model_dump())
-                for toleration in self.job_spec.template.spec.tolerations
-            ]
-
-        # Build pod spec (reuse existing logic)
+        # Build pod spec
         pod_spec = self._client.V1PodSpec(
             containers=[base_container],
             volumes=spec_volumes,
@@ -436,54 +340,85 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             ),
         )
 
+        # Build pod template metadata
         pod_template_metadata = None
         if self.job_spec.template.metadata:
             pod_template_metadata = self._client.V1ObjectMeta(
                 **self.job_spec.template.metadata.model_dump(exclude_none=True)
             )
 
+        # Build pod template
         pod_template = self._client.V1PodTemplateSpec(
             spec=pod_spec,
             metadata=pod_template_metadata,
         )
 
-        # Build job spec (reuse existing logic)
+        # Build job spec
         job_spec = client.V1JobSpec(
             template=pod_template,
             **self.job_spec.model_dump(exclude_none=True, exclude={"template"}),
         )
 
-        # Build CronJob spec (new part)
-        cronjob_spec = client.V1CronJobSpec(
-            schedule=self.schedule, job_template=client.V1JobTemplateSpec(spec=job_spec)
-        )
-
-        # Build CronJob (new part)
-        cronjob = client.V1CronJob(
-            api_version="batch/v1",
-            kind="CronJob",
-            metadata=client.V1ObjectMeta(name=self._context.run_id),
-            spec=cronjob_spec,
-        )
-
-        logger.info(f"Submitting CronJob: {cronjob.__dict__}")
-        self._display_scheduled_job_info(cronjob)
-
-        if self.mock:
-            logger.info(cronjob.__dict__)
-            return
-
-        try:
-            k8s_batch = self._client.BatchV1Api()
-            response = k8s_batch.create_namespaced_cron_job(
-                body=cronjob,
-                namespace=self.namespace,
+        # Decision point: Create Job or CronJob based on schedule
+        if self.schedule:
+            # Create CronJob
+            cronjob_spec = client.V1CronJobSpec(
+                schedule=self.schedule,
+                job_template=client.V1JobTemplateSpec(spec=job_spec),
             )
-            logger.debug(f"Kubernetes CronJob response: {response}")
-        except Exception as e:
-            logger.exception(e)
-            print(e)
-            raise
+
+            cronjob = client.V1CronJob(
+                api_version="batch/v1",
+                kind="CronJob",
+                metadata=client.V1ObjectMeta(name=self._context.run_id),
+                spec=cronjob_spec,
+            )
+
+            logger.info(f"Submitting CronJob: {cronjob.__dict__}")
+            self._display_scheduled_job_info(cronjob)
+
+            if self.mock:
+                logger.info(cronjob.__dict__)
+                return
+
+            try:
+                k8s_batch = self._client.BatchV1Api()
+                response = k8s_batch.create_namespaced_cron_job(
+                    body=cronjob,
+                    namespace=self.namespace,
+                )
+                logger.debug(f"Kubernetes CronJob response: {response}")
+            except Exception as e:
+                logger.exception(e)
+                print(e)
+                raise
+        else:
+            # Create regular Job
+            job = client.V1Job(
+                api_version="batch/v1",
+                kind="Job",
+                metadata=client.V1ObjectMeta(name=self._context.run_id),
+                spec=job_spec,
+            )
+
+            logger.info(f"Submitting job: {job.__dict__}")
+            if self.mock:
+                logger.info(job.__dict__)
+                return
+
+            try:
+                k8s_batch = self._client.BatchV1Api()
+                response = k8s_batch.create_namespaced_job(
+                    body=job,
+                    _preload_content=False,
+                    pretty=True,
+                    namespace=self.namespace,
+                )
+                logger.debug(f"Kubernetes job response: {response}")
+            except Exception as e:
+                logger.exception(e)
+                print(e)
+                raise
 
     def _display_scheduled_job_info(self, cronjob):
         """Display information about the scheduled CronJob to the console"""
