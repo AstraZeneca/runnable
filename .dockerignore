@@ -8,3 +8,5 @@ docs/
 .tests/
 .venv/
 minikube/
+site/
+.vscode/
