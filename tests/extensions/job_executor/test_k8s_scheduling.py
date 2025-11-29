@@ -199,3 +199,268 @@ def test_submit_job_creates_regular_job_when_no_schedule():
                         # Should call regular job method, not cronjob method
                         mock_job.assert_called_once_with(mock_task)
                         mock_cronjob.assert_not_called()
+
+
+# Task 4: Tests for Derived Classes (MiniK8sJobExecutor and K8sJobExecutor)
+
+def test_mini_k8s_job_executor_inherits_schedule_support():
+    """Test that MiniK8sJobExecutor supports scheduling"""
+    from extensions.job_executor.k8s import MiniK8sJobExecutor
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "schedule": "0 2 * * *"
+    }
+    executor = MiniK8sJobExecutor(**config)
+    assert executor.schedule == "0 2 * * *"
+
+
+def test_k8s_job_executor_inherits_schedule_support():
+    """Test that K8sJobExecutor supports scheduling"""
+    from extensions.job_executor.k8s import K8sJobExecutor
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "pvc_claim_name": "test-pvc",
+        "schedule": "0 2 * * *"
+    }
+    executor = K8sJobExecutor(**config)
+    assert executor.schedule == "0 2 * * *"
+
+
+def test_mini_k8s_job_executor_validates_schedule():
+    """Test that MiniK8sJobExecutor validates cron expressions"""
+    from extensions.job_executor.k8s import MiniK8sJobExecutor
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "schedule": "invalid cron"
+    }
+    with pytest.raises(ValidationError, match="valid cron expression"):
+        MiniK8sJobExecutor(**config)
+
+
+def test_k8s_job_executor_validates_schedule():
+    """Test that K8sJobExecutor validates cron expressions"""
+    from extensions.job_executor.k8s import K8sJobExecutor
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "pvc_claim_name": "test-pvc",
+        "schedule": "invalid cron"
+    }
+    with pytest.raises(ValidationError, match="valid cron expression"):
+        K8sJobExecutor(**config)
+
+
+def test_mini_k8s_executor_submit_job_calls_parent_cronjob_implementation():
+    """Test that MiniK8sJobExecutor uses parent's submit_job logic for scheduling"""
+    from extensions.job_executor.k8s import MiniK8sJobExecutor, GenericK8sJobExecutor
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "schedule": "0 2 * * *",
+        "mock": True
+    }
+    executor = MiniK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "test-run-123"
+    mock_context.run_log_store = Mock()
+    mock_context.run_log_store.create_job_log.return_value = Mock()
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Mock the methods at the parent class level
+    with patch("runnable.context.run_context", mock_context):
+        with patch.object(GenericK8sJobExecutor, '_set_up_run_log'):
+            with patch.object(MiniK8sJobExecutor, '_create_volumes'):
+                with patch.object(GenericK8sJobExecutor, 'submit_k8s_cronjob') as mock_cronjob:
+                    with patch.object(GenericK8sJobExecutor, 'submit_k8s_job') as mock_job:
+                        mock_task = Mock(spec=BaseTaskType)
+                        executor.submit_job(mock_task, catalog_settings=[])
+
+                        # Should call the CronJob method since schedule is set
+                        mock_cronjob.assert_called_once_with(mock_task)
+                        mock_job.assert_not_called()
+
+
+def test_k8s_executor_submit_job_calls_parent_cronjob_implementation():
+    """Test that K8sJobExecutor uses parent's submit_job logic for scheduling"""
+    from extensions.job_executor.k8s import K8sJobExecutor, GenericK8sJobExecutor
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "pvc_claim_name": "test-pvc",
+        "schedule": "0 2 * * *",
+        "mock": True
+    }
+    executor = K8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "test-run-123"
+    mock_context.run_log_store = Mock()
+    mock_context.run_log_store.create_job_log.return_value = Mock()
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Mock the methods at the parent class level
+    with patch("runnable.context.run_context", mock_context):
+        with patch.object(GenericK8sJobExecutor, '_set_up_run_log'):
+            with patch.object(K8sJobExecutor, '_create_volumes'):
+                with patch.object(GenericK8sJobExecutor, 'submit_k8s_cronjob') as mock_cronjob:
+                    with patch.object(GenericK8sJobExecutor, 'submit_k8s_job') as mock_job:
+                        mock_task = Mock(spec=BaseTaskType)
+                        executor.submit_job(mock_task, catalog_settings=[])
+
+                        # Should call the CronJob method since schedule is set
+                        mock_cronjob.assert_called_once_with(mock_task)
+                        mock_job.assert_not_called()
+
+
+def test_mini_k8s_executor_submit_job_calls_parent_regular_job_implementation():
+    """Test that MiniK8sJobExecutor uses parent's submit_job logic for regular jobs"""
+    from extensions.job_executor.k8s import MiniK8sJobExecutor, GenericK8sJobExecutor
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "mock": True
+        # No schedule - should create regular job
+    }
+    executor = MiniK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "test-run-123"
+    mock_context.run_log_store = Mock()
+    mock_context.run_log_store.create_job_log.return_value = Mock()
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Mock the methods at the parent class level
+    with patch("runnable.context.run_context", mock_context):
+        with patch.object(GenericK8sJobExecutor, '_set_up_run_log'):
+            with patch.object(MiniK8sJobExecutor, '_create_volumes'):
+                with patch.object(GenericK8sJobExecutor, 'submit_k8s_cronjob') as mock_cronjob:
+                    with patch.object(GenericK8sJobExecutor, 'submit_k8s_job') as mock_job:
+                        mock_task = Mock(spec=BaseTaskType)
+                        executor.submit_job(mock_task, catalog_settings=[])
+
+                        # Should call regular job method, not cronjob
+                        mock_job.assert_called_once_with(mock_task)
+                        mock_cronjob.assert_not_called()
+
+
+def test_k8s_executor_submit_job_calls_parent_regular_job_implementation():
+    """Test that K8sJobExecutor uses parent's submit_job logic for regular jobs"""
+    from extensions.job_executor.k8s import K8sJobExecutor, GenericK8sJobExecutor
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "pvc_claim_name": "test-pvc",
+        "mock": True
+        # No schedule - should create regular job
+    }
+    executor = K8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "test-run-123"
+    mock_context.run_log_store = Mock()
+    mock_context.run_log_store.create_job_log.return_value = Mock()
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Mock the methods at the parent class level
+    with patch("runnable.context.run_context", mock_context):
+        with patch.object(GenericK8sJobExecutor, '_set_up_run_log'):
+            with patch.object(K8sJobExecutor, '_create_volumes'):
+                with patch.object(GenericK8sJobExecutor, 'submit_k8s_cronjob') as mock_cronjob:
+                    with patch.object(GenericK8sJobExecutor, 'submit_k8s_job') as mock_job:
+                        mock_task = Mock(spec=BaseTaskType)
+                        executor.submit_job(mock_task, catalog_settings=[])
+
+                        # Should call regular job method, not cronjob
+                        mock_job.assert_called_once_with(mock_task)
+                        mock_cronjob.assert_not_called()
+
+
+def test_derived_classes_do_not_override_submit_job():
+    """Test that derived classes inherit submit_job and don't override it"""
+    from extensions.job_executor.k8s import MiniK8sJobExecutor, K8sJobExecutor, GenericK8sJobExecutor
+
+    # Verify that MiniK8sJobExecutor doesn't override submit_job
+    assert MiniK8sJobExecutor.submit_job is GenericK8sJobExecutor.submit_job
+
+    # Verify that K8sJobExecutor doesn't override submit_job
+    assert K8sJobExecutor.submit_job is GenericK8sJobExecutor.submit_job
+
+
+def test_mini_k8s_executor_schedule_defaults_to_none():
+    """Test that MiniK8sJobExecutor schedule defaults to None for backward compatibility"""
+    from extensions.job_executor.k8s import MiniK8sJobExecutor
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}}
+    }
+    executor = MiniK8sJobExecutor(**config)
+    assert executor.schedule is None
+
+
+def test_k8s_executor_schedule_defaults_to_none():
+    """Test that K8sJobExecutor schedule defaults to None for backward compatibility"""
+    from extensions.job_executor.k8s import K8sJobExecutor
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "pvc_claim_name": "test-pvc"
+    }
+    executor = K8sJobExecutor(**config)
+    assert executor.schedule is None
+
+
+def test_mini_k8s_executor_supports_various_cron_schedules():
+    """Test that MiniK8sJobExecutor supports various valid cron expressions"""
+    from extensions.job_executor.k8s import MiniK8sJobExecutor
+
+    valid_schedules = [
+        "0 2 * * *",      # Daily at 2 AM
+        "0 * * * *",      # Every hour
+        "0 9 * * 1",      # Monday at 9 AM
+        "*/15 * * * *",   # Every 15 minutes
+        "30 3 * * 0",     # Sunday at 3:30 AM
+        "0 0 1 * *",      # First day of month at midnight
+    ]
+
+    for schedule in valid_schedules:
+        config = {
+            "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+            "schedule": schedule
+        }
+        executor = MiniK8sJobExecutor(**config)
+        assert executor.schedule == schedule
+
+
+def test_k8s_executor_supports_various_cron_schedules():
+    """Test that K8sJobExecutor supports various valid cron expressions"""
+    from extensions.job_executor.k8s import K8sJobExecutor
+
+    valid_schedules = [
+        "0 2 * * *",      # Daily at 2 AM
+        "0 * * * *",      # Every hour
+        "0 9 * * 1",      # Monday at 9 AM
+        "*/15 * * * *",   # Every 15 minutes
+        "30 3 * * 0",     # Sunday at 3:30 AM
+        "0 0 1 * *",      # First day of month at midnight
+    ]
+
+    for schedule in valid_schedules:
+        config = {
+            "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+            "pvc_claim_name": "test-pvc",
+            "schedule": schedule
+        }
+        executor = K8sJobExecutor(**config)
+        assert executor.schedule == schedule
