@@ -547,3 +547,563 @@ def test_invalid_schedule_formats_from_documentation():
         }
         with pytest.raises(ValidationError, match="valid cron expression"):
             GenericK8sJobExecutor(**config)
+
+
+# Task 7: Integration Testing and Validation
+
+
+def test_end_to_end_scheduled_job_creation():
+    """Test complete flow from configuration to CronJob creation"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {
+            "activeDeadlineSeconds": 3600,
+            "template": {
+                "spec": {
+                    "activeDeadlineSeconds": 3600,
+                    "restartPolicy": "Never",
+                    "container": {
+                        "image": "python:3.9",
+                        "env": [{"name": "TEST", "value": "value"}],
+                        "resources": {
+                            "limits": {"cpu": "1", "memory": "1Gi"},
+                            "requests": {"cpu": "500m", "memory": "512Mi"},
+                        },
+                    },
+                }
+            },
+        },
+        "schedule": "0 3 * * *",
+        "namespace": "test-namespace",
+        "mock": False,  # Set to False to test actual CronJob creation logic
+    }
+
+    executor = GenericK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "integration-test-run"
+    mock_context.get_job_callable_command.return_value = "python main.py"
+
+    # Mock the Kubernetes client to capture the CronJob
+    with patch("runnable.context.run_context", mock_context):
+        with patch("extensions.job_executor.k8s.client") as mock_client:
+            mock_batch_api = Mock()
+            mock_client.BatchV1Api.return_value = mock_batch_api
+
+            # Mock all the V1 objects
+            def create_mock_obj(**kwargs):
+                obj = Mock()
+                for key, value in kwargs.items():
+                    setattr(obj, key, value)
+                return obj
+
+            mock_client.V1VolumeMount = Mock(side_effect=create_mock_obj)
+            mock_client.V1EnvVar = Mock(side_effect=create_mock_obj)
+            mock_client.V1Container = Mock(side_effect=create_mock_obj)
+            mock_client.V1Volume = Mock(side_effect=create_mock_obj)
+            mock_client.V1Toleration = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1ObjectMeta = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJob = Mock(side_effect=create_mock_obj)
+
+            mock_task = Mock(spec=BaseTaskType)
+            executor.submit_k8s_job(mock_task)
+
+            # Verify the call was made
+            mock_batch_api.create_namespaced_cron_job.assert_called_once()
+
+            # Verify the CronJob structure
+            call_args = mock_batch_api.create_namespaced_cron_job.call_args
+            cronjob = call_args[1]["body"]
+
+            assert cronjob.kind == "CronJob"
+            assert cronjob.api_version == "batch/v1"
+            assert cronjob.metadata.name == "integration-test-run"
+            assert cronjob.spec.schedule == "0 3 * * *"
+
+            # Verify job template contains our job spec
+            job_template = cronjob.spec.job_template
+            assert job_template.spec.active_deadline_seconds == 3600
+
+
+def test_error_handling_in_cronjob_creation():
+    """Test that CronJob creation errors are handled properly"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "schedule": "0 2 * * *",
+        "mock": False,  # Use real mode to test error handling
+    }
+
+    executor = GenericK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "error-test-run"
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Mock the Kubernetes client
+    with patch("runnable.context.run_context", mock_context):
+        with patch("extensions.job_executor.k8s.client") as mock_client:
+            mock_batch_api = Mock()
+            mock_client.BatchV1Api.return_value = mock_batch_api
+
+            # Mock all the V1 objects
+            def create_mock_obj(**kwargs):
+                obj = Mock()
+                for key, value in kwargs.items():
+                    setattr(obj, key, value)
+                return obj
+
+            mock_client.V1VolumeMount = Mock(side_effect=create_mock_obj)
+            mock_client.V1EnvVar = Mock(side_effect=create_mock_obj)
+            mock_client.V1Container = Mock(side_effect=create_mock_obj)
+            mock_client.V1Volume = Mock(side_effect=create_mock_obj)
+            mock_client.V1Toleration = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1ObjectMeta = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJob = Mock(side_effect=create_mock_obj)
+
+            # Simulate K8s API error
+            from kubernetes.client.exceptions import ApiException
+
+            mock_batch_api.create_namespaced_cron_job.side_effect = ApiException(
+                status=403, reason="Forbidden"
+            )
+
+            mock_task = Mock(spec=BaseTaskType)
+
+            # Should re-raise the exception
+            with pytest.raises(ApiException):
+                executor.submit_k8s_job(mock_task)
+
+
+def test_end_to_end_regular_job_creation_without_schedule():
+    """Test complete flow for regular Job creation when schedule is not present"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {
+            "activeDeadlineSeconds": 3600,
+            "template": {
+                "spec": {
+                    "activeDeadlineSeconds": 3600,
+                    "restartPolicy": "Never",
+                    "container": {
+                        "image": "python:3.9",
+                        "env": [{"name": "TEST", "value": "value"}],
+                        "resources": {
+                            "limits": {"cpu": "1", "memory": "1Gi"},
+                            "requests": {"cpu": "500m", "memory": "512Mi"},
+                        },
+                    },
+                }
+            },
+        },
+        "namespace": "test-namespace",
+        "mock": False,  # No schedule - should create regular Job
+    }
+
+    executor = GenericK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "integration-test-regular-job"
+    mock_context.get_job_callable_command.return_value = "python main.py"
+
+    # Mock the Kubernetes client to capture the Job
+    with patch("runnable.context.run_context", mock_context):
+        with patch("extensions.job_executor.k8s.client") as mock_client:
+            mock_batch_api = Mock()
+            mock_client.BatchV1Api.return_value = mock_batch_api
+
+            # Mock all the V1 objects
+            def create_mock_obj(**kwargs):
+                obj = Mock()
+                for key, value in kwargs.items():
+                    setattr(obj, key, value)
+                return obj
+
+            mock_client.V1VolumeMount = Mock(side_effect=create_mock_obj)
+            mock_client.V1EnvVar = Mock(side_effect=create_mock_obj)
+            mock_client.V1Container = Mock(side_effect=create_mock_obj)
+            mock_client.V1Volume = Mock(side_effect=create_mock_obj)
+            mock_client.V1Toleration = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1ObjectMeta = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1Job = Mock(side_effect=create_mock_obj)
+
+            mock_task = Mock(spec=BaseTaskType)
+            executor.submit_k8s_job(mock_task)
+
+            # Verify the regular Job creation was called, NOT CronJob
+            mock_batch_api.create_namespaced_job.assert_called_once()
+            mock_batch_api.create_namespaced_cron_job.assert_not_called()
+
+            # Verify the Job structure
+            call_args = mock_batch_api.create_namespaced_job.call_args
+            job = call_args[1]["body"]
+
+            assert job.kind == "Job"
+            assert job.api_version == "batch/v1"
+            assert job.metadata.name == "integration-test-regular-job"
+
+
+def test_cronjob_with_volumes_and_tolerations():
+    """Test CronJob creation with volumes and tolerations"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {
+            "template": {
+                "spec": {
+                    "restartPolicy": "Never",
+                    "container": {
+                        "image": "python:3.9",
+                        "volumeMounts": [
+                            {"name": "data", "mountPath": "/data"},
+                            {"name": "config", "mountPath": "/config"},
+                        ],
+                    },
+                    "volumes": [
+                        {"name": "data", "hostPath": {"path": "/tmp/data"}},
+                        {"name": "config", "persistentVolumeClaim": {"claimName": "my-pvc"}},
+                    ],
+                    "tolerations": [
+                        {
+                            "key": "node-role",
+                            "operator": "Equal",
+                            "value": "compute",
+                            "effect": "NoSchedule",
+                        }
+                    ],
+                }
+            }
+        },
+        "schedule": "0 4 * * *",
+        "mock": False,
+    }
+
+    executor = GenericK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "test-volumes-tolerations"
+    mock_context.get_job_callable_command.return_value = "python main.py"
+
+    # Mock the Kubernetes client
+    with patch("runnable.context.run_context", mock_context):
+        with patch("extensions.job_executor.k8s.client") as mock_client:
+            mock_batch_api = Mock()
+            mock_client.BatchV1Api.return_value = mock_batch_api
+
+            # Mock all the V1 objects
+            def create_mock_obj(**kwargs):
+                obj = Mock()
+                for key, value in kwargs.items():
+                    setattr(obj, key, value)
+                return obj
+
+            mock_client.V1VolumeMount = Mock(side_effect=create_mock_obj)
+            mock_client.V1EnvVar = Mock(side_effect=create_mock_obj)
+            mock_client.V1Container = Mock(side_effect=create_mock_obj)
+            mock_client.V1Volume = Mock(side_effect=create_mock_obj)
+            mock_client.V1Toleration = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1ObjectMeta = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJob = Mock(side_effect=create_mock_obj)
+
+            mock_task = Mock(spec=BaseTaskType)
+            executor.submit_k8s_job(mock_task)
+
+            # Verify CronJob was created
+            mock_batch_api.create_namespaced_cron_job.assert_called_once()
+
+            # Verify V1Volume and V1Toleration were called for volumes and tolerations
+            assert mock_client.V1Volume.call_count >= 2  # data and config volumes
+            assert mock_client.V1Toleration.call_count >= 1  # tolerations
+
+
+def test_full_submit_job_flow_with_schedule():
+    """Test the complete submit_job flow with schedule configured"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "schedule": "0 2 * * *",
+        "mock": True,
+    }
+
+    executor = GenericK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "full-flow-test"
+    mock_context.run_log_store = Mock()
+    mock_context.run_log_store.create_job_log.return_value = Mock()
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Test the full flow through submit_job
+    with patch("runnable.context.run_context", mock_context):
+        with patch.object(executor, "_set_up_run_log"):
+            with patch.object(executor, "_create_volumes"):
+                # Patch at class level instead of instance level
+                with patch.object(GenericK8sJobExecutor, "submit_k8s_job") as mock_submit:
+                    mock_task = Mock(spec=BaseTaskType)
+                    executor.submit_job(mock_task, catalog_settings=[])
+
+                    # Verify submit_k8s_job was called
+                    mock_submit.assert_called_once_with(mock_task)
+
+
+def test_cronjob_namespace_configuration():
+    """Test that CronJob is created in the correct namespace"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "schedule": "0 2 * * *",
+        "namespace": "custom-namespace",
+        "mock": False,
+    }
+
+    executor = GenericK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "namespace-test"
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Mock the Kubernetes client
+    with patch("runnable.context.run_context", mock_context):
+        with patch("extensions.job_executor.k8s.client") as mock_client:
+            mock_batch_api = Mock()
+            mock_client.BatchV1Api.return_value = mock_batch_api
+
+            # Mock all the V1 objects
+            def create_mock_obj(**kwargs):
+                obj = Mock()
+                for key, value in kwargs.items():
+                    setattr(obj, key, value)
+                return obj
+
+            mock_client.V1VolumeMount = Mock(side_effect=create_mock_obj)
+            mock_client.V1EnvVar = Mock(side_effect=create_mock_obj)
+            mock_client.V1Container = Mock(side_effect=create_mock_obj)
+            mock_client.V1Volume = Mock(side_effect=create_mock_obj)
+            mock_client.V1Toleration = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1ObjectMeta = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJob = Mock(side_effect=create_mock_obj)
+
+            mock_task = Mock(spec=BaseTaskType)
+            executor.submit_k8s_job(mock_task)
+
+            # Verify the call was made with correct namespace
+            call_args = mock_batch_api.create_namespaced_cron_job.call_args
+            assert call_args[1]["namespace"] == "custom-namespace"
+
+
+def test_cronjob_mock_mode_no_api_call():
+    """Test that mock mode does not make actual K8s API calls for CronJob"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        "schedule": "0 2 * * *",
+        "mock": True,  # Mock mode - should not call API
+    }
+
+    executor = GenericK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "mock-mode-test"
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Mock the Kubernetes client
+    with patch("runnable.context.run_context", mock_context):
+        with patch("extensions.job_executor.k8s.client") as mock_client:
+            mock_batch_api = Mock()
+            mock_client.BatchV1Api.return_value = mock_batch_api
+
+            # Mock all the V1 objects
+            def create_mock_obj(**kwargs):
+                obj = Mock()
+                for key, value in kwargs.items():
+                    setattr(obj, key, value)
+                return obj
+
+            mock_client.V1VolumeMount = Mock(side_effect=create_mock_obj)
+            mock_client.V1EnvVar = Mock(side_effect=create_mock_obj)
+            mock_client.V1Container = Mock(side_effect=create_mock_obj)
+            mock_client.V1Volume = Mock(side_effect=create_mock_obj)
+            mock_client.V1Toleration = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1ObjectMeta = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJob = Mock(side_effect=create_mock_obj)
+
+            mock_task = Mock(spec=BaseTaskType)
+            executor.submit_k8s_job(mock_task)
+
+            # Verify NO API call was made in mock mode
+            mock_batch_api.create_namespaced_cron_job.assert_not_called()
+
+
+def test_backward_compatibility_no_schedule_uses_regular_job():
+    """Test that when schedule is not provided, regular Job is used (backward compatibility)"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {"template": {"spec": {"container": {"image": "test"}}}},
+        # No schedule field - should use regular Job
+        "mock": False,
+    }
+
+    executor = GenericK8sJobExecutor(**config)
+    assert executor.schedule is None
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "backward-compat-test"
+    mock_context.get_job_callable_command.return_value = "python test.py"
+
+    # Mock the Kubernetes client
+    with patch("runnable.context.run_context", mock_context):
+        with patch("extensions.job_executor.k8s.client") as mock_client:
+            mock_batch_api = Mock()
+            mock_client.BatchV1Api.return_value = mock_batch_api
+
+            # Mock all the V1 objects
+            def create_mock_obj(**kwargs):
+                obj = Mock()
+                for key, value in kwargs.items():
+                    setattr(obj, key, value)
+                return obj
+
+            mock_client.V1VolumeMount = Mock(side_effect=create_mock_obj)
+            mock_client.V1EnvVar = Mock(side_effect=create_mock_obj)
+            mock_client.V1Container = Mock(side_effect=create_mock_obj)
+            mock_client.V1Volume = Mock(side_effect=create_mock_obj)
+            mock_client.V1Toleration = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1ObjectMeta = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1Job = Mock(side_effect=create_mock_obj)
+
+            mock_task = Mock(spec=BaseTaskType)
+            executor.submit_k8s_job(mock_task)
+
+            # Verify regular Job was created, NOT CronJob
+            mock_batch_api.create_namespaced_job.assert_called_once()
+            mock_batch_api.create_namespaced_cron_job.assert_not_called()
+
+
+def test_cronjob_with_complex_resources():
+    """Test CronJob creation with complex resource specifications"""
+    from runnable import context as runnable_context
+
+    config = {
+        "job_spec": {
+            "activeDeadlineSeconds": 7200,
+            "backoffLimit": 3,
+            "template": {
+                "metadata": {
+                    "generateName": "test-job-",
+                    "annotations": {"description": "Test job", "app": "test-app"},
+                },
+                "spec": {
+                    "activeDeadlineSeconds": 7200,
+                    "restartPolicy": "OnFailure",
+                    "container": {
+                        "image": "python:3.11-slim",
+                        "imagePullPolicy": "Always",
+                        "env": [
+                            {"name": "ENV_VAR_1", "value": "value1"},
+                            {"name": "ENV_VAR_2", "value": "value2"},
+                        ],
+                        "resources": {
+                            "limits": {"cpu": "2", "memory": "4Gi"},
+                            "requests": {"cpu": "1", "memory": "2Gi"},
+                        },
+                    },
+                },
+            },
+        },
+        "schedule": "0 6 * * 1-5",  # Weekdays at 6 AM
+        "namespace": "production",
+        "mock": False,
+    }
+
+    executor = GenericK8sJobExecutor(**config)
+
+    # Mock the context
+    mock_context = Mock(spec=runnable_context.JobContext)
+    mock_context.run_id = "complex-resources-test"
+    mock_context.get_job_callable_command.return_value = "python app.py"
+
+    # Mock the Kubernetes client
+    with patch("runnable.context.run_context", mock_context):
+        with patch("extensions.job_executor.k8s.client") as mock_client:
+            mock_batch_api = Mock()
+            mock_client.BatchV1Api.return_value = mock_batch_api
+
+            # Mock all the V1 objects
+            def create_mock_obj(**kwargs):
+                obj = Mock()
+                for key, value in kwargs.items():
+                    setattr(obj, key, value)
+                return obj
+
+            mock_client.V1VolumeMount = Mock(side_effect=create_mock_obj)
+            mock_client.V1EnvVar = Mock(side_effect=create_mock_obj)
+            mock_client.V1Container = Mock(side_effect=create_mock_obj)
+            mock_client.V1Volume = Mock(side_effect=create_mock_obj)
+            mock_client.V1Toleration = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1ObjectMeta = Mock(side_effect=create_mock_obj)
+            mock_client.V1PodTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJobSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1JobTemplateSpec = Mock(side_effect=create_mock_obj)
+            mock_client.V1CronJob = Mock(side_effect=create_mock_obj)
+
+            mock_task = Mock(spec=BaseTaskType)
+            executor.submit_k8s_job(mock_task)
+
+            # Verify CronJob creation was called
+            mock_batch_api.create_namespaced_cron_job.assert_called_once()
+
+            # Verify the CronJob has correct schedule
+            call_args = mock_batch_api.create_namespaced_cron_job.call_args
+            cronjob = call_args[1]["body"]
+            assert cronjob.spec.schedule == "0 6 * * 1-5"
+
+            # Verify job spec properties are preserved
+            assert cronjob.spec.job_template.spec.active_deadline_seconds == 7200
