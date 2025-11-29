@@ -1,11 +1,19 @@
 import logging
+import re
 import shlex
 from enum import Enum
 from typing import Annotated, List, Optional
 
 from kubernetes import client
 from kubernetes import config as k8s_config
-from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, PrivateAttr
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    PrivateAttr,
+    field_validator,
+)
 from pydantic.alias_generators import to_camel
 
 from extensions.job_executor import GenericJobExecutor
@@ -173,6 +181,20 @@ class GenericK8sJobExecutor(GenericJobExecutor):
     job_spec: Spec
     mock: bool = False
     namespace: str = Field(default="default")
+    schedule: Optional[str] = Field(
+        default=None, description="Cron expression for scheduling (e.g., '0 2 * * *')"
+    )
+
+    @field_validator("schedule")
+    @classmethod
+    def validate_schedule(cls, v):
+        if v is not None:
+            # Validate cron expression format (5 fields: minute hour day month weekday)
+            if not re.match(r"^(\S+\s+){4}\S+$", v):
+                raise ValueError(
+                    "Schedule must be a valid cron expression with 5 fields (minute hour day month weekday)"
+                )
+        return v
 
     _should_setup_run_log_at_traversal: bool = PrivateAttr(default=False)
     _volume_mounts: list[VolumeMount] = PrivateAttr(default_factory=lambda: [])
