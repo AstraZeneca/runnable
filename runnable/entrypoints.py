@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 
 import runnable.context as context
-from runnable import defaults, graph, nodes, utils
+from runnable import console, defaults, graph, nodes, utils
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -236,7 +236,7 @@ def execute_job_non_local(
             catalog_settings=run_context.catalog_settings,
         )
     finally:
-        run_context.job_executor.add_task_log_to_catalog("job")
+        console.print("Job execution completed. Sending return code...")
 
     run_context.job_executor.send_return_code()
 

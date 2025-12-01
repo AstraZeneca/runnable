@@ -60,8 +60,10 @@ tutorial = [
     "matplotlib>=3.10.7",
     "scikit-learn>=1.7.2",
     "seaborn>=0.13.2",
+]
+torchexamples = [
     "torch>=2.8.0",
-    "torchvision>=0.23.0",
+    "torchvision<0.24.0",
 ]
 
 

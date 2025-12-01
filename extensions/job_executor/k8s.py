@@ -18,7 +18,6 @@ from pydantic.alias_generators import to_camel
 
 from extensions.job_executor import GenericJobExecutor
 from runnable import console, context, defaults
-from runnable.datastore import DataCatalog, StepAttempt
 from runnable.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.NAME)
@@ -227,45 +226,6 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         # submit_k8s_job now handles both regular jobs and cronjobs
         self.submit_k8s_job(job)
 
-    def execute_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
-        """
-        Focusses on execution of the job.
-        """
-        logger.info("Trying to execute job")
-        self._use_volumes()
-
-        job_log = self._context.run_log_store.get_job_log(run_id=self._context.run_id)
-        self.add_code_identities(job_log)
-
-        if not self.mock:
-            attempt_log = job.execute_command()
-        else:
-            attempt_log = StepAttempt(
-                status=defaults.SUCCESS,
-            )
-
-        job_log.status = attempt_log.status
-        job_log.attempts.append(attempt_log)
-
-        allow_file_not_found_exc = True
-        if job_log.status == defaults.SUCCESS:
-            allow_file_not_found_exc = False
-
-        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
-            catalog_settings=catalog_settings,
-            allow_file_not_found_exc=allow_file_not_found_exc,
-        )
-        logger.debug(f"data_catalogs_put: {data_catalogs_put}")
-
-        job_log.add_data_catalogs(data_catalogs_put or [])
-
-        console.print("Summary of job")
-        console.print(job_log.get_summary())
-
-        self._context.run_log_store.add_job_log(
-            run_id=self._context.run_id, job_log=job_log
-        )
-
     @property
     def _client(self):
         if self.config_path:
@@ -422,7 +382,6 @@ class GenericK8sJobExecutor(GenericJobExecutor):
 
     def _display_scheduled_job_info(self, cronjob):
         """Display information about the scheduled CronJob to the console"""
-        from runnable import console
 
         console.print("✓ CronJob scheduled successfully")
         console.print(f"  Name: {cronjob.metadata.name}")
@@ -471,6 +430,10 @@ class MiniK8sJobExecutor(GenericK8sJobExecutor):
         populate_by_name=True,
         from_attributes=True,
     )
+
+    def execute_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
+        self._use_volumes()
+        super().execute_job(job, catalog_settings=catalog_settings)
 
     def _create_volumes(self):
         match self._context.run_log_store.service_name:
@@ -547,27 +510,7 @@ class K8sJobExecutor(GenericK8sJobExecutor):
             run_id=self._context.run_id, job_log=job_log
         )
 
-        job_log = self._context.run_log_store.get_job_log(run_id=self._context.run_id)
-        self.add_code_identities(job_log)
-
-        attempt_log = job.execute_command()
-
-        job_log.status = attempt_log.status
-        job_log.attempts.append(attempt_log)
-
-        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
-            catalog_settings=catalog_settings
-        )
-        logger.debug(f"data_catalogs_put: {data_catalogs_put}")
-
-        job_log.add_data_catalogs(data_catalogs_put or [])
-
-        console.print("Summary of job")
-        console.print(job_log.get_summary())
-
-        self._context.run_log_store.add_job_log(
-            run_id=self._context.run_id, job_log=job_log
-        )
+        super().execute_job(job, catalog_settings=catalog_settings)
 
     def _create_volumes(self):
         self._volumes.append(

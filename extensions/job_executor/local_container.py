@@ -5,8 +5,7 @@ from typing import Dict, List, Optional
 from pydantic import Field, PrivateAttr
 
 from extensions.job_executor import GenericJobExecutor
-from runnable import console, context, defaults
-from runnable.datastore import DataCatalog, StepAttempt
+from runnable import context, defaults
 from runnable.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -19,7 +18,6 @@ class LocalContainerJobExecutor(GenericJobExecutor):
 
     service_name: str = "local-container"
     docker_image: str
-    mock: bool = False
     auto_remove_container: bool = True
     environment: Dict[str, str] = Field(default_factory=dict)
 
@@ -46,43 +44,10 @@ class LocalContainerJobExecutor(GenericJobExecutor):
 
     def execute_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
         """
-        Focusses on execution of the job.
+        This method gets invoked by the CLI.
         """
         self._use_volumes()
-        logger.info("Trying to execute job")
-
-        job_log = self._context.run_log_store.get_job_log(run_id=self._context.run_id)
-        self.add_code_identities(job_log)
-
-        if not self.mock:
-            attempt_log = job.execute_command()
-        else:
-            attempt_log = StepAttempt(
-                status=defaults.SUCCESS,
-            )
-
-        job_log.status = attempt_log.status
-        job_log.attempts.append(attempt_log)
-
-        allow_file_not_found_exc = True
-        if job_log.status == defaults.SUCCESS:
-            allow_file_not_found_exc = False
-
-        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
-            catalog_settings=catalog_settings,
-            allow_file_not_found_exc=allow_file_not_found_exc,
-        )
-
-        logger.debug(f"data_catalogs_put: {data_catalogs_put}")
-
-        job_log.add_data_catalogs(data_catalogs_put or [])
-
-        console.print("Summary of job")
-        console.print(job_log.get_summary())
-
-        self._context.run_log_store.add_job_log(
-            run_id=self._context.run_id, job_log=job_log
-        )
+        super().execute_job(job, catalog_settings=catalog_settings)
 
     def spin_container(self):
         """
@@ -103,7 +68,6 @@ class LocalContainerJobExecutor(GenericJobExecutor):
             assert isinstance(self._context, context.JobContext)
             command = self._context.get_job_callable_command()
             logger.info(f"Running the command {command}")
-            print(command)
 
             docker_image = self.docker_image
             environment = self.environment
@@ -113,11 +77,8 @@ class LocalContainerJobExecutor(GenericJobExecutor):
                 command=command,
                 auto_remove=False,
                 volumes=self._volumes,
-                network_mode="host",
                 environment=environment,
             )
-
-            # print(container.__dict__)
 
             container.start()
             stream = api_client.logs(
