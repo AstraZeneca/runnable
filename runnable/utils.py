@@ -7,6 +7,7 @@ import os
 import random
 import string
 import subprocess
+import time
 from collections import OrderedDict
 from pathlib import Path
 from string import Template as str_template
@@ -315,15 +316,25 @@ def get_data_hash(file_name: str) -> str:
     Returns:
         str: The SHA256 hash or fingerprint of the file contents
     """
+    start_time = time.time()
+
     try:
         file_path = Path(file_name)
         file_size = file_path.stat().st_size
 
         # Use appropriate algorithm based on file size
         if file_size < defaults.LARGE_FILE_THRESHOLD_BYTES:
-            return _compute_full_file_hash(file_name)
+            result = _compute_full_file_hash(file_name)
+            logger.debug(
+                f"Full hash computed for {file_name} ({file_size} bytes) in {time.time() - start_time:.3f}s"
+            )
         else:
-            return _compute_large_file_fingerprint(file_name, file_size)
+            result = _compute_large_file_fingerprint(file_name, file_size)
+            logger.info(
+                f"Fingerprint hash computed for {file_name} ({file_size} bytes) in {time.time() - start_time:.3f}s"
+            )
+
+        return result
     except FileNotFoundError:
         logger.error(f"File not found: {file_name}")
         raise

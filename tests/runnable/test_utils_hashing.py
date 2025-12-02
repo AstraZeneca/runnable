@@ -93,3 +93,23 @@ def test_get_data_hash_permission_error():
 
         with pytest.raises(PermissionError):
             get_data_hash("restricted_file.txt")
+
+
+def test_get_data_hash_performance_logging():
+    """Test that performance metrics are logged for large files"""
+    large_file_size = 2 * 1024 * 1024 * 1024  # 2GB
+
+    with patch("pathlib.Path.stat") as mock_stat, \
+         patch("builtins.open", mock_open()) as mock_file, \
+         patch("runnable.utils.logger") as mock_logger:
+
+        mock_stat.return_value.st_size = large_file_size
+        mock_file.return_value.read.side_effect = [b"A" * 1024, b"Z" * 1024, b""]
+
+        get_data_hash("large_file.bin")
+
+        # Should log performance info for large files
+        mock_logger.info.assert_called()
+        log_calls = [call[0][0] for call in mock_logger.info.call_args_list]
+        performance_logged = any("fingerprint hash computed" in msg.lower() for msg in log_calls)
+        assert performance_logged
