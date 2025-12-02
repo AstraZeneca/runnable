@@ -301,18 +301,51 @@ def diff_dict(d1: Dict[str, Any], d2: Dict[str, Any]) -> Dict[str, Any]:
 def get_data_hash(file_name: str) -> str:
     """Returns the hash of the data file.
 
+    For small files (<1GB): Returns full SHA256 hash
+    For large files (>=1GB): Returns fingerprint hash of first chunk + last chunk + file size
+
     Args:
-        file_name (str): The file name to generated the hash
+        file_name (str): The file name to generate the hash for
 
     Returns:
-        str: The SHA ID of the file contents
+        str: The SHA256 hash or fingerprint of the file contents
     """
-    # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
-    # TODO: For a big file, we should only hash the first few bytes
+    file_path = Path(file_name)
+    file_size = file_path.stat().st_size
+
+    # Use appropriate algorithm based on file size
+    if file_size < defaults.LARGE_FILE_THRESHOLD_BYTES:
+        return _compute_full_file_hash(file_name)
+    else:
+        return _compute_large_file_fingerprint(file_name, file_size)
+
+
+def _compute_full_file_hash(file_name: str) -> str:
+    """Compute SHA256 hash of entire file using streaming approach."""
     with open(file_name, "rb") as f:
-        file_hash = hashlib.md5()
+        file_hash = hashlib.sha256()
         for chunk in iter(lambda: f.read(4096), b""):
             file_hash.update(chunk)
+    return file_hash.hexdigest()
+
+
+def _compute_large_file_fingerprint(file_name: str, file_size: int) -> str:
+    """Compute fingerprint hash for large files using first/last chunks + metadata."""
+    with open(file_name, "rb") as f:
+        file_hash = hashlib.sha256()
+
+        # Include file size in hash for uniqueness
+        file_hash.update(str(file_size).encode())
+
+        # Read first chunk
+        first_chunk = f.read(defaults.HASH_CHUNK_SIZE)
+        file_hash.update(first_chunk)
+
+        # Read last chunk if file is large enough
+        if file_size > defaults.HASH_CHUNK_SIZE:
+            f.seek(-defaults.HASH_CHUNK_SIZE, 2)  # Seek to last chunk
+            last_chunk = f.read(defaults.HASH_CHUNK_SIZE)
+            file_hash.update(last_chunk)
 
     return file_hash.hexdigest()
 

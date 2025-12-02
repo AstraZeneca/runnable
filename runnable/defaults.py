@@ -117,3 +117,8 @@ error_style = Style(color="red", bold=True)
 warning_style = Style(color="yellow", bold=True)
 success_style = Style(color="green", bold=True)
 info_style = Style(color="blue", bold=True)
+
+# Hash computation settings
+HASH_ALGORITHM = "sha256"  # More secure and faster than MD5
+LARGE_FILE_THRESHOLD_BYTES = 1024 * 1024 * 1024  # 1GB
+HASH_CHUNK_SIZE = 1024 * 1024  # 1MB chunks for fingerprint hashing
