@@ -166,3 +166,18 @@ minikube/
 
 # Test Dockerfile
 Dockerfile.test
+
+
+# Arfifacts
+examples/tutorials/getting-started/X_test.csv
+examples/tutorials/getting-started/X_train.csv
+examples/tutorials/getting-started/data.csv
+examples/tutorials/getting-started/dataset.csv
+examples/tutorials/getting-started/evaluation_report.json
+examples/tutorials/getting-started/metrics_summary.json
+examples/tutorials/getting-started/model.pkl
+examples/tutorials/getting-started/results.json
+examples/tutorials/getting-started/trained_model.pkl
+examples/tutorials/getting-started/y_test.csv
+examples/tutorials/getting-started/y_train.csv
+minio-runnable/

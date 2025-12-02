@@ -107,6 +107,30 @@ Execute pipelines over iterable parameters for batch processing.
 ### Arbitrary Nesting
 Combine parallel, map, and sequential patterns as needed.
 
+## 🆚 Why Choose Runnable?
+
+| | **Runnable** | **Kedro** | **Metaflow** | **Airflow** |
+|---|---|---|---|---|
+| **Zero Code Changes** | ✅ Wrap existing functions | ❌ Restructure to nodes | ❌ Convert to FlowSpec | ❌ Rewrite as DAG tasks |
+| **Environment Portability** | Same code: laptop→container→K8s→Argo | Deployment-specific configs | AWS-focused with --with flags | Platform-specific operators |
+| **Mixed Task Types** | Python + Notebooks + Shell | Python nodes only | Python steps only | Requires separate operators |
+| **Plugin Extensibility** | Auto-discovery via entry points | kedro-* packages | Limited extensions | Complex plugin development |
+| **Parameter Passing** | Automatic by name matching | Manual catalog definitions | Flow state management | Manual XCom operations |
+
+## 🚀 Time to Value
+
+**Runnable**:
+```bash
+pip install runnable
+# Wrap your existing function - done!
+```
+
+**Others**:
+- Learn framework conventions
+- Restructure existing code
+- Configure project structure
+- Set up deployment configs
+
 ---
 
 **Ready to get started?** Check out our [30-second demo](https://astrazeneca.github.io/runnable/) for immediate results!

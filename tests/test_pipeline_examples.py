@@ -44,6 +44,7 @@ def runnable_context():
     from runnable import context as runnable_context
 
     os.environ["FIX_RANDOM_TOSS"] = "heads"
+    os.environ.pop("RUNNABLE_CONFIGURATION_FILE", None)
 
     try:
         yield runnable_context
@@ -69,7 +70,7 @@ def minio_context():
 def chunked_minio_context():
     with runnable_context():
         os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
-            "examples/configs/chunked_minio.yaml"
+            "examples/configs/chunked-minio.yaml"
         )
         os.environ["RUNNABLE_PRM_envvar"] = "from env"
         yield
@@ -796,7 +797,9 @@ minio_contexts = [minio_context, chunked_minio_context]
 def test_python_examples_minio(example, context):
     print(f"Testing {example}...")
 
-    mod, fails, _, _, assertions = example
+    mod, _, fails, ignore_contexts, _, assertions = example
+    if context in ignore_contexts:
+        return
 
     context = context()
 
@@ -809,12 +812,8 @@ def test_python_examples_minio(example, context):
         try:
             os.environ[defaults.ENV_RUN_ID] = generate_run_id()
             f()
-            # [asserttion() for asserttion in assertions]
-
         except exceptions.ExecutionFailedError:
             print("Example failed")
             if not fails:
                 raise
-
-
-# TODO: add tests for jobs
+        [asserttion() for asserttion in assertions]

@@ -289,6 +289,27 @@ job-executor:
             image: "my-project:latest"
 ```
 
+## Advanced Features
+
+### Job Scheduling
+
+Schedule jobs to run automatically using Kubernetes CronJobs:
+
+```yaml
+job-executor:
+  type: k8s-job
+  config:
+    schedule: "0 2 * * *"  # Run daily at 2 AM
+    pvc_claim_name: "runnable-storage"
+    jobSpec:
+      template:
+        spec:
+          container:
+            image: "my-project:v1.0"
+```
+
+**Learn more:** [Kubernetes Job Scheduling Guide](k8s-scheduling.md)
+
 ## When to Use Other Executors
 
 Consider alternatives when you need:
@@ -305,4 +326,4 @@ Consider alternatives when you need:
 
 ---
 
-**Related:** [Pipeline Argo Workflows](../pipeline-execution/argo.md) | [All Job Executors](overview.md)
+**Related:** [K8s Job Scheduling](k8s-scheduling.md) | [Pipeline Argo Workflows](../pipeline-execution/argo.md) | [All Job Executors](overview.md)

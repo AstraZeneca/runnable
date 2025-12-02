@@ -6,11 +6,11 @@ pipeline-executor:
       image: $docker_image # (3)
       resources:
         limits:
-          cpu: "1"
-          memory: 1Gi
+          cpu: "2"
+          memory: 4Gi
         requests:
-          cpu: "0.5"
-          memory: 500Mi
+          cpu: "2"
+          memory: 4Gi
       env:
         - name: argo_env
           value: "argo"

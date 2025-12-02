@@ -1,16 +1,21 @@
 import logging
+import re
 import shlex
 from enum import Enum
 from typing import Annotated, List, Optional
 
-from kubernetes import client
-from kubernetes import config as k8s_config
-from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, PrivateAttr
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    PrivateAttr,
+    field_validator,
+)
 from pydantic.alias_generators import to_camel
 
 from extensions.job_executor import GenericJobExecutor
 from runnable import console, context, defaults
-from runnable.datastore import DataCatalog, StepAttempt
 from runnable.tasks import BaseTaskType
 
 logger = logging.getLogger(defaults.NAME)
@@ -173,6 +178,20 @@ class GenericK8sJobExecutor(GenericJobExecutor):
     job_spec: Spec
     mock: bool = False
     namespace: str = Field(default="default")
+    schedule: Optional[str] = Field(
+        default=None, description="Cron expression for scheduling (e.g., '0 2 * * *')"
+    )
+
+    @field_validator("schedule")
+    @classmethod
+    def validate_schedule(cls, v):
+        if v is not None:
+            # Validate cron expression format (5 fields: minute hour day month weekday)
+            if not re.match(r"^(\S+\s+){4}\S+$", v):
+                raise ValueError(
+                    "Schedule must be a valid cron expression with 5 fields (minute hour day month weekday)"
+                )
+        return v
 
     _should_setup_run_log_at_traversal: bool = PrivateAttr(default=False)
     _volume_mounts: list[VolumeMount] = PrivateAttr(default_factory=lambda: [])
@@ -201,49 +220,22 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         )
         # create volumes and volume mounts for the job
         self._create_volumes()
+
+        # submit_k8s_job now handles both regular jobs and cronjobs
         self.submit_k8s_job(job)
-
-    def execute_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
-        """
-        Focusses on execution of the job.
-        """
-        logger.info("Trying to execute job")
-        self._use_volumes()
-
-        job_log = self._context.run_log_store.get_job_log(run_id=self._context.run_id)
-        self.add_code_identities(job_log)
-
-        if not self.mock:
-            attempt_log = job.execute_command()
-        else:
-            attempt_log = StepAttempt(
-                status=defaults.SUCCESS,
-            )
-
-        job_log.status = attempt_log.status
-        job_log.attempts.append(attempt_log)
-
-        allow_file_not_found_exc = True
-        if job_log.status == defaults.SUCCESS:
-            allow_file_not_found_exc = False
-
-        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
-            catalog_settings=catalog_settings,
-            allow_file_not_found_exc=allow_file_not_found_exc,
-        )
-        logger.debug(f"data_catalogs_put: {data_catalogs_put}")
-
-        job_log.add_data_catalogs(data_catalogs_put or [])
-
-        console.print("Summary of job")
-        console.print(job_log.get_summary())
-
-        self._context.run_log_store.add_job_log(
-            run_id=self._context.run_id, job_log=job_log
-        )
 
     @property
     def _client(self):
+        # Lazy import kubernetes dependencies to avoid import-time failures in tests
+        try:
+            from kubernetes import client
+            from kubernetes import config as k8s_config
+        except ImportError:
+            raise ImportError(
+                "Kubernetes Python client is required but not installed. "
+                "Install it with: uv add 'runnable[k8s]'"
+            )
+
         if self.config_path:
             k8s_config.load_kube_config(config_file=self.config_path)
         else:
@@ -252,6 +244,11 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         return client
 
     def submit_k8s_job(self, task: BaseTaskType):
+        """
+        Submit a Kubernetes Job or CronJob based on whether schedule is configured.
+        This method builds the job specification once and then creates either a Job or CronJob.
+        """
+        # Build volume mounts
         if self.job_spec.template.spec.container.volume_mounts:
             self._volume_mounts += self.job_spec.template.spec.container.volume_mounts
 
@@ -259,14 +256,18 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             self._client.V1VolumeMount(**vol.model_dump())
             for vol in self._volume_mounts
         ]
+
+        # Get command
         assert isinstance(self._context, context.JobContext)
         command = self._context.get_job_callable_command()
 
+        # Build container env
         container_env = [
             self._client.V1EnvVar(**env.model_dump())
             for env in self.job_spec.template.spec.container.env
         ]
 
+        # Build container
         base_container = self._client.V1Container(
             command=shlex.split(command),
             env=container_env,
@@ -281,6 +282,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             ),
         )
 
+        # Build volumes
         if self.job_spec.template.spec.volumes:
             self._volumes += self.job_spec.template.spec.volumes
 
@@ -288,6 +290,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             self._client.V1Volume(**vol.model_dump()) for vol in self._volumes
         ]
 
+        # Build tolerations
         tolerations = None
         if self.job_spec.template.spec.tolerations:
             tolerations = [
@@ -295,9 +298,9 @@ class GenericK8sJobExecutor(GenericJobExecutor):
                 for toleration in self.job_spec.template.spec.tolerations
             ]
 
+        # Build pod spec
         pod_spec = self._client.V1PodSpec(
             containers=[base_container],
-            # volumes=[vol.model_dump(by_alias=True) for vol in spec_volumes],
             volumes=spec_volumes,
             tolerations=tolerations,
             **self.job_spec.template.spec.model_dump(
@@ -305,47 +308,99 @@ class GenericK8sJobExecutor(GenericJobExecutor):
             ),
         )
 
+        # Build pod template metadata
         pod_template_metadata = None
         if self.job_spec.template.metadata:
             pod_template_metadata = self._client.V1ObjectMeta(
                 **self.job_spec.template.metadata.model_dump(exclude_none=True)
             )
 
+        # Build pod template
         pod_template = self._client.V1PodTemplateSpec(
             spec=pod_spec,
             metadata=pod_template_metadata,
         )
 
-        job_spec = client.V1JobSpec(
+        # Build job spec
+        job_spec = self._client.V1JobSpec(
             template=pod_template,
             **self.job_spec.model_dump(exclude_none=True, exclude={"template"}),
         )
 
-        job = client.V1Job(
-            api_version="batch/v1",
-            kind="Job",
-            metadata=client.V1ObjectMeta(name=self._context.run_id),
-            spec=job_spec,
-        )
-
-        logger.info(f"Submitting job: {job.__dict__}")
-        if self.mock:
-            logger.info(job.__dict__)
-            return
-
-        try:
-            k8s_batch = self._client.BatchV1Api()
-            response = k8s_batch.create_namespaced_job(
-                body=job,
-                _preload_content=False,
-                pretty=True,
-                namespace=self.namespace,
+        # Decision point: Create Job or CronJob based on schedule
+        if self.schedule:
+            # Create CronJob
+            cronjob_spec = self._client.V1CronJobSpec(
+                schedule=self.schedule,
+                job_template=self._client.V1JobTemplateSpec(spec=job_spec),
             )
-            logger.debug(f"Kubernetes job response: {response}")
-        except Exception as e:
-            logger.exception(e)
-            print(e)
-            raise
+
+            cronjob = self._client.V1CronJob(
+                api_version="batch/v1",
+                kind="CronJob",
+                metadata=self._client.V1ObjectMeta(name=self._context.run_id),
+                spec=cronjob_spec,
+            )
+
+            logger.info(f"Submitting CronJob: {cronjob.__dict__}")
+            self._display_scheduled_job_info(cronjob)
+
+            if self.mock:
+                logger.info(cronjob.__dict__)
+                return
+
+            try:
+                k8s_batch = self._client.BatchV1Api()
+                response = k8s_batch.create_namespaced_cron_job(
+                    body=cronjob,
+                    namespace=self.namespace,
+                )
+                logger.debug(f"Kubernetes CronJob response: {response}")
+            except Exception as e:
+                logger.exception(e)
+                print(e)
+                raise
+        else:
+            # Create regular Job
+            job = self._client.V1Job(
+                api_version="batch/v1",
+                kind="Job",
+                metadata=self._client.V1ObjectMeta(name=self._context.run_id),
+                spec=job_spec,
+            )
+
+            logger.info(f"Submitting job: {job.__dict__}")
+            if self.mock:
+                logger.info(job.__dict__)
+                return
+
+            try:
+                k8s_batch = self._client.BatchV1Api()
+                response = k8s_batch.create_namespaced_job(
+                    body=job,
+                    _preload_content=False,
+                    pretty=True,
+                    namespace=self.namespace,
+                )
+                logger.debug(f"Kubernetes job response: {response}")
+            except Exception as e:
+                logger.exception(e)
+                print(e)
+                raise
+
+    def _display_scheduled_job_info(self, cronjob):
+        """Display information about the scheduled CronJob to the console"""
+
+        console.print("✓ CronJob scheduled successfully")
+        console.print(f"  Name: {cronjob.metadata.name}")
+        console.print(f"  Namespace: {self.namespace}")
+        console.print(f"  Schedule: {cronjob.spec.schedule}")
+        console.print("")
+        console.print("  Job Spec:")
+        console.print(f"  - Image: {self.job_spec.template.spec.container.image}")
+        console.print(
+            f"  - Resources: {self.job_spec.template.spec.container.resources.model_dump()}"
+        )
 
     def _create_volumes(self): ...
 
@@ -383,6 +438,10 @@ class MiniK8sJobExecutor(GenericK8sJobExecutor):
         populate_by_name=True,
         from_attributes=True,
     )
+
+    def execute_job(self, job: BaseTaskType, catalog_settings=Optional[List[str]]):
+        self._use_volumes()
+        super().execute_job(job, catalog_settings=catalog_settings)
 
     def _create_volumes(self):
         match self._context.run_log_store.service_name:
@@ -459,27 +518,7 @@ class K8sJobExecutor(GenericK8sJobExecutor):
             run_id=self._context.run_id, job_log=job_log
         )
 
-        job_log = self._context.run_log_store.get_job_log(run_id=self._context.run_id)
-        self.add_code_identities(job_log)
-
-        attempt_log = job.execute_command()
-
-        job_log.status = attempt_log.status
-        job_log.attempts.append(attempt_log)
-
-        data_catalogs_put: Optional[List[DataCatalog]] = self._sync_catalog(
-            catalog_settings=catalog_settings
-        )
-        logger.debug(f"data_catalogs_put: {data_catalogs_put}")
-
-        job_log.add_data_catalogs(data_catalogs_put or [])
-
-        console.print("Summary of job")
-        console.print(job_log.get_summary())
-
-        self._context.run_log_store.add_job_log(
-            run_id=self._context.run_id, job_log=job_log
-        )
+        super().execute_job(job, catalog_settings=catalog_settings)
 
     def _create_volumes(self):
         self._volumes.append(

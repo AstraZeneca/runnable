@@ -59,19 +59,23 @@ def get_pipeline_spec_from_python(python_module: str) -> Graph:
     return dag
 
 
-def get_job_spec_from_python(job_file: str) -> BaseTaskType:
+def get_job_spec_from_python(
+    job_file: str,
+) -> tuple[BaseTaskType, list[str]]:
     """
     Reads the job file from a Python file and sets the job spec in the run context
     """
+    from runnable.sdk import BaseJob
+
     # Import the module and call the function to get the job
     module_file = job_file.rstrip(".py")
     module, func = utils.get_module_and_attr_names(module_file)
     sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
     imported_module = importlib.import_module(module)
 
-    job = getattr(imported_module, func)().get_task()
+    job: BaseJob = getattr(imported_module, func)()
 
-    return job
+    return job.get_task(), job.catalog.put if job.catalog else []
 
 
 def get_service_by_name(namespace: str, service_config: dict[str, Any], _) -> Any:  # noqa: ANN401, ANN001
@@ -431,17 +435,19 @@ class JobContext(RunnableContext):
     run_log_store: InstantiatedRunLogStore
 
     job_definition_file: str
-    catalog_settings: Optional[list[str]] = Field(
-        default=None,
-        description="Catalog settings to be used for the job.",
-    )
     catalog_store_copy: bool = Field(default=True, alias="catalog_store_copy")
 
     @computed_field  # type: ignore
     @cached_property
     def job(self) -> BaseTaskType:
-        """Get the job."""
-        return get_job_spec_from_python(self.job_definition_file)
+        job, _ = get_job_spec_from_python(self.job_definition_file)
+        return job
+
+    @computed_field  # type: ignore
+    @cached_property
+    def catalog_settings(self) -> list[str] | None:
+        _, catalog_config = get_job_spec_from_python(self.job_definition_file)
+        return catalog_config
 
     def get_job_callable_command(
         self,
@@ -477,10 +483,11 @@ class JobContext(RunnableContext):
 
         try:
             self.job_executor.submit_job(
-                self.job, catalog_settings=self.catalog_settings
+                job=self.job, catalog_settings=self.catalog_settings
             )
         finally:
-            self.job_executor.add_task_log_to_catalog("job")
+            # self.job_executor.add_task_log_to_catalog("job")
+            console.print(f"Job execution completed for run id: {self.run_id}")
 
         logger.info(
             "Executing the job from the user. We are still in the caller's compute environment"
@@ -492,4 +499,5 @@ class JobContext(RunnableContext):
             )
 
 
+run_context: PipelineContext | JobContext = None  # type: ignore
 run_context: PipelineContext | JobContext = None  # type: ignore

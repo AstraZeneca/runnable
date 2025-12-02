@@ -1,0 +1,22 @@
+job-executor:
+  type: "k8s-job"
+  config:
+    pvc_claim_name: runnable
+    config_path:
+    mock: false
+    namespace: enterprise-mlops
+    schedule: "* * * * *"  # Run daily at 2 AM UTC
+    jobSpec:
+      activeDeadlineSeconds: 32000
+      template:
+        spec:
+          activeDeadlineSeconds: 86400
+          container:
+            image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+            resources:
+              limits:
+                cpu: "1"
+                memory: "2Gi"
+              requests:
+                cpu: "500m"
+                memory: "1Gi"

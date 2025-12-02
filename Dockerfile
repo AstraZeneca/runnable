@@ -8,19 +8,25 @@ WORKDIR /app
 
 USER root
 
-# Install system dependencies
+# Install system dependencies including CA certificates
 RUN apt-get update && apt-get install -y \
     git \
     curl \
     build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates
 
 # Install uv for fast dependency management
 RUN pip install uv
 
 # Copy project files
 COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --all-extras --frozen --all-groups
+
+# Configure UV for better SSL handling
+ENV UV_NATIVE_TLS=1
+
+RUN uv sync --all-extras --frozen --all-groups --no-group torchexamples
 
 COPY runnable/ ./runnable/
 COPY extensions/ ./extensions/

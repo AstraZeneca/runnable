@@ -8,7 +8,6 @@ import random
 import string
 import subprocess
 from collections import OrderedDict
-from datetime import datetime
 from pathlib import Path
 from string import Template as str_template
 from typing import TYPE_CHECKING, Any, Dict, Tuple, Union
@@ -16,7 +15,7 @@ from typing import TYPE_CHECKING, Any, Dict, Tuple, Union
 from ruamel.yaml import YAML
 
 import runnable.context as context
-from runnable import console, defaults, names
+from runnable import console, defaults
 from runnable.defaults import MapVariableType
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -63,30 +62,6 @@ def safe_make_dir(directory: Union[str, Path]):
         directory (str): The directory path to create
     """
     Path(directory).mkdir(parents=True, exist_ok=True)
-
-
-# TODO: remove this
-def generate_run_id(run_id: str = "") -> str:
-    """Generate a new run_id.
-
-    If the input run_id is none, we create one based on time stamp.
-
-    Args:
-        run_id (str, optional): Input Run ID. Defaults to None
-
-    Returns:
-        str: A generated run_id
-    """
-    # If we are not provided with a run_id, check env var
-    if not run_id:
-        run_id = os.environ.get(defaults.ENV_RUN_ID, "")
-
-    # If both are not given, generate one
-    if not run_id:
-        now = datetime.now()
-        run_id = f"{names.get_random_name()}-{now.hour:02}{now.minute:02}"
-
-    return run_id
 
 
 def apply_variables(
