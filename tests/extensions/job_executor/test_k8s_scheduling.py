@@ -3,8 +3,32 @@ from unittest.mock import Mock, patch
 import pytest
 from pydantic import ValidationError
 
-from extensions.job_executor.k8s import GenericK8sJobExecutor, Spec
-from runnable.tasks import BaseTaskType
+# Mock Kubernetes imports before importing from k8s module
+with patch("extensions.job_executor.k8s.client") as mock_client, \
+     patch("extensions.job_executor.k8s.k8s_config") as mock_k8s_config:
+    # Set up basic mocks to allow module import
+    mock_client.BatchV1Api = Mock()
+    mock_client.BatchV1beta1Api = Mock()
+    mock_client.CoreV1Api = Mock()
+    mock_client.V1VolumeMount = Mock()
+    mock_client.V1EnvVar = Mock()
+    mock_client.V1Container = Mock()
+    mock_client.V1Volume = Mock()
+    mock_client.V1Toleration = Mock()
+    mock_client.V1PodSpec = Mock()
+    mock_client.V1ObjectMeta = Mock()
+    mock_client.V1PodTemplateSpec = Mock()
+    mock_client.V1JobSpec = Mock()
+    mock_client.V1Job = Mock()
+    mock_client.V1CronJobSpec = Mock()
+    mock_client.V1JobTemplateSpec = Mock()
+    mock_client.V1CronJob = Mock()
+    mock_k8s_config.load_incluster_config = Mock()
+    mock_k8s_config.load_kube_config = Mock()
+
+    # Now safe to import from the k8s module
+    from extensions.job_executor.k8s import GenericK8sJobExecutor, Spec
+    from runnable.tasks import BaseTaskType
 
 
 # Mock Kubernetes imports at the module level for all tests
