@@ -68,12 +68,13 @@ def test_get_with_matching_files(catalog_setup):
     test_file.write_text("test content")
 
     with patch("extensions.catalog.any_path.utils.get_data_hash") as mock_hash:
-        mock_hash.return_value = "test_hash"
+        # Update to expect SHA256 hash length (64 chars instead of 32)
+        mock_hash.return_value = "a" * 64  # SHA256 hash length
         catalogs = catalog_setup.get("*.txt")
 
     assert len(catalogs) == 1
     assert catalogs[0].name == "test"
-    assert catalogs[0].data_hash == "test_hash"
+    assert catalogs[0].data_hash == "a" * 64  # Updated expectation
     assert catalogs[0].stage == "get"
 
 
@@ -106,12 +107,13 @@ def test_put_with_matching_files(catalog_setup):
     test_file.write_text("test content")
 
     with patch("extensions.catalog.any_path.utils.get_data_hash") as mock_hash:
-        mock_hash.return_value = "test_hash"
+        # Update to expect SHA256 hash length (64 chars instead of 32)
+        mock_hash.return_value = "b" * 64  # SHA256 hash length
         catalogs = catalog_setup.put("*.txt")
 
     assert len(catalogs) == 1
     assert catalogs[0].name == "test"
-    assert catalogs[0].data_hash == "test_hash"
+    assert catalogs[0].data_hash == "b" * 64  # Updated expectation
     assert catalogs[0].stage == "put"
 
     # Cleanup
