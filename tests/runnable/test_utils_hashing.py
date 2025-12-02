@@ -45,3 +45,51 @@ def test_get_data_hash_large_file_fingerprint():
         expected = hasher.hexdigest()
 
         assert result == expected
+
+
+def test_get_data_hash_empty_file():
+    """Test hash computation for empty files"""
+    with patch("pathlib.Path.stat") as mock_stat, \
+         patch("builtins.open", mock_open(read_data=b"")) as mock_file:
+
+        mock_stat.return_value.st_size = 0
+
+        result = get_data_hash("empty_file.txt")
+
+        # Should be SHA256 of empty content
+        import hashlib
+        expected = hashlib.sha256(b"").hexdigest()
+        assert result == expected
+
+
+def test_get_data_hash_exactly_threshold_size():
+    """Test hash computation for file exactly at threshold size"""
+    threshold_size = 1024 * 1024 * 1024  # 1GB exactly
+    file_content = b"X" * 1024  # Small content for mock
+
+    with patch("pathlib.Path.stat") as mock_stat, \
+         patch("builtins.open", mock_open(read_data=file_content)) as mock_file:
+
+        mock_stat.return_value.st_size = threshold_size
+
+        result = get_data_hash("threshold_file.bin")
+
+        # Should use fingerprint method (large file handling)
+        assert len(result) == 64  # SHA256 hex length
+
+
+def test_get_data_hash_file_not_found():
+    """Test hash computation handles file not found error gracefully"""
+    with pytest.raises(FileNotFoundError):
+        get_data_hash("nonexistent_file.txt")
+
+
+def test_get_data_hash_permission_error():
+    """Test hash computation handles permission errors gracefully"""
+    with patch("pathlib.Path.stat") as mock_stat, \
+         patch("builtins.open", side_effect=PermissionError("Access denied")):
+
+        mock_stat.return_value.st_size = 100  # Mock file size
+
+        with pytest.raises(PermissionError):
+            get_data_hash("restricted_file.txt")
