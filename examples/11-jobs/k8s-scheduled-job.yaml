@@ -5,7 +5,7 @@ job-executor:
     config_path:
     mock: false
     namespace: enterprise-mlops
-    schedule: "0 2 * * *"  # Run daily at 2 AM UTC
+    schedule: "* * * * *"  # Run daily at 2 AM UTC
     jobSpec:
       activeDeadlineSeconds: 32000
       template:
