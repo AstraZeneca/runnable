@@ -4,8 +4,10 @@ import pytest
 from pydantic import ValidationError
 
 # Mock Kubernetes imports before importing from k8s module
-with patch("extensions.job_executor.k8s.client") as mock_client, \
-     patch("extensions.job_executor.k8s.k8s_config") as mock_k8s_config:
+with (
+    patch("extensions.job_executor.k8s.client") as mock_client,
+    patch("extensions.job_executor.k8s.k8s_config") as mock_k8s_config,
+):
     # Set up basic mocks to allow module import
     mock_client.BatchV1Api = Mock()
     mock_client.BatchV1beta1Api = Mock()
