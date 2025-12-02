@@ -1,137 +1,144 @@
 from unittest.mock import Mock, patch
-
+import sys
 import pytest
 from pydantic import ValidationError
 
-# Mock Kubernetes imports before importing from k8s module
-with (
-    patch("extensions.job_executor.k8s.client") as mock_client,
-    patch("extensions.job_executor.k8s.k8s_config") as mock_k8s_config,
-):
-    # Set up basic mocks to allow module import
-    mock_client.BatchV1Api = Mock()
-    mock_client.BatchV1beta1Api = Mock()
-    mock_client.CoreV1Api = Mock()
-    mock_client.V1VolumeMount = Mock()
-    mock_client.V1EnvVar = Mock()
-    mock_client.V1Container = Mock()
-    mock_client.V1Volume = Mock()
-    mock_client.V1Toleration = Mock()
-    mock_client.V1PodSpec = Mock()
-    mock_client.V1ObjectMeta = Mock()
-    mock_client.V1PodTemplateSpec = Mock()
-    mock_client.V1JobSpec = Mock()
-    mock_client.V1Job = Mock()
-    mock_client.V1CronJobSpec = Mock()
-    mock_client.V1JobTemplateSpec = Mock()
-    mock_client.V1CronJob = Mock()
-    mock_k8s_config.load_incluster_config = Mock()
-    mock_k8s_config.load_kube_config = Mock()
+# Create mock kubernetes modules before any imports
+mock_kubernetes = Mock()
+mock_client = Mock()
+mock_config = Mock()
 
-    # Now safe to import from the k8s module
-    from extensions.job_executor.k8s import GenericK8sJobExecutor, Spec
-    from runnable.tasks import BaseTaskType
+# Set up the mock modules in sys.modules
+sys.modules['kubernetes'] = mock_kubernetes
+sys.modules['kubernetes.client'] = mock_client
+sys.modules['kubernetes.config'] = mock_config
+
+# Set up basic mocks to allow module import
+mock_client.BatchV1Api = Mock()
+mock_client.BatchV1beta1Api = Mock()
+mock_client.CoreV1Api = Mock()
+mock_client.V1VolumeMount = Mock()
+mock_client.V1EnvVar = Mock()
+mock_client.V1Container = Mock()
+mock_client.V1Volume = Mock()
+mock_client.V1Toleration = Mock()
+mock_client.V1PodSpec = Mock()
+mock_client.V1ObjectMeta = Mock()
+mock_client.V1PodTemplateSpec = Mock()
+mock_client.V1JobSpec = Mock()
+mock_client.V1Job = Mock()
+mock_client.V1CronJobSpec = Mock()
+mock_client.V1JobTemplateSpec = Mock()
+mock_client.V1CronJob = Mock()
+mock_config.load_incluster_config = Mock()
+mock_config.load_kube_config = Mock()
+mock_config.load_config = Mock()
+
+# Now safe to import from the k8s module
+from extensions.job_executor.k8s import GenericK8sJobExecutor, Spec
+from runnable.tasks import BaseTaskType
 
 
 # Mock Kubernetes imports at the module level for all tests
 @pytest.fixture(autouse=True)
 def mock_kubernetes():
     """Auto-use fixture to mock Kubernetes imports for all tests in this module."""
-    with (
-        patch("extensions.job_executor.k8s.client") as mock_client,
-        patch("extensions.job_executor.k8s.k8s_config") as mock_k8s_config,
-    ):
-        # Set up mock client with commonly used attributes
-        mock_batch_v1_api = Mock()
-        mock_client.BatchV1Api.return_value = mock_batch_v1_api
-        mock_client.BatchV1beta1Api.return_value = Mock()
-        mock_client.CoreV1Api.return_value = Mock()
+    # Reset the mocks for each test
+    mock_client.reset_mock()
+    mock_config.reset_mock()
 
-        # Mock all the V1 Kubernetes objects that tests use
-        mock_client.V1VolumeMount = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
-        mock_client.V1EnvVar = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
-        mock_client.V1Container = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
-        mock_client.V1Volume = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
-        mock_client.V1Toleration = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
-        mock_client.V1PodSpec = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
-        mock_client.V1ObjectMeta = Mock(
-            side_effect=lambda **kwargs: type("obj", (), kwargs)
+    # Set up mock client with commonly used attributes
+    mock_batch_v1_api = Mock()
+    mock_client.BatchV1Api.return_value = mock_batch_v1_api
+    mock_client.BatchV1beta1Api.return_value = Mock()
+    mock_client.CoreV1Api.return_value = Mock()
+
+    # Mock all the V1 Kubernetes objects that tests use
+    mock_client.V1VolumeMount = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
+    mock_client.V1EnvVar = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
+    mock_client.V1Container = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
+    mock_client.V1Volume = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
+    mock_client.V1Toleration = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
+    mock_client.V1PodSpec = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
+    mock_client.V1ObjectMeta = Mock(
+        side_effect=lambda **kwargs: type("obj", (), kwargs)
+    )
+    mock_client.V1PodTemplateSpec = Mock(
+        side_effect=lambda **kwargs: Mock(**kwargs)
+    )
+    mock_client.V1JobSpec = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
+    mock_client.V1Job = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
+
+    # CronJob-specific mocks
+    def create_cronjob_spec(**kwargs):
+        spec = Mock()
+        spec.schedule = kwargs.get("schedule")
+        spec.job_template = kwargs.get("job_template")
+        return spec
+
+    def create_job_template_spec(**kwargs):
+        template = Mock()
+        template.spec = kwargs.get("spec")
+        return template
+
+    def create_cronjob(**kwargs):
+        cronjob_mock = Mock()
+        cronjob_mock.metadata = Mock()
+        metadata = kwargs.get("metadata")
+        cronjob_mock.metadata.name = (
+            metadata.name if metadata and hasattr(metadata, "name") else None
         )
-        mock_client.V1PodTemplateSpec = Mock(
-            side_effect=lambda **kwargs: Mock(**kwargs)
+        cronjob_mock.spec = Mock()
+        if "spec" in kwargs:
+            cronjob_mock.spec.schedule = (
+                kwargs["spec"].schedule
+                if hasattr(kwargs["spec"], "schedule")
+                else None
+            )
+            cronjob_mock.spec.job_template = (
+                kwargs["spec"].job_template
+                if hasattr(kwargs["spec"], "job_template")
+                else None
+            )
+        # Set common CronJob attributes that tests expect
+        cronjob_mock.kind = "CronJob"
+        cronjob_mock.api_version = "batch/v1"
+        return cronjob_mock
+
+    def create_job(**kwargs):
+        job_mock = Mock()
+        job_mock.metadata = Mock()
+        metadata = kwargs.get("metadata")
+        job_mock.metadata.name = (
+            metadata.name if metadata and hasattr(metadata, "name") else None
         )
-        mock_client.V1JobSpec = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
-        mock_client.V1Job = Mock(side_effect=lambda **kwargs: Mock(**kwargs))
-
-        # CronJob-specific mocks
-        def create_cronjob_spec(**kwargs):
-            spec = Mock()
-            spec.schedule = kwargs.get("schedule")
-            spec.job_template = kwargs.get("job_template")
-            return spec
-
-        def create_job_template_spec(**kwargs):
-            template = Mock()
-            template.spec = kwargs.get("spec")
-            return template
-
-        def create_cronjob(**kwargs):
-            cronjob_mock = Mock()
-            cronjob_mock.metadata = Mock()
-            metadata = kwargs.get("metadata")
-            cronjob_mock.metadata.name = (
-                metadata.name if metadata and hasattr(metadata, "name") else None
+        job_mock.spec = Mock()
+        if "spec" in kwargs:
+            job_mock.spec.active_deadline_seconds = (
+                kwargs["spec"].active_deadline_seconds
+                if hasattr(kwargs["spec"], "active_deadline_seconds")
+                else None
             )
-            cronjob_mock.spec = Mock()
-            if "spec" in kwargs:
-                cronjob_mock.spec.schedule = (
-                    kwargs["spec"].schedule
-                    if hasattr(kwargs["spec"], "schedule")
-                    else None
-                )
-                cronjob_mock.spec.job_template = (
-                    kwargs["spec"].job_template
-                    if hasattr(kwargs["spec"], "job_template")
-                    else None
-                )
-            # Set common CronJob attributes that tests expect
-            cronjob_mock.kind = "CronJob"
-            cronjob_mock.api_version = "batch/v1"
-            return cronjob_mock
+        # Set common Job attributes that tests expect
+        job_mock.kind = "Job"
+        job_mock.api_version = "batch/v1"
+        return job_mock
 
-        def create_job(**kwargs):
-            job_mock = Mock()
-            job_mock.metadata = Mock()
-            metadata = kwargs.get("metadata")
-            job_mock.metadata.name = (
-                metadata.name if metadata and hasattr(metadata, "name") else None
-            )
-            job_mock.spec = Mock()
-            if "spec" in kwargs:
-                job_mock.spec.active_deadline_seconds = (
-                    kwargs["spec"].active_deadline_seconds
-                    if hasattr(kwargs["spec"], "active_deadline_seconds")
-                    else None
-                )
-            # Set common Job attributes that tests expect
-            job_mock.kind = "Job"
-            job_mock.api_version = "batch/v1"
-            return job_mock
+    mock_client.V1CronJobSpec = Mock(side_effect=create_cronjob_spec)
+    mock_client.V1JobTemplateSpec = Mock(side_effect=create_job_template_spec)
+    mock_client.V1CronJob = Mock(side_effect=create_cronjob)
+    mock_client.V1Job = Mock(side_effect=create_job)
 
-        mock_client.V1CronJobSpec = Mock(side_effect=create_cronjob_spec)
-        mock_client.V1JobTemplateSpec = Mock(side_effect=create_job_template_spec)
-        mock_client.V1CronJob = Mock(side_effect=create_cronjob)
-        mock_client.V1Job = Mock(side_effect=create_job)
+    # Mock config methods
+    mock_config.load_incluster_config = Mock()
+    mock_config.load_kube_config = Mock()
+    mock_config.load_config = Mock()
 
-        # Mock k8s_config methods
-        mock_k8s_config.load_incluster_config = Mock()
-        mock_k8s_config.load_kube_config = Mock()
-
-        yield {
-            "client": mock_client,
-            "k8s_config": mock_k8s_config,
-            "batch_api": mock_batch_v1_api,
-        }
+    yield {
+        "client": mock_client,
+        "k8s_config": mock_config,
+        "batch_api": mock_batch_v1_api,
+    }
 
 
 def test_schedule_field_accepts_valid_cron_expression():

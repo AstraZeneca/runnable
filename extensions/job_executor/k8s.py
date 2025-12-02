@@ -4,8 +4,6 @@ import shlex
 from enum import Enum
 from typing import Annotated, List, Optional
 
-from kubernetes import client
-from kubernetes import config as k8s_config
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -228,6 +226,16 @@ class GenericK8sJobExecutor(GenericJobExecutor):
 
     @property
     def _client(self):
+        # Lazy import kubernetes dependencies to avoid import-time failures in tests
+        try:
+            from kubernetes import client
+            from kubernetes import config as k8s_config
+        except ImportError:
+            raise ImportError(
+                "Kubernetes Python client is required but not installed. "
+                "Install it with: uv add 'runnable[k8s]'"
+            )
+
         if self.config_path:
             k8s_config.load_kube_config(config_file=self.config_path)
         else:
@@ -314,7 +322,7 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         )
 
         # Build job spec
-        job_spec = client.V1JobSpec(
+        job_spec = self._client.V1JobSpec(
             template=pod_template,
             **self.job_spec.model_dump(exclude_none=True, exclude={"template"}),
         )
@@ -322,15 +330,15 @@ class GenericK8sJobExecutor(GenericJobExecutor):
         # Decision point: Create Job or CronJob based on schedule
         if self.schedule:
             # Create CronJob
-            cronjob_spec = client.V1CronJobSpec(
+            cronjob_spec = self._client.V1CronJobSpec(
                 schedule=self.schedule,
-                job_template=client.V1JobTemplateSpec(spec=job_spec),
+                job_template=self._client.V1JobTemplateSpec(spec=job_spec),
             )
 
-            cronjob = client.V1CronJob(
+            cronjob = self._client.V1CronJob(
                 api_version="batch/v1",
                 kind="CronJob",
-                metadata=client.V1ObjectMeta(name=self._context.run_id),
+                metadata=self._client.V1ObjectMeta(name=self._context.run_id),
                 spec=cronjob_spec,
             )
 
@@ -354,10 +362,10 @@ class GenericK8sJobExecutor(GenericJobExecutor):
                 raise
         else:
             # Create regular Job
-            job = client.V1Job(
+            job = self._client.V1Job(
                 api_version="batch/v1",
                 kind="Job",
-                metadata=client.V1ObjectMeta(name=self._context.run_id),
+                metadata=self._client.V1ObjectMeta(name=self._context.run_id),
                 spec=job_spec,
             )
 
