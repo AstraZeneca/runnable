@@ -9,9 +9,25 @@ mock_client = Mock()
 mock_config = Mock()
 
 # Set up the mock modules in sys.modules
+mock_kubernetes.client = mock_client
+mock_kubernetes.config = mock_config
 sys.modules['kubernetes'] = mock_kubernetes
 sys.modules['kubernetes.client'] = mock_client
 sys.modules['kubernetes.config'] = mock_config
+
+# Set up exceptions module for error handling tests
+mock_exceptions = Mock()
+mock_client.exceptions = mock_exceptions
+sys.modules['kubernetes.client.exceptions'] = mock_exceptions
+
+# Mock the ApiException class
+class MockApiException(Exception):
+    def __init__(self, status=None, reason=None):
+        self.status = status
+        self.reason = reason
+        super().__init__(f"{status}: {reason}")
+
+mock_exceptions.ApiException = MockApiException
 
 # Set up basic mocks to allow module import
 mock_client.BatchV1Api = Mock()
