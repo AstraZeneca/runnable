@@ -391,6 +391,7 @@ class RunLog(BaseModel):
     job: Optional[JobLog] = None
     parameters: Dict[str, Parameter] = Field(default_factory=dict)
     run_config: Dict[str, Any] = Field(default_factory=dict)
+    original_run_id: Optional[str] = None  # For retry tracking
 
     def get_summary(self) -> Dict[str, Any]:
         summary: Dict[str, Any] = {}
@@ -969,6 +970,7 @@ class BufferRunLogstore(BaseRunLogStore):
             dag_hash=dag_hash,
             tag=tag,
             status=status,
+            original_run_id=original_run_id if original_run_id else None,
         )
         return self.run_log
 

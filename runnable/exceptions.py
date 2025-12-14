@@ -123,3 +123,18 @@ class ExecutionFailedError(Exception):  # pragma: no cover
 
 class CommandCallError(Exception):  # pragma: no cover
     "An exception during the call of the command"
+
+
+class StructureChangedError(Exception):  # pragma: no cover
+    """Exception raised when pipeline structure has changed during retry."""
+
+    def __init__(self, original_run_id: str, current_hash: str, original_hash: str):
+        self.original_run_id = original_run_id
+        self.current_hash = current_hash
+        self.original_hash = original_hash
+        message = (
+            f"Pipeline structure has changed since original run '{original_run_id}'. "
+            f"Original hash: {original_hash}, current hash: {current_hash}. "
+            f"Cannot retry with different pipeline structure."
+        )
+        super().__init__(message)
