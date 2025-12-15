@@ -123,3 +123,11 @@ class ExecutionFailedError(Exception):  # pragma: no cover
 
 class CommandCallError(Exception):  # pragma: no cover
     "An exception during the call of the command"
+
+
+class RetryValidationError(Exception):
+    """Raised when retry validation fails (missing run log, DAG mismatch, etc.)"""
+
+    def __init__(self, message: str, run_id: str = ""):
+        self.run_id = run_id
+        super().__init__(message)

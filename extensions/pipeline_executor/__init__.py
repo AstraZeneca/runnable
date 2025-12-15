@@ -65,6 +65,40 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         logger.debug(f"parameters as seen by executor: {params}")
         return params
 
+    def _validate_retry_prerequisites(self):
+        """
+        Validate prerequisites for retry execution.
+
+        Raises:
+            RetryValidationError: If retry cannot proceed due to validation failures
+        """
+        if not self._context.is_retry:
+            return  # Not a retry, skip validation
+
+        try:
+            # Check if original run log exists
+            original_run_log = self._context.run_log_store.get_run_log_by_id(
+                run_id=self._context.run_id, full=True
+            )
+        except exceptions.RunLogNotFoundError:
+            raise exceptions.RetryValidationError(
+                f"Original run log not found for run_id: {self._context.run_id}. "
+                f"Cannot retry a run that doesn't exist.",
+                run_id=self._context.run_id,
+            )
+
+        # Validate DAG structure hasn't changed
+        if original_run_log.dag_hash != self._context.dag_hash:
+            raise exceptions.RetryValidationError(
+                f"DAG structure has changed since original run. "
+                f"Original hash: {original_run_log.dag_hash}, "
+                f"Current hash: {self._context.dag_hash}. "
+                f"Retry is not allowed when DAG structure changes.",
+                run_id=self._context.run_id,
+            )
+
+        logger.info(f"Retry validation passed for run_id: {self._context.run_id}")
+
     def _set_up_run_log(self, exists_ok=False):
         """
         Create a run log and put that in the run log store
