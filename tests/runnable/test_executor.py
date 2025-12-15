@@ -17,14 +17,9 @@ def test_base_executor_context_refers_to_global_run_context(mocker, monkeypatch)
     assert base_executor._context is mock_run_context
 
 
-def test_step_attempt_number_defaults_to_1():
-    base_executor = executor.BaseExecutor()
+def test_base_executor_no_step_attempt_number():
+    """Test that BaseExecutor no longer has step_attempt_number property"""
+    from runnable.executor import BaseExecutor
 
-    assert base_executor.step_attempt_number == 1
-
-
-def test_step_attempt_number_looks_up_environment(monkeypatch):
-    monkeypatch.setenv(defaults.ATTEMPT_NUMBER, "12345")
-    base_executor = executor.BaseExecutor()
-
-    assert base_executor.step_attempt_number == 12345
+    # This should not exist anymore
+    assert not hasattr(BaseExecutor, 'step_attempt_number')

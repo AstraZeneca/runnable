@@ -196,6 +196,31 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         self._context.catalog.put(name=log_file_name)
         os.remove(log_file_name)
 
+    def _calculate_attempt_number(
+        self, node: BaseNode, map_variable: MapVariableType = None
+    ) -> int:
+        """
+        Calculate the attempt number for a node based on existing attempts in the run log.
+
+        Args:
+            node: The node to calculate attempt number for
+            map_variable: Optional map variable if node is in a map state
+
+        Returns:
+            int: The attempt number (starting from 1)
+        """
+        step_log_name = node._get_step_log_name(map_variable)
+
+        try:
+            existing_step_log = self._context.run_log_store.get_step_log(
+                step_log_name, self._context.run_id
+            )
+            # If step log exists, increment attempt number based on existing attempts
+            return len(existing_step_log.attempts) + 1
+        except exceptions.StepLogNotFoundError:
+            # This is the first attempt, use attempt number 1
+            return 1
+
     def _execute_node(
         self,
         node: BaseNode,
@@ -221,8 +246,14 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             map_variable (dict, optional): If the node is of a map state, map_variable is the value of the iterable.
                         Defaults to None.
         """
+        # Calculate attempt number based on existing attempts in run log
+        current_attempt_number = self._calculate_attempt_number(node, map_variable)
+
+        # Set the environment variable for this attempt
+        os.environ[defaults.ATTEMPT_NUMBER] = str(current_attempt_number)
+
         logger.info(
-            f"Trying to execute node: {node.internal_name}, attempt : {self.step_attempt_number}"
+            f"Trying to execute node: {node.internal_name}, attempt : {current_attempt_number}"
         )
 
         self._context_node = node
@@ -232,7 +263,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         step_log = node.execute(
             map_variable=map_variable,
-            attempt_number=self.step_attempt_number,
+            attempt_number=current_attempt_number,
             mock=mock,
         )
 
