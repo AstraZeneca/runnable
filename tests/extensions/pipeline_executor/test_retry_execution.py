@@ -282,3 +282,217 @@ def test_set_up_run_log_propagates_retry_validation_errors(mock_context):
         with patch.object(executor, '_validate_retry_prerequisites', side_effect=validation_error):
             with pytest.raises(exceptions.RetryValidationError, match="DAG structure has changed"):
                 executor._set_up_run_log()
+
+
+def test_calculate_attempt_number_for_retry_increments_correctly(mock_context):
+    """Test that _calculate_attempt_number correctly increments for retry runs"""
+    executor = ConcreteGenericPipelineExecutor()
+
+    # Mock context for retry
+    mock_context.is_retry = True
+    mock_context.run_id = "retry-run-123"
+
+    # Mock node
+    mock_node = Mock(spec=BaseNode)
+    mock_node._get_step_log_name.return_value = "failed_step_log"
+
+    # Create step log with existing failed attempt (original run)
+    existing_step_log = StepLog(
+        name="failed_step",
+        internal_name="failed_step_log",
+        attempts=[
+            StepAttempt(attempt_number=1, status=defaults.FAIL)
+        ]
+    )
+    mock_context.run_log_store.get_step_log.return_value = existing_step_log
+
+    with patch.object(ConcreteGenericPipelineExecutor, '_context', new_callable=PropertyMock) as mock_property:
+        mock_property.return_value = mock_context
+
+        attempt_number = executor._calculate_attempt_number(mock_node)
+
+    # Should return 2 (original attempt 1 + 1)
+    assert attempt_number == 2
+    mock_context.run_log_store.get_step_log.assert_called_once_with("failed_step_log", "retry-run-123")
+
+
+def test_calculate_attempt_number_for_retry_with_multiple_attempts(mock_context):
+    """Test that _calculate_attempt_number works with multiple existing attempts"""
+    executor = ConcreteGenericPipelineExecutor()
+
+    # Mock context
+    mock_context.run_id = "retry-run-123"
+
+    # Mock node
+    mock_node = Mock(spec=BaseNode)
+    mock_node._get_step_log_name.return_value = "multi_attempt_step"
+
+    # Create step log with multiple failed attempts
+    existing_step_log = StepLog(
+        name="multi_step",
+        internal_name="multi_attempt_step",
+        attempts=[
+            StepAttempt(attempt_number=1, status=defaults.FAIL),
+            StepAttempt(attempt_number=2, status=defaults.FAIL),
+            StepAttempt(attempt_number=3, status=defaults.FAIL)
+        ]
+    )
+    mock_context.run_log_store.get_step_log.return_value = existing_step_log
+
+    with patch.object(ConcreteGenericPipelineExecutor, '_context', new_callable=PropertyMock) as mock_property:
+        mock_property.return_value = mock_context
+
+        attempt_number = executor._calculate_attempt_number(mock_node)
+
+    # Should return 4 (3 existing attempts + 1)
+    assert attempt_number == 4
+
+
+def test_calculate_attempt_number_for_first_time_execution(mock_context):
+    """Test that _calculate_attempt_number returns 1 for first-time execution"""
+    executor = ConcreteGenericPipelineExecutor()
+
+    # Mock context
+    mock_context.run_id = "new-run-123"
+
+    # Mock node
+    mock_node = Mock(spec=BaseNode)
+    mock_node._get_step_log_name.return_value = "new_step"
+
+    # Step log not found (first execution)
+    mock_context.run_log_store.get_step_log.side_effect = exceptions.StepLogNotFoundError(
+        run_id="new-run-123", step_name="new_step"
+    )
+
+    with patch.object(ConcreteGenericPipelineExecutor, '_context', new_callable=PropertyMock) as mock_property:
+        mock_property.return_value = mock_context
+
+        attempt_number = executor._calculate_attempt_number(mock_node)
+
+    # Should return 1 (first attempt)
+    assert attempt_number == 1
+
+
+def test_execute_from_graph_reuses_existing_step_log_during_retry(mock_context):
+    """Test that execute_from_graph reuses existing step log during retry to preserve attempts"""
+    executor = ConcreteGenericPipelineExecutor()
+
+    # Mock context for retry
+    mock_context.is_retry = True
+    mock_context.run_id = "retry-run-123"
+
+    # Mock node - make it a task node that needs re-execution
+    mock_node = Mock(spec=BaseNode)
+    mock_node.internal_name = "failed_step"
+    mock_node.node_type = "task"
+    mock_node.is_composite = False
+    mock_node.name = "failed_step"
+    mock_node._get_step_log_name.return_value = "failed_step_log"
+
+    # Create existing step log with failed attempt from original run
+    existing_step_log = StepLog(
+        name="failed_step",
+        internal_name="failed_step_log",
+        attempts=[
+            StepAttempt(attempt_number=1, status=defaults.FAIL)
+        ]
+    )
+
+    # Mock that step should NOT be skipped (needs re-execution)
+    # Mock that existing step log is found (from original run)
+    mock_context.run_log_store.get_step_log.return_value = existing_step_log
+    mock_context.run_log_store.create_step_log = Mock()  # Should NOT be called
+
+    call_count_get_step_log = 0
+    call_count_create_step_log = 0
+
+    def mock_get_step_log(*args, **kwargs):
+        nonlocal call_count_get_step_log
+        call_count_get_step_log += 1
+        return existing_step_log
+
+    def mock_create_step_log(*args, **kwargs):
+        nonlocal call_count_create_step_log
+        call_count_create_step_log += 1
+        return Mock()
+
+    mock_context.run_log_store.get_step_log.side_effect = mock_get_step_log
+    mock_context.run_log_store.create_step_log.side_effect = mock_create_step_log
+
+    with patch.object(executor, '_should_skip_step_in_retry', return_value=False):
+        with patch.object(ConcreteGenericPipelineExecutor, '_context', new_callable=PropertyMock) as mock_property:
+            mock_property.return_value = mock_context
+
+            # Since step shouldn't be skipped and existing step log found, continue to step execution
+            # but the method execution might fail due to mocking - focus on step log behavior
+            try:
+                executor.execute_from_graph(mock_node)
+            except Exception:
+                pass  # Ignore other errors, focus on step log behavior
+
+    # Should get existing step log (preserving original attempts)
+    assert call_count_get_step_log == 1
+    mock_context.run_log_store.get_step_log.assert_called_with("failed_step_log", "retry-run-123")
+
+    # Should NOT call create_step_log since we reuse existing one
+    assert call_count_create_step_log == 0
+
+
+def test_execute_from_graph_creates_new_step_log_for_never_executed_step_during_retry(mock_context):
+    """Test that execute_from_graph creates new step log for never executed steps during retry"""
+    executor = ConcreteGenericPipelineExecutor()
+
+    # Mock context for retry
+    mock_context.is_retry = True
+    mock_context.run_id = "retry-run-123"
+
+    # Mock node
+    mock_node = Mock(spec=BaseNode)
+    mock_node.internal_name = "never_executed_step"
+    mock_node.node_type = "task"
+    mock_node.is_composite = False
+    mock_node.name = "never_executed_step"
+    mock_node._get_step_log_name.return_value = "never_executed_step_log"
+
+    # Mock new step log creation
+    new_step_log = Mock()
+
+    call_count_get_step_log = 0
+    call_count_create_step_log = 0
+
+    def mock_get_step_log(*args, **kwargs):
+        nonlocal call_count_get_step_log
+        call_count_get_step_log += 1
+        # Step log not found (never executed)
+        raise exceptions.StepLogNotFoundError(
+            run_id="retry-run-123", step_name="never_executed_step_log"
+        )
+
+    def mock_create_step_log(*args, **kwargs):
+        nonlocal call_count_create_step_log
+        call_count_create_step_log += 1
+        return new_step_log
+
+    # Mock that step should NOT be skipped (needs execution)
+    # Mock that step log is NOT found (never executed)
+    mock_context.run_log_store.get_step_log.side_effect = mock_get_step_log
+    mock_context.run_log_store.create_step_log.side_effect = mock_create_step_log
+
+    with patch.object(executor, '_should_skip_step_in_retry', return_value=False):
+        with patch.object(ConcreteGenericPipelineExecutor, '_context', new_callable=PropertyMock) as mock_property:
+            mock_property.return_value = mock_context
+
+            # Since step shouldn't be skipped but step log not found, should create new step log
+            # but the method execution might fail due to mocking - focus on step log behavior
+            try:
+                executor.execute_from_graph(mock_node)
+            except Exception:
+                pass  # Ignore other errors, focus on step log behavior
+
+    # Should try to get existing step log first
+    assert call_count_get_step_log == 1
+    mock_context.run_log_store.get_step_log.assert_called_with("never_executed_step_log", "retry-run-123")
+
+    # Should create new step log since existing wasn't found
+    assert call_count_create_step_log == 1
+    mock_context.run_log_store.create_step_log.assert_called_with("never_executed_step", "never_executed_step_log")

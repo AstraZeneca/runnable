@@ -483,9 +483,26 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             return  # Skip execution, no return value
 
         # EXISTING CODE CONTINUES UNCHANGED:
-        step_log = self._context.run_log_store.create_step_log(
-            node.name, node._get_step_log_name(map_variable)
-        )
+        # For retry runs, try to get existing step log first to preserve original attempts
+        if self._context.is_retry:
+            try:
+                step_log = self._context.run_log_store.get_step_log(
+                    node._get_step_log_name(map_variable), self._context.run_id
+                )
+                logger.info(
+                    f"Reusing existing step log for retry: {node.internal_name}"
+                )
+            except exceptions.StepLogNotFoundError:
+                # Step was never executed, create new step log
+                step_log = self._context.run_log_store.create_step_log(
+                    node.name, node._get_step_log_name(map_variable)
+                )
+                logger.info(f"Creating new step log for retry: {node.internal_name}")
+        else:
+            # Normal run: always create new step log
+            step_log = self._context.run_log_store.create_step_log(
+                node.name, node._get_step_log_name(map_variable)
+            )
 
         self.add_code_identities(node=node, step_log=step_log)
 
