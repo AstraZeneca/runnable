@@ -147,6 +147,55 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         logger.info(f"Retry validation passed for run_id: {self._context.run_id}")
 
+    def _should_skip_step_in_retry(
+        self, node: BaseNode, map_variable: MapVariableType = None
+    ) -> bool:
+        """
+        Determine if a step should be skipped during retry execution.
+
+        Steps are skipped if:
+        - This is a retry run AND
+        - The step was previously executed AND
+        - The last attempt was successful
+
+        Args:
+            node: The node to check
+            map_variable: Optional map variable if in map context
+
+        Returns:
+            bool: True if step should be skipped, False otherwise
+        """
+        if not self._context.is_retry:
+            return False
+
+        step_log_name = node._get_step_log_name(map_variable)
+
+        try:
+            # Get step log from original run
+            step_log = self._context.run_log_store.get_step_log(
+                step_log_name, self._context.run_id
+            )
+
+            # Check if last attempt was successful
+            if step_log.attempts:
+                last_attempt = step_log.attempts[-1]
+                is_successful = last_attempt.status == defaults.SUCCESS
+
+                if is_successful:
+                    logger.info(
+                        f"Skipping step '{node.internal_name}' - already successful in original run"
+                    )
+                    return True
+
+            return False
+
+        except exceptions.StepLogNotFoundError:
+            # Step was never executed, don't skip
+            logger.info(
+                f"Step '{node.internal_name}' was never executed in original run - will execute"
+            )
+            return False
+
     def _set_up_run_log(self, exists_ok=False):
         """
         Create a run log and put that in the run log store
@@ -390,6 +439,8 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         """
         This is the entry point to from the graph execution.
 
+        Modified to handle retry logic by skipping successful steps.
+
         While the self.execute_graph is responsible for traversing the graph, this function is responsible for
         actual execution of the node.
 
@@ -411,6 +462,14 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to None.
         """
+        # NEW: Check if we should skip this step during retry
+        if self._should_skip_step_in_retry(node, map_variable):
+            logger.info(
+                f"Skipping execution of '{node.internal_name}' due to retry logic"
+            )
+            return  # Skip execution, no return value
+
+        # EXISTING CODE CONTINUES UNCHANGED:
         step_log = self._context.run_log_store.create_step_log(
             node.name, node._get_step_log_name(map_variable)
         )
