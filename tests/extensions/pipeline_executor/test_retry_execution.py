@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch, PropertyMock
 from runnable import defaults, exceptions
-from runnable.datastore import RunLog, StepLog, StepAttempt
+from runnable.datastore import RunLog, StepLog, StepAttempt, JsonParameter
 from runnable.nodes import BaseNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 
@@ -188,3 +188,97 @@ def test_execute_from_graph_skips_when_should_skip_returns_true(mock_context):
 
     # Method should return None (void method)
     assert result is None
+
+
+def test_set_up_run_log_calls_retry_validation_for_retry_runs(mock_context):
+    """Test that _set_up_run_log calls retry validation for retry runs and returns early"""
+    executor = ConcreteGenericPipelineExecutor()
+
+    # Mock context for retry
+    mock_context.is_retry = True
+    mock_context.run_id = "retry-run-123"
+
+    # Mock run log store methods (should not be called for retry)
+    mock_context.run_log_store.get_run_log_by_id = Mock()
+    mock_context.run_log_store.create_run_log = Mock()
+    mock_context.run_log_store.set_parameters = Mock()
+    mock_context.run_log_store.set_run_config = Mock()
+
+    with patch.object(ConcreteGenericPipelineExecutor, '_context', new_callable=PropertyMock) as mock_property:
+        mock_property.return_value = mock_context
+
+        with patch.object(executor, '_validate_retry_prerequisites') as mock_validate:
+            executor._set_up_run_log()
+
+    # Should call validation
+    mock_validate.assert_called_once()
+
+    # Should NOT call any run log store methods (returns early)
+    mock_context.run_log_store.get_run_log_by_id.assert_not_called()
+    mock_context.run_log_store.create_run_log.assert_not_called()
+    mock_context.run_log_store.set_parameters.assert_not_called()
+    mock_context.run_log_store.set_run_config.assert_not_called()
+
+
+def test_set_up_run_log_works_normally_for_non_retry_runs(mock_context):
+    """Test that _set_up_run_log works normally for non-retry runs"""
+    executor = ConcreteGenericPipelineExecutor()
+
+    # Mock context for normal run
+    mock_context.is_retry = False
+    mock_context.run_id = "normal-run-123"
+    mock_context.tag = None
+    mock_context.dag_hash = "test-hash"
+    mock_context.model_dump.return_value = {"test": "config"}
+
+    # Mock run log store for normal flow
+    mock_context.run_log_store.get_run_log_by_id.side_effect = exceptions.RunLogNotFoundError(run_id="normal-run-123")
+    mock_context.run_log_store.create_run_log = Mock()
+    mock_context.run_log_store.set_parameters = Mock()
+    mock_context.run_log_store.set_run_config = Mock()
+
+    test_params = {"param1": JsonParameter(value="test", kind="json")}
+
+    with patch.object(ConcreteGenericPipelineExecutor, '_context', new_callable=PropertyMock) as mock_property:
+        mock_property.return_value = mock_context
+
+        with patch.object(executor, '_get_parameters', return_value=test_params):
+            with patch.object(executor, '_validate_retry_prerequisites') as mock_validate:
+                executor._set_up_run_log()
+
+    # Should NOT call retry validation for normal runs
+    mock_validate.assert_not_called()
+
+    # Should create run log normally
+    mock_context.run_log_store.create_run_log.assert_called_once_with(
+        run_id="normal-run-123",
+        tag=None,
+        status=defaults.PROCESSING,
+        dag_hash="test-hash"
+    )
+    mock_context.run_log_store.set_parameters.assert_called_once_with(
+        run_id="normal-run-123", parameters=test_params
+    )
+    mock_context.run_log_store.set_run_config.assert_called_once_with(
+        run_id="normal-run-123", run_config={"test": "config"}
+    )
+
+
+def test_set_up_run_log_propagates_retry_validation_errors(mock_context):
+    """Test that _set_up_run_log propagates RetryValidationError from validation"""
+    executor = ConcreteGenericPipelineExecutor()
+
+    # Mock context for retry
+    mock_context.is_retry = True
+    mock_context.run_id = "retry-run-123"
+
+    validation_error = exceptions.RetryValidationError(
+        "DAG structure has changed", run_id="retry-run-123"
+    )
+
+    with patch.object(ConcreteGenericPipelineExecutor, '_context', new_callable=PropertyMock) as mock_property:
+        mock_property.return_value = mock_context
+
+        with patch.object(executor, '_validate_retry_prerequisites', side_effect=validation_error):
+            with pytest.raises(exceptions.RetryValidationError, match="DAG structure has changed"):
+                executor._set_up_run_log()

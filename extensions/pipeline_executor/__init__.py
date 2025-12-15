@@ -201,7 +201,20 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         Create a run log and put that in the run log store
 
         If exists_ok, we allow the run log to be already present in the run log store.
+        Enhanced to support retry execution with validation only.
         """
+        # For retry runs: validate prerequisites and return early
+        if self._context.is_retry:
+            logger.info(
+                f"Validating retry prerequisites for run_id: {self._context.run_id}"
+            )
+            self._validate_retry_prerequisites()
+            logger.info(
+                f"Retry validation passed. Reusing existing run log: {self._context.run_id}"
+            )
+            return  # Don't create new run log, reuse existing one
+
+        # Normal run log creation logic (unchanged)
         try:
             attempt_run_log = self._context.run_log_store.get_run_log_by_id(
                 run_id=self._context.run_id, full=False
