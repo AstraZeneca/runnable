@@ -65,6 +65,54 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         logger.debug(f"parameters as seen by executor: {params}")
         return params
 
+    def _get_parameters_for_retry(self) -> Dict[str, JsonParameter]:
+        """
+        Get parameters for execution, handling retry logic.
+
+        For retry runs, loads parameters from original run metadata.
+        For normal runs, uses standard parameter loading logic.
+
+        Returns:
+            Dict[str, JsonParameter]: Parameters for execution
+        """
+        if not self._context.is_retry:
+            return self._get_parameters()
+
+        # Load original run log to get parameters
+        original_run_log = self._context.run_log_store.get_run_log_by_id(
+            run_id=self._context.run_id, full=True
+        )
+
+        # Warn if user provided new parameters file
+        if self._context.parameters_file:
+            console.print(
+                f"⚠️  [bold yellow]RETRY MODE:[/bold yellow] Ignoring provided parameters file "
+                f"'{self._context.parameters_file}'. Using parameters from original run.",
+                style="yellow",
+            )
+
+        # Check for environment variable parameter overrides
+        env_params = {
+            key.replace(defaults.PARAMETER_PREFIX, ""): value
+            for key, value in os.environ.items()
+            if key.startswith(defaults.PARAMETER_PREFIX)
+        }
+
+        if env_params:
+            console.print(
+                f"⚠️  [bold yellow]RETRY MODE:[/bold yellow] Ignoring {len(env_params)} environment "
+                f"parameter overrides. Using parameters from original run.",
+                style="yellow",
+            )
+
+        console.print(
+            f"📋 [bold green]RETRY MODE:[/bold green] Using parameters from original run "
+            f"'{self._context.run_id}' with {len(original_run_log.parameters or {})} parameters.",
+            style="green",
+        )
+
+        return original_run_log.parameters or {}
+
     def _validate_retry_prerequisites(self):
         """
         Validate prerequisites for retry execution.
