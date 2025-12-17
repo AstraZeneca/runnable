@@ -1,6 +1,5 @@
 import pytest
 
-from extensions.nodes import map, parallel, stub, task
 from runnable import defaults
 from runnable.graph import Graph
 from runnable.tasks import BaseTaskType
@@ -15,6 +14,8 @@ def instantiable_base_class(monkeypatch):
 def test_task_node_parse_from_config_seperates_task_from_node_confifg(
     mocker, monkeypatch
 ):
+    from extensions.nodes import task
+
     base_task = BaseTaskType(task_type="dummy")
     mock_create_task = mocker.MagicMock(return_value=base_task)
 
@@ -33,8 +34,11 @@ def test_task_node_parse_from_config_seperates_task_from_node_confifg(
 
 
 def test_task_node_mocks_if_mock_is_true(mocker, monkeypatch):
+    from extensions.nodes import task
+
     mock_attempt_log = mocker.MagicMock()
     mock_context = mocker.MagicMock()
+    mock_context.retry_indicator = ""
 
     monkeypatch.setattr(task.TaskNode, "_context", mock_context)
     mock_context.run_log_store.create_attempt_log = mocker.MagicMock(
@@ -52,6 +56,8 @@ def test_task_node_mocks_if_mock_is_true(mocker, monkeypatch):
 
 
 def test_parallel_node_parse_from_config_creates_sub_graph(mocker, monkeypatch):
+    from extensions.nodes import parallel
+
     graph = Graph(start_at="first", name="first_branch")
 
     mock_create_graph = mocker.MagicMock(return_value=graph)
@@ -75,6 +81,8 @@ def test_parallel_node_parse_from_config_creates_sub_graph(mocker, monkeypatch):
 def test_parallel_node_parse_from_config_raises_exception_if_no_branches(
     mocker, monkeypatch
 ):
+    from extensions.nodes import parallel
+
     config = {
         "branches": {},
         "next_node": "next_node",
@@ -86,12 +94,16 @@ def test_parallel_node_parse_from_config_raises_exception_if_no_branches(
 
 
 def test_map_node_parse_from_config_raises_exception_if_no_branch(mocker, monkeypatch):
+    from extensions.nodes import map
+
     config = {}
     with pytest.raises(Exception, match="A map node should have a branch"):
         _ = map.MapNode.parse_from_config(config=config)
 
 
 def test_map_node_parse_from_config_calls_create_graph(mocker, monkeypatch):
+    from extensions.nodes import map
+
     graph = Graph(start_at="first", name="first_branch")
 
     mock_create_graph = mocker.MagicMock(return_value=graph)
@@ -115,6 +127,8 @@ def test_map_node_parse_from_config_calls_create_graph(mocker, monkeypatch):
 
 
 def test_map_node_get_branch_by_name_returns_branch(mocker, monkeypatch):
+    from extensions.nodes import map
+
     graph = Graph(start_at="first", name="first_branch")
 
     mock_create_graph = mocker.MagicMock(return_value=graph)
@@ -133,6 +147,8 @@ def test_map_node_get_branch_by_name_returns_branch(mocker, monkeypatch):
 
 
 def test__as_is_node_takes_anything_as_input(mocker, monkeypatch):
+    from extensions.nodes import stub
+
     config = {
         "name": "test",
         "internal_name": "test",

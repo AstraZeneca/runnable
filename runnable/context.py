@@ -215,7 +215,9 @@ class RunnableContext(BaseModel):
         exclude=True,
         description="Variables to be used.",
     )
-    run_id: str = ""  # Should be annotated to generate one if not provided
+    run_id: str = Field(
+        description="The run ID, generated automatically if not provided"
+    )
     tag: Optional[str] = Field(default=None, description="Tag to be used for the run.")
 
     # TODO: Verify the design
@@ -244,6 +246,15 @@ class RunnableContext(BaseModel):
     @classmethod
     def generate_run_id(cls, run_id: str) -> str:
         """Generate a run id if not provided."""
+        # Convert None to empty string for consistency
+        if run_id is None:
+            run_id = ""
+
+        # Check for retry run id first - this takes precedence
+        retry_run_id = os.environ.get(defaults.RETRY_RUN_ID, "")
+        if retry_run_id:
+            return retry_run_id
+
         if not run_id:
             run_id = os.environ.get(defaults.ENV_RUN_ID, "")
 
@@ -253,6 +264,19 @@ class RunnableContext(BaseModel):
             run_id = f"{names.get_random_name()}-{now.hour:02}{now.minute:02}"
 
         return run_id
+
+    @computed_field  # type: ignore
+    @property
+    def retry_indicator(self) -> str:
+        """Indicator for retry executions to distinguish attempt logs."""
+        return os.environ.get(defaults.RETRY_INDICATOR, "")
+
+    @computed_field  # type: ignore
+    @property
+    def is_retry(self) -> bool:
+        """Flag indicating if this is a retry run based on environment variable."""
+        retry_run_id = os.environ.get(defaults.RETRY_RUN_ID, "")
+        return bool(retry_run_id)
 
     def model_post_init(self, __context: Any) -> None:
         os.environ[defaults.ENV_RUN_ID] = self.run_id

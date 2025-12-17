@@ -1,6 +1,5 @@
 from unittest.mock import Mock
 
-
 from runnable import defaults
 from runnable.datastore import StepLog
 
@@ -17,6 +16,7 @@ def make_mock_context():
     branch_log.status = None
     mock_context.run_log_store.get_branch_log.return_value = branch_log
     mock_context.run_log_store.add_branch_log.return_value = None
+    mock_context.retry_indicator = ""
     return mock_context
 
 

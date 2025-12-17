@@ -131,3 +131,7 @@ class RetryValidationError(Exception):
     def __init__(self, message: str, run_id: str = ""):
         self.run_id = run_id
         super().__init__(message)
+
+
+class EntityNotFoundError(Exception):
+    pass

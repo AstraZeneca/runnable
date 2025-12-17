@@ -21,11 +21,6 @@ from runnable.datastore import (
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-# TODO: Should this be complex?
-class EntityNotFoundError(Exception):
-    pass
-
-
 class ChunkedRunLogStore(BaseRunLogStore):
     """
     A generic implementation of a RunLogStore that stores RunLogs in chunks.
@@ -203,7 +198,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
                 models.append(model(**contents))
             return models
 
-        raise EntityNotFoundError()
+        raise exceptions.EntityNotFoundError()
 
     def orderly_retrieve(
         self, run_id: str, log_type: LogTypes
@@ -375,7 +370,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
                 self._prepare_full_run_log(run_log=run_log)
 
             return run_log
-        except EntityNotFoundError as e:
+        except exceptions.EntityNotFoundError as e:
             raise exceptions.RunLogNotFoundError(run_id) from e
 
     def put_run_log(self, run_log: RunLog):
@@ -427,7 +422,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
                         parameters[key] = MetricParameter(**value)
                     if value["kind"] == "object":
                         parameters[key] = ObjectParameter(**value)
-        except EntityNotFoundError:
+        except exceptions.EntityNotFoundError:
             # No parameters are set
             pass
 
@@ -564,12 +559,19 @@ class ChunkedRunLogStore(BaseRunLogStore):
         Returns:
             BranchLog: The branch log or the run log as requested.
         """
-        if not internal_branch_name:
-            return self.get_run_log_by_id(run_id=run_id)
-        branch = self.retrieve(
-            run_id=run_id, log_type=self.LogTypes.BRANCH_LOG, name=internal_branch_name
-        )
-        return branch
+        try:
+            if not internal_branch_name:
+                return self.get_run_log_by_id(run_id=run_id)
+            branch = self.retrieve(
+                run_id=run_id,
+                log_type=self.LogTypes.BRANCH_LOG,
+                name=internal_branch_name,
+            )
+            return branch
+        except exceptions.EntityNotFoundError as e:
+            raise exceptions.BranchLogNotFoundError(
+                run_id=run_id, branch_name=internal_branch_name
+            ) from e
 
     def add_branch_log(
         self,

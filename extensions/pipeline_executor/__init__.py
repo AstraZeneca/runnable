@@ -12,7 +12,7 @@ from runnable import (
     task_console,
     utils,
 )
-from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
+from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepAttempt
 from runnable.defaults import MapVariableType
 from runnable.executor import BasePipelineExecutor
 from runnable.graph import Graph
@@ -154,7 +154,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         Determine if a step should be skipped during retry execution.
 
         Steps are skipped if:
-        - This is a retry run AND
+        - This is not a retry run AND
         - The step was previously executed AND
         - The last attempt was successful
 
@@ -175,6 +175,19 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             step_log = self._context.run_log_store.get_step_log(
                 step_log_name, self._context.run_id
             )
+
+            # Composite nodes do not have attempts, their status is consolidated from child nodes
+            if node.is_composite and step_log.status == defaults.SUCCESS:
+                logger.info(
+                    f"Skipping composite step '{node.internal_name}' - already successful in original run"
+                )
+                return True
+
+            if node._is_terminal_node():
+                logger.info(
+                    f"Terminal step '{node.internal_name}' will always execute in retry runs"
+                )
+                return False
 
             # Check if last attempt was successful
             if step_log.attempts:
@@ -436,17 +449,17 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    def add_code_identities(self, node: BaseNode, step_log: StepLog):
+    def add_code_identities(self, node: BaseNode, attempt_log: StepAttempt):
         """
         Add code identities specific to the implementation.
 
         The Base class has an implementation of adding git code identities.
 
         Args:
-            step_log (object): The step log object
-            node (BaseNode): The node we are adding the step log for
+            attempt_log (StepAttempt): The step attempt log object
+            node (BaseNode): The node we are adding the code identities for
         """
-        step_log.code_identities.append(utils.get_git_code_identity())
+        attempt_log.code_identities.append(utils.get_git_code_identity())
 
     def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
         """
@@ -475,14 +488,17 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to None.
         """
-        # NEW: Check if we should skip this step during retry
+
         if self._should_skip_step_in_retry(node, map_variable):
             logger.info(
                 f"Skipping execution of '{node.internal_name}' due to retry logic"
             )
+            console.print(
+                f":fast_forward: Skipping node {node.internal_name} - already successful in original run",
+                style="bold yellow",
+            )
             return  # Skip execution, no return value
 
-        # EXISTING CODE CONTINUES UNCHANGED:
         # For retry runs, try to get existing step log first to preserve original attempts
         if self._context.is_retry:
             try:
@@ -503,8 +519,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             step_log = self._context.run_log_store.create_step_log(
                 node.name, node._get_step_log_name(map_variable)
             )
-
-        self.add_code_identities(node=node, step_log=step_log)
 
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING
@@ -630,8 +644,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 raise Exception("Potentially running in a infinite loop")
 
             previous_node = current_node
-
-            logger.debug(f"Creating execution log for {working_on}")
 
             try:
                 self.execute_from_graph(working_on, map_variable=map_variable)
@@ -769,8 +781,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         step_log = self._context.run_log_store.create_step_log(
             node.name, node._get_step_log_name(map_variable=map_variable)
         )
-
-        self.add_code_identities(node=node, step_log=step_log)
 
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING

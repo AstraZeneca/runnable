@@ -55,6 +55,12 @@ class SuccessNode(TerminalNode):
             start_time=str(datetime.now()),
             end_time=str(datetime.now()),
             attempt_number=attempt_number,
+            retry_indicator=self._context.retry_indicator,
+        )
+
+        # Add code identities to the attempt
+        self._context.pipeline_executor.add_code_identities(
+            node=self, attempt_log=attempt_log
         )
 
         run_or_branch_log = self._context.run_log_store.get_branch_log(

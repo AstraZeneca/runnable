@@ -115,6 +115,7 @@ def test_task_node_mock_execution(mocker):
     mock_context.run_log_store.get_step_log.return_value = StepLog(
         name="test_step", internal_name="test.step", status=defaults.SUCCESS
     )
+    mock_context.retry_indicator = ""
     mocker.patch.object(
         TaskNode,
         "_context",

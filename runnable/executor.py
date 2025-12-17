@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, PrivateAttr
 
 import runnable.context as context
 from runnable import defaults
-from runnable.datastore import DataCatalog, JobLog, StepLog
+from runnable.datastore import DataCatalog, JobLog, StepAttempt
 from runnable.defaults import MapVariableType
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -185,15 +185,15 @@ class BasePipelineExecutor(BaseExecutor):
     _context_node: Optional[BaseNode] = PrivateAttr(default=None)
 
     @abstractmethod
-    def add_code_identities(self, node: BaseNode, step_log: StepLog):
+    def add_code_identities(self, node: BaseNode, attempt_log: StepAttempt):
         """
         Add code identities specific to the implementation.
 
         The Base class has an implementation of adding git code identities.
 
         Args:
-            step_log (object): The step log object
-            node (BaseNode): The node we are adding the step log for
+            attempt_log (StepAttempt): The step attempt log object
+            node (BaseNode): The node we are adding the code identities for
         """
         ...
 

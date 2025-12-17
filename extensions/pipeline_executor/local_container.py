@@ -6,7 +6,7 @@ from pydantic import Field, PrivateAttr
 
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults, utils
-from runnable.datastore import StepLog
+from runnable.datastore import StepAttempt
 from runnable.defaults import MapVariableType
 from runnable.nodes import BaseNode
 
@@ -79,16 +79,16 @@ class LocalContainerExecutor(GenericPipelineExecutor):
     _container_secrets_location = "/tmp/dotenv"
     _volumes: Dict[str, Dict[str, str]] = {}
 
-    def add_code_identities(self, node: BaseNode, step_log: StepLog):
+    def add_code_identities(self, node: BaseNode, attempt_log: StepAttempt):
         """
         Call the Base class to add the git code identity and add docker identity
 
         Args:
             node (BaseNode): The node we are adding the code identity
-            step_log (Object): The step log corresponding to the node
+            attempt_log (StepAttempt): The step attempt log corresponding to the node
         """
 
-        super().add_code_identities(node, step_log)
+        super().add_code_identities(node, attempt_log)
 
         if node.node_type in ["success", "fail"]:
             # Need not add code identities if we are in a success or fail node
@@ -104,7 +104,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
             code_id.code_identifier_type = "docker"
             code_id.code_identifier_dependable = True
             code_id.code_identifier_url = "local docker host"
-            step_log.code_identities.append(code_id)
+            attempt_log.code_identities.append(code_id)
 
     def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
         """

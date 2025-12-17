@@ -150,6 +150,13 @@ class StepAttempt(BaseModel):
     input_parameters: Dict[str, Parameter] = Field(default_factory=dict)
     output_parameters: Dict[str, Parameter] = Field(default_factory=dict)
     user_defined_metrics: Dict[str, Parameter] = Field(default_factory=dict)
+    retry_indicator: str = Field(
+        default="",
+        description="Indicator for retry executions to distinguish attempt logs",
+    )
+    code_identities: List["CodeIdentity"] = Field(
+        default_factory=list, description="Code identities for this specific attempt"
+    )
 
     @property
     def duration(self):
@@ -186,7 +193,6 @@ class StepLog(BaseModel):
     step_type: str = "task"
     message: str = ""
     mock: bool = False
-    code_identities: List[CodeIdentity] = Field(default_factory=list)
     attempts: List[StepAttempt] = Field(default_factory=list)
     branches: Dict[str, BranchLog] = Field(default_factory=dict)
     data_catalog: List[DataCatalog] = Field(default_factory=list)
@@ -223,11 +229,12 @@ class StepLog(BaseModel):
         ]
 
         cis = []
-        for ci in self.code_identities:
-            message = f"{ci.code_identifier_type}:{ci.code_identifier}"
-            if not ci.code_identifier_dependable:
-                message += " but is not dependable"
-            cis.append(message)
+        for attempt in self.attempts:
+            for ci in attempt.code_identities:
+                message = f"{ci.code_identifier_type}:{ci.code_identifier}"
+                if not ci.code_identifier_dependable:
+                    message += " but is not dependable"
+                cis.append(message)
 
         summary["Code identities"] = cis
 
