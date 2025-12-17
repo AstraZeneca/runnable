@@ -8,6 +8,10 @@ spec:
   activeDeadlineSeconds: 86400
   arguments:
     parameters:
+      - name: param1
+        value: 41
+      - name: param2
+        value: hello world
       - name: integer
         value: 1
       - name: floater
@@ -15,7 +19,11 @@ spec:
       - name: stringer
         value: hello
       - name: run_id
-        value: '{{workflow.uid}}'
+        value: PLEASE_SET_RUN_ID
+      - name: retry_run_id
+        value: ''
+      - name: retry_indicator
+        value: ''
       - name: log_level
         value: INFO
   entrypoint: runnable-dag
@@ -26,26 +34,33 @@ spec:
     failFast: true
     nodeSelector: {}
   templates:
-    - name: map-state-g5mtpb-fan-out
+    - name: stub-node-h7suho
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
-          - fan
+          - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - map_state
-          - examples.07-map.map_fail.main
-          - out
+          - examples.09-retry.linear.main
+          - stub_node
           - --log-level
-          - WARNING
-          - --config-file
-          - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/common/initial_parameters.yaml
+          - '{{workflow.parameters.log_level}}'
           - --mode
           - python
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/09-retry/original_parameters.yaml
         imagePullPolicy: Always
         env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: RUNNABLE_PRM_param1
+            value: '{{workflow.parameters.param1}}'
+          - name: RUNNABLE_PRM_param2
+            value: '{{workflow.parameters.param2}}'
           - name: RUNNABLE_PRM_integer
             value: '{{workflow.parameters.integer}}'
           - name: RUNNABLE_PRM_floater
@@ -54,378 +69,16 @@ spec:
             value: '{{workflow.parameters.stringer}}'
           - name: RUNNABLE_PRM_run_id
             value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_PRM_retry_run_id
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_PRM_retry_indicator
+            value: '{{workflow.parameters.retry_indicator}}'
           - name: RUNNABLE_PRM_log_level
             value: '{{workflow.parameters.log_level}}'
           - name: error_on_existing_run_id
             value: 'true'
-        volumeMounts:
-          - mountPath: /tmp
-            name: runnable
-            readOnly: false
-        resources:
-          limits:
-            memory: 1Gi
-            cpu: 250m
-          requests:
-            memory: 1Gi
-            cpu: 250m
-      inputs:
-        parameters: []
-      outputs:
-        parameters:
-          - name: iterate-on
-            valueFrom:
-              path: /tmp/output.txt
-      activeDeadlineSeconds: 86400
-      nodeSelector: {}
-      volumes:
-        - name: runnable
-          persistentVolumeClaim:
-            claimName: runnable
-            readOnly: false
-    - name: map-state-execute-python-s0eze9
-      container:
-        image: $docker_image
-        command:
-          - runnable
-          - execute-single-node
-          - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
-          - map_state.map_variable_placeholder.execute_python
-          - --log-level
-          - '{{workflow.parameters.log_level}}'
-          - --mode
-          - python
-          - --map-variable
-          - '{"chunk": "{{inputs.parameters.chunk}}"}'
-          - --config
-          - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/common/initial_parameters.yaml
-        imagePullPolicy: Always
-        env:
           - name: argo_env
-            value: argo
-        volumeMounts:
-          - mountPath: /tmp
-            name: runnable
-            readOnly: false
-        resources:
-          limits:
-            memory: 4Gi
-            cpu: '2'
-          requests:
-            memory: 4Gi
-            cpu: '2'
-      inputs:
-        parameters:
-          - name: chunk
-      activeDeadlineSeconds: 86400
-      nodeSelector: {}
-      volumes:
-        - name: runnable
-          persistentVolumeClaim:
-            claimName: runnable
-            readOnly: false
-    - name: map-state-execute-notebook-lyxara
-      container:
-        image: $docker_image
-        command:
-          - runnable
-          - execute-single-node
-          - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
-          - map_state.map_variable_placeholder.execute_notebook
-          - --log-level
-          - '{{workflow.parameters.log_level}}'
-          - --mode
-          - python
-          - --map-variable
-          - '{"chunk": "{{inputs.parameters.chunk}}"}'
-          - --config
-          - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/common/initial_parameters.yaml
-        imagePullPolicy: Always
-        env:
-          - name: argo_env
-            value: argo
-        volumeMounts:
-          - mountPath: /tmp
-            name: runnable
-            readOnly: false
-        resources:
-          limits:
-            memory: 4Gi
-            cpu: '2'
-          requests:
-            memory: 4Gi
-            cpu: '2'
-      inputs:
-        parameters:
-          - name: chunk
-      activeDeadlineSeconds: 86400
-      nodeSelector: {}
-      volumes:
-        - name: runnable
-          persistentVolumeClaim:
-            claimName: runnable
-            readOnly: false
-    - name: map-state-execute-shell-qlg7gd
-      container:
-        image: $docker_image
-        command:
-          - runnable
-          - execute-single-node
-          - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
-          - map_state.map_variable_placeholder.execute_shell
-          - --log-level
-          - '{{workflow.parameters.log_level}}'
-          - --mode
-          - python
-          - --map-variable
-          - '{"chunk": "{{inputs.parameters.chunk}}"}'
-          - --config
-          - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/common/initial_parameters.yaml
-        imagePullPolicy: Always
-        env:
-          - name: argo_env
-            value: argo
-        volumeMounts:
-          - mountPath: /tmp
-            name: runnable
-            readOnly: false
-        resources:
-          limits:
-            memory: 4Gi
-            cpu: '2'
-          requests:
-            memory: 4Gi
-            cpu: '2'
-      inputs:
-        parameters:
-          - name: chunk
-      activeDeadlineSeconds: 86400
-      nodeSelector: {}
-      volumes:
-        - name: runnable
-          persistentVolumeClaim:
-            claimName: runnable
-            readOnly: false
-    - name: map-state-read-processed-chunk-e5lg41
-      container:
-        image: $docker_image
-        command:
-          - runnable
-          - execute-single-node
-          - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
-          - map_state.map_variable_placeholder.read%processed%chunk
-          - --log-level
-          - '{{workflow.parameters.log_level}}'
-          - --mode
-          - python
-          - --map-variable
-          - '{"chunk": "{{inputs.parameters.chunk}}"}'
-          - --config
-          - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/common/initial_parameters.yaml
-        imagePullPolicy: Always
-        env:
-          - name: argo_env
-            value: argo
-        volumeMounts:
-          - mountPath: /tmp
-            name: runnable
-            readOnly: false
-        resources:
-          limits:
-            memory: 4Gi
-            cpu: '2'
-          requests:
-            memory: 4Gi
-            cpu: '2'
-      inputs:
-        parameters:
-          - name: chunk
-      activeDeadlineSeconds: 86400
-      nodeSelector: {}
-      volumes:
-        - name: runnable
-          persistentVolumeClaim:
-            claimName: runnable
-            readOnly: false
-    - name: map-state-success-kcf98m
-      container:
-        image: $docker_image
-        command:
-          - runnable
-          - execute-single-node
-          - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
-          - map_state.map_variable_placeholder.success
-          - --log-level
-          - '{{workflow.parameters.log_level}}'
-          - --mode
-          - python
-          - --map-variable
-          - '{"chunk": "{{inputs.parameters.chunk}}"}'
-          - --config
-          - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/common/initial_parameters.yaml
-        imagePullPolicy: Always
-        env: []
-        volumeMounts:
-          - mountPath: /tmp
-            name: runnable
-            readOnly: false
-        resources:
-          limits:
-            memory: 4Gi
-            cpu: '2'
-          requests:
-            memory: 4Gi
-            cpu: '2'
-      inputs:
-        parameters:
-          - name: chunk
-      activeDeadlineSeconds: 86400
-      nodeSelector: {}
-      volumes:
-        - name: runnable
-          persistentVolumeClaim:
-            claimName: runnable
-            readOnly: false
-    - name: map-state-g5mtpb-branch
-      dag:
-        tasks:
-          - name: map-state-execute-python-s0eze9
-            template: map-state-execute-python-s0eze9
-            arguments:
-              parameters:
-                - name: chunk
-                  value: '{{inputs.parameters.chunk}}'
-            depends: ''
-          - name: map-state-execute-notebook-lyxara
-            template: map-state-execute-notebook-lyxara
-            arguments:
-              parameters:
-                - name: chunk
-                  value: '{{inputs.parameters.chunk}}'
-            depends: map-state-execute-python-s0eze9.Succeeded
-          - name: map-state-execute-shell-qlg7gd
-            template: map-state-execute-shell-qlg7gd
-            arguments:
-              parameters:
-                - name: chunk
-                  value: '{{inputs.parameters.chunk}}'
-            depends: map-state-execute-notebook-lyxara.Succeeded
-          - name: map-state-read-processed-chunk-e5lg41
-            template: map-state-read-processed-chunk-e5lg41
-            arguments:
-              parameters:
-                - name: chunk
-                  value: '{{inputs.parameters.chunk}}'
-            depends: map-state-execute-shell-qlg7gd.Succeeded
-          - name: map-state-success-kcf98m
-            template: map-state-success-kcf98m
-            arguments:
-              parameters:
-                - name: chunk
-                  value: '{{inputs.parameters.chunk}}'
-            depends: map-state-read-processed-chunk-e5lg41.Succeeded
-      inputs:
-        parameters:
-          - name: chunk
-      failFast: true
-    - name: map-state-g5mtpb-fan-in
-      container:
-        image: $docker_image
-        command:
-          - runnable
-          - fan
-          - '{{workflow.parameters.run_id}}'
-          - map_state
-          - examples.07-map.map_fail.main
-          - in
-          - --log-level
-          - WARNING
-          - --config-file
-          - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/common/initial_parameters.yaml
-          - --mode
-          - python
-        imagePullPolicy: Always
-        env: []
-        volumeMounts:
-          - mountPath: /tmp
-            name: runnable
-            readOnly: false
-        resources:
-          limits:
-            memory: 1Gi
-            cpu: 250m
-          requests:
-            memory: 1Gi
-            cpu: 250m
-      inputs:
-        parameters: []
-      activeDeadlineSeconds: 86400
-      nodeSelector: {}
-      volumes:
-        - name: runnable
-          persistentVolumeClaim:
-            claimName: runnable
-            readOnly: false
-    - name: map-state-g5mtpb
-      dag:
-        tasks:
-          - name: map-state-g5mtpb-fan-out
-            template: map-state-g5mtpb-fan-out
-            arguments:
-              parameters: []
-          - name: map-state-g5mtpb-branch
-            template: map-state-g5mtpb-branch
-            arguments:
-              parameters:
-                - name: chunk
-                  value: '{{item}}'
-            withParam: '{{tasks.map-state-g5mtpb-fan-out.outputs.parameters.iterate-on}}'
-            depends: map-state-g5mtpb-fan-out.Succeeded
-          - name: map-state-g5mtpb-fan-in
-            template: map-state-g5mtpb-fan-in
-            arguments:
-              parameters: []
-            depends: map-state-g5mtpb-branch.Succeeded ||
-              map-state-g5mtpb-branch.Failed
-      failFast: false
-    - name: collect-cgyp5k
-      container:
-        image: $docker_image
-        command:
-          - runnable
-          - execute-single-node
-          - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
-          - collect
-          - --log-level
-          - '{{workflow.parameters.log_level}}'
-          - --mode
-          - python
-          - --config
-          - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/common/initial_parameters.yaml
-        imagePullPolicy: Always
-        env:
-          - name: argo_env
-            value: argo
+            value: '{{workflow.uid}}'
         volumeMounts:
           - mountPath: /tmp
             name: runnable
@@ -439,6 +92,8 @@ spec:
             cpu: '2'
       inputs:
         parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
       activeDeadlineSeconds: 86400
       nodeSelector: {}
       volumes:
@@ -446,14 +101,61 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: success-0l0aiw
+    - name: check-envvar-task-dax5u5
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
+          - examples.09-retry.linear.main
+          - check_envvar_task
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/09-retry/original_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: success-f0flyd
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.09-retry.linear.main
           - success
           - --log-level
           - '{{workflow.parameters.log_level}}'
@@ -462,9 +164,15 @@ spec:
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
-          - examples/common/initial_parameters.yaml
+          - examples/09-retry/original_parameters.yaml
         imagePullPolicy: Always
-        env: []
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
         volumeMounts:
           - mountPath: /tmp
             name: runnable
@@ -478,6 +186,8 @@ spec:
             cpu: '2'
       inputs:
         parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
       activeDeadlineSeconds: 86400
       nodeSelector: {}
       volumes:
@@ -488,21 +198,21 @@ spec:
     - name: runnable-dag
       dag:
         tasks:
-          - name: map-state-g5mtpb
-            template: map-state-g5mtpb
+          - name: stub-node-h7suho
+            template: stub-node-h7suho
             arguments:
               parameters: []
             depends: ''
-          - name: collect-cgyp5k
-            template: collect-cgyp5k
+          - name: check-envvar-task-dax5u5
+            template: check-envvar-task-dax5u5
             arguments:
               parameters: []
-            depends: map-state-g5mtpb.Succeeded
-          - name: success-0l0aiw
-            template: success-0l0aiw
+            depends: stub-node-h7suho.Succeeded
+          - name: success-f0flyd
+            template: success-f0flyd
             arguments:
               parameters: []
-            depends: collect-cgyp5k.Succeeded
+            depends: check-envvar-task-dax5u5.Succeeded
       failFast: true
   volumes:
     - name: runnable

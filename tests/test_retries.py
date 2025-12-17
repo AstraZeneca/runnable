@@ -3,13 +3,14 @@ import os
 from contextlib import contextmanager
 from datetime import datetime
 
+import pytest
 from rich import print
 
 from runnable import defaults, exceptions, names
 
 
 def get_step(step_name: str, run_log):
-    step = run_log.steps[step_name]
+    step, _ = run_log.search_step_by_internal_name(step_name)
     return step
 
 
@@ -50,222 +51,121 @@ def retry_context():
     try:
         os.environ.pop("RUNNABLE_RETRY_RUN_ID", None)
         os.environ.pop("RUNNABLE_RUN_ID", None)
+        os.environ.pop("RUNNABLE_CONFIGURATION_FILE", None)
+        os.environ.pop("RUNNABLE_PARAMETERS_FILE", None)
+        os.environ.pop("RUNNABLE_PRM_param1", None)
         yield
     finally:
         os.environ.pop("RUNNABLE_RETRY_RUN_ID", None)
         os.environ.pop("RUNNABLE_RUN_ID", None)
         os.environ.pop("RUNNABLE_PRM_param1", None)
+        os.environ.pop("RUNNABLE_PARAMETERS_FILE", None)
         print("Cleaning up runnable context")
         runnable_context.run_context = None
 
 
-def test_simple_task():
-    module = "examples/09-retry/simple_task"
-    imported_module = importlib.import_module(f"{module.replace('/', '.')}")
-
-    f = getattr(imported_module, "main")
-
-    run_id = generate_run_id()
-
+@contextmanager
+def chunked_fs_context():
     with retry_context():
-        # First run should fail
-        os.environ["should_pass"] = "false"
-        os.environ["RUNNABLE_RUN_ID"] = run_id
-        try:
-            f()
-            assert False, "Expected ExecutionFailedError"
-        except exceptions.ExecutionFailedError:
-            run_log = load_run_log(run_id)
-            step_log = get_step("check_envvar_task", run_log)
-            assert len(step_log.attempts) == 1
-            assert run_log.status == "FAIL"
-            assert True
-
-    with retry_context():
-        # Retry run should pass
-        os.environ["should_pass"] = "true"
-        os.environ["RUNNABLE_RETRY_RUN_ID"] = run_id
-        try:
-            f()
-            run_log = load_run_log(run_id)
-            step_log = get_step("check_envvar_task", run_log)
-            assert len(step_log.attempts) == 2
-            assert run_log.status == "SUCCESS"
-            assert True
-        except exceptions.ExecutionFailedError:
-            assert False, "Retry run should have passed"
-
-
-def test_linear():
-    module = "examples/09-retry/linear"
-    imported_module = importlib.import_module(f"{module.replace('/', '.')}")
-
-    f = getattr(imported_module, "main")
-
-    run_id = generate_run_id()
-
-    with retry_context():
-        # First run should fail
-        os.environ["should_pass"] = "false"
-        os.environ["RUNNABLE_RUN_ID"] = run_id
-        try:
-            f()
-            assert False, "Expected ExecutionFailedError"
-        except exceptions.ExecutionFailedError:
-            run_log = load_run_log(run_id)
-            step_log = get_step("check_envvar_task", run_log)
-            assert len(step_log.attempts) == 1
-            assert run_log.status == "FAIL"
-            assert True
-
-    with retry_context():
-        # Retry run should pass
-        os.environ["should_pass"] = "true"
-        os.environ["RUNNABLE_RETRY_RUN_ID"] = run_id
-        try:
-            f()
-            run_log = load_run_log(run_id)
-            step_log = get_step("check_envvar_task", run_log)
-            assert len(step_log.attempts) == 2
-            assert run_log.status == "SUCCESS"
-            assert True
-        except exceptions.ExecutionFailedError:
-            assert False, "Retry run should have passed"
-
-
-def test_parameter_handling():
-    module = "examples/09-retry/parameter_handling"
-    imported_module = importlib.import_module(f"{module.replace('/', '.')}")
-
-    f = getattr(imported_module, "main")
-
-    run_id = generate_run_id()
-
-    with retry_context():
-        # First run should fail
-        os.environ["should_pass"] = "false"
-        os.environ["RUNNABLE_RUN_ID"] = run_id
-        os.environ["RUNNABLE_PARAMETERS_FILE"] = (
-            "examples/09-retry/original_parameters.yaml"
+        os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
+            "examples/configs/chunked-fs-run_log.yaml"
         )
+        yield
+
+
+contexts = [
+    retry_context,
+    chunked_fs_context,
+    # mocked_context,
+]
+
+# module, step name, os_variables_first, os_variables_retry
+examples = [
+    (
+        "examples/09-retry/simple_task",
+        "check_envvar_task",
+        {},
+        {},
+    ),
+    (
+        "examples/09-retry/linear",
+        "check_envvar_task",
+        {},
+        {},
+    ),
+    (
+        "examples/09-retry/parameter_handling",
+        "check_envvar_task",
+        {"RUNNABLE_PARAMETERS_FILE": "examples/09-retry/original_parameters.yaml"},
+        {},
+    ),
+    (
+        "examples/09-retry/parameter_handling",
+        "check_envvar_task",
+        {"RUNNABLE_PARAMETERS_FILE": "examples/09-retry/original_parameters.yaml"},
+        {
+            "RUNNABLE_PRM_param1": "43",
+        },
+    ),
+    (
+        "examples/09-retry/parallel",
+        "parallel_step.branch1.hello python",
+        {},
+        {},
+    ),
+    (
+        "examples/09-retry/parallel",
+        "parallel_step.branch2.hello python",
+        {},
+        {},
+    ),
+    (
+        "examples/09-retry/map",
+        "map_state.1.execute_python",
+        {"RUNNABLE_PARAMETERS_FILE": "examples/09-retry/original_parameters.yaml"},
+        {},
+    ),
+]
+
+
+@pytest.mark.parametrize("example", examples)
+@pytest.mark.parametrize("context", contexts)
+def test_examples(example, context):
+    module, step_name, os_variables_first, os_variables_retry = example
+    print(f"Testing module: {module} step: {step_name}")
+
+    imported_module = importlib.import_module(f"{module.replace('/', '.')}")
+    f = getattr(imported_module, "main")
+    run_id = generate_run_id()
+
+    with context():
+        # First run should fail
+        os.environ["should_pass"] = "false"
+        os.environ["RUNNABLE_RUN_ID"] = run_id
+        for k, v in os_variables_first.items():
+            os.environ[k] = v
         try:
             f()
             assert False, "Expected ExecutionFailedError"
         except exceptions.ExecutionFailedError:
             run_log = load_run_log(run_id)
-            step_log = get_step("check_envvar_task", run_log)
+            step_log = get_step(step_name, run_log)
             assert len(step_log.attempts) == 1
             assert run_log.status == "FAIL"
             assert True
 
-    with retry_context():
+    with context():
         # Retry run should pass
         os.environ["should_pass"] = "true"
         os.environ["RUNNABLE_RETRY_RUN_ID"] = run_id
+        for k, v in os_variables_retry.items():
+            os.environ[k] = v
         try:
             f()
             run_log = load_run_log(run_id)
-            step_log = get_step("check_envvar_task", run_log)
+            step_log = get_step(step_name, run_log)
             assert len(step_log.attempts) == 2
             assert run_log.status == "SUCCESS"
             assert True
-        except exceptions.ExecutionFailedError:
-            assert False, "Retry run should have passed"
-
-    with retry_context():
-        # Retry run should pass
-        os.environ["should_pass"] = "true"
-        os.environ["RUNNABLE_RETRY_RUN_ID"] = run_id
-        os.environ["RUNNABLE_PRM_param1"] = "43"
-        try:
-            f()
-            run_log = load_run_log(run_id)
-            step_log = get_step("check_envvar_task", run_log)
-            assert len(step_log.attempts) == 2
-            assert run_log.status == "SUCCESS"
-            assert True
-        except exceptions.ExecutionFailedError:
-            assert False, "Retry run should have passed"
-
-
-def test_parameter_handling_environment():
-    module = "examples/09-retry/parameter_handling"
-    imported_module = importlib.import_module(f"{module.replace('/', '.')}")
-
-    f = getattr(imported_module, "main")
-
-    run_id = generate_run_id()
-
-    with retry_context():
-        # First run should fail
-        os.environ["should_pass"] = "false"
-        os.environ["RUNNABLE_RUN_ID"] = run_id
-        os.environ["RUNNABLE_PARAMETERS_FILE"] = (
-            "examples/09-retry/original_parameters.yaml"
-        )
-        try:
-            f()
-            assert False, "Expected ExecutionFailedError"
-        except exceptions.ExecutionFailedError:
-            run_log = load_run_log(run_id)
-            step_log = get_step("check_envvar_task", run_log)
-            assert len(step_log.attempts) == 1
-            assert run_log.status == "FAIL"
-            assert True
-
-    with retry_context():
-        # Retry run should pass
-        os.environ["should_pass"] = "true"
-        os.environ["RUNNABLE_RETRY_RUN_ID"] = run_id
-        os.environ["RUNNABLE_PRM_param1"] = "43"
-        try:
-            f()
-            run_log = load_run_log(run_id)
-            step_log = get_step("check_envvar_task", run_log)
-            assert len(step_log.attempts) == 2
-            assert run_log.status == "SUCCESS"
-            assert True
-        except exceptions.ExecutionFailedError:
-            assert False, "Retry run should have passed"
-
-
-def test_conditional():
-    module = "examples/09-retry/conditional"
-    imported_module = importlib.import_module(f"{module.replace('/', '.')}")
-
-    f = getattr(imported_module, "main")
-
-    run_id = generate_run_id()
-
-    with retry_context():
-        # First run should fail
-        os.environ["should_pass"] = "false"
-        os.environ["RUNNABLE_RUN_ID"] = run_id
-        os.environ["FIX_RANDOM_TOSS"] = "heads"
-        try:
-            f()
-            assert False, "Expected ExecutionFailedError"
-        except exceptions.ExecutionFailedError:
-            run_log = load_run_log(run_id)
-            # step_log = get_step("check_envvar_task", run_log)
-            # assert len(step_log.attempts) == 1
-            assert run_log.status == "FAIL"
-            assert True
-
-    with retry_context():
-        # Retry run should pass
-        os.environ["should_pass"] = "true"
-        os.environ["RUNNABLE_RETRY_RUN_ID"] = run_id
-        os.environ["FIX_RANDOM_TOSS"] = "heads"
-        try:
-            f()
-            run_log = load_run_log(run_id)
-            conditional_step_log = get_step("conditional", run_log)
-            step_log = conditional_step_log.branches["conditional.heads"].steps[
-                "conditional.heads.check_envvar"
-            ]
-            assert len(step_log.attempts) == 2
-            assert run_log.status == "SUCCESS"
-            assert False
         except exceptions.ExecutionFailedError:
             assert False, "Retry run should have passed"

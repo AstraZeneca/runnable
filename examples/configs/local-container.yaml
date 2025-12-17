@@ -3,6 +3,8 @@ pipeline-executor:
   config:
     docker_image: runnable-m1:latest # (2)
     enable_parallel: true # (3)
+    environment:
+      should_pass: "true"
 
 run-log-store: # (4)
   type: chunked-fs

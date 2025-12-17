@@ -87,24 +87,6 @@ def chunked_fs_context():
 
 
 @contextmanager
-def mocked_context():
-    with runnable_context():
-        os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
-            "examples/08-mocking/mocked-config-simple.yaml"
-        )
-        os.environ["RUNNABLE_PRM_envvar"] = "from env"
-        yield
-
-
-@contextmanager
-def patched_context():
-    with runnable_context():
-        os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/08-mocking/patching.yaml"
-        os.environ["RUNNABLE_PRM_envvar"] = "from env"
-        yield
-
-
-@contextmanager
 def default_context():
     with runnable_context():
         os.environ["RUNNABLE_PRM_envvar"] = "from env"

@@ -292,7 +292,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         )
 
         current_branch: Any = None  # It could be str, None, RunLog
-        for step_internal_name in ordered_steps:
+        for step_internal_name, _ in ordered_steps.items():
             current_branch = self._get_parent_branch(step_internal_name)
             step_to_add_branch = self._get_parent_step(step_internal_name)
 
@@ -501,18 +501,23 @@ class ChunkedRunLogStore(BaseRunLogStore):
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
             StepLogNotFoundError: If the step log for internal_name is not found in the datastore for run_id
         """
-        logger.info(
-            f"{self.service_name} Getting the step log: {internal_name} of {run_id}"
-        )
+        try:
+            logger.info(
+                f"{self.service_name} Getting the step log: {internal_name} of {run_id}"
+            )
 
-        step_log = self.retrieve(
-            run_id=run_id,
-            log_type=self.LogTypes.STEP_LOG,
-            name=internal_name,
-            multiple_allowed=False,
-        )
+            step_log = self.retrieve(
+                run_id=run_id,
+                log_type=self.LogTypes.STEP_LOG,
+                name=internal_name,
+                multiple_allowed=False,
+            )
 
-        return step_log
+            return step_log
+        except exceptions.EntityNotFoundError as e:
+            raise exceptions.StepLogNotFoundError(
+                run_id=run_id, step_name=internal_name
+            ) from e
 
     def add_step_log(self, step_log: StepLog, run_id: str):
         """

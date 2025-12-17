@@ -99,7 +99,7 @@ def execute_single_node(
         node=node_to_execute, map_variable=map_variable_dict
     )
 
-    run_context.pipeline_executor.send_return_code()
+    # run_context.pipeline_executor.send_return_code()
 
 
 def execute_single_branch(

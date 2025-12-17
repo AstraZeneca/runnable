@@ -26,6 +26,7 @@ from extensions.nodes.parallel import ParallelNode
 from extensions.nodes.task import TaskNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
+from runnable.datastore import StepAttempt
 from runnable.defaults import MapVariableType
 from runnable.graph import Graph, search_node_by_internal_name
 from runnable.nodes import BaseNode
@@ -108,6 +109,10 @@ class Outputs(BaseModelWIthConfig):
 
 class Arguments(BaseModelWIthConfig):
     parameters: Optional[list[Parameter]] = Field(default=None)
+
+
+class Memoize(BaseModelWIthConfig):
+    key: str
 
 
 class TolerationEffect(str, Enum):
@@ -346,6 +351,7 @@ class ContainerTemplate((BaseModelWIthConfig)):
     container: CoreContainerTemplate
     inputs: Optional[Inputs] = Field(default=None)
     outputs: Optional[Outputs] = Field(default=None)
+    memoize: Optional[Memoize] = Field(default=None)
 
     active_deadline_seconds: Optional[int] = Field(default=86400)  # 1 day
     metadata: Optional[PodMetaData] = Field(default=None)
@@ -506,6 +512,21 @@ class ArgoExecutor(GenericPipelineExecutor):
         unique_name = unique_name.replace("map-variable-placeholder-", "")
         return unique_name
 
+    def _add_retry_env_vars(self, container_template: CoreContainerTemplate):
+        """Add retry environment variables to all containers."""
+        # Add retry run id environment variable
+        retry_run_id_env = EnvVar(
+            name=defaults.RETRY_RUN_ID, value="{{workflow.parameters.run_id}}"
+        )
+        container_template.env.append(retry_run_id_env)
+
+        # Add retry indicator environment variable
+        retry_indicator_env = EnvVar(
+            name=defaults.RETRY_INDICATOR,
+            value="{{workflow.parameters.retry_indicator}}",
+        )
+        container_template.env.append(retry_indicator_env)
+
     def _set_up_initial_container(self, container_template: CoreContainerTemplate):
         if self._added_initial_container:
             return
@@ -558,6 +579,9 @@ class ArgoExecutor(GenericPipelineExecutor):
             ],
         )
 
+        # Add retry environment variables to all containers
+        self._add_retry_env_vars(container_template=core_container_template)
+
         # Either a task or a fan-out can the first container
         self._set_up_initial_container(container_template=core_container_template)
 
@@ -574,6 +598,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             container=core_container_template,
             inputs=Inputs(parameters=parameters),
             outputs=outputs,
+            memoize=Memoize(key="{{workflow.parameters.run_id}}"),
             active_deadline_seconds=self.defaults.active_deadline_seconds,
             node_selector=self.defaults.node_selector,
             parallelism=self.defaults.parallelism,
@@ -631,6 +656,9 @@ class ArgoExecutor(GenericPipelineExecutor):
             ],
         )
 
+        # Add retry environment variables to all containers
+        self._add_retry_env_vars(container_template=core_container_template)
+
         self._set_up_initial_container(container_template=core_container_template)
         self._expose_secrets_to_task(
             working_on=node, container_template=core_container_template
@@ -645,6 +673,7 @@ class ArgoExecutor(GenericPipelineExecutor):
                     Parameter(name=param.name) for param in inputs.parameters or []
                 ]
             ),
+            memoize=Memoize(key="{{workflow.parameters.run_id}}"),
             volumes=[volume_pair.volume for volume_pair in self.volume_pairs],
             **node_override.model_dump() if node_override else {},
         )
@@ -654,23 +683,23 @@ class ArgoExecutor(GenericPipelineExecutor):
     def _set_env_vars_to_task(
         self, working_on: BaseNode, container_template: CoreContainerTemplate
     ):
-        if working_on.node_type not in ["task"]:
-            return
-
         global_envs: dict[str, str] = {}
 
+        # Apply defaults environment variables to all node types
         for env_var in self.defaults.env:
             env_var = cast(EnvVar, env_var)
             global_envs[env_var.name] = env_var.value
 
-        override_key = working_on.overrides.get(self.service_name, "")  # type: ignore
-        node_override = self.overrides.get(override_key, None)
+        # Apply node-specific overrides only for task nodes that support overrides
+        if working_on.node_type in ["task"] and hasattr(working_on, "overrides"):
+            override_key = working_on.overrides.get(self.service_name, "")  # type: ignore
+            node_override = self.overrides.get(override_key, None)
 
-        # Update the global envs with the node overrides
-        if node_override:
-            for env_var in node_override.env:
-                env_var = cast(EnvVar, env_var)
-                global_envs[env_var.name] = env_var.value
+            # Update the global envs with the node overrides
+            if node_override:
+                for env_var in node_override.env:
+                    env_var = cast(EnvVar, env_var)
+                    global_envs[env_var.name] = env_var.value
 
         for key, value in global_envs.items():
             env_var_to_add = EnvVar(name=key, value=value)
@@ -918,9 +947,17 @@ class ArgoExecutor(GenericPipelineExecutor):
                 parameter = Parameter(name=key, value=value)  # type: ignore
                 arguments.append(parameter)
 
-        run_id_var = Parameter(name="run_id", value="{{workflow.uid}}")
-        log_level_var = Parameter(name="log_level", value=self.log_level)
+        # run_id parameter - required, placeholder prevents nil pointer dereference
+        run_id_var = Parameter(name="run_id", value="PLEASE_SET_RUN_ID")
         arguments.append(run_id_var)
+
+        # Optional retry parameters with empty string defaults
+        retry_run_id_var = Parameter(name="retry_run_id", value="")
+        retry_indicator_var = Parameter(name="retry_indicator", value="")
+        arguments.append(retry_run_id_var)
+        arguments.append(retry_indicator_var)
+
+        log_level_var = Parameter(name="log_level", value=self.log_level)
         arguments.append(log_level_var)
         self.argo_workflow.spec.arguments = Arguments(parameters=arguments)
 
@@ -975,6 +1012,24 @@ class ArgoExecutor(GenericPipelineExecutor):
             if next_node.node_type == defaults.FAIL:
                 self.execute_node(next_node, map_variable=map_variable)
 
+    def add_code_identities(self, node: BaseNode, attempt_log: StepAttempt):
+        super().add_code_identities(node, attempt_log)
+
+        if node.node_type in ["success", "fail"]:
+            # Need not add code identities if we are in a success or fail node
+            return
+
+        workflow_uid = os.getenv("RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID")
+
+        if workflow_uid:
+            code_id = self._context.run_log_store.create_code_identity()
+
+            code_id.code_identifier = workflow_uid
+            code_id.code_identifier_type = "argo"
+            code_id.code_identifier_dependable = True
+            code_id.code_identifier_url = "argo workflow"
+            attempt_log.code_identities.append(code_id)
+
     def execute_node(
         self,
         node: BaseNode,
@@ -990,8 +1045,6 @@ class ArgoExecutor(GenericPipelineExecutor):
             node.name, node._get_step_log_name(map_variable)
         )
 
-        self.add_code_identities(node=node, step_log=step_log)
-
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
@@ -1005,6 +1058,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         if step_log.status == defaults.FAIL:
             raise Exception(f"Step {node.name} failed")
 
+        # This makes the fail node execute if we are heading that way.
         self._implicitly_fail(node, map_variable)
 
     def fan_out(self, node: BaseNode, map_variable: MapVariableType = None):

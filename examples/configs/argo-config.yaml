@@ -13,7 +13,7 @@ pipeline-executor:
           memory: 4Gi
       env:
         - name: argo_env
-          value: "argo"
+          value: "{{workflow.uid}}"
     argoWorkflow:
       metadata:
         generateName: "argo-" # (2)
