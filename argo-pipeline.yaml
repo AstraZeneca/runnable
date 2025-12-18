@@ -19,7 +19,7 @@ spec:
       - name: stringer
         value: hello
       - name: run_id
-        value: PLEASE_SET_RUN_ID
+        value: '{{workflow.uid}}'
       - name: retry_run_id
         value: ''
       - name: retry_indicator
@@ -34,7 +34,7 @@ spec:
     failFast: true
     nodeSelector: {}
   templates:
-    - name: stub-node-h7suho
+    - name: stub-node-ur8uo9
       container:
         image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
@@ -101,7 +101,7 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: check-envvar-task-dax5u5
+    - name: check-envvar-task-76uv3o
       container:
         image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
@@ -148,7 +148,7 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: success-f0flyd
+    - name: success-cner62
       container:
         image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
@@ -198,21 +198,21 @@ spec:
     - name: runnable-dag
       dag:
         tasks:
-          - name: stub-node-h7suho
-            template: stub-node-h7suho
+          - name: stub-node-ur8uo9
+            template: stub-node-ur8uo9
             arguments:
               parameters: []
             depends: ''
-          - name: check-envvar-task-dax5u5
-            template: check-envvar-task-dax5u5
+          - name: check-envvar-task-76uv3o
+            template: check-envvar-task-76uv3o
             arguments:
               parameters: []
-            depends: stub-node-h7suho.Succeeded
-          - name: success-f0flyd
-            template: success-f0flyd
+            depends: stub-node-ur8uo9.Succeeded
+          - name: success-cner62
+            template: success-cner62
             arguments:
               parameters: []
-            depends: check-envvar-task-dax5u5.Succeeded
+            depends: check-envvar-task-76uv3o.Succeeded
       failFast: true
   volumes:
     - name: runnable

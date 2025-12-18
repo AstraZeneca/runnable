@@ -947,8 +947,8 @@ class ArgoExecutor(GenericPipelineExecutor):
                 parameter = Parameter(name=key, value=value)  # type: ignore
                 arguments.append(parameter)
 
-        # run_id parameter - required, placeholder prevents nil pointer dereference
-        run_id_var = Parameter(name="run_id", value="PLEASE_SET_RUN_ID")
+        # run_id parameter - required, defaults to workflow UID if not provided
+        run_id_var = Parameter(name="run_id", value="{{workflow.uid}}")
         arguments.append(run_id_var)
 
         # Optional retry parameters with empty string defaults
