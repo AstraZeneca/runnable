@@ -8,16 +8,6 @@ spec:
   activeDeadlineSeconds: 86400
   arguments:
     parameters:
-      - name: param1
-        value: 41
-      - name: param2
-        value: hello world
-      - name: integer
-        value: 1
-      - name: floater
-        value: 3.14
-      - name: stringer
-        value: hello
       - name: run_id
         value: '{{workflow.uid}}'
       - name: retry_run_id
@@ -34,39 +24,28 @@ spec:
     failFast: true
     nodeSelector: {}
   templates:
-    - name: stub-node-ur8uo9
+    - name: parallel-step-7he1dh-fan-out
       container:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        image: $docker_image
         command:
           - runnable
-          - execute-single-node
+          - fan
           - '{{workflow.parameters.run_id}}'
-          - examples.09-retry.linear.main
-          - stub_node
+          - parallel_step
+          - examples.06-parallel.parallel.main
+          - out
           - --log-level
-          - '{{workflow.parameters.log_level}}'
+          - WARNING
+          - --config-file
+          - examples/configs/argo-config.yaml
           - --mode
           - python
-          - --config
-          - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/09-retry/original_parameters.yaml
         imagePullPolicy: Always
         env:
           - name: RUNNABLE_RETRY_RUN_ID
             value: '{{workflow.parameters.run_id}}'
           - name: RUNNABLE_RETRY_INDICATOR
             value: '{{workflow.parameters.retry_indicator}}'
-          - name: RUNNABLE_PRM_param1
-            value: '{{workflow.parameters.param1}}'
-          - name: RUNNABLE_PRM_param2
-            value: '{{workflow.parameters.param2}}'
-          - name: RUNNABLE_PRM_integer
-            value: '{{workflow.parameters.integer}}'
-          - name: RUNNABLE_PRM_floater
-            value: '{{workflow.parameters.floater}}'
-          - name: RUNNABLE_PRM_stringer
-            value: '{{workflow.parameters.stringer}}'
           - name: RUNNABLE_PRM_run_id
             value: '{{workflow.parameters.run_id}}'
           - name: RUNNABLE_PRM_retry_run_id
@@ -77,23 +56,24 @@ spec:
             value: '{{workflow.parameters.log_level}}'
           - name: error_on_existing_run_id
             value: 'true'
-          - name: argo_env
-            value: '{{workflow.uid}}'
         volumeMounts:
           - mountPath: /tmp
             name: runnable
             readOnly: false
         resources:
           limits:
-            memory: 4Gi
-            cpu: '2'
+            memory: 1Gi
+            cpu: 250m
           requests:
-            memory: 4Gi
-            cpu: '2'
+            memory: 1Gi
+            cpu: 250m
       inputs:
         parameters: []
       memoize:
         key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
       activeDeadlineSeconds: 86400
       nodeSelector: {}
       volumes:
@@ -101,23 +81,21 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: check-envvar-task-76uv3o
+    - name: parallel-step-branch1-hello-stub-h3o3ae
       container:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        image: $docker_image
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.09-retry.linear.main
-          - check_envvar_task
+          - examples.06-parallel.parallel.main
+          - parallel_step.branch1.hello%stub
           - --log-level
           - '{{workflow.parameters.log_level}}'
           - --mode
           - python
           - --config
           - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/09-retry/original_parameters.yaml
         imagePullPolicy: Always
         env:
           - name: RUNNABLE_RETRY_RUN_ID
@@ -141,6 +119,9 @@ spec:
         parameters: []
       memoize:
         key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
       activeDeadlineSeconds: 86400
       nodeSelector: {}
       volumes:
@@ -148,14 +129,629 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: success-cner62
+    - name: parallel-step-branch1-hello-python-ld5sjw
       container:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        image: $docker_image
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.09-retry.linear.main
+          - examples.06-parallel.parallel.main
+          - parallel_step.branch1.hello%python
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: parallel-step-branch1-hello-shell-9o8s6c
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.06-parallel.parallel.main
+          - parallel_step.branch1.hello%shell
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: parallel-step-branch1-hello-notebook-l2sogn
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.06-parallel.parallel.main
+          - parallel_step.branch1.hello%notebook
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: parallel-step-branch1-success-ckhqmi
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.06-parallel.parallel.main
+          - parallel_step.branch1.success
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: parallel-step-7he1dh-parallel-step-branch1
+      dag:
+        tasks:
+          - name: parallel-step-branch1-hello-stub-h3o3ae
+            template: parallel-step-branch1-hello-stub-h3o3ae
+            arguments:
+              parameters: []
+            depends: ''
+          - name: parallel-step-branch1-hello-python-ld5sjw
+            template: parallel-step-branch1-hello-python-ld5sjw
+            arguments:
+              parameters: []
+            depends: parallel-step-branch1-hello-stub-h3o3ae.Succeeded
+          - name: parallel-step-branch1-hello-shell-9o8s6c
+            template: parallel-step-branch1-hello-shell-9o8s6c
+            arguments:
+              parameters: []
+            depends: parallel-step-branch1-hello-python-ld5sjw.Succeeded
+          - name: parallel-step-branch1-hello-notebook-l2sogn
+            template: parallel-step-branch1-hello-notebook-l2sogn
+            arguments:
+              parameters: []
+            depends: parallel-step-branch1-hello-shell-9o8s6c.Succeeded
+          - name: parallel-step-branch1-success-ckhqmi
+            template: parallel-step-branch1-success-ckhqmi
+            arguments:
+              parameters: []
+            depends: parallel-step-branch1-hello-notebook-l2sogn.Succeeded
+      inputs:
+        parameters: []
+      failFast: true
+    - name: parallel-step-branch2-hello-stub-87asnv
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.06-parallel.parallel.main
+          - parallel_step.branch2.hello%stub
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: parallel-step-branch2-hello-python-76nyuc
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.06-parallel.parallel.main
+          - parallel_step.branch2.hello%python
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: parallel-step-branch2-hello-shell-cyv7m9
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.06-parallel.parallel.main
+          - parallel_step.branch2.hello%shell
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: parallel-step-branch2-hello-notebook-qqx51i
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.06-parallel.parallel.main
+          - parallel_step.branch2.hello%notebook
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: parallel-step-branch2-success-zw1aus
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.06-parallel.parallel.main
+          - parallel_step.branch2.success
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: parallel-step-7he1dh-parallel-step-branch2
+      dag:
+        tasks:
+          - name: parallel-step-branch2-hello-stub-87asnv
+            template: parallel-step-branch2-hello-stub-87asnv
+            arguments:
+              parameters: []
+            depends: ''
+          - name: parallel-step-branch2-hello-python-76nyuc
+            template: parallel-step-branch2-hello-python-76nyuc
+            arguments:
+              parameters: []
+            depends: parallel-step-branch2-hello-stub-87asnv.Succeeded
+          - name: parallel-step-branch2-hello-shell-cyv7m9
+            template: parallel-step-branch2-hello-shell-cyv7m9
+            arguments:
+              parameters: []
+            depends: parallel-step-branch2-hello-python-76nyuc.Succeeded
+          - name: parallel-step-branch2-hello-notebook-qqx51i
+            template: parallel-step-branch2-hello-notebook-qqx51i
+            arguments:
+              parameters: []
+            depends: parallel-step-branch2-hello-shell-cyv7m9.Succeeded
+          - name: parallel-step-branch2-success-zw1aus
+            template: parallel-step-branch2-success-zw1aus
+            arguments:
+              parameters: []
+            depends: parallel-step-branch2-hello-notebook-qqx51i.Succeeded
+      inputs:
+        parameters: []
+      failFast: true
+    - name: parallel-step-7he1dh-fan-in
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - fan
+          - '{{workflow.parameters.run_id}}'
+          - parallel_step
+          - examples.06-parallel.parallel.main
+          - in
+          - --log-level
+          - WARNING
+          - --config-file
+          - examples/configs/argo-config.yaml
+          - --mode
+          - python
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: parallel-step-7he1dh
+      dag:
+        tasks:
+          - name: parallel-step-7he1dh-fan-out
+            template: parallel-step-7he1dh-fan-out
+            arguments:
+              parameters: []
+          - name: parallel-step-7he1dh-parallel-step-branch1
+            template: parallel-step-7he1dh-parallel-step-branch1
+            arguments:
+              parameters: []
+            depends: parallel-step-7he1dh-fan-out.Succeeded
+          - name: parallel-step-7he1dh-parallel-step-branch2
+            template: parallel-step-7he1dh-parallel-step-branch2
+            arguments:
+              parameters: []
+            depends: parallel-step-7he1dh-fan-out.Succeeded
+          - name: parallel-step-7he1dh-fan-in
+            template: parallel-step-7he1dh-fan-in
+            arguments:
+              parameters: []
+            depends: parallel-step-7he1dh-parallel-step-branch1.Succeeded ||
+              parallel-step-7he1dh-parallel-step-branch1.Failed ||
+              parallel-step-7he1dh-parallel-step-branch2.Succeeded ||
+              parallel-step-7he1dh-parallel-step-branch2.Failed
+      failFast: false
+    - name: continue-to-2ce241
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.06-parallel.parallel.main
+          - continue%to
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: argo_env
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: success-q9t2mq
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.06-parallel.parallel.main
           - success
           - --log-level
           - '{{workflow.parameters.log_level}}'
@@ -163,8 +759,6 @@ spec:
           - python
           - --config
           - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/09-retry/original_parameters.yaml
         imagePullPolicy: Always
         env:
           - name: RUNNABLE_RETRY_RUN_ID
@@ -188,6 +782,9 @@ spec:
         parameters: []
       memoize:
         key: '{{workflow.parameters.run_id}}'
+        cache:
+          configMap:
+            name: runnable-vvht4v
       activeDeadlineSeconds: 86400
       nodeSelector: {}
       volumes:
@@ -198,21 +795,21 @@ spec:
     - name: runnable-dag
       dag:
         tasks:
-          - name: stub-node-ur8uo9
-            template: stub-node-ur8uo9
+          - name: parallel-step-7he1dh
+            template: parallel-step-7he1dh
             arguments:
               parameters: []
             depends: ''
-          - name: check-envvar-task-76uv3o
-            template: check-envvar-task-76uv3o
+          - name: continue-to-2ce241
+            template: continue-to-2ce241
             arguments:
               parameters: []
-            depends: stub-node-ur8uo9.Succeeded
-          - name: success-cner62
-            template: success-cner62
+            depends: parallel-step-7he1dh.Succeeded
+          - name: success-q9t2mq
+            template: success-q9t2mq
             arguments:
               parameters: []
-            depends: check-envvar-task-76uv3o.Succeeded
+            depends: continue-to-2ce241.Succeeded
       failFast: true
   volumes:
     - name: runnable
