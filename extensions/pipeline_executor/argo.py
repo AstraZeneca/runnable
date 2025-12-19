@@ -623,7 +623,10 @@ class ArgoExecutor(GenericPipelineExecutor):
             container=core_container_template,
             inputs=Inputs(parameters=parameters),
             outputs=outputs,
-            memoize=Memoize(key="{{workflow.parameters.run_id}}"),
+            memoize=Memoize(
+                key="{{workflow.parameters.run_id}}",
+                cache=Cache(config_map=ConfigMapCache(name=self.cache_name)),
+            ),
             active_deadline_seconds=self.defaults.active_deadline_seconds,
             node_selector=self.defaults.node_selector,
             parallelism=self.defaults.parallelism,
@@ -698,7 +701,10 @@ class ArgoExecutor(GenericPipelineExecutor):
                     Parameter(name=param.name) for param in inputs.parameters or []
                 ]
             ),
-            memoize=Memoize(key="{{workflow.parameters.run_id}}"),
+            memoize=Memoize(
+                key="{{workflow.parameters.run_id}}",
+                cache=Cache(config_map=ConfigMapCache(name=self.cache_name)),
+            ),
             volumes=[volume_pair.volume for volume_pair in self.volume_pairs],
             **node_override.model_dump() if node_override else {},
         )
