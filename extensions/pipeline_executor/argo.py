@@ -508,11 +508,27 @@ class ArgoExecutor(GenericPipelineExecutor):
     _container_log_location: str = PrivateAttr(default="/tmp/run_logs/")
     _container_catalog_location: str = PrivateAttr(default="/tmp/catalog/")
     _added_initial_container: bool = PrivateAttr(default=False)
+    _cache_name: str = PrivateAttr(default="")
 
     def model_post_init(self, __context: Any) -> None:
         self.argo_workflow.spec.template_defaults = ArgoTemplateDefaults(
             **self.defaults.model_dump()
         )
+        self._cache_name = self._generate_cache_name()
+
+    def _generate_cache_name(self) -> str:
+        """Generate a unique ConfigMap name for this workflow's cache."""
+        import secrets
+        import string
+
+        chars = string.ascii_lowercase + string.digits
+        suffix = "".join(secrets.choice(chars) for _ in range(6))
+        return f"runnable-{suffix}"
+
+    @property
+    def cache_name(self) -> str:
+        """Get the ConfigMap name for this workflow's memoization cache."""
+        return self._cache_name
 
     def sanitize_name(self, name: str) -> str:
         formatted_name = name.replace(" ", "-").replace(".", "-").replace("_", "-")
