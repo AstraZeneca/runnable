@@ -22,6 +22,9 @@ Every generated template receives:
 ```yaml
 memoize:
   key: "{{workflow.parameters.run_id}}"
+  cache:
+    configMap:
+      name: "runnable-abc123"  # Generated per workflow
 container:
   env:
   - name: RETRY_RUN_ID
