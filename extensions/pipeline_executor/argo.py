@@ -111,8 +111,17 @@ class Arguments(BaseModelWIthConfig):
     parameters: Optional[list[Parameter]] = Field(default=None)
 
 
+class ConfigMapCache(BaseModelWIthConfig):
+    name: str
+
+
+class Cache(BaseModelWIthConfig):
+    config_map: ConfigMapCache
+
+
 class Memoize(BaseModelWIthConfig):
     key: str
+    cache: Optional[Cache] = Field(default=None)
 
 
 class TolerationEffect(str, Enum):
