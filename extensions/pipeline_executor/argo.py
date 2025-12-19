@@ -541,7 +541,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         """Add retry environment variables to all containers."""
         # Add retry run id environment variable
         retry_run_id_env = EnvVar(
-            name=defaults.RETRY_RUN_ID, value="{{workflow.parameters.run_id}}"
+            name=defaults.RETRY_RUN_ID, value="{{workflow.parameters.retry_run_id}}"
         )
         container_template.env.append(retry_run_id_env)
 
