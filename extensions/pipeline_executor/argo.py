@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import secrets
 import shlex
 import string
 from collections import namedtuple
@@ -522,9 +523,6 @@ class ArgoExecutor(GenericPipelineExecutor):
         """Generate or use configured ConfigMap name for this workflow's cache."""
         if self.configmap_cache_name:
             return self.configmap_cache_name
-
-        import secrets
-        import string
 
         chars = string.ascii_lowercase + string.digits
         suffix = "".join(secrets.choice(chars) for _ in range(6))
