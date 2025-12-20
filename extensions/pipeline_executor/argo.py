@@ -404,6 +404,7 @@ class ArgoExecutor(GenericPipelineExecutor):
               claim_name: "my-pvc"
               read_only: false/true
         expose_parameters_as_inputs: true/false
+        configmap_cache_name: "my-cache-name"  # Optional: defaults to runnable-xxxxxx
         secrets_from_k8s:
           - key1
           - key2
@@ -485,6 +486,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     )
 
     expose_parameters_as_inputs: bool = True
+    configmap_cache_name: Optional[str] = Field(default=None)
     secret_from_k8s: Optional[str] = Field(default=None)
     output_file: str = Field(default="argo-pipeline.yaml")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
@@ -517,7 +519,10 @@ class ArgoExecutor(GenericPipelineExecutor):
         self._cache_name = self._generate_cache_name()
 
     def _generate_cache_name(self) -> str:
-        """Generate a unique ConfigMap name for this workflow's cache."""
+        """Generate or use configured ConfigMap name for this workflow's cache."""
+        if self.configmap_cache_name:
+            return self.configmap_cache_name
+
         import secrets
         import string
 
