@@ -114,6 +114,7 @@ class Arguments(BaseModelWIthConfig):
 
 class ConfigMapCache(BaseModelWIthConfig):
     name: str
+    key: str = Field(default="cache")
 
 
 class Cache(BaseModelWIthConfig):
