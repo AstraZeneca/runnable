@@ -103,6 +103,12 @@ step_1.on_failure = recovery_pipeline
 3. **Recovery pipeline** can succeed or fail
 4. **Pipeline continues** if recovery succeeds
 
+!!! info "This is **Alternative Execution**, Not Retry"
+
+    The `on_failure` pattern runs **different code** when tasks fail - it's graceful recovery, not retry.
+
+    **For actual retry functionality** (re-executing the same failed steps), see **[Retry & Recovery](retry-recovery.md)**.
+
 ## Real-world patterns
 
 ```mermaid
@@ -120,7 +126,7 @@ flowchart TD
 fetch_latest_data_task.on_failure = use_cached_data_pipeline
 ```
 
-### Retry with different settings
+### Alternative approach on failure
 ```python
 # Example failure handling configuration (partial code)
 fast_model_task.on_failure = robust_model_pipeline
@@ -163,6 +169,7 @@ main_task.on_failure = create_fallback_pipeline()
 ## When to use failure handling
 
 **Essential for:**
+
 - Production pipelines that must complete
 - Data pipelines with unreliable sources
 - ML pipelines with multiple model options

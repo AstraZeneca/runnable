@@ -218,9 +218,9 @@ uv run runnable timeline demo-run --output pipeline-demo.html --no-open
 
 ## What's Next?
 
-- **[Parallel Execution](parallel-execution.md)** - Create parallel workflows to visualize
-- **[Map Patterns](map-patterns.md)** - Build iterative pipelines with rich timelines
-- **[Conditional Workflows](conditional-workflows.md)** - Visualize branching logic
-- **[Failure Handling](failure-handling.md)** - Debug error scenarios with timelines
+- **[Parallel Execution](../advanced-patterns/parallel-execution.md)** - Create parallel workflows to visualize
+- **[Map Patterns](../advanced-patterns/map-patterns.md)** - Build iterative pipelines with rich timelines
+- **[Conditional Workflows](../advanced-patterns/conditional-workflows.md)** - Visualize branching logic
+- **[Failure Handling](../advanced-patterns/failure-handling.md)** - Debug error scenarios with timelines
 
 **Ready to visualize your pipelines?** Run any example and explore its timeline! 🚀

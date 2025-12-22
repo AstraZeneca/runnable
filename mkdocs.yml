@@ -143,6 +143,7 @@ nav:
       - "Map Patterns": "advanced-patterns/map-patterns.md"
       - "Conditional Workflows": "advanced-patterns/conditional-workflows.md"
       - "Failure Handling": "advanced-patterns/failure-handling.md"
+      - "Retry & Recovery": "advanced-patterns/retry-recovery.md"
       - "Mocking and Testing": "advanced-patterns/mocking-testing.md"
       - "Custom Patterns": "advanced-patterns/node-types.md"
   - "Production":
