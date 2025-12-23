@@ -70,7 +70,7 @@
 - **Kubeflow**: ParallelFor
 - **Metaflow**: `foreach` generates items at runtime
 - **Runnable**: Supports this - `iterate_on` can use parameters from previous steps
-- **Status**: TODO - Add documentation/example showing dynamic iteration from previous step output
+- **Status**: DONE - Added examples/07-map/dynamic_map.py example
 
 ---
 
