@@ -1,13 +1,11 @@
 param1: 41
 param2: "hello world"
-check_me: "true"
 
 chunks: [1, 2, 3]
 
-
 integer: 1
-floater : 3.14
-stringer : hello
+floater: 3.14
+stringer: hello
 pydantic_param:
   x: 10
   foo: bar

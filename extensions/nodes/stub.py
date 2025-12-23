@@ -82,6 +82,10 @@ class StubNode(ExecutableNode):
             attempt_number=attempt_number,
         )
 
+        self._context.pipeline_executor.add_code_identities(
+            node=self, attempt_log=attempt_log
+        )
+
         step_log.status = attempt_log.status
 
         step_log.attempts.append(attempt_log)
