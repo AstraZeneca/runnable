@@ -27,6 +27,19 @@ if __name__ == "__main__":
 
 **Perfect for**: Data processing, ML models, business logic
 
+!!! success "IDE Debugging Just Works"
+
+    Python tasks are plain functions - **set breakpoints and debug with any IDE**. No special configuration required.
+
+    ```python
+    def process_data(input_file: str) -> dict:
+        data = load_file(input_file)  # Set breakpoint here
+        result = transform(data)       # Step through code
+        return {"output": result}      # Inspect variables
+    ```
+
+    VSCode, PyCharm, or any Python debugger works out of the box. Runnable calls your functions directly during local execution - no subprocess isolation or remote calls to complicate debugging.
+
 ### Notebook Tasks 📓
 Execute Jupyter notebooks as pipeline steps:
 

@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from pydantic import Field, field_serializer, field_validator
 
-from runnable import console, defaults
+from runnable import console, defaults, exceptions
 from runnable.datastore import Parameter
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode, MapVariableType
@@ -145,13 +145,17 @@ class ConditionalNode(CompositeNode):
             )
 
             hit_once = True
-            branch_log = self._context.run_log_store.create_branch_log(
-                effective_branch_name
-            )
+            try:
+                branch_log = self._context.run_log_store.get_branch_log(
+                    effective_branch_name, self._context.run_id
+                )
+                console.print(f"Branch log already exists for {effective_branch_name}")
+            except exceptions.BranchLogNotFoundError:
+                branch_log = self._context.run_log_store.create_branch_log(
+                    effective_branch_name
+                )
+                console.print(f"Branch log created for {effective_branch_name}")
 
-            console.print(
-                f"Branch log created for {effective_branch_name}: {branch_log}"
-            )
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 

@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 from pydantic import Field
 
 from extensions.nodes.task import TaskNode
-from runnable import console, defaults, utils
+from runnable import console, defaults, exceptions, utils
 from runnable.datastore import (
     JsonParameter,
     MetricParameter,
@@ -168,13 +168,17 @@ class MapNode(CompositeNode):
             effective_branch_name = self._resolve_map_placeholders(
                 self.internal_name + "." + str(iter_variable), map_variable=map_variable
             )
-            branch_log = self._context.run_log_store.create_branch_log(
-                effective_branch_name
-            )
+            try:
+                branch_log = self._context.run_log_store.get_branch_log(
+                    effective_branch_name, self._context.run_id
+                )
+                console.print(f"Branch log already exists for {effective_branch_name}")
+            except exceptions.BranchLogNotFoundError:
+                branch_log = self._context.run_log_store.create_branch_log(
+                    effective_branch_name
+                )
+                console.print(f"Branch log created for {effective_branch_name}")
 
-            console.print(
-                f"Branch log created for {effective_branch_name}: {branch_log}"
-            )
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 

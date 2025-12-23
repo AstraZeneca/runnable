@@ -334,7 +334,11 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
         map_variable: MapVariableType = None,
     ) -> StepAttempt:
         """Execute the notebook as defined by the command."""
-        attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
+        attempt_log = StepAttempt(
+            status=defaults.FAIL,
+            start_time=str(datetime.now()),
+            retry_indicator=self._context.retry_indicator,
+        )
 
         with (
             self.execution_context(map_variable=map_variable) as params,
@@ -512,7 +516,11 @@ class NotebookTaskType(BaseTaskType):
             ImportError: If necessary dependencies are not installed
             Exception: If anything else fails
         """
-        attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
+        attempt_log = StepAttempt(
+            status=defaults.FAIL,
+            start_time=str(datetime.now()),
+            retry_indicator=self._context.retry_indicator,
+        )
         try:
             import ploomber_engine as pm
             from ploomber_engine.ipython import PloomberClient
@@ -685,7 +693,11 @@ class ShellTaskType(BaseTaskType):
         Args:
             map_variable (dict, optional): If the node is part of an internal branch. Defaults to None.
         """
-        attempt_log = StepAttempt(status=defaults.FAIL, start_time=str(datetime.now()))
+        attempt_log = StepAttempt(
+            status=defaults.FAIL,
+            start_time=str(datetime.now()),
+            retry_indicator=self._context.retry_indicator,
+        )
         subprocess_env = {}
 
         # Expose RUNNABLE environment variables to be passed to the subprocess.

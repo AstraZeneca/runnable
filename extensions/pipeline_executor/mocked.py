@@ -61,8 +61,6 @@ class MockedExecutor(GenericPipelineExecutor):
             node.name, node._get_step_log_name(map_variable)
         )
 
-        self.add_code_identities(node=node, step_log=step_log)
-
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING
 

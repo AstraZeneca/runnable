@@ -1,0 +1,493 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: argo-
+  labels: {}
+  namespace: enterprise-mlops
+spec:
+  activeDeadlineSeconds: 86400
+  arguments:
+    parameters:
+      - name: param1
+        value: 41
+      - name: param2
+        value: hello world
+      - name: integer
+        value: 1
+      - name: floater
+        value: 3.14
+      - name: stringer
+        value: hello
+      - name: run_id
+      - name: retry_run_id
+        value: ''
+      - name: retry_indicator
+        value: ''
+      - name: log_level
+        value: INFO
+  entrypoint: runnable-dag
+  nodeSelector: {}
+  serviceAccountName: default-editor
+  templateDefaults:
+    activeDeadlineSeconds: 86400
+    failFast: true
+    nodeSelector: {}
+  templates:
+    - name: generate-chunks-u62hhp
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.dynamic_map.main
+          - generate_chunks
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/09-retry/original_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: RUNNABLE_PRM_param1
+            value: '{{workflow.parameters.param1}}'
+          - name: RUNNABLE_PRM_param2
+            value: '{{workflow.parameters.param2}}'
+          - name: RUNNABLE_PRM_integer
+            value: '{{workflow.parameters.integer}}'
+          - name: RUNNABLE_PRM_floater
+            value: '{{workflow.parameters.floater}}'
+          - name: RUNNABLE_PRM_stringer
+            value: '{{workflow.parameters.stringer}}'
+          - name: RUNNABLE_PRM_run_id
+            value: '{{workflow.parameters.run_id}}'
+          - name: RUNNABLE_PRM_retry_run_id
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_PRM_retry_indicator
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: RUNNABLE_PRM_log_level
+            value: '{{workflow.parameters.log_level}}'
+          - name: error_on_existing_run_id
+            value: 'true'
+          - name: RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}-generate-chunks-u62hhp'
+        cache:
+          configMap:
+            name: kf-configmap
+            key: cache
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: process-all-xj521f-fan-out
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        command:
+          - runnable
+          - fan
+          - '{{workflow.parameters.run_id}}'
+          - process_all
+          - examples.07-map.dynamic_map.main
+          - out
+          - --log-level
+          - WARNING
+          - --config-file
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/09-retry/original_parameters.yaml
+          - --mode
+          - python
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+      inputs:
+        parameters: []
+      outputs:
+        parameters:
+          - name: iterate-on
+            valueFrom:
+              path: /tmp/output.txt
+      memoize:
+        key: '{{workflow.parameters.run_id}}-process-all-xj521f-fan-out'
+        cache:
+          configMap:
+            name: kf-configmap
+            key: cache
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: process-all-process-iimjw6
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.dynamic_map.main
+          - process_all.map_variable_placeholder.process
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --map-variable
+          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/09-retry/original_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters:
+          - name: chunk
+      memoize:
+        key: '{{workflow.parameters.run_id}}-process-all-process-iimjw6'
+        cache:
+          configMap:
+            name: kf-configmap
+            key: cache
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: process-all-success-osopd2
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.dynamic_map.main
+          - process_all.map_variable_placeholder.success
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --map-variable
+          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/09-retry/original_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters:
+          - name: chunk
+      memoize:
+        key: '{{workflow.parameters.run_id}}-process-all-success-osopd2'
+        cache:
+          configMap:
+            name: kf-configmap
+            key: cache
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: process-all-xj521f-branch
+      dag:
+        tasks:
+          - name: process-all-process-iimjw6
+            template: process-all-process-iimjw6
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{inputs.parameters.chunk}}'
+            depends: ''
+          - name: process-all-success-osopd2
+            template: process-all-success-osopd2
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{inputs.parameters.chunk}}'
+            depends: process-all-process-iimjw6.Succeeded
+      inputs:
+        parameters:
+          - name: chunk
+      failFast: true
+    - name: process-all-xj521f-fan-in
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        command:
+          - runnable
+          - fan
+          - '{{workflow.parameters.run_id}}'
+          - process_all
+          - examples.07-map.dynamic_map.main
+          - in
+          - --log-level
+          - WARNING
+          - --config-file
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/09-retry/original_parameters.yaml
+          - --mode
+          - python
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 250m
+          requests:
+            memory: 1Gi
+            cpu: 250m
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}-process-all-xj521f-fan-in'
+        cache:
+          configMap:
+            name: kf-configmap
+            key: cache
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: process-all-xj521f
+      dag:
+        tasks:
+          - name: process-all-xj521f-fan-out
+            template: process-all-xj521f-fan-out
+            arguments:
+              parameters: []
+          - name: process-all-xj521f-branch
+            template: process-all-xj521f-branch
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{item}}'
+            withParam: '{{tasks.process-all-xj521f-fan-out.outputs.parameters.iterate-on}}'
+            depends: process-all-xj521f-fan-out.Succeeded
+          - name: process-all-xj521f-fan-in
+            template: process-all-xj521f-fan-in
+            arguments:
+              parameters: []
+            depends: process-all-xj521f-branch.Succeeded ||
+              process-all-xj521f-branch.Failed
+      failFast: false
+    - name: collect-qrtrrs
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.dynamic_map.main
+          - collect
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/09-retry/original_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}-collect-qrtrrs'
+        cache:
+          configMap:
+            name: kf-configmap
+            key: cache
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: success-iprddl
+      container:
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.dynamic_map.main
+          - success
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/09-retry/original_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters: []
+      memoize:
+        key: '{{workflow.parameters.run_id}}-success-iprddl'
+        cache:
+          configMap:
+            name: kf-configmap
+            key: cache
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: runnable-dag
+      dag:
+        tasks:
+          - name: generate-chunks-u62hhp
+            template: generate-chunks-u62hhp
+            arguments:
+              parameters: []
+            depends: ''
+          - name: process-all-xj521f
+            template: process-all-xj521f
+            arguments:
+              parameters: []
+            depends: generate-chunks-u62hhp.Succeeded
+          - name: collect-qrtrrs
+            template: collect-qrtrrs
+            arguments:
+              parameters: []
+            depends: process-all-xj521f.Succeeded
+          - name: success-iprddl
+            template: success-iprddl
+            arguments:
+              parameters: []
+            depends: collect-qrtrrs.Succeeded
+      failFast: true
+  volumes:
+    - name: runnable
+      persistentVolumeClaim:
+        claimName: runnable
+        readOnly: false

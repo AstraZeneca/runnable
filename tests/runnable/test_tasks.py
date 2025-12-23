@@ -49,6 +49,7 @@ def mock_context(mocker):
         "x": JsonParameter(kind="json", value=42),
     }
     mock_ctx.run_log_store.get_parameters.return_value = parameters_dict.copy()
+    mock_ctx.retry_indicator = ""
 
     # Patch both run_context and progress at module level
     mocker.patch("runnable.context.run_context", mock_ctx)

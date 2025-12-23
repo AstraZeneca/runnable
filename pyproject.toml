@@ -42,8 +42,8 @@ dev = [
     "pytest-cov>=6.0.0",
     "pytest>=8.3.4",
     "pytest-mock>=3.14.0",
-    "mypy>=1.13.0",
     "pre-commit>=4.0.1",
+    "ty>=0.0.5",
 ]
 docs = [
     "mkdocs-section-index>=0.3.9",
@@ -112,7 +112,6 @@ include = [
 "emulator" = "extensions.pipeline_executor.emulate:Emulator"
 "argo" = "extensions.pipeline_executor.argo:ArgoExecutor"
 "mocked" = "extensions.pipeline_executor.mocked:MockedExecutor"
-"retry" = "extensions.pipeline_executor.retry:RetryExecutor"
 
 [project.entry-points.'job_executor']
 "local" = "extensions.job_executor.local:LocalJobExecutor"
@@ -157,6 +156,13 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "notebook" = "runnable.tasks:NotebookTaskType"
 
 
+[tool.ty.src]
+include = ["runnable", "extensions"]
+
+[tool.ty.rules]
+unresolved-attribute = "ignore"
+possibly-missing-attribute = "ignore"
+unresolved-import = "ignore"
 # Release configuration
 [tool.semantic_release]
 commit_parser = "conventional"

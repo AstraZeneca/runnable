@@ -1,12 +1,13 @@
 import logging
+import os
 from pathlib import Path
 from typing import Dict
 
 from pydantic import Field, PrivateAttr
 
 from extensions.pipeline_executor import GenericPipelineExecutor
-from runnable import defaults, utils
-from runnable.datastore import StepLog
+from runnable import defaults
+from runnable.datastore import StepAttempt
 from runnable.defaults import MapVariableType
 from runnable.nodes import BaseNode
 
@@ -79,32 +80,97 @@ class LocalContainerExecutor(GenericPipelineExecutor):
     _container_secrets_location = "/tmp/dotenv"
     _volumes: Dict[str, Dict[str, str]] = {}
 
-    def add_code_identities(self, node: BaseNode, step_log: StepLog):
+    def _get_docker_image_digest(self, docker_image: str) -> str | None:
+        """
+        Retrieve the docker image digest, trying local first, then pulling if needed.
+
+        Args:
+            docker_image: The docker image name/tag
+
+        Returns:
+            The image digest (sha256:...) or None if retrieval fails
+        """
+        import docker  # pylint: disable=C0415
+
+        try:
+            client = docker.from_env()
+
+            # Try to get digest from local image first
+            try:
+                image = client.images.get(docker_image)
+                # Get the RepoDigest which contains the sha256 digest
+                if image.attrs.get("RepoDigests"):
+                    # RepoDigests is a list like ["registry/repo@sha256:..."]
+                    for digest in image.attrs["RepoDigests"]:
+                        if "@sha256:" in digest:
+                            return digest.split("@")[1]  # Return just "sha256:..."
+
+                # If no RepoDigest, try to get the image ID (less ideal but better than nothing)
+                if image.id:
+                    return image.id
+
+            except docker.errors.ImageNotFound:
+                # Image not found locally, try to pull it
+                logger.info(
+                    f"Docker image {docker_image} not found locally, pulling..."
+                )
+                try:
+                    pulled_image = client.images.pull(docker_image)
+
+                    # Get digest from pulled image
+                    if pulled_image.attrs.get("RepoDigests"):
+                        for digest in pulled_image.attrs["RepoDigests"]:
+                            if "@sha256:" in digest:
+                                return digest.split("@")[1]  # Return just "sha256:..."
+
+                    if pulled_image.id:
+                        return pulled_image.id
+
+                except Exception as pull_ex:
+                    logger.warning(
+                        f"Failed to pull docker image {docker_image}: {pull_ex}"
+                    )
+
+        except Exception as ex:
+            logger.warning(
+                f"Failed to retrieve docker image digest for {docker_image}: {ex}"
+            )
+
+        return None
+
+    def add_code_identities(self, node: BaseNode, attempt_log: StepAttempt):
         """
         Call the Base class to add the git code identity and add docker identity
 
         Args:
             node (BaseNode): The node we are adding the code identity
-            step_log (Object): The step log corresponding to the node
+            attempt_log (StepAttempt): The step attempt log corresponding to the node
         """
 
-        super().add_code_identities(node, step_log)
+        super().add_code_identities(node, attempt_log)
 
         if node.node_type in ["success", "fail"]:
             # Need not add code identities if we are in a success or fail node
             return
 
-        executor_config = self._resolve_executor_config(node)
+        # Add docker image digest as code identity if available, fall back to image name
+        docker_digest = os.getenv("RUNNABLE_CODE_ID_DOCKER_IMAGE_DIGEST")
 
-        docker_image = executor_config.get("docker_image", None)
-        if docker_image:
+        if not docker_digest:
+            # Fall back to docker image name if digest not available
+            executor_config = self._resolve_executor_config(node)
+            docker_digest = executor_config.get("docker_image", None)
+
+        if docker_digest:
             code_id = self._context.run_log_store.create_code_identity()
 
-            code_id.code_identifier = utils.get_local_docker_image_id(docker_image)
+            code_id.code_identifier = docker_digest
             code_id.code_identifier_type = "docker"
             code_id.code_identifier_dependable = True
             code_id.code_identifier_url = "local docker host"
-            step_log.code_identities.append(code_id)
+            attempt_log.code_identities.append(code_id)
+
+            logger.debug(f"Added docker image code identity: {docker_digest[:50]}...")
 
     def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
         """
@@ -156,6 +222,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
             logger.error(msg)
             step_log.status = defaults.FAIL
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+            raise Exception(msg)
 
     def _spin_container(
         self,
@@ -191,6 +258,16 @@ class LocalContainerExecutor(GenericPipelineExecutor):
             if not docker_image:
                 raise Exception(
                     f"Please provide a docker_image using executor_config of the step {node.name} or at global config"
+                )
+
+            # Retrieve docker image digest and pass it as environment variable
+            digest = self._get_docker_image_digest(docker_image)
+            if digest:
+                environment["RUNNABLE_CODE_ID_DOCKER_IMAGE_DIGEST"] = digest
+                logger.info(f"Retrieved docker image digest: {digest[:12]}...")
+            else:
+                logger.warning(
+                    f"Could not retrieve digest for docker image: {docker_image}"
                 )
 
             container = client.containers.create(

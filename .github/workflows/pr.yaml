@@ -50,5 +50,5 @@ jobs:
           export PYTHONDONTWRITEBYTECODE=1
           uv run pytest -k "not (container or minio)"
 
-      - name: mypy
-        run: uv run mypy runnable extensions
+      - name: ty
+        run: uv run ty check

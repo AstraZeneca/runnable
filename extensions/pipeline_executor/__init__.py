@@ -12,7 +12,7 @@ from runnable import (
     task_console,
     utils,
 )
-from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepLog
+from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepAttempt
 from runnable.defaults import MapVariableType
 from runnable.executor import BasePipelineExecutor
 from runnable.graph import Graph
@@ -65,12 +65,169 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         logger.debug(f"parameters as seen by executor: {params}")
         return params
 
+    def _get_parameters_for_retry(self) -> Dict[str, JsonParameter]:
+        """
+        Get parameters for execution, handling retry logic.
+
+        For retry runs, loads parameters from original run metadata.
+        For normal runs, uses standard parameter loading logic.
+
+        Returns:
+            Dict[str, JsonParameter]: Parameters for execution
+        """
+        if not self._context.is_retry:
+            return self._get_parameters()
+
+        # Load original run log to get parameters
+        original_run_log = self._context.run_log_store.get_run_log_by_id(
+            run_id=self._context.run_id, full=True
+        )
+
+        # Warn if user provided new parameters file
+        if self._context.parameters_file:
+            console.print(
+                f"⚠️  [bold yellow]RETRY MODE:[/bold yellow] Ignoring provided parameters file "
+                f"'{self._context.parameters_file}'. Using parameters from original run.",
+                style="yellow",
+            )
+
+        # Check for environment variable parameter overrides
+        env_params = {
+            key.replace(defaults.PARAMETER_PREFIX, ""): value
+            for key, value in os.environ.items()
+            if key.startswith(defaults.PARAMETER_PREFIX)
+        }
+
+        if env_params:
+            console.print(
+                f"⚠️  [bold yellow]RETRY MODE:[/bold yellow] Ignoring {len(env_params)} environment "
+                f"parameter overrides. Using parameters from original run.",
+                style="yellow",
+            )
+
+        console.print(
+            f"📋 [bold green]RETRY MODE:[/bold green] Using parameters from original run "
+            f"'{self._context.run_id}' with {len(original_run_log.parameters or {})} parameters.",
+            style="green",
+        )
+
+        return original_run_log.parameters or {}
+
+    def _validate_retry_prerequisites(self):
+        """
+        Validate prerequisites for retry execution.
+
+        Raises:
+            RetryValidationError: If retry cannot proceed due to validation failures
+        """
+        if not self._context.is_retry:
+            return  # Not a retry, skip validation
+
+        try:
+            # Check if original run log exists
+            original_run_log = self._context.run_log_store.get_run_log_by_id(
+                run_id=self._context.run_id, full=True
+            )
+        except exceptions.RunLogNotFoundError:
+            raise exceptions.RetryValidationError(
+                f"Original run log not found for run_id: {self._context.run_id}. "
+                f"Cannot retry a run that doesn't exist.",
+                run_id=self._context.run_id,
+            )
+
+        # Validate DAG structure hasn't changed
+        if original_run_log.dag_hash != self._context.dag_hash:
+            raise exceptions.RetryValidationError(
+                f"DAG structure has changed since original run. "
+                f"Original hash: {original_run_log.dag_hash}, "
+                f"Current hash: {self._context.dag_hash}. "
+                f"Retry is not allowed when DAG structure changes.",
+                run_id=self._context.run_id,
+            )
+
+        logger.info(f"Retry validation passed for run_id: {self._context.run_id}")
+
+    def _should_skip_step_in_retry(
+        self, node: BaseNode, map_variable: MapVariableType = None
+    ) -> bool:
+        """
+        Determine if a step should be skipped during retry execution.
+
+        Steps are skipped if:
+        - This is not a retry run AND
+        - The step was previously executed AND
+        - The last attempt was successful
+
+        Args:
+            node: The node to check
+            map_variable: Optional map variable if in map context
+
+        Returns:
+            bool: True if step should be skipped, False otherwise
+        """
+        if not self._context.is_retry:
+            return False
+
+        step_log_name = node._get_step_log_name(map_variable)
+
+        try:
+            # Get step log from original run
+            step_log = self._context.run_log_store.get_step_log(
+                step_log_name, self._context.run_id
+            )
+
+            # Composite nodes do not have attempts, their status is consolidated from child nodes
+            if node.is_composite and step_log.status == defaults.SUCCESS:
+                logger.info(
+                    f"Skipping composite step '{node.internal_name}' - already successful in original run"
+                )
+                return True
+
+            if node._is_terminal_node():
+                logger.info(
+                    f"Terminal step '{node.internal_name}' will always execute in retry runs"
+                )
+                return False
+
+            # Check if last attempt was successful
+            if step_log.attempts:
+                last_attempt = step_log.attempts[-1]
+                is_successful = last_attempt.status == defaults.SUCCESS
+
+                if is_successful:
+                    logger.info(
+                        f"Skipping step '{node.internal_name}' - already successful in original run"
+                    )
+                    return True
+
+            return False
+
+        except exceptions.StepLogNotFoundError:
+            # Step was never executed, don't skip
+            logger.info(
+                f"Step '{node.internal_name}' was never executed in original run - will execute"
+            )
+            return False
+
     def _set_up_run_log(self, exists_ok=False):
         """
         Create a run log and put that in the run log store
 
         If exists_ok, we allow the run log to be already present in the run log store.
+        Enhanced to support retry execution with validation only.
         """
+        # For retry runs: validate prerequisites and return early
+        if self._context.is_retry:
+            logger.info(
+                f"Validating retry prerequisites for run_id: {self._context.run_id}"
+            )
+            self._validate_retry_prerequisites()
+            logger.info(
+                f"Retry validation passed. Reusing existing run log: {self._context.run_id}"
+            )
+            return  # Don't create new run log, reuse existing one
+
+        # Normal run log creation logic (unchanged)
         try:
             attempt_run_log = self._context.run_log_store.get_run_log_by_id(
                 run_id=self._context.run_id, full=False
@@ -196,6 +353,31 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         self._context.catalog.put(name=log_file_name)
         os.remove(log_file_name)
 
+    def _calculate_attempt_number(
+        self, node: BaseNode, map_variable: MapVariableType = None
+    ) -> int:
+        """
+        Calculate the attempt number for a node based on existing attempts in the run log.
+
+        Args:
+            node: The node to calculate attempt number for
+            map_variable: Optional map variable if node is in a map state
+
+        Returns:
+            int: The attempt number (starting from 1)
+        """
+        step_log_name = node._get_step_log_name(map_variable)
+
+        try:
+            existing_step_log = self._context.run_log_store.get_step_log(
+                step_log_name, self._context.run_id
+            )
+            # If step log exists, increment attempt number based on existing attempts
+            return len(existing_step_log.attempts) + 1
+        except exceptions.StepLogNotFoundError:
+            # This is the first attempt, use attempt number 1
+            return 1
+
     def _execute_node(
         self,
         node: BaseNode,
@@ -221,8 +403,14 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             map_variable (dict, optional): If the node is of a map state, map_variable is the value of the iterable.
                         Defaults to None.
         """
+        # Calculate attempt number based on existing attempts in run log
+        current_attempt_number = self._calculate_attempt_number(node, map_variable)
+
+        # Set the environment variable for this attempt
+        os.environ[defaults.ATTEMPT_NUMBER] = str(current_attempt_number)
+
         logger.info(
-            f"Trying to execute node: {node.internal_name}, attempt : {self.step_attempt_number}"
+            f"Trying to execute node: {node.internal_name}, attempt : {current_attempt_number}"
         )
 
         self._context_node = node
@@ -232,7 +420,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         step_log = node.execute(
             map_variable=map_variable,
-            attempt_number=self.step_attempt_number,
+            attempt_number=current_attempt_number,
             mock=mock,
         )
 
@@ -261,21 +449,23 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    def add_code_identities(self, node: BaseNode, step_log: StepLog):
+    def add_code_identities(self, node: BaseNode, attempt_log: StepAttempt):
         """
         Add code identities specific to the implementation.
 
         The Base class has an implementation of adding git code identities.
 
         Args:
-            step_log (object): The step log object
-            node (BaseNode): The node we are adding the step log for
+            attempt_log (StepAttempt): The step attempt log object
+            node (BaseNode): The node we are adding the code identities for
         """
-        step_log.code_identities.append(utils.get_git_code_identity())
+        attempt_log.code_identities.append(utils.get_git_code_identity())
 
     def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
         """
         This is the entry point to from the graph execution.
+
+        Modified to handle retry logic by skipping successful steps.
 
         While the self.execute_graph is responsible for traversing the graph, this function is responsible for
         actual execution of the node.
@@ -298,11 +488,37 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to None.
         """
-        step_log = self._context.run_log_store.create_step_log(
-            node.name, node._get_step_log_name(map_variable)
-        )
 
-        self.add_code_identities(node=node, step_log=step_log)
+        if self._should_skip_step_in_retry(node, map_variable):
+            logger.info(
+                f"Skipping execution of '{node.internal_name}' due to retry logic"
+            )
+            console.print(
+                f":fast_forward: Skipping node {node.internal_name} - already successful in original run",
+                style="bold yellow",
+            )
+            return  # Skip execution, no return value
+
+        # For retry runs, try to get existing step log first to preserve original attempts
+        if self._context.is_retry:
+            try:
+                step_log = self._context.run_log_store.get_step_log(
+                    node._get_step_log_name(map_variable), self._context.run_id
+                )
+                logger.info(
+                    f"Reusing existing step log for retry: {node.internal_name}"
+                )
+            except exceptions.StepLogNotFoundError:
+                # Step was never executed, create new step log
+                step_log = self._context.run_log_store.create_step_log(
+                    node.name, node._get_step_log_name(map_variable)
+                )
+                logger.info(f"Creating new step log for retry: {node.internal_name}")
+        else:
+            # Normal run: always create new step log
+            step_log = self._context.run_log_store.create_step_log(
+                node.name, node._get_step_log_name(map_variable)
+            )
 
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING
@@ -428,8 +644,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 raise Exception("Potentially running in a infinite loop")
 
             previous_node = current_node
-
-            logger.debug(f"Creating execution log for {working_on}")
 
             try:
                 self.execute_from_graph(working_on, map_variable=map_variable)
@@ -567,8 +781,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         step_log = self._context.run_log_store.create_step_log(
             node.name, node._get_step_log_name(map_variable=map_variable)
         )
-
-        self.add_code_identities(node=node, step_log=step_log)
 
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING

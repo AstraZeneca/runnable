@@ -191,9 +191,11 @@ class GenericJobExecutor(BaseJobExecutor):
 
         if not self.mock:
             attempt_log = job.execute_command()
+            attempt_log.retry_indicator = self._context.retry_indicator
         else:
             attempt_log = StepAttempt(
                 status=defaults.SUCCESS,
+                retry_indicator=self._context.retry_indicator,
             )
 
         job_log.status = attempt_log.status

@@ -22,7 +22,7 @@ class TestGenericExecutor(GenericPipelineExecutor):
         """Implementation of the abstract method to execute nodes"""
         self._execute_node(node, map_variable)
 
-    def add_code_identities(self, node, step_log):
+    def add_code_identities(self, node, attempt_log):
         """Implementation of add_code_identities"""
         pass
 
@@ -105,76 +105,6 @@ def test_get_parameters_with_parameters_file(test_executor, mock_context, mocker
     assert "env_param" in result
     assert result["file_param"].value == "file_value"
     assert result["env_param"].value == "env_value"
-
-
-def test_set_up_run_log_when_run_log_exists(test_executor, mock_context, mocker):
-    """Test _set_up_run_log when run log already exists"""
-    # Mock run_log_store.get_run_log_by_id to return a run log
-    mock_run_log = mocker.MagicMock(spec=RunLog)
-    mock_run_log.status = defaults.SUCCESS
-    mock_context.run_log_store.get_run_log_by_id.return_value = mock_run_log
-
-    # Call _set_up_run_log with exists_ok=False (default)
-    with pytest.raises(exceptions.RunLogExistsError):
-        test_executor._set_up_run_log()
-
-    # Verify that get_run_log_by_id was called with correct params
-    mock_context.run_log_store.get_run_log_by_id.assert_called_once_with(
-        run_id=mock_context.run_id, full=False
-    )
-
-    # Call _set_up_run_log with exists_ok=True
-    mock_context.run_log_store.get_run_log_by_id.reset_mock()
-    test_executor._set_up_run_log(exists_ok=True)
-
-    # Verify that get_run_log_by_id was called with correct params
-    mock_context.run_log_store.get_run_log_by_id.assert_called_once_with(
-        run_id=mock_context.run_id, full=False
-    )
-
-
-def test_set_up_run_log_when_run_log_does_not_exist(
-    test_executor, mock_context, mocker
-):
-    """Test _set_up_run_log when run log doesn't exist"""
-    # Mock run_log_store.get_run_log_by_id to raise RunLogNotFoundError
-    mock_context.run_log_store.get_run_log_by_id.side_effect = (
-        exceptions.RunLogNotFoundError("Not found")
-    )
-
-    # Mock _get_parameters to return some parameters
-    mock_params = {"param1": JsonParameter(value="value1", kind="json")}
-    mocker.patch.object(test_executor, "_get_parameters", return_value=mock_params)
-
-    # Mock context.model_dump to return a config dict
-    mock_config = {"config_key": "config_value"}
-    mock_context.model_dump.return_value = mock_config
-
-    # Call _set_up_run_log
-    test_executor._set_up_run_log()
-
-    # Verify that get_run_log_by_id was called with correct params
-    mock_context.run_log_store.get_run_log_by_id.assert_called_once_with(
-        run_id=mock_context.run_id, full=False
-    )
-
-    # Verify that create_run_log was called with correct params
-    mock_context.run_log_store.create_run_log.assert_called_once_with(
-        run_id=mock_context.run_id,
-        tag=mock_context.tag,
-        status=defaults.PROCESSING,
-        dag_hash=mock_context.dag_hash,
-    )
-
-    # Verify that set_parameters was called with correct params
-    mock_context.run_log_store.set_parameters.assert_called_once_with(
-        run_id=mock_context.run_id, parameters=mock_params
-    )
-
-    # Verify that set_run_config was called with correct params
-    mock_context.run_log_store.set_run_config.assert_called_once_with(
-        run_id=mock_context.run_id, run_config=mock_config
-    )
 
 
 def test_sync_catalog_get(test_executor, mock_context, mocker):
@@ -281,6 +211,124 @@ def test_execute_from_graph(test_executor, mock_context, mocker):
 def test_execute_from_graph_with_composite_node(test_executor, mock_context, mocker):
     """Test execute_from_graph with composite node"""
     pass
+
+
+def test_calculate_attempt_number_first_attempt(test_executor, mock_context, mocker):
+    """Test calculating attempt number for first execution"""
+    # Mock the node
+    mock_node = mocker.MagicMock(spec=BaseNode)
+    mock_node._get_step_log_name.return_value = "test_step"
+
+    # Mock run log store to raise StepLogNotFoundError (first attempt)
+    mock_context.run_log_store.get_step_log.side_effect = (
+        exceptions.StepLogNotFoundError(
+            run_id=mock_context.run_id, step_name="test_step"
+        )
+    )
+
+    # Call the method
+    attempt_num = test_executor._calculate_attempt_number(mock_node, None)
+
+    # Verify the result
+    assert attempt_num == 1
+
+    # Verify the method was called with correct parameters
+    mock_context.run_log_store.get_step_log.assert_called_once_with(
+        "test_step", mock_context.run_id
+    )
+
+
+def test_calculate_attempt_number_with_existing_attempts(
+    test_executor, mock_context, mocker
+):
+    """Test calculating attempt number when previous attempts exist"""
+    from runnable.datastore import StepAttempt, StepLog
+
+    # Mock the node
+    mock_node = mocker.MagicMock(spec=BaseNode)
+    mock_node._get_step_log_name.return_value = "test_step"
+
+    # Mock existing step log with 2 attempts
+    mock_step_log = StepLog(
+        name="test_step",
+        internal_name="test_step",
+        attempts=[
+            StepAttempt(attempt_number=1, status="FAILED"),
+            StepAttempt(attempt_number=2, status="FAILED"),
+        ],
+    )
+    mock_context.run_log_store.get_step_log.return_value = mock_step_log
+
+    # Call the method
+    attempt_num = test_executor._calculate_attempt_number(mock_node, None)
+
+    # Verify the result (should be 3 = len(attempts) + 1)
+    assert attempt_num == 3
+
+    # Verify the method was called with correct parameters
+    mock_context.run_log_store.get_step_log.assert_called_once_with(
+        "test_step", mock_context.run_id
+    )
+
+
+def test_calculate_attempt_number_with_map_variable(
+    test_executor, mock_context, mocker
+):
+    """Test calculating attempt number with map variable"""
+    # Mock the node
+    mock_node = mocker.MagicMock(spec=BaseNode)
+    mock_node._get_step_log_name.return_value = "test_step_map_1"
+
+    # Mock run log store to raise StepLogNotFoundError (first attempt)
+    mock_context.run_log_store.get_step_log.side_effect = (
+        exceptions.StepLogNotFoundError(
+            run_id=mock_context.run_id, step_name="test_step"
+        )
+    )
+
+    # Call the method with map variable
+    map_variable = {"key": "value"}
+    attempt_num = test_executor._calculate_attempt_number(mock_node, map_variable)
+
+    # Verify the result
+    assert attempt_num == 1
+
+    # Verify the node method was called with map variable
+    mock_node._get_step_log_name.assert_called_once_with(map_variable)
+
+
+def test_execute_node_uses_calculated_attempt_number(
+    test_executor, mock_context, mocker
+):
+    """Test that execute_node uses the calculated attempt number"""
+    import os
+
+    from runnable import defaults
+
+    # Mock the node
+    mock_node = mocker.MagicMock(spec=BaseNode)
+    mock_node.internal_name = "test_node"
+    mock_node.execute.return_value = mocker.MagicMock()
+
+    # Mock the attempt calculation method to return 3
+    mocker.patch.object(test_executor, "_calculate_attempt_number", return_value=3)
+
+    # Mock _sync_catalog to avoid side effects
+    mocker.patch.object(test_executor, "_sync_catalog", return_value=[])
+
+    # Call execute_node
+    test_executor._execute_node(mock_node)
+
+    # Verify attempt number was calculated and used
+    test_executor._calculate_attempt_number.assert_called_once_with(mock_node, None)
+
+    # Verify node.execute was called with the calculated attempt number
+    mock_node.execute.assert_called_once()
+    call_args = mock_node.execute.call_args
+    assert call_args[1]["attempt_number"] == 3
+
+    # Verify environment variable was set
+    assert os.environ[defaults.ATTEMPT_NUMBER] == "3"
 
 
 def test_send_return_code_success(test_executor, mock_context, mocker):

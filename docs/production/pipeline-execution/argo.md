@@ -251,6 +251,53 @@ kubectl apply -f workflow.yaml
                 effect: "NoSchedule"
     ```
 
+### Scheduled Workflows (CronWorkflow)
+
+!!! example "Run Pipelines on a Schedule"
+
+    Use `cron_schedule` to generate an Argo CronWorkflow instead of a regular Workflow. This enables recurring pipeline execution similar to Kubernetes CronJobs:
+
+    ```yaml
+    pipeline-executor:
+      type: argo
+      config:
+        image: "my-pipeline:latest"
+        output_file: "cron-workflow.yaml"
+        cron_schedule:
+          schedules:
+            - "0 0 * * *"      # Daily at midnight
+          timezone: "UTC"      # Optional timezone
+    ```
+
+    Multiple schedules are supported:
+
+    ```yaml
+    cron_schedule:
+      schedules:
+        - "0 6 * * *"   # Daily at 6 AM
+        - "0 18 * * *"  # Daily at 6 PM
+      timezone: "America/New_York"
+    ```
+
+!!! tip "Cron Expression Format"
+
+    Standard cron format: `minute hour day-of-month month day-of-week`
+
+    - `0 0 * * *` - Daily at midnight
+    - `0 */6 * * *` - Every 6 hours
+    - `0 0 * * 0` - Weekly on Sunday at midnight
+    - `0 0 1 * *` - Monthly on the 1st at midnight
+
+!!! note "Workflow vs CronWorkflow"
+
+    When `cron_schedule` is configured:
+
+    - Output changes from `kind: Workflow` to `kind: CronWorkflow`
+    - `metadata.generateName` becomes `metadata.name` (CronWorkflows require a fixed name)
+    - The workflow spec is wrapped inside `workflowSpec`
+
+    Deploy with: `kubectl apply -f cron-workflow.yaml`
+
 
 ## Configuration Reference
 

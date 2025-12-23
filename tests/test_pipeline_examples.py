@@ -45,7 +45,8 @@ def runnable_context():
 
     os.environ["FIX_RANDOM_TOSS"] = "heads"
     os.environ.pop("RUNNABLE_CONFIGURATION_FILE", None)
-
+    os.environ.pop(defaults.RUNNABLE_PARAMETERS_FILE, None)
+    os.environ.pop(defaults.RETRY_RUN_ID, None)
     try:
         yield runnable_context
     finally:
@@ -55,7 +56,6 @@ def runnable_context():
         os.environ.pop("FIX_RANDOM_TOSS", None)
         print("Cleaning up runnable context")
         runnable_context.run_context = None
-        runnable_context.progress = None
 
 
 @contextmanager
@@ -82,24 +82,6 @@ def chunked_fs_context():
         os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
             "examples/configs/chunked-fs-run_log.yaml"
         )
-        os.environ["RUNNABLE_PRM_envvar"] = "from env"
-        yield
-
-
-@contextmanager
-def mocked_context():
-    with runnable_context():
-        os.environ["RUNNABLE_CONFIGURATION_FILE"] = (
-            "examples/08-mocking/mocked-config-simple.yaml"
-        )
-        os.environ["RUNNABLE_PRM_envvar"] = "from env"
-        yield
-
-
-@contextmanager
-def patched_context():
-    with runnable_context():
-        os.environ["RUNNABLE_CONFIGURATION_FILE"] = "examples/08-mocking/patching.yaml"
         os.environ["RUNNABLE_PRM_envvar"] = "from env"
         yield
 

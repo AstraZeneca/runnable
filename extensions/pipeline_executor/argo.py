@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import secrets
 import shlex
 import string
 from collections import namedtuple
@@ -25,7 +26,8 @@ from extensions.nodes.map import MapNode
 from extensions.nodes.parallel import ParallelNode
 from extensions.nodes.task import TaskNode
 from extensions.pipeline_executor import GenericPipelineExecutor
-from runnable import defaults
+from runnable import defaults, exceptions
+from runnable.datastore import StepAttempt
 from runnable.defaults import MapVariableType
 from runnable.graph import Graph, search_node_by_internal_name
 from runnable.nodes import BaseNode
@@ -108,6 +110,20 @@ class Outputs(BaseModelWIthConfig):
 
 class Arguments(BaseModelWIthConfig):
     parameters: Optional[list[Parameter]] = Field(default=None)
+
+
+class ConfigMapCache(BaseModelWIthConfig):
+    name: str
+    key: str = Field(default="cache")
+
+
+class Cache(BaseModelWIthConfig):
+    config_map: ConfigMapCache
+
+
+class Memoize(BaseModelWIthConfig):
+    key: str
+    cache: Optional[Cache] = Field(default=None)
 
 
 class TolerationEffect(str, Enum):
@@ -303,6 +319,13 @@ class ArgoWorkflow(BaseModelWIthConfig):
     spec: ArgoWorkflowSpec
 
 
+class CronSchedule(BaseModelWIthConfig):
+    """Minimal cron schedule configuration for CronWorkflows."""
+
+    schedules: list[str]  # Cron expressions, e.g. ["0 0 * * *"]
+    timezone: Optional[str] = Field(default=None)  # e.g. "America/Los_Angeles"
+
+
 # The below are not visible to the user
 class DagTask(BaseModelWIthConfig):
     name: str
@@ -346,6 +369,7 @@ class ContainerTemplate((BaseModelWIthConfig)):
     container: CoreContainerTemplate
     inputs: Optional[Inputs] = Field(default=None)
     outputs: Optional[Outputs] = Field(default=None)
+    memoize: Optional[Memoize] = Field(default=None)
 
     active_deadline_seconds: Optional[int] = Field(default=86400)  # 1 day
     metadata: Optional[PodMetaData] = Field(default=None)
@@ -389,12 +413,17 @@ class ArgoExecutor(GenericPipelineExecutor):
               claim_name: "my-pvc"
               read_only: false/true
         expose_parameters_as_inputs: true/false
+        configmap_cache_name: "my-cache-name"  # Optional: defaults to runnable-xxxxxx
         secrets_from_k8s:
           - key1
           - key2
           - ...
         output_file: "argo-pipeline.yaml"
         log_level: "DEBUG"/"INFO"/"WARNING"/"ERROR"/"CRITICAL"
+        cron_schedule:  # Optional: generates CronWorkflow instead of Workflow
+          schedules:
+            - "0 0 * * *"  # Cron expressions
+          timezone: "UTC"  # Optional timezone
         defaults:
           image: "my-image"
           activeDeadlineSeconds: 86400
@@ -448,6 +477,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     - ```secrets_from_k8s``` can be used to expose the secrets from the k8s secret store.
     - ```output_file``` is the file where the argo pipeline will be dumped.
     - ```log_level``` is the log level for the containers.
+    - ```cron_schedule``` generates an Argo CronWorkflow instead of a regular Workflow for scheduled execution.
     - ```defaults``` is the default configuration for all the containers.
 
 
@@ -470,6 +500,7 @@ class ArgoExecutor(GenericPipelineExecutor):
     )
 
     expose_parameters_as_inputs: bool = True
+    configmap_cache_name: Optional[str] = Field(default=None)
     secret_from_k8s: Optional[str] = Field(default=None)
     output_file: str = Field(default="argo-pipeline.yaml")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
@@ -478,6 +509,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
     defaults: UserDefaults
     argo_workflow: ArgoWorkflow
+    cron_schedule: Optional[CronSchedule] = Field(default=None)
 
     overrides: dict[str, Overrides] = Field(default_factory=dict)
 
@@ -493,11 +525,27 @@ class ArgoExecutor(GenericPipelineExecutor):
     _container_log_location: str = PrivateAttr(default="/tmp/run_logs/")
     _container_catalog_location: str = PrivateAttr(default="/tmp/catalog/")
     _added_initial_container: bool = PrivateAttr(default=False)
+    _cache_name: str = PrivateAttr(default="")
 
     def model_post_init(self, __context: Any) -> None:
         self.argo_workflow.spec.template_defaults = ArgoTemplateDefaults(
             **self.defaults.model_dump()
         )
+        self._cache_name = self._generate_cache_name()
+
+    def _generate_cache_name(self) -> str:
+        """Generate or use configured ConfigMap name for this workflow's cache."""
+        if self.configmap_cache_name:
+            return self.configmap_cache_name
+
+        chars = string.ascii_lowercase + string.digits
+        suffix = "".join(secrets.choice(chars) for _ in range(6))
+        return f"runnable-{suffix}"
+
+    @property
+    def cache_name(self) -> str:
+        """Get the ConfigMap name for this workflow's memoization cache."""
+        return self._cache_name
 
     def sanitize_name(self, name: str) -> str:
         formatted_name = name.replace(" ", "-").replace(".", "-").replace("_", "-")
@@ -505,6 +553,21 @@ class ArgoExecutor(GenericPipelineExecutor):
         unique_name = f"{formatted_name}-{tag}"
         unique_name = unique_name.replace("map-variable-placeholder-", "")
         return unique_name
+
+    def _add_retry_env_vars(self, container_template: CoreContainerTemplate):
+        """Add retry environment variables to all containers."""
+        # Add retry run id environment variable
+        retry_run_id_env = EnvVar(
+            name=defaults.RETRY_RUN_ID, value="{{workflow.parameters.retry_run_id}}"
+        )
+        container_template.env.append(retry_run_id_env)
+
+        # Add retry indicator environment variable
+        retry_indicator_env = EnvVar(
+            name=defaults.RETRY_INDICATOR,
+            value="{{workflow.parameters.retry_indicator}}",
+        )
+        container_template.env.append(retry_indicator_env)
 
     def _set_up_initial_container(self, container_template: CoreContainerTemplate):
         if self._added_initial_container:
@@ -558,6 +621,9 @@ class ArgoExecutor(GenericPipelineExecutor):
             ],
         )
 
+        # Add retry environment variables to all containers
+        self._add_retry_env_vars(container_template=core_container_template)
+
         # Either a task or a fan-out can the first container
         self._set_up_initial_container(container_template=core_container_template)
 
@@ -574,6 +640,10 @@ class ArgoExecutor(GenericPipelineExecutor):
             container=core_container_template,
             inputs=Inputs(parameters=parameters),
             outputs=outputs,
+            memoize=Memoize(
+                key=f"{{{{workflow.parameters.run_id}}}}-{task_name}",
+                cache=Cache(config_map=ConfigMapCache(name=self.cache_name)),
+            ),
             active_deadline_seconds=self.defaults.active_deadline_seconds,
             node_selector=self.defaults.node_selector,
             parallelism=self.defaults.parallelism,
@@ -631,6 +701,9 @@ class ArgoExecutor(GenericPipelineExecutor):
             ],
         )
 
+        # Add retry environment variables to all containers
+        self._add_retry_env_vars(container_template=core_container_template)
+
         self._set_up_initial_container(container_template=core_container_template)
         self._expose_secrets_to_task(
             working_on=node, container_template=core_container_template
@@ -645,6 +718,10 @@ class ArgoExecutor(GenericPipelineExecutor):
                     Parameter(name=param.name) for param in inputs.parameters or []
                 ]
             ),
+            memoize=Memoize(
+                key=f"{{{{workflow.parameters.run_id}}}}-{task_name}",
+                cache=Cache(config_map=ConfigMapCache(name=self.cache_name)),
+            ),
             volumes=[volume_pair.volume for volume_pair in self.volume_pairs],
             **node_override.model_dump() if node_override else {},
         )
@@ -654,27 +731,34 @@ class ArgoExecutor(GenericPipelineExecutor):
     def _set_env_vars_to_task(
         self, working_on: BaseNode, container_template: CoreContainerTemplate
     ):
-        if working_on.node_type not in ["task"]:
-            return
-
         global_envs: dict[str, str] = {}
 
+        # Apply defaults environment variables to all node types
         for env_var in self.defaults.env:
             env_var = cast(EnvVar, env_var)
             global_envs[env_var.name] = env_var.value
 
-        override_key = working_on.overrides.get(self.service_name, "")  # type: ignore
-        node_override = self.overrides.get(override_key, None)
+        # Apply node-specific overrides only for task nodes that support overrides
+        if working_on.node_type in ["task"] and hasattr(working_on, "overrides"):
+            override_key = working_on.overrides.get(self.service_name, "")
+            node_override = self.overrides.get(override_key, None)
 
-        # Update the global envs with the node overrides
-        if node_override:
-            for env_var in node_override.env:
-                env_var = cast(EnvVar, env_var)
-                global_envs[env_var.name] = env_var.value
+            # Update the global envs with the node overrides
+            if node_override:
+                for env_var in node_override.env:
+                    env_var = cast(EnvVar, env_var)
+                    global_envs[env_var.name] = env_var.value
 
         for key, value in global_envs.items():
             env_var_to_add = EnvVar(name=key, value=value)
             container_template.env.append(env_var_to_add)
+
+        # Add argo uid as environment variable
+        argo_uid_env = EnvVar(
+            name="RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID",
+            value="{{workflow.uid}}",
+        )
+        container_template.env.append(argo_uid_env)
 
     def _expose_secrets_to_task(
         self,
@@ -918,9 +1002,17 @@ class ArgoExecutor(GenericPipelineExecutor):
                 parameter = Parameter(name=key, value=value)  # type: ignore
                 arguments.append(parameter)
 
-        run_id_var = Parameter(name="run_id", value="{{workflow.uid}}")
-        log_level_var = Parameter(name="log_level", value=self.log_level)
+        # run_id parameter - required at workflow submission time (no default value)
+        run_id_var = Parameter(name="run_id")
         arguments.append(run_id_var)
+
+        # Optional retry parameters with empty string defaults
+        retry_run_id_var = Parameter(name="retry_run_id", value="")
+        retry_indicator_var = Parameter(name="retry_indicator", value="")
+        arguments.append(retry_run_id_var)
+        arguments.append(retry_indicator_var)
+
+        log_level_var = Parameter(name="log_level", value=self.log_level)
         arguments.append(log_level_var)
         self.argo_workflow.spec.arguments = Arguments(parameters=arguments)
 
@@ -952,13 +1044,44 @@ class ArgoExecutor(GenericPipelineExecutor):
             for volume_pair in self.volume_pairs
         ]
 
+        # If cron_schedule is set, wrap in CronWorkflow
+        if self.cron_schedule:
+            output_dump = self._wrap_as_cron_workflow(argo_workflow_dump)
+        else:
+            output_dump = argo_workflow_dump
+
         yaml = YAML()
         with open(self.output_file, "w") as f:
             yaml.indent(mapping=2, sequence=4, offset=2)
             yaml.dump(
-                argo_workflow_dump,
+                output_dump,
                 f,
             )
+
+    def _wrap_as_cron_workflow(self, workflow_dump: dict) -> dict:
+        """Wrap a Workflow dump as a CronWorkflow."""
+        assert self.cron_schedule is not None
+
+        # Extract metadata and convert generateName to name
+        metadata = workflow_dump["metadata"].copy()
+        generate_name = metadata.pop("generateName", "runnable-cron-")
+        metadata["name"] = generate_name.rstrip("-")
+
+        # Build CronWorkflow spec
+        cron_spec: dict[str, Any] = {
+            "schedules": self.cron_schedule.schedules,
+            "workflowSpec": workflow_dump["spec"],
+        }
+
+        if self.cron_schedule.timezone:
+            cron_spec["timezone"] = self.cron_schedule.timezone
+
+        return {
+            "apiVersion": "argoproj.io/v1alpha1",
+            "kind": "CronWorkflow",
+            "metadata": metadata,
+            "spec": cron_spec,
+        }
 
     def _implicitly_fail(self, node: BaseNode, map_variable: MapVariableType):
         assert self._context.dag
@@ -975,6 +1098,20 @@ class ArgoExecutor(GenericPipelineExecutor):
             if next_node.node_type == defaults.FAIL:
                 self.execute_node(next_node, map_variable=map_variable)
 
+    def add_code_identities(self, node: BaseNode, attempt_log: StepAttempt):
+        super().add_code_identities(node, attempt_log)
+
+        workflow_uid = os.getenv("RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID")
+
+        if workflow_uid:
+            code_id = self._context.run_log_store.create_code_identity()
+
+            code_id.code_identifier = workflow_uid
+            code_id.code_identifier_type = "argo"
+            code_id.code_identifier_dependable = True
+            code_id.code_identifier_url = "argo workflow"
+            attempt_log.code_identities.append(code_id)
+
     def execute_node(
         self,
         node: BaseNode,
@@ -986,15 +1123,20 @@ class ArgoExecutor(GenericPipelineExecutor):
         self._use_volumes()
         self._set_up_run_log(exists_ok=exists_ok)
 
-        step_log = self._context.run_log_store.create_step_log(
-            node.name, node._get_step_log_name(map_variable)
-        )
+        try:
+            # This should only happen during a retry
+            step_log = self._context.run_log_store.get_step_log(
+                node._get_step_log_name(map_variable), self._context.run_id
+            )
+            assert self._context.is_retry
+        except exceptions.StepLogNotFoundError:
+            step_log = self._context.run_log_store.create_step_log(
+                node.name, node._get_step_log_name(map_variable)
+            )
 
-        self.add_code_identities(node=node, step_log=step_log)
-
-        step_log.step_type = node.node_type
-        step_log.status = defaults.PROCESSING
-        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+            step_log.step_type = node.node_type
+            step_log.status = defaults.PROCESSING
+            self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
         self._execute_node(node=node, map_variable=map_variable)
 
@@ -1003,8 +1145,14 @@ class ArgoExecutor(GenericPipelineExecutor):
             node._get_step_log_name(map_variable), self._context.run_id
         )
         if step_log.status == defaults.FAIL:
+            run_log = self._context.run_log_store.get_run_log_by_id(
+                self._context.run_id
+            )
+            run_log.status = defaults.FAIL
+            self._context.run_log_store.put_run_log(run_log)
             raise Exception(f"Step {node.name} failed")
 
+        # This makes the fail node execute if we are heading that way.
         self._implicitly_fail(node, map_variable)
 
     def fan_out(self, node: BaseNode, map_variable: MapVariableType = None):
