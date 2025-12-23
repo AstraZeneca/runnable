@@ -4,11 +4,14 @@ from runnable import Pipeline, PythonTask, Stub
 
 
 def check_envvar():
-    should_pass = os.environ.get("should_pass", "false").lower()
+    print(os.environ)
+    # return
+    raise Exception("Simulated failure for retry demonstration")
+    # should_pass = os.environ.get("should_pass", "false").lower()
 
-    if should_pass == "true":
-        return
-    raise ValueError("Environment variable check failed!")
+    # if should_pass == "true":
+    #     return
+    # raise ValueError("Environment variable check failed!")
 
 
 def main():

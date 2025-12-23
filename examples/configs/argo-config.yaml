@@ -2,6 +2,7 @@ pipeline-executor:
   type: "argo" # (1)
   config:
     pvc_for_runnable: runnable
+    configmap_cache_name: kf-configmap
     defaults:
       image: $docker_image # (3)
       resources:

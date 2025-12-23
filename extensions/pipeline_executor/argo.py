@@ -628,7 +628,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             inputs=Inputs(parameters=parameters),
             outputs=outputs,
             memoize=Memoize(
-                key="{{workflow.parameters.run_id}}",
+                key=f"{{{{workflow.parameters.run_id}}}}-{task_name}",
                 cache=Cache(config_map=ConfigMapCache(name=self.cache_name)),
             ),
             active_deadline_seconds=self.defaults.active_deadline_seconds,
@@ -706,7 +706,7 @@ class ArgoExecutor(GenericPipelineExecutor):
                 ]
             ),
             memoize=Memoize(
-                key="{{workflow.parameters.run_id}}",
+                key=f"{{{{workflow.parameters.run_id}}}}-{task_name}",
                 cache=Cache(config_map=ConfigMapCache(name=self.cache_name)),
             ),
             volumes=[volume_pair.volume for volume_pair in self.volume_pairs],
@@ -1076,13 +1076,14 @@ class ArgoExecutor(GenericPipelineExecutor):
         self._use_volumes()
         self._set_up_run_log(exists_ok=exists_ok)
 
-        step_log = self._context.run_log_store.create_step_log(
-            node.name, node._get_step_log_name(map_variable)
-        )
+        if not self._context.is_retry:
+            step_log = self._context.run_log_store.create_step_log(
+                node.name, node._get_step_log_name(map_variable)
+            )
 
-        step_log.step_type = node.node_type
-        step_log.status = defaults.PROCESSING
-        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+            step_log.step_type = node.node_type
+            step_log.status = defaults.PROCESSING
+            self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
         self._execute_node(node=node, map_variable=map_variable)
 
@@ -1091,6 +1092,11 @@ class ArgoExecutor(GenericPipelineExecutor):
             node._get_step_log_name(map_variable), self._context.run_id
         )
         if step_log.status == defaults.FAIL:
+            run_log = self._context.run_log_store.get_run_log_by_id(
+                self._context.run_id
+            )
+            run_log.status = defaults.FAIL
+            self._context.run_log_store.put_run_log(run_log)
             raise Exception(f"Step {node.name} failed")
 
         # This makes the fail node execute if we are heading that way.

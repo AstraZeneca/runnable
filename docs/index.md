@@ -69,7 +69,7 @@ You just made your first function runnable and got:
 
 ## Want to See More?
 
-### 🔧 Same Code, Different Parameters (2 minutes)
+### 🔧 Same Code, Different Parameters
 
 Change parameters without touching your code:
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
 ---
 
-### 🔗 Chain Functions, No Glue Code (3 minutes)
+### 🔗 Chain Functions, No Glue Code
 
 Build workflows that run anywhere unchanged:
 
@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
 ---
 
-### 🚀 Mix Python + Notebooks (5 minutes)
+### 🚀 Mix Python + Notebooks
 
 Different tools, portable workflows:
 

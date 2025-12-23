@@ -1,5 +1,6 @@
 param1: 41
 param2: "hello world"
+check_me: "true"
 
 chunks: [1, 2, 3]
 
