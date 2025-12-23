@@ -308,6 +308,68 @@ def fan(
         raise ValueError(f"Invalid mode {mode}")
 
 
+def retry_pipeline(
+    run_id: str,
+    configuration_file: str = "",
+    tag: str = "",
+):
+    """
+    Retry a failed pipeline run from the point of failure.
+
+    This entrypoint:
+    1. Loads the run log for the given run_id
+    2. Extracts pipeline_definition_file from run_config
+    3. Sets RUNNABLE_RETRY_RUN_ID env var
+    4. Re-executes the pipeline via context
+
+    Args:
+        run_id: The run_id of the failed run to retry
+        configuration_file: Optional config file (defaults to local execution)
+        tag: Optional tag for the retry run
+    """
+    import os
+
+    # Set up service configurations
+    service_configurations = context.ServiceConfigurations(
+        configuration_file=configuration_file,
+        execution_context=context.ExecutionContext.PIPELINE,
+    )
+
+    # Instantiate run log store to query the original run
+    run_log_store_config = service_configurations.services["run_log_store"]
+    store_instance = context.get_service_by_name(
+        "run_log_store", run_log_store_config, None
+    )
+    run_log = store_instance.get_run_log_by_id(run_id=run_id, full=False)
+
+    run_config = run_log.run_config
+    pipeline_definition_file = run_config.get("pipeline_definition_file", "")
+
+    if not pipeline_definition_file:
+        raise ValueError(f"No pipeline_definition_file found in run log for {run_id}")
+
+    logger.info(f"Retrying run {run_id}")
+    logger.info(f"Pipeline definition: {pipeline_definition_file}")
+
+    # Set the retry environment variable
+    os.environ[defaults.RETRY_RUN_ID] = run_id
+
+    # Create full pipeline context and execute
+    configurations = {
+        "pipeline_definition_file": pipeline_definition_file,
+        "parameters_file": "",
+        "tag": tag,
+        "run_id": run_id,
+        "execution_mode": context.ExecutionMode.PYTHON,
+        "configuration_file": configuration_file,
+        **service_configurations.services,
+    }
+
+    run_context = context.PipelineContext.model_validate(configurations)
+    run_context.execute()
+    # run_context.pipeline_executor.send_return_code()
+
+
 if __name__ == "__main__":
     # This is only for perf testing purposes.
     # execute_single_branch()  # Missing required arguments

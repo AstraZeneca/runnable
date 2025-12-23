@@ -1,0 +1,30 @@
+pipeline-executor:
+  type: "argo"
+  config:
+    pvc_for_runnable: runnable
+    configmap_cache_name: kf-configmap
+    cron_schedule:
+      schedules:
+        - "0 0 * * *"  # Daily at midnight
+      timezone: "UTC"
+    defaults:
+      image: $docker_image
+      resources:
+        limits:
+          cpu: "2"
+          memory: 4Gi
+        requests:
+          cpu: "2"
+          memory: 4Gi
+    argoWorkflow:
+      metadata:
+        generateName: "argo-cron-"
+        namespace: enterprise-mlops
+      spec:
+        serviceAccountName: "default-editor"
+
+
+run-log-store:
+  type: chunked-fs
+  config:
+    log_folder: /mnt/run_log_store

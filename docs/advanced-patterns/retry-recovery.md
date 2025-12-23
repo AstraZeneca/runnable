@@ -129,9 +129,42 @@ Same pipeline structure, same parameters, same data - but **different code and d
 
 Under the hood, Runnable's retry system uses four key mechanisms to enable safe cross-environment debugging:
 
-### Environment Detection
+### CLI Retry Command
 
-Retry mode activates automatically when the `RUNNABLE_RETRY_RUN_ID` environment variable is set. This single environment variable transforms normal execution into retry behavior:
+The simplest way to retry a failed run is using the `runnable retry` CLI command:
+
+```bash
+# Retry a failed run
+runnable retry <run_id>
+
+# Retry with a different configuration (e.g., local instead of Argo)
+runnable retry <run_id> --config local.yaml
+
+# Retry with debug logging
+runnable retry <run_id> --log-level DEBUG
+```
+
+The CLI automatically:
+
+1. Loads the original run log to find the pipeline definition
+2. Sets up the retry environment
+3. Re-executes the pipeline, skipping successful steps
+
+!!! warning "Run Log Store Must Match"
+
+    The retry command requires access to the original run's data. The configuration file you use must specify a **run log store that can read the original run**.
+
+    For example, if the original run used `file-system` run log store in `.run_log_store/`, your retry config must also use `file-system` pointing to the same location.
+
+    ```yaml
+    # retry-config.yaml - must match original run's storage
+    run-log-store:
+      type: file-system  # Same type as original run
+    ```
+
+### Environment Variable Method
+
+Alternatively, retry mode activates when the `RUNNABLE_RETRY_RUN_ID` environment variable is set. This transforms normal execution into retry behavior:
 
 ```bash
 # Normal execution

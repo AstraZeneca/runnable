@@ -19,8 +19,6 @@ app = typer.Typer(
     ),
 )
 
-# TODO: Cron job for K8's.
-
 
 class LogLevel(str, Enum):
     INFO = "INFO"
@@ -277,6 +275,56 @@ def execute_job(
         run_id=run_id,
         parameters_file=parameters_file,
     )
+
+
+@app.command()
+def retry(
+    run_id: Annotated[
+        str,
+        typer.Argument(help="The run_id of the failed run to retry"),
+    ],
+    config_file: Annotated[
+        str,
+        typer.Option(
+            "--config",
+            "-c",
+            help="The configuration file (defaults to original run's config)",
+        ),
+    ] = "",
+    log_level: Annotated[
+        LogLevel,
+        typer.Option(
+            "--log-level",
+            help="The log level",
+            show_default=True,
+            case_sensitive=False,
+        ),
+    ] = LogLevel.WARNING,
+    tag: Annotated[str, typer.Option(help="A tag attached to the retry run")] = "",
+):
+    """
+    Retry a failed pipeline run from the point of failure.
+
+    This command re-executes a pipeline while preserving successful steps.
+    Only failed and subsequent steps will re-execute.
+
+    The pipeline definition and parameters are loaded from the original run log.
+
+    Examples:
+        runnable retry forgiving-joliot-0645
+        runnable retry abc123 --config local.yaml
+        runnable retry abc123 --log-level DEBUG
+    """
+    logger.setLevel(log_level.value)
+
+    try:
+        entrypoints.retry_pipeline(
+            run_id=run_id,
+            configuration_file=config_file,
+            tag=tag,
+        )
+    except Exception as e:
+        logger.error(f"Retry failed: {e}")
 
 
 @app.command()
