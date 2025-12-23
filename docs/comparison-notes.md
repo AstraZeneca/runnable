@@ -62,7 +62,7 @@
 - **Kubeflow**: Limited
 - **Metaflow**: PyCharm/VSCode documented
 - **Runnable**: Just works - functions are native Python, no special setup needed
-- **Status**: TODO - Document that IDE debugging works out of the box (no special config)
+- **Status**: DONE - Documented in task-types.md under Python Tasks
 
 ---
 
