@@ -43,6 +43,7 @@ def runnable_context():
     from runnable import context as runnable_context
 
     os.environ.pop("RUNNABLE_CONFIGURATION_FILE", None)
+    os.environ.pop(defaults.RETRY_RUN_ID, None)
     runnable_context.run_context = None
     try:
         yield runnable_context

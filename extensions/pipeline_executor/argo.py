@@ -740,7 +740,7 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         # Apply node-specific overrides only for task nodes that support overrides
         if working_on.node_type in ["task"] and hasattr(working_on, "overrides"):
-            override_key = working_on.overrides.get(self.service_name, "")  # type: ignore
+            override_key = working_on.overrides.get(self.service_name, "")
             node_override = self.overrides.get(override_key, None)
 
             # Update the global envs with the node overrides

@@ -45,8 +45,8 @@ def runnable_context():
 
     os.environ["FIX_RANDOM_TOSS"] = "heads"
     os.environ.pop("RUNNABLE_CONFIGURATION_FILE", None)
+    os.environ.pop(defaults.RUNNABLE_PARAMETERS_FILE, None)
     os.environ.pop(defaults.RETRY_RUN_ID, None)
-
     try:
         yield runnable_context
     finally:

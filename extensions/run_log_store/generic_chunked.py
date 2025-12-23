@@ -305,7 +305,9 @@ class ChunkedRunLogStore(BaseRunLogStore):
                     current_branch
                 )
 
-            current_branch.steps[step_internal_name] = ordered_steps[step_internal_name]
+            current_branch.steps[step_internal_name] = ordered_steps[
+                step_internal_name
+            ]  # ty: ignore[invalid-assignment]
 
     def create_run_log(
         self,
