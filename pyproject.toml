@@ -162,7 +162,7 @@ include = ["runnable", "extensions"]
 [tool.ty.rules]
 unresolved-attribute = "ignore"
 possibly-missing-attribute = "ignore"
-
+unresolved-import = "ignore"
 # Release configuration
 [tool.semantic_release]
 commit_parser = "conventional"
