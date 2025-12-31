@@ -56,3 +56,98 @@ class TestStreamQueue:
         # Clear it
         set_stream_queue(None)
         assert get_stream_queue() is None
+
+
+class TestStreamingSpanProcessor:
+    """Tests for StreamingSpanProcessor."""
+
+    def test_otel_available_flag(self):
+        """OTEL_AVAILABLE should reflect whether opentelemetry is installed."""
+        from runnable.telemetry import OTEL_AVAILABLE
+
+        # Should be a boolean
+        assert isinstance(OTEL_AVAILABLE, bool)
+
+    def test_processor_available_when_otel_installed(self):
+        """StreamingSpanProcessor should be available when OTEL is installed."""
+        from runnable.telemetry import OTEL_AVAILABLE
+
+        if not OTEL_AVAILABLE:
+            pytest.skip("OpenTelemetry not installed")
+
+        from runnable.telemetry import StreamingSpanProcessor
+
+        assert StreamingSpanProcessor is not None
+
+    def test_processor_pushes_to_queue_on_span_end(self):
+        """Processor should push span data to queue when SSE is active."""
+        from runnable.telemetry import OTEL_AVAILABLE
+
+        if not OTEL_AVAILABLE:
+            pytest.skip("OpenTelemetry not installed")
+
+        from opentelemetry.sdk.trace import TracerProvider
+
+        from runnable.telemetry import (
+            StreamingSpanProcessor,
+            set_stream_queue,
+        )
+
+        # Setup
+        q = Queue()
+        set_stream_queue(q)
+
+        processor = StreamingSpanProcessor(base_processor=None)
+        provider = TracerProvider()
+        provider.add_span_processor(processor)
+
+        tracer = provider.get_tracer("test")
+
+        # Create a span
+        with tracer.start_as_current_span("test-span") as span:
+            span.set_attribute("test_attr", "test_value")
+
+        # Verify queue received span data
+        assert not q.empty()
+
+        # Should have span_start and span_end
+        events = []
+        while not q.empty():
+            events.append(q.get_nowait())
+
+        assert len(events) == 2
+        assert events[0]["type"] == "span_start"
+        assert events[0]["name"] == "test-span"
+        assert events[1]["type"] == "span_end"
+        assert events[1]["name"] == "test-span"
+        assert "duration_ms" in events[1]
+
+        # Cleanup
+        set_stream_queue(None)
+
+    def test_processor_no_queue_no_error(self):
+        """Processor should not error when no queue is set."""
+        from runnable.telemetry import OTEL_AVAILABLE
+
+        if not OTEL_AVAILABLE:
+            pytest.skip("OpenTelemetry not installed")
+
+        from opentelemetry.sdk.trace import TracerProvider
+
+        from runnable.telemetry import (
+            StreamingSpanProcessor,
+            set_stream_queue,
+        )
+
+        # Ensure no queue is set
+        set_stream_queue(None)
+
+        processor = StreamingSpanProcessor(base_processor=None)
+        provider = TracerProvider()
+        provider.add_span_processor(processor)
+
+        tracer = provider.get_tracer("test")
+
+        # Should not raise
+        with tracer.start_as_current_span("test-span"):
+            pass

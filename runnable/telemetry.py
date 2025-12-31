@@ -58,3 +58,84 @@ def get_stream_queue() -> Optional[Queue]:
         The active Queue if SSE streaming is enabled, None otherwise
     """
     return _stream_queue.get()
+
+
+# Optional OTEL imports for streaming processor
+try:
+    from opentelemetry.sdk.trace import SpanProcessor
+    from opentelemetry.sdk.trace import ReadableSpan
+
+    OTEL_AVAILABLE = True
+except ImportError:
+    OTEL_AVAILABLE = False
+    SpanProcessor = object  # type: ignore
+    ReadableSpan = object  # type: ignore
+
+
+if OTEL_AVAILABLE:
+
+    class StreamingSpanProcessor(SpanProcessor):
+        """
+        SpanProcessor that:
+        1. Always forwards to base processor (collector export) if provided
+        2. Also pushes to stream queue if SSE is active
+
+        This enables dual output: persistent collector storage AND
+        real-time streaming to UI.
+        """
+
+        def __init__(self, base_processor: Optional[SpanProcessor] = None):
+            """
+            Initialize the streaming processor.
+
+            Args:
+                base_processor: Optional underlying processor for collector export
+            """
+            self.base_processor = base_processor
+
+        def on_start(self, span, parent_context=None):
+            """Called when a span starts."""
+            if self.base_processor:
+                self.base_processor.on_start(span, parent_context)
+
+            q = _stream_queue.get()
+            if q is not None:
+                q.put_nowait(
+                    {
+                        "type": "span_start",
+                        "name": span.name,
+                        "span_id": format(span.context.span_id, "016x"),
+                    }
+                )
+
+        def on_end(self, span: ReadableSpan):
+            """Called when a span ends."""
+            if self.base_processor:
+                self.base_processor.on_end(span)
+
+            q = _stream_queue.get()
+            if q is not None:
+                q.put_nowait(
+                    {
+                        "type": "span_end",
+                        "name": span.name,
+                        "span_id": format(span.context.span_id, "016x"),
+                        "status": span.status.status_code.name,
+                        "duration_ms": (span.end_time - span.start_time) / 1_000_000,
+                        "attributes": dict(span.attributes) if span.attributes else {},
+                    }
+                )
+
+        def shutdown(self):
+            """Shutdown the processor."""
+            if self.base_processor:
+                self.base_processor.shutdown()
+
+        def force_flush(self, timeout_millis=None):
+            """Force flush any pending spans."""
+            if self.base_processor:
+                self.base_processor.force_flush(timeout_millis)
+
+else:
+    # Placeholder when OTEL is not installed
+    StreamingSpanProcessor = None  # type: ignore
