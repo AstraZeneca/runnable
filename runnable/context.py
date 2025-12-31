@@ -29,6 +29,8 @@ from runnable.pickler import BasePickler
 from runnable.secrets import BaseSecrets
 from runnable.tasks import BaseTaskType
 
+import logfire_api as logfire
+
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
@@ -416,39 +418,55 @@ class PipelineContext(RunnableContext):
     def execute(self):
         assert self.dag is not None
 
-        console.print("Working with context:")
-        console.print(run_context)
-        console.rule(style="[dark orange]")
+        pipeline_name = getattr(self.dag, "name", "unnamed")
 
-        # Prepare for graph execution
-        if self.pipeline_executor._should_setup_run_log_at_traversal:
-            self.pipeline_executor._set_up_run_log(exists_ok=False)
+        with logfire.span(
+            "pipeline:{pipeline_name}",
+            pipeline_name=pipeline_name,
+            run_id=self.run_id,
+            executor=self.pipeline_executor.__class__.__name__,
+        ):
+            logfire.info("Pipeline execution started")
 
-        try:
-            self.pipeline_executor.execute_graph(dag=self.dag)
-            if not self.pipeline_executor._should_setup_run_log_at_traversal:
-                # non local executors just traverse the graph and do nothing
-                return {}
+            console.print("Working with context:")
+            console.print(run_context)
+            console.rule(style="[dark orange]")
 
-            run_log = run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id, full=False
-            )
+            # Prepare for graph execution
+            if self.pipeline_executor._should_setup_run_log_at_traversal:
+                self.pipeline_executor._set_up_run_log(exists_ok=False)
 
-            if run_log.status == defaults.SUCCESS:
-                console.print(
-                    "Pipeline executed successfully!", style=defaults.success_style
+            try:
+                self.pipeline_executor.execute_graph(dag=self.dag)
+                if not self.pipeline_executor._should_setup_run_log_at_traversal:
+                    # non local executors just traverse the graph and do nothing
+                    logfire.info("Pipeline submitted", status="submitted")
+                    return {}
+
+                run_log = run_context.run_log_store.get_run_log_by_id(
+                    run_id=run_context.run_id, full=False
                 )
-            else:
-                console.print("Pipeline execution failed.", style=defaults.error_style)
-                raise exceptions.ExecutionFailedError(run_context.run_id)
-        except Exception as e:  # noqa: E722
-            console.print(e, style=defaults.error_style)
-            raise
 
-        if self.pipeline_executor._should_setup_run_log_at_traversal:
-            return run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id
-            )
+                if run_log.status == defaults.SUCCESS:
+                    console.print(
+                        "Pipeline executed successfully!", style=defaults.success_style
+                    )
+                    logfire.info("Pipeline completed", status="success")
+                else:
+                    console.print(
+                        "Pipeline execution failed.", style=defaults.error_style
+                    )
+                    logfire.error("Pipeline failed", status="failed")
+                    raise exceptions.ExecutionFailedError(run_context.run_id)
+            except Exception as e:  # noqa: E722
+                console.print(e, style=defaults.error_style)
+                logfire.error("Pipeline failed with exception", error=str(e)[:256])
+                raise
+
+            if self.pipeline_executor._should_setup_run_log_at_traversal:
+                return run_context.run_log_store.get_run_log_by_id(
+                    run_id=run_context.run_id
+                )
 
 
 class JobContext(RunnableContext):
