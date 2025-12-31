@@ -28,6 +28,9 @@ from runnable.datastore import (
     StepAttempt,
 )
 from runnable.defaults import MapVariableType
+from runnable.telemetry import truncate_value
+
+import logfire_api as logfire
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -329,6 +332,19 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     task_type: str = Field(default="python", serialization_alias="command_type")
     command: str
 
+    def _safe_serialize_params(self, params: Dict[str, Parameter]) -> str:
+        """Safely serialize parameters for telemetry, handling pickled values."""
+        try:
+            serializable = {}
+            for k, v in params.items():
+                try:
+                    serializable[k] = v.get_value()
+                except Exception:
+                    serializable[k] = f"<{v.kind}>"
+            return truncate_value(serializable)
+        except Exception:
+            return "<unable to serialize>"
+
     def execute_command(
         self,
         map_variable: MapVariableType = None,
@@ -340,82 +356,105 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             retry_indicator=self._context.retry_indicator,
         )
 
-        with (
-            self.execution_context(map_variable=map_variable) as params,
-            self.expose_secrets() as _,
+        with logfire.span(
+            "task:{task_name}",
+            task_name=self.command,
+            task_type=self.task_type,
         ):
-            module, func = utils.get_module_and_attr_names(self.command)
-            sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
-            imported_module = importlib.import_module(module)
-            f = getattr(imported_module, func)
+            with (
+                self.execution_context(map_variable=map_variable) as params,
+                self.expose_secrets() as _,
+            ):
+                logfire.info(
+                    "Task started",
+                    inputs=self._safe_serialize_params(params),
+                )
 
-            try:
+                module, func = utils.get_module_and_attr_names(self.command)
+                sys.path.insert(
+                    0, os.getcwd()
+                )  # Need to add the current directory to path
+                imported_module = importlib.import_module(module)
+                f = getattr(imported_module, func)
+
                 try:
-                    filtered_parameters = parameters.filter_arguments_for_func(
-                        f, params.copy(), map_variable
-                    )
-                    logger.info(
-                        f"Calling {func} from {module} with {filtered_parameters}"
-                    )
-                    with redirect_output(console=task_console) as (
-                        buffer,
-                        stderr_buffer,
-                    ):
-                        user_set_parameters = f(
-                            **filtered_parameters
-                        )  # This is a tuple or single value
-                except Exception as e:
-                    raise exceptions.CommandCallError(
-                        f"Function call: {self.command} did not succeed.\n"
-                    ) from e
-                finally:
-                    attempt_log.input_parameters = params.copy()
-                    if map_variable:
-                        attempt_log.input_parameters.update(
-                            {
-                                k: JsonParameter(value=v, kind="json")
-                                for k, v in map_variable.items()
-                            }
+                    try:
+                        filtered_parameters = parameters.filter_arguments_for_func(
+                            f, params.copy(), map_variable
                         )
-
-                if self.returns:
-                    if not isinstance(user_set_parameters, tuple):  # make it a tuple
-                        user_set_parameters = (user_set_parameters,)
-
-                    if len(user_set_parameters) != len(self.returns):
-                        raise ValueError(
-                            "Returns task signature does not match the function returns"
+                        logger.info(
+                            f"Calling {func} from {module} with {filtered_parameters}"
                         )
-
-                    output_parameters: Dict[str, Parameter] = {}
-                    metrics: Dict[str, Parameter] = {}
-
-                    for i, task_return in enumerate(self.returns):
-                        output_parameter = task_return_to_parameter(
-                            task_return=task_return,
-                            value=user_set_parameters[i],
-                        )
-
-                        if task_return.kind == "metric":
-                            metrics[task_return.name] = output_parameter
-
-                        param_name = task_return.name
+                        with redirect_output(console=task_console) as (
+                            buffer,
+                            stderr_buffer,
+                        ):
+                            user_set_parameters = f(
+                                **filtered_parameters
+                            )  # This is a tuple or single value
+                    except Exception as e:
+                        raise exceptions.CommandCallError(
+                            f"Function call: {self.command} did not succeed.\n"
+                        ) from e
+                    finally:
+                        attempt_log.input_parameters = params.copy()
                         if map_variable:
-                            for _, v in map_variable.items():
-                                param_name = f"{v}_{param_name}"
+                            attempt_log.input_parameters.update(
+                                {
+                                    k: JsonParameter(value=v, kind="json")
+                                    for k, v in map_variable.items()
+                                }
+                            )
 
-                        output_parameters[param_name] = output_parameter
+                    if self.returns:
+                        if not isinstance(
+                            user_set_parameters, tuple
+                        ):  # make it a tuple
+                            user_set_parameters = (user_set_parameters,)
 
-                    attempt_log.output_parameters = output_parameters
-                    attempt_log.user_defined_metrics = metrics
-                    params.update(output_parameters)
+                        if len(user_set_parameters) != len(self.returns):
+                            raise ValueError(
+                                "Returns task signature does not match the function returns"
+                            )
 
-                attempt_log.status = defaults.SUCCESS
-            except Exception as _e:
-                msg = f"Call to the function {self.command} did not succeed.\n"
-                attempt_log.message = msg
-                task_console.print_exception(show_locals=False)
-                task_console.log(_e, style=defaults.error_style)
+                        output_parameters: Dict[str, Parameter] = {}
+                        metrics: Dict[str, Parameter] = {}
+
+                        for i, task_return in enumerate(self.returns):
+                            output_parameter = task_return_to_parameter(
+                                task_return=task_return,
+                                value=user_set_parameters[i],
+                            )
+
+                            if task_return.kind == "metric":
+                                metrics[task_return.name] = output_parameter
+
+                            param_name = task_return.name
+                            if map_variable:
+                                for _, v in map_variable.items():
+                                    param_name = f"{v}_{param_name}"
+
+                            output_parameters[param_name] = output_parameter
+
+                        attempt_log.output_parameters = output_parameters
+                        attempt_log.user_defined_metrics = metrics
+                        params.update(output_parameters)
+
+                        logfire.info(
+                            "Task completed",
+                            outputs=self._safe_serialize_params(output_parameters),
+                            status="success",
+                        )
+                    else:
+                        logfire.info("Task completed", status="success")
+
+                    attempt_log.status = defaults.SUCCESS
+                except Exception as _e:
+                    msg = f"Call to the function {self.command} did not succeed.\n"
+                    attempt_log.message = msg
+                    task_console.print_exception(show_locals=False)
+                    task_console.log(_e, style=defaults.error_style)
+                    logfire.error("Task failed", error=str(_e)[:256])
 
         attempt_log.end_time = str(datetime.now())
 
