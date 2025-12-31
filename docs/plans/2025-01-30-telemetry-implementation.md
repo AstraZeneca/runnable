@@ -1392,15 +1392,17 @@ git commit -m "feat: add local telemetry test example"
 
 ---
 
-## Task 12: Create FastAPI Example (Placeholder)
-
-> **Note:** This task will be updated to leverage logfire's built-in FastAPI integration.
-> For now, create a basic example that can be enhanced later.
+## Task 12: Create FastAPI Example with Logfire Integration
 
 **Files:**
 - Create: `examples/fastapi-telemetry/README.md`
 - Create: `examples/fastapi-telemetry/main.py`
 - Create: `examples/fastapi-telemetry/pipelines.py`
+
+**Architecture:**
+- `logfire.instrument_fastapi(app)` - instruments HTTP requests automatically
+- Our pipeline/task spans become child spans of HTTP request via OTEL context propagation
+- `StreamingSpanProcessor` - pushes span events to queue for real-time SSE streaming
 
 **Step 1: Create example directory and README**
 
@@ -1409,8 +1411,8 @@ Create `examples/fastapi-telemetry/README.md`:
 ```markdown
 # FastAPI Telemetry Streaming Example
 
-This example demonstrates how to integrate runnable with FastAPI for real-time
-telemetry streaming via Server-Sent Events (SSE).
+This example demonstrates how to integrate runnable with FastAPI using logfire's
+built-in FastAPI instrumentation plus real-time SSE streaming.
 
 ## Prerequisites
 
@@ -1418,8 +1420,8 @@ telemetry streaming via Server-Sent Events (SSE).
 # Install runnable with telemetry support
 uv add runnable[telemetry]
 
-# Install FastAPI
-uv add fastapi uvicorn
+# Install FastAPI with logfire integration
+uv add 'logfire[fastapi]' uvicorn
 ```
 
 ## Running the Example
@@ -1436,11 +1438,22 @@ curl -X POST http://localhost:8000/run-workflow \
 
 ## How It Works
 
-1. FastAPI receives a workflow request
-2. A `Queue` is set up for streaming spans via `set_stream_queue()`
-3. The pipeline runs in a thread pool (runnable is synchronous)
-4. `StreamingSpanProcessor` pushes span events to the queue
-5. FastAPI streams the events back to the client via SSE
+1. `logfire.instrument_fastapi(app)` instruments all HTTP requests
+2. FastAPI receives a workflow request - this creates a parent span
+3. A `Queue` is set up for streaming spans via `set_stream_queue()`
+4. The pipeline runs in a thread pool (runnable is synchronous)
+5. Pipeline/task spans are automatically children of the HTTP request span
+6. `StreamingSpanProcessor` pushes span events to the queue
+7. FastAPI streams the events back to the client via SSE
+
+## Span Hierarchy
+
+```
+HTTP POST /run-workflow (from logfire.instrument_fastapi)
+└── pipeline:example
+    ├── task:compute
+    └── task:finalize
+```
 ```
 
 **Step 2: Create pipelines.py**
@@ -1499,7 +1512,7 @@ PIPELINE_REGISTRY = {
 Create `examples/fastapi-telemetry/main.py`:
 
 ```python
-"""FastAPI integration example with telemetry streaming."""
+"""FastAPI integration example with telemetry streaming using logfire."""
 
 import asyncio
 import json
@@ -1507,16 +1520,33 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue, Empty
 
+import logfire
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from runnable import Pipeline, set_stream_queue
+from runnable.telemetry import StreamingSpanProcessor
 
 # Import pipeline registry
 from .pipelines import PIPELINE_REGISTRY
 
+# Configure logfire with console output and StreamingSpanProcessor
+logfire.configure(
+    send_to_logfire=False,  # Set True to send to logfire cloud
+    console=logfire.ConsoleOptions(
+        colors="auto",
+        span_style="indented",
+        verbose=True,
+    ),
+)
+
+# Create FastAPI app
 app = FastAPI(title="Runnable Telemetry Demo")
+
+# Instrument FastAPI with logfire - this creates spans for HTTP requests
+logfire.instrument_fastapi(app)
+
 executor = ThreadPoolExecutor(max_workers=4)
 
 
@@ -1547,7 +1577,12 @@ def run_pipeline(pipeline: Pipeline, parameters_file: str | None, user_params: d
 
 @app.post("/run-workflow")
 async def run_workflow(request: WorkflowRequest):
-    """Run a workflow with SSE streaming of telemetry."""
+    """
+    Run a workflow with SSE streaming of telemetry.
+
+    The HTTP request span (from logfire.instrument_fastapi) is the parent.
+    Pipeline and task spans are automatically children of this request.
+    """
     if request.pipeline_name not in PIPELINE_REGISTRY:
         return {"error": f"Unknown pipeline: {request.pipeline_name}"}
 
@@ -1603,6 +1638,12 @@ async def run_workflow(request: WorkflowRequest):
 async def list_pipelines():
     """List available pipelines."""
     return {"pipelines": list(PIPELINE_REGISTRY.keys())}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
 **Step 4: Commit**
@@ -1656,7 +1697,7 @@ After completing all tasks, the following will be implemented:
    - `NotebookTaskType.execute_command()` emits task span
    - `ShellTaskType.execute_command()` emits task span
 5. **Local telemetry test** in `examples/telemetry-local/` - validates telemetry works with console output
-6. **FastAPI example** in `examples/fastapi-telemetry/` (placeholder - will leverage logfire's FastAPI integration)
+6. **FastAPI example** in `examples/fastapi-telemetry/` - uses `logfire.instrument_fastapi()` + SSE streaming
 7. **Tests** for all telemetry functionality
 
 ## Task Order
@@ -1674,5 +1715,5 @@ After completing all tasks, the following will be implemented:
 | 9 | Export telemetry in package __init__ | Pending |
 | 10 | Run full test suite | Pending |
 | 11 | **Local telemetry test** | Pending |
-| 12 | FastAPI example (placeholder) | Pending |
+| 12 | FastAPI example with logfire integration | Pending |
 | 13 | Final integration test | Pending |
