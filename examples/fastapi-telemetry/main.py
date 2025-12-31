@@ -17,6 +17,7 @@ import asyncio
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from queue import Empty, Queue
 
 import logfire
@@ -97,12 +98,10 @@ async def run_workflow(request: WorkflowRequest):
     async def event_stream():
         loop = asyncio.get_event_loop()
 
-        future = loop.run_in_executor(
-            executor,
-            run_pipeline,
-            pipeline,
-            request.user_parameters,
-        )
+        # Use partial to bind arguments since run_in_executor
+        # only passes positional args after the function
+        task_fn = partial(run_pipeline, pipeline, request.user_parameters)
+        future = loop.run_in_executor(executor, task_fn)
 
         while not future.done():
             try:
