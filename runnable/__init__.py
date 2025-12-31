@@ -28,5 +28,18 @@ from runnable.sdk import (  # noqa;
     pickled,
 )
 
+from runnable.telemetry import (  # noqa;
+    get_stream_queue,
+    set_stream_queue,
+    truncate_value,
+    OTEL_AVAILABLE,
+)
+
+# Conditionally export StreamingSpanProcessor
+if OTEL_AVAILABLE:
+    from runnable.telemetry import StreamingSpanProcessor  # noqa;
+else:
+    StreamingSpanProcessor = None  # type: ignore
+
 # Needed to disable ploomber telemetry
 os.environ["PLOOMBER_STATS_ENABLED"] = "false"
