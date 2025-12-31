@@ -17,6 +17,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "typer>=0.17.3",
     "cloudpathlib>=0.20.0",
+    "logfire-api>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -34,6 +35,11 @@ k8s = [
 ]
 s3 = [
     "cloudpathlib[s3]"
+]
+telemetry = [
+    "logfire>=2.0.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp>=1.20.0",
 ]
 
 
