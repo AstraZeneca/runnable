@@ -1258,7 +1258,144 @@ Expected: `StreamingSpanProcessor available`
 
 ---
 
-## Task 11: Create FastAPI Example
+## Task 11: Local Telemetry Test
+
+**Files:**
+- Create: `examples/telemetry-local/simple_telemetry_test.py`
+
+**Goal:** Validate telemetry works end-to-end without FastAPI complexity.
+
+**Step 1: Create the local test script**
+
+Create `examples/telemetry-local/simple_telemetry_test.py`:
+
+```python
+"""
+Simple local test to verify telemetry is working.
+
+Run with:
+    uv run python examples/telemetry-local/simple_telemetry_test.py
+"""
+
+import logfire
+
+from runnable import Pipeline, PythonTask, pickled
+
+
+# Configure logfire to output to console
+logfire.configure(
+    send_to_logfire=False,  # Don't send to cloud
+    console=logfire.ConsoleOptions(
+        colors="auto",
+        span_style="indented",
+        include_timestamps=True,
+        verbose=True,
+    ),
+)
+
+
+def step_one(x: int) -> int:
+    """First step - doubles the input."""
+    print(f"Step one: received x={x}")
+    result = x * 2
+    print(f"Step one: returning {result}")
+    return result
+
+
+def step_two(doubled: int) -> str:
+    """Second step - formats the result."""
+    print(f"Step two: received doubled={doubled}")
+    result = f"Final result: {doubled}"
+    print(f"Step two: returning '{result}'")
+    return result
+
+
+def main():
+    """Run a simple pipeline and observe telemetry output."""
+    print("=" * 60)
+    print("Running pipeline with telemetry enabled")
+    print("You should see spans for pipeline and each task")
+    print("=" * 60)
+    print()
+
+    pipeline = Pipeline(
+        steps=[
+            PythonTask(
+                function=step_one,
+                name="step_one",
+                returns=[pickled("doubled")],
+            ),
+            PythonTask(
+                function=step_two,
+                name="step_two",
+                returns=[pickled("final_result")],
+            ),
+        ]
+    )
+
+    # Execute with initial parameter
+    result = pipeline.execute(parameters_file=None)
+
+    print()
+    print("=" * 60)
+    print("Pipeline completed!")
+    print(f"Result: {result}")
+    print("=" * 60)
+
+    return result
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**Step 2: Create a parameters file for testing**
+
+Create `examples/telemetry-local/params.yaml`:
+
+```yaml
+x: 5
+```
+
+**Step 3: Run the local test**
+
+Run: `uv run python examples/telemetry-local/simple_telemetry_test.py`
+
+Expected output should show:
+- Console output with colored/indented spans
+- `pipeline:*` span wrapping the execution
+- `task:step_one` span with inputs/outputs
+- `task:step_two` span with inputs/outputs
+- Timestamps and durations
+
+**Step 4: Verify spans are visible**
+
+If telemetry is working correctly, you should see output like:
+```
+pipeline:unnamed
+├── Pipeline execution started
+├── task:step_one
+│   ├── Task started inputs={"x": 5}
+│   └── Task completed outputs={"doubled": 10} status=success
+├── task:step_two
+│   ├── Task started inputs={"doubled": 10}
+│   └── Task completed outputs={"final_result": "..."} status=success
+└── Pipeline completed status=success
+```
+
+**Step 5: Commit**
+
+```bash
+git add examples/telemetry-local/
+git commit -m "feat: add local telemetry test example"
+```
+
+---
+
+## Task 12: Create FastAPI Example (Placeholder)
+
+> **Note:** This task will be updated to leverage logfire's built-in FastAPI integration.
+> For now, create a basic example that can be enhanced later.
 
 **Files:**
 - Create: `examples/fastapi-telemetry/README.md`
@@ -1477,7 +1614,7 @@ git commit -m "feat: add FastAPI telemetry streaming example"
 
 ---
 
-## Task 12: Final Integration Test and Commit
+## Task 13: Final Integration Test and Commit
 
 **Step 1: Run full test suite**
 
@@ -1518,5 +1655,24 @@ After completing all tasks, the following will be implemented:
    - `PythonTaskType.execute_command()` emits task span
    - `NotebookTaskType.execute_command()` emits task span
    - `ShellTaskType.execute_command()` emits task span
-5. **FastAPI example** in `examples/fastapi-telemetry/`
-6. **Tests** for all telemetry functionality
+5. **Local telemetry test** in `examples/telemetry-local/` - validates telemetry works with console output
+6. **FastAPI example** in `examples/fastapi-telemetry/` (placeholder - will leverage logfire's FastAPI integration)
+7. **Tests** for all telemetry functionality
+
+## Task Order
+
+| Task | Description | Status |
+|------|-------------|--------|
+| 1 | Add logfire-api dependency | Pending |
+| 2 | Create telemetry module with helpers | Pending |
+| 3 | Add StreamingSpanProcessor | Pending |
+| 4 | Add telemetry to PipelineContext.execute() | Pending |
+| 5 | Add telemetry to JobContext.execute() | Pending |
+| 6 | Add telemetry to PythonTaskType | Pending |
+| 7 | Add telemetry to NotebookTaskType | Pending |
+| 8 | Add telemetry to ShellTaskType | Pending |
+| 9 | Export telemetry in package __init__ | Pending |
+| 10 | Run full test suite | Pending |
+| 11 | **Local telemetry test** | Pending |
+| 12 | FastAPI example (placeholder) | Pending |
+| 13 | Final integration test | Pending |
