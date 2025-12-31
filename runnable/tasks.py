@@ -197,6 +197,19 @@ class BaseTaskType(BaseModel):
         finally:
             self.delete_secrets_from_env_variables()
 
+    def _safe_serialize_params(self, params: Dict[str, Parameter]) -> str:
+        """Safely serialize parameters for telemetry, handling pickled values."""
+        try:
+            serializable = {}
+            for k, v in params.items():
+                try:
+                    serializable[k] = v.get_value()
+                except Exception:
+                    serializable[k] = f"<{v.kind}>"
+            return truncate_value(serializable)
+        except Exception:
+            return "<unable to serialize>"
+
     def resolve_unreduced_parameters(self, map_variable: MapVariableType = None):
         """Resolve the unreduced parameters."""
         params = self._context.run_log_store.get_parameters(
@@ -331,19 +344,6 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     task_type: str = Field(default="python", serialization_alias="command_type")
     command: str
-
-    def _safe_serialize_params(self, params: Dict[str, Parameter]) -> str:
-        """Safely serialize parameters for telemetry, handling pickled values."""
-        try:
-            serializable = {}
-            for k, v in params.items():
-                try:
-                    serializable[k] = v.get_value()
-                except Exception:
-                    serializable[k] = f"<{v.kind}>"
-            return truncate_value(serializable)
-        except Exception:
-            return "<unable to serialize>"
 
     def execute_command(
         self,
@@ -560,96 +560,115 @@ class NotebookTaskType(BaseTaskType):
             start_time=str(datetime.now()),
             retry_indicator=self._context.retry_indicator,
         )
-        try:
-            import ploomber_engine as pm
-            from ploomber_engine.ipython import PloomberClient
 
-            notebook_output_path = self.get_notebook_output_path(
-                map_variable=map_variable
-            )
+        with logfire.span(
+            "task:{task_name}",
+            task_name=self.command,
+            task_type=self.task_type,
+        ):
+            try:
+                import ploomber_engine as pm
+                from ploomber_engine.ipython import PloomberClient
 
-            with (
-                self.execution_context(
-                    map_variable=map_variable, allow_complex=False
-                ) as params,
-                self.expose_secrets() as _,
-            ):
-                attempt_log.input_parameters = params.copy()
-                copy_params = copy.deepcopy(params)
+                notebook_output_path = self.get_notebook_output_path(
+                    map_variable=map_variable
+                )
 
-                if map_variable:
-                    for key, value in map_variable.items():
-                        copy_params[key] = JsonParameter(kind="json", value=value)
+                with (
+                    self.execution_context(
+                        map_variable=map_variable, allow_complex=False
+                    ) as params,
+                    self.expose_secrets() as _,
+                ):
+                    logfire.info(
+                        "Task started",
+                        inputs=self._safe_serialize_params(params),
+                    )
 
-                # Remove any {v}_unreduced parameters from the parameters
-                unprocessed_params = [
-                    k for k, v in copy_params.items() if not v.reduced
-                ]
+                    attempt_log.input_parameters = params.copy()
+                    copy_params = copy.deepcopy(params)
 
-                for key in list(copy_params.keys()):
-                    if any(key.endswith(f"_{k}") for k in unprocessed_params):
-                        del copy_params[key]
+                    if map_variable:
+                        for key, value in map_variable.items():
+                            copy_params[key] = JsonParameter(kind="json", value=value)
 
-                notebook_params = {k: v.get_value() for k, v in copy_params.items()}
+                    # Remove any {v}_unreduced parameters from the parameters
+                    unprocessed_params = [
+                        k for k, v in copy_params.items() if not v.reduced
+                    ]
 
-                ploomber_optional_args = self.optional_ploomber_args
+                    for key in list(copy_params.keys()):
+                        if any(key.endswith(f"_{k}") for k in unprocessed_params):
+                            del copy_params[key]
 
-                kwds = {
-                    "input_path": self.command,
-                    "output_path": notebook_output_path,
-                    "parameters": notebook_params,
-                    "log_output": True,
-                    "progress_bar": False,
-                }
-                kwds.update(ploomber_optional_args)
+                    notebook_params = {k: v.get_value() for k, v in copy_params.items()}
 
-                with redirect_output(console=task_console) as (buffer, stderr_buffer):
-                    pm.execute_notebook(**kwds)
+                    ploomber_optional_args = self.optional_ploomber_args
 
-                context.run_context.catalog.put(name=notebook_output_path)
+                    kwds = {
+                        "input_path": self.command,
+                        "output_path": notebook_output_path,
+                        "parameters": notebook_params,
+                        "log_output": True,
+                        "progress_bar": False,
+                    }
+                    kwds.update(ploomber_optional_args)
 
-                client = PloomberClient.from_path(path=notebook_output_path)
-                namespace = client.get_namespace()
+                    with redirect_output(console=task_console) as (
+                        buffer,
+                        stderr_buffer,
+                    ):
+                        pm.execute_notebook(**kwds)
 
-                output_parameters: Dict[str, Parameter] = {}
-                try:
-                    for task_return in self.returns:
-                        param_name = Template(task_return.name).safe_substitute(
-                            map_variable  # type: ignore
+                    context.run_context.catalog.put(name=notebook_output_path)
+
+                    client = PloomberClient.from_path(path=notebook_output_path)
+                    namespace = client.get_namespace()
+
+                    output_parameters: Dict[str, Parameter] = {}
+                    try:
+                        for task_return in self.returns:
+                            param_name = Template(task_return.name).safe_substitute(
+                                map_variable  # type: ignore
+                            )
+
+                            if map_variable:
+                                for _, v in map_variable.items():
+                                    param_name = f"{v}_{param_name}"
+
+                            output_parameters[param_name] = task_return_to_parameter(
+                                task_return=task_return,
+                                value=namespace[task_return.name],
+                            )
+                    except PicklingError as e:
+                        logger.exception("Notebooks cannot return objects")
+                        logger.exception(e)
+                        logfire.error("Notebook pickling error", error=str(e)[:256])
+                        raise
+
+                    if output_parameters:
+                        attempt_log.output_parameters = output_parameters
+                        params.update(output_parameters)
+                        logfire.info(
+                            "Task completed",
+                            outputs=self._safe_serialize_params(output_parameters),
+                            status="success",
                         )
+                    else:
+                        logfire.info("Task completed", status="success")
 
-                        if map_variable:
-                            for _, v in map_variable.items():
-                                param_name = f"{v}_{param_name}"
+                    attempt_log.status = defaults.SUCCESS
 
-                        output_parameters[param_name] = task_return_to_parameter(
-                            task_return=task_return,
-                            value=namespace[task_return.name],
-                        )
-                except PicklingError as e:
-                    logger.exception("Notebooks cannot return objects")
-                    # task_console.log("Notebooks cannot return objects", style=defaults.error_style)
-                    # task_console.log(e, style=defaults.error_style)
+            except (ImportError, Exception) as e:
+                msg = (
+                    f"Call to the notebook command {self.command} did not succeed.\n"
+                    "Ensure that you have installed runnable with notebook extras"
+                )
+                logger.exception(msg)
+                logger.exception(e)
+                logfire.error("Task failed", error=str(e)[:256])
 
-                    logger.exception(e)
-                    raise
-
-                if output_parameters:
-                    attempt_log.output_parameters = output_parameters
-                    params.update(output_parameters)
-
-                attempt_log.status = defaults.SUCCESS
-
-        except (ImportError, Exception) as e:
-            msg = (
-                f"Call to the notebook command {self.command} did not succeed.\n"
-                "Ensure that you have installed runnable with notebook extras"
-            )
-            logger.exception(msg)
-            logger.exception(e)
-
-            # task_console.log(msg, style=defaults.error_style)
-            attempt_log.status = defaults.FAIL
+                attempt_log.status = defaults.FAIL
 
         attempt_log.end_time = str(datetime.now())
 
@@ -755,107 +774,127 @@ class ShellTaskType(BaseTaskType):
                 secret_value = context.run_context.secrets.get(key)
                 subprocess_env[key] = secret_value
 
-        try:
-            with self.execution_context(
-                map_variable=map_variable, allow_complex=False
-            ) as params:
-                subprocess_env.update({k: v.get_value() for k, v in params.items()})
+        with logfire.span(
+            "task:{task_name}",
+            task_name=self.command[:100],  # Truncate long commands
+            task_type=self.task_type,
+        ):
+            try:
+                with self.execution_context(
+                    map_variable=map_variable, allow_complex=False
+                ) as params:
+                    logfire.info(
+                        "Task started",
+                        inputs=self._safe_serialize_params(params),
+                    )
 
-                attempt_log.input_parameters = params.copy()
-                # Json dumps all runnable environment variables
-                for key, value in subprocess_env.items():
-                    if isinstance(value, str):
-                        continue
-                    subprocess_env[key] = json.dumps(value)
+                    subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
-                collect_delimiter = "=== COLLECT ==="
+                    attempt_log.input_parameters = params.copy()
+                    # Json dumps all runnable environment variables
+                    for key, value in subprocess_env.items():
+                        if isinstance(value, str):
+                            continue
+                        subprocess_env[key] = json.dumps(value)
 
-                command = (
-                    self.command.strip() + f" && echo '{collect_delimiter}'  && env"
-                )
-                logger.info(f"Executing shell command: {command}")
+                    collect_delimiter = "=== COLLECT ==="
 
-                capture = False
-                return_keys = {x.name: x for x in self.returns}
+                    command = (
+                        self.command.strip() + f" && echo '{collect_delimiter}'  && env"
+                    )
+                    logger.info(f"Executing shell command: {command}")
 
-                proc = subprocess.Popen(
-                    command,
-                    shell=True,
-                    env=subprocess_env,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                )
-                result = proc.communicate()
-                logger.debug(result)
-                logger.info(proc.returncode)
+                    capture = False
+                    return_keys = {x.name: x for x in self.returns}
 
-                if proc.returncode != 0:
-                    msg = ",".join(result[1].split("\n"))
-                    task_console.print(msg, style=defaults.error_style)
-                    raise exceptions.CommandCallError(msg)
+                    proc = subprocess.Popen(
+                        command,
+                        shell=True,
+                        env=subprocess_env,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                    )
+                    result = proc.communicate()
+                    logger.debug(result)
+                    logger.info(proc.returncode)
 
-                # for stderr
-                for line in result[1].split("\n"):
-                    if line.strip() == "":
-                        continue
-                    task_console.print(line, style=defaults.warning_style)
+                    if proc.returncode != 0:
+                        msg = ",".join(result[1].split("\n"))
+                        task_console.print(msg, style=defaults.error_style)
+                        raise exceptions.CommandCallError(msg)
 
-                output_parameters: Dict[str, Parameter] = {}
-                metrics: Dict[str, Parameter] = {}
+                    # for stderr
+                    for line in result[1].split("\n"):
+                        if line.strip() == "":
+                            continue
+                        task_console.print(line, style=defaults.warning_style)
 
-                # only from stdout
-                for line in result[0].split("\n"):
-                    if line.strip() == "":
-                        continue
+                    output_parameters: Dict[str, Parameter] = {}
+                    metrics: Dict[str, Parameter] = {}
 
-                    logger.info(line)
-                    task_console.print(line)
+                    # only from stdout
+                    for line in result[0].split("\n"):
+                        if line.strip() == "":
+                            continue
 
-                    if line.strip() == collect_delimiter:
-                        # The lines from now on should be captured
-                        capture = True
-                        continue
+                        logger.info(line)
+                        task_console.print(line)
 
-                    if capture:
-                        key, value = line.strip().split("=", 1)
-                        if key in return_keys:
-                            task_return = return_keys[key]
+                        if line.strip() == collect_delimiter:
+                            # The lines from now on should be captured
+                            capture = True
+                            continue
 
-                            try:
-                                value = json.loads(value)
-                            except json.JSONDecodeError:
-                                value = value
+                        if capture:
+                            key, value = line.strip().split("=", 1)
+                            if key in return_keys:
+                                task_return = return_keys[key]
 
-                            output_parameter = task_return_to_parameter(
-                                task_return=task_return,
-                                value=value,
-                            )
+                                try:
+                                    value = json.loads(value)
+                                except json.JSONDecodeError:
+                                    value = value
 
-                            if task_return.kind == "metric":
-                                metrics[task_return.name] = output_parameter
+                                output_parameter = task_return_to_parameter(
+                                    task_return=task_return,
+                                    value=value,
+                                )
 
-                            param_name = task_return.name
-                            if map_variable:
-                                for _, v in map_variable.items():
-                                    param_name = f"{v}_{param_name}"
+                                if task_return.kind == "metric":
+                                    metrics[task_return.name] = output_parameter
 
-                            output_parameters[param_name] = output_parameter
+                                param_name = task_return.name
+                                if map_variable:
+                                    for _, v in map_variable.items():
+                                        param_name = f"{v}_{param_name}"
 
-                    attempt_log.output_parameters = output_parameters
-                    attempt_log.user_defined_metrics = metrics
-                    params.update(output_parameters)
+                                output_parameters[param_name] = output_parameter
 
-                attempt_log.status = defaults.SUCCESS
-        except exceptions.CommandCallError as e:
-            msg = f"Call to the command {self.command} did not succeed"
-            logger.exception(msg)
-            logger.exception(e)
+                        attempt_log.output_parameters = output_parameters
+                        attempt_log.user_defined_metrics = metrics
+                        params.update(output_parameters)
 
-            task_console.log(msg, style=defaults.error_style)
-            task_console.log(e, style=defaults.error_style)
+                    if output_parameters:
+                        logfire.info(
+                            "Task completed",
+                            outputs=self._safe_serialize_params(output_parameters),
+                            status="success",
+                        )
+                    else:
+                        logfire.info("Task completed", status="success")
 
-            attempt_log.status = defaults.FAIL
+                    attempt_log.status = defaults.SUCCESS
+            except exceptions.CommandCallError as e:
+                msg = f"Call to the command {self.command} did not succeed"
+                logger.exception(msg)
+                logger.exception(e)
+
+                task_console.log(msg, style=defaults.error_style)
+                task_console.log(e, style=defaults.error_style)
+                logfire.error("Task failed", error=str(e)[:256])
+
+                attempt_log.status = defaults.FAIL
 
         attempt_log.end_time = str(datetime.now())
         return attempt_log
