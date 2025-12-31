@@ -519,26 +519,38 @@ class JobContext(RunnableContext):
         return action
 
     def execute(self):
-        console.print("Working with context:")
-        console.print(run_context)
-        console.rule(style="[dark orange]")
+        with logfire.span(
+            "job:{job_name}",
+            job_name=self.job_definition_file,
+            run_id=self.run_id,
+            executor=self.job_executor.__class__.__name__,
+        ):
+            logfire.info("Job execution started")
 
-        try:
-            self.job_executor.submit_job(
-                job=self.job, catalog_settings=self.catalog_settings
+            console.print("Working with context:")
+            console.print(run_context)
+            console.rule(style="[dark orange]")
+
+            try:
+                self.job_executor.submit_job(
+                    job=self.job, catalog_settings=self.catalog_settings
+                )
+                logfire.info("Job submitted", status="submitted")
+            except Exception as e:
+                logfire.error("Job failed", error=str(e)[:256])
+                raise
+            finally:
+                console.print(f"Job execution completed for run id: {self.run_id}")
+
+            logger.info(
+                "Executing the job from the user. We are still in the caller's compute"
+                " environment"
             )
-        finally:
-            # self.job_executor.add_task_log_to_catalog("job")
-            console.print(f"Job execution completed for run id: {self.run_id}")
 
-        logger.info(
-            "Executing the job from the user. We are still in the caller's compute environment"
-        )
-
-        if self.job_executor._should_setup_run_log_at_traversal:
-            return run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id
-            )
+            if self.job_executor._should_setup_run_log_at_traversal:
+                return run_context.run_log_store.get_run_log_by_id(
+                    run_id=run_context.run_id
+                )
 
 
 run_context: PipelineContext | JobContext = None  # type: ignore
