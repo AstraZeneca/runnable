@@ -18,22 +18,23 @@ import logfire_api as logfire  # noqa: F401 - re-exported for convenience
 _stream_queue: ContextVar[Optional[Queue]] = ContextVar("stream_queue", default=None)
 
 
-def truncate_value(value: Any, max_bytes: int = 256) -> str:
+def truncate_value(value: Any, max_bytes: int = 256) -> Any:
     """
-    Truncate serialized value to max_bytes.
+    Truncate a single serialized value to max_bytes.
 
     Args:
         value: Any JSON-serializable value
-        max_bytes: Maximum length of the returned string
+        max_bytes: Maximum length for string representation
 
     Returns:
-        JSON string, truncated with "..." if too long
+        The value (possibly truncated if string representation exceeds max_bytes)
     """
     try:
         serialized = json.dumps(value, default=str)
         if len(serialized) > max_bytes:
+            # Return truncated string representation
             return serialized[: max_bytes - 3] + "..."
-        return serialized
+        return value
     except Exception:
         return f"<unserializable: {type(value).__name__}>"
 

@@ -57,10 +57,48 @@ uv add 'logfire[fastapi]'
 # Start the FastAPI server
 uv run uvicorn examples.fastapi-telemetry.main:app --reload
 
-# In another terminal, trigger a workflow
+# List available pipelines
+curl http://localhost:8000/pipelines
+
+# Run the simple example pipeline
 curl -N -X POST http://localhost:8000/run-workflow \
   -H "Content-Type: application/json" \
   -d '{"pipeline_name": "example"}'
+```
+
+## Available Pipelines
+
+| Pipeline | Description |
+|----------|-------------|
+| `example` | Simple two-step compute pipeline |
+| `hello` | Single-step hello world |
+| `parameters` | Demonstrates parameter passing (pickled, metrics, pydantic) |
+| `parallel` | Parallel branch execution |
+| `map` | Map/reduce pattern (requires `items` parameter) |
+| `shell` | Mix of Python and Shell tasks |
+
+### Example Requests
+
+```bash
+# Hello world
+curl -N -X POST http://localhost:8000/run-workflow \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline_name": "hello"}'
+
+# Parameters pipeline
+curl -N -X POST http://localhost:8000/run-workflow \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline_name": "parameters"}'
+
+# Map pipeline (with items)
+curl -N -X POST http://localhost:8000/run-workflow \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline_name": "map", "user_parameters": {"items": [1, 2, 3]}}'
+
+# Parallel pipeline
+curl -N -X POST http://localhost:8000/run-workflow \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline_name": "parallel"}'
 ```
 
 ## How It Works
@@ -71,10 +109,14 @@ Pipelines are registered using `functools.partial` to map names to builder funct
 
 ```python
 from functools import partial
-from pipelines import example_pipeline
 
 PIPELINE_REGISTRY = {
     "example": partial(example_pipeline),
+    "hello": partial(hello_pipeline),
+    "parameters": partial(parameters_pipeline),
+    "parallel": partial(parallel_pipeline),
+    "map": partial(map_pipeline),
+    "shell": partial(shell_pipeline),
 }
 ```
 

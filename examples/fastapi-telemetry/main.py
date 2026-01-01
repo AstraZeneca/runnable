@@ -13,7 +13,6 @@ Test with curl:
 import asyncio
 import json
 import sys
-from functools import partial
 from pathlib import Path
 from queue import Empty, Queue
 
@@ -21,14 +20,9 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-# Import pipeline builders
+# Import pipeline registry
 sys.path.insert(0, str(Path(__file__).parent))
-from pipelines import example_pipeline
-
-# Registry: pipeline_name -> partial(builder_function)
-PIPELINE_REGISTRY = {
-    "example": partial(example_pipeline),
-}
+from pipelines import PIPELINE_REGISTRY
 
 app = FastAPI(title="Runnable Telemetry Demo")
 
@@ -36,6 +30,12 @@ app = FastAPI(title="Runnable Telemetry Demo")
 class WorkflowRequest(BaseModel):
     pipeline_name: str
     user_parameters: dict = {}
+
+
+@app.get("/pipelines")
+async def list_pipelines():
+    """List available pipelines."""
+    return {"pipelines": list(PIPELINE_REGISTRY.keys())}
 
 
 @app.post("/run-workflow")

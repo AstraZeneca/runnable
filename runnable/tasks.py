@@ -13,6 +13,7 @@ from pickle import PicklingError
 from string import Template
 from typing import Any, Dict, List, Literal, cast
 
+import logfire_api as logfire
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from rich.segment import Segment
 from rich.style import Style
@@ -29,8 +30,6 @@ from runnable.datastore import (
 )
 from runnable.defaults import MapVariableType
 from runnable.telemetry import truncate_value
-
-import logfire_api as logfire
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -197,18 +196,19 @@ class BaseTaskType(BaseModel):
         finally:
             self.delete_secrets_from_env_variables()
 
-    def _safe_serialize_params(self, params: Dict[str, Parameter]) -> str:
-        """Safely serialize parameters for telemetry, handling pickled values."""
-        try:
-            serializable = {}
-            for k, v in params.items():
-                try:
-                    serializable[k] = v.get_value()
-                except Exception:
-                    serializable[k] = f"<{v.kind}>"
-            return truncate_value(serializable)
-        except Exception:
-            return "<unable to serialize>"
+    def _safe_serialize_params(self, params: Dict[str, Parameter]) -> Dict[str, Any]:
+        """Safely serialize parameters for telemetry, truncating per value.
+
+        ObjectParameter values are not serializable (pickled objects),
+        so they are represented as "<object>".
+        """
+        serializable: Dict[str, Any] = {}
+        for k, v in params.items():
+            if isinstance(v, ObjectParameter):
+                serializable[k] = "<object>"
+            else:
+                serializable[k] = truncate_value(v.get_value())
+        return serializable
 
     def _emit_event(self, event: Dict[str, Any]) -> None:
         """Push event to stream queue if one is set (for SSE streaming)."""
