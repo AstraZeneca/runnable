@@ -1,5 +1,5 @@
 """
-FastAPI integration example with telemetry streaming using logfire.
+FastAPI integration example with telemetry streaming.
 
 Start the server:
     uv run uvicorn examples.fastapi-telemetry.main:app --reload
@@ -8,49 +8,29 @@ Test with curl:
     curl -N -X POST http://localhost:8000/run-workflow \
         -H "Content-Type: application/json" \
         -d '{"pipeline_name": "example"}'
-
-Or list available pipelines:
-    curl http://localhost:8000/pipelines
 """
 
 import asyncio
 import json
-import os
-from concurrent.futures import ThreadPoolExecutor
+import sys
 from functools import partial
+from pathlib import Path
 from queue import Empty, Queue
 
-import logfire
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from runnable import Pipeline, set_stream_queue
-
-# Import pipeline registry - use relative import since hyphen in directory name
-import sys
-from pathlib import Path
-
+# Import pipeline builders
 sys.path.insert(0, str(Path(__file__).parent))
-from pipelines import PIPELINE_REGISTRY
+from pipelines import example_pipeline
 
-# Configure logfire with console output
-logfire.configure(
-    send_to_logfire=False,
-    console=logfire.ConsoleOptions(
-        colors="auto",
-        span_style="indented",
-        verbose=True,
-    ),
-)
+# Registry: pipeline_name -> partial(builder_function)
+PIPELINE_REGISTRY = {
+    "example": partial(example_pipeline),
+}
 
-# Create FastAPI app
 app = FastAPI(title="Runnable Telemetry Demo")
-
-# Instrument FastAPI with logfire - creates spans for HTTP requests
-logfire.instrument_fastapi(app)
-
-executor = ThreadPoolExecutor(max_workers=4)
 
 
 class WorkflowRequest(BaseModel):
@@ -58,73 +38,51 @@ class WorkflowRequest(BaseModel):
     user_parameters: dict = {}
 
 
-def run_pipeline(pipeline: Pipeline, user_params: dict):
-    """Run pipeline in thread pool with user parameters as env vars."""
-    # Set user parameters as environment variables (RUNNABLE_PRM_*)
-    for key, value in user_params.items():
-        env_key = f"RUNNABLE_PRM_{key}"
-        if isinstance(value, (dict, list)):
-            os.environ[env_key] = json.dumps(value)
-        else:
-            os.environ[env_key] = str(value)
-
-    try:
-        return pipeline.execute()
-    finally:
-        # Clean up env vars
-        for key in user_params:
-            env_key = f"RUNNABLE_PRM_{key}"
-            if env_key in os.environ:
-                del os.environ[env_key]
-
-
 @app.post("/run-workflow")
 async def run_workflow(request: WorkflowRequest):
     """
-    Run a workflow with SSE streaming of telemetry.
+    Run a workflow with SSE streaming of events.
 
-    The HTTP request span (from logfire.instrument_fastapi) is the parent.
-    Pipeline and task spans are automatically children of this request.
+    The pipeline runs in a background thread while events are
+    streamed back to the client via SSE.
     """
-    if request.pipeline_name not in PIPELINE_REGISTRY:
-        return {"error": f"Unknown pipeline: {request.pipeline_name}"}
+    event_queue: Queue = Queue()
 
-    span_queue: Queue = Queue()
-    set_stream_queue(span_queue)
-
-    pipeline_def = PIPELINE_REGISTRY[request.pipeline_name]
-    pipeline = pipeline_def["builder"]()
+    async def run_pipeline_in_background():
+        """Run the pipeline in a thread pool executor."""
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None,
+            execute_pipeline,
+            request.pipeline_name,
+            request.user_parameters,
+            event_queue,
+        )
 
     async def event_stream():
-        loop = asyncio.get_event_loop()
+        # Start pipeline execution in background
+        task = asyncio.create_task(run_pipeline_in_background())
 
-        # Use partial to bind arguments since run_in_executor
-        # only passes positional args after the function
-        task_fn = partial(run_pipeline, pipeline, request.user_parameters)
-        future = loop.run_in_executor(executor, task_fn)
-
-        while not future.done():
-            try:
-                span_data = span_queue.get_nowait()
-                yield f"data: {json.dumps(span_data)}\n\n"
-            except Empty:
-                await asyncio.sleep(0.05)
-
-        # Drain remaining spans
+        # Stream events from queue
         while True:
             try:
-                span_data = span_queue.get_nowait()
-                yield f"data: {json.dumps(span_data)}\n\n"
-            except Empty:
-                break
+                # Check queue with small timeout
+                await asyncio.sleep(0.1)
+                while not event_queue.empty():
+                    event = event_queue.get_nowait()
+                    yield f"data: {json.dumps(event)}\n\n"
 
-        try:
-            future.result()
-            yield f"data: {json.dumps({'type': 'complete', 'status': 'success'})}\n\n"
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'complete', 'status': 'error', 'error': str(e)})}\n\n"
-        finally:
-            set_stream_queue(None)
+                    # Exit on completion
+                    if event.get("type") == "pipeline_completed":
+                        return
+
+            except Empty:
+                continue
+
+            # Check if task failed
+            if task.done() and task.exception():
+                yield f"data: {json.dumps({'type': 'error', 'message': str(task.exception())})}\n\n"
+                return
 
     return StreamingResponse(
         event_stream(),
@@ -133,10 +91,59 @@ async def run_workflow(request: WorkflowRequest):
     )
 
 
-@app.get("/pipelines")
-async def list_pipelines():
-    """List available pipelines."""
-    return {"pipelines": list(PIPELINE_REGISTRY.keys())}
+def execute_pipeline(pipeline_name: str, parameters: dict, event_queue: Queue):
+    """
+    Execute a pipeline and push events to the queue.
+
+    This runs in a thread pool executor (synchronous context).
+    """
+    import os
+
+    from runnable import set_stream_queue
+
+    # Set queue for this thread - task code will push events here
+    set_stream_queue(event_queue)
+
+    # Expose parameters as RUNNABLE_PRM_* environment variables
+    param_env_keys = []
+    for key, value in parameters.items():
+        env_key = f"RUNNABLE_PRM_{key}"
+        param_env_keys.append(env_key)
+        if isinstance(value, (dict, list)):
+            os.environ[env_key] = json.dumps(value)
+        else:
+            os.environ[env_key] = str(value)
+
+    event_queue.put({"type": "pipeline_started", "name": pipeline_name})
+
+    try:
+        # Get pipeline builder from registry
+        pipeline_builder = PIPELINE_REGISTRY.get(pipeline_name)
+        if not pipeline_builder:
+            event_queue.put({
+                "type": "pipeline_completed",
+                "status": "error",
+                "error": f"Unknown pipeline: {pipeline_name}"
+            })
+            return
+
+        # Build and execute the pipeline
+        pipeline = pipeline_builder()
+        pipeline.execute()
+
+        event_queue.put({"type": "pipeline_completed", "status": "success"})
+
+    except Exception as e:
+        event_queue.put({
+            "type": "pipeline_completed",
+            "status": "error",
+            "error": str(e)
+        })
+    finally:
+        # Cleanup: remove parameter env vars and stream queue
+        for env_key in param_env_keys:
+            os.environ.pop(env_key, None)
+        set_stream_queue(None)
 
 
 if __name__ == "__main__":

@@ -62,8 +62,7 @@ def get_stream_queue() -> Optional[Queue]:
 
 # Optional OTEL imports for streaming processor
 try:
-    from opentelemetry.sdk.trace import SpanProcessor
-    from opentelemetry.sdk.trace import ReadableSpan
+    from opentelemetry.sdk.trace import ReadableSpan, SpanProcessor
 
     OTEL_AVAILABLE = True
 except ImportError:
@@ -121,7 +120,8 @@ if OTEL_AVAILABLE:
                         "name": span.name,
                         "span_id": format(span.context.span_id, "016x"),
                         "status": span.status.status_code.name,
-                        "duration_ms": (span.end_time - span.start_time) / 1_000_000,
+                        "duration_ms": (span.end_time - span.start_time)  # type: ignore
+                        / 1_000_000,  # ty: ignore
                         "attributes": dict(span.attributes) if span.attributes else {},
                     }
                 )
@@ -134,7 +134,7 @@ if OTEL_AVAILABLE:
         def force_flush(self, timeout_millis=None):
             """Force flush any pending spans."""
             if self.base_processor:
-                self.base_processor.force_flush(timeout_millis)
+                self.base_processor.force_flush(timeout_millis)  # ty: ignore
 
 else:
     # Placeholder when OTEL is not installed

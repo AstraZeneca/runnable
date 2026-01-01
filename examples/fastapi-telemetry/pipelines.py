@@ -23,9 +23,14 @@ def finalize(result: int) -> str:
     return output
 
 
-def build_example_pipeline() -> Pipeline:
-    """Build an example pipeline."""
-    return Pipeline(
+def example_pipeline():
+    """
+    Build and return an example pipeline.
+
+    This function is called by the SDK to get the pipeline definition.
+    It must be a module-level function that returns a Pipeline when called.
+    """
+    pipeline = Pipeline(
         steps=[
             PythonTask(
                 function=compute,
@@ -40,10 +45,16 @@ def build_example_pipeline() -> Pipeline:
         ]
     )
 
+    pipeline.execute()
 
-# Pipeline registry
+    return pipeline
+
+
+# Pipeline registry - each entry maps to a builder function
+# The builder function must be importable and callable with no args
 PIPELINE_REGISTRY = {
     "example": {
-        "builder": build_example_pipeline,
+        "module": "pipelines",
+        "function": "example_pipeline",
     },
 }

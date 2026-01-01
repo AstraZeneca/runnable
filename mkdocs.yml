@@ -166,6 +166,7 @@ nav:
       - "Custom Run Log Stores": "production/custom-run-log-stores.md"
       - "Catalog": "production/catalog.md"
       - "Secrets": "production/secrets.md"
+      - "Telemetry": "production/telemetry.md"
   - "Compare":
       - "vs Kedro": "compare/kedro.md"
       - "vs Metaflow": "compare/metaflow.md"
