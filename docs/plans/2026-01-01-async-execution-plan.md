@@ -4,9 +4,9 @@
 
 **Goal:** Add native async execution support to runnable for agentic workflows with async Python functions.
 
-**Architecture:** Create parallel async execution stack (AsyncPythonTaskType, AsyncLocalExecutor, AsyncPipelineContext, AsyncPipeline) following existing plugin architecture. Async boundary at task execution and graph traversal; run log store and catalog remain sync.
+**Architecture:** Create parallel async execution stack (AsyncPythonTaskType, AsyncLocalExecutor, AsyncPipelineContext, AsyncPipeline) following existing plugin architecture. Async boundary at task execution and graph traversal; run log store and catalog remain sync. Streaming via AsyncGenerator pattern - events flow OUT to client, data flows INTERNALLY between tasks.
 
-**Tech Stack:** Python asyncio, pydantic, stevedore plugins, pytest-asyncio
+**Tech Stack:** Python asyncio, inspect (isasyncgen), pydantic, stevedore plugins, pytest-asyncio
 
 ---
 
@@ -80,7 +80,13 @@ git commit -m "test: add failing test for AsyncPythonTaskType"
 **Files:**
 - Modify: `runnable/tasks.py`
 
-**Step 1: Implement AsyncPythonTaskType class**
+**Step 1: Add inspect import at top of file**
+
+```python
+import inspect
+```
+
+**Step 2: Implement AsyncPythonTaskType class**
 
 Add after the `ShellTaskType` class (around line 966):
 
@@ -91,6 +97,9 @@ class AsyncPythonTaskType(BaseTaskType):
 
     Similar to PythonTaskType but the command must point to an async function.
     The execute_command method is async and awaits the user's function.
+
+    Supports AsyncGenerator functions for streaming - chunks are yielded as events
+    while the accumulated result is stored for the next task.
     """
 
     task_type: str = Field(default="async-python", serialization_alias="command_type")
@@ -99,13 +108,29 @@ class AsyncPythonTaskType(BaseTaskType):
     async def execute_command(
         self,
         map_variable: MapVariableType = None,
+        event_callback: Optional[Callable[[dict], None]] = None,
     ) -> StepAttempt:
-        """Execute an async Python function."""
+        """
+        Execute an async Python function.
+
+        Args:
+            map_variable: If the node is of a map state, the iterable value.
+            event_callback: Optional callback for streaming events (task_chunk, etc.)
+
+        If the function returns an AsyncGenerator, chunks are:
+        1. Yielded via event_callback as task_chunk events (for client streaming)
+        2. Accumulated internally and stored as the return value (for next task)
+        """
         attempt_log = StepAttempt(
             status=defaults.FAIL,
             start_time=str(datetime.now()),
             retry_indicator=self._context.retry_indicator,
         )
+
+        def emit_event(event: dict):
+            """Emit event via callback if provided."""
+            if event_callback:
+                event_callback(event)
 
         with logfire.span(
             "task:{task_name}",
@@ -120,7 +145,7 @@ class AsyncPythonTaskType(BaseTaskType):
                     "Task started",
                     inputs=self._safe_serialize_params(params),
                 )
-                self._emit_event({
+                emit_event({
                     "type": "task_started",
                     "name": self.command,
                     "inputs": self._safe_serialize_params(params),
@@ -143,8 +168,25 @@ class AsyncPythonTaskType(BaseTaskType):
                             buffer,
                             stderr_buffer,
                         ):
-                            # ASYNC: await the user's function
-                            user_set_parameters = await f(**filtered_parameters)
+                            # Call the async function
+                            result = await f(**filtered_parameters)
+
+                            # Handle AsyncGenerator (streaming) vs regular return
+                            if inspect.isasyncgen(result):
+                                # Stream chunks and accumulate
+                                accumulated_chunks: List[str] = []
+                                async for chunk in result:
+                                    accumulated_chunks.append(str(chunk))
+                                    emit_event({
+                                        "type": "task_chunk",
+                                        "name": self.command,
+                                        "chunk": str(chunk),
+                                    })
+                                # Join accumulated chunks as the final value
+                                user_set_parameters = "".join(accumulated_chunks)
+                            else:
+                                user_set_parameters = result
+
                     except Exception as e:
                         raise exceptions.CommandCallError(
                             f"Async function call: {self.command} did not succeed.\n"
@@ -196,14 +238,14 @@ class AsyncPythonTaskType(BaseTaskType):
                             outputs=self._safe_serialize_params(output_parameters),
                             status="success",
                         )
-                        self._emit_event({
+                        emit_event({
                             "type": "task_completed",
                             "name": self.command,
                             "outputs": self._safe_serialize_params(output_parameters),
                         })
                     else:
                         logfire.info("Task completed", status="success")
-                        self._emit_event({
+                        emit_event({
                             "type": "task_completed",
                             "name": self.command,
                         })
@@ -215,7 +257,7 @@ class AsyncPythonTaskType(BaseTaskType):
                     task_console.print_exception(show_locals=False)
                     task_console.log(_e, style=defaults.error_style)
                     logfire.error("Task failed", error=str(_e)[:256])
-                    self._emit_event({
+                    emit_event({
                         "type": "task_error",
                         "name": self.command,
                         "error": str(_e)[:256]
@@ -284,6 +326,7 @@ git commit -m "feat: register async-python task plugin"
 
 ```python
 import asyncio
+from typing import AsyncGenerator
 from unittest.mock import Mock, patch
 from datetime import datetime
 
@@ -298,6 +341,15 @@ from runnable.tasks import AsyncPythonTaskType
 async def sample_async_function(x: int = 10) -> int:
     await asyncio.sleep(0.01)  # Simulate async work
     return x * 2
+
+
+# Test async generator function for streaming
+async def sample_streaming_function(prompt: str = "test") -> AsyncGenerator[str, None]:
+    """Simulate LLM-style streaming."""
+    chunks = ["Hello", " ", "world", "!"]
+    for chunk in chunks:
+        await asyncio.sleep(0.01)
+        yield chunk
 
 
 @pytest.fixture
@@ -339,18 +391,60 @@ async def test_async_python_task_execute_command(mock_context, mocker):
     assert attempt_log.status == defaults.SUCCESS
     assert "result" in attempt_log.output_parameters
     assert attempt_log.output_parameters["result"].get_value() == 10  # 5 * 2
+
+
+@pytest.mark.asyncio
+async def test_async_python_task_execute_streaming(mock_context, mocker):
+    """Test AsyncPythonTaskType handles AsyncGenerator (streaming) functions."""
+    # Mock the module import to return our streaming function
+    mocker.patch(
+        "runnable.tasks.importlib.import_module",
+        return_value=Mock(sample_streaming_function=sample_streaming_function)
+    )
+    mocker.patch("runnable.tasks.utils.get_module_and_attr_names", return_value=("test_module", "sample_streaming_function"))
+
+    # Collect emitted events
+    emitted_events = []
+    def event_callback(event):
+        emitted_events.append(event)
+
+    task = AsyncPythonTaskType(
+        command="test_module.sample_streaming_function",
+        returns=[{"name": "text", "kind": "json"}]
+    )
+
+    attempt_log = await task.execute_command(event_callback=event_callback)
+
+    # Should succeed
+    assert attempt_log.status == defaults.SUCCESS
+
+    # Should have accumulated the chunks
+    assert "text" in attempt_log.output_parameters
+    assert attempt_log.output_parameters["text"].get_value() == "Hello world!"
+
+    # Should have emitted task_chunk events
+    chunk_events = [e for e in emitted_events if e.get("type") == "task_chunk"]
+    assert len(chunk_events) == 4
+    assert chunk_events[0]["chunk"] == "Hello"
+    assert chunk_events[1]["chunk"] == " "
+    assert chunk_events[2]["chunk"] == "world"
+    assert chunk_events[3]["chunk"] == "!"
+
+    # Should have task_started and task_completed events
+    assert any(e.get("type") == "task_started" for e in emitted_events)
+    assert any(e.get("type") == "task_completed" for e in emitted_events)
 ```
 
-**Step 2: Run test**
+**Step 2: Run tests**
 
-Run: `uv run pytest tests/runnable/test_async_tasks.py::test_async_python_task_execute_command -v`
-Expected: PASS
+Run: `uv run pytest tests/runnable/test_async_tasks.py -v`
+Expected: Both tests PASS
 
 **Step 3: Commit**
 
 ```bash
 git add tests/runnable/test_async_tasks.py
-git commit -m "test: add async execution test for AsyncPythonTaskType"
+git commit -m "test: add async execution and streaming tests for AsyncPythonTaskType"
 ```
 
 ---
@@ -975,7 +1069,8 @@ git commit -m "feat: add AsyncPythonTask SDK class"
 **Step 1: Add test for AsyncPipeline**
 
 ```python
-from runnable.sdk import AsyncPipeline, AsyncPythonTask
+from typing import AsyncGenerator
+from runnable.sdk import AsyncPipeline, AsyncPythonTask, PipelineEvent
 
 
 async def step1(x: int = 5) -> int:
@@ -984,6 +1079,12 @@ async def step1(x: int = 5) -> int:
 
 async def step2(x: int) -> str:
     return f"Result: {x}"
+
+
+async def streaming_step(prompt: str = "test") -> AsyncGenerator[str, None]:
+    """Streaming function that yields chunks."""
+    for chunk in ["Hello", " ", "world", "!"]:
+        yield chunk
 
 
 def test_async_pipeline_initialization():
@@ -1003,6 +1104,27 @@ def test_async_pipeline_has_async_execute():
         steps=[AsyncPythonTask(function=step1, name="step1")]
     )
     assert asyncio.iscoroutinefunction(pipeline.execute)
+
+
+def test_async_pipeline_has_execute_stream():
+    """Test AsyncPipeline.execute_stream returns AsyncGenerator."""
+    pipeline = AsyncPipeline(
+        steps=[AsyncPythonTask(function=step1, name="step1")]
+    )
+    assert hasattr(pipeline, 'execute_stream')
+    # execute_stream is an async generator function
+    assert asyncio.iscoroutinefunction(pipeline.execute_stream)
+
+
+def test_async_pipeline_accepts_streaming_tasks():
+    """Test AsyncPipeline accepts tasks with AsyncGenerator functions."""
+    pipeline = AsyncPipeline(
+        steps=[
+            AsyncPythonTask(function=streaming_step, name="stream", returns=["text"]),
+            AsyncPythonTask(function=step2, name="process", returns=["result"]),
+        ]
+    )
+    assert len(pipeline.steps) == 2
 ```
 
 **Step 2: Run test to verify it fails**
@@ -1024,7 +1146,41 @@ git commit -m "test: add failing tests for AsyncPipeline SDK class"
 **Files:**
 - Modify: `runnable/sdk.py`
 
-**Step 1: Add AsyncPipeline class**
+**Step 1: Add typing imports at top of file**
+
+```python
+from typing import AsyncGenerator
+```
+
+**Step 2: Add TaskChunkEvent model after other event models**
+
+```python
+class TaskChunkEvent(BaseEvent):
+    """Event emitted when a streaming task yields a chunk."""
+
+    type: Literal["task_chunk"] = "task_chunk"
+    task_name: str
+    chunk: str
+```
+
+**Step 3: Update PipelineEvent union to include TaskChunkEvent**
+
+```python
+PipelineEvent = Annotated[
+    Union[
+        PipelineStartedEvent,
+        PipelineCompletedEvent,
+        PipelineErrorEvent,
+        TaskStartedEvent,
+        TaskCompletedEvent,
+        TaskErrorEvent,
+        TaskChunkEvent,  # Add this
+    ],
+    Field(discriminator="type"),
+]
+```
+
+**Step 4: Add AsyncPipeline class**
 
 Add after the `Pipeline` class:
 
@@ -1036,15 +1192,17 @@ class AsyncPipeline(BaseModel):
     Use this when your pipeline contains AsyncPythonTask steps
     that need to execute async functions.
 
-    Example:
-        >>> async def fetch(url: str) -> dict:
-        ...     # async HTTP request
-        ...     return data
-        ...
-        >>> pipeline = AsyncPipeline(
-        ...     steps=[AsyncPythonTask(function=fetch, name="fetch", returns=["data"])]
-        ... )
+    Supports two execution modes:
+    - execute(): Simple async execution, blocks until complete
+    - execute_stream(): Returns AsyncGenerator of events for SSE streaming
+
+    Example (simple):
+        >>> pipeline = AsyncPipeline(steps=[...])
         >>> await pipeline.execute()
+
+    Example (streaming):
+        >>> async for event in pipeline.execute_stream():
+        ...     print(event)  # PipelineEvent objects
     """
 
     steps: List[StepType] = Field(default_factory=list)
@@ -1096,7 +1254,7 @@ class AsyncPipeline(BaseModel):
         parameters_file: str = "",
     ):
         """
-        Execute the pipeline asynchronously.
+        Execute the pipeline asynchronously (simple mode, no streaming).
 
         Args:
             configuration_file: Path to configuration YAML (optional)
@@ -1129,6 +1287,131 @@ class AsyncPipeline(BaseModel):
         context.__dict__["_dag"] = dag
 
         await context.execute()
+
+    async def execute_stream(
+        self,
+        configuration_file: str = "",
+        run_id: str = "",
+        tag: str = "",
+        parameters_file: str = "",
+    ) -> AsyncGenerator[PipelineEvent, None]:
+        """
+        Execute the pipeline and yield events as they occur.
+
+        This method returns an AsyncGenerator that yields PipelineEvent objects,
+        suitable for Server-Sent Events (SSE) streaming.
+
+        Args:
+            configuration_file: Path to configuration YAML (optional)
+            run_id: Custom run ID (auto-generated if not provided)
+            tag: Tag for this execution
+            parameters_file: Path to parameters YAML
+
+        Yields:
+            PipelineEvent: Events as the pipeline executes (task_started,
+                task_chunk, task_completed, pipeline_completed, etc.)
+
+        Example:
+            @app.post("/run")
+            async def run_pipeline(request: Request):
+                async def event_stream():
+                    async for event in pipeline.execute_stream():
+                        yield f"data: {event.model_dump_json()}\\n\\n"
+                return StreamingResponse(event_stream(), media_type="text/event-stream")
+        """
+        import asyncio
+        from datetime import datetime
+        from runnable.context import AsyncPipelineContext
+
+        dag = self.return_dag()
+
+        # Generate run_id if not provided
+        if not run_id:
+            run_id = f"stream-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        # Build services config - force async-local executor
+        services = defaults.DEFAULT_SERVICES.copy()
+        services["pipeline_executor"] = {"type": "async-local"}
+
+        # Event queue for streaming
+        event_queue: asyncio.Queue[PipelineEvent] = asyncio.Queue()
+
+        def event_callback(event_dict: dict):
+            """Convert dict events to typed PipelineEvent and queue them."""
+            event_type = event_dict.get("type")
+            event_dict["run_id"] = run_id
+
+            if event_type == "task_started":
+                event_queue.put_nowait(TaskStartedEvent(**event_dict))
+            elif event_type == "task_chunk":
+                event_queue.put_nowait(TaskChunkEvent(**event_dict))
+            elif event_type == "task_completed":
+                event_queue.put_nowait(TaskCompletedEvent(**event_dict))
+            elif event_type == "task_error":
+                event_queue.put_nowait(TaskErrorEvent(**event_dict))
+
+        context = AsyncPipelineContext(
+            pipeline_executor=services["pipeline_executor"],
+            catalog=services["catalog"],
+            secrets=services["secrets"],
+            pickler=services["pickler"],
+            run_log_store=services["run_log_store"],
+            run_id=run_id,
+            tag=tag,
+            parameters_file=parameters_file,
+            configuration_file=configuration_file,
+            pipeline_definition_file=f"{self.__class__.__module__}.{self.__class__.__qualname__}",
+        )
+
+        # Store dag and event callback on context
+        context.__dict__["_dag"] = dag
+        context.__dict__["_event_callback"] = event_callback
+
+        # Emit pipeline started
+        yield PipelineStartedEvent(
+            run_id=run_id,
+            tag=tag,
+            total_tasks=len([s for s in self.steps if hasattr(s, 'function')]),
+        )
+
+        # Run pipeline in background task, yielding events as they arrive
+        async def run_pipeline():
+            try:
+                await context.execute()
+                event_queue.put_nowait(PipelineCompletedEvent(
+                    run_id=run_id,
+                    status="success",
+                ))
+            except Exception as e:
+                event_queue.put_nowait(PipelineErrorEvent(
+                    run_id=run_id,
+                    error=str(e)[:256],
+                    error_type=type(e).__name__,
+                ))
+
+        # Start pipeline execution
+        pipeline_task = asyncio.create_task(run_pipeline())
+
+        # Yield events until pipeline completes
+        while True:
+            try:
+                # Wait for event with timeout to check if pipeline is done
+                event = await asyncio.wait_for(event_queue.get(), timeout=0.1)
+                yield event
+
+                # Stop if pipeline completed or errored
+                if isinstance(event, (PipelineCompletedEvent, PipelineErrorEvent)):
+                    break
+            except asyncio.TimeoutError:
+                # Check if pipeline task is done
+                if pipeline_task.done():
+                    # Drain any remaining events
+                    while not event_queue.empty():
+                        yield event_queue.get_nowait()
+                    break
+
+        # Ensure pipeline task is awaited
+        await pipeline_task
 ```
 
 **Step 2: Override dag property for AsyncPipelineContext**
@@ -1256,12 +1539,13 @@ git commit -m "test: add integration test for async pipeline"
 
 ---
 
-## Task 17: Add example async pipeline
+## Task 17: Add example async pipelines
 
 **Files:**
 - Create: `examples/async-execution/simple_async.py`
+- Create: `examples/async-execution/streaming_llm.py`
 
-**Step 1: Create example file**
+**Step 1: Create simple example file**
 
 ```python
 """
@@ -1333,16 +1617,126 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-**Step 2: Test the example runs**
+**Step 2: Create streaming LLM example file**
+
+```python
+"""
+Streaming LLM pipeline example with FastAPI SSE.
+
+This demonstrates the AsyncGenerator streaming pattern:
+- Events flow OUT to client (task_chunk, task_completed, etc.)
+- Data flows INTERNALLY between tasks via parameter store
+
+Run with:
+    uv run uvicorn examples.async-execution.streaming_llm:app --reload
+"""
+
+import asyncio
+from typing import AsyncGenerator
+
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
+from runnable import AsyncPipeline, AsyncPythonTask
+
+
+app = FastAPI()
+
+
+# Simulate LLM streaming response
+async def generate_text(prompt: str) -> AsyncGenerator[str, None]:
+    """
+    Simulate LLM streaming generation.
+
+    Each chunk is:
+    1. Yielded as task_chunk event -> streamed to client
+    2. Accumulated internally -> stored for next task
+    """
+    words = ["The", " quick", " brown", " fox", " jumps", " over", " the", " lazy", " dog."]
+    for word in words:
+        await asyncio.sleep(0.1)  # Simulate token generation delay
+        yield word
+
+
+async def summarize(text: str) -> str:
+    """
+    Summarize the accumulated text.
+
+    Receives the full accumulated text from generate_text: "The quick brown fox..."
+    """
+    await asyncio.sleep(0.2)
+    return f"Summary ({len(text)} chars): {text[:50]}..."
+
+
+class GenerateRequest(BaseModel):
+    prompt: str = "Tell me a story"
+
+
+@app.post("/generate")
+async def generate(request: GenerateRequest):
+    """Stream LLM-style generation with SSE."""
+
+    pipeline = AsyncPipeline(
+        steps=[
+            AsyncPythonTask(
+                function=generate_text,
+                name="generate",
+                returns=["text"],
+            ),
+            AsyncPythonTask(
+                function=summarize,
+                name="summarize",
+                returns=["summary"],
+            ),
+        ]
+    )
+
+    async def event_stream():
+        async for event in pipeline.execute_stream(
+            parameters={"prompt": request.prompt}
+        ):
+            # Format as SSE
+            yield f"data: {event.model_dump_json()}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+    )
+
+
+@app.get("/")
+async def root():
+    return {"message": "Streaming LLM Pipeline - POST to /generate"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+**Step 3: Test the simple example runs**
 
 Run: `uv run python examples/async-execution/simple_async.py`
 Expected: Pipeline executes with async task output
 
-**Step 3: Commit**
+**Step 4: Test the streaming example (optional, requires fastapi)**
+
+Run: `uv run uvicorn examples.async-execution.streaming_llm:app --port 8001`
+
+Then in another terminal:
+```bash
+curl -X POST http://localhost:8001/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "test"}'
+```
+Expected: SSE stream with task_chunk events for each word, then task_completed
+
+**Step 5: Commit**
 
 ```bash
-git add examples/async-execution/simple_async.py
-git commit -m "docs: add simple async pipeline example"
+git add examples/async-execution/
+git commit -m "docs: add async pipeline examples (simple and streaming)"
 ```
 
 ---
@@ -1373,18 +1767,78 @@ git commit -m "chore: async execution feature complete"
 This plan creates:
 
 1. **AsyncPythonTaskType** (`runnable/tasks.py`) - Task plugin for async functions
+   - Supports regular async functions (`async def func() -> T`)
+   - Supports AsyncGenerator functions (`async def func() -> AsyncGenerator[str, None]`)
+   - Accumulates streamed chunks internally, stores result for next task
+   - Emits `task_chunk` events via callback for client streaming
+
 2. **AsyncLocalExecutor** (`extensions/pipeline_executor/async_local.py`) - Async graph traversal
+   - Follows same pattern as sync LocalExecutor
+   - Async methods: `execute_graph`, `execute_from_graph`, `trigger_node_execution`, `_execute_node`
+   - Sync operations: run_log_store, catalog, fan_out/fan_in
+
 3. **AsyncPipelineContext** (`runnable/context.py`) - Async execution context
+   - Async `execute()` method
+   - Passes event callback to executor for streaming
+
 4. **AsyncPythonTask** (`runnable/sdk.py`) - SDK class for async tasks
+   - Validates function is async (coroutine or async generator)
+   - Creates TaskNode with `command_type="async-python"`
+
 5. **AsyncPipeline** (`runnable/sdk.py`) - SDK class for async pipelines
+   - `execute()` - Simple async execution, blocks until complete
+   - `execute_stream()` - Returns `AsyncGenerator[PipelineEvent, None]` for SSE streaming
+
+6. **TaskChunkEvent** (`runnable/sdk.py`) - Event model for streaming chunks
+   - Type: `"task_chunk"`
+   - Fields: `run_id`, `timestamp`, `task_name`, `chunk`
 
 Plugin registrations in `pyproject.toml`:
+
 - `tasks.async-python`
 - `pipeline_executor.async-local`
 
 Tests in:
-- `tests/runnable/test_async_tasks.py`
-- `tests/runnable/test_async_sdk.py`
-- `tests/runnable/test_async_context.py`
-- `tests/extensions/pipeline_executor/test_async_local_executor.py`
-- `tests/integration/test_async_pipeline.py`
+
+- `tests/runnable/test_async_tasks.py` - AsyncPythonTaskType + streaming tests
+- `tests/runnable/test_async_sdk.py` - AsyncPythonTask + AsyncPipeline tests
+- `tests/runnable/test_async_context.py` - AsyncPipelineContext tests
+- `tests/extensions/pipeline_executor/test_async_local_executor.py` - Executor tests
+- `tests/integration/test_async_pipeline.py` - End-to-end tests
+
+Examples in:
+
+- `examples/async-execution/simple_async.py` - Basic async pipeline
+- `examples/async-execution/streaming_llm.py` - FastAPI SSE streaming with LLM-style generation
+
+## Streaming Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        AsyncLocalExecutor                        │
+│                                                                 │
+│  Task 1 (generate_text)          Task 2 (summarize)             │
+│  ┌─────────────────────┐         ┌─────────────────────┐        │
+│  │ yield "The"         │         │                     │        │
+│  │ yield " quick"      │         │ text = "The quick   │        │
+│  │ yield " brown"      │         │   brown fox..."     │        │
+│  │ ...                 │         │ return "Summary..." │        │
+│  └─────────────────────┘         └─────────────────────┘        │
+│           │                               ▲                      │
+│           │ accumulate internally         │                      │
+│           └──────────────────────────────►│                      │
+│                    "The quick..."    (via params/run_log_store)  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+           │ yield PipelineEvent
+           ▼
+    ┌─────────────────┐
+    │   FastAPI SSE   │
+    │  execute_stream │
+    └─────────────────┘
+           │
+           ▼
+       Client/UI
+```
+
+**Key insight:** Events flow OUT to client, data flows INTERNALLY between tasks.

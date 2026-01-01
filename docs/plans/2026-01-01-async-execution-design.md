@@ -271,12 +271,71 @@ async-local = "extensions.pipeline_executor.async_local:AsyncLocalExecutor"
 
 ## Streaming Events
 
-Uses existing `_emit_event()` / `set_stream_queue()` mechanism:
-- Tasks emit events to queue during execution
-- FastAPI/caller polls queue for real-time updates
-- No changes needed to telemetry infrastructure
+**Changed from queue-based to AsyncGenerator approach.**
+
+Instead of `_emit_event()` pushing to a queue, the pipeline yields events directly:
+
+```python
+@app.post("/run-workflow")
+async def run_workflow(request):
+    pipeline = AsyncPipeline(steps=[...])
+
+    async def event_stream():
+        async for event in pipeline.execute_stream():
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+```
+
+**Why not queue-based?**
+- With pure async, `await pipeline.execute()` blocks - can't poll queue simultaneously
+- AsyncGenerator is native async pattern - no thread boundary issues
+- Cleaner integration with FastAPI StreamingResponse
+
+**Two separate flows:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        AsyncLocalExecutor                        │
+│                                                                 │
+│  Task 1 (generate_text)          Task 2 (process_result)       │
+│  ┌─────────────────────┐         ┌─────────────────────┐       │
+│  │ yield "Hello"       │         │                     │       │
+│  │ yield " world"      │         │ text = "Hello world"│       │
+│  │ yield "!"           │         │ return {"len": 11}  │       │
+│  └─────────────────────┘         └─────────────────────┘       │
+│           │                               ▲                     │
+│           │ accumulate internally         │                     │
+│           └──────────────────────────────►│                     │
+│                    "Hello world"    (via params/run_log_store) │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+           │ yield events
+           ▼
+    ┌─────────────────┐
+    │   FastAPI SSE   │
+    └─────────────────┘
+           │
+           ▼
+       Client/UI
+```
+
+Events flow OUT to client, data flows INTERNALLY between tasks via parameter store.
+
+**Event Types:**
+
+| Type | Description |
+|------|-------------|
+| `pipeline_started` | Pipeline execution began |
+| `task_started` | Task began execution |
+| `task_chunk` | Chunk yielded from async generator task |
+| `task_completed` | Task completed (includes outputs) |
+| `task_error` | Task failed |
+| `pipeline_completed` | Pipeline finished |
 
 ## Usage Example
+
+### Simple async execution (no streaming)
 
 ```python
 from runnable import AsyncPipeline, AsyncPythonTask
@@ -287,7 +346,6 @@ async def fetch_data(url: str) -> dict:
             return await response.json()
 
 async def process(data: dict) -> str:
-    await asyncio.sleep(1)  # async processing
     return f"Processed {len(data)} items"
 
 pipeline = AsyncPipeline(
@@ -297,8 +355,41 @@ pipeline = AsyncPipeline(
     ]
 )
 
-# In async context
+# Simple execution (no streaming)
 await pipeline.execute(parameters_file="params.yaml")
+```
+
+### Streaming execution (LLM use case)
+
+```python
+from typing import AsyncGenerator
+from runnable import AsyncPipeline, AsyncPythonTask
+
+async def generate_text(prompt: str) -> AsyncGenerator[str, None]:
+    """Stream text from LLM."""
+    async for chunk in llm.stream(prompt):
+        yield chunk  # Chunks streamed to client
+
+async def summarize(text: str) -> str:
+    """Process accumulated text."""
+    # 'text' contains all chunks joined: "Hello world!"
+    return f"Summary: {text[:50]}..."
+
+pipeline = AsyncPipeline(
+    steps=[
+        AsyncPythonTask(function=generate_text, name="generate", returns=["text"]),
+        AsyncPythonTask(function=summarize, name="summarize", returns=["summary"]),
+    ]
+)
+
+# Streaming execution for FastAPI
+@app.post("/generate")
+async def generate(request: Request):
+    async def event_stream():
+        async for event in pipeline.execute_stream(parameters={"prompt": request.prompt}):
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 ```
 
 ## Out of Scope
