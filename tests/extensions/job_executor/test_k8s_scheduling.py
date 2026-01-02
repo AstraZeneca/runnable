@@ -202,7 +202,7 @@ def test_submit_k8s_job_creates_cronjob_when_schedule_present():
     mock_context.get_job_callable_command.return_value = "python test.py"
 
     # This should not raise an exception and should handle CronJob creation
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         executor.submit_k8s_job(mock_task)
 
 
@@ -225,7 +225,7 @@ def test_cronjob_has_correct_schedule_and_job_template(mock_kubernetes):
     # Use the global mocks from the fixture
     mock_batch_api = mock_kubernetes["batch_api"]
 
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         mock_task = Mock(spec=BaseTaskType)
         executor.submit_k8s_job(mock_task)
 
@@ -259,7 +259,7 @@ def test_submit_job_creates_cronjob_when_schedule_present():
     mock_context.get_job_callable_command.return_value = "python test.py"
 
     # Mock the methods we'll call using patch
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         with patch.object(executor, "_set_up_run_log"):
             with patch.object(executor, "_create_volumes"):
                 # Use patch to spy on submit_k8s_job method
@@ -289,7 +289,7 @@ def test_submit_job_creates_regular_job_when_no_schedule():
     mock_context.get_job_callable_command.return_value = "python test.py"
 
     # Mock the methods we'll call using patch
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         with patch.object(executor, "_set_up_run_log"):
             with patch.object(executor, "_create_volumes"):
                 # Use patch to spy on submit_k8s_job method
@@ -374,7 +374,7 @@ def test_mini_k8s_executor_submit_job_calls_parent_cronjob_implementation():
     mock_context.get_job_callable_command.return_value = "python test.py"
 
     # Mock the methods at the parent class level
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         with patch.object(GenericK8sJobExecutor, "_set_up_run_log"):
             with patch.object(MiniK8sJobExecutor, "_create_volumes"):
                 with patch.object(GenericK8sJobExecutor, "submit_k8s_job") as mock_job:
@@ -406,7 +406,7 @@ def test_k8s_executor_submit_job_calls_parent_cronjob_implementation():
     mock_context.get_job_callable_command.return_value = "python test.py"
 
     # Mock the methods at the parent class level
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         with patch.object(GenericK8sJobExecutor, "_set_up_run_log"):
             with patch.object(K8sJobExecutor, "_create_volumes"):
                 with patch.object(GenericK8sJobExecutor, "submit_k8s_job") as mock_job:
@@ -437,7 +437,7 @@ def test_mini_k8s_executor_submit_job_calls_parent_regular_job_implementation():
     mock_context.get_job_callable_command.return_value = "python test.py"
 
     # Mock the methods at the parent class level
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         with patch.object(GenericK8sJobExecutor, "_set_up_run_log"):
             with patch.object(MiniK8sJobExecutor, "_create_volumes"):
                 with patch.object(GenericK8sJobExecutor, "submit_k8s_job") as mock_job:
@@ -469,7 +469,7 @@ def test_k8s_executor_submit_job_calls_parent_regular_job_implementation():
     mock_context.get_job_callable_command.return_value = "python test.py"
 
     # Mock the methods at the parent class level
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         with patch.object(GenericK8sJobExecutor, "_set_up_run_log"):
             with patch.object(K8sJobExecutor, "_create_volumes"):
                 with patch.object(GenericK8sJobExecutor, "submit_k8s_job") as mock_job:
@@ -687,7 +687,7 @@ def test_end_to_end_scheduled_job_creation(mock_kubernetes):
     # Use the global mocks from the fixture
     mock_batch_api = mock_kubernetes["batch_api"]
 
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         mock_task = Mock(spec=BaseTaskType)
         executor.submit_k8s_job(mock_task)
 
@@ -735,7 +735,7 @@ def test_error_handling_in_cronjob_creation(mock_kubernetes):
         status=403, reason="Forbidden"
     )
 
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         mock_task = Mock(spec=BaseTaskType)
 
         # Should re-raise the exception
@@ -779,7 +779,7 @@ def test_end_to_end_regular_job_creation_without_schedule(mock_kubernetes):
     # Use the global mocks from the fixture
     mock_batch_api = mock_kubernetes["batch_api"]
 
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         mock_task = Mock(spec=BaseTaskType)
         executor.submit_k8s_job(mock_task)
 
@@ -845,7 +845,7 @@ def test_cronjob_with_volumes_and_tolerations(mock_kubernetes):
     mock_batch_api = mock_kubernetes["batch_api"]
     mock_client = mock_kubernetes["client"]
 
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         mock_task = Mock(spec=BaseTaskType)
         executor.submit_k8s_job(mock_task)
 
@@ -877,7 +877,7 @@ def test_full_submit_job_flow_with_schedule():
     mock_context.get_job_callable_command.return_value = "python test.py"
 
     # Test the full flow through submit_job
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         with patch.object(executor, "_set_up_run_log"):
             with patch.object(executor, "_create_volumes"):
                 # Patch at class level instead of instance level
@@ -912,7 +912,7 @@ def test_cronjob_namespace_configuration(mock_kubernetes):
     # Use the global mocks from the fixture
     mock_batch_api = mock_kubernetes["batch_api"]
 
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         mock_task = Mock(spec=BaseTaskType)
         executor.submit_k8s_job(mock_task)
 
@@ -941,7 +941,7 @@ def test_cronjob_mock_mode_no_api_call(mock_kubernetes):
     # Use the global mocks from the fixture
     mock_batch_api = mock_kubernetes["batch_api"]
 
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         mock_task = Mock(spec=BaseTaskType)
         executor.submit_k8s_job(mock_task)
 
@@ -970,7 +970,7 @@ def test_backward_compatibility_no_schedule_uses_regular_job(mock_kubernetes):
     # Use the global mocks from the fixture
     mock_batch_api = mock_kubernetes["batch_api"]
 
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         mock_task = Mock(spec=BaseTaskType)
         executor.submit_k8s_job(mock_task)
 
@@ -1025,7 +1025,7 @@ def test_cronjob_with_complex_resources(mock_kubernetes):
     # Use the global mocks from the fixture
     mock_batch_api = mock_kubernetes["batch_api"]
 
-    with patch("runnable.context.run_context", mock_context):
+    with patch("runnable.context.get_run_context", return_value=mock_context):
         mock_task = Mock(spec=BaseTaskType)
         executor.submit_k8s_job(mock_task)
 

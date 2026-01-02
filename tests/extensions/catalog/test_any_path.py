@@ -42,7 +42,7 @@ def catalog_setup(mocker):
     )
 
     # Patch the context property at the module level
-    mocker.patch("runnable.context.run_context", mock_context)
+    mocker.patch("runnable.context.get_run_context", return_value=mock_context)
 
     catalog = TestAnyPathCatalog()
 

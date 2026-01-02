@@ -44,7 +44,7 @@ def runnable_context():
 
     os.environ.pop("RUNNABLE_CONFIGURATION_FILE", None)
     os.environ.pop(defaults.RETRY_RUN_ID, None)
-    runnable_context.run_context = None
+    runnable_context.set_run_context(None)
     try:
         yield runnable_context
     finally:
@@ -52,7 +52,7 @@ def runnable_context():
         os.environ.pop("RUNNABLE_CONFIGURATION_FILE", None)
         os.environ.pop("RUNNABLE_PRM_envvar", None)
         print("Cleaning up runnable context")
-        runnable_context.run_context = None
+        runnable_context.set_run_context(None)
 
 
 @contextmanager
