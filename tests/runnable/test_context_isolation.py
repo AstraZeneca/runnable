@@ -36,8 +36,7 @@ def test_context_isolation_sync():
     assert get_run_context().run_id == "test-run-2"
 
 
-@pytest.mark.asyncio
-async def test_context_isolation_async():
+def test_context_isolation_async():
     """Test that async tasks maintain separate contexts."""
     results = []
 
@@ -66,12 +65,15 @@ async def test_context_isolation_async():
         assert current_context.run_id == f"test-run-{context_id}"
         results.append(context_id)
 
-    # Run multiple async tasks concurrently
-    await asyncio.gather(
-        async_task("1"),
-        async_task("2"),
-        async_task("3")
-    )
+    async def run_test():
+        # Run multiple async tasks concurrently
+        await asyncio.gather(
+            async_task("1"),
+            async_task("2"),
+            async_task("3")
+        )
 
-    assert len(results) == 3
-    assert set(results) == {"1", "2", "3"}
+        assert len(results) == 3
+        assert set(results) == {"1", "2", "3"}
+
+    asyncio.run(run_test())
