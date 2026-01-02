@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from pickle import PicklingError
 from string import Template
-from typing import Any, Dict, List, Literal, cast
+from typing import Any, Callable, Dict, List, Literal, Optional, cast
 
 import logfire_api as logfire
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -176,6 +176,30 @@ class BaseTaskType(BaseModel):
             NotImplementedError: Base class, not implemented
         """
         raise NotImplementedError()
+
+    async def execute_command_async(
+        self,
+        map_variable: MapVariableType = None,
+        event_callback: Optional[Callable[[dict], None]] = None,
+    ) -> StepAttempt:
+        """
+        Async command execution.
+
+        Only implemented by task types that support async execution
+        (AsyncPythonTaskType). Sync task types (PythonTaskType,
+        NotebookTaskType, ShellTaskType) raise NotImplementedError.
+
+        Args:
+            map_variable: If the command is part of map node.
+            event_callback: Optional callback for streaming events.
+
+        Raises:
+            NotImplementedError: If task type does not support async execution.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support async execution. "
+            f"Use AsyncPythonTask for async functions."
+        )
 
     def _diff_parameters(
         self, parameters_in: Dict[str, Parameter], context_params: Dict[str, Parameter]
