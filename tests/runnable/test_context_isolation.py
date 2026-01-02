@@ -12,7 +12,7 @@ def test_context_isolation_sync():
         catalog={"type": "file-system"},
         secrets={"type": "env-secrets"},
         pickler={"type": "pickle"},
-        run_log_store={"type": "memory"},
+        run_log_store={"type": "file-system"},
         pipeline_executor={"type": "local"}
     )
 
@@ -23,7 +23,7 @@ def test_context_isolation_sync():
         catalog={"type": "file-system"},
         secrets={"type": "env-secrets"},
         pickler={"type": "pickle"},
-        run_log_store={"type": "memory"},
+        run_log_store={"type": "file-system"},
         pipeline_executor={"type": "local"}
     )
 
@@ -48,7 +48,7 @@ async def test_context_isolation_async():
             catalog={"type": "file-system"},
             secrets={"type": "env-secrets"},
             pickler={"type": "pickle"},
-            run_log_store={"type": "memory"},
+            run_log_store={"type": "file-system"},
             pipeline_executor={"type": "local"}
         )
         set_run_context(context)

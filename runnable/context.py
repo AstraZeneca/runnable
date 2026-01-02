@@ -1,3 +1,4 @@
+import contextvars
 import hashlib
 import importlib
 import json
@@ -7,7 +8,7 @@ import sys
 from datetime import datetime
 from enum import Enum
 from functools import cached_property, partial
-from typing import Annotated, Any, Callable, Dict, Optional
+from typing import Annotated, Any, Callable, Dict, Optional, TYPE_CHECKING
 
 from pydantic import (
     BaseModel,
@@ -265,19 +266,6 @@ class RunnableContext(BaseModel):
 
         return run_id
 
-    @computed_field  # type: ignore
-    @property
-    def retry_indicator(self) -> str:
-        """Indicator for retry executions to distinguish attempt logs."""
-        return os.environ.get(defaults.RETRY_INDICATOR, "")
-
-    @computed_field  # type: ignore
-    @property
-    def is_retry(self) -> bool:
-        """Flag indicating if this is a retry run based on environment variable."""
-        retry_run_id = os.environ.get(defaults.RETRY_RUN_ID, "")
-        return bool(retry_run_id)
-
     def model_post_init(self, __context: Any) -> None:
         os.environ[defaults.ENV_RUN_ID] = self.run_id
 
@@ -286,9 +274,8 @@ class RunnableContext(BaseModel):
         if self.tag:
             os.environ[defaults.RUNNABLE_RUN_TAG] = self.tag
 
-        global run_context
-        if not run_context:
-            run_context = self  # type: ignore
+        # Set the context using contextvars for proper isolation
+        set_run_context(self)
 
     def execute(self):
         "Execute the pipeline or the job"
@@ -316,6 +303,19 @@ class PipelineContext(RunnableContext):
             raise ValueError(
                 f"Invalid execution mode: {self.execution_mode}. Must be 'yaml' or 'python'."
             )
+
+    @computed_field  # type: ignore
+    @property
+    def retry_indicator(self) -> str:
+        """Indicator for retry executions to distinguish attempt logs."""
+        return os.environ.get(defaults.RETRY_INDICATOR, "")
+
+    @computed_field  # type: ignore
+    @property
+    def is_retry(self) -> bool:
+        """Flag indicating if this is a retry run based on environment variable."""
+        retry_run_id = os.environ.get(defaults.RETRY_RUN_ID, "")
+        return bool(retry_run_id)
 
     @computed_field  # type: ignore
     @cached_property
@@ -523,5 +523,31 @@ class JobContext(RunnableContext):
             )
 
 
-run_context: PipelineContext | JobContext = None  # type: ignore
-run_context: PipelineContext | JobContext = None  # type: ignore
+# Context variable for thread/async-safe run context storage
+if TYPE_CHECKING:
+    from typing import Union
+
+    RunnableContextType = Union["PipelineContext", "JobContext"]
+else:
+    RunnableContextType = Any
+
+_run_context_var: contextvars.ContextVar[Optional[RunnableContextType]] = (
+    contextvars.ContextVar("run_context", default=None)
+)
+
+
+def get_run_context() -> Optional[RunnableContextType]:
+    """Get the current run context for this execution context."""
+    return _run_context_var.get()
+
+
+def set_run_context(context: RunnableContextType) -> None:
+    """Set the run context for this execution context."""
+    _run_context_var.set(context)
+
+
+# Backward compatibility property (deprecated)
+@property
+def run_context() -> Optional[RunnableContextType]:
+    """Deprecated: Use get_run_context() instead."""
+    return get_run_context()
