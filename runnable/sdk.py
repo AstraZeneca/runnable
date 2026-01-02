@@ -121,6 +121,12 @@ StepType = Union[
     "Conditional",
 ]
 
+# Async-compatible step types for AsyncPipeline
+AsyncStepType = Union[
+    "Stub",
+    "AsyncPythonTask",
+]
+
 
 def pickled(name: str) -> TaskReturns:
     return TaskReturns(name=name, kind="object")
@@ -488,6 +494,66 @@ class ShellTask(BaseTask):
     @computed_field
     def command_type(self) -> str:
         return "shell"
+
+
+class AsyncPythonTask(BaseTask):
+    """
+    An execution node for async Python functions.
+    Please refer to [concepts](concepts/task.md/#async_python_functions) for more information.
+
+    Attributes:
+        name (str): The name of the node.
+        function (callable): The async function to execute.
+
+        terminate_with_success (bool): Whether to terminate the pipeline with a success after this node.
+                Defaults to False.
+        terminate_with_failure (bool): Whether to terminate the pipeline with a failure after this node.
+                Defaults to False.
+
+        on_failure (str): The name of the node to execute if the step fails.
+
+        returns List[Union[str, TaskReturns]] : A list of the names of variables to return from the task.
+            The names should match the order of the variables returned by the function.
+
+            ```TaskReturns```: can be JSON friendly variables, objects or metrics.
+
+            By default, all variables are assumed to be JSON friendly and will be serialized to JSON.
+            Pydantic models are readily supported and will be serialized to JSON.
+
+            To return a python object, please use ```pickled(<name>)```.
+
+            For example,
+            ```python
+            from runnable import pickled, AsyncPythonTask
+
+            async def my_async_func():
+                ...
+                x = 1
+                return x, df
+
+            task = AsyncPythonTask(name="task", function=my_async_func, returns=["x", pickled(df)]))
+            ```
+
+        catalog Optional[Catalog]: The files sync data from/to, refer to Catalog.
+
+        secrets List[str]: List of secrets to pass to the task. They are exposed as environment variables
+            and removed after execution.
+
+        overrides (Dict[str, Any]): Any overrides to the command.
+    """
+
+    function: Callable = Field(exclude=True)
+
+    @computed_field
+    def command_type(self) -> str:
+        return "async-python"
+
+    @computed_field
+    def command(self) -> str:
+        module = self.function.__module__
+        name = self.function.__name__
+
+        return f"{module}.{name}"
 
 
 class Stub(BaseTraversal):
@@ -873,6 +939,180 @@ class Pipeline(BaseModel):
         assert isinstance(run_context, context.PipelineContext)
 
         run_context.execute()
+
+
+class AsyncPipeline(BaseModel):
+    """
+    An AsyncPipeline is a sequence of async-compatible Steps that executes asynchronously.
+
+    Use this when you have async functions that need native async execution with await support.
+
+    Attributes:
+        steps (List[Stub | AsyncPythonTask]]):
+            A list of async-compatible Steps that make up the Pipeline.
+
+            The order of steps is important as it determines the order of execution.
+
+        name (str, optional): The name of the Pipeline. Defaults to "".
+        description (str, optional): A description of the Pipeline. Defaults to "".
+
+    Example:
+        ```python
+        from runnable import AsyncPipeline, AsyncPythonTask
+        import asyncio
+
+        async def my_async_func():
+            await asyncio.sleep(1)
+            return "done"
+
+        async def main():
+            pipeline = AsyncPipeline(
+                steps=[AsyncPythonTask(name="task", function=my_async_func, returns=["result"])]
+            )
+            await pipeline.execute()
+
+        asyncio.run(main())
+        ```
+    """
+
+    steps: List[AsyncStepType]
+    name: str = ""
+    description: str = ""
+
+    internal_branch_name: str = ""
+
+    @property
+    def add_terminal_nodes(self) -> bool:
+        return True
+
+    _dag: graph.Graph = PrivateAttr()
+    model_config = ConfigDict(extra="forbid")
+
+    def model_post_init(self, __context: Any) -> None:
+        """
+        The sequence of steps can either be:
+            [step1, step2,..., stepN]
+            indicates:
+                - step1 > step2 > ... > stepN
+                - We expect terminate with success or fail to be explicitly stated on a step.
+                    - If it is stated, the step cannot have a next step defined apart from "success" and "fail".
+                Any definition of pipeline should have one node that terminates with success.
+        """
+        # The last step of the pipeline is defaulted to be a success step
+        # unless it is explicitly stated to terminate with failure.
+        terminal_step: AsyncStepType = self.steps[-1]
+        if not terminal_step.terminate_with_failure:
+            terminal_step.terminate_with_success = True
+            terminal_step.next_node = "success"
+
+        # assert that there is only one termination node with success or failure
+        # Assert that there are no duplicate step names
+        observed: Dict[str, str] = {}
+        count_termination: int = 0
+
+        for step in self.steps:
+            if isinstance(step, (Stub, AsyncPythonTask)):
+                if step.terminate_with_success or step.terminate_with_failure:
+                    count_termination += 1
+            if step.name in observed:
+                raise Exception(
+                    f"Step names should be unique. Found duplicate: {step.name}"
+                )
+            observed[step.name] = step.name
+
+        if count_termination > 1:
+            raise AssertionError(
+                "A pipeline can only have one termination node with success or failure"
+            )
+
+        # link the steps by assigning the next_node name to be that name of the node
+        # immediately after it.
+        for i in range(len(self.steps) - 1):
+            self.steps[i] >> self.steps[i + 1]
+
+        # Add any on_failure pipelines to the steps
+        gathered_on_failure: List[AsyncStepType] = []
+        for step in self.steps:
+            if step.on_failure:
+                gathered_on_failure.extend(step.on_failure.steps)
+
+        self._dag = graph.Graph(
+            start_at=self.steps[0].name,
+            description=self.description,
+            internal_branch_name=self.internal_branch_name,
+        )
+
+        self.steps.extend(gathered_on_failure)
+
+        for step in self.steps:
+            self._dag.add_node(step.create_node())
+
+        self._dag.add_terminal_nodes()
+
+        self._dag.check_graph()
+
+    def return_dag(self) -> graph.Graph:
+        dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
+        return graph.create_graph(dag_definition)
+
+    def _is_called_for_definition(self) -> bool:
+        """
+        If the run context is set, we are coming in only to get the pipeline definition.
+        """
+        from runnable.context import get_run_context
+
+        if get_run_context() is None:
+            return False
+        return True
+
+    def get_caller(self) -> str:
+        caller_stack = inspect.stack()[2]
+        relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
+
+        module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
+        module_to_call = f"{module_name}.{caller_stack.function}"
+
+        return module_to_call
+
+    async def execute(
+        self,
+        configuration_file: str = "",
+        run_id: str = "",
+        tag: str = "",
+        parameters_file: str = "",
+        log_level: str = defaults.LOG_LEVEL,
+    ):
+        """
+        Execute the async pipeline.
+
+        This method must be called with await or from within an async context.
+
+        Unlike sync Pipeline, AsyncPipeline uses a simplified context that
+        accepts the DAG directly rather than introspecting from a file.
+        """
+        from runnable import context
+
+        logger.setLevel(log_level)
+
+        service_configurations = context.ServiceConfigurations(
+            configuration_file=configuration_file,
+            execution_context=context.ExecutionContext.PIPELINE,
+        )
+
+        # Pass the DAG directly instead of using pipeline_definition_file
+        configurations = {
+            "dag": self.return_dag(),
+            "parameters_file": parameters_file,
+            "tag": tag,
+            "run_id": run_id,
+            "configuration_file": configuration_file,
+            **service_configurations.services,
+        }
+
+        run_context = context.AsyncPipelineContext.model_validate(configurations)
+        context.set_run_context(run_context)
+
+        await run_context.execute_async()
 
 
 class BaseJob(BaseModel):

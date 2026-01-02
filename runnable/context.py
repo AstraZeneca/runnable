@@ -526,6 +526,82 @@ class PipelineContext(RunnableContext):
                 return ctx.run_log_store.get_run_log_by_id(run_id=ctx.run_id)
 
 
+class AsyncPipelineContext(RunnableContext):
+    """
+    Simplified context for async pipeline execution.
+
+    Unlike PipelineContext, this accepts the DAG directly rather than
+    introspecting from a file. This simplifies async execution since
+    we only support local executors for async pipelines.
+    """
+
+    pipeline_executor: InstantiatedPipelineExecutor
+    catalog: InstantiatedCatalog
+    secrets: InstantiatedSecrets
+    pickler: InstantiatedPickler
+    run_log_store: InstantiatedRunLogStore
+
+    # DAG is passed directly, not computed from a file
+    dag: Graph
+
+    @computed_field  # type: ignore
+    @cached_property
+    def dag_hash(self) -> str:
+        dag = self.dag
+        if not dag:
+            return ""
+        dag_str = json.dumps(dag.model_dump(), sort_keys=True, ensure_ascii=True)
+        return hashlib.sha1(dag_str.encode("utf-8")).hexdigest()
+
+    async def execute_async(self):
+        """Async pipeline execution."""
+        assert self.dag is not None
+
+        pipeline_name = getattr(self.dag, "name", "unnamed")
+
+        with logfire.span(
+            "pipeline:{pipeline_name}",
+            pipeline_name=pipeline_name,
+            run_id=self.run_id,
+            executor=self.pipeline_executor.__class__.__name__,
+        ):
+            logfire.info("Async pipeline execution started")
+
+            console.print("Working with context:")
+            console.print(get_run_context())
+            console.rule(style="[dark orange]")
+
+            if self.pipeline_executor._should_setup_run_log_at_traversal:
+                self.pipeline_executor._set_up_run_log(exists_ok=False)
+
+            try:
+                await self.pipeline_executor.execute_graph_async(dag=self.dag)
+
+                run_log = self.run_log_store.get_run_log_by_id(
+                    run_id=self.run_id, full=False
+                )
+
+                if run_log.status == defaults.SUCCESS:
+                    console.print(
+                        "Pipeline executed successfully!", style=defaults.success_style
+                    )
+                    logfire.info("Pipeline completed", status="success")
+                else:
+                    console.print(
+                        "Pipeline execution failed.", style=defaults.error_style
+                    )
+                    logfire.error("Pipeline failed", status="failed")
+                    raise exceptions.ExecutionFailedError(self.run_id)
+
+            except Exception as e:
+                console.print(e, style=defaults.error_style)
+                logfire.error("Pipeline failed with exception", error=str(e)[:256])
+                raise
+
+            if self.pipeline_executor._should_setup_run_log_at_traversal:
+                return self.run_log_store.get_run_log_by_id(run_id=self.run_id)
+
+
 class JobContext(RunnableContext):
     job_executor: InstantiatedJobExecutor
     catalog: InstantiatedCatalog

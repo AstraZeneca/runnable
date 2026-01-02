@@ -45,9 +45,11 @@ class BaseNode(ABC, BaseModel):
         current_context = context.get_run_context()
         if current_context is None:
             raise RuntimeError("No run context available")
-        if not isinstance(current_context, context.PipelineContext):
+        if not isinstance(
+            current_context, (context.PipelineContext, context.AsyncPipelineContext)
+        ):
             raise TypeError(
-                f"Expected PipelineContext, got {type(current_context).__name__}"
+                f"Expected PipelineContext or AsyncPipelineContext, got {type(current_context).__name__}"
             )
         return current_context
 

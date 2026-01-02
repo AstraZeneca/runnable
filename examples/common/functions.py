@@ -206,3 +206,22 @@ def assert_custom_reducer(
     assert processed_python == max(chunk * 10 for chunk in chunks)
     assert processed_notebook == max(chunk * 100 for chunk in chunks)
     assert processed_shell == max(chunk * 1000 for chunk in chunks)
+
+
+# Async functions for async pipeline testing
+import asyncio
+
+
+async def async_hello():
+    """An async version of hello function."""
+    await asyncio.sleep(0.1)
+    print("Hello from async!")
+    return "async_result"
+
+
+async def async_process(result: str):
+    """Process the result from async_hello asynchronously."""
+    await asyncio.sleep(0.1)
+    processed = f"processed_{result}"
+    print(f"Processed: {processed}")
+    return processed

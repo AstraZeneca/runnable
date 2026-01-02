@@ -739,6 +739,52 @@ def test_python_examples(example, context):
         [asserttion() for asserttion in assertions]
 
 
+# Async examples - these use asyncio.run() and AsyncPipeline
+# Simplified: just test that examples execute successfully
+# (file_path, should_fail)
+async_examples = [
+    ("async/async_tasks", False),
+    ("async/async_sequential", False),
+]
+
+
+def list_async_examples():
+    for example in async_examples:
+        yield example
+
+
+# Only local executors support async - emulator does not
+async_contexts = [default_context, chunked_fs_context]
+
+
+@pytest.mark.parametrize("example", list_async_examples())
+@pytest.mark.parametrize("context", async_contexts)
+@pytest.mark.e2e
+def test_async_examples(example, context):
+    """Test async pipeline examples execute successfully."""
+    import asyncio
+
+    mod, should_fail = example
+    print(f"Testing async {mod}...")
+
+    context = context()
+
+    imported_module = importlib.import_module(f"examples.{mod.replace('/', '.')}")
+    f = getattr(imported_module, "main")
+
+    with context:
+        from runnable import exceptions
+
+        try:
+            os.environ[defaults.ENV_RUN_ID] = generate_run_id()
+            asyncio.run(f())
+            if should_fail:
+                pytest.fail(f"Expected {mod} to fail but it succeeded")
+        except exceptions.ExecutionFailedError:
+            if not should_fail:
+                raise
+
+
 argo_contexts = [argo_context]
 
 

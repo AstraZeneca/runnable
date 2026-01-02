@@ -1,6 +1,7 @@
 import contextlib
 import copy
 import importlib
+import inspect
 import io
 import json
 import logging
@@ -1028,6 +1029,197 @@ class ShellTaskType(BaseTaskType):
                 attempt_log.status = defaults.FAIL
 
         attempt_log.end_time = str(datetime.now())
+        return attempt_log
+
+
+class AsyncPythonTaskType(BaseTaskType):
+    """
+    An execution node for async Python functions.
+
+    This task type is designed for async functions that need to be awaited.
+    It supports AsyncGenerator functions for streaming events.
+
+    Usage in pipeline definition:
+        task = AsyncPythonTask(
+            function=my_async_function,
+            name="async_task",
+            returns=[...]
+        )
+    """
+
+    task_type: str = Field(default="async-python", serialization_alias="command_type")
+    command: str
+
+    def execute_command(
+        self,
+        map_variable: MapVariableType = None,
+    ) -> StepAttempt:
+        """Sync execution is not supported for async tasks."""
+        raise RuntimeError(
+            "AsyncPythonTaskType requires async execution. "
+            "Use execute_command_async() or run the pipeline with execute_async()."
+        )
+
+    async def execute_command_async(
+        self,
+        map_variable: MapVariableType = None,
+        event_callback: Optional[Callable[[dict], None]] = None,
+    ) -> StepAttempt:
+        """Execute the async Python function."""
+        attempt_log = StepAttempt(
+            status=defaults.FAIL,
+            start_time=str(datetime.now()),
+            retry_indicator=self._context.retry_indicator,
+        )
+
+        with logfire.span(
+            "task:{task_name}",
+            task_name=self.command,
+            task_type=self.task_type,
+        ):
+            with (
+                self.execution_context(map_variable=map_variable) as params,
+                self.expose_secrets() as _,
+            ):
+                logfire.info(
+                    "Task started",
+                    inputs=self._safe_serialize_params(params),
+                )
+                self._emit_event(
+                    {
+                        "type": "task_started",
+                        "name": self.command,
+                        "inputs": self._safe_serialize_params(params),
+                    }
+                )
+
+                module, func = utils.get_module_and_attr_names(self.command)
+                sys.path.insert(0, os.getcwd())
+                imported_module = importlib.import_module(module)
+                f = getattr(imported_module, func)
+
+                try:
+                    try:
+                        filtered_parameters = parameters.filter_arguments_for_func(
+                            f, params.copy(), map_variable
+                        )
+                        logger.info(
+                            f"Calling async {func} from {module} with {filtered_parameters}"
+                        )
+
+                        with redirect_output(console=task_console) as (
+                            buffer,
+                            stderr_buffer,
+                        ):
+                            result = f(**filtered_parameters)
+
+                            # Check if result is an AsyncGenerator for streaming
+                            if inspect.isasyncgen(result):
+                                user_set_parameters = None
+                                async for item in result:
+                                    if isinstance(item, dict) and "type" in item:
+                                        # It's an event - emit it
+                                        if event_callback:
+                                            event_callback(item)
+                                        self._emit_event(item)
+                                    else:
+                                        # It's the final return value
+                                        user_set_parameters = item
+                            elif inspect.iscoroutine(result):
+                                # Regular async function
+                                user_set_parameters = await result
+                            else:
+                                # Sync function called through async task (shouldn't happen but handle it)
+                                user_set_parameters = result
+
+                    except Exception as e:
+                        raise exceptions.CommandCallError(
+                            f"Async function call: {self.command} did not succeed.\n"
+                        ) from e
+                    finally:
+                        attempt_log.input_parameters = params.copy()
+                        if map_variable:
+                            attempt_log.input_parameters.update(
+                                {
+                                    k: JsonParameter(value=v, kind="json")
+                                    for k, v in map_variable.items()
+                                }
+                            )
+
+                    if self.returns:
+                        if not isinstance(user_set_parameters, tuple):
+                            user_set_parameters = (user_set_parameters,)
+
+                        if len(user_set_parameters) != len(self.returns):
+                            raise ValueError(
+                                "Returns task signature does not match the function returns"
+                            )
+
+                        output_parameters: Dict[str, Parameter] = {}
+                        metrics: Dict[str, Parameter] = {}
+
+                        for i, task_return in enumerate(self.returns):
+                            output_parameter = task_return_to_parameter(
+                                task_return=task_return,
+                                value=user_set_parameters[i],
+                            )
+
+                            if task_return.kind == "metric":
+                                metrics[task_return.name] = output_parameter
+
+                            param_name = task_return.name
+                            if map_variable:
+                                for _, v in map_variable.items():
+                                    param_name = f"{v}_{param_name}"
+
+                            output_parameters[param_name] = output_parameter
+
+                        attempt_log.output_parameters = output_parameters
+                        attempt_log.user_defined_metrics = metrics
+                        params.update(output_parameters)
+
+                        logfire.info(
+                            "Task completed",
+                            outputs=self._safe_serialize_params(output_parameters),
+                            status="success",
+                        )
+                        self._emit_event(
+                            {
+                                "type": "task_completed",
+                                "name": self.command,
+                                "outputs": self._safe_serialize_params(
+                                    output_parameters
+                                ),
+                            }
+                        )
+                    else:
+                        logfire.info("Task completed", status="success")
+                        self._emit_event(
+                            {
+                                "type": "task_completed",
+                                "name": self.command,
+                            }
+                        )
+
+                    attempt_log.status = defaults.SUCCESS
+                except Exception as _e:
+                    msg = (
+                        f"Call to the async function {self.command} did not succeed.\n"
+                    )
+                    attempt_log.message = msg
+                    task_console.print_exception(show_locals=False)
+                    task_console.log(_e, style=defaults.error_style)
+                    logfire.error("Task failed", error=str(_e)[:256])
+                    self._emit_event(
+                        {
+                            "type": "task_error",
+                            "name": self.command,
+                            "error": str(_e)[:256],
+                        }
+                    )
+
+        attempt_log.end_time = str(datetime.now())
+
         return attempt_log
 
 

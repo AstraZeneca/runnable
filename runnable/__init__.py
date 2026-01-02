@@ -70,6 +70,8 @@ _configure_telemetry()
 
 
 from runnable.sdk import (  # noqa;
+    AsyncPipeline,
+    AsyncPythonTask,
     Catalog,
     Conditional,
     Fail,

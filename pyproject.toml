@@ -166,6 +166,7 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "python" = "runnable.tasks:PythonTaskType"
 "shell" = "runnable.tasks:ShellTaskType"
 "notebook" = "runnable.tasks:NotebookTaskType"
+"async-python" = "runnable.tasks:AsyncPythonTaskType"
 
 
 [tool.ty.src]
