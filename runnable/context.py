@@ -8,7 +8,7 @@ import sys
 from datetime import datetime
 from enum import Enum
 from functools import cached_property, partial
-from typing import Annotated, Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated, Any, Callable, Dict, Optional
 
 from pydantic import (
     BaseModel,
@@ -266,6 +266,19 @@ class RunnableContext(BaseModel):
 
         return run_id
 
+    @computed_field  # type: ignore
+    @property
+    def retry_indicator(self) -> str:
+        """Indicator for retry executions to distinguish attempt logs."""
+        return os.environ.get(defaults.RETRY_INDICATOR, "")
+
+    @computed_field  # type: ignore
+    @property
+    def is_retry(self) -> bool:
+        """Flag indicating if this is a retry run based on environment variable."""
+        retry_run_id = os.environ.get(defaults.RETRY_RUN_ID, "")
+        return bool(retry_run_id)
+
     def model_post_init(self, __context: Any) -> None:
         os.environ[defaults.ENV_RUN_ID] = self.run_id
 
@@ -303,19 +316,6 @@ class PipelineContext(RunnableContext):
             raise ValueError(
                 f"Invalid execution mode: {self.execution_mode}. Must be 'yaml' or 'python'."
             )
-
-    @computed_field  # type: ignore
-    @property
-    def retry_indicator(self) -> str:
-        """Indicator for retry executions to distinguish attempt logs."""
-        return os.environ.get(defaults.RETRY_INDICATOR, "")
-
-    @computed_field  # type: ignore
-    @property
-    def is_retry(self) -> bool:
-        """Flag indicating if this is a retry run based on environment variable."""
-        retry_run_id = os.environ.get(defaults.RETRY_RUN_ID, "")
-        return bool(retry_run_id)
 
     @computed_field  # type: ignore
     @cached_property
@@ -431,6 +431,8 @@ class PipelineContext(RunnableContext):
                 return {}
 
             ctx = get_run_context()
+            assert ctx
+            assert isinstance(ctx, PipelineContext)
             run_log = ctx.run_log_store.get_run_log_by_id(run_id=ctx.run_id, full=False)
 
             if run_log.status == defaults.SUCCESS:
@@ -446,6 +448,8 @@ class PipelineContext(RunnableContext):
 
         if self.pipeline_executor._should_setup_run_log_at_traversal:
             ctx = get_run_context()
+            assert ctx
+            assert isinstance(ctx, PipelineContext)
             return ctx.run_log_store.get_run_log_by_id(run_id=ctx.run_id)
 
 
@@ -517,6 +521,8 @@ class JobContext(RunnableContext):
 
         if self.job_executor._should_setup_run_log_at_traversal:
             ctx = get_run_context()
+            assert ctx
+            assert isinstance(ctx, JobContext)
             return ctx.run_log_store.get_run_log_by_id(run_id=ctx.run_id)
 
 
@@ -524,7 +530,7 @@ class JobContext(RunnableContext):
 if TYPE_CHECKING:
     from typing import Union
 
-    RunnableContextType = Union["PipelineContext", "JobContext"]
+    RunnableContextType = Union["RunnableContext", "PipelineContext", "JobContext"]
 else:
     RunnableContextType = Any
 
