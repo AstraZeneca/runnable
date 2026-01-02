@@ -97,3 +97,48 @@ class TaskNode(ExecutableNode):
         step_log.attempts.append(attempt_log)
 
         return step_log
+
+    async def execute_async(
+        self,
+        map_variable: MapVariableType = None,
+        attempt_number: int = 1,
+        mock: bool = False,
+    ) -> StepLog:
+        """Async task execution with fallback to sync."""
+        step_log = self._context.run_log_store.get_step_log(
+            self._get_step_log_name(map_variable), self._context.run_id
+        )
+
+        if not mock:
+            # Try async first, fall back to sync
+            try:
+                attempt_log = await self.executable.execute_command_async(
+                    map_variable=map_variable
+                )
+            except NotImplementedError:
+                # Task doesn't support async, fall back to sync
+                attempt_log = self.executable.execute_command(map_variable=map_variable)
+
+            attempt_log.attempt_number = attempt_number
+            attempt_log.retry_indicator = self._context.retry_indicator
+        else:
+            attempt_log = datastore.StepAttempt(
+                status=defaults.SUCCESS,
+                start_time=str(datetime.now()),
+                end_time=str(datetime.now()),
+                attempt_number=attempt_number,
+                retry_indicator=self._context.retry_indicator,
+            )
+
+        # Add code identities to the attempt
+        self._context.pipeline_executor.add_code_identities(
+            node=self, attempt_log=attempt_log
+        )
+
+        logger.info(f"attempt_log: {attempt_log}")
+        logger.info(f"Step {self.name} completed with status: {attempt_log.status}")
+
+        step_log.status = attempt_log.status
+        step_log.attempts.append(attempt_log)
+
+        return step_log

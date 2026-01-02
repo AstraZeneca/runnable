@@ -510,6 +510,18 @@ class CompositeNode(TraversalNode):
             "This is a composite node and does not have an execute function"
         )
 
+    async def execute_as_graph_async(self, map_variable: MapVariableType = None):
+        """
+        Async execution of sub-graph.
+
+        Default raises NotImplementedError - override in subclasses
+        that support async execution (ParallelNode, MapNode, DagNode).
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement execute_as_graph_async() "
+            f"for async execution support."
+        )
+
 
 class TerminalNode(BaseNode):
     def _get_on_failure_node(self) -> str:
