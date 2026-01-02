@@ -71,6 +71,11 @@ torchexamples = [
     "torch>=2.8.0",
     "torchvision<0.24.0",
 ]
+fastapi-telemetry = [
+    "fastapi>=0.128.0",
+    "logfire[fastapi]>=4.16.0",
+    "uvicorn>=0.40.0",
+]
 
 
 [tool.uv.workspace]
