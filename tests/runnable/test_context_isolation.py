@@ -51,6 +51,7 @@ async def test_context_isolation_async():
             run_log_store={"type": "memory"},
             pipeline_executor={"type": "local"}
         )
+        set_run_context(context)
 
         # Each task should maintain its own context
         current_context = get_run_context()
