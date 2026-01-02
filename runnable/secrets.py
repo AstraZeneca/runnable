@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, ConfigDict
 
-import runnable.context as context
 from runnable import defaults, exceptions
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -23,10 +22,6 @@ class BaseSecrets(ABC, BaseModel):
     service_name: str = ""
     service_type: str = "secrets"
     model_config = ConfigDict(extra="forbid")
-
-    @property
-    def _context(self):
-        return context.run_context
 
     @abstractmethod
     def get(self, name: str) -> str:

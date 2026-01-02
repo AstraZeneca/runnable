@@ -8,10 +8,6 @@ spec:
   activeDeadlineSeconds: 86400
   arguments:
     parameters:
-      - name: param1
-        value: 41
-      - name: param2
-        value: hello world
       - name: integer
         value: 1
       - name: floater
@@ -33,33 +29,30 @@ spec:
     failFast: true
     nodeSelector: {}
   templates:
-    - name: generate-chunks-u62hhp
+    - name: map-state-syo2np-fan-out
       container:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        image: $docker_image
         command:
           - runnable
-          - execute-single-node
+          - fan
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.dynamic_map.main
-          - generate_chunks
+          - map_state
+          - examples.07-map.map_fail.main
+          - out
           - --log-level
-          - '{{workflow.parameters.log_level}}'
-          - --mode
-          - python
-          - --config
+          - WARNING
+          - --config-file
           - examples/configs/argo-config.yaml
           - --parameters-file
-          - examples/09-retry/original_parameters.yaml
+          - examples/common/initial_parameters.yaml
+          - --mode
+          - python
         imagePullPolicy: Always
         env:
           - name: RUNNABLE_RETRY_RUN_ID
             value: '{{workflow.parameters.retry_run_id}}'
           - name: RUNNABLE_RETRY_INDICATOR
             value: '{{workflow.parameters.retry_indicator}}'
-          - name: RUNNABLE_PRM_param1
-            value: '{{workflow.parameters.param1}}'
-          - name: RUNNABLE_PRM_param2
-            value: '{{workflow.parameters.param2}}'
           - name: RUNNABLE_PRM_integer
             value: '{{workflow.parameters.integer}}'
           - name: RUNNABLE_PRM_floater
@@ -76,58 +69,6 @@ spec:
             value: '{{workflow.parameters.log_level}}'
           - name: error_on_existing_run_id
             value: 'true'
-          - name: RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID
-            value: '{{workflow.uid}}'
-        volumeMounts:
-          - mountPath: /tmp
-            name: runnable
-            readOnly: false
-        resources:
-          limits:
-            memory: 4Gi
-            cpu: '2'
-          requests:
-            memory: 4Gi
-            cpu: '2'
-      inputs:
-        parameters: []
-      memoize:
-        key: '{{workflow.parameters.run_id}}-generate-chunks-u62hhp'
-        cache:
-          configMap:
-            name: kf-configmap
-            key: cache
-      activeDeadlineSeconds: 86400
-      nodeSelector: {}
-      volumes:
-        - name: runnable
-          persistentVolumeClaim:
-            claimName: runnable
-            readOnly: false
-    - name: process-all-xj521f-fan-out
-      container:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
-        command:
-          - runnable
-          - fan
-          - '{{workflow.parameters.run_id}}'
-          - process_all
-          - examples.07-map.dynamic_map.main
-          - out
-          - --log-level
-          - WARNING
-          - --config-file
-          - examples/configs/argo-config.yaml
-          - --parameters-file
-          - examples/09-retry/original_parameters.yaml
-          - --mode
-          - python
-        imagePullPolicy: Always
-        env:
-          - name: RUNNABLE_RETRY_RUN_ID
-            value: '{{workflow.parameters.retry_run_id}}'
-          - name: RUNNABLE_RETRY_INDICATOR
-            value: '{{workflow.parameters.retry_indicator}}'
         volumeMounts:
           - mountPath: /tmp
             name: runnable
@@ -147,7 +88,7 @@ spec:
             valueFrom:
               path: /tmp/output.txt
       memoize:
-        key: '{{workflow.parameters.run_id}}-process-all-xj521f-fan-out'
+        key: '{{workflow.parameters.run_id}}-map-state-syo2np-fan-out'
         cache:
           configMap:
             name: kf-configmap
@@ -159,15 +100,15 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: process-all-process-iimjw6
+    - name: map-state-execute-python-cmsudq
       container:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        image: $docker_image
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.dynamic_map.main
-          - process_all.map_variable_placeholder.process
+          - examples.07-map.map_fail.main
+          - map_state.map_variable_placeholder.execute_python
           - --log-level
           - '{{workflow.parameters.log_level}}'
           - --mode
@@ -177,7 +118,7 @@ spec:
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
-          - examples/09-retry/original_parameters.yaml
+          - examples/common/initial_parameters.yaml
         imagePullPolicy: Always
         env:
           - name: RUNNABLE_RETRY_RUN_ID
@@ -201,7 +142,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-process-all-process-iimjw6'
+        key: '{{workflow.parameters.run_id}}-map-state-execute-python-cmsudq'
         cache:
           configMap:
             name: kf-configmap
@@ -213,15 +154,15 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: process-all-success-osopd2
+    - name: map-state-execute-notebook-j0zzgy
       container:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        image: $docker_image
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.dynamic_map.main
-          - process_all.map_variable_placeholder.success
+          - examples.07-map.map_fail.main
+          - map_state.map_variable_placeholder.execute_notebook
           - --log-level
           - '{{workflow.parameters.log_level}}'
           - --mode
@@ -231,7 +172,7 @@ spec:
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
-          - examples/09-retry/original_parameters.yaml
+          - examples/common/initial_parameters.yaml
         imagePullPolicy: Always
         env:
           - name: RUNNABLE_RETRY_RUN_ID
@@ -255,7 +196,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-process-all-success-osopd2'
+        key: '{{workflow.parameters.run_id}}-map-state-execute-notebook-j0zzgy'
         cache:
           configMap:
             name: kf-configmap
@@ -267,43 +208,226 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: process-all-xj521f-branch
+    - name: map-state-execute-shell-asqpgr
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.map_fail.main
+          - map_state.map_variable_placeholder.execute_shell
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --map-variable
+          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters:
+          - name: chunk
+      memoize:
+        key: '{{workflow.parameters.run_id}}-map-state-execute-shell-asqpgr'
+        cache:
+          configMap:
+            name: kf-configmap
+            key: cache
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: map-state-read-processed-chunk-f2crhc
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.map_fail.main
+          - map_state.map_variable_placeholder.read%processed%chunk
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --map-variable
+          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters:
+          - name: chunk
+      memoize:
+        key: '{{workflow.parameters.run_id}}-map-state-read-processed-chunk-f2crhc'
+        cache:
+          configMap:
+            name: kf-configmap
+            key: cache
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: map-state-success-ynhl31
+      container:
+        image: $docker_image
+        command:
+          - runnable
+          - execute-single-node
+          - '{{workflow.parameters.run_id}}'
+          - examples.07-map.map_fail.main
+          - map_state.map_variable_placeholder.success
+          - --log-level
+          - '{{workflow.parameters.log_level}}'
+          - --mode
+          - python
+          - --map-variable
+          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --config
+          - examples/configs/argo-config.yaml
+          - --parameters-file
+          - examples/common/initial_parameters.yaml
+        imagePullPolicy: Always
+        env:
+          - name: RUNNABLE_RETRY_RUN_ID
+            value: '{{workflow.parameters.retry_run_id}}'
+          - name: RUNNABLE_RETRY_INDICATOR
+            value: '{{workflow.parameters.retry_indicator}}'
+          - name: RUNNABLE_CODE_ID_ARGO_WORKFLOW_UID
+            value: '{{workflow.uid}}'
+        volumeMounts:
+          - mountPath: /tmp
+            name: runnable
+            readOnly: false
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: '2'
+          requests:
+            memory: 4Gi
+            cpu: '2'
+      inputs:
+        parameters:
+          - name: chunk
+      memoize:
+        key: '{{workflow.parameters.run_id}}-map-state-success-ynhl31'
+        cache:
+          configMap:
+            name: kf-configmap
+            key: cache
+      activeDeadlineSeconds: 86400
+      nodeSelector: {}
+      volumes:
+        - name: runnable
+          persistentVolumeClaim:
+            claimName: runnable
+            readOnly: false
+    - name: map-state-syo2np-branch
       dag:
         tasks:
-          - name: process-all-process-iimjw6
-            template: process-all-process-iimjw6
+          - name: map-state-execute-python-cmsudq
+            template: map-state-execute-python-cmsudq
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
             depends: ''
-          - name: process-all-success-osopd2
-            template: process-all-success-osopd2
+          - name: map-state-execute-notebook-j0zzgy
+            template: map-state-execute-notebook-j0zzgy
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
-            depends: process-all-process-iimjw6.Succeeded
+            depends: map-state-execute-python-cmsudq.Succeeded
+          - name: map-state-execute-shell-asqpgr
+            template: map-state-execute-shell-asqpgr
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{inputs.parameters.chunk}}'
+            depends: map-state-execute-notebook-j0zzgy.Succeeded
+          - name: map-state-read-processed-chunk-f2crhc
+            template: map-state-read-processed-chunk-f2crhc
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{inputs.parameters.chunk}}'
+            depends: map-state-execute-shell-asqpgr.Succeeded
+          - name: map-state-success-ynhl31
+            template: map-state-success-ynhl31
+            arguments:
+              parameters:
+                - name: chunk
+                  value: '{{inputs.parameters.chunk}}'
+            depends: map-state-read-processed-chunk-f2crhc.Succeeded
       inputs:
         parameters:
           - name: chunk
       failFast: true
-    - name: process-all-xj521f-fan-in
+    - name: map-state-syo2np-fan-in
       container:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        image: $docker_image
         command:
           - runnable
           - fan
           - '{{workflow.parameters.run_id}}'
-          - process_all
-          - examples.07-map.dynamic_map.main
+          - map_state
+          - examples.07-map.map_fail.main
           - in
           - --log-level
           - WARNING
           - --config-file
           - examples/configs/argo-config.yaml
           - --parameters-file
-          - examples/09-retry/original_parameters.yaml
+          - examples/common/initial_parameters.yaml
           - --mode
           - python
         imagePullPolicy: Always
@@ -326,7 +450,7 @@ spec:
       inputs:
         parameters: []
       memoize:
-        key: '{{workflow.parameters.run_id}}-process-all-xj521f-fan-in'
+        key: '{{workflow.parameters.run_id}}-map-state-syo2np-fan-in'
         cache:
           configMap:
             name: kf-configmap
@@ -338,36 +462,36 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: process-all-xj521f
+    - name: map-state-syo2np
       dag:
         tasks:
-          - name: process-all-xj521f-fan-out
-            template: process-all-xj521f-fan-out
+          - name: map-state-syo2np-fan-out
+            template: map-state-syo2np-fan-out
             arguments:
               parameters: []
-          - name: process-all-xj521f-branch
-            template: process-all-xj521f-branch
+          - name: map-state-syo2np-branch
+            template: map-state-syo2np-branch
             arguments:
               parameters:
                 - name: chunk
                   value: '{{item}}'
-            withParam: '{{tasks.process-all-xj521f-fan-out.outputs.parameters.iterate-on}}'
-            depends: process-all-xj521f-fan-out.Succeeded
-          - name: process-all-xj521f-fan-in
-            template: process-all-xj521f-fan-in
+            withParam: '{{tasks.map-state-syo2np-fan-out.outputs.parameters.iterate-on}}'
+            depends: map-state-syo2np-fan-out.Succeeded
+          - name: map-state-syo2np-fan-in
+            template: map-state-syo2np-fan-in
             arguments:
               parameters: []
-            depends: process-all-xj521f-branch.Succeeded ||
-              process-all-xj521f-branch.Failed
+            depends: map-state-syo2np-branch.Succeeded ||
+              map-state-syo2np-branch.Failed
       failFast: false
-    - name: collect-qrtrrs
+    - name: collect-u8e2bc
       container:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        image: $docker_image
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.dynamic_map.main
+          - examples.07-map.map_fail.main
           - collect
           - --log-level
           - '{{workflow.parameters.log_level}}'
@@ -376,7 +500,7 @@ spec:
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
-          - examples/09-retry/original_parameters.yaml
+          - examples/common/initial_parameters.yaml
         imagePullPolicy: Always
         env:
           - name: RUNNABLE_RETRY_RUN_ID
@@ -399,7 +523,7 @@ spec:
       inputs:
         parameters: []
       memoize:
-        key: '{{workflow.parameters.run_id}}-collect-qrtrrs'
+        key: '{{workflow.parameters.run_id}}-collect-u8e2bc'
         cache:
           configMap:
             name: kf-configmap
@@ -411,14 +535,14 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: success-iprddl
+    - name: success-m43aw6
       container:
-        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
+        image: $docker_image
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.dynamic_map.main
+          - examples.07-map.map_fail.main
           - success
           - --log-level
           - '{{workflow.parameters.log_level}}'
@@ -427,7 +551,7 @@ spec:
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
-          - examples/09-retry/original_parameters.yaml
+          - examples/common/initial_parameters.yaml
         imagePullPolicy: Always
         env:
           - name: RUNNABLE_RETRY_RUN_ID
@@ -450,7 +574,7 @@ spec:
       inputs:
         parameters: []
       memoize:
-        key: '{{workflow.parameters.run_id}}-success-iprddl'
+        key: '{{workflow.parameters.run_id}}-success-m43aw6'
         cache:
           configMap:
             name: kf-configmap
@@ -465,26 +589,21 @@ spec:
     - name: runnable-dag
       dag:
         tasks:
-          - name: generate-chunks-u62hhp
-            template: generate-chunks-u62hhp
+          - name: map-state-syo2np
+            template: map-state-syo2np
             arguments:
               parameters: []
             depends: ''
-          - name: process-all-xj521f
-            template: process-all-xj521f
+          - name: collect-u8e2bc
+            template: collect-u8e2bc
             arguments:
               parameters: []
-            depends: generate-chunks-u62hhp.Succeeded
-          - name: collect-qrtrrs
-            template: collect-qrtrrs
+            depends: map-state-syo2np.Succeeded
+          - name: success-m43aw6
+            template: success-m43aw6
             arguments:
               parameters: []
-            depends: process-all-xj521f.Succeeded
-          - name: success-iprddl
-            template: success-iprddl
-            arguments:
-              parameters: []
-            depends: collect-qrtrrs.Succeeded
+            depends: collect-u8e2bc.Succeeded
       failFast: true
   volumes:
     - name: runnable
