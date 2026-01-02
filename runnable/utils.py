@@ -246,7 +246,10 @@ def get_git_code_identity():
     Returns:
         runnable.datastore.CodeIdentity: The code identity used by the run log store.
     """
-    code_identity = context.run_context.run_log_store.create_code_identity()
+    current_context = context.get_run_context()
+    if current_context is None:
+        raise RuntimeError("No run context available")
+    code_identity = current_context.run_log_store.create_code_identity()
     try:
         code_identity.code_identifier = get_current_code_commit()
         code_identity.code_identifier_type = "git"

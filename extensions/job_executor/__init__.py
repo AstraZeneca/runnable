@@ -38,9 +38,14 @@ class GenericJobExecutor(BaseJobExecutor):
 
     @property
     def _context(self):
-        assert context.run_context
-        assert isinstance(context.run_context, context.JobContext)
-        return context.run_context
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available")
+        if not isinstance(current_context, context.JobContext):
+            raise TypeError(
+                f"Expected JobContext, got {type(current_context).__name__}"
+            )
+        return current_context
 
     def _get_parameters(self) -> Dict[str, JsonParameter]:
         """

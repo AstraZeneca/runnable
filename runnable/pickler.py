@@ -4,8 +4,6 @@ from typing import Any
 import dill as pickle
 from pydantic import BaseModel, ConfigDict
 
-import runnable.context as context
-
 
 class BasePickler(ABC, BaseModel):
     """
@@ -19,10 +17,6 @@ class BasePickler(ABC, BaseModel):
     service_name: str = ""
     service_type: str = "pickler"
     model_config = ConfigDict(extra="forbid")
-
-    @property
-    def _context(self):
-        return context.run_context
 
     @abstractmethod
     def dump(self, data: Any, path: str):

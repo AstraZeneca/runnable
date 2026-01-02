@@ -42,9 +42,9 @@ def test_object_parameter_init():
 )
 def test_object_parameter_description(mock_context, serialisation, expected):
     """Test description property under different serialization settings"""
-    with patch("runnable.datastore.context") as mock_ctx_module:
-        mock_ctx_module.run_context = mock_context
+    with patch("runnable.datastore.context.get_run_context") as mock_get_ctx:
         mock_context.object_serialisation = serialisation
+        mock_get_ctx.return_value = mock_context
 
         obj_param = ObjectParameter(kind="object", value="test_obj")
         assert obj_param.description == expected
@@ -52,8 +52,8 @@ def test_object_parameter_description(mock_context, serialisation, expected):
 
 def test_object_parameter_file_name(mock_context):
     """Test file_name property"""
-    with patch("runnable.datastore.context") as mock_ctx_module:
-        mock_ctx_module.run_context = mock_context
+    with patch("runnable.datastore.context.get_run_context") as mock_get_ctx:
+        mock_get_ctx.return_value = mock_context
 
         obj_param = ObjectParameter(kind="object", value="test_obj")
         assert obj_param.file_name == "test_obj.pkl"
@@ -61,10 +61,10 @@ def test_object_parameter_file_name(mock_context):
 
 def test_get_value_without_serialisation(mock_context):
     """Test get_value when object serialisation is disabled"""
-    with patch("runnable.datastore.context") as mock_ctx_module:
-        mock_ctx_module.run_context = mock_context
+    with patch("runnable.datastore.context.get_run_context") as mock_get_ctx:
         mock_context.object_serialisation = False
         mock_context.return_objects = {"test_obj": "test_value"}
+        mock_get_ctx.return_value = mock_context
 
         obj_param = ObjectParameter(kind="object", value="test_obj")
         assert obj_param.get_value() == "test_value"
@@ -72,9 +72,9 @@ def test_get_value_without_serialisation(mock_context):
 
 def test_put_object_without_serialisation(mock_context):
     """Test put_object when object serialisation is disabled"""
-    with patch("runnable.datastore.context") as mock_ctx_module:
-        mock_ctx_module.run_context = mock_context
+    with patch("runnable.datastore.context.get_run_context") as mock_get_ctx:
         mock_context.object_serialisation = False
+        mock_get_ctx.return_value = mock_context
 
         obj_param = ObjectParameter(kind="object", value="test_obj")
         obj_param.put_object("test_value")

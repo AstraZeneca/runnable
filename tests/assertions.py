@@ -14,7 +14,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.absolute()))
 def load_run_log(run_id):
     from runnable import context
 
-    run_log = context.run_context.run_log_store.get_run_log_by_id(run_id, full=True)
+    current_context = context.get_run_context()
+    if current_context is None:
+        raise RuntimeError("No run context available")
+    run_log = current_context.run_log_store.get_run_log_by_id(run_id, full=True)
     return run_log
 
 

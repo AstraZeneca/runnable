@@ -1,3 +1,4 @@
+import contextvars
 import hashlib
 import importlib
 import json
@@ -7,7 +8,7 @@ import sys
 from datetime import datetime
 from enum import Enum
 from functools import cached_property, partial
-from typing import Annotated, Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Annotated, Any, Callable, Dict, Optional
 
 from pydantic import (
     BaseModel,
@@ -286,9 +287,8 @@ class RunnableContext(BaseModel):
         if self.tag:
             os.environ[defaults.RUNNABLE_RUN_TAG] = self.tag
 
-        global run_context
-        if not run_context:
-            run_context = self  # type: ignore
+        # Set the context using contextvars for proper isolation
+        set_run_context(self)
 
     def execute(self):
         "Execute the pipeline or the job"
@@ -417,7 +417,7 @@ class PipelineContext(RunnableContext):
         assert self.dag is not None
 
         console.print("Working with context:")
-        console.print(run_context)
+        console.print(get_run_context())
         console.rule(style="[dark orange]")
 
         # Prepare for graph execution
@@ -430,9 +430,10 @@ class PipelineContext(RunnableContext):
                 # non local executors just traverse the graph and do nothing
                 return {}
 
-            run_log = run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id, full=False
-            )
+            ctx = get_run_context()
+            assert ctx
+            assert isinstance(ctx, PipelineContext)
+            run_log = ctx.run_log_store.get_run_log_by_id(run_id=ctx.run_id, full=False)
 
             if run_log.status == defaults.SUCCESS:
                 console.print(
@@ -440,15 +441,16 @@ class PipelineContext(RunnableContext):
                 )
             else:
                 console.print("Pipeline execution failed.", style=defaults.error_style)
-                raise exceptions.ExecutionFailedError(run_context.run_id)
+                raise exceptions.ExecutionFailedError(ctx.run_id)
         except Exception as e:  # noqa: E722
             console.print(e, style=defaults.error_style)
             raise
 
         if self.pipeline_executor._should_setup_run_log_at_traversal:
-            return run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id
-            )
+            ctx = get_run_context()
+            assert ctx
+            assert isinstance(ctx, PipelineContext)
+            return ctx.run_log_store.get_run_log_by_id(run_id=ctx.run_id)
 
 
 class JobContext(RunnableContext):
@@ -502,7 +504,7 @@ class JobContext(RunnableContext):
 
     def execute(self):
         console.print("Working with context:")
-        console.print(run_context)
+        console.print(get_run_context())
         console.rule(style="[dark orange]")
 
         try:
@@ -518,10 +520,42 @@ class JobContext(RunnableContext):
         )
 
         if self.job_executor._should_setup_run_log_at_traversal:
-            return run_context.run_log_store.get_run_log_by_id(
-                run_id=run_context.run_id
-            )
+            ctx = get_run_context()
+            assert ctx
+            assert isinstance(ctx, JobContext)
+            return ctx.run_log_store.get_run_log_by_id(run_id=ctx.run_id)
 
 
-run_context: PipelineContext | JobContext = None  # type: ignore
-run_context: PipelineContext | JobContext = None  # type: ignore
+# Context variable for thread/async-safe run context storage
+if TYPE_CHECKING:
+    from typing import Union
+
+    RunnableContextType = Union["RunnableContext", "PipelineContext", "JobContext"]
+else:
+    RunnableContextType = Any
+
+_run_context_var: contextvars.ContextVar[Optional[RunnableContextType]] = (
+    contextvars.ContextVar("run_context", default=None)
+)
+
+
+def get_run_context() -> Optional[RunnableContextType]:
+    """Get the current run context for this execution context."""
+    return _run_context_var.get()
+
+
+def set_run_context(context: RunnableContextType) -> None:
+    """Set the run context for this execution context."""
+    _run_context_var.set(context)
+
+
+# BREAKING CHANGE: The global run_context variable has been replaced with
+# get_run_context() and set_run_context() functions for proper context isolation.
+# All code must be updated to use the new API.
+#
+# Migration guide:
+#   Before: run_context.run_log_store
+#   After:  get_run_context().run_log_store
+#
+# This change was necessary to fix concurrency issues by using contextvars
+# for proper thread and async isolation of run contexts.

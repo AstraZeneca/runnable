@@ -98,36 +98,48 @@ class ObjectParameter(BaseModel):
     @computed_field  # type: ignore
     @property
     def description(self) -> str:
-        if context.run_context.object_serialisation:
+        current_context = context.get_run_context()
+        if current_context and current_context.object_serialisation:
             return f"Pickled object stored in catalog as: {self.value}"
 
         return f"Object stored in memory as: {self.value}"
 
     @property
     def file_name(self) -> str:
-        return f"{self.value}{context.run_context.pickler.extension}"
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available")
+        return f"{self.value}{current_context.pickler.extension}"
 
     def get_value(self) -> Any:
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available")
+
         # If there was no serialisation, return the object from the return objects
-        if not context.run_context.object_serialisation:
-            return context.run_context.return_objects[self.value]
+        if not current_context.object_serialisation:
+            return current_context.return_objects[self.value]
 
         # If the object was serialised, get it from the catalog
-        catalog_handler = context.run_context.catalog
+        catalog_handler = current_context.catalog
         catalog_handler.get(name=self.file_name)
-        obj = context.run_context.pickler.load(path=self.file_name)
+        obj = current_context.pickler.load(path=self.file_name)
         os.remove(self.file_name)  # Remove after loading
         return obj
 
     def put_object(self, data: Any) -> None:
-        if not context.run_context.object_serialisation:
-            context.run_context.return_objects[self.value] = data
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available")
+
+        if not current_context.object_serialisation:
+            current_context.return_objects[self.value] = data
             return
 
         # If the object was serialised, put it in the catalog
-        context.run_context.pickler.dump(data=data, path=self.file_name)
+        current_context.pickler.dump(data=data, path=self.file_name)
 
-        catalog_handler = context.run_context.catalog
+        catalog_handler = current_context.catalog
         catalog_handler.put(name=self.file_name)
         os.remove(self.file_name)  # Remove after loading
 
@@ -402,16 +414,20 @@ class RunLog(BaseModel):
     def get_summary(self) -> Dict[str, Any]:
         summary: Dict[str, Any] = {}
 
-        _context = context.run_context
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available")
 
         summary["Unique execution id"] = self.run_id
         summary["status"] = self.status
 
-        summary["Catalog Location"] = _context.catalog.get_summary()
-        summary["Full Run log present at: "] = _context.run_log_store.get_summary()
+        summary["Catalog Location"] = current_context.catalog.get_summary()
+        summary["Full Run log present at: "] = (
+            current_context.run_log_store.get_summary()
+        )
 
-        run_log = _context.run_log_store.get_run_log_by_id(
-            run_id=_context.run_id, full=True
+        run_log = current_context.run_log_store.get_run_log_by_id(
+            run_id=current_context.run_id, full=True
         )
 
         summary["Final Parameters"] = {
@@ -568,7 +584,10 @@ class BaseRunLogStore(ABC, BaseModel):
 
     @property
     def _context(self):
-        return context.run_context
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available")
+        return current_context
 
     @abstractmethod
     def create_run_log(

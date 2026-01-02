@@ -17,7 +17,10 @@ def get_step(step_name: str, run_log):
 def load_run_log(run_id):
     from runnable import context
 
-    run_log = context.run_context.run_log_store.get_run_log_by_id(run_id, full=True)
+    current_context = context.get_run_context()
+    if current_context is None:
+        raise RuntimeError("No run context available")
+    run_log = current_context.run_log_store.get_run_log_by_id(run_id, full=True)
     return run_log
 
 
@@ -61,7 +64,7 @@ def retry_context():
         os.environ.pop("RUNNABLE_PRM_param1", None)
         os.environ.pop("RUNNABLE_PARAMETERS_FILE", None)
         print("Cleaning up runnable context")
-        runnable_context.run_context = None
+        runnable_context.set_run_context(None)
 
 
 @contextmanager

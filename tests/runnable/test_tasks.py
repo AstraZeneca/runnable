@@ -51,8 +51,8 @@ def mock_context(mocker):
     mock_ctx.run_log_store.get_parameters.return_value = parameters_dict.copy()
     mock_ctx.retry_indicator = ""
 
-    # Patch both run_context and progress at module level
-    mocker.patch("runnable.context.run_context", mock_ctx)
+    # Patch get_run_context to return the mock context
+    mocker.patch("runnable.context.get_run_context", return_value=mock_ctx)
 
     # Return both mocks for test use
     return mock_ctx, mock_progress
@@ -147,7 +147,7 @@ def test_notebook_task_validation():
     assert task.command == "test.ipynb"
 
 
-def test_notebook_output_path():
+def test_notebook_output_path(mock_context):
     """Test notebook output path generation"""
     task = NotebookTaskType(command="test.ipynb")
 

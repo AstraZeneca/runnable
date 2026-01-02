@@ -42,8 +42,14 @@ class BaseNode(ABC, BaseModel):
 
     @property
     def _context(self):
-        assert isinstance(context.run_context, context.PipelineContext)
-        return context.run_context
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available")
+        if not isinstance(current_context, context.PipelineContext):
+            raise TypeError(
+                f"Expected PipelineContext, got {type(current_context).__name__}"
+            )
+        return current_context
 
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=False)
 
