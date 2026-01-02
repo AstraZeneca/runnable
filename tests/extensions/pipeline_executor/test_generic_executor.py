@@ -53,7 +53,7 @@ def mock_context(mocker):
     mock_catalog = mocker.MagicMock()
     mock_ctx.catalog = mock_catalog
 
-    mocker.patch.object(context, "run_context", mock_ctx)
+    mocker.patch.object(context, "get_run_context", return_value=mock_ctx)
     return mock_ctx
 
 
