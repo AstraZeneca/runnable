@@ -467,45 +467,29 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         """
         attempt_log.code_identities.append(utils.get_git_code_identity())
 
-    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
+    # ═══════════════════════════════════════════════════════════════
+    # Shared helpers - called by both sync and async execution paths
+    # ═══════════════════════════════════════════════════════════════
+
+    def _prepare_node_for_execution(
+        self, node: BaseNode, map_variable: MapVariableType = None
+    ):
         """
-        This is the entry point to from the graph execution.
+        Setup before node execution - shared by sync/async paths.
 
-        Modified to handle retry logic by skipping successful steps.
-
-        While the self.execute_graph is responsible for traversing the graph, this function is responsible for
-        actual execution of the node.
-
-        If the node type is:
-            * task : We can delegate to _execute_node after checking the eligibility for re-run in cases of a re-run
-            * success: We can delegate to _execute_node
-            * fail: We can delegate to _execute_node
-
-        For nodes that are internally graphs:
-            * parallel: Delegate the responsibility of execution to the node.execute_as_graph()
-            * dag: Delegate the responsibility of execution to the node.execute_as_graph()
-            * map: Delegate the responsibility of execution to the node.execute_as_graph()
-
-        Transpilers will NEVER use this method and will NEVER call ths method.
-        This method should only be used by interactive executors.
-
-        Args:
-            node (Node): The node to execute
-            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
-                    Defaults to None.
+        Returns None if node should be skipped (retry logic).
         """
-
         if self._should_skip_step_in_retry(node, map_variable):
             logger.info(
                 f"Skipping execution of '{node.internal_name}' due to retry logic"
             )
             console.print(
-                f":fast_forward: Skipping node {node.internal_name} - already successful in original run",
+                f":fast_forward: Skipping node {node.internal_name} - already successful",
                 style="bold yellow",
             )
-            return  # Skip execution, no return value
+            return None
 
-        # For retry runs, try to get existing step log first to preserve original attempts
+        # Handle step log creation for retry vs normal runs
         if self._context.is_retry:
             try:
                 step_log = self._context.run_log_store.get_step_log(
@@ -515,35 +499,63 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                     f"Reusing existing step log for retry: {node.internal_name}"
                 )
             except exceptions.StepLogNotFoundError:
-                # Step was never executed, create new step log
                 step_log = self._context.run_log_store.create_step_log(
                     node.name, node._get_step_log_name(map_variable)
                 )
                 logger.info(f"Creating new step log for retry: {node.internal_name}")
         else:
-            # Normal run: always create new step log
             step_log = self._context.run_log_store.create_step_log(
                 node.name, node._get_step_log_name(map_variable)
             )
 
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING
-
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+
+        return step_log
+
+    def _finalize_graph_execution(
+        self, node: BaseNode, dag: Graph, map_variable: MapVariableType = None
+    ):
+        """Finalize after graph traversal - shared by sync/async paths."""
+        run_log = self._context.run_log_store.get_branch_log(
+            node._get_branch_log_name(map_variable), self._context.run_id
+        )
+
+        branch = "graph"
+        if node.internal_branch_name:
+            branch = node.internal_branch_name
+
+        logger.info(f"Finished execution of {branch} with status {run_log.status}")
+
+        if dag == self._context.dag:
+            run_log = cast(RunLog, run_log)
+            console.print("Completed Execution, Summary:", style="bold color(208)")
+            console.print(run_log.get_summary(), style=defaults.info_style)
+
+    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
+        """
+        Sync node execution entry point.
+
+        Uses _prepare_node_for_execution helper for setup (shared with async path).
+        """
+        step_log = self._prepare_node_for_execution(node, map_variable)
+        if step_log is None:
+            return  # Skipped due to retry logic
 
         logger.info(f"Executing node: {node.get_summary()}")
 
-        # Add the step log to the database as per the situation.
-        # If its a terminal node, complete it now
+        # Terminal nodes
         if node.node_type in ["success", "fail"]:
             self._execute_node(node, map_variable=map_variable)
             return
 
-        # We call an internal function to iterate the sub graphs and execute them
+        # Composite nodes delegate to their sub-graph
         if node.is_composite:
             node.execute_as_graph(map_variable=map_variable)
             return
 
+        # Task nodes
         task_name = node._resolve_map_placeholders(node.internal_name, map_variable)
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
@@ -678,21 +690,8 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
             current_node = next_node_name
 
-        run_log = self._context.run_log_store.get_branch_log(
-            working_on._get_branch_log_name(map_variable), self._context.run_id
-        )
-
-        branch = "graph"
-        if working_on.internal_branch_name:
-            branch = working_on.internal_branch_name
-
-        logger.info(f"Finished execution of the {branch} with status {run_log.status}")
-
-        # We are in the root dag
-        if dag == self._context.dag:
-            run_log = cast(RunLog, run_log)
-            console.print("Completed Execution, Summary:", style="bold color(208)")
-            console.print(run_log.get_summary(), style=defaults.info_style)
+        # Use shared helper for finalization
+        self._finalize_graph_execution(working_on, dag, map_variable)
 
     def send_return_code(self, stage="traversal"):
         """

@@ -306,6 +306,24 @@ class BaseNode(ABC, BaseModel):
             NotImplementedError: Base class, hence not implemented.
         """
 
+    async def execute_async(
+        self,
+        map_variable: MapVariableType = None,
+        attempt_number: int = 1,
+        mock: bool = False,
+    ) -> StepLog:
+        """
+        Async execution - default delegates to sync execute().
+
+        Override in subclasses that support true async execution (TaskNode).
+        Terminal nodes (SuccessNode, FailNode) use this default.
+        """
+        return self.execute(
+            map_variable=map_variable,
+            attempt_number=attempt_number,
+            mock=mock,
+        )
+
     @abstractmethod
     def execute_as_graph(self, map_variable: MapVariableType = None):
         """
