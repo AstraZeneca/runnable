@@ -11,7 +11,7 @@ def instantiable_base_class(monkeypatch):
 
 def test_base_executor_context_refers_to_global_run_context(mocker, monkeypatch):
     mock_run_context = mocker.MagicMock()
-    monkeypatch.setattr(executor.context, "run_context", mock_run_context)
+    monkeypatch.setattr(executor.context, "get_run_context", lambda: mock_run_context)
 
     base_executor = executor.BaseExecutor()
     assert base_executor._context is mock_run_context
