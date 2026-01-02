@@ -472,6 +472,59 @@ class PipelineContext(RunnableContext):
                 assert isinstance(ctx, PipelineContext)
                 return ctx.run_log_store.get_run_log_by_id(run_id=ctx.run_id)
 
+    def _handle_completion(self):
+        """Handle post-execution - shared by sync/async."""
+        ctx = get_run_context()
+        assert ctx
+        assert isinstance(ctx, PipelineContext)
+        run_log = ctx.run_log_store.get_run_log_by_id(run_id=ctx.run_id, full=False)
+
+        if run_log.status == defaults.SUCCESS:
+            console.print(
+                "Pipeline executed successfully!", style=defaults.success_style
+            )
+            logfire.info("Pipeline completed", status="success")
+        else:
+            console.print("Pipeline execution failed.", style=defaults.error_style)
+            logfire.error("Pipeline failed", status="failed")
+            raise exceptions.ExecutionFailedError(ctx.run_id)
+
+    async def execute_async(self):
+        """Async pipeline execution."""
+        assert self.dag is not None
+
+        pipeline_name = getattr(self.dag, "name", "unnamed")
+
+        with logfire.span(
+            "pipeline:{pipeline_name}",
+            pipeline_name=pipeline_name,
+            run_id=self.run_id,
+            executor=self.pipeline_executor.__class__.__name__,
+        ):
+            logfire.info("Async pipeline execution started")
+
+            console.print("Working with context:")
+            console.print(get_run_context())
+            console.rule(style="[dark orange]")
+
+            if self.pipeline_executor._should_setup_run_log_at_traversal:
+                self.pipeline_executor._set_up_run_log(exists_ok=False)
+
+            try:
+                await self.pipeline_executor.execute_graph_async(dag=self.dag)
+                self._handle_completion()
+
+            except Exception as e:
+                console.print(e, style=defaults.error_style)
+                logfire.error("Pipeline failed with exception", error=str(e)[:256])
+                raise
+
+            if self.pipeline_executor._should_setup_run_log_at_traversal:
+                ctx = get_run_context()
+                assert ctx
+                assert isinstance(ctx, PipelineContext)
+                return ctx.run_log_store.get_run_log_by_id(run_id=ctx.run_id)
+
 
 class JobContext(RunnableContext):
     job_executor: InstantiatedJobExecutor
