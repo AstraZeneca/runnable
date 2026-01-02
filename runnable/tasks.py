@@ -140,12 +140,19 @@ class BaseTaskType(BaseModel):
 
     @property
     def _context(self):
-        return context.run_context
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available in current execution context")
+        return current_context
 
     def set_secrets_as_env_variables(self):
         # Preparing the environment for the task execution
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available for secrets")
+
         for key in self.secrets:
-            secret_value = context.run_context.secrets.get(key)
+            secret_value = current_context.secrets.get(key)
             os.environ[key] = secret_value
 
     def delete_secrets_from_env_variables(self):
@@ -664,7 +671,12 @@ class NotebookTaskType(BaseTaskType):
                     ):
                         pm.execute_notebook(**kwds)
 
-                    context.run_context.catalog.put(name=notebook_output_path)
+                    current_context = context.get_run_context()
+                    if current_context is None:
+                        raise RuntimeError(
+                            "No run context available for catalog operations"
+                        )
+                    current_context.catalog.put(name=notebook_output_path)
 
                     client = PloomberClient.from_path(path=notebook_output_path)
                     namespace = client.get_namespace()
@@ -832,8 +844,12 @@ class ShellTaskType(BaseTaskType):
 
         # Expose secrets as environment variables
         if self.secrets:
+            current_context = context.get_run_context()
+            if current_context is None:
+                raise RuntimeError("No run context available for secrets")
+
             for key in self.secrets:
-                secret_value = context.run_context.secrets.get(key)
+                secret_value = current_context.secrets.get(key)
                 subprocess_env[key] = secret_value
 
         with logfire.span(

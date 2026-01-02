@@ -16,7 +16,7 @@ def catalog_setup(mocker):
     mock_context.run_id = "test_run"
 
     # Patch context at module level
-    mocker.patch("runnable.context.run_context", mock_context)
+    mocker.patch("runnable.context.get_run_context", return_value=mock_context)
 
     # Create test catalog
     catalog = FileSystemCatalog()

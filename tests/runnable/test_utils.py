@@ -238,7 +238,7 @@ def test_get_git_code_identity_returns_default_in_case_of_exception(
         mock_code_identity
     )
 
-    monkeypatch.setattr(utils.context, "run_context", mock_run_context)
+    mocker.patch("runnable.context.get_run_context", return_value=mock_run_context)
 
     assert utils.get_git_code_identity() == mock_code_identity
 
@@ -262,7 +262,7 @@ def test_get_git_code_identity_returns_entities_from_other_functions(
         mock_code_identity
     )
 
-    monkeypatch.setattr(utils.context, "run_context", mock_run_context)
+    mocker.patch("runnable.context.get_run_context", return_value=mock_run_context)
 
     utils.get_git_code_identity()
 

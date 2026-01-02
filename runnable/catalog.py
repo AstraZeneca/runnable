@@ -33,7 +33,10 @@ class BaseCatalog(ABC, BaseModel):
 
     @property
     def _context(self):
-        return context.run_context
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available")
+        return current_context
 
     @abstractmethod
     def get(self, name: str) -> List[DataCatalog]:

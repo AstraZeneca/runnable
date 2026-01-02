@@ -42,7 +42,10 @@ class BaseExecutor(ABC, BaseModel):
 
     @property
     def _context(self):
-        return context.run_context
+        current_context = context.get_run_context()
+        if current_context is None:
+            raise RuntimeError("No run context available in current execution context")
+        return current_context
 
     @abstractmethod
     def _get_parameters(self) -> Dict[str, Any]:

@@ -816,9 +816,9 @@ class Pipeline(BaseModel):
         """
         If the run context is set, we are coming in only to get the pipeline definition.
         """
-        from runnable.context import run_context
+        from runnable.context import get_run_context
 
-        if run_context is None:
+        if get_run_context() is None:
             return False
         return True
 
@@ -868,7 +868,7 @@ class Pipeline(BaseModel):
         }
 
         run_context = context.PipelineContext.model_validate(configurations)
-        context.run_context = run_context
+        context.set_run_context(run_context)
 
         assert isinstance(run_context, context.PipelineContext)
 
@@ -935,9 +935,9 @@ class BaseJob(BaseModel):
         """
         If the run context is set, we are coming in only to get the pipeline definition.
         """
-        from runnable.context import run_context
+        from runnable.context import get_run_context
 
-        if run_context is None:
+        if get_run_context() is None:
             return False
         return True
 

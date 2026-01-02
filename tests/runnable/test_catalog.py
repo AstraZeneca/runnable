@@ -17,7 +17,7 @@ def test_base_run_log_store_context_property(
 ):
     mock_run_context = mocker.Mock()
 
-    monkeypatch.setattr(catalog.context, "run_context", mock_run_context)
+    mocker.patch("runnable.context.get_run_context", return_value=mock_run_context)
 
     assert catalog.BaseCatalog()._context == mock_run_context
 

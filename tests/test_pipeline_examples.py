@@ -55,7 +55,7 @@ def runnable_context():
         os.environ.pop("RUNNABLE_PRM_envvar", None)
         os.environ.pop("FIX_RANDOM_TOSS", None)
         print("Cleaning up runnable context")
-        runnable_context.run_context = None
+        runnable_context.set_run_context(None)
 
 
 @contextmanager
