@@ -1049,6 +1049,7 @@ class AsyncPythonTaskType(BaseTaskType):
 
     task_type: str = Field(default="async-python", serialization_alias="command_type")
     command: str
+    stream_end_type: str = Field(default="done")
 
     def execute_command(
         self,
@@ -1124,8 +1125,8 @@ class AsyncPythonTaskType(BaseTaskType):
                                         self._emit_event(item)
 
                                         # Extract return values from the final event
-                                        # The "done" event contains the actual return values
-                                        if item.get("type") == "done":
+                                        # The stream end event contains the actual return values
+                                        if item.get("type") == self.stream_end_type:
                                             # Remove the "type" key and use remaining keys as return values
                                             return_data = {
                                                 k: v

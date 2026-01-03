@@ -541,9 +541,14 @@ class AsyncPythonTask(BaseTask):
             and removed after execution.
 
         overrides (Dict[str, Any]): Any overrides to the command.
+
+        stream_end_type (str): The event type that indicates end of stream for AsyncGenerator functions.
+            When this event type is encountered, its contents (excluding 'type') are extracted as return values.
+            Defaults to "done".
     """
 
     function: Callable = Field(exclude=True)
+    stream_end_type: str = Field(default="done")
 
     @computed_field
     def command_type(self) -> str:
