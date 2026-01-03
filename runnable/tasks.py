@@ -1122,8 +1122,27 @@ class AsyncPythonTaskType(BaseTaskType):
                                         if event_callback:
                                             event_callback(item)
                                         self._emit_event(item)
+
+                                        # Extract return values from the final event
+                                        # The "done" event contains the actual return values
+                                        if item.get("type") == "done":
+                                            # Remove the "type" key and use remaining keys as return values
+                                            return_data = {
+                                                k: v
+                                                for k, v in item.items()
+                                                if k != "type"
+                                            }
+                                            # If only one value, return it directly; otherwise return tuple
+                                            if len(return_data) == 1:
+                                                user_set_parameters = list(
+                                                    return_data.values()
+                                                )[0]
+                                            elif len(return_data) > 1:
+                                                user_set_parameters = tuple(
+                                                    return_data.values()
+                                                )
                                     else:
-                                        # It's the final return value
+                                        # It's a direct return value (backwards compatibility)
                                         user_set_parameters = item
                             elif inspect.iscoroutine(result):
                                 # Regular async function
