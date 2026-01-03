@@ -1142,9 +1142,6 @@ class AsyncPythonTaskType(BaseTaskType):
                                                 user_set_parameters = tuple(
                                                     return_data.values()
                                                 )
-                                    else:
-                                        # It's a direct return value (backwards compatibility)
-                                        user_set_parameters = item
                             elif inspect.iscoroutine(result):
                                 # Regular async function
                                 user_set_parameters = await result
