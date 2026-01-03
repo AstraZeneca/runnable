@@ -1056,65 +1056,6 @@ class AsyncPipeline(BaseModel):
         dag_definition = self._dag.model_dump(by_alias=True, exclude_none=True)
         return graph.create_graph(dag_definition)
 
-    def _is_called_for_definition(self) -> bool:
-        """
-        If the run context is set, we are coming in only to get the pipeline definition.
-        """
-        from runnable.context import get_run_context
-
-        if get_run_context() is None:
-            return False
-        return True
-
-    def get_caller(self) -> str:
-        caller_stack = inspect.stack()[2]
-        relative_to_root = str(Path(caller_stack.filename).relative_to(Path.cwd()))
-
-        module_name = re.sub(r"\b.py\b", "", relative_to_root.replace("/", "."))
-        module_to_call = f"{module_name}.{caller_stack.function}"
-
-        return module_to_call
-
-    async def execute(
-        self,
-        configuration_file: str = "",
-        run_id: str = "",
-        tag: str = "",
-        parameters_file: str = "",
-        log_level: str = defaults.LOG_LEVEL,
-    ):
-        """
-        Execute the async pipeline.
-
-        This method must be called with await or from within an async context.
-
-        Unlike sync Pipeline, AsyncPipeline uses a simplified context that
-        accepts the DAG directly rather than introspecting from a file.
-        """
-        from runnable import context
-
-        logger.setLevel(log_level)
-
-        service_configurations = context.ServiceConfigurations(
-            configuration_file=configuration_file,
-            execution_context=context.ExecutionContext.PIPELINE,
-        )
-
-        # Pass the DAG directly instead of using pipeline_definition_file
-        configurations = {
-            "dag": self.return_dag(),
-            "parameters_file": parameters_file,
-            "tag": tag,
-            "run_id": run_id,
-            "configuration_file": configuration_file,
-            **service_configurations.services,
-        }
-
-        run_context = context.AsyncPipelineContext.model_validate(configurations)
-        context.set_run_context(run_context)
-
-        await run_context.execute_async()
-
     async def execute_streaming(
         self,
         configuration_file: str = "",
