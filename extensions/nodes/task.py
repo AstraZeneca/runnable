@@ -110,10 +110,14 @@ class TaskNode(ExecutableNode):
         )
 
         if not mock:
+            # Get event_callback from executor
+            event_callback = self._context.pipeline_executor._event_callback
+
             # Try async first, fall back to sync
             try:
                 attempt_log = await self.executable.execute_command_async(
-                    map_variable=map_variable
+                    map_variable=map_variable,
+                    event_callback=event_callback,
                 )
             except NotImplementedError:
                 # Task doesn't support async, fall back to sync
