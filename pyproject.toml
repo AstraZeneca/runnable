@@ -77,6 +77,10 @@ fastapi-telemetry = [
     "logfire[fastapi]>=4.16.0",
     "uvicorn>=0.40.0",
 ]
+agentic = [
+    "fastapi>=0.128.0",
+    "uvicorn>=0.40.0",
+]
 
 
 [tool.uv.workspace]
