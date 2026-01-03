@@ -5,9 +5,8 @@ import inspect
 import logging
 import re
 from abc import ABC, abstractmethod
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -18,7 +17,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from typing_extensions import Annotated, Self
+from typing_extensions import Self
 
 from extensions.nodes.conditional import ConditionalNode
 from extensions.nodes.fail import FailNode
@@ -36,96 +35,20 @@ from runnable.tasks import TaskReturns, create_task
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-# ============================================================================
-# Streaming Event Models
-# ============================================================================
-
-
-class BaseEvent(BaseModel):
-    """Base class for all pipeline execution events."""
-
-    run_id: str = Field(description="Unique identifier for the pipeline execution")
-    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
-
-    model_config = ConfigDict(extra="forbid")
-
-
-class PipelineStartedEvent(BaseEvent):
-    """Event emitted when a pipeline starts execution."""
-
-    type: Literal["pipeline_started"] = "pipeline_started"
-    tag: str = ""
-    total_tasks: int = Field(ge=0)
-
-
-class PipelineCompletedEvent(BaseEvent):
-    """Event emitted when a pipeline completes execution."""
-
-    type: Literal["pipeline_completed"] = "pipeline_completed"
-    status: Literal["success", "error"]
-
-
-class PipelineErrorEvent(BaseEvent):
-    """Event emitted when a pipeline encounters an error."""
-
-    type: Literal["pipeline_error"] = "pipeline_error"
-    error: str
-    error_type: str
-
-
-class TaskStartedEvent(BaseEvent):
-    """Event emitted when a task starts execution."""
-
-    type: Literal["task_started"] = "task_started"
-    task_name: str
-
-
-class TaskCompletedEvent(BaseEvent):
-    """Event emitted when a task completes successfully."""
-
-    type: Literal["task_completed"] = "task_completed"
-    task_name: str
-    status: Literal["success"] = "success"
-    logs: List[str] = Field(default_factory=list)
-
-
-class TaskErrorEvent(BaseEvent):
-    """Event emitted when a task encounters an error."""
-
-    type: Literal["task_error"] = "task_error"
-    task_name: str
-    error: str
-    error_type: str
-
-
-# Union type for all events with discriminator for type safety
-PipelineEvent = Annotated[
-    Union[
-        PipelineStartedEvent,
-        PipelineCompletedEvent,
-        PipelineErrorEvent,
-        TaskStartedEvent,
-        TaskCompletedEvent,
-        TaskErrorEvent,
-    ],
-    Field(discriminator="type"),
-]
-
-
 StepType = Union[
     "Stub",
     "PythonTask",
     "NotebookTask",
     "ShellTask",
-    "Parallel",
-    "Map",
-    "Conditional",
 ]
 
 # Async-compatible step types for AsyncPipeline
 AsyncStepType = Union[
     "Stub",
     "AsyncPythonTask",
+    "Parallel",
+    "Map",
+    "Conditional",
 ]
 
 

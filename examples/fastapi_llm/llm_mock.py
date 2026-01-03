@@ -43,3 +43,18 @@ async def mock_llm_stream(prompt: str) -> AsyncGenerator[dict, None]:
         await asyncio.sleep(0.05)  # 50ms per token
 
     yield {"type": "done", "full_text": response}
+
+
+async def mock_summarize(full_text: str) -> AsyncGenerator[dict, None]:
+    """
+    Mock summarization function.
+
+    Args:
+        full_text: The full text to summarize.
+
+    Returns:
+        str: A mock summary of the input text.
+    """
+    await asyncio.sleep(0.2)  # Simulate processing delay
+    yield {"type": "status", "status": "summarizing"}
+    yield {"type": "done", "summary": f"Summary: {full_text[:50]}..."}
