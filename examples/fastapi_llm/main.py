@@ -14,12 +14,14 @@ Test with curl:
 
 import json
 import os
+from datetime import datetime
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from examples.fastapi_llm.pipelines import chat_pipeline
+from runnable import names
 
 app = FastAPI(title="Async LLM Streaming Demo")
 
@@ -49,12 +51,16 @@ async def chat(request: ChatRequest):
     """
 
     async def event_stream():
+        # Generate unique run_id for this request
+        now = datetime.now()
+        run_id = f"{names.get_random_name()}-{now.hour:02}{now.minute:02}{now.second:02}"
+
         # Set prompt as environment variable for pipeline parameter
         os.environ["RUNNABLE_PRM_prompt"] = request.prompt
 
         try:
             pipeline = chat_pipeline()
-            async for event in pipeline.execute_streaming():
+            async for event in pipeline.execute_streaming(run_id=run_id):
                 yield f"data: {json.dumps(event)}\n\n"
         finally:
             os.environ.pop("RUNNABLE_PRM_prompt", None)
