@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import logging
 import re
@@ -1113,6 +1114,73 @@ class AsyncPipeline(BaseModel):
         context.set_run_context(run_context)
 
         await run_context.execute_async()
+
+    async def execute_streaming(
+        self,
+        configuration_file: str = "",
+        run_id: str = "",
+        tag: str = "",
+        parameters_file: str = "",
+        log_level: str = defaults.LOG_LEVEL,
+    ):
+        """
+        Execute the async pipeline and yield events as an AsyncGenerator.
+
+        This method allows streaming events from AsyncGenerator functions
+        directly to the caller, enabling patterns like SSE streaming.
+
+        Usage:
+            async for event in pipeline.execute_streaming():
+                print(event)
+
+        Yields:
+            dict: Events yielded by AsyncGenerator functions in the pipeline.
+        """
+        from runnable import context
+
+        logger.setLevel(log_level)
+
+        service_configurations = context.ServiceConfigurations(
+            configuration_file=configuration_file,
+            execution_context=context.ExecutionContext.PIPELINE,
+        )
+
+        configurations = {
+            "dag": self.return_dag(),
+            "parameters_file": parameters_file,
+            "tag": tag,
+            "run_id": run_id,
+            "configuration_file": configuration_file,
+            **service_configurations.services,
+        }
+
+        run_context = context.AsyncPipelineContext.model_validate(configurations)
+        context.set_run_context(run_context)
+
+        # Use asyncio.Queue to bridge callback to AsyncGenerator
+        queue: asyncio.Queue = asyncio.Queue()
+
+        # Set the callback on the executor
+        run_context.pipeline_executor._event_callback = queue.put_nowait
+
+        async def run_pipeline():
+            try:
+                await run_context.execute_async()
+            finally:
+                await queue.put(None)  # Sentinel to signal completion
+
+        # Start pipeline execution in background
+        task = asyncio.create_task(run_pipeline())
+
+        # Yield events as they arrive
+        while True:
+            event = await queue.get()
+            if event is None:
+                break
+            yield event
+
+        # Ensure task completed (will raise if there was an exception)
+        await task
 
 
 class BaseJob(BaseModel):
