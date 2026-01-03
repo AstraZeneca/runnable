@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 
@@ -186,6 +186,7 @@ class BasePipelineExecutor(BaseExecutor):
     overrides: dict[str, Any] = {}
 
     _context_node: Optional[BaseNode] = PrivateAttr(default=None)
+    _event_callback: Optional[Callable[[dict], None]] = PrivateAttr(default=None)
 
     @abstractmethod
     def add_code_identities(self, node: BaseNode, attempt_log: StepAttempt):
