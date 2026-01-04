@@ -6,7 +6,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 from pydantic import (
     BaseModel,
@@ -40,6 +40,9 @@ StepType = Union[
     "PythonTask",
     "NotebookTask",
     "ShellTask",
+    "Parallel",
+    "Map",
+    "Conditional",
 ]
 
 # Async-compatible step types for AsyncPipeline
@@ -91,7 +94,7 @@ class BaseTraversal(ABC, BaseModel):
     next_node: str = Field(default="", serialization_alias="next_node")
     terminate_with_success: bool = Field(default=False, exclude=True)
     terminate_with_failure: bool = Field(default=False, exclude=True)
-    on_failure: Optional[Pipeline] = Field(default=None)
+    on_failure: Optional["Pipeline | AsyncPipeline"] = Field(default=None)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -106,7 +109,9 @@ class BaseTraversal(ABC, BaseModel):
         """
         return hash(self.name)
 
-    def __rshift__(self, other: StepType) -> StepType:
+    def __rshift__(
+        self, other: "Union[StepType, AsyncStepType]"
+    ) -> "Union[StepType, AsyncStepType]":
         if self.next_node:
             raise Exception(
                 f"The node {self} already has a next node: {self.next_node}"
@@ -484,6 +489,9 @@ class AsyncPythonTask(BaseTask):
 
         return f"{module}.{name}"
 
+    def as_async_pipeline(self) -> "AsyncPipeline":
+        return AsyncPipeline(steps=[self], name=self.internal_name)  # type: ignore
+
 
 class Stub(BaseTraversal):
     """
@@ -532,7 +540,7 @@ class Parallel(BaseTraversal):
         on_failure (str): The name of the node to execute if any of the branches fail.
     """
 
-    branches: Dict[str, "Pipeline"]
+    branches: Dict[str, "Pipeline | AsyncPipeline"]
 
     @computed_field  # type: ignore
     @property
@@ -558,7 +566,7 @@ class Parallel(BaseTraversal):
 
 
 class Conditional(BaseTraversal):
-    branches: Dict[str, "Pipeline"]
+    branches: Dict[str, "Pipeline | AsyncPipeline"]
     parameter: str  # the name of the parameter should be isalnum
 
     @field_validator("parameter")
@@ -623,7 +631,7 @@ class Map(BaseTraversal):
 
     """
 
-    branch: "Pipeline"
+    branch: "Pipeline | AsyncPipeline"
     iterate_on: str
     iterate_as: str
     reducer: Optional[str] = Field(default=None, alias="reducer")
@@ -786,7 +794,7 @@ class Pipeline(BaseModel):
         gathered_on_failure: List[StepType] = []
         for step in self.steps:
             if step.on_failure:
-                gathered_on_failure.extend(step.on_failure.steps)
+                gathered_on_failure.extend(cast(List[StepType], step.on_failure.steps))
 
         self._dag = graph.Graph(
             start_at=self.steps[0].name,
@@ -963,7 +971,9 @@ class AsyncPipeline(BaseModel):
         gathered_on_failure: List[AsyncStepType] = []
         for step in self.steps:
             if step.on_failure:
-                gathered_on_failure.extend(step.on_failure.steps)
+                gathered_on_failure.extend(
+                    cast(List[AsyncStepType], step.on_failure.steps)
+                )
 
         self._dag = graph.Graph(
             start_at=self.steps[0].name,
