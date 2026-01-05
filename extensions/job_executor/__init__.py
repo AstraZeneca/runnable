@@ -12,6 +12,7 @@ from runnable import (
     utils,
 )
 from runnable.datastore import DataCatalog, JobLog, JsonParameter, StepAttempt
+from runnable.defaults import IterableParameterModel
 from runnable.executor import BaseJobExecutor
 from runnable.tasks import BaseTaskType
 
@@ -174,11 +175,11 @@ class GenericJobExecutor(BaseJobExecutor):
         return data_catalogs
 
     def add_task_log_to_catalog(
-        self, name: str, map_variable: Dict[str, str | int | float] | None = None
+        self, name: str, iter_variable: Optional[IterableParameterModel] = None
     ):
         log_file_name = utils.make_log_file_name(
             name=name,
-            map_variable=map_variable,
+            iter_variable=iter_variable,
         )
         task_console.save_text(log_file_name)
         # Put the log file in the catalog

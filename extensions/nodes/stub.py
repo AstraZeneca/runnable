@@ -6,7 +6,7 @@ from pydantic import ConfigDict, Field
 
 from runnable import datastore, defaults
 from runnable.datastore import StepLog
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.nodes import ExecutableNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -56,7 +56,6 @@ class StubNode(ExecutableNode):
     def execute(
         self,
         mock=False,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         attempt_number: int = 1,
     ) -> StepLog:
@@ -67,13 +66,13 @@ class StubNode(ExecutableNode):
         Args:
             executor ([type]): [description]
             mock (bool, optional): [description]. Defaults to False.
-            map_variable (str, optional): [description]. Defaults to ''.
+            iter_variable (str, optional): [description]. Defaults to ''.
 
         Returns:
             [type]: [description]
         """
         step_log = self._context.run_log_store.get_step_log(
-            self._get_step_log_name(map_variable), self._context.run_id
+            self._get_step_log_name(iter_variable), self._context.run_id
         )
 
         attempt_log = datastore.StepAttempt(

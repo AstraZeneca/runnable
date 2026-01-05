@@ -6,7 +6,7 @@ from pydantic import ConfigDict, Field
 
 from runnable import datastore, defaults
 from runnable.datastore import StepLog
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.nodes import ExecutableNode
 from runnable.tasks import BaseTaskType, create_task
 
@@ -53,7 +53,6 @@ class TaskNode(ExecutableNode):
     def execute(
         self,
         mock=False,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         attempt_number: int = 1,
     ) -> StepLog:
@@ -63,18 +62,18 @@ class TaskNode(ExecutableNode):
         Args:
             executor (_type_): The executor class
             mock (bool, optional): If we should just mock and not execute. Defaults to False.
-            map_variable (dict, optional): If the node is part of internal branch. Defaults to None.
+            iter_variable: Optional iteration variable if the node is part of internal branch. Defaults to None.
 
         Returns:
             StepAttempt: The attempt object
         """
         step_log = self._context.run_log_store.get_step_log(
-            self._get_step_log_name(map_variable), self._context.run_id
+            self._get_step_log_name(iter_variable), self._context.run_id
         )
 
         if not mock:
             # Do not run if we are mocking the execution, could be useful for caching and dry runs
-            attempt_log = self.executable.execute_command(map_variable=map_variable)
+            attempt_log = self.executable.execute_command(iter_variable=iter_variable)
             attempt_log.attempt_number = attempt_number
             attempt_log.retry_indicator = self._context.retry_indicator
         else:
@@ -101,14 +100,13 @@ class TaskNode(ExecutableNode):
 
     async def execute_async(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         attempt_number: int = 1,
         mock: bool = False,
     ) -> StepLog:
         """Async task execution with fallback to sync."""
         step_log = self._context.run_log_store.get_step_log(
-            self._get_step_log_name(map_variable), self._context.run_id
+            self._get_step_log_name(iter_variable), self._context.run_id
         )
 
         if not mock:
@@ -118,12 +116,14 @@ class TaskNode(ExecutableNode):
             # Try async first, fall back to sync
             try:
                 attempt_log = await self.executable.execute_command_async(
-                    map_variable=map_variable,
+                    iter_variable=iter_variable,
                     event_callback=event_callback,
                 )
             except NotImplementedError:
                 # Task doesn't support async, fall back to sync
-                attempt_log = self.executable.execute_command(map_variable=map_variable)
+                attempt_log = self.executable.execute_command(
+                    iter_variable=iter_variable
+                )
 
             attempt_log.attempt_number = attempt_number
             attempt_log.retry_indicator = self._context.retry_indicator

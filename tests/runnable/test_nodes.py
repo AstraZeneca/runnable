@@ -41,20 +41,20 @@ class TestNode(nodes.BaseNode):
         return 1
 
     def execute(
-        self, mock=False, map_variable=None, attempt_number: int = 1
+        self, mock=False, iter_variable=None, attempt_number: int = 1
     ) -> "StepLog":
         """Dummy implementation that returns None"""
         return None
 
-    def execute_as_graph(self, map_variable=None):
+    def execute_as_graph(self, iter_variable=None):
         """Dummy implementation"""
         pass
 
-    def fan_out(self, map_variable=None):
+    def fan_out(self, iter_variable=None):
         """Dummy implementation"""
         pass
 
-    def fan_in(self, map_variable=None):
+    def fan_in(self, iter_variable=None):
         """Dummy implementation"""
         pass
 
@@ -83,17 +83,17 @@ class TestTraversalNode(nodes.TraversalNode):
         return None
 
     def execute(
-        self, mock=False, map_variable=None, attempt_number: int = 1
+        self, mock=False, iter_variable=None, attempt_number: int = 1
     ) -> StepLog:
         return StepLog(name=self.name, internal_name=self.internal_name)
 
-    def execute_as_graph(self, map_variable=None):
+    def execute_as_graph(self, iter_variable=None):
         pass
 
-    def fan_out(self, map_variable=None):
+    def fan_out(self, iter_variable=None):
         pass
 
-    def fan_in(self, map_variable=None):
+    def fan_in(self, iter_variable=None):
         pass
 
     @classmethod
@@ -139,7 +139,7 @@ class TestExecutableNode(nodes.ExecutableNode):
         return self.max_attempts
 
     def execute(
-        self, mock=False, map_variable=None, attempt_number: int = 1
+        self, mock=False, iter_variable=None, attempt_number: int = 1
     ) -> StepLog:
         step_log = StepLog(
             name=self.name,
@@ -148,17 +148,17 @@ class TestExecutableNode(nodes.ExecutableNode):
         )
         return step_log
 
-    def execute_as_graph(self, map_variable=None):
+    def execute_as_graph(self, iter_variable=None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a graph"
         )
 
-    def fan_in(self, map_variable=None):
+    def fan_in(self, iter_variable=None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a fan in"
         )
 
-    def fan_out(self, map_variable=None):
+    def fan_out(self, iter_variable=None):
         raise exceptions.NodeMethodCallError(
             "This is an executable node and does not have a fan out"
         )
@@ -224,27 +224,45 @@ def test_base_node_execute():
 
 def test_base_node_execute_with_parameters():
     """Test execute method with various parameters"""
+    from runnable.defaults import IterableParameterModel, MapVariableModel
+
     node = TestNode(name="test_node", internal_name="test.node", node_type="test")
 
-    result = node.execute(mock=True, map_variable={"test": "value"}, attempt_number=2)
+    # Create IterableParameterModel for testing
+    iter_var = IterableParameterModel(
+        map_variable={"test": MapVariableModel(value='"value"')}
+    )
+    result = node.execute(mock=True, iter_variable=iter_var, attempt_number=2)
     assert result is None
 
 
 def test_base_node_execute_as_graph():
     """Test execute_as_graph method"""
+    from runnable.defaults import IterableParameterModel, MapVariableModel
+
     node = TestNode(name="test_node", internal_name="test.node", node_type="test")
 
+    # Create IterableParameterModel for testing
+    iter_var = IterableParameterModel(
+        map_variable={"test": MapVariableModel(value='"value"')}
+    )
     # Should not raise any exception as per TestNode implementation
-    node.execute_as_graph(map_variable={"test": "value"})
+    node.execute_as_graph(iter_variable=iter_var)
 
 
 def test_base_node_fan_operations():
     """Test fan_in and fan_out operations"""
+    from runnable.defaults import IterableParameterModel, MapVariableModel
+
     node = TestNode(name="test_node", internal_name="test.node", node_type="test")
 
+    # Create IterableParameterModel for testing
+    iter_var = IterableParameterModel(
+        map_variable={"test": MapVariableModel(value='"value"')}
+    )
     # Should not raise any exceptions as per TestNode implementation
-    node.fan_out(map_variable={"test": "value"})
-    node.fan_in(map_variable={"test": "value"})
+    node.fan_out(iter_variable=iter_var)
+    node.fan_in(iter_variable=iter_var)
 
 
 def test_base_node_get_branch_by_name():

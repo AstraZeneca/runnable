@@ -599,9 +599,9 @@ class ArgoExecutor(GenericPipelineExecutor):
         parameters: Optional[list[Parameter]],
         task_name: str,
     ):
-        map_variable: MapVariableType = {}
+        iter_variable: MapVariableType = {}
         for parameter in parameters or []:
-            map_variable[parameter.name] = (  # type: ignore
+            iter_variable[parameter.name] = (  # type: ignore
                 "{{inputs.parameters." + str(parameter.name) + "}}"
             )
 
@@ -609,7 +609,7 @@ class ArgoExecutor(GenericPipelineExecutor):
             mode=mode,
             node=node,
             run_id=self._run_id_as_parameter,
-            map_variable=map_variable,
+            iter_variable=iter_variable,
         )
 
         core_container_template = CoreContainerTemplate(
@@ -677,16 +677,16 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         inputs = inputs or Inputs(parameters=[])
 
-        map_variable: MapVariableType = {}
+        iter_variable: MapVariableType = {}
         for parameter in inputs.parameters or []:
-            map_variable[parameter.name] = (  # type: ignore
+            iter_variable[parameter.name] = (  # type: ignore
                 "{{inputs.parameters." + str(parameter.name) + "}}"
             )
 
         # command = "runnable execute-single-node"
         command = self._context.get_node_callable_command(
             node=node,
-            map_variable=map_variable,
+            iter_variable=iter_variable,
             over_write_run_id=self._run_id_as_parameter,
             log_level=self._log_level_as_parameter,
         )
@@ -987,7 +987,6 @@ class ArgoExecutor(GenericPipelineExecutor):
     def execute_graph(
         self,
         dag: Graph,
-        map_variable: dict[str, str | int | float] | None = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         # All the arguments set at the spec level can be referred as "{{workflow.parameters.*}}"
@@ -1087,7 +1086,6 @@ class ArgoExecutor(GenericPipelineExecutor):
     def _implicitly_fail(
         self,
         node: BaseNode,
-        map_variable: MapVariableType,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         assert self._context.dag
@@ -1095,14 +1093,14 @@ class ArgoExecutor(GenericPipelineExecutor):
             dag=self._context.dag, internal_name=node.internal_name
         )
         _, next_node_name = self._get_status_and_next_node_name(
-            node, current_branch, map_variable=map_variable
+            node, current_branch, iter_variable=iter_variable
         )
         if next_node_name:
             # Terminal nodes do not have next node name
             next_node = current_branch.get_node_by_name(next_node_name)
 
             if next_node.node_type == defaults.FAIL:
-                self.execute_node(next_node, map_variable=map_variable)
+                self.execute_node(next_node, iter_variable=iter_variable)
 
     def add_code_identities(self, node: BaseNode, attempt_log: StepAttempt):
         super().add_code_identities(node, attempt_log)
@@ -1121,7 +1119,6 @@ class ArgoExecutor(GenericPipelineExecutor):
     def execute_node(
         self,
         node: BaseNode,
-        map_variable: dict[str, str | int | float] | None = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         error_on_existing_run_id = os.environ.get("error_on_existing_run_id", "false")
@@ -1133,23 +1130,23 @@ class ArgoExecutor(GenericPipelineExecutor):
         try:
             # This should only happen during a retry
             step_log = self._context.run_log_store.get_step_log(
-                node._get_step_log_name(map_variable), self._context.run_id
+                node._get_step_log_name(iter_variable), self._context.run_id
             )
             assert self._context.is_retry
         except exceptions.StepLogNotFoundError:
             step_log = self._context.run_log_store.create_step_log(
-                node.name, node._get_step_log_name(map_variable)
+                node.name, node._get_step_log_name(iter_variable)
             )
 
             step_log.step_type = node.node_type
             step_log.status = defaults.PROCESSING
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-        self._execute_node(node=node, map_variable=map_variable)
+        self._execute_node(node=node, iter_variable=iter_variable)
 
         # Raise exception if the step failed
         step_log = self._context.run_log_store.get_step_log(
-            node._get_step_log_name(map_variable), self._context.run_id
+            node._get_step_log_name(iter_variable), self._context.run_id
         )
         if step_log.status == defaults.FAIL:
             run_log = self._context.run_log_store.get_run_log_by_id(
@@ -1160,12 +1157,11 @@ class ArgoExecutor(GenericPipelineExecutor):
             raise Exception(f"Step {node.name} failed")
 
         # This makes the fail node execute if we are heading that way.
-        self._implicitly_fail(node, map_variable)
+        self._implicitly_fail(node, iter_variable)
 
     def fan_out(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         # This could be the first step of the graph
@@ -1175,7 +1171,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         exists_ok = error_on_existing_run_id == "false"
         self._set_up_run_log(exists_ok=exists_ok)
 
-        super().fan_out(node, map_variable)
+        super().fan_out(node, iter_variable)
 
         # If its a map node, write the list values to "/tmp/output.txt"
         if node.node_type == "map":
@@ -1196,11 +1192,10 @@ class ArgoExecutor(GenericPipelineExecutor):
     def fan_in(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         self._use_volumes()
-        super().fan_in(node, map_variable)
+        super().fan_in(node, iter_variable)
 
     def _use_volumes(self):
         match self._context.run_log_store.service_name:

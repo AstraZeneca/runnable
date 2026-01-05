@@ -29,7 +29,7 @@ from runnable.datastore import (
     Parameter,
     StepAttempt,
 )
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.telemetry import truncate_value
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -164,7 +164,7 @@ class BaseTaskType(BaseModel):
 
     def execute_command(
         self,
-        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> StepAttempt:
         """The function to execute the command.
 
@@ -180,7 +180,7 @@ class BaseTaskType(BaseModel):
 
     async def execute_command_async(
         self,
-        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
         event_callback: Optional[Callable[[dict], None]] = None,
     ) -> StepAttempt:
         """
@@ -252,7 +252,6 @@ class BaseTaskType(BaseModel):
 
     def resolve_unreduced_parameters(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Resolve the unreduced parameters."""
@@ -263,11 +262,11 @@ class BaseTaskType(BaseModel):
         for param_name, param in params.items():
             if param.reduced is False:
                 assert (
-                    map_variable is not None
+                    iter_variable and iter_variable.map_variable is not None
                 ), "Parameters in non-map node should always be reduced"
 
                 context_param = param_name
-                for _, v in map_variable.items():
+                for _, v in iter_variable.map_variable.items():
                     context_param = f"{v}_{context_param}"
 
                 if context_param in params:
@@ -278,11 +277,10 @@ class BaseTaskType(BaseModel):
     @contextlib.contextmanager
     def execution_context(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         allow_complex: bool = True,
     ):
-        params = self.resolve_unreduced_parameters(map_variable=map_variable)
+        params = self.resolve_unreduced_parameters(iter_variable=iter_variable)
         logger.info(f"Parameters available for the execution: {params}")
 
         task_console.log("Parameters available for the execution:")
@@ -394,7 +392,6 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
 
     def execute_command(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> StepAttempt:
         """Execute the notebook as defined by the command."""
@@ -410,7 +407,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             task_type=self.task_type,
         ):
             with (
-                self.execution_context(map_variable=map_variable) as params,
+                self.execution_context(iter_variable=iter_variable) as params,
                 self.expose_secrets() as _,
             ):
                 logfire.info(
@@ -435,7 +432,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                 try:
                     try:
                         filtered_parameters = parameters.filter_arguments_for_func(
-                            f, params.copy(), map_variable
+                            f, params.copy(), iter_variable
                         )
                         logger.info(
                             f"Calling {func} from {module} with {filtered_parameters}"
@@ -453,11 +450,11 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                         ) from e
                     finally:
                         attempt_log.input_parameters = params.copy()
-                        if map_variable:
+                        if iter_variable and iter_variable.map_variable:
                             attempt_log.input_parameters.update(
                                 {
-                                    k: JsonParameter(value=v, kind="json")
-                                    for k, v in map_variable.items()
+                                    k: JsonParameter(value=v.value, kind="json")
+                                    for k, v in iter_variable.map_variable.items()
                                 }
                             )
 
@@ -485,9 +482,9 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                                 metrics[task_return.name] = output_parameter
 
                             param_name = task_return.name
-                            if map_variable:
-                                for _, v in map_variable.items():
-                                    param_name = f"{v}_{param_name}"
+                            if iter_variable and iter_variable.map_variable:
+                                for _, v in iter_variable.map_variable.items():
+                                    param_name = f"{v.value}_{param_name}"
 
                             output_parameters[param_name] = output_parameter
 
@@ -604,13 +601,12 @@ class NotebookTaskType(BaseTaskType):
 
     def get_notebook_output_path(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> str:
         tag = ""
-        map_variable = map_variable or {}
-        for key, value in map_variable.items():
-            tag += f"{key}_{value}_"
+        if iter_variable and iter_variable.map_variable:
+            for key, value_model in iter_variable.map_variable.items():
+                tag += f"{key}_{value_model.value}_"
 
         if isinstance(self._context, context.PipelineContext):
             assert self._context.pipeline_executor._context_node
@@ -625,7 +621,6 @@ class NotebookTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> StepAttempt:
         """Execute the python notebook as defined by the command.
@@ -653,12 +648,12 @@ class NotebookTaskType(BaseTaskType):
                 from ploomber_engine.ipython import PloomberClient
 
                 notebook_output_path = self.get_notebook_output_path(
-                    map_variable=map_variable
+                    iter_variable=iter_variable
                 )
 
                 with (
                     self.execution_context(
-                        map_variable=map_variable, allow_complex=False
+                        iter_variable=iter_variable, allow_complex=False
                     ) as params,
                     self.expose_secrets() as _,
                 ):
@@ -677,9 +672,11 @@ class NotebookTaskType(BaseTaskType):
                     attempt_log.input_parameters = params.copy()
                     copy_params = copy.deepcopy(params)
 
-                    if map_variable:
-                        for key, value in map_variable.items():
-                            copy_params[key] = JsonParameter(kind="json", value=value)
+                    if iter_variable and iter_variable.map_variable:
+                        for key, value_model in iter_variable.map_variable.items():
+                            copy_params[key] = JsonParameter(
+                                kind="json", value=value_model.value
+                            )
 
                     # Remove any {v}_unreduced parameters from the parameters
                     unprocessed_params = [
@@ -722,13 +719,19 @@ class NotebookTaskType(BaseTaskType):
                     output_parameters: Dict[str, Parameter] = {}
                     try:
                         for task_return in self.returns:
+                            template_vars = {}
+                            if iter_variable and iter_variable.map_variable:
+                                template_vars = {
+                                    k: v.value
+                                    for k, v in iter_variable.map_variable.items()
+                                }
                             param_name = Template(task_return.name).safe_substitute(
-                                map_variable  # type: ignore
+                                template_vars  # type: ignore
                             )
 
-                            if map_variable:
-                                for _, v in map_variable.items():
-                                    param_name = f"{v}_{param_name}"
+                            if iter_variable and iter_variable.map_variable:
+                                for _, v in iter_variable.map_variable.items():
+                                    param_name = f"{v.value}_{param_name}"
 
                             output_parameters[param_name] = task_return_to_parameter(
                                 task_return=task_return,
@@ -855,7 +858,6 @@ class ShellTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> StepAttempt:
         # Using shell=True as we want to have chained commands to be executed in the same shell.
@@ -877,9 +879,9 @@ class ShellTaskType(BaseTaskType):
                 subprocess_env[key] = value
 
         # Expose map variable as environment variables
-        if map_variable:
-            for key, value in map_variable.items():  # type: ignore
-                subprocess_env[key] = str(value)
+        if iter_variable and iter_variable.map_variable:
+            for key, value_model in iter_variable.map_variable.items():
+                subprocess_env[key] = str(value_model.value)
 
         # Expose secrets as environment variables
         if self.secrets:
@@ -898,7 +900,7 @@ class ShellTaskType(BaseTaskType):
         ):
             try:
                 with self.execution_context(
-                    map_variable=map_variable, allow_complex=False
+                    iter_variable=iter_variable, allow_complex=False
                 ) as params:
                     logfire.info(
                         "Task started",
@@ -989,8 +991,8 @@ class ShellTaskType(BaseTaskType):
                                     metrics[task_return.name] = output_parameter
 
                                 param_name = task_return.name
-                                if map_variable:
-                                    for _, v in map_variable.items():
+                                if iter_variable and iter_variable.map_variable:
+                                    for _, v in iter_variable.map_variable.items():
                                         param_name = f"{v}_{param_name}"
 
                                 output_parameters[param_name] = output_parameter
@@ -1067,7 +1069,6 @@ class AsyncPythonTaskType(BaseTaskType):
 
     def execute_command(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> StepAttempt:
         """Sync execution is not supported for async tasks."""
@@ -1078,9 +1079,8 @@ class AsyncPythonTaskType(BaseTaskType):
 
     async def execute_command_async(
         self,
-        map_variable: MapVariableType = None,
-        event_callback: Optional[Callable[[dict], None]] = None,
         iter_variable: Optional[IterableParameterModel] = None,
+        event_callback: Optional[Callable[[dict], None]] = None,
     ) -> StepAttempt:
         """Execute the async Python function."""
         attempt_log = StepAttempt(
@@ -1095,7 +1095,7 @@ class AsyncPythonTaskType(BaseTaskType):
             task_type=self.task_type,
         ):
             with (
-                self.execution_context(map_variable=map_variable) as params,
+                self.execution_context(iter_variable=iter_variable) as params,
                 self.expose_secrets() as _,
             ):
                 logfire.info(
@@ -1118,7 +1118,7 @@ class AsyncPythonTaskType(BaseTaskType):
                 try:
                     try:
                         filtered_parameters = parameters.filter_arguments_for_func(
-                            f, params.copy(), map_variable
+                            f, params.copy(), iter_variable
                         )
                         logger.info(
                             f"Calling async {func} from {module} with {filtered_parameters}"
@@ -1171,11 +1171,11 @@ class AsyncPythonTaskType(BaseTaskType):
                         ) from e
                     finally:
                         attempt_log.input_parameters = params.copy()
-                        if map_variable:
+                        if iter_variable and iter_variable.map_variable:
                             attempt_log.input_parameters.update(
                                 {
-                                    k: JsonParameter(value=v, kind="json")
-                                    for k, v in map_variable.items()
+                                    k: JsonParameter(value=v.value, kind="json")
+                                    for k, v in iter_variable.map_variable.items()
                                 }
                             )
 
@@ -1201,9 +1201,9 @@ class AsyncPythonTaskType(BaseTaskType):
                                 metrics[task_return.name] = output_parameter
 
                             param_name = task_return.name
-                            if map_variable:
-                                for _, v in map_variable.items():
-                                    param_name = f"{v}_{param_name}"
+                            if iter_variable and iter_variable.map_variable:
+                                for _, v in iter_variable.map_variable.items():
+                                    param_name = f"{v.value}_{param_name}"
 
                             output_parameters[param_name] = output_parameter
 

@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 import runnable.context as context
 from runnable import defaults, exceptions
 from runnable.datastore import StepLog
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.graph import Graph
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -92,7 +92,6 @@ class BaseNode(ABC, BaseModel):
     def _resolve_map_placeholders(
         cls,
         name: str,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> str:
         """
@@ -136,17 +135,16 @@ class BaseNode(ABC, BaseModel):
         Returns:
             [str]: The resolved name
         """
-        if not map_variable:
+        if not iter_variable or not iter_variable.map_variable:
             return name
 
-        for _, value in map_variable.items():
+        for _, value in iter_variable.map_variable.items():
             name = name.replace(defaults.MAP_PLACEHOLDER, str(value), 1)
 
         return name
 
     def _get_step_log_name(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> str:
         """
@@ -164,12 +162,11 @@ class BaseNode(ABC, BaseModel):
             str: The dot path name of the step log name
         """
         return self._resolve_map_placeholders(
-            self.internal_name, map_variable=map_variable
+            self.internal_name, iter_variable=iter_variable
         )
 
     def _get_branch_log_name(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> str:
         """
@@ -187,7 +184,7 @@ class BaseNode(ABC, BaseModel):
             str: The dot path name of the branch log
         """
         return self._resolve_map_placeholders(
-            self.internal_branch_name, map_variable=map_variable
+            self.internal_branch_name, iter_variable=iter_variable
         )
 
     def __str__(self) -> str:  # pragma: no cover
@@ -300,7 +297,6 @@ class BaseNode(ABC, BaseModel):
     def execute(
         self,
         mock=False,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         attempt_number: int = 1,
     ) -> StepLog:
@@ -322,7 +318,6 @@ class BaseNode(ABC, BaseModel):
 
     async def execute_async(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         attempt_number: int = 1,
         mock: bool = False,
@@ -334,7 +329,7 @@ class BaseNode(ABC, BaseModel):
         Terminal nodes (SuccessNode, FailNode) use this default.
         """
         return self.execute(
-            map_variable=map_variable,
+            iter_variable=iter_variable,
             attempt_number=attempt_number,
             mock=mock,
         )
@@ -342,7 +337,6 @@ class BaseNode(ABC, BaseModel):
     @abstractmethod
     def execute_as_graph(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -361,7 +355,6 @@ class BaseNode(ABC, BaseModel):
     @abstractmethod
     def fan_out(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -381,7 +374,6 @@ class BaseNode(ABC, BaseModel):
     @abstractmethod
     def fan_in(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -496,7 +488,6 @@ class ExecutableNode(TraversalNode):
 
     def execute_as_graph(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         raise exceptions.NodeMethodCallError(
@@ -505,7 +496,6 @@ class ExecutableNode(TraversalNode):
 
     def fan_in(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         raise exceptions.NodeMethodCallError(
@@ -514,7 +504,6 @@ class ExecutableNode(TraversalNode):
 
     def fan_out(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         raise exceptions.NodeMethodCallError(
@@ -542,7 +531,6 @@ class CompositeNode(TraversalNode):
     def execute(
         self,
         mock=False,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         attempt_number: int = 1,
     ) -> StepLog:
@@ -552,7 +540,6 @@ class CompositeNode(TraversalNode):
 
     async def execute_as_graph_async(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -591,21 +578,18 @@ class TerminalNode(BaseNode):
 
     def execute_as_graph(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         raise exceptions.TerminalNodeError()
 
     def fan_in(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         raise exceptions.TerminalNodeError()
 
     def fan_out(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         raise exceptions.TerminalNodeError()

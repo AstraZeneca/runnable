@@ -89,6 +89,16 @@ def execute_single_node(
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
+    # Convert to IterableParameterModel
+    iter_variable = None
+    if map_variable_dict:
+        from runnable.defaults import IterableParameterModel, MapVariableModel
+
+        converted_map = {
+            k: MapVariableModel(value=v) for k, v in map_variable_dict.items()
+        }
+        iter_variable = IterableParameterModel(map_variable=converted_map)
+
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
     node_to_execute, _ = graph.search_node_by_internal_name(
         run_context.dag, step_internal_name
@@ -97,7 +107,7 @@ def execute_single_node(
     logger.info("Executing the single node of : %s", node_to_execute)
 
     run_context.pipeline_executor.execute_node(
-        node=node_to_execute, map_variable=map_variable_dict
+        node=node_to_execute, iter_variable=iter_variable
     )
 
     # run_context.pipeline_executor.send_return_code()
@@ -129,8 +139,18 @@ def execute_single_branch(
     try:
         context.set_run_context(run_context)
 
+        # Convert to IterableParameterModel
+        iter_variable = None
+        if map_variable:
+            from runnable.defaults import IterableParameterModel, MapVariableModel
+
+            converted_map = {
+                k: MapVariableModel(value=v) for k, v in map_variable.items()
+            }
+            iter_variable = IterableParameterModel(map_variable=converted_map)
+
         # Execute the branch using the pipeline executor
-        run_context.pipeline_executor.execute_graph(branch, map_variable=map_variable)
+        run_context.pipeline_executor.execute_graph(branch, iter_variable=iter_variable)
         logger.info(f"Branch {branch_name} completed successfully")
         return True
     except Exception as e:
@@ -294,15 +314,25 @@ def fan(
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
 
+    # Convert to IterableParameterModel
+    iter_variable = None
+    if map_variable_dict:
+        from runnable.defaults import IterableParameterModel, MapVariableModel
+
+        converted_map = {
+            k: MapVariableModel(value=v) for k, v in map_variable_dict.items()
+        }
+        iter_variable = IterableParameterModel(map_variable=converted_map)
+
     if in_or_out == "in":
         logger.info("Fanning in for : %s", node_to_execute)
         run_context.pipeline_executor.fan_in(
-            node=node_to_execute, map_variable=map_variable_dict
+            node=node_to_execute, iter_variable=iter_variable
         )
     elif in_or_out == "out":
         logger.info("Fanning out for : %s", node_to_execute)
         run_context.pipeline_executor.fan_out(
-            node=node_to_execute, map_variable=map_variable_dict
+            node=node_to_execute, iter_variable=iter_variable
         )
     else:
         raise ValueError(f"Invalid mode {mode}")

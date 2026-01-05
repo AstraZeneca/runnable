@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, PrivateAttr
 import runnable.context as context
 from runnable import defaults
 from runnable.datastore import DataCatalog, JobLog, StepAttempt
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 
 if TYPE_CHECKING:  # pragma: no cover
     from runnable.graph import Graph
@@ -71,7 +71,6 @@ class BaseExecutor(ABC, BaseModel):
     def _calculate_attempt_number(
         self,
         node: "BaseNode",
-        map_variable: MapVariableType = None,
         iter_variable: IterableParameterModel | None = None,
     ) -> int:
         """
@@ -100,7 +99,6 @@ class BaseExecutor(ABC, BaseModel):
     def add_task_log_to_catalog(
         self,
         name: str,
-        map_variable: Optional[MapVariableType] = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ): ...
 
@@ -124,7 +122,6 @@ class BaseJobExecutor(BaseExecutor):
     def _calculate_attempt_number(
         self,
         node: "BaseNode",
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> int:
         """
@@ -242,7 +239,6 @@ class BasePipelineExecutor(BaseExecutor):
     def _calculate_attempt_number(
         self,
         node: "BaseNode",
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> int:
         """
@@ -264,7 +260,6 @@ class BasePipelineExecutor(BaseExecutor):
     def _execute_node(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         mock: bool = False,
     ):
@@ -292,7 +287,6 @@ class BasePipelineExecutor(BaseExecutor):
     def execute_node(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -312,7 +306,6 @@ class BasePipelineExecutor(BaseExecutor):
     def execute_from_graph(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -346,7 +339,6 @@ class BasePipelineExecutor(BaseExecutor):
         self,
         current_node: BaseNode,
         dag: Graph,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> tuple[str, str]:
         """
@@ -369,7 +361,6 @@ class BasePipelineExecutor(BaseExecutor):
     def execute_graph(
         self,
         dag: Graph,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -429,7 +420,6 @@ class BasePipelineExecutor(BaseExecutor):
     def fan_out(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -457,7 +447,6 @@ class BasePipelineExecutor(BaseExecutor):
     def fan_in(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -484,7 +473,6 @@ class BasePipelineExecutor(BaseExecutor):
     def trigger_node_execution(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -510,7 +498,6 @@ class BasePipelineExecutor(BaseExecutor):
     async def execute_graph_async(
         self,
         dag: "Graph",
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -530,7 +517,6 @@ class BasePipelineExecutor(BaseExecutor):
     async def execute_from_graph_async(
         self,
         node: "BaseNode",
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -546,7 +532,6 @@ class BasePipelineExecutor(BaseExecutor):
     async def trigger_node_execution_async(
         self,
         node: "BaseNode",
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -562,7 +547,6 @@ class BasePipelineExecutor(BaseExecutor):
     async def _execute_node_async(
         self,
         node: "BaseNode",
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         mock: bool = False,
     ):

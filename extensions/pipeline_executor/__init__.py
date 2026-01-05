@@ -13,7 +13,7 @@ from runnable import (
     utils,
 )
 from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepAttempt
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.executor import BasePipelineExecutor
 from runnable.graph import Graph
 from runnable.nodes import BaseNode
@@ -156,7 +156,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         logger.info(f"Retry validation passed for run_id: {self._context.run_id}")
 
     def _should_skip_step_in_retry(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self, node: BaseNode, iter_variable: Optional[IterableParameterModel] = None
     ) -> bool:
         """
         Determine if a step should be skipped during retry execution.
@@ -168,7 +168,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         Args:
             node: The node to check
-            map_variable: Optional map variable if in map context
+            iter_variable: Optional iterable variable if in map context
 
         Returns:
             bool: True if step should be skipped, False otherwise
@@ -176,7 +176,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         if not self._context.is_retry:
             return False
 
-        step_log_name = node._get_step_log_name(map_variable)
+        step_log_name = node._get_step_log_name(iter_variable)
 
         try:
             # Get step log from original run
@@ -351,12 +351,11 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     def add_task_log_to_catalog(
         self,
         name: str,
-        map_variable: Dict[str, str | int | float] | None = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         log_file_name = utils.make_log_file_name(
             name=name,
-            map_variable=map_variable,
+            iter_variable=iter_variable,
         )
         task_console.save_text(log_file_name)
         task_console.export_text(clear=True)
@@ -367,7 +366,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     def _calculate_attempt_number(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> int:
         """
@@ -375,12 +373,12 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         Args:
             node: The node to calculate attempt number for
-            map_variable: Optional map variable if node is in a map state
+            iter_variable: Optional iteration variable if node is in a map state
 
         Returns:
             int: The attempt number (starting from 1)
         """
-        step_log_name = node._get_step_log_name(map_variable)
+        step_log_name = node._get_step_log_name(iter_variable)
 
         try:
             existing_step_log = self._context.run_log_store.get_step_log(
@@ -395,7 +393,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     def _execute_node(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         mock: bool = False,
     ):
@@ -415,11 +412,11 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         Args:
             node (Node): The node to execute
-            map_variable (dict, optional): If the node is of a map state, map_variable is the value of the iterable.
+            iter_variable: Optional iteration variable if the node is of a map state.
                         Defaults to None.
         """
         # Calculate attempt number based on existing attempts in run log
-        current_attempt_number = self._calculate_attempt_number(node, map_variable)
+        current_attempt_number = self._calculate_attempt_number(node, iter_variable)
 
         # Set the environment variable for this attempt
         os.environ[defaults.ATTEMPT_NUMBER] = str(current_attempt_number)
@@ -434,7 +431,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         logger.debug(f"data_catalogs_get: {data_catalogs_get}")
 
         step_log = node.execute(
-            map_variable=map_variable,
+            iter_variable=iter_variable,
             attempt_number=current_attempt_number,
             mock=mock,
         )
@@ -457,7 +454,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         console.print(step_log.get_summary(), style=defaults.info_style)
 
         self.add_task_log_to_catalog(
-            name=self._context_node.internal_name, map_variable=map_variable
+            name=self._context_node.internal_name, iter_variable=iter_variable
         )
 
         self._context_node = None
@@ -483,7 +480,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     def _prepare_node_for_execution(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -491,7 +487,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         Returns None if node should be skipped (retry logic).
         """
-        if self._should_skip_step_in_retry(node, map_variable):
+        if self._should_skip_step_in_retry(node, iter_variable):
             logger.info(
                 f"Skipping execution of '{node.internal_name}' due to retry logic"
             )
@@ -505,19 +501,19 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         if self._context.is_retry:
             try:
                 step_log = self._context.run_log_store.get_step_log(
-                    node._get_step_log_name(map_variable), self._context.run_id
+                    node._get_step_log_name(iter_variable), self._context.run_id
                 )
                 logger.info(
                     f"Reusing existing step log for retry: {node.internal_name}"
                 )
             except exceptions.StepLogNotFoundError:
                 step_log = self._context.run_log_store.create_step_log(
-                    node.name, node._get_step_log_name(map_variable)
+                    node.name, node._get_step_log_name(iter_variable)
                 )
                 logger.info(f"Creating new step log for retry: {node.internal_name}")
         else:
             step_log = self._context.run_log_store.create_step_log(
-                node.name, node._get_step_log_name(map_variable)
+                node.name, node._get_step_log_name(iter_variable)
             )
 
         step_log.step_type = node.node_type
@@ -530,12 +526,11 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         self,
         node: BaseNode,
         dag: Graph,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Finalize after graph traversal - shared by sync/async paths."""
         run_log = self._context.run_log_store.get_branch_log(
-            node._get_branch_log_name(map_variable), self._context.run_id
+            node._get_branch_log_name(iter_variable), self._context.run_id
         )
 
         branch = "graph"
@@ -552,7 +547,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     def execute_from_graph(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -560,7 +554,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         Uses _prepare_node_for_execution helper for setup (shared with async path).
         """
-        step_log = self._prepare_node_for_execution(node, map_variable)
+        step_log = self._prepare_node_for_execution(node, iter_variable)
         if step_log is None:
             return  # Skipped due to retry logic
 
@@ -568,25 +562,24 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         # Terminal nodes
         if node.node_type in ["success", "fail"]:
-            self._execute_node(node, map_variable=map_variable)
+            self._execute_node(node, iter_variable=iter_variable)
             return
 
         # Composite nodes delegate to their sub-graph
         if node.is_composite:
-            node.execute_as_graph(map_variable=map_variable)
+            node.execute_as_graph(iter_variable=iter_variable)
             return
 
         # Task nodes
-        task_name = node._resolve_map_placeholders(node.internal_name, map_variable)
+        task_name = node._resolve_map_placeholders(node.internal_name, iter_variable)
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
         )
-        self.trigger_node_execution(node=node, map_variable=map_variable)
+        self.trigger_node_execution(node=node, iter_variable=iter_variable)
 
     def trigger_node_execution(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -597,7 +590,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         Args:
             node (BaseNode): The node to execute
-            map_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
+            iter_variable (str, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to ''.
 
         NOTE: We do not raise an exception as this method is not required by many extensions
@@ -608,7 +601,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         self,
         current_node: BaseNode,
         dag: Graph,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> tuple[str, str]:
         """
@@ -624,12 +616,12 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         Args:
             current_node (BaseNode): The current node.
             dag (Graph): The dag we are traversing.
-            map_variable (dict): If the node belongs to a map branch.
+            iter_variable (dict): If the node belongs to a map branch.
 
         """
 
         step_log = self._context.run_log_store.get_step_log(
-            current_node._get_step_log_name(map_variable), self._context.run_id
+            current_node._get_step_log_name(iter_variable), self._context.run_id
         )
         logger.info(
             f"Finished executing the node {current_node} with status {step_log.status}"
@@ -650,7 +642,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     def execute_graph(
         self,
         dag: Graph,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -670,7 +661,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         Args:
             dag (Graph): The directed acyclic graph to traverse and execute.
-            map_variable (dict, optional): If the node if of a map state, this
+            iter_variable (dict, optional): If the node if of a map state, this
                 corresponds to the value of the iterable.
             Defaults to None.
         """
@@ -682,7 +673,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         if dag.internal_branch_name:
             branch_task_name = BaseNode._resolve_map_placeholders(
                 dag.internal_branch_name or "Graph",
-                map_variable,
+                iter_variable,
             )
             console.print(
                 f":runner: Executing the branch {branch_task_name} ... ",
@@ -692,7 +683,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         while True:
             working_on = dag.get_node_by_name(current_node)
             task_name = working_on._resolve_map_placeholders(
-                working_on.internal_name, map_variable
+                working_on.internal_name, iter_variable
             )
 
             if previous_node == current_node:
@@ -701,9 +692,9 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             previous_node = current_node
 
             try:
-                self.execute_from_graph(working_on, map_variable=map_variable)
+                self.execute_from_graph(working_on, iter_variable=iter_variable)
                 status, next_node_name = self._get_status_and_next_node_name(
-                    current_node=working_on, dag=dag, map_variable=map_variable
+                    current_node=working_on, dag=dag, iter_variable=iter_variable
                 )
 
                 if status == defaults.SUCCESS:
@@ -728,7 +719,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             current_node = next_node_name
 
         # Use shared helper for finalization
-        self._finalize_graph_execution(working_on, dag, map_variable)
+        self._finalize_graph_execution(working_on, dag, iter_variable)
 
     def send_return_code(self, stage="traversal"):
         """
@@ -805,7 +796,6 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     def fan_out(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -828,23 +818,22 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         Args:
             node (BaseNode): The node to fan-out
-            map_variable (dict, optional): If the node if of a map state,.Defaults to None.
+            iter_variable (dict, optional): If the node if of a map state,.Defaults to None.
 
         """
         step_log = self._context.run_log_store.create_step_log(
-            node.name, node._get_step_log_name(map_variable=map_variable)
+            node.name, node._get_step_log_name(iter_variable=iter_variable)
         )
 
         step_log.step_type = node.node_type
         step_log.status = defaults.PROCESSING
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-        node.fan_out(map_variable=map_variable)
+        node.fan_out(iter_variable=iter_variable)
 
     def fan_in(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -865,13 +854,13 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         Args:
             node (BaseNode): The node to fan-in
-            map_variable (dict, optional): If the node if of a map state,.Defaults to None.
+            iter_variable (dict, optional): If the node if of a map state,.Defaults to None.
 
         """
-        node.fan_in(map_variable=map_variable)
+        node.fan_in(iter_variable=iter_variable)
 
         step_log = self._context.run_log_store.get_step_log(
-            node._get_step_log_name(map_variable=map_variable), self._context.run_id
+            node._get_step_log_name(iter_variable=iter_variable), self._context.run_id
         )
 
         if step_log.status == defaults.FAIL:

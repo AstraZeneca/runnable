@@ -18,15 +18,15 @@ class TestGenericExecutor(GenericPipelineExecutor):
     patch methods on instances of this class, so some tests are skipped.
     """
 
-    def execute_node(self, node, map_variable=None):
+    def execute_node(self, node, iter_variable=None):
         """Implementation of the abstract method to execute nodes"""
-        self._execute_node(node, map_variable)
+        self._execute_node(node, iter_variable=iter_variable)
 
     def add_code_identities(self, node, attempt_log):
         """Implementation of add_code_identities"""
         pass
 
-    def add_task_log_to_catalog(self, name, map_variable=None):
+    def add_task_log_to_catalog(self, name, iter_variable=None):
         """Implementation of add_task_log_to_catalog"""
         pass
 
@@ -286,15 +286,18 @@ def test_calculate_attempt_number_with_map_variable(
         )
     )
 
-    # Call the method with map variable
-    map_variable = {"key": "value"}
-    attempt_num = test_executor._calculate_attempt_number(mock_node, map_variable)
+    # Call the method with iter variable
+    from runnable.defaults import IterableParameterModel, MapVariableModel
+    iter_variable = IterableParameterModel(
+        map_variable={"key": MapVariableModel(value='"value"')}
+    )
+    attempt_num = test_executor._calculate_attempt_number(mock_node, iter_variable)
 
     # Verify the result
     assert attempt_num == 1
 
-    # Verify the node method was called with map variable
-    mock_node._get_step_log_name.assert_called_once_with(map_variable)
+    # Verify the node method was called with iter variable
+    mock_node._get_step_log_name.assert_called_once_with(iter_variable)
 
 
 def test_execute_node_uses_calculated_attempt_number(

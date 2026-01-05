@@ -17,7 +17,7 @@ from ruamel.yaml import YAML
 
 import runnable.context as context
 from runnable import console, defaults
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
@@ -408,14 +408,13 @@ def gather_variables() -> Dict[str, str]:
 
 def make_log_file_name(
     name: str,
-    map_variable: MapVariableType,
     iter_variable: Optional[IterableParameterModel] = None,
 ) -> str:
     random_tag = "".join(random.choices(string.ascii_uppercase + string.digits, k=3))
     log_file_name = name
 
-    if map_variable:
-        for _, value in map_variable.items():
+    if iter_variable and iter_variable.map_variable:
+        for _, value in iter_variable.map_variable.items():
             log_file_name += "_" + str(value)
 
     log_file_name += "_" + random_tag

@@ -7,7 +7,7 @@ from pydantic import ConfigDict, Field
 from extensions.nodes.task import TaskNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.nodes import BaseNode
 from runnable.tasks import BaseTaskType
 
@@ -37,7 +37,6 @@ class MockedExecutor(GenericPipelineExecutor):
     def execute_from_graph(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -61,11 +60,11 @@ class MockedExecutor(GenericPipelineExecutor):
 
         Args:
             node (Node): The node to execute
-            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
+            iter_variable (dict, optional): If the node if of a map state, this corresponds to the value of iterable.
                     Defaults to None.
         """
         step_log = self._context.run_log_store.create_step_log(
-            node.name, node._get_step_log_name(map_variable)
+            node.name, node._get_step_log_name(iter_variable)
         )
 
         step_log.step_type = node.node_type
@@ -79,18 +78,18 @@ class MockedExecutor(GenericPipelineExecutor):
         # If its a terminal node, complete it now
         if node.node_type in ["success", "fail"]:
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-            self._execute_node(node, map_variable=map_variable)
+            self._execute_node(node, iter_variable=iter_variable)
             return
 
         # We call an internal function to iterate the sub graphs and execute them
         if node.is_composite:
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
-            node.execute_as_graph(map_variable=map_variable)
+            node.execute_as_graph(iter_variable=iter_variable)
             return
 
         if node.name not in self.patches:
             # node is not patched, so mock it
-            self._execute_node(node, map_variable=map_variable, mock=True)
+            self._execute_node(node, iter_variable=iter_variable, mock=True)
         else:
             # node is patched
             # command as the patch value
@@ -102,7 +101,7 @@ class MockedExecutor(GenericPipelineExecutor):
                 node_name=node.name,
             )
             node_to_send.executable = executable
-            self._execute_node(node_to_send, map_variable=map_variable, mock=False)
+            self._execute_node(node_to_send, iter_variable=iter_variable, mock=False)
 
     def _resolve_executor_config(self, node: BaseNode):
         """
@@ -144,7 +143,6 @@ class MockedExecutor(GenericPipelineExecutor):
     def execute_node(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -153,7 +151,7 @@ class MockedExecutor(GenericPipelineExecutor):
 
         Args:
             node (BaseNode): The node to execute
-            map_variable (dict, optional): If the node is part of a map, send in the map dictionary. Defaults to None.
+            iter_variable (dict, optional): If the node is part of a map, send in the map dictionary. Defaults to None.
 
         Raises:
             NotImplementedError: _description_

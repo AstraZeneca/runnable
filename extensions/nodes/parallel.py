@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional, cast
 from pydantic import Field, field_serializer
 
 from runnable import console, defaults, exceptions
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode
 
@@ -73,7 +73,6 @@ class ParallelNode(CompositeNode):
 
     def fan_out(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -84,12 +83,12 @@ class ParallelNode(CompositeNode):
 
         Args:
             executor (BaseExecutor): The executor class as defined by the config
-            map_variable (dict, optional): If the node is part of a map node. Defaults to None.
+            iter_variable (dict, optional): If the node is part of a map node. Defaults to None.
         """
         # Prepare the branch logs
         for internal_branch_name, _ in self.branches.items():
             effective_branch_name = self._resolve_map_placeholders(
-                internal_branch_name, map_variable=map_variable
+                internal_branch_name, iter_variable=iter_variable
             )
 
             try:
@@ -108,7 +107,6 @@ class ParallelNode(CompositeNode):
 
     def execute_as_graph(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -131,7 +129,7 @@ class ParallelNode(CompositeNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-        self.fan_out(map_variable=map_variable)
+        self.fan_out(iter_variable=iter_variable)
 
         # Check if parallel execution is enabled and supported
         enable_parallel = getattr(
@@ -154,29 +152,27 @@ class ParallelNode(CompositeNode):
                     "Falling back to sequential execution. Consider using a run log store with "
                     "supports_parallel_writes=True for parallel execution."
                 )
-                self._execute_sequentially(map_variable)
+                self._execute_sequentially(iter_variable)
             else:
                 logger.info("Executing branches in parallel")
-                self._execute_in_parallel(map_variable)
+                self._execute_in_parallel(iter_variable)
         else:
-            self._execute_sequentially(map_variable)
+            self._execute_sequentially(iter_variable)
 
-        self.fan_in(map_variable=map_variable)
+        self.fan_in(iter_variable=iter_variable)
 
     def _execute_sequentially(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Execute branches sequentially (original behavior)."""
         for _, branch in self.branches.items():
             self._context.pipeline_executor.execute_graph(
-                branch, map_variable=map_variable
+                branch, iter_variable=iter_variable
             )
 
     def _execute_in_parallel(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Execute branches in parallel using multiprocessing."""
@@ -185,7 +181,7 @@ class ParallelNode(CompositeNode):
         # Prepare arguments for each branch
         branch_args = []
         for branch_name, branch in self.branches.items():
-            branch_args.append((branch_name, branch, self._context, map_variable))
+            branch_args.append((branch_name, branch, self._context, iter_variable))
 
         # Use multiprocessing Pool to execute branches in parallel
         with Pool() as pool:
@@ -203,7 +199,6 @@ class ParallelNode(CompositeNode):
 
     def fan_in(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -213,15 +208,15 @@ class ParallelNode(CompositeNode):
 
         Args:
             executor (BaseExecutor): The executor class as defined by the config
-            map_variable (dict, optional): If the node is part of a map. Defaults to None.
+            iter_variable (dict, optional): If the node is part of a map. Defaults to None.
         """
         effective_internal_name = self._resolve_map_placeholders(
-            self.internal_name, map_variable=map_variable
+            self.internal_name, iter_variable=iter_variable
         )
         step_success_bool = True
         for internal_branch_name, _ in self.branches.items():
             effective_branch_name = self._resolve_map_placeholders(
-                internal_branch_name, map_variable=map_variable
+                internal_branch_name, iter_variable=iter_variable
             )
             branch_log = self._context.run_log_store.get_branch_log(
                 effective_branch_name, self._context.run_id
@@ -245,15 +240,14 @@ class ParallelNode(CompositeNode):
 
     async def execute_as_graph_async(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Async parallel execution."""
-        self.fan_out(map_variable=map_variable)  # sync - just creates branch logs
+        self.fan_out(iter_variable=iter_variable)  # sync - just creates branch logs
 
         for _, branch in self.branches.items():
             await self._context.pipeline_executor.execute_graph_async(
-                branch, map_variable=map_variable
+                branch, iter_variable=iter_variable
             )
 
-        self.fan_in(map_variable=map_variable)  # sync - just collates status
+        self.fan_in(iter_variable=iter_variable)  # sync - just collates status

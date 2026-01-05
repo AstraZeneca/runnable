@@ -8,7 +8,7 @@ from pydantic import Field, PrivateAttr
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
 from runnable.datastore import StepAttempt
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -175,7 +175,6 @@ class LocalContainerExecutor(GenericPipelineExecutor):
     def execute_node(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -183,12 +182,11 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         The node is already prepared for execution.
         """
         self._use_volumes()
-        return self._execute_node(node, map_variable)
+        return self._execute_node(node, iter_variable)
 
     def trigger_node_execution(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -198,7 +196,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
 
         Args:
             node (BaseNode): The node we are currently executing
-            map_variable (str, optional): If the node is part of the map branch. Defaults to ''.
+            iter_variable (str, optional): If the node is part of the map branch. Defaults to ''.
         """
         self._mount_volumes()
         executor_config = self._resolve_executor_config(node)
@@ -208,18 +206,18 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         logger.debug(executor_config)
 
         command = self._context.get_node_callable_command(
-            node, map_variable=map_variable
+            node, iter_variable=iter_variable
         )
 
         self._spin_container(
             node=node,
             command=command,
-            map_variable=map_variable,
+            iter_variable=iter_variable,
             auto_remove_container=auto_remove_container,
         )
 
         step_log = self._context.run_log_store.get_step_log(
-            node._get_step_log_name(map_variable), self._context.run_id
+            node._get_step_log_name(iter_variable), self._context.run_id
         )
         if step_log.status != defaults.SUCCESS:
             msg = (
@@ -236,7 +234,6 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         self,
         node: BaseNode,
         command: str,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         auto_remove_container: bool = True,
     ):

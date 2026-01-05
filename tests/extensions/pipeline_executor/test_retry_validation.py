@@ -9,7 +9,7 @@ from extensions.pipeline_executor import GenericPipelineExecutor
 class ConcreteGenericPipelineExecutor(GenericPipelineExecutor):
     """Concrete implementation of GenericPipelineExecutor with abstract methods implemented for testing"""
 
-    def execute_node(self, node, map_variable=None, **kwargs):
+    def execute_node(self, node, iter_variable=None, **kwargs):
         pass  # Mock implementation for testing
 
 

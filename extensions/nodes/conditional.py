@@ -8,7 +8,7 @@ from runnable import console, defaults, exceptions
 from runnable.datastore import Parameter
 from runnable.defaults import IterableParameterModel
 from runnable.graph import Graph, create_graph
-from runnable.nodes import CompositeNode, MapVariableType
+from runnable.nodes import CompositeNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -127,7 +127,6 @@ class ConditionalNode(CompositeNode):
 
     def fan_out(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -146,7 +145,7 @@ class ConditionalNode(CompositeNode):
                 continue
 
             effective_branch_name = self._resolve_map_placeholders(
-                internal_branch_name, map_variable=map_variable
+                internal_branch_name, iter_variable=iter_variable
             )
 
             hit_once = True
@@ -171,7 +170,6 @@ class ConditionalNode(CompositeNode):
 
     def execute_as_graph(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -194,7 +192,7 @@ class ConditionalNode(CompositeNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-        self.fan_out(map_variable=map_variable)
+        self.fan_out(iter_variable=iter_variable)
         parameter_value = self.get_parameter_value()
 
         for internal_branch_name, branch in self.branches.items():
@@ -204,14 +202,13 @@ class ConditionalNode(CompositeNode):
                 # if the condition is met, execute the graph
                 logger.debug(f"Executing graph for {branch}")
                 self._context.pipeline_executor.execute_graph(
-                    branch, map_variable=map_variable
+                    branch, iter_variable=iter_variable
                 )
 
-        self.fan_in(map_variable=map_variable)
+        self.fan_in(iter_variable=iter_variable)
 
     def fan_in(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
@@ -224,7 +221,7 @@ class ConditionalNode(CompositeNode):
             map_variable (dict, optional): If the node is part of a map. Defaults to None.
         """
         effective_internal_name = self._resolve_map_placeholders(
-            self.internal_name, map_variable=map_variable
+            self.internal_name, iter_variable=iter_variable
         )
 
         step_success_bool: bool = True
@@ -238,7 +235,7 @@ class ConditionalNode(CompositeNode):
                 continue
 
             effective_branch_name = self._resolve_map_placeholders(
-                internal_branch_name, map_variable=map_variable
+                internal_branch_name, iter_variable=iter_variable
             )
 
             branch_log = self._context.run_log_store.get_branch_log(
@@ -261,11 +258,10 @@ class ConditionalNode(CompositeNode):
 
     async def execute_as_graph_async(
         self,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Async conditional execution."""
-        self.fan_out(map_variable=map_variable)  # sync
+        self.fan_out(iter_variable=iter_variable)  # sync
         parameter_value = self.get_parameter_value()
 
         for internal_branch_name, branch in self.branches.items():
@@ -274,7 +270,7 @@ class ConditionalNode(CompositeNode):
             if result:
                 logger.debug(f"Executing graph for {branch}")
                 await self._context.pipeline_executor.execute_graph_async(
-                    branch, map_variable=map_variable
+                    branch, iter_variable=iter_variable
                 )
 
-        self.fan_in(map_variable=map_variable)  # sync
+        self.fan_in(iter_variable=iter_variable)  # sync

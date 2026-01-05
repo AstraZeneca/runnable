@@ -5,7 +5,7 @@ from pydantic import Field
 
 from runnable import datastore, defaults
 from runnable.datastore import StepLog
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.nodes import TerminalNode
 
 
@@ -31,7 +31,6 @@ class SuccessNode(TerminalNode):
     def execute(
         self,
         mock=False,
-        map_variable: MapVariableType = None,
         iter_variable: Optional[IterableParameterModel] = None,
         attempt_number: int = 1,
     ) -> StepLog:
@@ -42,13 +41,13 @@ class SuccessNode(TerminalNode):
         Args:
             executor (_type_): The executor class
             mock (bool, optional): If we should just mock and not perform anything. Defaults to False.
-            map_variable (dict, optional): If the node belongs to an internal branch. Defaults to None.
+            iter_variable (dict, optional): If the node belongs to an internal branch. Defaults to None.
 
         Returns:
             StepAttempt: The step attempt object
         """
         step_log = self._context.run_log_store.get_step_log(
-            self._get_step_log_name(map_variable), self._context.run_id
+            self._get_step_log_name(iter_variable), self._context.run_id
         )
 
         attempt_log = datastore.StepAttempt(
@@ -65,7 +64,7 @@ class SuccessNode(TerminalNode):
         )
 
         run_or_branch_log = self._context.run_log_store.get_branch_log(
-            self._get_branch_log_name(map_variable), self._context.run_id
+            self._get_branch_log_name(iter_variable), self._context.run_id
         )
         run_or_branch_log.status = defaults.SUCCESS
         self._context.run_log_store.add_branch_log(
