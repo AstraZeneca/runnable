@@ -420,3 +420,21 @@ class MapNode(CompositeNode):
         self._context.run_log_store.set_parameters(
             parameters=params, run_id=self._context.run_id
         )
+
+    async def execute_as_graph_async(self, map_variable: MapVariableType = None):
+        """Async map execution."""
+        self.fan_out(map_variable=map_variable)  # sync
+
+        iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[
+            self.iterate_on
+        ].get_value()
+
+        for iter_variable in iterate_on:
+            effective_map_variable = map_variable or OrderedDict()
+            effective_map_variable[self.iterate_as] = iter_variable
+
+            await self._context.pipeline_executor.execute_graph_async(
+                self.branch, map_variable=effective_map_variable
+            )
+
+        self.fan_in(map_variable=map_variable)  # sync

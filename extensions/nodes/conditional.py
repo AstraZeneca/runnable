@@ -239,9 +239,25 @@ class ConditionalNode(CompositeNode):
             effective_internal_name, self._context.run_id
         )
 
-        if step_success_bool:  #  If none failed
+        if step_success_bool:  # If none failed
             step_log.status = defaults.SUCCESS
         else:
             step_log.status = defaults.FAIL
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+
+    async def execute_as_graph_async(self, map_variable: MapVariableType = None):
+        """Async conditional execution."""
+        self.fan_out(map_variable=map_variable)  # sync
+        parameter_value = self.get_parameter_value()
+
+        for internal_branch_name, branch in self.branches.items():
+            result = str(parameter_value) == internal_branch_name.split(".")[-1]
+
+            if result:
+                logger.debug(f"Executing graph for {branch}")
+                await self._context.pipeline_executor.execute_graph_async(
+                    branch, map_variable=map_variable
+                )
+
+        self.fan_in(map_variable=map_variable)  # sync

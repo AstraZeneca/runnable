@@ -145,6 +145,7 @@ nav:
       - "Failure Handling": "advanced-patterns/failure-handling.md"
       - "Retry & Recovery": "advanced-patterns/retry-recovery.md"
       - "Mocking and Testing": "advanced-patterns/mocking-testing.md"
+      - "Async & Streaming": "advanced-patterns/async-streaming.md"
       - "Custom Patterns": "advanced-patterns/node-types.md"
   - "Production":
       - "Deploy Anywhere": "production/deploy-anywhere.md"
@@ -166,6 +167,7 @@ nav:
       - "Custom Run Log Stores": "production/custom-run-log-stores.md"
       - "Catalog": "production/catalog.md"
       - "Secrets": "production/secrets.md"
+      - "Telemetry": "production/telemetry.md"
   - "Compare":
       - "vs Kedro": "compare/kedro.md"
       - "vs Metaflow": "compare/metaflow.md"

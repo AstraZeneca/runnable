@@ -12,6 +12,8 @@ DO NOT use yaml examples unless I ask you to do so.
 When running Python code in this repository, ALWAYS use `uv run` instead of `python` directly.
 This ensures proper dependency management and virtual environment isolation.
 
+ANY PLANS related to this project should be stored in the current directory only, not anywhere else.
+
 ## Development Commands
 
 ### Environment Setup

@@ -45,9 +45,11 @@ class BaseNode(ABC, BaseModel):
         current_context = context.get_run_context()
         if current_context is None:
             raise RuntimeError("No run context available")
-        if not isinstance(current_context, context.PipelineContext):
+        if not isinstance(
+            current_context, (context.PipelineContext, context.AsyncPipelineContext)
+        ):
             raise TypeError(
-                f"Expected PipelineContext, got {type(current_context).__name__}"
+                f"Expected PipelineContext or AsyncPipelineContext, got {type(current_context).__name__}"
             )
         return current_context
 
@@ -306,6 +308,24 @@ class BaseNode(ABC, BaseModel):
             NotImplementedError: Base class, hence not implemented.
         """
 
+    async def execute_async(
+        self,
+        map_variable: MapVariableType = None,
+        attempt_number: int = 1,
+        mock: bool = False,
+    ) -> StepLog:
+        """
+        Async execution - default delegates to sync execute().
+
+        Override in subclasses that support true async execution (TaskNode).
+        Terminal nodes (SuccessNode, FailNode) use this default.
+        """
+        return self.execute(
+            map_variable=map_variable,
+            attempt_number=attempt_number,
+            mock=mock,
+        )
+
     @abstractmethod
     def execute_as_graph(self, map_variable: MapVariableType = None):
         """
@@ -490,6 +510,18 @@ class CompositeNode(TraversalNode):
     ) -> StepLog:
         raise exceptions.NodeMethodCallError(
             "This is a composite node and does not have an execute function"
+        )
+
+    async def execute_as_graph_async(self, map_variable: MapVariableType = None):
+        """
+        Async execution of sub-graph.
+
+        Default raises NotImplementedError - override in subclasses
+        that support async execution (ParallelNode, MapNode, DagNode).
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement execute_as_graph_async() "
+            f"for async execution support."
         )
 
 

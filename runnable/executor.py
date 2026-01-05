@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 
@@ -186,6 +186,7 @@ class BasePipelineExecutor(BaseExecutor):
     overrides: dict[str, Any] = {}
 
     _context_node: Optional[BaseNode] = PrivateAttr(default=None)
+    _event_callback: Optional[Callable[[dict], None]] = PrivateAttr(default=None)
 
     @abstractmethod
     def add_code_identities(self, node: BaseNode, attempt_log: StepAttempt):
@@ -455,3 +456,67 @@ class BasePipelineExecutor(BaseExecutor):
         NOTE: We do not raise an exception as this method is not required by many extensions
         """
         ...
+
+    # ═══════════════════════════════════════════════════════════════
+    # Async Path - Default implementations that raise NotImplementedError
+    # Only interactive executors (local) override these
+    # ═══════════════════════════════════════════════════════════════
+
+    async def execute_graph_async(
+        self, dag: "Graph", map_variable: MapVariableType = None
+    ):
+        """
+        Async graph traversal.
+
+        Only implemented by interactive executors that support async execution.
+        Transpilers (Argo, etc.) do not implement this.
+
+        Raises:
+            NotImplementedError: If executor does not support async execution.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support async execution. "
+            f"Use a local executor for async pipelines."
+        )
+
+    async def execute_from_graph_async(
+        self, node: "BaseNode", map_variable: MapVariableType = None
+    ):
+        """
+        Async node execution entry point.
+
+        Raises:
+            NotImplementedError: If executor does not support async execution.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support async execution."
+        )
+
+    async def trigger_node_execution_async(
+        self, node: "BaseNode", map_variable: MapVariableType = None
+    ):
+        """
+        Async trigger for node execution.
+
+        Raises:
+            NotImplementedError: If executor does not support async execution.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support async execution."
+        )
+
+    async def _execute_node_async(
+        self,
+        node: "BaseNode",
+        map_variable: MapVariableType = None,
+        mock: bool = False,
+    ):
+        """
+        Async node execution wrapper.
+
+        Raises:
+            NotImplementedError: If executor does not support async execution.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support async execution."
+        )

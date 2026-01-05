@@ -1,6 +1,7 @@
 import contextlib
 import copy
 import importlib
+import inspect
 import io
 import json
 import logging
@@ -11,8 +12,9 @@ from datetime import datetime
 from pathlib import Path
 from pickle import PicklingError
 from string import Template
-from typing import Any, Dict, List, Literal, cast
+from typing import Any, Callable, Dict, List, Literal, Optional, cast
 
+import logfire_api as logfire
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from rich.segment import Segment
 from rich.style import Style
@@ -28,6 +30,7 @@ from runnable.datastore import (
     StepAttempt,
 )
 from runnable.defaults import MapVariableType
+from runnable.telemetry import truncate_value
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -175,6 +178,30 @@ class BaseTaskType(BaseModel):
         """
         raise NotImplementedError()
 
+    async def execute_command_async(
+        self,
+        map_variable: MapVariableType = None,
+        event_callback: Optional[Callable[[dict], None]] = None,
+    ) -> StepAttempt:
+        """
+        Async command execution.
+
+        Only implemented by task types that support async execution
+        (AsyncPythonTaskType). Sync task types (PythonTaskType,
+        NotebookTaskType, ShellTaskType) raise NotImplementedError.
+
+        Args:
+            map_variable: If the command is part of map node.
+            event_callback: Optional callback for streaming events.
+
+        Raises:
+            NotImplementedError: If task type does not support async execution.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support async execution. "
+            f"Use AsyncPythonTask for async functions."
+        )
+
     def _diff_parameters(
         self, parameters_in: Dict[str, Parameter], context_params: Dict[str, Parameter]
     ) -> Dict[str, Parameter]:
@@ -200,6 +227,28 @@ class BaseTaskType(BaseModel):
             logger.exception(e)
         finally:
             self.delete_secrets_from_env_variables()
+
+    def _safe_serialize_params(self, params: Dict[str, Parameter]) -> Dict[str, Any]:
+        """Safely serialize parameters for telemetry, truncating per value.
+
+        ObjectParameter values are not serializable (pickled objects),
+        so they are represented as "<object>".
+        """
+        serializable: Dict[str, Any] = {}
+        for k, v in params.items():
+            if isinstance(v, ObjectParameter):
+                serializable[k] = "<object>"
+            else:
+                serializable[k] = truncate_value(v.get_value())
+        return serializable
+
+    def _emit_event(self, event: Dict[str, Any]) -> None:
+        """Push event to stream queue if one is set (for SSE streaming)."""
+        from runnable.telemetry import get_stream_queue
+
+        q = get_stream_queue()
+        if q is not None:
+            q.put_nowait(event)
 
     def resolve_unreduced_parameters(self, map_variable: MapVariableType = None):
         """Resolve the unreduced parameters."""
@@ -347,82 +396,134 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
             retry_indicator=self._context.retry_indicator,
         )
 
-        with (
-            self.execution_context(map_variable=map_variable) as params,
-            self.expose_secrets() as _,
+        with logfire.span(
+            "task:{task_name}",
+            task_name=self.command,
+            task_type=self.task_type,
         ):
-            module, func = utils.get_module_and_attr_names(self.command)
-            sys.path.insert(0, os.getcwd())  # Need to add the current directory to path
-            imported_module = importlib.import_module(module)
-            f = getattr(imported_module, func)
+            with (
+                self.execution_context(map_variable=map_variable) as params,
+                self.expose_secrets() as _,
+            ):
+                logfire.info(
+                    "Task started",
+                    inputs=self._safe_serialize_params(params),
+                )
+                self._emit_event(
+                    {
+                        "type": "task_started",
+                        "name": self.command,
+                        "inputs": self._safe_serialize_params(params),
+                    }
+                )
 
-            try:
+                module, func = utils.get_module_and_attr_names(self.command)
+                sys.path.insert(
+                    0, os.getcwd()
+                )  # Need to add the current directory to path
+                imported_module = importlib.import_module(module)
+                f = getattr(imported_module, func)
+
                 try:
-                    filtered_parameters = parameters.filter_arguments_for_func(
-                        f, params.copy(), map_variable
-                    )
-                    logger.info(
-                        f"Calling {func} from {module} with {filtered_parameters}"
-                    )
-                    with redirect_output(console=task_console) as (
-                        buffer,
-                        stderr_buffer,
-                    ):
-                        user_set_parameters = f(
-                            **filtered_parameters
-                        )  # This is a tuple or single value
-                except Exception as e:
-                    raise exceptions.CommandCallError(
-                        f"Function call: {self.command} did not succeed.\n"
-                    ) from e
-                finally:
-                    attempt_log.input_parameters = params.copy()
-                    if map_variable:
-                        attempt_log.input_parameters.update(
+                    try:
+                        filtered_parameters = parameters.filter_arguments_for_func(
+                            f, params.copy(), map_variable
+                        )
+                        logger.info(
+                            f"Calling {func} from {module} with {filtered_parameters}"
+                        )
+                        with redirect_output(console=task_console) as (
+                            buffer,
+                            stderr_buffer,
+                        ):
+                            user_set_parameters = f(
+                                **filtered_parameters
+                            )  # This is a tuple or single value
+                    except Exception as e:
+                        raise exceptions.CommandCallError(
+                            f"Function call: {self.command} did not succeed.\n"
+                        ) from e
+                    finally:
+                        attempt_log.input_parameters = params.copy()
+                        if map_variable:
+                            attempt_log.input_parameters.update(
+                                {
+                                    k: JsonParameter(value=v, kind="json")
+                                    for k, v in map_variable.items()
+                                }
+                            )
+
+                    if self.returns:
+                        if not isinstance(
+                            user_set_parameters, tuple
+                        ):  # make it a tuple
+                            user_set_parameters = (user_set_parameters,)
+
+                        if len(user_set_parameters) != len(self.returns):
+                            raise ValueError(
+                                "Returns task signature does not match the function returns"
+                            )
+
+                        output_parameters: Dict[str, Parameter] = {}
+                        metrics: Dict[str, Parameter] = {}
+
+                        for i, task_return in enumerate(self.returns):
+                            output_parameter = task_return_to_parameter(
+                                task_return=task_return,
+                                value=user_set_parameters[i],
+                            )
+
+                            if task_return.kind == "metric":
+                                metrics[task_return.name] = output_parameter
+
+                            param_name = task_return.name
+                            if map_variable:
+                                for _, v in map_variable.items():
+                                    param_name = f"{v}_{param_name}"
+
+                            output_parameters[param_name] = output_parameter
+
+                        attempt_log.output_parameters = output_parameters
+                        attempt_log.user_defined_metrics = metrics
+                        params.update(output_parameters)
+
+                        logfire.info(
+                            "Task completed",
+                            outputs=self._safe_serialize_params(output_parameters),
+                            status="success",
+                        )
+                        self._emit_event(
                             {
-                                k: JsonParameter(value=v, kind="json")
-                                for k, v in map_variable.items()
+                                "type": "task_completed",
+                                "name": self.command,
+                                "outputs": self._safe_serialize_params(
+                                    output_parameters
+                                ),
+                            }
+                        )
+                    else:
+                        logfire.info("Task completed", status="success")
+                        self._emit_event(
+                            {
+                                "type": "task_completed",
+                                "name": self.command,
                             }
                         )
 
-                if self.returns:
-                    if not isinstance(user_set_parameters, tuple):  # make it a tuple
-                        user_set_parameters = (user_set_parameters,)
-
-                    if len(user_set_parameters) != len(self.returns):
-                        raise ValueError(
-                            "Returns task signature does not match the function returns"
-                        )
-
-                    output_parameters: Dict[str, Parameter] = {}
-                    metrics: Dict[str, Parameter] = {}
-
-                    for i, task_return in enumerate(self.returns):
-                        output_parameter = task_return_to_parameter(
-                            task_return=task_return,
-                            value=user_set_parameters[i],
-                        )
-
-                        if task_return.kind == "metric":
-                            metrics[task_return.name] = output_parameter
-
-                        param_name = task_return.name
-                        if map_variable:
-                            for _, v in map_variable.items():
-                                param_name = f"{v}_{param_name}"
-
-                        output_parameters[param_name] = output_parameter
-
-                    attempt_log.output_parameters = output_parameters
-                    attempt_log.user_defined_metrics = metrics
-                    params.update(output_parameters)
-
-                attempt_log.status = defaults.SUCCESS
-            except Exception as _e:
-                msg = f"Call to the function {self.command} did not succeed.\n"
-                attempt_log.message = msg
-                task_console.print_exception(show_locals=False)
-                task_console.log(_e, style=defaults.error_style)
+                    attempt_log.status = defaults.SUCCESS
+                except Exception as _e:
+                    msg = f"Call to the function {self.command} did not succeed.\n"
+                    attempt_log.message = msg
+                    task_console.print_exception(show_locals=False)
+                    task_console.log(_e, style=defaults.error_style)
+                    logfire.error("Task failed", error=str(_e)[:256])
+                    self._emit_event(
+                        {
+                            "type": "task_error",
+                            "name": self.command,
+                            "error": str(_e)[:256],
+                        }
+                    )
 
         attempt_log.end_time = str(datetime.now())
 
@@ -528,101 +629,145 @@ class NotebookTaskType(BaseTaskType):
             start_time=str(datetime.now()),
             retry_indicator=self._context.retry_indicator,
         )
-        try:
-            import ploomber_engine as pm
-            from ploomber_engine.ipython import PloomberClient
 
-            notebook_output_path = self.get_notebook_output_path(
-                map_variable=map_variable
-            )
+        with logfire.span(
+            "task:{task_name}",
+            task_name=self.command,
+            task_type=self.task_type,
+        ):
+            try:
+                import ploomber_engine as pm
+                from ploomber_engine.ipython import PloomberClient
 
-            with (
-                self.execution_context(
-                    map_variable=map_variable, allow_complex=False
-                ) as params,
-                self.expose_secrets() as _,
-            ):
-                attempt_log.input_parameters = params.copy()
-                copy_params = copy.deepcopy(params)
+                notebook_output_path = self.get_notebook_output_path(
+                    map_variable=map_variable
+                )
 
-                if map_variable:
-                    for key, value in map_variable.items():
-                        copy_params[key] = JsonParameter(kind="json", value=value)
-
-                # Remove any {v}_unreduced parameters from the parameters
-                unprocessed_params = [
-                    k for k, v in copy_params.items() if not v.reduced
-                ]
-
-                for key in list(copy_params.keys()):
-                    if any(key.endswith(f"_{k}") for k in unprocessed_params):
-                        del copy_params[key]
-
-                notebook_params = {k: v.get_value() for k, v in copy_params.items()}
-
-                ploomber_optional_args = self.optional_ploomber_args
-
-                kwds = {
-                    "input_path": self.command,
-                    "output_path": notebook_output_path,
-                    "parameters": notebook_params,
-                    "log_output": True,
-                    "progress_bar": False,
-                }
-                kwds.update(ploomber_optional_args)
-
-                with redirect_output(console=task_console) as (buffer, stderr_buffer):
-                    pm.execute_notebook(**kwds)
-
-                current_context = context.get_run_context()
-                if current_context is None:
-                    raise RuntimeError(
-                        "No run context available for catalog operations"
+                with (
+                    self.execution_context(
+                        map_variable=map_variable, allow_complex=False
+                    ) as params,
+                    self.expose_secrets() as _,
+                ):
+                    logfire.info(
+                        "Task started",
+                        inputs=self._safe_serialize_params(params),
                     )
-                current_context.catalog.put(name=notebook_output_path)
+                    self._emit_event(
+                        {
+                            "type": "task_started",
+                            "name": self.command,
+                            "inputs": self._safe_serialize_params(params),
+                        }
+                    )
 
-                client = PloomberClient.from_path(path=notebook_output_path)
-                namespace = client.get_namespace()
+                    attempt_log.input_parameters = params.copy()
+                    copy_params = copy.deepcopy(params)
 
-                output_parameters: Dict[str, Parameter] = {}
-                try:
-                    for task_return in self.returns:
-                        param_name = Template(task_return.name).safe_substitute(
-                            map_variable  # type: ignore
+                    if map_variable:
+                        for key, value in map_variable.items():
+                            copy_params[key] = JsonParameter(kind="json", value=value)
+
+                    # Remove any {v}_unreduced parameters from the parameters
+                    unprocessed_params = [
+                        k for k, v in copy_params.items() if not v.reduced
+                    ]
+
+                    for key in list(copy_params.keys()):
+                        if any(key.endswith(f"_{k}") for k in unprocessed_params):
+                            del copy_params[key]
+
+                    notebook_params = {k: v.get_value() for k, v in copy_params.items()}
+
+                    ploomber_optional_args = self.optional_ploomber_args
+
+                    kwds = {
+                        "input_path": self.command,
+                        "output_path": notebook_output_path,
+                        "parameters": notebook_params,
+                        "log_output": True,
+                        "progress_bar": False,
+                    }
+                    kwds.update(ploomber_optional_args)
+
+                    with redirect_output(console=task_console) as (
+                        buffer,
+                        stderr_buffer,
+                    ):
+                        pm.execute_notebook(**kwds)
+
+                    current_context = context.get_run_context()
+                    if current_context is None:
+                        raise RuntimeError(
+                            "No run context available for catalog operations"
+                        )
+                    current_context.catalog.put(name=notebook_output_path)
+
+                    client = PloomberClient.from_path(path=notebook_output_path)
+                    namespace = client.get_namespace()
+
+                    output_parameters: Dict[str, Parameter] = {}
+                    try:
+                        for task_return in self.returns:
+                            param_name = Template(task_return.name).safe_substitute(
+                                map_variable  # type: ignore
+                            )
+
+                            if map_variable:
+                                for _, v in map_variable.items():
+                                    param_name = f"{v}_{param_name}"
+
+                            output_parameters[param_name] = task_return_to_parameter(
+                                task_return=task_return,
+                                value=namespace[task_return.name],
+                            )
+                    except PicklingError as e:
+                        logger.exception("Notebooks cannot return objects")
+                        logger.exception(e)
+                        logfire.error("Notebook pickling error", error=str(e)[:256])
+                        raise
+
+                    if output_parameters:
+                        attempt_log.output_parameters = output_parameters
+                        params.update(output_parameters)
+                        logfire.info(
+                            "Task completed",
+                            outputs=self._safe_serialize_params(output_parameters),
+                            status="success",
+                        )
+                        self._emit_event(
+                            {
+                                "type": "task_completed",
+                                "name": self.command,
+                                "outputs": self._safe_serialize_params(
+                                    output_parameters
+                                ),
+                            }
+                        )
+                    else:
+                        logfire.info("Task completed", status="success")
+                        self._emit_event(
+                            {
+                                "type": "task_completed",
+                                "name": self.command,
+                            }
                         )
 
-                        if map_variable:
-                            for _, v in map_variable.items():
-                                param_name = f"{v}_{param_name}"
+                    attempt_log.status = defaults.SUCCESS
 
-                        output_parameters[param_name] = task_return_to_parameter(
-                            task_return=task_return,
-                            value=namespace[task_return.name],
-                        )
-                except PicklingError as e:
-                    logger.exception("Notebooks cannot return objects")
-                    # task_console.log("Notebooks cannot return objects", style=defaults.error_style)
-                    # task_console.log(e, style=defaults.error_style)
+            except (ImportError, Exception) as e:
+                msg = (
+                    f"Call to the notebook command {self.command} did not succeed.\n"
+                    "Ensure that you have installed runnable with notebook extras"
+                )
+                logger.exception(msg)
+                logger.exception(e)
+                logfire.error("Task failed", error=str(e)[:256])
+                self._emit_event(
+                    {"type": "task_error", "name": self.command, "error": str(e)[:256]}
+                )
 
-                    logger.exception(e)
-                    raise
-
-                if output_parameters:
-                    attempt_log.output_parameters = output_parameters
-                    params.update(output_parameters)
-
-                attempt_log.status = defaults.SUCCESS
-
-        except (ImportError, Exception) as e:
-            msg = (
-                f"Call to the notebook command {self.command} did not succeed.\n"
-                "Ensure that you have installed runnable with notebook extras"
-            )
-            logger.exception(msg)
-            logger.exception(e)
-
-            # task_console.log(msg, style=defaults.error_style)
-            attempt_log.status = defaults.FAIL
+                attempt_log.status = defaults.FAIL
 
         attempt_log.end_time = str(datetime.now())
 
@@ -732,81 +877,308 @@ class ShellTaskType(BaseTaskType):
                 secret_value = current_context.secrets.get(key)
                 subprocess_env[key] = secret_value
 
-        try:
-            with self.execution_context(
-                map_variable=map_variable, allow_complex=False
-            ) as params:
-                subprocess_env.update({k: v.get_value() for k, v in params.items()})
+        with logfire.span(
+            "task:{task_name}",
+            task_name=self.command[:100],  # Truncate long commands
+            task_type=self.task_type,
+        ):
+            try:
+                with self.execution_context(
+                    map_variable=map_variable, allow_complex=False
+                ) as params:
+                    logfire.info(
+                        "Task started",
+                        inputs=self._safe_serialize_params(params),
+                    )
+                    self._emit_event(
+                        {
+                            "type": "task_started",
+                            "name": self.command[:100],
+                            "inputs": self._safe_serialize_params(params),
+                        }
+                    )
 
-                attempt_log.input_parameters = params.copy()
-                # Json dumps all runnable environment variables
-                for key, value in subprocess_env.items():
-                    if isinstance(value, str):
-                        continue
-                    subprocess_env[key] = json.dumps(value)
+                    subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
-                collect_delimiter = "=== COLLECT ==="
+                    attempt_log.input_parameters = params.copy()
+                    # Json dumps all runnable environment variables
+                    for key, value in subprocess_env.items():
+                        if isinstance(value, str):
+                            continue
+                        subprocess_env[key] = json.dumps(value)
 
-                command = (
-                    self.command.strip() + f" && echo '{collect_delimiter}'  && env"
+                    collect_delimiter = "=== COLLECT ==="
+
+                    command = (
+                        self.command.strip() + f" && echo '{collect_delimiter}'  && env"
+                    )
+                    logger.info(f"Executing shell command: {command}")
+
+                    capture = False
+                    return_keys = {x.name: x for x in self.returns}
+
+                    proc = subprocess.Popen(
+                        command,
+                        shell=True,
+                        env=subprocess_env,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                    )
+                    result = proc.communicate()
+                    logger.debug(result)
+                    logger.info(proc.returncode)
+
+                    if proc.returncode != 0:
+                        msg = ",".join(result[1].split("\n"))
+                        task_console.print(msg, style=defaults.error_style)
+                        raise exceptions.CommandCallError(msg)
+
+                    # for stderr
+                    for line in result[1].split("\n"):
+                        if line.strip() == "":
+                            continue
+                        task_console.print(line, style=defaults.warning_style)
+
+                    output_parameters: Dict[str, Parameter] = {}
+                    metrics: Dict[str, Parameter] = {}
+
+                    # only from stdout
+                    for line in result[0].split("\n"):
+                        if line.strip() == "":
+                            continue
+
+                        logger.info(line)
+                        task_console.print(line)
+
+                        if line.strip() == collect_delimiter:
+                            # The lines from now on should be captured
+                            capture = True
+                            continue
+
+                        if capture:
+                            key, value = line.strip().split("=", 1)
+                            if key in return_keys:
+                                task_return = return_keys[key]
+
+                                try:
+                                    value = json.loads(value)
+                                except json.JSONDecodeError:
+                                    value = value
+
+                                output_parameter = task_return_to_parameter(
+                                    task_return=task_return,
+                                    value=value,
+                                )
+
+                                if task_return.kind == "metric":
+                                    metrics[task_return.name] = output_parameter
+
+                                param_name = task_return.name
+                                if map_variable:
+                                    for _, v in map_variable.items():
+                                        param_name = f"{v}_{param_name}"
+
+                                output_parameters[param_name] = output_parameter
+
+                        attempt_log.output_parameters = output_parameters
+                        attempt_log.user_defined_metrics = metrics
+                        params.update(output_parameters)
+
+                    if output_parameters:
+                        logfire.info(
+                            "Task completed",
+                            outputs=self._safe_serialize_params(output_parameters),
+                            status="success",
+                        )
+                        self._emit_event(
+                            {
+                                "type": "task_completed",
+                                "name": self.command[:100],
+                                "outputs": self._safe_serialize_params(
+                                    output_parameters
+                                ),
+                            }
+                        )
+                    else:
+                        logfire.info("Task completed", status="success")
+                        self._emit_event(
+                            {
+                                "type": "task_completed",
+                                "name": self.command[:100],
+                            }
+                        )
+
+                    attempt_log.status = defaults.SUCCESS
+            except exceptions.CommandCallError as e:
+                msg = f"Call to the command {self.command} did not succeed"
+                logger.exception(msg)
+                logger.exception(e)
+
+                task_console.log(msg, style=defaults.error_style)
+                task_console.log(e, style=defaults.error_style)
+                logfire.error("Task failed", error=str(e)[:256])
+                self._emit_event(
+                    {
+                        "type": "task_error",
+                        "name": self.command[:100],
+                        "error": str(e)[:256],
+                    }
                 )
-                logger.info(f"Executing shell command: {command}")
 
-                capture = False
-                return_keys = {x.name: x for x in self.returns}
+                attempt_log.status = defaults.FAIL
 
-                proc = subprocess.Popen(
-                    command,
-                    shell=True,
-                    env=subprocess_env,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
+        attempt_log.end_time = str(datetime.now())
+        return attempt_log
+
+
+class AsyncPythonTaskType(BaseTaskType):
+    """
+    An execution node for async Python functions.
+
+    This task type is designed for async functions that need to be awaited.
+    It supports AsyncGenerator functions for streaming events.
+
+    Usage in pipeline definition:
+        task = AsyncPythonTask(
+            function=my_async_function,
+            name="async_task",
+            returns=[...]
+        )
+    """
+
+    task_type: str = Field(default="async-python", serialization_alias="command_type")
+    command: str
+    stream_end_type: str = Field(default="done")
+
+    def execute_command(
+        self,
+        map_variable: MapVariableType = None,
+    ) -> StepAttempt:
+        """Sync execution is not supported for async tasks."""
+        raise RuntimeError(
+            "AsyncPythonTaskType requires async execution. "
+            "Use execute_command_async() or run the pipeline with execute_async()."
+        )
+
+    async def execute_command_async(
+        self,
+        map_variable: MapVariableType = None,
+        event_callback: Optional[Callable[[dict], None]] = None,
+    ) -> StepAttempt:
+        """Execute the async Python function."""
+        attempt_log = StepAttempt(
+            status=defaults.FAIL,
+            start_time=str(datetime.now()),
+            retry_indicator=self._context.retry_indicator,
+        )
+
+        with logfire.span(
+            "task:{task_name}",
+            task_name=self.command,
+            task_type=self.task_type,
+        ):
+            with (
+                self.execution_context(map_variable=map_variable) as params,
+                self.expose_secrets() as _,
+            ):
+                logfire.info(
+                    "Task started",
+                    inputs=self._safe_serialize_params(params),
                 )
-                result = proc.communicate()
-                logger.debug(result)
-                logger.info(proc.returncode)
+                self._emit_event(
+                    {
+                        "type": "task_started",
+                        "name": self.command,
+                        "inputs": self._safe_serialize_params(params),
+                    }
+                )
 
-                if proc.returncode != 0:
-                    msg = ",".join(result[1].split("\n"))
-                    task_console.print(msg, style=defaults.error_style)
-                    raise exceptions.CommandCallError(msg)
+                module, func = utils.get_module_and_attr_names(self.command)
+                sys.path.insert(0, os.getcwd())
+                imported_module = importlib.import_module(module)
+                f = getattr(imported_module, func)
 
-                # for stderr
-                for line in result[1].split("\n"):
-                    if line.strip() == "":
-                        continue
-                    task_console.print(line, style=defaults.warning_style)
+                try:
+                    try:
+                        filtered_parameters = parameters.filter_arguments_for_func(
+                            f, params.copy(), map_variable
+                        )
+                        logger.info(
+                            f"Calling async {func} from {module} with {filtered_parameters}"
+                        )
 
-                output_parameters: Dict[str, Parameter] = {}
-                metrics: Dict[str, Parameter] = {}
+                        with redirect_output(console=task_console) as (
+                            buffer,
+                            stderr_buffer,
+                        ):
+                            result = f(**filtered_parameters)
 
-                # only from stdout
-                for line in result[0].split("\n"):
-                    if line.strip() == "":
-                        continue
+                            # Check if result is an AsyncGenerator for streaming
+                            if inspect.isasyncgen(result):
+                                user_set_parameters = None
+                                async for item in result:
+                                    if isinstance(item, dict) and "type" in item:
+                                        # It's an event - emit it
+                                        if event_callback:
+                                            event_callback(item)
+                                        self._emit_event(item)
 
-                    logger.info(line)
-                    task_console.print(line)
+                                        # Extract return values from the final event
+                                        # The stream end event contains the actual return values
+                                        if item.get("type") == self.stream_end_type:
+                                            # Remove the "type" key and use remaining keys as return values
+                                            return_data = {
+                                                k: v
+                                                for k, v in item.items()
+                                                if k != "type"
+                                            }
+                                            # If only one value, return it directly; otherwise return tuple
+                                            if len(return_data) == 1:
+                                                user_set_parameters = list(
+                                                    return_data.values()
+                                                )[0]
+                                            elif len(return_data) > 1:
+                                                user_set_parameters = tuple(
+                                                    return_data.values()
+                                                )
+                            elif inspect.iscoroutine(result):
+                                # Regular async function
+                                user_set_parameters = await result
+                            else:
+                                # Sync function called through async task (shouldn't happen but handle it)
+                                user_set_parameters = result
 
-                    if line.strip() == collect_delimiter:
-                        # The lines from now on should be captured
-                        capture = True
-                        continue
+                    except Exception as e:
+                        raise exceptions.CommandCallError(
+                            f"Async function call: {self.command} did not succeed.\n"
+                        ) from e
+                    finally:
+                        attempt_log.input_parameters = params.copy()
+                        if map_variable:
+                            attempt_log.input_parameters.update(
+                                {
+                                    k: JsonParameter(value=v, kind="json")
+                                    for k, v in map_variable.items()
+                                }
+                            )
 
-                    if capture:
-                        key, value = line.strip().split("=", 1)
-                        if key in return_keys:
-                            task_return = return_keys[key]
+                    if self.returns:
+                        if not isinstance(user_set_parameters, tuple):
+                            user_set_parameters = (user_set_parameters,)
 
-                            try:
-                                value = json.loads(value)
-                            except json.JSONDecodeError:
-                                value = value
+                        if len(user_set_parameters) != len(self.returns):
+                            raise ValueError(
+                                "Returns task signature does not match the function returns"
+                            )
 
+                        output_parameters: Dict[str, Parameter] = {}
+                        metrics: Dict[str, Parameter] = {}
+
+                        for i, task_return in enumerate(self.returns):
                             output_parameter = task_return_to_parameter(
                                 task_return=task_return,
-                                value=value,
+                                value=user_set_parameters[i],
                             )
 
                             if task_return.kind == "metric":
@@ -819,22 +1191,52 @@ class ShellTaskType(BaseTaskType):
 
                             output_parameters[param_name] = output_parameter
 
-                    attempt_log.output_parameters = output_parameters
-                    attempt_log.user_defined_metrics = metrics
-                    params.update(output_parameters)
+                        attempt_log.output_parameters = output_parameters
+                        attempt_log.user_defined_metrics = metrics
+                        params.update(output_parameters)
 
-                attempt_log.status = defaults.SUCCESS
-        except exceptions.CommandCallError as e:
-            msg = f"Call to the command {self.command} did not succeed"
-            logger.exception(msg)
-            logger.exception(e)
+                        logfire.info(
+                            "Task completed",
+                            outputs=self._safe_serialize_params(output_parameters),
+                            status="success",
+                        )
+                        self._emit_event(
+                            {
+                                "type": "task_completed",
+                                "name": self.command,
+                                "outputs": self._safe_serialize_params(
+                                    output_parameters
+                                ),
+                            }
+                        )
+                    else:
+                        logfire.info("Task completed", status="success")
+                        self._emit_event(
+                            {
+                                "type": "task_completed",
+                                "name": self.command,
+                            }
+                        )
 
-            task_console.log(msg, style=defaults.error_style)
-            task_console.log(e, style=defaults.error_style)
-
-            attempt_log.status = defaults.FAIL
+                    attempt_log.status = defaults.SUCCESS
+                except Exception as _e:
+                    msg = (
+                        f"Call to the async function {self.command} did not succeed.\n"
+                    )
+                    attempt_log.message = msg
+                    task_console.print_exception(show_locals=False)
+                    task_console.log(_e, style=defaults.error_style)
+                    logfire.error("Task failed", error=str(_e)[:256])
+                    self._emit_event(
+                        {
+                            "type": "task_error",
+                            "name": self.command,
+                            "error": str(_e)[:256],
+                        }
+                    )
 
         attempt_log.end_time = str(datetime.now())
+
         return attempt_log
 
 

@@ -235,12 +235,53 @@ uv run examples/01-tasks/python_tasks.py
 
 ---
 
+## 🌟 Unique: Batch AND Streaming
+
+**Runnable natively supports both batch and streaming workflows in a single framework.**
+
+While traditional orchestrators (Kedro, Metaflow, Airflow) excel at batch processing, runnable uniquely combines:
+
+**🔄 Batch Processing** - Traditional data pipelines with full reproducibility
+```python
+# Regular batch pipeline
+pipeline = Pipeline(steps=[
+    PythonTask(function=process_data, name="process"),
+    PythonTask(function=train_model, name="train")
+])
+pipeline.execute()  # Runs to completion
+```
+
+**⚡ Real-Time Streaming** - Native async support with live event streaming
+```python
+# Async streaming pipeline for LLM/AI workflows
+pipeline = AsyncPipeline(steps=[
+    AsyncPythonTask(function=stream_llm_response, name="llm")
+])
+async for event in pipeline.execute_streaming():
+    print(event)  # {"type": "chunk", "text": "Hello"}
+```
+
+**🔗 Same Features, Both Modes**:
+- Parameter management works in both batch and streaming
+- Catalog system handles files in both modes
+- Reproducibility and tracking for both workflow types
+- Deploy batch OR streaming pipelines to same infrastructure
+
+**Perfect for**: LLM inference, real-time APIs, FastAPI streaming, progressive data processing
+
+[:octicons-arrow-right-24: Learn Async & Streaming](advanced-patterns/async-streaming.md)
+
+---
+
 ## What's Next?
 
 You've seen how Runnable transforms your code for portability and tracking. Ready to go deeper?
 
 **🎯 Master the Concepts** → [Jobs vs Pipelines](pipelines/jobs-vs-pipelines.md)
 Learn when to use single jobs vs multi-step pipelines
+
+**⚡ Async & Streaming** → [Async & Streaming Execution](advanced-patterns/async-streaming.md)
+Real-time streaming workflows for LLMs, APIs, and live data processing
 
 **📊 Handle Your Data** → [Task Types](pipelines/task-types.md)
 Work with returns, parameters, and different data types
