@@ -34,7 +34,7 @@ def truncate_value(value: Any, max_bytes: int = 256) -> Any:
         if len(serialized) > max_bytes:
             # Return truncated string representation
             return serialized[: max_bytes - 3] + "..."
-        return value
+        return serialized
     except Exception:
         return f"<unserializable: {type(value).__name__}>"
 

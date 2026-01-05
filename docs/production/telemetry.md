@@ -150,56 +150,92 @@ set_stream_queue(None)
 | `task_error` | `name`, `error` | A task failed |
 | `pipeline_completed` | `status` | Pipeline finished (success/error) |
 
-### FastAPI Example
+### Local Telemetry Example
 
-See [examples/fastapi-telemetry](https://github.com/AstraZeneca/runnable/tree/main/examples/fastapi-telemetry)
-for a complete example of SSE streaming with FastAPI.
+See [examples/telemetry-local/simple_telemetry_test.py](https://github.com/AstraZeneca/runnable/tree/main/examples/telemetry-local)
+for a complete working example of local telemetry with console output.
 
+```python
+from runnable import Pipeline, PythonTask, pickled
+import logfire
+
+def step_one(x: int = 5) -> int:
+    result = x * 2
+    return result
+
+def step_two(doubled: int) -> str:
+    result = f"Final result: {doubled}"
+    return result
+
+def main():
+    pipeline = Pipeline(
+        steps=[
+            PythonTask(
+                function=step_one,
+                name="step_one",
+                returns=[pickled("doubled")]
+            ),
+            PythonTask(
+                function=step_two,
+                name="step_two",
+                returns=[pickled("final_result")]
+            ),
+        ]
+    )
+
+    pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    # Configure console telemetry output
+    logfire.configure(
+        send_to_logfire=False,
+        console=logfire.ConsoleOptions(
+            colors="auto",
+            span_style="indented",
+            verbose=True,
+        ),
+    )
+
+    main()
+```
+
+Run with: `uv run examples/telemetry-local/simple_telemetry_test.py`
+
+### FastAPI Integration
+
+For FastAPI applications, you can integrate telemetry with both traditional batch pipelines and async streaming workflows:
+
+**Traditional Pipeline with SSE Events**:
 ```python
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from queue import Queue
 from runnable import set_stream_queue
+import json
 
-app = FastAPI()
-
-@app.post("/run-workflow")
-async def run_workflow(request: WorkflowRequest):
+@app.post("/run-pipeline")
+def run_pipeline_with_events():
     event_queue = Queue()
+    set_stream_queue(event_queue)
 
-    async def run_in_background():
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None, execute_pipeline, request.pipeline_name, event_queue
-        )
+    def event_stream():
+        try:
+            # Execute pipeline in background
+            pipeline.execute()
 
-    async def event_stream():
-        task = asyncio.create_task(run_in_background())
-
-        while True:
-            await asyncio.sleep(0.1)
+            # Stream events to client
             while not event_queue.empty():
                 event = event_queue.get_nowait()
                 yield f"data: {json.dumps(event)}\n\n"
-
-                if event.get("type") == "pipeline_completed":
-                    return
+        finally:
+            set_stream_queue(None)
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
-
-
-def execute_pipeline(pipeline_name: str, event_queue: Queue):
-    set_stream_queue(event_queue)
-
-    event_queue.put({"type": "pipeline_started", "name": pipeline_name})
-
-    pipeline = get_pipeline(pipeline_name)
-    pipeline.execute()
-
-    event_queue.put({"type": "pipeline_completed", "status": "success"})
-
-    set_stream_queue(None)
 ```
+
+**Async Streaming Workflows**:
+For real-time streaming with AsyncPipeline, see [Async & Streaming](../advanced-patterns/async-streaming.md) and the [FastAPI LLM examples](https://github.com/AstraZeneca/runnable/tree/main/examples/fastapi_llm).
 
 ## Telemetry Attributes
 

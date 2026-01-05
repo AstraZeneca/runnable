@@ -34,8 +34,9 @@ async def main():
         name="async_sequential",
     )
 
-    await pipeline.execute()
-    return pipeline
+    async for event in pipeline.execute_streaming():
+        # yield f"data: {json.dumps(event)}\n\n"
+        print(event)
 
 
 if __name__ == "__main__":

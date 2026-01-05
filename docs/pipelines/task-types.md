@@ -103,6 +103,74 @@ if __name__ == "__main__":
 
 **Perfect for**: Testing pipeline structure, placeholder steps
 
+### Async Python Tasks ⚡
+Execute async functions with streaming support in async pipelines:
+
+!!! warning "Local Execution Only"
+
+    AsyncPythonTask and AsyncPipeline are currently **only supported for local execution**. They cannot be used with containerized or Kubernetes pipeline executors.
+
+```python
+from runnable import AsyncPipeline, AsyncPythonTask
+import asyncio
+
+async def async_data_fetch(url: str):
+    """Simple async function."""
+    await asyncio.sleep(1)  # Simulate API call
+    return {"data": f"fetched from {url}", "status": "success"}
+
+def main():
+    task = AsyncPythonTask(
+        name="fetch_data",
+        function=async_data_fetch,
+        returns=["result"]
+    )
+
+    pipeline = AsyncPipeline(steps=[task])
+
+    # In async context: await pipeline.execute()
+    return pipeline
+
+if __name__ == "__main__":
+    main()
+```
+
+**Perfect for**: LLM inference, real-time streaming, async APIs, long-running operations
+
+!!! info "Streaming Support"
+
+    AsyncPythonTask supports **AsyncGenerator functions** for real-time streaming:
+
+    ```python
+    from typing import AsyncGenerator
+
+    async def stream_llm_response(prompt: str) -> AsyncGenerator[dict, None]:
+        # Stream events in real-time
+        yield {"type": "status", "message": "Processing"}
+        await asyncio.sleep(0.5)
+
+        # Stream incremental results
+        words = ["Hello", "from", "the", "LLM"]
+        for word in words:
+            yield {"type": "chunk", "text": word}
+            await asyncio.sleep(0.1)
+
+        # Final result for pipeline
+        yield {"type": "done", "response": " ".join(words)}
+
+    def main():
+        task = AsyncPythonTask(
+            name="llm_stream",
+            function=stream_llm_response,
+            returns=["response"],
+            stream_end_type="done"  # Extract values from "done" events
+        )
+
+        return AsyncPipeline(steps=[task])
+    ```
+
+    See [Async & Streaming](../advanced-patterns/async-streaming.md) for complete streaming patterns and FastAPI integration.
+
 ## Pipeline Task Execution Context
 
 All task types share the same rich pipeline execution features:

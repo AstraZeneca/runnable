@@ -84,6 +84,7 @@ def execute_single_node(
     logger.info(json.dumps(configurations, indent=4))
 
     run_context = context.PipelineContext.model_validate(configurations)
+    context.set_run_context(run_context)
     assert run_context.dag
 
     map_variable_dict = utils.json_to_ordered_dict(map_variable)
@@ -126,10 +127,7 @@ def execute_single_branch(
     logger.info(f"Executing single branch: {branch_name}")
 
     try:
-        # Set the context in the global context module to ensure all components have access
-        import runnable.context as context_module
-
-        context_module.run_context = run_context
+        context.set_run_context(run_context)
 
         # Execute the branch using the pipeline executor
         run_context.pipeline_executor.execute_graph(branch, map_variable=map_variable)
@@ -225,6 +223,7 @@ def execute_job_non_local(
     logger.info(json.dumps(configurations, indent=4))
 
     run_context = context.JobContext.model_validate(configurations)
+    context.set_run_context(run_context)
     assert run_context.job
 
     logger.info("Executing the job in non-local mode")
@@ -285,6 +284,7 @@ def fan(
     logger.info(json.dumps(configurations, indent=4))
 
     run_context = context.PipelineContext.model_validate(configurations)
+    context.set_run_context(run_context)
     assert run_context.dag
 
     step_internal_name = nodes.BaseNode._get_internal_name_from_command_name(step_name)
@@ -366,6 +366,7 @@ def retry_pipeline(
     }
 
     run_context = context.PipelineContext.model_validate(configurations)
+    context.set_run_context(run_context)
     run_context.execute()
     # run_context.pipeline_executor.send_return_code()
 
@@ -374,7 +375,3 @@ if __name__ == "__main__":
     # This is only for perf testing purposes.
     # execute_single_branch()  # Missing required arguments
     pass
-
-# if __name__ == "__main__":
-#     # This is only for perf testing purposes.
-#     prepare_configurations(run_id="abc", pipeline_file="examples/mocking.yaml")
