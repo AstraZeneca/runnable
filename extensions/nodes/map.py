@@ -17,7 +17,7 @@ from runnable.datastore import (
     ObjectParameter,
     Parameter,
 )
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableType
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode
 
@@ -148,7 +148,11 @@ class MapNode(CompositeNode):
         """
         return self.branch
 
-    def fan_out(self, map_variable: MapVariableType = None):
+    def fan_out(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         The general method to fan out for a node of type map.
         This method assumes that the step log has already been created.
@@ -163,10 +167,14 @@ class MapNode(CompositeNode):
             self.iterate_on
         ].get_value()
 
+        assert iterate_on
+        assert isinstance(iterate_on, list)
+
         # Prepare the branch logs
-        for iter_variable in iterate_on:
+        for iteration_variable in iterate_on:
             effective_branch_name = self._resolve_map_placeholders(
-                self.internal_name + "." + str(iter_variable), map_variable=map_variable
+                self.internal_name + "." + str(iteration_variable),
+                map_variable=map_variable,
             )
             try:
                 branch_log = self._context.run_log_store.get_branch_log(
@@ -183,7 +191,6 @@ class MapNode(CompositeNode):
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
         # Gather all the returns of the task nodes and create parameters in reduced=False state.
-        # TODO: Why are we preemptively creating the parameters?
         raw_parameters = {}
         if map_variable:
             # If we are in a map state already, the param should have an index of the map variable.
@@ -200,7 +207,11 @@ class MapNode(CompositeNode):
             parameters=raw_parameters, run_id=self._context.run_id
         )
 
-    def execute_as_graph(self, map_variable: MapVariableType = None):
+    def execute_as_graph(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This function does the actual execution of the branch of the map node.
 
@@ -277,30 +288,39 @@ class MapNode(CompositeNode):
         self.fan_in(map_variable=map_variable)
 
     def _execute_map_sequentially(
-        self, iterate_on: List, map_variable: MapVariableType = None
+        self,
+        iterate_on: List,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Execute map iterations sequentially (original behavior)."""
-        for iter_variable in iterate_on:
+        for iteration_variable in iterate_on:
             effective_map_variable = map_variable or OrderedDict()
-            effective_map_variable[self.iterate_as] = iter_variable
+            effective_map_variable[self.iterate_as] = iteration_variable
 
             self._context.pipeline_executor.execute_graph(
                 self.branch, map_variable=effective_map_variable
             )
 
     def _execute_map_in_parallel(
-        self, iterate_on: List, map_variable: MapVariableType = None
+        self,
+        iterate_on: List,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Execute map iterations in parallel using multiprocessing."""
         from runnable.entrypoints import execute_single_branch
 
+        if not isinstance(iterate_on, list):
+            raise Exception("Only list is allowed as a valid iterator type")
+
         # Prepare arguments for each iteration
         iteration_args = []
-        for iter_variable in iterate_on:
+        for iteration_variable in iterate_on:
             effective_map_variable = map_variable or OrderedDict()
-            effective_map_variable[self.iterate_as] = iter_variable
+            effective_map_variable[self.iterate_as] = iteration_variable
 
-            branch_name = f"{self.internal_name}.{iter_variable}"
+            branch_name = f"{self.internal_name}.{iteration_variable}"
             iteration_args.append(
                 (branch_name, self.branch, self._context, effective_map_variable)
             )
@@ -323,7 +343,11 @@ class MapNode(CompositeNode):
             logger.error(f"The following map iterations failed: {failed_iterations}")
             # Note: The actual failure handling and status update will be done in fan_in()
 
-    def fan_in(self, map_variable: MapVariableType = None):
+    def fan_in(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         The general method to fan in for a node of type map.
 
@@ -335,15 +359,19 @@ class MapNode(CompositeNode):
         """
         params = self._context.run_log_store.get_parameters(self._context.run_id)
         iterate_on = params[self.iterate_on].get_value()
+
+        assert iterate_on
+        assert isinstance(iterate_on, list)
         # # Find status of the branches
         step_success_bool = True
         effective_internal_name = self._resolve_map_placeholders(
             self.internal_name, map_variable=map_variable
         )
 
-        for iter_variable in iterate_on:
+        for iteration_variable in iterate_on:
             effective_branch_name = self._resolve_map_placeholders(
-                self.internal_name + "." + str(iter_variable), map_variable=map_variable
+                self.internal_name + "." + str(iteration_variable),
+                map_variable=map_variable,
             )
             branch_log = self._context.run_log_store.get_branch_log(
                 effective_branch_name, self._context.run_id
@@ -421,17 +449,23 @@ class MapNode(CompositeNode):
             parameters=params, run_id=self._context.run_id
         )
 
-    async def execute_as_graph_async(self, map_variable: MapVariableType = None):
+    async def execute_as_graph_async(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """Async map execution."""
         self.fan_out(map_variable=map_variable)  # sync
 
         iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[
             self.iterate_on
         ].get_value()
+        assert iterate_on
+        assert isinstance(iterate_on, list)
 
-        for iter_variable in iterate_on:
+        for iteration_variable in iterate_on:
             effective_map_variable = map_variable or OrderedDict()
-            effective_map_variable[self.iterate_as] = iter_variable
+            effective_map_variable[self.iterate_as] = iteration_variable
 
             await self._context.pipeline_executor.execute_graph_async(
                 self.branch, map_variable=effective_map_variable

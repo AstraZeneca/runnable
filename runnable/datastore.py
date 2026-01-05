@@ -70,7 +70,12 @@ class JsonParameter(BaseModel):
     @computed_field  # type: ignore
     @property
     def description(self) -> JSONType:
-        return self.value
+        # truncate value if its longer than 10 chars
+        return (
+            self.value
+            if not isinstance(self.value, str) or len(self.value) <= 10
+            else f"{self.value[:10]}..."
+        )
 
     def get_value(self) -> JSONType:
         return self.value
@@ -84,7 +89,12 @@ class MetricParameter(BaseModel):
     @computed_field  # type: ignore
     @property
     def description(self) -> JSONType:
-        return self.value
+        # truncate value if its longer than 10 chars
+        return (
+            self.value
+            if not isinstance(self.value, str) or len(self.value) <= 10
+            else f"{self.value[:10]}..."
+        )
 
     def get_value(self) -> JSONType:
         return self.value

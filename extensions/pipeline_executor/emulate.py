@@ -2,12 +2,13 @@ import logging
 import shlex
 import subprocess
 import sys
+from typing import Optional
 
 from pydantic import PrivateAttr
 
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableType
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -34,7 +35,10 @@ class Emulator(GenericPipelineExecutor):
     _should_setup_run_log_at_traversal: bool = PrivateAttr(default=True)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         In this mode of execution, we prepare for the node execution and execute the node
@@ -59,7 +63,12 @@ class Emulator(GenericPipelineExecutor):
             step_log.status = defaults.FAIL
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_node(
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         For local execution, we just execute the node.
 

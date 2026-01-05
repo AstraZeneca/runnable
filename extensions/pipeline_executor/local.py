@@ -7,7 +7,7 @@ from pydantic import Field, PrivateAttr
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import console, defaults
 from runnable.datastore import DataCatalog
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableType
 from runnable.graph import Graph
 from runnable.nodes import BaseNode
 
@@ -40,14 +40,22 @@ class LocalExecutor(GenericPipelineExecutor):
 
     _is_local: bool = PrivateAttr(default=True)
 
-    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_from_graph(
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         if not self.object_serialisation:
             self._context.object_serialisation = False
 
         super().execute_from_graph(node=node, map_variable=map_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         In this mode of execution, we prepare for the node execution and execute the node
@@ -58,7 +66,12 @@ class LocalExecutor(GenericPipelineExecutor):
         """
         self.execute_node(node=node, map_variable=map_variable)
 
-    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_node(
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         For local execution, we just execute the node.
 
@@ -73,7 +86,10 @@ class LocalExecutor(GenericPipelineExecutor):
     # ═══════════════════════════════════════════════════════════════
 
     async def execute_graph_async(
-        self, dag: Graph, map_variable: MapVariableType = None
+        self,
+        dag: Graph,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Async graph traversal."""
         current_node = dag.start_at
@@ -130,7 +146,10 @@ class LocalExecutor(GenericPipelineExecutor):
         self._finalize_graph_execution(working_on, dag, map_variable)
 
     async def execute_from_graph_async(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Async node execution entry point."""
         if not self.object_serialisation:
@@ -158,13 +177,20 @@ class LocalExecutor(GenericPipelineExecutor):
         await self.trigger_node_execution_async(node=node, map_variable=map_variable)
 
     async def trigger_node_execution_async(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Async trigger for node execution."""
         await self._execute_node_async(node=node, map_variable=map_variable)
 
     async def _execute_node_async(
-        self, node: BaseNode, map_variable: MapVariableType = None, mock: bool = False
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+        mock: bool = False,
     ):
         """Async node execution wrapper."""
         current_attempt_number = self._calculate_attempt_number(node, map_variable)

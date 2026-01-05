@@ -29,7 +29,7 @@ spec:
     failFast: true
     nodeSelector: {}
   templates:
-    - name: map-state-syo2np-fan-out
+    - name: map-state-rgurd0-fan-out
       container:
         image: $docker_image
         command:
@@ -88,7 +88,7 @@ spec:
             valueFrom:
               path: /tmp/output.txt
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-syo2np-fan-out'
+        key: '{{workflow.parameters.run_id}}-map-state-rgurd0-fan-out'
         cache:
           configMap:
             name: kf-configmap
@@ -100,7 +100,7 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-execute-python-cmsudq
+    - name: map-state-execute-python-rs6ijf
       container:
         image: $docker_image
         command:
@@ -142,7 +142,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-execute-python-cmsudq'
+        key: '{{workflow.parameters.run_id}}-map-state-execute-python-rs6ijf'
         cache:
           configMap:
             name: kf-configmap
@@ -154,7 +154,7 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-execute-notebook-j0zzgy
+    - name: map-state-execute-notebook-v3sow5
       container:
         image: $docker_image
         command:
@@ -196,7 +196,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-execute-notebook-j0zzgy'
+        key: '{{workflow.parameters.run_id}}-map-state-execute-notebook-v3sow5'
         cache:
           configMap:
             name: kf-configmap
@@ -208,7 +208,7 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-execute-shell-asqpgr
+    - name: map-state-execute-shell-lnjrx7
       container:
         image: $docker_image
         command:
@@ -250,7 +250,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-execute-shell-asqpgr'
+        key: '{{workflow.parameters.run_id}}-map-state-execute-shell-lnjrx7'
         cache:
           configMap:
             name: kf-configmap
@@ -262,7 +262,7 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-read-processed-chunk-f2crhc
+    - name: map-state-read-processed-chunk-wtahfu
       container:
         image: $docker_image
         command:
@@ -304,7 +304,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-read-processed-chunk-f2crhc'
+        key: '{{workflow.parameters.run_id}}-map-state-read-processed-chunk-wtahfu'
         cache:
           configMap:
             name: kf-configmap
@@ -316,7 +316,7 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-success-ynhl31
+    - name: map-state-success-3ye852
       container:
         image: $docker_image
         command:
@@ -358,7 +358,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-success-ynhl31'
+        key: '{{workflow.parameters.run_id}}-map-state-success-3ye852'
         cache:
           configMap:
             name: kf-configmap
@@ -370,49 +370,49 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-syo2np-branch
+    - name: map-state-rgurd0-branch
       dag:
         tasks:
-          - name: map-state-execute-python-cmsudq
-            template: map-state-execute-python-cmsudq
+          - name: map-state-execute-python-rs6ijf
+            template: map-state-execute-python-rs6ijf
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
             depends: ''
-          - name: map-state-execute-notebook-j0zzgy
-            template: map-state-execute-notebook-j0zzgy
+          - name: map-state-execute-notebook-v3sow5
+            template: map-state-execute-notebook-v3sow5
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
-            depends: map-state-execute-python-cmsudq.Succeeded
-          - name: map-state-execute-shell-asqpgr
-            template: map-state-execute-shell-asqpgr
+            depends: map-state-execute-python-rs6ijf.Succeeded
+          - name: map-state-execute-shell-lnjrx7
+            template: map-state-execute-shell-lnjrx7
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
-            depends: map-state-execute-notebook-j0zzgy.Succeeded
-          - name: map-state-read-processed-chunk-f2crhc
-            template: map-state-read-processed-chunk-f2crhc
+            depends: map-state-execute-notebook-v3sow5.Succeeded
+          - name: map-state-read-processed-chunk-wtahfu
+            template: map-state-read-processed-chunk-wtahfu
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
-            depends: map-state-execute-shell-asqpgr.Succeeded
-          - name: map-state-success-ynhl31
-            template: map-state-success-ynhl31
+            depends: map-state-execute-shell-lnjrx7.Succeeded
+          - name: map-state-success-3ye852
+            template: map-state-success-3ye852
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
-            depends: map-state-read-processed-chunk-f2crhc.Succeeded
+            depends: map-state-read-processed-chunk-wtahfu.Succeeded
       inputs:
         parameters:
           - name: chunk
       failFast: true
-    - name: map-state-syo2np-fan-in
+    - name: map-state-rgurd0-fan-in
       container:
         image: $docker_image
         command:
@@ -450,7 +450,7 @@ spec:
       inputs:
         parameters: []
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-syo2np-fan-in'
+        key: '{{workflow.parameters.run_id}}-map-state-rgurd0-fan-in'
         cache:
           configMap:
             name: kf-configmap
@@ -462,29 +462,29 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-syo2np
+    - name: map-state-rgurd0
       dag:
         tasks:
-          - name: map-state-syo2np-fan-out
-            template: map-state-syo2np-fan-out
+          - name: map-state-rgurd0-fan-out
+            template: map-state-rgurd0-fan-out
             arguments:
               parameters: []
-          - name: map-state-syo2np-branch
-            template: map-state-syo2np-branch
+          - name: map-state-rgurd0-branch
+            template: map-state-rgurd0-branch
             arguments:
               parameters:
                 - name: chunk
                   value: '{{item}}'
-            withParam: '{{tasks.map-state-syo2np-fan-out.outputs.parameters.iterate-on}}'
-            depends: map-state-syo2np-fan-out.Succeeded
-          - name: map-state-syo2np-fan-in
-            template: map-state-syo2np-fan-in
+            withParam: '{{tasks.map-state-rgurd0-fan-out.outputs.parameters.iterate-on}}'
+            depends: map-state-rgurd0-fan-out.Succeeded
+          - name: map-state-rgurd0-fan-in
+            template: map-state-rgurd0-fan-in
             arguments:
               parameters: []
-            depends: map-state-syo2np-branch.Succeeded ||
-              map-state-syo2np-branch.Failed
+            depends: map-state-rgurd0-branch.Succeeded ||
+              map-state-rgurd0-branch.Failed
       failFast: false
-    - name: collect-u8e2bc
+    - name: collect-vqmxqt
       container:
         image: $docker_image
         command:
@@ -523,7 +523,7 @@ spec:
       inputs:
         parameters: []
       memoize:
-        key: '{{workflow.parameters.run_id}}-collect-u8e2bc'
+        key: '{{workflow.parameters.run_id}}-collect-vqmxqt'
         cache:
           configMap:
             name: kf-configmap
@@ -535,7 +535,7 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: success-m43aw6
+    - name: success-a5jd2d
       container:
         image: $docker_image
         command:
@@ -574,7 +574,7 @@ spec:
       inputs:
         parameters: []
       memoize:
-        key: '{{workflow.parameters.run_id}}-success-m43aw6'
+        key: '{{workflow.parameters.run_id}}-success-a5jd2d'
         cache:
           configMap:
             name: kf-configmap
@@ -589,21 +589,21 @@ spec:
     - name: runnable-dag
       dag:
         tasks:
-          - name: map-state-syo2np
-            template: map-state-syo2np
+          - name: map-state-rgurd0
+            template: map-state-rgurd0
             arguments:
               parameters: []
             depends: ''
-          - name: collect-u8e2bc
-            template: collect-u8e2bc
+          - name: collect-vqmxqt
+            template: collect-vqmxqt
             arguments:
               parameters: []
-            depends: map-state-syo2np.Succeeded
-          - name: success-m43aw6
-            template: success-m43aw6
+            depends: map-state-rgurd0.Succeeded
+          - name: success-a5jd2d
+            template: success-a5jd2d
             arguments:
               parameters: []
-            depends: collect-u8e2bc.Succeeded
+            depends: collect-vqmxqt.Succeeded
       failFast: true
   volumes:
     - name: runnable

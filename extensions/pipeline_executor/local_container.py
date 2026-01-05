@@ -1,14 +1,14 @@
 import logging
 import os
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 from pydantic import Field, PrivateAttr
 
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
 from runnable.datastore import StepAttempt
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableType
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -172,7 +172,12 @@ class LocalContainerExecutor(GenericPipelineExecutor):
 
             logger.debug(f"Added docker image code identity: {docker_digest[:50]}...")
 
-    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_node(
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         We are already in the container, we just execute the node.
         The node is already prepared for execution.
@@ -181,7 +186,10 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         return self._execute_node(node, map_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         We come into this step via execute from graph, use trigger job to spin up the container.
@@ -229,6 +237,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         node: BaseNode,
         command: str,
         map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
         auto_remove_container: bool = True,
     ):
         """

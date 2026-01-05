@@ -28,7 +28,7 @@ from extensions.nodes.task import TaskNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults, exceptions
 from runnable.datastore import StepAttempt
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableType
 from runnable.graph import Graph, search_node_by_internal_name
 from runnable.nodes import BaseNode
 
@@ -988,6 +988,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         self,
         dag: Graph,
         map_variable: dict[str, str | int | float] | None = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         # All the arguments set at the spec level can be referred as "{{workflow.parameters.*}}"
         # We want to use that functionality to override the parameters at the task level
@@ -1083,7 +1084,12 @@ class ArgoExecutor(GenericPipelineExecutor):
             "spec": cron_spec,
         }
 
-    def _implicitly_fail(self, node: BaseNode, map_variable: MapVariableType):
+    def _implicitly_fail(
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         assert self._context.dag
         _, current_branch = search_node_by_internal_name(
             dag=self._context.dag, internal_name=node.internal_name
@@ -1116,6 +1122,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         self,
         node: BaseNode,
         map_variable: dict[str, str | int | float] | None = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         error_on_existing_run_id = os.environ.get("error_on_existing_run_id", "false")
         exists_ok = error_on_existing_run_id == "false"
@@ -1155,7 +1162,12 @@ class ArgoExecutor(GenericPipelineExecutor):
         # This makes the fail node execute if we are heading that way.
         self._implicitly_fail(node, map_variable)
 
-    def fan_out(self, node: BaseNode, map_variable: MapVariableType = None):
+    def fan_out(
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         # This could be the first step of the graph
         self._use_volumes()
 
@@ -1181,7 +1193,12 @@ class ArgoExecutor(GenericPipelineExecutor):
             with open("/tmp/output.txt", mode="w", encoding="utf-8") as myfile:
                 json.dump(node.get_parameter_value(), myfile, indent=4)
 
-    def fan_in(self, node: BaseNode, map_variable: MapVariableType = None):
+    def fan_in(
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         self._use_volumes()
         super().fan_in(node, map_variable)
 

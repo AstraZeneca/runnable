@@ -1,12 +1,12 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from pydantic import ConfigDict, Field
 
 from runnable import datastore, defaults
 from runnable.datastore import StepLog
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableType
 from runnable.nodes import ExecutableNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -57,6 +57,7 @@ class StubNode(ExecutableNode):
         self,
         mock=False,
         map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
         attempt_number: int = 1,
     ) -> StepLog:
         """

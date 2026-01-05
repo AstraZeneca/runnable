@@ -1,12 +1,12 @@
 import logging
 from copy import deepcopy
 from multiprocessing import Pool
-from typing import Any, Dict, cast
+from typing import Any, Dict, Optional, cast
 
 from pydantic import Field, field_serializer
 
 from runnable import console, defaults, exceptions
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableType
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode
 
@@ -71,7 +71,11 @@ class ParallelNode(CompositeNode):
 
         raise Exception(f"Branch {branch_name} does not exist")
 
-    def fan_out(self, map_variable: MapVariableType = None):
+    def fan_out(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         The general fan out method for a node of type Parallel.
         This method assumes that the step log has already been created.
@@ -102,7 +106,11 @@ class ParallelNode(CompositeNode):
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
-    def execute_as_graph(self, map_variable: MapVariableType = None):
+    def execute_as_graph(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This function does the actual execution of the sub-branches of the parallel node.
 
@@ -155,14 +163,22 @@ class ParallelNode(CompositeNode):
 
         self.fan_in(map_variable=map_variable)
 
-    def _execute_sequentially(self, map_variable: MapVariableType = None):
+    def _execute_sequentially(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """Execute branches sequentially (original behavior)."""
         for _, branch in self.branches.items():
             self._context.pipeline_executor.execute_graph(
                 branch, map_variable=map_variable
             )
 
-    def _execute_in_parallel(self, map_variable: MapVariableType = None):
+    def _execute_in_parallel(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """Execute branches in parallel using multiprocessing."""
         from runnable.entrypoints import execute_single_branch
 
@@ -185,7 +201,11 @@ class ParallelNode(CompositeNode):
             logger.error(f"The following branches failed: {failed_branches}")
             # Note: The actual failure handling and status update will be done in fan_in()
 
-    def fan_in(self, map_variable: MapVariableType = None):
+    def fan_in(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         The general fan in method for a node of type Parallel.
 
@@ -223,7 +243,11 @@ class ParallelNode(CompositeNode):
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    async def execute_as_graph_async(self, map_variable: MapVariableType = None):
+    async def execute_as_graph_async(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """Async parallel execution."""
         self.fan_out(map_variable=map_variable)  # sync - just creates branch logs
 

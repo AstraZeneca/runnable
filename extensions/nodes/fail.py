@@ -1,11 +1,11 @@
 from datetime import datetime
-from typing import Any, Dict, cast
+from typing import Any, Dict, Optional, cast
 
 from pydantic import Field
 
 from runnable import datastore, defaults
 from runnable.datastore import StepLog
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableType
 from runnable.nodes import TerminalNode
 
 
@@ -32,6 +32,7 @@ class FailNode(TerminalNode):
         self,
         mock=False,
         map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
         attempt_number: int = 1,
     ) -> StepLog:
         """

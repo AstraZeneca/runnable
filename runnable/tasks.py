@@ -29,7 +29,7 @@ from runnable.datastore import (
     Parameter,
     StepAttempt,
 )
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableType
 from runnable.telemetry import truncate_value
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -250,7 +250,11 @@ class BaseTaskType(BaseModel):
         if q is not None:
             q.put_nowait(event)
 
-    def resolve_unreduced_parameters(self, map_variable: MapVariableType = None):
+    def resolve_unreduced_parameters(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """Resolve the unreduced parameters."""
         params = self._context.run_log_store.get_parameters(
             run_id=self._context.run_id
@@ -266,14 +270,17 @@ class BaseTaskType(BaseModel):
                 for _, v in map_variable.items():
                     context_param = f"{v}_{context_param}"
 
-                if context_param in params:  # Is this if required?
+                if context_param in params:
                     params[param_name].value = params[context_param].value
 
         return params
 
     @contextlib.contextmanager
     def execution_context(
-        self, map_variable: MapVariableType = None, allow_complex: bool = True
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+        allow_complex: bool = True,
     ):
         params = self.resolve_unreduced_parameters(map_variable=map_variable)
         logger.info(f"Parameters available for the execution: {params}")
@@ -388,6 +395,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
     def execute_command(
         self,
         map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> StepAttempt:
         """Execute the notebook as defined by the command."""
         attempt_log = StepAttempt(
@@ -594,7 +602,11 @@ class NotebookTaskType(BaseTaskType):
 
         return command
 
-    def get_notebook_output_path(self, map_variable: MapVariableType = None) -> str:
+    def get_notebook_output_path(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ) -> str:
         tag = ""
         map_variable = map_variable or {}
         for key, value in map_variable.items():
@@ -614,6 +626,7 @@ class NotebookTaskType(BaseTaskType):
     def execute_command(
         self,
         map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> StepAttempt:
         """Execute the python notebook as defined by the command.
 
@@ -843,6 +856,7 @@ class ShellTaskType(BaseTaskType):
     def execute_command(
         self,
         map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> StepAttempt:
         # Using shell=True as we want to have chained commands to be executed in the same shell.
         """Execute the shell command as defined by the command.
@@ -1054,6 +1068,7 @@ class AsyncPythonTaskType(BaseTaskType):
     def execute_command(
         self,
         map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> StepAttempt:
         """Sync execution is not supported for async tasks."""
         raise RuntimeError(
@@ -1065,6 +1080,7 @@ class AsyncPythonTaskType(BaseTaskType):
         self,
         map_variable: MapVariableType = None,
         event_callback: Optional[Callable[[dict], None]] = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> StepAttempt:
         """Execute the async Python function."""
         attempt_log = StepAttempt(

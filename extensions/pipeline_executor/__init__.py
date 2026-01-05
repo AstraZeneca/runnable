@@ -13,7 +13,7 @@ from runnable import (
     utils,
 )
 from runnable.datastore import DataCatalog, JsonParameter, RunLog, StepAttempt
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableType
 from runnable.executor import BasePipelineExecutor
 from runnable.graph import Graph
 from runnable.nodes import BaseNode
@@ -349,7 +349,10 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         return int(os.environ.get(defaults.ATTEMPT_NUMBER, 1))
 
     def add_task_log_to_catalog(
-        self, name: str, map_variable: Dict[str, str | int | float] | None = None
+        self,
+        name: str,
+        map_variable: Dict[str, str | int | float] | None = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         log_file_name = utils.make_log_file_name(
             name=name,
@@ -362,7 +365,10 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         os.remove(log_file_name)
 
     def _calculate_attempt_number(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> int:
         """
         Calculate the attempt number for a node based on existing attempts in the run log.
@@ -390,6 +396,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         self,
         node: BaseNode,
         map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
         mock: bool = False,
     ):
         """
@@ -474,7 +481,10 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     # ═══════════════════════════════════════════════════════════════
 
     def _prepare_node_for_execution(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         Setup before node execution - shared by sync/async paths.
@@ -517,7 +527,11 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         return step_log
 
     def _finalize_graph_execution(
-        self, node: BaseNode, dag: Graph, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        dag: Graph,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Finalize after graph traversal - shared by sync/async paths."""
         run_log = self._context.run_log_store.get_branch_log(
@@ -535,7 +549,12 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             console.print("Completed Execution, Summary:", style="bold color(208)")
             console.print(run_log.get_summary(), style=defaults.info_style)
 
-    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_from_graph(
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         Sync node execution entry point.
 
@@ -565,7 +584,10 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         self.trigger_node_execution(node=node, map_variable=map_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         Call this method only if we are responsible for traversing the graph via
@@ -583,7 +605,11 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         pass
 
     def _get_status_and_next_node_name(
-        self, current_node: BaseNode, dag: Graph, map_variable: MapVariableType = None
+        self,
+        current_node: BaseNode,
+        dag: Graph,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> tuple[str, str]:
         """
         Given the current node and the graph, returns the name of the next node to execute.
@@ -621,23 +647,32 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         return step_log.status, next_node_name
 
-    def execute_graph(self, dag: Graph, map_variable: MapVariableType = None):
+    def execute_graph(
+        self,
+        dag: Graph,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         The parallelization is controlled by the nodes and not by this function.
 
-        Transpilers should over ride this method to do the translation of dag to the platform specific way.
+        Transpilers should over ride this method to do the translation of dag to the
+        platform specific way.
+
         Interactive methods should use this to traverse and execute the dag.
             - Use execute_from_graph to handle sub-graphs
 
         Logically the method should:
             * Start at the dag.start_at of the dag.
             * Call the self.execute_from_graph(node)
-            * depending upon the status of the execution, either move to the success node or failure node.
+            * depending upon the status of the execution, either move to the
+            success node or failure node.
 
         Args:
             dag (Graph): The directed acyclic graph to traverse and execute.
-            map_variable (dict, optional): If the node if of a map state, this corresponds to the value of the iterable.
-                    Defaults to None.
+            map_variable (dict, optional): If the node if of a map state, this
+                corresponds to the value of the iterable.
+            Defaults to None.
         """
         current_node = dag.start_at
         previous_node = None
@@ -713,7 +748,9 @@ class GenericPipelineExecutor(BasePipelineExecutor):
     def _resolve_executor_config(self, node: BaseNode) -> Dict[str, Any]:
         """
         The overrides section can contain specific over-rides to an global executor config.
-        To avoid too much clutter in the dag definition, we allow the configuration file to have overrides block.
+        To avoid too much clutter in the dag definition, we allow the configuration file to
+        have overrides block.
+
         The nodes can over-ride the global config by referring to key in the overrides.
 
         This function also applies variables to the effective node config.
@@ -765,20 +802,29 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         return effective_node_config
 
-    def fan_out(self, node: BaseNode, map_variable: MapVariableType = None):
+    def fan_out(
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This method is used to appropriately fan-out the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
 
-        Reason: Transpilers typically try to run the leaf nodes but do not have any capacity to do anything for the
-        step which is composite. By calling this fan-out before calling the leaf nodes, we have an opportunity to
-        do the right set up (creating the step log, exposing the parameters, etc.) for the composite step.
+        Reason: Transpilers typically try to run the leaf nodes but do not have any capacity
+        to do anything for the step which is composite. By calling this fan-out before calling the
+        leaf nodes, we have an opportunity to do the right set up (creating the step log,
+        exposing the parameters, etc.) for the composite step.
 
-        All 3rd party orchestrators should use this method to fan-out the execution of a composite node.
+        All 3rd party orchestrators should use this method to fan-out the execution of
+        a composite node.
         This ensures:
-            - The dot path notation is preserved, this method should create the step and call the node's fan out to
-            create the branch logs and let the 3rd party do the actual step execution.
-            - Gives 3rd party orchestrators an opportunity to set out the required for running a composite node.
+            - The dot path notation is preserved, this method should create the step and
+            call the node's fan out to create the branch logs and let the 3rd party do the
+            actual step execution.
+            - Gives 3rd party orchestrators an opportunity to set out the required
+            for running a composite node.
 
         Args:
             node (BaseNode): The node to fan-out
@@ -795,18 +841,26 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         node.fan_out(map_variable=map_variable)
 
-    def fan_in(self, node: BaseNode, map_variable: MapVariableType = None):
+    def fan_in(
+        self,
+        node: BaseNode,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This method is used to appropriately fan-in after the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
 
-        Reason: Transpilers typically try to run the leaf nodes but do not have any capacity to do anything for the
-        step which is composite. By calling this fan-in after calling the leaf nodes, we have an opportunity to
-        act depending upon the status of the individual branches.
+        Reason: Transpilers typically try to run the leaf nodes but do not have any capacity
+        to do anything for the step which is composite. By calling this fan-in after calling
+        the leaf nodes, we have an opportunity to act depending upon the status of the
+        individual branches.
 
-        All 3rd party orchestrators should use this method to fan-in the execution of a composite node.
+        All 3rd party orchestrators should use this method to fan-in the execution of a
+        composite node.
         This ensures:
-            - Gives the renderer's the control on where to go depending upon the state of the composite node.
+            - Gives the renderer's the control on where to go depending upon the state of
+                the composite node.
             - The status of the step and its underlying branches are correctly updated.
 
         Args:

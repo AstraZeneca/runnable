@@ -1,11 +1,12 @@
 import logging
 from copy import deepcopy
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from pydantic import Field, field_serializer, field_validator
 
 from runnable import console, defaults, exceptions
 from runnable.datastore import Parameter
+from runnable.defaults import IterableParameterModel
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode, MapVariableType
 
@@ -124,7 +125,11 @@ class ConditionalNode(CompositeNode):
 
         raise Exception(f"Branch {branch_name} does not exist")
 
-    def fan_out(self, map_variable: MapVariableType = None):
+    def fan_out(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This method is restricted to creating branch logs.
         """
@@ -164,7 +169,11 @@ class ConditionalNode(CompositeNode):
                 "None of the branches were true. Please check your evaluate statements"
             )
 
-    def execute_as_graph(self, map_variable: MapVariableType = None):
+    def execute_as_graph(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This function does the actual execution of the sub-branches of the parallel node.
 
@@ -200,7 +209,11 @@ class ConditionalNode(CompositeNode):
 
         self.fan_in(map_variable=map_variable)
 
-    def fan_in(self, map_variable: MapVariableType = None):
+    def fan_in(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         The general fan in method for a node of type Parallel.
 
@@ -246,7 +259,11 @@ class ConditionalNode(CompositeNode):
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    async def execute_as_graph_async(self, map_variable: MapVariableType = None):
+    async def execute_as_graph_async(
+        self,
+        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """Async conditional execution."""
         self.fan_out(map_variable=map_variable)  # sync
         parameter_value = self.get_parameter_value()

@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, Union
 
+from pydantic import BaseModel, Json
 from rich.style import Style
 from typing_extensions import TypeAlias
 
@@ -25,6 +26,23 @@ ENV_RUN_ID = "RUNNABLE_RUN_ID"
 RETRY_RUN_ID = "RUNNABLE_RETRY_RUN_ID"
 RETRY_INDICATOR = "RUNNABLE_RETRY_INDICATOR"
 ATTEMPT_NUMBER = "RUNNABLE_STEP_ATTEMPT"
+
+
+class MapVariableModel(BaseModel):
+    value: Json[Any]
+
+
+class LoopIndexModel(BaseModel):
+    value: int
+
+
+class IterableParameterModel(BaseModel):
+    # {i1: {value: v1}, i2: {value: v2}} where i1 is outside map and i2 is nested map
+    map_variable: dict[str, MapVariableModel] | None = None
+    # [ {value: v1}, {value: v2} ] for  index based iteration,
+    # i1 is outside loop and i2 is nested loop
+    loop_variable: list[LoopIndexModel] | None = None
+
 
 ## Generated pipeline file
 GENERATED_PIPELINE_FILE = "generated_pipeline.yaml"
