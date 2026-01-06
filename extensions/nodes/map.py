@@ -17,7 +17,7 @@ from runnable.datastore import (
     ObjectParameter,
     Parameter,
 )
-from runnable.defaults import IterableParameterModel
+from runnable.defaults import IterableParameterModel, MapVariableModel
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode
 
@@ -196,11 +196,11 @@ class MapNode(CompositeNode):
             for _, v in iter_variable.map_variable.items():
                 for branch_return in self.branch_returns:
                     param_name, param_type = branch_return
-                    raw_parameters[f"{v.value}_{param_name}"] = param_type.copy()
+                    raw_parameters[f"{v.value}_{param_name}"] = param_type.model_copy()
         else:
             for branch_return in self.branch_returns:
                 param_name, param_type = branch_return
-                raw_parameters[f"{param_name}"] = param_type.copy()
+                raw_parameters[f"{param_name}"] = param_type.model_copy()
 
         self._context.run_log_store.set_parameters(
             parameters=raw_parameters, run_id=self._context.run_id
@@ -300,12 +300,10 @@ class MapNode(CompositeNode):
                 )
             effective_map_variable[self.iterate_as] = iteration_variable
 
-            # Convert to IterableParameterModel
-            from runnable.defaults import IterableParameterModel, MapVariableModel
-
-            converted_map = {
-                k: MapVariableModel(value=v) for k, v in effective_map_variable.items()
-            }
+            converted_map: OrderedDict = OrderedDict(
+                (k, MapVariableModel(value=str(v)))
+                for k, v in effective_map_variable.items()
+            )
             effective_iter_variable = IterableParameterModel(map_variable=converted_map)
 
             self._context.pipeline_executor.execute_graph(
@@ -329,7 +327,7 @@ class MapNode(CompositeNode):
             effective_map_variable = OrderedDict()
             if iter_variable and iter_variable.map_variable:
                 effective_map_variable.update(
-                    {k: v.value for k, v in iter_variable.map_variable.items()}
+                    {k: str(v.value) for k, v in iter_variable.map_variable.items()}
                 )
             effective_map_variable[self.iterate_as] = iteration_variable
 
@@ -484,11 +482,10 @@ class MapNode(CompositeNode):
             effective_map_variable[self.iterate_as] = iteration_variable
 
             # Convert to IterableParameterModel
-            from runnable.defaults import IterableParameterModel, MapVariableModel
-
-            converted_map = {
-                k: MapVariableModel(value=v) for k, v in effective_map_variable.items()
-            }
+            converted_map: OrderedDict = OrderedDict(
+                (k, MapVariableModel(value=str(v)))
+                for k, v in effective_map_variable.items()
+            )
             effective_iter_variable = IterableParameterModel(map_variable=converted_map)
 
             await self._context.pipeline_executor.execute_graph_async(
