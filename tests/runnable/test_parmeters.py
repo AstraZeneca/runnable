@@ -6,6 +6,7 @@ import pytest
 from pydantic import BaseModel, Field
 
 from runnable.datastore import JsonParameter
+from runnable.defaults import IterableParameterModel, MapVariableModel
 from runnable.parameters import (
     bind_args_for_pydantic_model,
     filter_arguments_for_func,
@@ -376,9 +377,12 @@ class TestFilterArgumentsMapVariable:
             "a": JsonParameter(kind="json", value=42),
             "b": JsonParameter(kind="json", value="original"),
         }
-        map_variable: Dict[str, Union[str, int, float]] = {"b": "overridden"}
+        map_variable = MapVariableModel(value='"overridden"')
+        iter_variable: IterableParameterModel = IterableParameterModel.model_validate(
+            {"map_variable": {"b": map_variable}}
+        )
 
-        result = filter_arguments_for_func(func_with_primitives, params, map_variable)
+        result = filter_arguments_for_func(func_with_primitives, params, iter_variable)
 
         assert result["a"] == 42
         assert result["b"] == "overridden"
@@ -388,9 +392,11 @@ class TestFilterArgumentsMapVariable:
         params = {
             "a": JsonParameter(kind="json", value=42),
         }
-        map_variable: Dict[str, Union[str, int, float]] = {"b": "from_map"}
+        iter_variable: IterableParameterModel = IterableParameterModel.model_validate(
+            {"map_variable": {"b": MapVariableModel(value='"from_map"')}}
+        )
 
-        result = filter_arguments_for_func(func_with_primitives, params, map_variable)
+        result = filter_arguments_for_func(func_with_primitives, params, iter_variable)
 
         assert result["a"] == 42
         assert result["b"] == "from_map"
@@ -400,14 +406,19 @@ class TestFilterArgumentsMapVariable:
         params = {
             "a": JsonParameter(kind="json", value=1),
         }
-        map_variable: Dict[str, Union[str, int, float]] = {
-            "a": 42,
-            "b": "test",
-            "c": 3.14,
-            "d": 1,
-        }
 
-        result = filter_arguments_for_func(func_with_typed_args, params, map_variable)
+        iter_variable: IterableParameterModel = IterableParameterModel.model_validate(
+            {
+                "map_variable": {
+                    "a": MapVariableModel(value='42'),
+                    "b": MapVariableModel(value='"test"'),
+                    "c": MapVariableModel(value='3.14'),
+                    "d": MapVariableModel(value='1'),
+                }
+            }
+        )
+
+        result = filter_arguments_for_func(func_with_typed_args, params, iter_variable)
 
         assert result["a"] == 42
         assert result["b"] == "test"
