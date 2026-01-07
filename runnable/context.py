@@ -697,19 +697,21 @@ else:
     RunnableContextType = Any
 
 _run_context_var: contextvars.ContextVar[
-    Optional["PipelineContext | JobContext | AsyncPipelineContext"]
+    Optional["PipelineContext | JobContext | AsyncPipelineContext | RunnableContext"]
 ] = contextvars.ContextVar("run_context", default=None)
 
 
 def get_run_context() -> (
-    Optional["PipelineContext | JobContext | AsyncPipelineContext"]
+    Optional["PipelineContext | JobContext | AsyncPipelineContext | RunnableContext"]
 ):
     """Get the current run context for this execution context."""
     return _run_context_var.get()
 
 
 def set_run_context(
-    context: Optional["PipelineContext | JobContext | AsyncPipelineContext"],
+    context: Optional[
+        "PipelineContext | JobContext | AsyncPipelineContext | RunnableContext"
+    ],
 ) -> None:
     """Set the run context for this execution context."""
     _run_context_var.set(context)
