@@ -158,7 +158,7 @@ def test_notebook_output_path(mock_context):
     # Test with map variable
     from runnable.defaults import IterableParameterModel, MapVariableModel
     iter_variable = IterableParameterModel(
-        map_variable={"var": MapVariableModel(value='"value"')}
+        map_variable={"var": MapVariableModel(value="value")}
     )
     path = task.get_notebook_output_path(iter_variable)
     assert "varvalue" in path

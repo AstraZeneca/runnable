@@ -23,9 +23,7 @@ from runnable import defaults, exceptions
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-JSONType = Union[
-    Union[None, bool, str, float, int, List[Any], Dict[str, Any]]
-]  # This is actually JSONType, but pydantic doesn't support TypeAlias yet
+JSONType = Union[Dict[str, Any], List[Any], str, int, float, bool, None]
 
 
 class DataCatalog(BaseModel, extra="allow"):

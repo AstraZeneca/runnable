@@ -267,7 +267,7 @@ class BaseTaskType(BaseModel):
 
                 context_param = param_name
                 for _, v in iter_variable.map_variable.items():
-                    context_param = f"{v}_{context_param}"
+                    context_param = f"{v.value}_{context_param}"
 
                 if context_param in params:
                     params[param_name].value = params[context_param].value
@@ -993,7 +993,7 @@ class ShellTaskType(BaseTaskType):
                                 param_name = task_return.name
                                 if iter_variable and iter_variable.map_variable:
                                     for _, v in iter_variable.map_variable.items():
-                                        param_name = f"{v}_{param_name}"
+                                        param_name = f"{v.value}_{param_name}"
 
                                 output_parameters[param_name] = output_parameter
 

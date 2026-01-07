@@ -668,6 +668,10 @@ class GenericPipelineExecutor(BasePipelineExecutor):
         current_node = dag.start_at
         previous_node = None
         logger.info(f"Running the execution with {current_node}")
+        logger.info(
+            "iter_variable: %s",
+            iter_variable.model_dump_json() if iter_variable else None,
+        )
 
         branch_task_name: str = ""
         if dag.internal_branch_name:

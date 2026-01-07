@@ -289,7 +289,7 @@ def test_calculate_attempt_number_with_map_variable(
     # Call the method with iter variable
     from runnable.defaults import IterableParameterModel, MapVariableModel
     iter_variable = IterableParameterModel(
-        map_variable={"key": MapVariableModel(value='"value"')}
+        map_variable={"key": MapVariableModel(value="value")}
     )
     attempt_num = test_executor._calculate_attempt_number(mock_node, iter_variable)
 

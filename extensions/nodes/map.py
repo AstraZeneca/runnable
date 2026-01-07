@@ -301,7 +301,7 @@ class MapNode(CompositeNode):
             effective_map_variable[self.iterate_as] = iteration_variable
 
             converted_map: OrderedDict = OrderedDict(
-                (k, MapVariableModel(value=str(v)))
+                (k, MapVariableModel(value=v))
                 for k, v in effective_map_variable.items()
             )
             effective_iter_variable = IterableParameterModel(map_variable=converted_map)
@@ -323,17 +323,30 @@ class MapNode(CompositeNode):
 
         # Prepare arguments for each iteration
         iteration_args = []
+
         for iteration_variable in iterate_on:
-            effective_map_variable = OrderedDict()
-            if iter_variable and iter_variable.map_variable:
-                effective_map_variable.update(
-                    {k: str(v.value) for k, v in iter_variable.map_variable.items()}
-                )
-            effective_map_variable[self.iterate_as] = iteration_variable
+            effective_iter_variable = (
+                iter_variable.model_copy(deep=True)
+                if iter_variable
+                else IterableParameterModel()
+            )
+
+            effective_map_variable = (
+                effective_iter_variable.map_variable or OrderedDict()
+            )
+            effective_map_variable[self.iterate_as] = MapVariableModel(
+                value=iteration_variable
+            )
+            effective_iter_variable.map_variable = effective_map_variable
 
             branch_name = f"{self.internal_name}.{iteration_variable}"
             iteration_args.append(
-                (branch_name, self.branch, self._context, effective_map_variable)
+                (
+                    branch_name,
+                    self.branch,
+                    self._context,
+                    effective_iter_variable.model_dump_json(),
+                )
             )
 
         # Use multiprocessing Pool to execute iterations in parallel
@@ -483,7 +496,7 @@ class MapNode(CompositeNode):
 
             # Convert to IterableParameterModel
             converted_map: OrderedDict = OrderedDict(
-                (k, MapVariableModel(value=str(v)))
+                (k, MapVariableModel(value=v))
                 for k, v in effective_map_variable.items()
             )
             effective_iter_variable = IterableParameterModel(map_variable=converted_map)

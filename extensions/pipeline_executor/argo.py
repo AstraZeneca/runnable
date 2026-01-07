@@ -28,7 +28,7 @@ from extensions.nodes.task import TaskNode
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults, exceptions
 from runnable.datastore import StepAttempt
-from runnable.defaults import IterableParameterModel, MapVariableType
+from runnable.defaults import IterableParameterModel, MapVariableModel
 from runnable.graph import Graph, search_node_by_internal_name
 from runnable.nodes import BaseNode
 
@@ -599,9 +599,9 @@ class ArgoExecutor(GenericPipelineExecutor):
         parameters: Optional[list[Parameter]],
         task_name: str,
     ):
-        iter_variable: MapVariableType = {}
+        iter_variable: IterableParameterModel = IterableParameterModel()
         for parameter in parameters or []:
-            iter_variable[parameter.name] = (  # type: ignore
+            iter_variable.map_variable[parameter.name] = (  # type: ignore
                 "{{inputs.parameters." + str(parameter.name) + "}}"
             )
 
@@ -635,13 +635,19 @@ class ArgoExecutor(GenericPipelineExecutor):
         if mode == "out" and node.node_type == "conditional":
             outputs = Outputs(parameters=[OutputParameter(name="case")])
 
+        config_map_key = (
+            "{{workflow.parameters.run_id}}-"
+            + f"{task_name}-"
+            + "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+        )
+
         container_template = ContainerTemplate(
             name=task_name,
             container=core_container_template,
             inputs=Inputs(parameters=parameters),
             outputs=outputs,
             memoize=Memoize(
-                key=f"{{{{workflow.parameters.run_id}}}}-{task_name}",
+                key=config_map_key,
                 cache=Cache(config_map=ConfigMapCache(name=self.cache_name)),
             ),
             active_deadline_seconds=self.defaults.active_deadline_seconds,
@@ -677,10 +683,14 @@ class ArgoExecutor(GenericPipelineExecutor):
 
         inputs = inputs or Inputs(parameters=[])
 
-        iter_variable: MapVariableType = {}
+        # Should look like: '{"map_variable":{"chunk":{"value":3}},"loop_variable":[]}'
+        iter_variable: IterableParameterModel = IterableParameterModel()
         for parameter in inputs.parameters or []:
-            iter_variable[parameter.name] = (  # type: ignore
-                "{{inputs.parameters." + str(parameter.name) + "}}"
+            map_variable = MapVariableModel(
+                value=f"{{{{inputs.parameters.{str(parameter.name)}}}}}"
+            )
+            iter_variable.map_variable[parameter.name] = (  # type: ignore
+                map_variable
             )
 
         # command = "runnable execute-single-node"
@@ -709,6 +719,11 @@ class ArgoExecutor(GenericPipelineExecutor):
             working_on=node, container_template=core_container_template
         )
         self._set_env_vars_to_task(node, core_container_template)
+        config_map_key = (
+            "{{workflow.parameters.run_id}}-"
+            + f"{task_name}-"
+            + "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+        )
 
         container_template = ContainerTemplate(
             name=task_name,
@@ -719,7 +734,7 @@ class ArgoExecutor(GenericPipelineExecutor):
                 ]
             ),
             memoize=Memoize(
-                key=f"{{{{workflow.parameters.run_id}}}}-{task_name}",
+                key=config_map_key,
                 cache=Cache(config_map=ConfigMapCache(name=self.cache_name)),
             ),
             volumes=[volume_pair.volume for volume_pair in self.volume_pairs],

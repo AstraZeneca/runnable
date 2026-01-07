@@ -139,7 +139,7 @@ class BaseNode(ABC, BaseModel):
             return name
 
         for _, value in iter_variable.map_variable.items():
-            name = name.replace(defaults.MAP_PLACEHOLDER, str(value), 1)
+            name = name.replace(defaults.MAP_PLACEHOLDER, str(value.value), 1)
 
         return name
 

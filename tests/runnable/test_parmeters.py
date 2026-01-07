@@ -377,7 +377,7 @@ class TestFilterArgumentsMapVariable:
             "a": JsonParameter(kind="json", value=42),
             "b": JsonParameter(kind="json", value="original"),
         }
-        map_variable = MapVariableModel(value='"overridden"')
+        map_variable = MapVariableModel(value="overridden")
         iter_variable: IterableParameterModel = IterableParameterModel.model_validate(
             {"map_variable": {"b": map_variable}}
         )
@@ -393,7 +393,7 @@ class TestFilterArgumentsMapVariable:
             "a": JsonParameter(kind="json", value=42),
         }
         iter_variable: IterableParameterModel = IterableParameterModel.model_validate(
-            {"map_variable": {"b": MapVariableModel(value='"from_map"')}}
+            {"map_variable": {"b": MapVariableModel(value="from_map")}}
         )
 
         result = filter_arguments_for_func(func_with_primitives, params, iter_variable)
@@ -410,10 +410,10 @@ class TestFilterArgumentsMapVariable:
         iter_variable: IterableParameterModel = IterableParameterModel.model_validate(
             {
                 "map_variable": {
-                    "a": MapVariableModel(value='42'),
-                    "b": MapVariableModel(value='"test"'),
-                    "c": MapVariableModel(value='3.14'),
-                    "d": MapVariableModel(value='1'),
+                    "a": MapVariableModel(value=42),
+                    "b": MapVariableModel(value="test"),
+                    "c": MapVariableModel(value=3.14),
+                    "d": MapVariableModel(value=1),
                 }
             }
         )

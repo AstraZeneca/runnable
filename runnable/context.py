@@ -10,6 +10,7 @@ from enum import Enum
 from functools import cached_property, partial
 from typing import TYPE_CHECKING, Annotated, Any, Callable, Dict, Optional
 
+import logfire_api as logfire
 from pydantic import (
     BaseModel,
     BeforeValidator,
@@ -29,8 +30,6 @@ from runnable.nodes import BaseNode
 from runnable.pickler import BasePickler
 from runnable.secrets import BaseSecrets
 from runnable.tasks import BaseTaskType
-
-import logfire_api as logfire
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -331,7 +330,7 @@ class PipelineContext(RunnableContext):
     def get_node_callable_command(
         self,
         node: BaseNode,
-        map_variable: defaults.MapVariableType = None,
+        iter_variable: defaults.IterableParameterModel | None = None,
         over_write_run_id: str = "",
         log_level: str = "",
     ) -> str:
@@ -353,8 +352,8 @@ class PipelineContext(RunnableContext):
         if self.execution_mode == ExecutionMode.PYTHON:
             action = action + "--mode python "
 
-        if map_variable:
-            action = action + f"--map-variable '{json.dumps(map_variable)}' "
+        if iter_variable:
+            action = action + f"--iter-variable '{iter_variable.model_dump_json()}' "
 
         if self.configuration_file:
             action = action + f"--config {self.configuration_file} "
@@ -376,7 +375,7 @@ class PipelineContext(RunnableContext):
         node: BaseNode,
         mode: str,
         run_id: str,
-        map_variable: defaults.MapVariableType = None,
+        iter_variable: defaults.IterableParameterModel | None = None,
         log_level: str = "",
     ) -> str:
         """
@@ -403,8 +402,8 @@ class PipelineContext(RunnableContext):
             action += f" --config-file {self.configuration_file}"
         if self.parameters_file:
             action += f" --parameters-file {self.parameters_file}"
-        if map_variable:
-            action += f" --map-variable '{json.dumps(map_variable)}'"
+        if iter_variable:
+            action += f" --iter-variable '{iter_variable.model_dump_json()}'"
         if self.execution_mode == ExecutionMode.PYTHON:
             action += " --mode python"
         if self.tag:
@@ -691,21 +690,27 @@ class JobContext(RunnableContext):
 if TYPE_CHECKING:
     from typing import Union
 
-    RunnableContextType = Union["RunnableContext", "PipelineContext", "JobContext"]
+    RunnableContextType = Union[
+        "RunnableContext", "PipelineContext", "JobContext", "AsyncPipelineContext"
+    ]
 else:
     RunnableContextType = Any
 
-_run_context_var: contextvars.ContextVar[Optional[RunnableContextType]] = (
-    contextvars.ContextVar("run_context", default=None)
-)
+_run_context_var: contextvars.ContextVar[
+    Optional["PipelineContext | JobContext | AsyncPipelineContext"]
+] = contextvars.ContextVar("run_context", default=None)
 
 
-def get_run_context() -> Optional[RunnableContextType]:
+def get_run_context() -> (
+    Optional["PipelineContext | JobContext | AsyncPipelineContext"]
+):
     """Get the current run context for this execution context."""
     return _run_context_var.get()
 
 
-def set_run_context(context: RunnableContextType) -> None:
+def set_run_context(
+    context: Optional["PipelineContext | JobContext | AsyncPipelineContext"],
+) -> None:
     """Set the run context for this execution context."""
     _run_context_var.set(context)
 

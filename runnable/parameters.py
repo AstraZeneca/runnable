@@ -108,7 +108,7 @@ def filter_arguments_for_func(
     for key, v in (
         (iter_variable.map_variable if iter_variable else None) or {}
     ).items():
-        params[key] = JsonParameter(kind="json", value=v)
+        params[key] = JsonParameter(kind="json", value=v.value)
 
     bound_args = {}
     var_keyword_param = None

@@ -230,7 +230,7 @@ def test_base_node_execute_with_parameters():
 
     # Create IterableParameterModel for testing
     iter_var = IterableParameterModel(
-        map_variable={"test": MapVariableModel(value='"value"')}
+        map_variable={"test": MapVariableModel(value="value")}
     )
     result = node.execute(mock=True, iter_variable=iter_var, attempt_number=2)
     assert result is None
@@ -244,7 +244,7 @@ def test_base_node_execute_as_graph():
 
     # Create IterableParameterModel for testing
     iter_var = IterableParameterModel(
-        map_variable={"test": MapVariableModel(value='"value"')}
+        map_variable={"test": MapVariableModel(value="value")}
     )
     # Should not raise any exception as per TestNode implementation
     node.execute_as_graph(iter_variable=iter_var)
@@ -258,7 +258,7 @@ def test_base_node_fan_operations():
 
     # Create IterableParameterModel for testing
     iter_var = IterableParameterModel(
-        map_variable={"test": MapVariableModel(value='"value"')}
+        map_variable={"test": MapVariableModel(value="value")}
     )
     # Should not raise any exceptions as per TestNode implementation
     node.fan_out(iter_variable=iter_var)

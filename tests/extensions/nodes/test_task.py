@@ -141,7 +141,7 @@ def test_task_node_with_map_variable(mocker):
     )
     # Create IterableParameterModel for testing
     iter_variable = IterableParameterModel(
-        map_variable={"test_var": MapVariableModel(value='"test_value"')}
+        map_variable={"test_var": MapVariableModel(value="test_value")}
     )
     mock_context = mocker.Mock()
     mock_context.run_id = "test_run"
