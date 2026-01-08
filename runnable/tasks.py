@@ -127,6 +127,9 @@ class BaseTaskType(BaseModel):
     """A base task class which does the execution of command defined by the user."""
 
     task_type: str = Field(serialization_alias="command_type")
+    internal_branch_name: Optional[str] = Field(
+        default=None, description="Branch context for partitioned parameter storage"
+    )
     secrets: List[str] = Field(
         default_factory=list
     )  # A list of secrets to expose by secrets manager
@@ -145,6 +148,20 @@ class BaseTaskType(BaseModel):
         if current_context is None:
             raise RuntimeError("No run context available in current execution context")
         return current_context
+
+    def _get_scoped_parameters(self) -> Dict[str, Parameter]:
+        """Get parameters from appropriate partition based on branch context."""
+        return self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id, internal_branch_name=self.internal_branch_name
+        )
+
+    def _set_scoped_parameters(self, parameters: Dict[str, Parameter]) -> None:
+        """Set parameters to appropriate partition based on branch context."""
+        self._context.run_log_store.set_parameters(
+            parameters=parameters,
+            run_id=self._context.run_id,
+            internal_branch_name=self.internal_branch_name,
+        )
 
     def set_secrets_as_env_variables(self):
         # Preparing the environment for the task execution
