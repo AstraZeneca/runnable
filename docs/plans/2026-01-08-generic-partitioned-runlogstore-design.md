@@ -93,6 +93,10 @@ def _retrieve_branch_branch_log(self, run_id: str, internal_branch_name: str, br
 ### Execution and Storage Flow
 
 ```python
+# During branch creation - parameter inheritance
+create branch_a → copy root parameters to /branches/branch_a/
+create nested_branch_b → copy branch_a parameters to /branches/branch_a/branches/nested_branch_b/
+
 # During execution - data stored in partitions
 nested_branch_b.step_x → store in /branches/branch_a/branches/nested_branch_b/
 branch_a.step_y → store in /branches/branch_a/
@@ -101,6 +105,30 @@ root.step_z → store in /root/
 # Parameter reduction flow (nested → parent → root)
 nested_branch_b completes → parameters reduced to branch_a partition
 branch_a completes → parameters reduced to root partition
+```
+
+### Parameter Inheritance During Branch Creation
+
+```python
+def copy_parameters_to_branch(self, run_id: str, source_branch: Optional[str], target_branch: str):
+    """
+    Copy parameters from source to target branch during branch creation.
+    This ensures nested branch steps have access to parent context parameters.
+
+    Args:
+        run_id: The run ID
+        source_branch: Source branch name (None for root parameters)
+        target_branch: Target branch name to inherit parameters
+    """
+    if source_branch is None:
+        # Copy from root to new branch
+        source_params = self._retrieve_root_parameters(run_id)
+    else:
+        # Copy from parent branch to nested branch
+        source_params = self._retrieve_branch_parameters(run_id, source_branch)
+
+    # Deep copy parameters to target branch for isolation
+    self._store_branch_parameters(run_id, target_branch, source_params.copy())
 ```
 
 ### Internal Compilation Methods
