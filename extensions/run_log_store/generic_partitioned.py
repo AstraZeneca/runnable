@@ -1,9 +1,9 @@
 import logging
 from abc import abstractmethod
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from runnable import defaults
-from runnable.datastore import BaseRunLogStore, Parameter, StepLog, BranchLog
+from runnable.datastore import BaseRunLogStore, Parameter, RunLog, StepLog, BranchLog
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -201,3 +201,61 @@ class GenericPartitionedRunLogStore(BaseRunLogStore):
         else:
             # Store in branch partition
             self._store_branch_step_log(run_id, internal_branch_name, step_log)
+
+    def get_branch_log(
+        self,
+        internal_branch_name: str,
+        run_id: str,
+        parent_branch_name: Optional[str] = None,
+    ) -> Union[BranchLog, RunLog]:
+        """
+        Returns the branch log by the internal branch name for the run id.
+
+        If the internal branch name is empty, returns the run log.
+
+        Args:
+            internal_branch_name: The internal branch name to retrieve
+            run_id: The run id of interest
+            parent_branch_name: The parent branch containing this branch (None for root)
+
+        Returns:
+            BranchLog or RunLog: The branch log or the run log as requested
+        """
+        if not internal_branch_name:
+            # Return root run log
+            return self.get_run_log_by_id(run_id=run_id)
+
+        if parent_branch_name is None:
+            # Retrieve from root partition
+            return self._retrieve_root_branch_log(run_id, internal_branch_name)
+        else:
+            # Retrieve from parent branch partition
+            return self._retrieve_branch_branch_log(
+                run_id, parent_branch_name, internal_branch_name
+            )
+
+    def add_branch_log(
+        self,
+        branch_log: Union[BranchLog, RunLog],
+        run_id: str,
+        parent_branch_name: Optional[str] = None,
+    ):
+        """
+        Add the branch log to the appropriate partition.
+
+        Args:
+            branch_log: The branch log/run log to add to the database
+            run_id: The run id to which the branch/run log is added
+            parent_branch_name: The parent branch containing this branch (None for root)
+        """
+        if not isinstance(branch_log, BranchLog):
+            # This is a RunLog, store it directly
+            self.put_run_log(branch_log)
+            return
+
+        if parent_branch_name is None:
+            # Store in root partition
+            self._store_root_branch_log(run_id, branch_log)
+        else:
+            # Store in parent branch partition
+            self._store_branch_branch_log(run_id, parent_branch_name, branch_log)

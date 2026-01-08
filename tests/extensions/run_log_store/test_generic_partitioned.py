@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock
-from typing import Dict
+from typing import Dict, Union
 from runnable.datastore import Parameter, RunLog, StepLog, BranchLog, JsonParameter
 from runnable import defaults
 from extensions.run_log_store.generic_partitioned import GenericPartitionedRunLogStore
@@ -189,3 +189,43 @@ def test_add_step_log_routing():
     # Verify storage
     assert store._retrieve_root_step_log(run_id, "new_root_step").name == "new_root_step"
     assert store._retrieve_branch_step_log(run_id, "branch1", "branch1.new_branch_step").name == "new_branch_step"
+
+
+# Test branch log management
+
+def test_get_branch_log_routing():
+    """Test get_branch_log routes correctly"""
+    store = ConcretePartitionedStore()
+    run_id = "test_run"
+
+    # Test root log (empty internal_branch_name)
+    root_log = store.get_run_log_by_id(run_id)
+
+    # Create branch log
+    branch_log = BranchLog(internal_name="branch1", status=defaults.CREATED)
+    store._store_branch_branch_log(run_id, "parent_branch", branch_log)
+
+    # Test routing - method signature needs to be updated
+    root_result = store.get_branch_log("", run_id, None)  # Empty string for root
+    branch_result = store.get_branch_log("branch1", run_id, "parent_branch")
+
+    assert isinstance(root_result, RunLog)
+    assert isinstance(branch_result, BranchLog)
+    assert branch_result.internal_name == "branch1"
+
+def test_add_branch_log_routing():
+    """Test add_branch_log routes correctly"""
+    store = ConcretePartitionedStore()
+    run_id = "test_run"
+
+    # Test adding root log (RunLog instance)
+    run_log = RunLog(run_id=run_id, status=defaults.CREATED)
+    branch_log = BranchLog(internal_name="new_branch", status=defaults.CREATED)
+
+    # These methods need signature updates
+    store.add_branch_log(run_log, run_id, None)  # Root log
+    store.add_branch_log(branch_log, run_id, "parent_branch")  # Branch log
+
+    # Verify storage - root log goes through put_run_log, branch log goes to partition
+    retrieved_branch = store._retrieve_branch_branch_log(run_id, "parent_branch", "new_branch")
+    assert retrieved_branch.internal_name == "new_branch"
