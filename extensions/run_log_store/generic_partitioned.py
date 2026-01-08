@@ -10,10 +10,38 @@ logger = logging.getLogger(defaults.LOGGER_NAME)
 
 class GenericPartitionedRunLogStore(BaseRunLogStore):
     """
-    A generic implementation of a RunLogStore that supports partitioned parameter storage.
+    A generic implementation of a RunLogStore that supports full partitioned storage.
 
-    This store enables branch-specific parameter isolation by storing parameters
-    in separate partitions/files per branch execution context.
+    This implementation provides complete partitioning of all data types (parameters,
+    step logs, branch logs) with hierarchical storage structure. Each branch execution
+    context gets isolated storage while supporting parameter inheritance from parent contexts.
+
+    Key Features:
+    - Full data partitioning per branch execution context
+    - Hierarchical storage: root -> branches -> nested branches
+    - Parameter inheritance during branch creation
+    - Transparent routing based on internal_branch_name
+    - Backward compatibility with existing domain code
+
+    Storage Structure:
+        /run_id/                    # Root partition
+        ├── parameters/             # Root parameters
+        ├── step_logs/              # Root step logs
+        ├── branch_logs/            # Root branch logs
+        └── branches/
+            └── branch_a/           # Branch partition
+                ├── parameters/     # Branch-specific parameters
+                ├── step_logs/      # Branch-specific step logs
+                ├── branch_logs/    # Branch-specific branch logs
+                └── branches/       # Nested branches...
+
+    Abstract Methods:
+        Concrete implementations must provide storage methods for:
+        - Root partition: _store_root_*, _retrieve_root_*
+        - Branch partition: _store_branch_*, _retrieve_branch_*
+
+        Each method handles one data type (parameters, step_logs, branch_logs)
+        in one partition type (root or branch).
     """
 
     service_name: str = "generic-partitioned"
