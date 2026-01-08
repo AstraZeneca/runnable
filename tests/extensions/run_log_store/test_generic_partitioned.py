@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock
 from typing import Dict
-from runnable.datastore import Parameter, RunLog, StepLog, BranchLog
+from runnable.datastore import Parameter, RunLog, StepLog, BranchLog, JsonParameter
 from extensions.run_log_store.generic_partitioned import GenericPartitionedRunLogStore
 
 class ConcretePartitionedStore(GenericPartitionedRunLogStore):
@@ -93,3 +93,60 @@ def test_abstract_method_structure():
     assert hasattr(store, '_retrieve_root_parameters')
     assert hasattr(store, '_store_branch_parameters')
     assert hasattr(store, '_retrieve_branch_parameters')
+
+
+def test_copy_parameters_to_branch():
+    """Test parameter inheritance during branch creation"""
+    store = ConcretePartitionedStore()
+    run_id = "test_run"
+
+    # Set up root parameters
+    root_params = {
+        "param1": JsonParameter(kind="json", value={"key": "value"})
+    }
+    store._store_root_parameters(run_id, root_params)
+
+    # Copy to branch - this method doesn't exist yet
+    store.copy_parameters_to_branch(run_id, None, "branch1")
+
+    # Verify branch has inherited parameters
+    branch_params = store._retrieve_branch_parameters(run_id, "branch1")
+    assert "param1" in branch_params
+    assert branch_params["param1"].value == {"key": "value"}
+
+
+def test_get_parameters_routing():
+    """Test get_parameters routes correctly based on internal_branch_name"""
+    store = ConcretePartitionedStore()
+    run_id = "test_run"
+
+    # Set up different parameters for root and branch
+    root_params = {"root_param": JsonParameter(kind="json", value="root_value")}
+    branch_params = {"branch_param": JsonParameter(kind="json", value="branch_value")}
+
+    store._store_root_parameters(run_id, root_params)
+    store._store_branch_parameters(run_id, "branch1", branch_params)
+
+    # Test routing - these methods don't exist yet
+    root_result = store.get_parameters(run_id, None)
+    branch_result = store.get_parameters(run_id, "branch1")
+
+    assert "root_param" in root_result
+    assert "branch_param" in branch_result
+
+
+def test_set_parameters_routing():
+    """Test set_parameters routes correctly based on internal_branch_name"""
+    store = ConcretePartitionedStore()
+    run_id = "test_run"
+
+    root_params = {"new_root": JsonParameter(kind="json", value="new_root_value")}
+    branch_params = {"new_branch": JsonParameter(kind="json", value="new_branch_value")}
+
+    # These methods don't exist yet
+    store.set_parameters(run_id, root_params, None)
+    store.set_parameters(run_id, branch_params, "branch1")
+
+    # Verify storage
+    assert store._retrieve_root_parameters(run_id)["new_root"].value == "new_root_value"
+    assert store._retrieve_branch_parameters(run_id, "branch1")["new_branch"].value == "new_branch_value"

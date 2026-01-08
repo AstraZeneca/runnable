@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from typing import Dict
+from typing import Dict, Optional
 
 from runnable import defaults
 from runnable.datastore import BaseRunLogStore, Parameter, StepLog, BranchLog
@@ -94,3 +94,66 @@ class GenericPartitionedRunLogStore(BaseRunLogStore):
     ) -> BranchLog:
         """Retrieve branch log from branch partition."""
         ...
+
+    def copy_parameters_to_branch(
+        self, run_id: str, source_branch: Optional[str], target_branch: str
+    ):
+        """
+        Copy parameters from source to target branch during branch creation.
+        This ensures nested branch steps have access to parent context parameters.
+
+        Args:
+            run_id: The run ID
+            source_branch: Source branch name (None for root parameters)
+            target_branch: Target branch name to inherit parameters
+        """
+        if source_branch is None:
+            # Copy from root to new branch
+            source_params = self._retrieve_root_parameters(run_id)
+        else:
+            # Copy from parent branch to nested branch
+            source_params = self._retrieve_branch_parameters(run_id, source_branch)
+
+        # Deep copy parameters to target branch for isolation
+        self._store_branch_parameters(run_id, target_branch, source_params.copy())
+
+    def get_parameters(
+        self, run_id: str, internal_branch_name: Optional[str] = None
+    ) -> Dict[str, Parameter]:
+        """
+        Get parameters with branch-specific support.
+
+        Args:
+            run_id: The run ID
+            internal_branch_name: If provided, get parameters for specific branch
+
+        Returns:
+            Dictionary of parameters
+        """
+        if internal_branch_name is None:
+            # Get main run parameters
+            return self._retrieve_root_parameters(run_id)
+        else:
+            # Get branch-specific parameters
+            return self._retrieve_branch_parameters(run_id, internal_branch_name)
+
+    def set_parameters(
+        self,
+        run_id: str,
+        parameters: Dict[str, Parameter],
+        internal_branch_name: Optional[str] = None,
+    ):
+        """
+        Set parameters with branch-specific support.
+
+        Args:
+            run_id: The run ID
+            parameters: Parameters to set
+            internal_branch_name: If provided, set parameters for specific branch
+        """
+        if internal_branch_name is None:
+            # Set main run parameters
+            self._store_root_parameters(run_id, parameters)
+        else:
+            # Set branch-specific parameters
+            self._store_branch_parameters(run_id, internal_branch_name, parameters)
