@@ -229,3 +229,20 @@ def test_add_branch_log_routing():
     # Verify storage - root log goes through put_run_log, branch log goes to partition
     retrieved_branch = store._retrieve_branch_branch_log(run_id, "parent_branch", "new_branch")
     assert retrieved_branch.internal_name == "new_branch"
+
+
+def test_chunked_methods_removed():
+    """Verify that chunked-style methods are no longer present"""
+    store = ConcretePartitionedStore()
+
+    # These methods should not exist in partitioned implementation
+    chunked_methods = [
+        '_get_main_parameters',
+        '_set_main_parameters',
+        '_get_branch_parameters',
+        '_set_branch_parameters'
+    ]
+
+    for method_name in chunked_methods:
+        # These should not exist anymore
+        assert not hasattr(store, method_name), f"Method {method_name} should be removed from partitioned implementation"
