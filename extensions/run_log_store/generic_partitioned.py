@@ -157,3 +157,47 @@ class GenericPartitionedRunLogStore(BaseRunLogStore):
         else:
             # Set branch-specific parameters
             self._store_branch_parameters(run_id, internal_branch_name, parameters)
+
+    def get_step_log(
+        self,
+        internal_name: str,
+        run_id: str,
+        internal_branch_name: Optional[str] = None,
+    ) -> StepLog:
+        """
+        Get a step log from the datastore for run_id and the internal naming of the step log.
+
+        Args:
+            internal_name: The internal name of the step log
+            run_id: The run_id of the run
+            internal_branch_name: If provided, get from specific branch partition
+
+        Returns:
+            StepLog: The step log object for the step
+        """
+        if internal_branch_name is None:
+            # Get from root partition
+            return self._retrieve_root_step_log(run_id, internal_name)
+        else:
+            # Get from branch partition
+            return self._retrieve_branch_step_log(
+                run_id, internal_branch_name, internal_name
+            )
+
+    def add_step_log(
+        self, step_log: StepLog, run_id: str, internal_branch_name: Optional[str] = None
+    ):
+        """
+        Add the step log in the run log as identified by the run_id in the datastore.
+
+        Args:
+            step_log: The Step log to add to the database
+            run_id: The run id of the run
+            internal_branch_name: If provided, store in specific branch partition
+        """
+        if internal_branch_name is None:
+            # Store in root partition
+            self._store_root_step_log(run_id, step_log)
+        else:
+            # Store in branch partition
+            self._store_branch_step_log(run_id, internal_branch_name, step_log)

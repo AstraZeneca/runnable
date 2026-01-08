@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import Mock
 from typing import Dict
 from runnable.datastore import Parameter, RunLog, StepLog, BranchLog, JsonParameter
+from runnable import defaults
 from extensions.run_log_store.generic_partitioned import GenericPartitionedRunLogStore
 
 class ConcretePartitionedStore(GenericPartitionedRunLogStore):
@@ -150,3 +151,41 @@ def test_set_parameters_routing():
     # Verify storage
     assert store._retrieve_root_parameters(run_id)["new_root"].value == "new_root_value"
     assert store._retrieve_branch_parameters(run_id, "branch1")["new_branch"].value == "new_branch_value"
+
+
+# Test step log management
+
+def test_get_step_log_routing():
+    """Test get_step_log routes correctly based on internal_branch_name"""
+    store = ConcretePartitionedStore()
+    run_id = "test_run"
+
+    # Create step logs for root and branch
+    root_step = StepLog(name="root_step", internal_name="root_step", status=defaults.CREATED)
+    branch_step = StepLog(name="branch_step", internal_name="branch1.branch_step", status=defaults.CREATED)
+
+    store._store_root_step_log(run_id, root_step)
+    store._store_branch_step_log(run_id, "branch1", branch_step)
+
+    # Test routing - these methods don't exist yet with internal_branch_name parameter
+    root_result = store.get_step_log("root_step", run_id, None)
+    branch_result = store.get_step_log("branch1.branch_step", run_id, "branch1")
+
+    assert root_result.name == "root_step"
+    assert branch_result.name == "branch_step"
+
+def test_add_step_log_routing():
+    """Test add_step_log routes correctly based on internal_branch_name"""
+    store = ConcretePartitionedStore()
+    run_id = "test_run"
+
+    root_step = StepLog(name="new_root_step", internal_name="new_root_step", status=defaults.CREATED)
+    branch_step = StepLog(name="new_branch_step", internal_name="branch1.new_branch_step", status=defaults.CREATED)
+
+    # These methods don't exist yet with internal_branch_name parameter
+    store.add_step_log(root_step, run_id, None)
+    store.add_step_log(branch_step, run_id, "branch1")
+
+    # Verify storage
+    assert store._retrieve_root_step_log(run_id, "new_root_step").name == "new_root_step"
+    assert store._retrieve_branch_step_log(run_id, "branch1", "branch1.new_branch_step").name == "new_branch_step"
