@@ -267,38 +267,13 @@ class BaseTaskType(BaseModel):
         if q is not None:
             q.put_nowait(event)
 
-    # TODO: Bring in loop variable
-    def resolve_unreduced_parameters(
-        self,
-        iter_variable: Optional[IterableParameterModel] = None,
-    ):
-        """Resolve the unreduced parameters."""
-        params = self._context.run_log_store.get_parameters(
-            run_id=self._context.run_id
-        ).copy()
-
-        for param_name, param in params.items():
-            if param.reduced is False:
-                assert (
-                    iter_variable and iter_variable.map_variable is not None
-                ), "Parameters in non-map node should always be reduced"
-
-                context_param = param_name
-                for _, v in iter_variable.map_variable.items():
-                    context_param = f"{v.value}_{context_param}"
-
-                if context_param in params:
-                    params[param_name].value = params[context_param].value
-
-        return params
-
     @contextlib.contextmanager
     def execution_context(
         self,
         iter_variable: Optional[IterableParameterModel] = None,
         allow_complex: bool = True,
     ):
-        params = self.resolve_unreduced_parameters(iter_variable=iter_variable)
+        params = self._get_scoped_parameters()
         logger.info(f"Parameters available for the execution: {params}")
 
         task_console.log("Parameters available for the execution:")
@@ -326,9 +301,7 @@ class BaseTaskType(BaseModel):
             diff_parameters = self._diff_parameters(
                 parameters_in=parameters_in, context_params=params
             )
-            self._context.run_log_store.set_parameters(
-                parameters=diff_parameters, run_id=self._context.run_id
-            )
+            self._set_scoped_parameters(diff_parameters)
 
 
 def task_return_to_parameter(task_return: TaskReturns, value: Any) -> Parameter:
