@@ -246,3 +246,104 @@ def test_chunked_methods_removed():
     for method_name in chunked_methods:
         # These should not exist anymore
         assert not hasattr(store, method_name), f"Method {method_name} should be removed from partitioned implementation"
+
+
+# Integration tests
+
+def test_complete_partitioned_workflow():
+    """Integration test for complete partitioned workflow"""
+    store = ConcretePartitionedStore()
+    run_id = "integration_test_run"
+
+    # 1. Create root parameters
+    root_params = {
+        "global_config": JsonParameter(kind="json", value={"env": "test"}),
+        "shared_data": JsonParameter(kind="json", value=[1, 2, 3])
+    }
+    store.set_parameters(run_id, root_params, None)
+
+    # 2. Create branch and inherit parameters
+    store.copy_parameters_to_branch(run_id, None, "branch1")
+
+    # 3. Verify branch inherited parameters
+    branch_params = store.get_parameters(run_id, "branch1")
+    assert "global_config" in branch_params
+    assert branch_params["global_config"].value == {"env": "test"}
+
+    # 4. Add branch-specific parameters
+    branch_specific = {
+        "branch_config": JsonParameter(kind="json", value={"branch_id": 1})
+    }
+    current_branch_params = store.get_parameters(run_id, "branch1")
+    current_branch_params.update(branch_specific)
+    store.set_parameters(run_id, current_branch_params, "branch1")
+
+    # 5. Create nested branch
+    store.copy_parameters_to_branch(run_id, "branch1", "branch1.nested")
+    nested_params = store.get_parameters(run_id, "branch1.nested")
+    assert "global_config" in nested_params  # Inherited from root via branch1
+    assert "branch_config" in nested_params  # Inherited from branch1
+
+    # 6. Add step logs to different partitions
+    root_step = StepLog(name="root_step", internal_name="root_step", status=defaults.CREATED)
+    branch_step = StepLog(name="branch_step", internal_name="branch1.branch_step", status=defaults.CREATED)
+    nested_step = StepLog(name="nested_step", internal_name="branch1.nested.step", status=defaults.CREATED)
+
+    store.add_step_log(root_step, run_id, None)
+    store.add_step_log(branch_step, run_id, "branch1")
+    store.add_step_log(nested_step, run_id, "branch1.nested")
+
+    # 7. Verify step logs are in correct partitions
+    retrieved_root = store.get_step_log("root_step", run_id, None)
+    retrieved_branch = store.get_step_log("branch1.branch_step", run_id, "branch1")
+    retrieved_nested = store.get_step_log("branch1.nested.step", run_id, "branch1.nested")
+
+    assert retrieved_root.name == "root_step"
+    assert retrieved_branch.name == "branch_step"
+    assert retrieved_nested.name == "nested_step"
+
+    # 8. Add branch logs
+    branch_log = BranchLog(internal_name="branch1", status=defaults.SUCCESS)
+    nested_branch_log = BranchLog(internal_name="nested", status=defaults.SUCCESS)
+
+    store.add_branch_log(branch_log, run_id, None)  # branch1 stored in root
+    store.add_branch_log(nested_branch_log, run_id, "branch1")  # nested stored in branch1
+
+    # 9. Verify branch logs
+    retrieved_branch_log = store.get_branch_log("branch1", run_id, None)
+    retrieved_nested_log = store.get_branch_log("nested", run_id, "branch1")
+
+    assert retrieved_branch_log.internal_name == "branch1"
+    assert retrieved_nested_log.internal_name == "nested"
+
+def test_parameter_isolation():
+    """Test that branch parameters are properly isolated"""
+    store = ConcretePartitionedStore()
+    run_id = "isolation_test"
+
+    # Set different parameters in root and branches
+    root_params = {"param": JsonParameter(kind="json", value="root_value")}
+    branch1_params = {"param": JsonParameter(kind="json", value="branch1_value")}
+    branch2_params = {"param": JsonParameter(kind="json", value="branch2_value")}
+
+    store.set_parameters(run_id, root_params, None)
+    store.set_parameters(run_id, branch1_params, "branch1")
+    store.set_parameters(run_id, branch2_params, "branch2")
+
+    # Verify isolation
+    root_result = store.get_parameters(run_id, None)
+    branch1_result = store.get_parameters(run_id, "branch1")
+    branch2_result = store.get_parameters(run_id, "branch2")
+
+    assert root_result["param"].value == "root_value"
+    assert branch1_result["param"].value == "branch1_value"
+    assert branch2_result["param"].value == "branch2_value"
+
+    # Changing one should not affect others
+    branch1_updated = {"param": JsonParameter(kind="json", value="branch1_updated")}
+    store.set_parameters(run_id, branch1_updated, "branch1")
+
+    # Others should be unchanged
+    assert store.get_parameters(run_id, None)["param"].value == "root_value"
+    assert store.get_parameters(run_id, "branch2")["param"].value == "branch2_value"
+    assert store.get_parameters(run_id, "branch1")["param"].value == "branch1_updated"
