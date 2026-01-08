@@ -7,6 +7,8 @@ from runnable.datastore import (
     BranchLog,
     BufferRunLogstore,
     DataCatalog,
+    JsonParameter,
+    MetricParameter,
     ObjectParameter,
     RunLog,
     StepLog,
@@ -30,7 +32,6 @@ def test_object_parameter_init():
     obj_param = ObjectParameter(kind="object", value="test_obj")
     assert obj_param.kind == "object"
     assert obj_param.value == "test_obj"
-    assert obj_param.reduced is True
 
 
 @pytest.mark.parametrize(
@@ -782,3 +783,22 @@ def test_add_branch_log_multiple_branches():
     assert "step1.branch2" in step.branches
     assert step.branches["step1.branch1"] == branch1
     assert step.branches["step1.branch2"] == branch2
+
+
+def test_json_parameter_without_reduced_flag():
+    """Test JsonParameter can be created without reduced field."""
+    param = JsonParameter(kind="json", value={"test": "data"})
+    # Should not have reduced attribute
+    assert not hasattr(param, 'reduced')
+
+
+def test_metric_parameter_without_reduced_flag():
+    """Test MetricParameter can be created without reduced field."""
+    param = MetricParameter(kind="metric", value=42)
+    assert not hasattr(param, 'reduced')
+
+
+def test_object_parameter_without_reduced_flag():
+    """Test ObjectParameter can be created without reduced field."""
+    param = ObjectParameter(kind="object", value="test_object")
+    assert not hasattr(param, 'reduced')

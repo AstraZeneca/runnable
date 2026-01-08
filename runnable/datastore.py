@@ -63,7 +63,6 @@ class DataCatalog(BaseModel, extra="allow"):
 class JsonParameter(BaseModel):
     kind: Literal["json"]
     value: JSONType
-    reduced: bool = True
 
     @computed_field  # type: ignore
     @property
@@ -82,7 +81,6 @@ class JsonParameter(BaseModel):
 class MetricParameter(BaseModel):
     kind: Literal["metric"]
     value: JSONType
-    reduced: bool = True
 
     @computed_field  # type: ignore
     @property
@@ -101,7 +99,6 @@ class MetricParameter(BaseModel):
 class ObjectParameter(BaseModel):
     kind: Literal["object"]
     value: str  # The name of the pickled object
-    reduced: bool = True
 
     @computed_field  # type: ignore
     @property
