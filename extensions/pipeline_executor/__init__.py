@@ -571,7 +571,9 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             return
 
         # Task nodes
-        task_name = node._resolve_map_placeholders(node.internal_name, iter_variable)
+        task_name = node._resolve_iter_variable_placeholders(
+            node.internal_name, iter_variable
+        )
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
         )
@@ -675,7 +677,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         branch_task_name: str = ""
         if dag.internal_branch_name:
-            branch_task_name = BaseNode._resolve_map_placeholders(
+            branch_task_name = BaseNode._resolve_iter_variable_placeholders(
                 dag.internal_branch_name or "Graph",
                 iter_variable,
             )
@@ -686,7 +688,7 @@ class GenericPipelineExecutor(BasePipelineExecutor):
 
         while True:
             working_on = dag.get_node_by_name(current_node)
-            task_name = working_on._resolve_map_placeholders(
+            task_name = working_on._resolve_iter_variable_placeholders(
                 working_on.internal_name, iter_variable
             )
 

@@ -88,8 +88,9 @@ class BaseNode(ABC, BaseModel):
         """
         return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, " ")
 
+    # TODO: Handle loop variable
     @classmethod
-    def _resolve_map_placeholders(
+    def _resolve_iter_variable_placeholders(
         cls,
         name: str,
         iter_variable: Optional[IterableParameterModel] = None,
@@ -161,7 +162,7 @@ class BaseNode(ABC, BaseModel):
         Returns:
             str: The dot path name of the step log name
         """
-        return self._resolve_map_placeholders(
+        return self._resolve_iter_variable_placeholders(
             self.internal_name, iter_variable=iter_variable
         )
 
@@ -183,7 +184,7 @@ class BaseNode(ABC, BaseModel):
         Returns:
             str: The dot path name of the branch log
         """
-        return self._resolve_map_placeholders(
+        return self._resolve_iter_variable_placeholders(
             self.internal_branch_name, iter_variable=iter_variable
         )
 

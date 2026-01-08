@@ -250,6 +250,7 @@ class BaseTaskType(BaseModel):
         if q is not None:
             q.put_nowait(event)
 
+    # TODO: Bring in loop variable
     def resolve_unreduced_parameters(
         self,
         iter_variable: Optional[IterableParameterModel] = None,
@@ -481,6 +482,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                             if task_return.kind == "metric":
                                 metrics[task_return.name] = output_parameter
 
+                            # TODO: Handle loop variable
                             param_name = task_return.name
                             if iter_variable and iter_variable.map_variable:
                                 for _, v in iter_variable.map_variable.items():
@@ -604,6 +606,7 @@ class NotebookTaskType(BaseTaskType):
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> str:
         tag = ""
+        # TODO: Bring in loop variable
         if iter_variable and iter_variable.map_variable:
             for key, value_model in iter_variable.map_variable.items():
                 tag += f"{key}_{value_model.value}_"
@@ -672,6 +675,7 @@ class NotebookTaskType(BaseTaskType):
                     attempt_log.input_parameters = params.copy()
                     copy_params = copy.deepcopy(params)
 
+                    # TODO: Bring in loop variable
                     if iter_variable and iter_variable.map_variable:
                         for key, value_model in iter_variable.map_variable.items():
                             copy_params[key] = JsonParameter(
@@ -879,6 +883,7 @@ class ShellTaskType(BaseTaskType):
                 subprocess_env[key] = value
 
         # Expose map variable as environment variables
+        # TODO: Bring in loop variable
         if iter_variable and iter_variable.map_variable:
             for key, value_model in iter_variable.map_variable.items():
                 subprocess_env[key] = str(value_model.value)
@@ -1171,6 +1176,7 @@ class AsyncPythonTaskType(BaseTaskType):
                         ) from e
                     finally:
                         attempt_log.input_parameters = params.copy()
+                        # TODO: Bring in loop variable
                         if iter_variable and iter_variable.map_variable:
                             attempt_log.input_parameters.update(
                                 {
@@ -1201,6 +1207,7 @@ class AsyncPythonTaskType(BaseTaskType):
                                 metrics[task_return.name] = output_parameter
 
                             param_name = task_return.name
+                            # TODO: Handle loop variable
                             if iter_variable and iter_variable.map_variable:
                                 for _, v in iter_variable.map_variable.items():
                                     param_name = f"{v.value}_{param_name}"

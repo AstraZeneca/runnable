@@ -74,6 +74,11 @@ class JsonParameter(BaseModel):
             else f"{self.value[:10]}..."
         )
 
+    @property
+    def reduced(self) -> bool:
+        """Temporary property for backwards compatibility. Will be removed in later refactor."""
+        return True
+
     def get_value(self) -> JSONType:
         return self.value
 
@@ -92,6 +97,11 @@ class MetricParameter(BaseModel):
             else f"{self.value[:10]}..."
         )
 
+    @property
+    def reduced(self) -> bool:
+        """Temporary property for backwards compatibility. Will be removed in later refactor."""
+        return True
+
     def get_value(self) -> JSONType:
         return self.value
 
@@ -108,6 +118,11 @@ class ObjectParameter(BaseModel):
             return f"Pickled object stored in catalog as: {self.value}"
 
         return f"Object stored in memory as: {self.value}"
+
+    @property
+    def reduced(self) -> bool:
+        """Temporary property for backwards compatibility. Will be removed in later refactor."""
+        return True
 
     @property
     def file_name(self) -> str:

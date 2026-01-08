@@ -6,13 +6,13 @@ from typing import Any, Dict
 from extensions.run_log_store.generic_partitioned import GenericPartitionedRunLogStore
 from runnable import defaults, utils
 from runnable.datastore import (
-    Parameter,
-    RunLog,
-    StepLog,
     BranchLog,
     JsonParameter,
     MetricParameter,
     ObjectParameter,
+    Parameter,
+    RunLog,
+    StepLog,
 )
 
 logger = logging.getLogger(defaults.LOGGER_NAME)

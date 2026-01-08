@@ -785,20 +785,23 @@ def test_add_branch_log_multiple_branches():
     assert step.branches["step1.branch2"] == branch2
 
 
-def test_json_parameter_without_reduced_flag():
-    """Test JsonParameter can be created without reduced field."""
+def test_json_parameter_reduced_property():
+    """Test JsonParameter has reduced property for backwards compatibility."""
     param = JsonParameter(kind="json", value={"test": "data"})
-    # Should not have reduced attribute
-    assert not hasattr(param, 'reduced')
+    # Should have reduced property that returns True
+    assert hasattr(param, 'reduced')
+    assert param.reduced is True
 
 
-def test_metric_parameter_without_reduced_flag():
-    """Test MetricParameter can be created without reduced field."""
+def test_metric_parameter_reduced_property():
+    """Test MetricParameter has reduced property for backwards compatibility."""
     param = MetricParameter(kind="metric", value=42)
-    assert not hasattr(param, 'reduced')
+    assert hasattr(param, 'reduced')
+    assert param.reduced is True
 
 
-def test_object_parameter_without_reduced_flag():
-    """Test ObjectParameter can be created without reduced field."""
+def test_object_parameter_reduced_property():
+    """Test ObjectParameter has reduced property for backwards compatibility."""
     param = ObjectParameter(kind="object", value="test_object")
-    assert not hasattr(param, 'reduced')
+    assert hasattr(param, 'reduced')
+    assert param.reduced is True

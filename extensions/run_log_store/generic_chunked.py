@@ -4,7 +4,7 @@ import time
 from abc import abstractmethod
 from enum import Enum
 from string import Template
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from runnable import defaults, exceptions
 from runnable.datastore import (
@@ -395,22 +395,33 @@ class ChunkedRunLogStore(BaseRunLogStore):
             log_type=self.LogTypes.RUN_LOG,
         )
 
-    def get_parameters(self, run_id: str) -> dict:
+    def get_parameters(
+        self, run_id: str, internal_branch_name: Optional[str] = None
+    ) -> Dict[str, Parameter]:
         """
         Get the parameters from the Run log defined by the run_id
 
         Args:
             run_id (str): The run_id of the run
+            internal_branch_name (Optional[str]): If provided, get parameters for specific branch.
+                This parameter is only for chunked file systems.
 
         The method should:
             * Call get_run_log_by_id(run_id) to retrieve the run_log
             * Return the parameters as identified in the run_log
+            * If internal_branch_name is provided, return branch-specific parameters
 
         Returns:
-            dict: A dictionary of the run_log parameters
+            Dict[str, Parameter]: A dictionary of the run_log parameters
         Raises:
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
         """
+        if internal_branch_name is not None:
+            # Branch-specific parameters not yet implemented in chunked store
+            raise NotImplementedError(
+                "Branch-specific parameter storage not implemented for chunked store"
+            )
+
         parameters: Dict[str, Parameter] = {}
         try:
             parameters_list = self.retrieve(
@@ -430,7 +441,12 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
         return parameters
 
-    def set_parameters(self, run_id: str, parameters: dict):
+    def set_parameters(
+        self,
+        run_id: str,
+        parameters: Dict[str, Parameter],
+        internal_branch_name: Optional[str] = None,
+    ):
         """
         Update the parameters of the Run log with the new parameters
 
@@ -440,13 +456,21 @@ class ChunkedRunLogStore(BaseRunLogStore):
             * Call get_run_log_by_id(run_id) to retrieve the run_log
             * Update the parameters of the run_log
             * Call put_run_log(run_log) to put the run_log in the datastore
+            * If internal_branch_name is provided, update branch-specific parameters
 
         Args:
             run_id (str): The run_id of the run
-            parameters (dict): The parameters to update in the run log
+            parameters (Dict[str, Parameter]): The parameters to update in the run log
+            internal_branch_name (Optional[str]): If provided, set parameters for specific branch.
+                This parameter is only for chunked file systems.
         Raises:
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
         """
+        if internal_branch_name is not None:
+            # Branch-specific parameters not yet implemented in chunked store
+            raise NotImplementedError(
+                "Branch-specific parameter storage not implemented for chunked store"
+            )
         for key, value in parameters.items():
             self.store(
                 run_id=run_id,
@@ -481,7 +505,12 @@ class ChunkedRunLogStore(BaseRunLogStore):
         run_log.run_config.update(run_config)
         self.put_run_log(run_log=run_log)
 
-    def get_step_log(self, internal_name: str, run_id: str) -> StepLog:
+    def get_step_log(
+        self,
+        internal_name: str,
+        run_id: str,
+        internal_branch_name: Optional[str] = None,
+    ) -> StepLog:
         """
         Get a step log from the datastore for run_id and the internal naming of the step log
 
@@ -495,6 +524,8 @@ class ChunkedRunLogStore(BaseRunLogStore):
         Args:
             internal_name (str): The internal name of the step log
             run_id (str): The run_id of the run
+            internal_branch_name (Optional[str]): If provided, get from specific branch storage.
+                This parameter is used by chunked file systems for branch-specific operations.
 
         Returns:
             StepLog: The step log object for the step defined by the internal naming and run_id
@@ -521,7 +552,9 @@ class ChunkedRunLogStore(BaseRunLogStore):
                 run_id=run_id, step_name=internal_name
             ) from e
 
-    def add_step_log(self, step_log: StepLog, run_id: str):
+    def add_step_log(
+        self, step_log: StepLog, run_id: str, internal_branch_name: Optional[str] = None
+    ):
         """
         Add the step log in the run log as identified by the run_id in the datastore
 
@@ -534,6 +567,8 @@ class ChunkedRunLogStore(BaseRunLogStore):
         Args:
             step_log (StepLog): The Step log to add to the database
             run_id (str): The run id of the run
+            internal_branch_name (Optional[str]): If provided, store in specific branch storage.
+                This parameter is used by chunked file systems for branch-specific operations.
 
         Raises:
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
@@ -552,7 +587,10 @@ class ChunkedRunLogStore(BaseRunLogStore):
         )
 
     def get_branch_log(
-        self, internal_branch_name: str, run_id: str
+        self,
+        internal_branch_name: str,
+        run_id: str,
+        parent_branch_name: Optional[str] = None,
     ) -> Union[BranchLog, RunLog]:
         """
         Returns the branch log by the internal branch name for the run id
@@ -562,6 +600,8 @@ class ChunkedRunLogStore(BaseRunLogStore):
         Args:
             internal_branch_name (str): The internal branch name to retrieve.
             run_id (str): The run id of interest
+            parent_branch_name (Optional[str]): The parent branch containing this branch (None for root).
+                This parameter is used by chunked file systems for branch-specific operations.
 
         Returns:
             BranchLog: The branch log or the run log as requested.
@@ -584,6 +624,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         self,
         branch_log: Union[BranchLog, RunLog],
         run_id: str,
+        parent_branch_name: Optional[str] = None,
     ):
         """
         The method should:
@@ -597,6 +638,8 @@ class ChunkedRunLogStore(BaseRunLogStore):
         Args:
             branch_log (BranchLog): The branch log/run log to add to the database
             run_id (str): The run id to which the branch/run log is added
+            parent_branch_name (Optional[str]): The parent branch containing this branch (None for root).
+                This parameter is used by chunked file systems for branch-specific operations.
         """
         if not isinstance(branch_log, BranchLog):
             self.put_run_log(branch_log)

@@ -105,6 +105,7 @@ def filter_arguments_for_func(
     function_args = inspect.signature(func).parameters
 
     # Update parameters with the map variables
+    # TODO: Handle loop variable
     for key, v in (
         (iter_variable.map_variable if iter_variable else None) or {}
     ).items():

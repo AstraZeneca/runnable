@@ -173,9 +173,10 @@ async def chat_map_translate(request: ChatMapRequest):
     invalid_languages = set(request.languages) - supported_languages
     if invalid_languages:
         from fastapi import HTTPException
+
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported languages: {invalid_languages}. Supported: {supported_languages}"
+            detail=f"Unsupported languages: {invalid_languages}. Supported: {supported_languages}",
         )
 
     async def event_stream():
@@ -190,6 +191,7 @@ async def chat_map_translate(request: ChatMapRequest):
         # For list parameters, we need to pass them differently
         # Map expects the parameter to be available as a list in the pipeline context
         import json
+
         os.environ["RUNNABLE_PRM_languages"] = json.dumps(request.languages)
 
         try:
@@ -219,9 +221,10 @@ async def chat_conditional_translate(request: ChatConditionalRequest):
     supported_languages = {"spanish", "french"}
     if request.language not in supported_languages:
         from fastapi import HTTPException
+
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported language: {request.language}. Supported: {supported_languages}"
+            detail=f"Unsupported language: {request.language}. Supported: {supported_languages}",
         )
 
     async def event_stream():

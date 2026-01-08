@@ -29,15 +29,15 @@ spec:
     failFast: true
     nodeSelector: {}
   templates:
-    - name: map-state-rgurd0-fan-out
+    - name: map-state-lookjo-fan-out
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
           - fan
           - '{{workflow.parameters.run_id}}'
           - map_state
-          - examples.07-map.map_fail.main
+          - examples.07-map.map.main
           - out
           - --log-level
           - WARNING
@@ -45,6 +45,8 @@ spec:
           - examples/configs/argo-config.yaml
           - --parameters-file
           - examples/common/initial_parameters.yaml
+          - --iter-variable
+          - '{"map_variable":{},"loop_variable":[]}'
           - --mode
           - python
         imagePullPolicy: Always
@@ -88,7 +90,7 @@ spec:
             valueFrom:
               path: /tmp/output.txt
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-rgurd0-fan-out'
+        key: '{{workflow.parameters.run_id}}-map-state-lookjo-fan-out-nohn'
         cache:
           configMap:
             name: kf-configmap
@@ -100,21 +102,21 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-execute-python-rs6ijf
+    - name: map-state-execute-python-a4xes2
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
+          - examples.07-map.map.main
           - map_state.map_variable_placeholder.execute_python
           - --log-level
           - '{{workflow.parameters.log_level}}'
           - --mode
           - python
-          - --map-variable
-          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --iter-variable
+          - '{"map_variable":{"chunk":{"value":"{{inputs.parameters.chunk}}"}},"loop_variable":[]}'
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
@@ -142,7 +144,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-execute-python-rs6ijf'
+        key: '{{workflow.parameters.run_id}}-map-state-execute-python-a4xes2-6ar7'
         cache:
           configMap:
             name: kf-configmap
@@ -154,21 +156,21 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-execute-notebook-v3sow5
+    - name: map-state-execute-notebook-9iqnab
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
+          - examples.07-map.map.main
           - map_state.map_variable_placeholder.execute_notebook
           - --log-level
           - '{{workflow.parameters.log_level}}'
           - --mode
           - python
-          - --map-variable
-          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --iter-variable
+          - '{"map_variable":{"chunk":{"value":"{{inputs.parameters.chunk}}"}},"loop_variable":[]}'
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
@@ -196,7 +198,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-execute-notebook-v3sow5'
+        key: '{{workflow.parameters.run_id}}-map-state-execute-notebook-9iqnab-ylp1'
         cache:
           configMap:
             name: kf-configmap
@@ -208,21 +210,21 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-execute-shell-lnjrx7
+    - name: map-state-execute-shell-13cll5
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
+          - examples.07-map.map.main
           - map_state.map_variable_placeholder.execute_shell
           - --log-level
           - '{{workflow.parameters.log_level}}'
           - --mode
           - python
-          - --map-variable
-          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --iter-variable
+          - '{"map_variable":{"chunk":{"value":"{{inputs.parameters.chunk}}"}},"loop_variable":[]}'
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
@@ -250,7 +252,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-execute-shell-lnjrx7'
+        key: '{{workflow.parameters.run_id}}-map-state-execute-shell-13cll5-k2h5'
         cache:
           configMap:
             name: kf-configmap
@@ -262,21 +264,21 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-read-processed-chunk-wtahfu
+    - name: map-state-read-processed-chunk-212bqc
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
+          - examples.07-map.map.main
           - map_state.map_variable_placeholder.read%processed%chunk
           - --log-level
           - '{{workflow.parameters.log_level}}'
           - --mode
           - python
-          - --map-variable
-          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --iter-variable
+          - '{"map_variable":{"chunk":{"value":"{{inputs.parameters.chunk}}"}},"loop_variable":[]}'
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
@@ -304,7 +306,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-read-processed-chunk-wtahfu'
+        key: '{{workflow.parameters.run_id}}-map-state-read-processed-chunk-212bqc-nivm'
         cache:
           configMap:
             name: kf-configmap
@@ -316,21 +318,21 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-success-3ye852
+    - name: map-state-success-bje2vr
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
+          - examples.07-map.map.main
           - map_state.map_variable_placeholder.success
           - --log-level
           - '{{workflow.parameters.log_level}}'
           - --mode
           - python
-          - --map-variable
-          - '{"chunk": "{{inputs.parameters.chunk}}"}'
+          - --iter-variable
+          - '{"map_variable":{"chunk":{"value":"{{inputs.parameters.chunk}}"}},"loop_variable":[]}'
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
@@ -358,7 +360,7 @@ spec:
         parameters:
           - name: chunk
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-success-3ye852'
+        key: '{{workflow.parameters.run_id}}-map-state-success-bje2vr-qheo'
         cache:
           configMap:
             name: kf-configmap
@@ -370,57 +372,57 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-rgurd0-branch
+    - name: map-state-lookjo-branch
       dag:
         tasks:
-          - name: map-state-execute-python-rs6ijf
-            template: map-state-execute-python-rs6ijf
+          - name: map-state-execute-python-a4xes2
+            template: map-state-execute-python-a4xes2
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
             depends: ''
-          - name: map-state-execute-notebook-v3sow5
-            template: map-state-execute-notebook-v3sow5
+          - name: map-state-execute-notebook-9iqnab
+            template: map-state-execute-notebook-9iqnab
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
-            depends: map-state-execute-python-rs6ijf.Succeeded
-          - name: map-state-execute-shell-lnjrx7
-            template: map-state-execute-shell-lnjrx7
+            depends: map-state-execute-python-a4xes2.Succeeded
+          - name: map-state-execute-shell-13cll5
+            template: map-state-execute-shell-13cll5
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
-            depends: map-state-execute-notebook-v3sow5.Succeeded
-          - name: map-state-read-processed-chunk-wtahfu
-            template: map-state-read-processed-chunk-wtahfu
+            depends: map-state-execute-notebook-9iqnab.Succeeded
+          - name: map-state-read-processed-chunk-212bqc
+            template: map-state-read-processed-chunk-212bqc
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
-            depends: map-state-execute-shell-lnjrx7.Succeeded
-          - name: map-state-success-3ye852
-            template: map-state-success-3ye852
+            depends: map-state-execute-shell-13cll5.Succeeded
+          - name: map-state-success-bje2vr
+            template: map-state-success-bje2vr
             arguments:
               parameters:
                 - name: chunk
                   value: '{{inputs.parameters.chunk}}'
-            depends: map-state-read-processed-chunk-wtahfu.Succeeded
+            depends: map-state-read-processed-chunk-212bqc.Succeeded
       inputs:
         parameters:
           - name: chunk
       failFast: true
-    - name: map-state-rgurd0-fan-in
+    - name: map-state-lookjo-fan-in
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
           - fan
           - '{{workflow.parameters.run_id}}'
           - map_state
-          - examples.07-map.map_fail.main
+          - examples.07-map.map.main
           - in
           - --log-level
           - WARNING
@@ -428,6 +430,8 @@ spec:
           - examples/configs/argo-config.yaml
           - --parameters-file
           - examples/common/initial_parameters.yaml
+          - --iter-variable
+          - '{"map_variable":{},"loop_variable":[]}'
           - --mode
           - python
         imagePullPolicy: Always
@@ -450,7 +454,7 @@ spec:
       inputs:
         parameters: []
       memoize:
-        key: '{{workflow.parameters.run_id}}-map-state-rgurd0-fan-in'
+        key: '{{workflow.parameters.run_id}}-map-state-lookjo-fan-in-9sac'
         cache:
           configMap:
             name: kf-configmap
@@ -462,41 +466,43 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: map-state-rgurd0
+    - name: map-state-lookjo
       dag:
         tasks:
-          - name: map-state-rgurd0-fan-out
-            template: map-state-rgurd0-fan-out
+          - name: map-state-lookjo-fan-out
+            template: map-state-lookjo-fan-out
             arguments:
               parameters: []
-          - name: map-state-rgurd0-branch
-            template: map-state-rgurd0-branch
+          - name: map-state-lookjo-branch
+            template: map-state-lookjo-branch
             arguments:
               parameters:
                 - name: chunk
                   value: '{{item}}'
-            withParam: '{{tasks.map-state-rgurd0-fan-out.outputs.parameters.iterate-on}}'
-            depends: map-state-rgurd0-fan-out.Succeeded
-          - name: map-state-rgurd0-fan-in
-            template: map-state-rgurd0-fan-in
+            withParam: '{{tasks.map-state-lookjo-fan-out.outputs.parameters.iterate-on}}'
+            depends: map-state-lookjo-fan-out.Succeeded
+          - name: map-state-lookjo-fan-in
+            template: map-state-lookjo-fan-in
             arguments:
               parameters: []
-            depends: map-state-rgurd0-branch.Succeeded ||
-              map-state-rgurd0-branch.Failed
+            depends: map-state-lookjo-branch.Succeeded ||
+              map-state-lookjo-branch.Failed
       failFast: false
-    - name: collect-vqmxqt
+    - name: collect-rcrg5l
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
+          - examples.07-map.map.main
           - collect
           - --log-level
           - '{{workflow.parameters.log_level}}'
           - --mode
           - python
+          - --iter-variable
+          - '{"map_variable":{},"loop_variable":[]}'
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
@@ -523,7 +529,7 @@ spec:
       inputs:
         parameters: []
       memoize:
-        key: '{{workflow.parameters.run_id}}-collect-vqmxqt'
+        key: '{{workflow.parameters.run_id}}-collect-rcrg5l-8w25'
         cache:
           configMap:
             name: kf-configmap
@@ -535,19 +541,21 @@ spec:
           persistentVolumeClaim:
             claimName: runnable
             readOnly: false
-    - name: success-a5jd2d
+    - name: success-q3sfda
       container:
-        image: $docker_image
+        image: harbor.csis.astrazeneca.net/mlops/runnable:latest
         command:
           - runnable
           - execute-single-node
           - '{{workflow.parameters.run_id}}'
-          - examples.07-map.map_fail.main
+          - examples.07-map.map.main
           - success
           - --log-level
           - '{{workflow.parameters.log_level}}'
           - --mode
           - python
+          - --iter-variable
+          - '{"map_variable":{},"loop_variable":[]}'
           - --config
           - examples/configs/argo-config.yaml
           - --parameters-file
@@ -574,7 +582,7 @@ spec:
       inputs:
         parameters: []
       memoize:
-        key: '{{workflow.parameters.run_id}}-success-a5jd2d'
+        key: '{{workflow.parameters.run_id}}-success-q3sfda-m1y6'
         cache:
           configMap:
             name: kf-configmap
@@ -589,21 +597,21 @@ spec:
     - name: runnable-dag
       dag:
         tasks:
-          - name: map-state-rgurd0
-            template: map-state-rgurd0
+          - name: map-state-lookjo
+            template: map-state-lookjo
             arguments:
               parameters: []
             depends: ''
-          - name: collect-vqmxqt
-            template: collect-vqmxqt
+          - name: collect-rcrg5l
+            template: collect-rcrg5l
             arguments:
               parameters: []
-            depends: map-state-rgurd0.Succeeded
-          - name: success-a5jd2d
-            template: success-a5jd2d
+            depends: map-state-lookjo.Succeeded
+          - name: success-q3sfda
+            template: success-q3sfda
             arguments:
               parameters: []
-            depends: collect-vqmxqt.Succeeded
+            depends: collect-rcrg5l.Succeeded
       failFast: true
   volumes:
     - name: runnable

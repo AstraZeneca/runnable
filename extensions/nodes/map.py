@@ -171,7 +171,7 @@ class MapNode(CompositeNode):
 
         # Prepare the branch logs
         for iteration_variable in iterate_on:
-            effective_branch_name = self._resolve_map_placeholders(
+            effective_branch_name = self._resolve_iter_variable_placeholders(
                 self.internal_name + "." + str(iteration_variable),
                 iter_variable=iter_variable,
             )
@@ -387,12 +387,12 @@ class MapNode(CompositeNode):
         assert isinstance(iterate_on, list)
         # # Find status of the branches
         step_success_bool = True
-        effective_internal_name = self._resolve_map_placeholders(
+        effective_internal_name = self._resolve_iter_variable_placeholders(
             self.internal_name, iter_variable=iter_variable
         )
 
         for iteration_variable in iterate_on:
-            effective_branch_name = self._resolve_map_placeholders(
+            effective_branch_name = self._resolve_iter_variable_placeholders(
                 self.internal_name + "." + str(iteration_variable),
                 iter_variable=iter_variable,
             )

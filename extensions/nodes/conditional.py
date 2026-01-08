@@ -144,7 +144,7 @@ class ConditionalNode(CompositeNode):
                 # Need not create a branch log for this branch
                 continue
 
-            effective_branch_name = self._resolve_map_placeholders(
+            effective_branch_name = self._resolve_iter_variable_placeholders(
                 internal_branch_name, iter_variable=iter_variable
             )
 
@@ -220,7 +220,7 @@ class ConditionalNode(CompositeNode):
             executor (BaseExecutor): The executor class as defined by the config
             map_variable (dict, optional): If the node is part of a map. Defaults to None.
         """
-        effective_internal_name = self._resolve_map_placeholders(
+        effective_internal_name = self._resolve_iter_variable_placeholders(
             self.internal_name, iter_variable=iter_variable
         )
 
@@ -234,7 +234,7 @@ class ConditionalNode(CompositeNode):
                 # The branch would not have been executed
                 continue
 
-            effective_branch_name = self._resolve_map_placeholders(
+            effective_branch_name = self._resolve_iter_variable_placeholders(
                 internal_branch_name, iter_variable=iter_variable
             )
 

@@ -87,7 +87,7 @@ class ParallelNode(CompositeNode):
         """
         # Prepare the branch logs
         for internal_branch_name, _ in self.branches.items():
-            effective_branch_name = self._resolve_map_placeholders(
+            effective_branch_name = self._resolve_iter_variable_placeholders(
                 internal_branch_name, iter_variable=iter_variable
             )
 
@@ -210,12 +210,12 @@ class ParallelNode(CompositeNode):
             executor (BaseExecutor): The executor class as defined by the config
             iter_variable (dict, optional): If the node is part of a map. Defaults to None.
         """
-        effective_internal_name = self._resolve_map_placeholders(
+        effective_internal_name = self._resolve_iter_variable_placeholders(
             self.internal_name, iter_variable=iter_variable
         )
         step_success_bool = True
         for internal_branch_name, _ in self.branches.items():
-            effective_branch_name = self._resolve_map_placeholders(
+            effective_branch_name = self._resolve_iter_variable_placeholders(
                 internal_branch_name, iter_variable=iter_variable
             )
             branch_log = self._context.run_log_store.get_branch_log(
