@@ -165,8 +165,10 @@ class MapNode(CompositeNode):
             self.iterate_on
         ].get_value()
 
-        assert iterate_on
-        assert isinstance(iterate_on, list)
+        if not iterate_on:
+            return
+        if not isinstance(iterate_on, list):
+            raise Exception("Only list is allowed as a valid iterator type")
 
         # Prepare the branch logs
         for iteration_variable in iterate_on:
@@ -368,8 +370,10 @@ class MapNode(CompositeNode):
         params = self._context.run_log_store.get_parameters(self._context.run_id)
         iterate_on = params[self.iterate_on].get_value()
 
-        assert iterate_on
-        assert isinstance(iterate_on, list)
+        if not iterate_on:
+            return
+        if not isinstance(iterate_on, list):
+            raise Exception("Only list is allowed as a valid iterator type")
         # # Find status of the branches
         step_success_bool = True
         effective_internal_name = self._resolve_iter_variable_placeholders(
@@ -481,8 +485,10 @@ class MapNode(CompositeNode):
         iterate_on = self._context.run_log_store.get_parameters(self._context.run_id)[
             self.iterate_on
         ].get_value()
-        assert iterate_on
-        assert isinstance(iterate_on, list)
+        if not iterate_on:
+            return
+        if not isinstance(iterate_on, list):
+            raise Exception("Only list is allowed as a valid iterator type")
 
         for iteration_variable in iterate_on:
             # Build effective map variable from existing iter_variable
