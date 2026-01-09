@@ -121,9 +121,9 @@ def argo_context():
 
 contexts = [
     default_context,
-    # parallel_enabled,
-    # emulator_context,
-    # chunked_fs_context,
+    parallel_enabled,
+    emulator_context,
+    chunked_fs_context,
 ]
 
 # file, no_yaml, fails, ignore_contexts, parameters_file, assertions
@@ -718,8 +718,6 @@ python_examples = [
         ],
     ),
 ]
-
-python_examples = python_examples[21:]
 
 
 @pytest.mark.parametrize("example", list_python_examples())
