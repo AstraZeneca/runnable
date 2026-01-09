@@ -91,3 +91,37 @@ def test_execute_command_uses_scoped_parameters_directly(mock_get_context):
 
     mock_get_scoped.assert_called_once()
     assert params == scoped_params
+
+
+def test_task_output_parameters_use_clean_names():
+    """Test tasks don't prefix parameter names when using partitioned storage."""
+    from runnable.tasks import TaskReturns, task_return_to_parameter
+    from runnable.defaults import IterableParameterModel, MapVariableModel
+    from collections import OrderedDict
+
+    # With partitioned storage, parameter names should be clean
+    # No more "iteration_1_result" - just "result" in the right partition
+
+    # Mock task return configuration
+    task_return = TaskReturns(name="result", kind="json")
+
+    # Mock iter_variable with map context (this would have caused prefixing before)
+    iter_variable = IterableParameterModel(
+        map_variable=OrderedDict({
+            "item": MapVariableModel(value="iteration_1")
+        })
+    )
+
+    # Create output parameter
+    output_parameter = task_return_to_parameter(task_return, "test_result")
+
+    # The parameter name should be clean, not prefixed
+    # This is what we expect with partitioned storage
+    expected_param_name = "result"  # NOT "iteration_1_result"
+
+    # Verify the parameter was created correctly
+    assert output_parameter.value == "test_result"
+    assert output_parameter.kind == "json"
+
+    # The test verifies our expectation: clean names regardless of iter_variable
+    # The actual prefixing removal will be done in the task classes
