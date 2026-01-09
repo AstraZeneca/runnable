@@ -405,11 +405,10 @@ class MapNode(CompositeNode):
         if not step_log.status == defaults.SUCCESS:
             return
 
-        # Discovery-based parameter aggregation
-        # Only aggregate parameters produced by loop tasks, not inherited ones
+        # Aggregate only the parameters produced by tasks in the branch
         reducer_f = self.get_reducer_function()
 
-        # Get branch names for discovery
+        # Get branch names for aggregation
         branch_names = []
         for iteration_variable in iterate_on:
             effective_branch_name = self._resolve_iter_variable_placeholders(
@@ -418,7 +417,6 @@ class MapNode(CompositeNode):
             )
             branch_names.append(effective_branch_name)
 
-        # Discover parameter names from the first branch
         if not branch_names:
             return
 
@@ -433,39 +431,10 @@ class MapNode(CompositeNode):
                 self.internal_branch_name if self.internal_branch_name else None
             )
 
-        # Get parent parameters to filter out inherited unchanged ones
-        parent_params = self._context.run_log_store.get_parameters(
-            run_id=self._context.run_id, internal_branch_name=parent_branch_name
-        )
-
-        first_branch_params = self._context.run_log_store.get_parameters(
-            run_id=self._context.run_id, internal_branch_name=branch_names[0]
-        )
-
-        # Only aggregate parameters that were produced/modified by loop tasks
+        # Only aggregate parameters that are actually produced by tasks in the branch
         aggregated_params: Dict[str, Parameter] = {}
 
-        for param_name, first_param in first_branch_params.items():
-            # Skip parameters that are inherited unchanged from parent
-            if param_name in parent_params:
-                # Check if ALL branches have the same value as parent (unchanged inheritance)
-                all_same_as_parent = True
-                for branch_name in branch_names:
-                    branch_params = self._context.run_log_store.get_parameters(
-                        run_id=self._context.run_id, internal_branch_name=branch_name
-                    )
-                    if param_name in branch_params:
-                        if (
-                            branch_params[param_name].get_value()
-                            != parent_params[param_name].get_value()
-                        ):
-                            all_same_as_parent = False
-                            break
-
-                if all_same_as_parent:
-                    # Skip this parameter - it's inherited and unchanged
-                    continue
-
+        for param_name, param_template in self.branch_returns:
             # Collect values from all branches for aggregation
             values_to_reduce = []
 
@@ -481,16 +450,16 @@ class MapNode(CompositeNode):
             if values_to_reduce:
                 reduced_value = reducer_f(*values_to_reduce)
 
-                # Create aggregated parameter with the same kind as the original
-                if first_param.kind == "json":
+                # Create aggregated parameter with the same kind as the template
+                if param_template.kind == "json":
                     aggregated_params[param_name] = JsonParameter(
                         kind="json", value=reduced_value
                     )
-                elif first_param.kind == "object":
+                elif param_template.kind == "object":
                     aggregated_params[param_name] = ObjectParameter(
                         kind="object", value=reduced_value
                     )
-                elif first_param.kind == "metric":
+                elif param_template.kind == "metric":
                     aggregated_params[param_name] = MetricParameter(
                         kind="metric", value=reduced_value
                     )
