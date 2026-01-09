@@ -37,7 +37,14 @@ class TaskNode(ExecutableNode):
             k: v for k, v in config.items() if k in TaskNode.model_fields.keys()
         }
 
-        executable = create_task(task_config)
+        # Create task config for create_task, including internal_branch_name if present
+        task_config_for_creation = task_config.copy()
+        if "internal_branch_name" in node_config:
+            task_config_for_creation["internal_branch_name"] = node_config[
+                "internal_branch_name"
+            ]
+
+        executable = create_task(task_config_for_creation)
         return cls(executable=executable, **node_config, **task_config)
 
     def get_summary(self) -> Dict[str, Any]:
