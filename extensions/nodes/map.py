@@ -5,7 +5,7 @@ import sys
 from collections import OrderedDict
 from copy import deepcopy
 from multiprocessing import Pool
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from pydantic import Field
 
@@ -105,7 +105,7 @@ class MapNode(CompositeNode):
                         branch_returns.append(
                             (
                                 task_return.name,
-                                JsonParameter(kind="json", value="", reduced=False),
+                                JsonParameter(kind="json", value=""),
                             )
                         )
                     elif task_return.kind == "object":
@@ -115,7 +115,6 @@ class MapNode(CompositeNode):
                                 ObjectParameter(
                                     kind="object",
                                     value="Will be reduced",
-                                    reduced=False,
                                 ),
                             )
                         )
@@ -123,7 +122,7 @@ class MapNode(CompositeNode):
                         branch_returns.append(
                             (
                                 task_return.name,
-                                MetricParameter(kind="metric", value="", reduced=False),
+                                MetricParameter(kind="metric", value=""),
                             )
                         )
                     else:
@@ -189,22 +188,8 @@ class MapNode(CompositeNode):
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
-        # Gather all the returns of the task nodes and create parameters in reduced=False state.
-        raw_parameters = {}
-        if iter_variable and iter_variable.map_variable:
-            # If we are in a map state already, the param should have an index of the map variable.
-            for _, v in iter_variable.map_variable.items():
-                for branch_return in self.branch_returns:
-                    param_name, param_type = branch_return
-                    raw_parameters[f"{v.value}_{param_name}"] = param_type.model_copy()
-        else:
-            for branch_return in self.branch_returns:
-                param_name, param_type = branch_return
-                raw_parameters[f"{param_name}"] = param_type.model_copy()
-
-        self._context.run_log_store.set_parameters(
-            parameters=raw_parameters, run_id=self._context.run_id
-        )
+        # No longer track branch_returns in fan_out - discovery-based approach
+        # Parameters will be discovered from branch partitions during fan_in
 
     def execute_as_graph(
         self,
@@ -420,56 +405,76 @@ class MapNode(CompositeNode):
         if not step_log.status == defaults.SUCCESS:
             return
 
-        # Apply the reduce function and reduce the returns of the task nodes.
-        # The final value of the parameter is the result of the reduce function.
+        # Discovery-based parameter aggregation
+        # Discover parameters from branch partitions and aggregate them
         reducer_f = self.get_reducer_function()
 
-        def update_param(
-            params: Dict[str, Parameter], reducer_f: Callable, map_prefix: str = ""
-        ):
-            for branch_return in self.branch_returns:
-                param_name, _ = branch_return
+        # Get branch names for discovery
+        branch_names = []
+        for iteration_variable in iterate_on:
+            effective_branch_name = self._resolve_iter_variable_placeholders(
+                self.internal_name + "." + str(iteration_variable),
+                iter_variable=iter_variable,
+            )
+            branch_names.append(effective_branch_name)
 
-                to_reduce = []
-                for iter_variable in iterate_on:
-                    try:
-                        to_reduce.append(
-                            params[f"{iter_variable}_{param_name}"].get_value()
-                        )
-                    except KeyError as e:
-                        from extensions.pipeline_executor.mocked import MockedExecutor
+        # Discover parameter names from the first branch
+        if not branch_names:
+            return
 
-                        if isinstance(self._context.pipeline_executor, MockedExecutor):
-                            pass
-                        else:
-                            raise Exception(
-                                (
-                                    f"Expected parameter {iter_variable}_{param_name}",
-                                    "not present in Run Log parameters",
-                                    "was it ever set before?",
-                                )
-                            ) from e
-
-                param_name = f"{map_prefix}{param_name}"
-                if to_reduce:
-                    params[param_name].value = reducer_f(*to_reduce)
-                else:
-                    params[param_name].value = ""
-                params[param_name].reduced = True
-
-        if iter_variable and iter_variable.map_variable:
-            # If we are in a map state already, the param should have an index of the map variable.
-            for _, v in iter_variable.map_variable.items():
-                update_param(params, reducer_f, map_prefix=f"{v.value}_")
-        else:
-            update_param(params, reducer_f)
-
-        self._context.run_log_store.set_parameters(
-            parameters=params, run_id=self._context.run_id
+        first_branch_params = self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id, internal_branch_name=branch_names[0]
         )
 
+        # Aggregate each discovered parameter across all branches
+        aggregated_params: Dict[str, Parameter] = {}
+
+        for param_name, first_param in first_branch_params.items():
+            # Collect values from all branches
+            values_to_reduce = []
+
+            for branch_name in branch_names:
+                branch_params = self._context.run_log_store.get_parameters(
+                    run_id=self._context.run_id, internal_branch_name=branch_name
+                )
+
+                if param_name in branch_params:
+                    values_to_reduce.append(branch_params[param_name].get_value())
+
+            # Apply reducer function
+            if values_to_reduce:
+                reduced_value = reducer_f(*values_to_reduce)
+
+                # Create aggregated parameter with the same kind as the original
+                if first_param.kind == "json":
+                    aggregated_params[param_name] = JsonParameter(
+                        kind="json", value=reduced_value
+                    )
+                elif first_param.kind == "object":
+                    aggregated_params[param_name] = ObjectParameter(
+                        kind="object", value=reduced_value
+                    )
+                elif first_param.kind == "metric":
+                    aggregated_params[param_name] = MetricParameter(
+                        kind="metric", value=reduced_value
+                    )
+
+        # Determine parent partition for storing aggregated parameters
+        # If we're in a nested map (iter_variable is not None), store in parent branch
+        # Otherwise, store in root partition
+        parent_branch_name = None
+        if iter_variable and iter_variable.map_variable:
+            # We're in a nested map context, determine parent branch name
+            # The parent is the branch that contains this map node
+            parent_branch_name = (
+                self.internal_branch_name if self.internal_branch_name else None
+            )
+
+        # Store aggregated parameters in parent partition
         self._context.run_log_store.set_parameters(
-            parameters=params, run_id=self._context.run_id
+            parameters=aggregated_params,
+            run_id=self._context.run_id,
+            internal_branch_name=parent_branch_name,
         )
 
     async def execute_as_graph_async(
