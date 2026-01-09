@@ -322,6 +322,7 @@ class BranchLog(BaseModel):
     internal_name: str
     status: str = "FAIL"
     steps: OrderedDict[str, StepLog] = Field(default_factory=OrderedDict)
+    parameters: Dict[str, Parameter] = Field(default_factory=dict)
 
     def get_data_catalogs_by_stage(self, stage="put") -> List[DataCatalog]:
         """
@@ -709,13 +710,13 @@ class BaseRunLogStore(ABC, BaseModel):
             run_log = self.get_run_log_by_id(run_id=run_id)
             return run_log.parameters
         else:
-            # Log warning but continue with single-file logic for compatibility
-            logger.warning(
-                f"{self.service_name} Branch-specific parameter storage not supported by this store type. Ignoring internal_branch_name: {internal_branch_name}"
-            )
-            # Continue with existing behavior - get parameters from run log
-            run_log = self.get_run_log_by_id(run_id=run_id)
-            return run_log.parameters
+            # Get parameters from branch log
+            try:
+                branch_log = self.get_branch_log(internal_branch_name, run_id)
+                return branch_log.parameters
+            except Exception:
+                # Branch doesn't exist - return empty parameters
+                return {}
 
     def set_parameters(
         self,
@@ -745,17 +746,22 @@ class BaseRunLogStore(ABC, BaseModel):
         if internal_branch_name is None:
             # Existing behavior for backward compatibility
             run_log = self.get_run_log_by_id(run_id=run_id)
-            run_log.parameters.update(parameters)
+            # Filter out protected keys like _branches for root parameters
+            filtered_parameters = {
+                k: v for k, v in parameters.items() if not k.startswith("_branches")
+            }
+            run_log.parameters.update(filtered_parameters)
             self.put_run_log(run_log=run_log)
         else:
-            # Log warning but continue with single-file logic for compatibility
-            logger.warning(
-                f"{self.service_name} Branch-specific parameter storage not supported by this store type. Ignoring internal_branch_name: {internal_branch_name}"
-            )
-            # Continue with existing behavior - update parameters in run log
-            run_log = self.get_run_log_by_id(run_id=run_id)
-            run_log.parameters.update(parameters)
-            self.put_run_log(run_log=run_log)
+            # Set parameters on branch log
+            try:
+                branch_log = self.get_branch_log(internal_branch_name, run_id)
+                branch_log.parameters.update(parameters)
+                self.add_branch_log(branch_log, run_id)
+            except Exception:
+                # Branch doesn't exist - this shouldn't happen in normal flow
+                # but we'll handle it gracefully
+                pass
 
     def get_run_config(self, run_id: str) -> dict:
         """

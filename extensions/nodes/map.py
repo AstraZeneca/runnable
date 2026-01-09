@@ -187,6 +187,28 @@ class MapNode(CompositeNode):
                 )
                 console.print(f"Branch log created for {effective_branch_name}")
 
+                # Initialize branch parameters with parent parameters
+                parent_branch_name = (
+                    self.internal_branch_name
+                    if iter_variable and iter_variable.map_variable
+                    else None
+                )
+                parent_params = self._context.run_log_store.get_parameters(
+                    run_id=self._context.run_id, internal_branch_name=parent_branch_name
+                )
+
+                # Copy parent parameters to branch
+                from copy import deepcopy
+
+                branch_log.parameters = deepcopy(parent_params)
+
+                # Add the iteration variable as a parameter
+                from runnable.datastore import JsonParameter
+
+                branch_log.parameters[self.iterate_as] = JsonParameter(
+                    kind="json", value=iteration_variable
+                )
+
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
 
