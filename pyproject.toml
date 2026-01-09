@@ -146,7 +146,7 @@ include = [
 "buffered" = "runnable.datastore:BufferRunLogstore"
 file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "minio" = "extensions.run_log_store.minio:MinioRunLogStore"
-"chunked-fs" = "extensions.run_log_store.chunked_fs:ChunkedFileSystemRunLogStore"
+"chunked-fs" = "extensions.run_log_store.partitioned_fs:FileSystemPartitionedRunLogStore"
 "chunked-minio" = "extensions.run_log_store.chunked_minio:ChunkedMinioRunLogStore"
 
 [project.entry-points.'pickler']

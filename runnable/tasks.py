@@ -151,17 +151,77 @@ class BaseTaskType(BaseModel):
 
     def _get_scoped_parameters(self) -> Dict[str, Parameter]:
         """Get parameters from appropriate partition based on branch context."""
-        return self._context.run_log_store.get_parameters(
-            run_id=self._context.run_id, internal_branch_name=self.internal_branch_name
-        )
+        # Check if store supports partitioned storage
+        if getattr(self._context.run_log_store, "supports_parallel_writes", False):
+            # Use partitioned storage - new behavior
+            return self._context.run_log_store.get_parameters(
+                run_id=self._context.run_id,
+                internal_branch_name=self.internal_branch_name,
+            )
+        else:
+            # Fall back to prefixed parameters for backward compatibility
+            return self._get_prefixed_parameters()
 
     def _set_scoped_parameters(self, parameters: Dict[str, Parameter]) -> None:
         """Set parameters to appropriate partition based on branch context."""
-        self._context.run_log_store.set_parameters(
-            parameters=parameters,
-            run_id=self._context.run_id,
-            internal_branch_name=self.internal_branch_name,
+        # Check if store supports partitioned storage
+        if getattr(self._context.run_log_store, "supports_parallel_writes", False):
+            # Use partitioned storage - new behavior
+            self._context.run_log_store.set_parameters(
+                parameters=parameters,
+                run_id=self._context.run_id,
+                internal_branch_name=self.internal_branch_name,
+            )
+        else:
+            # Fall back to prefixed parameters for backward compatibility
+            self._set_prefixed_parameters(parameters)
+
+    def _get_prefixed_parameters(self) -> Dict[str, Parameter]:
+        """Get parameters using old prefixed naming for non-partitioned stores."""
+        all_params = self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id
         )
+
+        if not self.internal_branch_name:
+            # Root context - return all parameters
+            return all_params
+
+        # Branch context - filter parameters with the branch prefix
+        branch_prefix = f"{self.internal_branch_name}_"
+        scoped_params = {}
+
+        for param_name, param in all_params.items():
+            if param_name.startswith(branch_prefix):
+                # Remove prefix to get clean parameter name
+                clean_name = param_name[len(branch_prefix) :]
+                scoped_params[clean_name] = param
+            elif self.internal_branch_name == "":
+                # Root context gets unprefixed parameters too
+                if "_" not in param_name or not any(
+                    param_name.startswith(f"{prefix}_")
+                    for prefix in ["map_node", "parallel_node", "branch"]
+                ):
+                    scoped_params[param_name] = param
+
+        return scoped_params
+
+    def _set_prefixed_parameters(self, parameters: Dict[str, Parameter]) -> None:
+        """Set parameters using old prefixed naming for non-partitioned stores."""
+        if not self.internal_branch_name:
+            # Root context - set parameters directly
+            self._context.run_log_store.set_parameters(
+                parameters=parameters, run_id=self._context.run_id
+            )
+        else:
+            # Branch context - add prefix to parameter names
+            branch_prefix = f"{self.internal_branch_name}_"
+            prefixed_params = {
+                f"{branch_prefix}{param_name}": param
+                for param_name, param in parameters.items()
+            }
+            self._context.run_log_store.set_parameters(
+                parameters=prefixed_params, run_id=self._context.run_id
+            )
 
     def set_secrets_as_env_variables(self):
         # Preparing the environment for the task execution

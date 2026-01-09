@@ -438,42 +438,87 @@ class MapNode(CompositeNode):
         # Only aggregate parameters that are actually produced by tasks in the branch
         aggregated_params: Dict[str, Parameter] = {}
 
-        for param_name, param_template in self.branch_returns:
-            # Collect values from all branches for aggregation
-            values_to_reduce = []
+        # Check if store supports partitioned storage
+        if getattr(self._context.run_log_store, "supports_parallel_writes", False):
+            # Partitioned store - use branch_returns approach
+            for param_name, param_template in self.branch_returns:
+                # Collect values from all branches for aggregation
+                values_to_reduce = []
 
-            for branch_name in branch_names:
-                branch_params = self._context.run_log_store.get_parameters(
-                    run_id=self._context.run_id, internal_branch_name=branch_name
-                )
-
-                if param_name in branch_params:
-                    values_to_reduce.append(branch_params[param_name].get_value())
-
-            # Apply reducer function
-            if values_to_reduce:
-                reduced_value = reducer_f(*values_to_reduce)
-
-                # Create aggregated parameter with the same kind as the template
-                if param_template.kind == "json":
-                    aggregated_params[param_name] = JsonParameter(
-                        kind="json", value=reduced_value
+                for branch_name in branch_names:
+                    branch_params = self._context.run_log_store.get_parameters(
+                        run_id=self._context.run_id, internal_branch_name=branch_name
                     )
-                elif param_template.kind == "object":
-                    aggregated_params[param_name] = ObjectParameter(
-                        kind="object", value=reduced_value
+
+                    if param_name in branch_params:
+                        values_to_reduce.append(branch_params[param_name].get_value())
+
+                # Apply reducer function
+                if values_to_reduce:
+                    reduced_value = reducer_f(*values_to_reduce)
+
+                    # Create aggregated parameter with the same kind as the template
+                    if param_template.kind == "json":
+                        aggregated_params[param_name] = JsonParameter(
+                            kind="json", value=reduced_value
+                        )
+                    elif param_template.kind == "object":
+                        aggregated_params[param_name] = ObjectParameter(
+                            kind="object", value=reduced_value
+                        )
+                    elif param_template.kind == "metric":
+                        aggregated_params[param_name] = MetricParameter(
+                            kind="metric", value=reduced_value
+                        )
+        else:
+            # Non-partitioned store - use prefixed parameter approach
+            all_params = self._context.run_log_store.get_parameters(
+                run_id=self._context.run_id
+            )
+
+            for param_name, param_template in self.branch_returns:
+                # Collect values from prefixed parameters
+                values_to_reduce = []
+
+                for iteration_variable in iterate_on:
+                    prefixed_name = (
+                        f"{self.internal_name}.{iteration_variable}_{param_name}"
                     )
-                elif param_template.kind == "metric":
-                    aggregated_params[param_name] = MetricParameter(
-                        kind="metric", value=reduced_value
-                    )
+                    if prefixed_name in all_params:
+                        values_to_reduce.append(all_params[prefixed_name].get_value())
+
+                # Apply reducer function
+                if values_to_reduce:
+                    reduced_value = reducer_f(*values_to_reduce)
+
+                    # Create aggregated parameter with the same kind as the template
+                    if param_template.kind == "json":
+                        aggregated_params[param_name] = JsonParameter(
+                            kind="json", value=reduced_value
+                        )
+                    elif param_template.kind == "object":
+                        aggregated_params[param_name] = ObjectParameter(
+                            kind="object", value=reduced_value
+                        )
+                    elif param_template.kind == "metric":
+                        aggregated_params[param_name] = MetricParameter(
+                            kind="metric", value=reduced_value
+                        )
 
         # Store aggregated parameters in parent partition
-        self._context.run_log_store.set_parameters(
-            parameters=aggregated_params,
-            run_id=self._context.run_id,
-            internal_branch_name=parent_branch_name,
-        )
+        if getattr(self._context.run_log_store, "supports_parallel_writes", False):
+            # Partitioned store - use parent partition
+            self._context.run_log_store.set_parameters(
+                parameters=aggregated_params,
+                run_id=self._context.run_id,
+                internal_branch_name=parent_branch_name,
+            )
+        else:
+            # Non-partitioned store - set directly to global parameters
+            self._context.run_log_store.set_parameters(
+                parameters=aggregated_params,
+                run_id=self._context.run_id,
+            )
 
     async def execute_as_graph_async(
         self,
