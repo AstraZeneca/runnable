@@ -145,3 +145,105 @@ def test_fan_out_creates_branch_partitions_only():
     # Verify no raw_parameters were set in fan_out (discovery-based, not tracking)
     # We should NOT have set_parameters calls during fan_out anymore
     mock_run_log_store.set_parameters.assert_not_called()
+
+
+@patch('runnable.context.get_run_context')
+def test_fan_in_only_aggregates_produced_parameters_not_inherited(mock_get_context):
+    """Test fan_in only aggregates parameters produced by loop, not inherited from parent."""
+    from extensions.nodes.map import MapNode
+    from runnable import defaults
+    from runnable.context import PipelineContext
+
+    # Setup mock context
+    mock_context = Mock(spec=PipelineContext)
+    mock_run_log_store = Mock()
+    mock_context.run_log_store = mock_run_log_store
+    mock_context.run_id = "test_run"
+    mock_get_context.return_value = mock_context
+
+    # Parent parameters (should not be aggregated if unchanged)
+    parent_params = {
+        "config": JsonParameter(kind="json", value="global_config"),
+        "base_value": JsonParameter(kind="json", value=100),
+        "items": JsonParameter(kind="json", value=[0, 1])
+    }
+
+    # Branch parameters (mix of inherited and produced)
+    branch_1_params = {
+        "config": JsonParameter(kind="json", value="global_config"),  # Same as parent - inherited
+        "base_value": JsonParameter(kind="json", value=100),  # Same as parent - inherited
+        "result": JsonParameter(kind="json", value="value_1")  # New - should aggregate
+    }
+    branch_2_params = {
+        "config": JsonParameter(kind="json", value="global_config"),  # Same as parent - inherited
+        "base_value": JsonParameter(kind="json", value=200),  # Different from parent - should aggregate
+        "result": JsonParameter(kind="json", value="value_2")  # New - should aggregate
+    }
+
+    def get_parameters_side_effect(run_id, internal_branch_name=None):
+        if internal_branch_name is None or internal_branch_name == "":  # Parent partition
+            return parent_params
+        elif internal_branch_name == "map_node.0":
+            return branch_1_params
+        elif internal_branch_name == "map_node.1":
+            return branch_2_params
+        return {}
+
+    mock_run_log_store.get_parameters.side_effect = get_parameters_side_effect
+
+    # Mock branch logs (successful branches)
+    def get_branch_log_side_effect(internal_branch_name, run_id):
+        branch_log = Mock()
+        branch_log.status = defaults.SUCCESS
+        return branch_log
+
+    mock_run_log_store.get_branch_log.side_effect = get_branch_log_side_effect
+
+    # Mock step log
+    mock_step_log = Mock()
+    mock_step_log.status = defaults.PROCESSING
+    mock_run_log_store.get_step_log.return_value = mock_step_log
+
+    # Create a minimal branch graph
+    mock_branch = MagicMock(spec=Graph)
+    mock_branch.nodes = {}
+
+    # Create map node
+    map_node = MapNode(
+        name="map_node",
+        internal_name="map_node",
+        internal_branch_name="",  # Root context
+        iterate_on="items",
+        iterate_as="item",
+        next_node="success",
+        branch=mock_branch,
+        reducer=None  # Use default list reducer
+    )
+
+    # Call fan_in
+    map_node.fan_in(iter_variable=None)
+
+    # Verify parameters were fetched (parent + 2 branches)
+    assert mock_run_log_store.get_parameters.call_count >= 3
+
+    # Verify aggregated parameters were set to parent partition
+    mock_run_log_store.set_parameters.assert_called()
+    call_args = mock_run_log_store.set_parameters.call_args
+
+    assert call_args[1]["run_id"] == "test_run"
+    # Parent context should be None or empty string
+    assert call_args[1].get("internal_branch_name") in [None, ""]
+
+    # Check aggregated parameters - should NOT include unchanged inherited ones
+    aggregated_params = call_args[1]["parameters"]
+
+    # Should aggregate "result" (new parameter not in parent)
+    assert "result" in aggregated_params
+    assert aggregated_params["result"].value == ["value_1", "value_2"]
+
+    # Should aggregate "base_value" (modified parameter - one branch changed it)
+    assert "base_value" in aggregated_params
+    assert aggregated_params["base_value"].value == [100, 200]
+
+    # Should NOT aggregate "config" (inherited unchanged in all branches)
+    assert "config" not in aggregated_params

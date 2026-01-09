@@ -406,7 +406,7 @@ class MapNode(CompositeNode):
             return
 
         # Discovery-based parameter aggregation
-        # Discover parameters from branch partitions and aggregate them
+        # Only aggregate parameters produced by loop tasks, not inherited ones
         reducer_f = self.get_reducer_function()
 
         # Get branch names for discovery
@@ -422,15 +422,51 @@ class MapNode(CompositeNode):
         if not branch_names:
             return
 
+        # Determine parent partition for storing aggregated parameters
+        # If we're in a nested map (iter_variable is not None), store in parent branch
+        # Otherwise, store in root partition
+        parent_branch_name = None
+        if iter_variable and iter_variable.map_variable:
+            # We're in a nested map context, determine parent branch name
+            # The parent is the branch that contains this map node
+            parent_branch_name = (
+                self.internal_branch_name if self.internal_branch_name else None
+            )
+
+        # Get parent parameters to filter out inherited unchanged ones
+        parent_params = self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id, internal_branch_name=parent_branch_name
+        )
+
         first_branch_params = self._context.run_log_store.get_parameters(
             run_id=self._context.run_id, internal_branch_name=branch_names[0]
         )
 
-        # Aggregate each discovered parameter across all branches
+        # Only aggregate parameters that were produced/modified by loop tasks
         aggregated_params: Dict[str, Parameter] = {}
 
         for param_name, first_param in first_branch_params.items():
-            # Collect values from all branches
+            # Skip parameters that are inherited unchanged from parent
+            if param_name in parent_params:
+                # Check if ALL branches have the same value as parent (unchanged inheritance)
+                all_same_as_parent = True
+                for branch_name in branch_names:
+                    branch_params = self._context.run_log_store.get_parameters(
+                        run_id=self._context.run_id, internal_branch_name=branch_name
+                    )
+                    if param_name in branch_params:
+                        if (
+                            branch_params[param_name].get_value()
+                            != parent_params[param_name].get_value()
+                        ):
+                            all_same_as_parent = False
+                            break
+
+                if all_same_as_parent:
+                    # Skip this parameter - it's inherited and unchanged
+                    continue
+
+            # Collect values from all branches for aggregation
             values_to_reduce = []
 
             for branch_name in branch_names:
@@ -458,17 +494,6 @@ class MapNode(CompositeNode):
                     aggregated_params[param_name] = MetricParameter(
                         kind="metric", value=reduced_value
                     )
-
-        # Determine parent partition for storing aggregated parameters
-        # If we're in a nested map (iter_variable is not None), store in parent branch
-        # Otherwise, store in root partition
-        parent_branch_name = None
-        if iter_variable and iter_variable.map_variable:
-            # We're in a nested map context, determine parent branch name
-            # The parent is the branch that contains this map node
-            parent_branch_name = (
-                self.internal_branch_name if self.internal_branch_name else None
-            )
 
         # Store aggregated parameters in parent partition
         self._context.run_log_store.set_parameters(
