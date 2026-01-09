@@ -668,14 +668,7 @@ class NotebookTaskType(BaseTaskType):
                                 kind="json", value=value_model.value
                             )
 
-                    # Remove any {v}_unreduced parameters from the parameters
-                    unprocessed_params = [
-                        k for k, v in copy_params.items() if not v.reduced
-                    ]
-
-                    for key in list(copy_params.keys()):
-                        if any(key.endswith(f"_{k}") for k in unprocessed_params):
-                            del copy_params[key]
+                    # All parameters are naturally scoped with partitioned storage - no filtering needed
 
                     notebook_params = {k: v.get_value() for k, v in copy_params.items()}
 
