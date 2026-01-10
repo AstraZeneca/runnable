@@ -185,44 +185,6 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
         raise exceptions.EntityNotFoundError()
 
-    def orderly_retrieve(
-        self, run_id: str, log_type: LogTypes
-    ) -> Dict[str, Union[StepLog, BranchLog]]:
-        """Should only be used by prepare full run log.
-
-        Retrieves the StepLog or BranchLog sorted according to creation time.
-
-        Args:
-            run_id (str): _description_
-            log_type (LogTypes): _description_
-        """
-        prefix: str = self.LogTypes.STEP_LOG.value
-
-        if log_type == self.LogTypes.BRANCH_LOG:
-            prefix = self.LogTypes.BRANCH_LOG.value
-
-        matches = self.get_matches(run_id=run_id, name=prefix, multiple_allowed=True)
-
-        if log_type == self.LogTypes.BRANCH_LOG and not matches:
-            # No branch logs are found
-            return {}
-        # Forcing get_matches to always return a list is a better design
-
-        assert isinstance(matches, list)
-        epoch_created = [str(match).split("-")[-1] for match in matches]
-
-        # sort matches by epoch created
-        epoch_created, matches = zip(*sorted(zip(epoch_created, matches)))  # type: ignore
-
-        logs: Dict[str, Union[StepLog, BranchLog]] = {}
-
-        for match in matches:
-            model = self.ModelTypes[log_type.name].value
-            log_model = model(**self._retrieve(run_id=run_id, name=match))
-            logs[log_model.internal_name] = log_model  # type: ignore
-
-        return logs
-
     def _get_parent_branch(self, name: str) -> Union[str, None]:
         """
         Returns the name of the parent branch.
@@ -261,38 +223,48 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
     def _prepare_full_run_log(self, run_log: RunLog):
         """
-        Populates the run log with the branches and steps.
+        Populate run log with branch logs.
 
-        Args:
-            run_log (RunLog): The partial run log containing empty step logs
+        Since branches now contain their own steps and parameters,
+        we just need to attach branches to their parent steps.
         """
         run_id = run_log.run_id
-        run_log.parameters = self.get_parameters(run_id=run_id)
 
-        ordered_steps = self.orderly_retrieve(
-            run_id=run_id, log_type=self.LogTypes.STEP_LOG
+        # Get all branch logs
+        matches = self.get_matches(
+            run_id=run_id, name=self.LogTypes.BRANCH_LOG.value, multiple_allowed=True
         )
-        ordered_branches = self.orderly_retrieve(
-            run_id=run_id, log_type=self.LogTypes.BRANCH_LOG
-        )
+        if not matches:
+            return
 
-        current_branch: Any = None  # It could be str, None, RunLog
-        for step_internal_name, _ in ordered_steps.items():
-            current_branch = self._get_parent_branch(step_internal_name)
-            step_to_add_branch = self._get_parent_step(step_internal_name)
+        branch_logs: Dict[str, BranchLog] = {}
+        for match in matches:
+            assert isinstance(match, str)
+            branch_log = BranchLog(**self._retrieve(run_id=run_id, name=match))
+            branch_logs[branch_log.internal_name] = branch_log
 
-            if not current_branch:
-                current_branch = run_log
-            else:
-                current_branch = ordered_branches[current_branch]
-                step_to_add_branch = ordered_steps[step_to_add_branch]  # type: ignore
-                step_to_add_branch.branches[current_branch.internal_name] = (  # type: ignore
-                    current_branch
+        # Attach branches to their parent steps
+        for branch_name, branch_log in branch_logs.items():
+            # For a branch like "conditional.heads", parent step is "conditional"
+            # For a branch like "map.a.nested", parent step is "map.a"
+            dot_path = branch_name.split(".")
+            if len(dot_path) < 2:
+                # Branches must have at least step.branch format
+                continue
+
+            parent_step_name = ".".join(dot_path[:-1])
+
+            # Find parent step (could be in run_log or another branch)
+            parent_branch_name = self._get_parent_branch(parent_step_name)
+            if parent_branch_name and parent_branch_name in branch_logs:
+                parent_step = branch_logs[parent_branch_name].steps.get(
+                    parent_step_name
                 )
+            else:
+                parent_step = run_log.steps.get(parent_step_name)
 
-            current_branch.steps[step_internal_name] = ordered_steps[
-                step_internal_name
-            ]  # ty: ignore[invalid-assignment]
+            if parent_step:
+                parent_step.branches[branch_name] = branch_log
 
     def create_run_log(
         self,
@@ -479,23 +451,38 @@ class ChunkedRunLogStore(BaseRunLogStore):
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
             StepLogNotFoundError: If the step log for internal_name is not found in the datastore for run_id
         """
-        try:
-            logger.info(
-                f"{self.service_name} Getting the step log: {internal_name} of {run_id}"
-            )
+        logger.info(
+            f"{self.service_name} Getting the step log: {internal_name} of {run_id}"
+        )
 
-            step_log = self.retrieve(
-                run_id=run_id,
-                log_type=self.LogTypes.STEP_LOG,
-                name=internal_name,
-                multiple_allowed=False,
-            )
+        # Determine if step is in a branch or root
+        parent_branch = self._get_parent_branch(internal_name)
 
-            return step_log
-        except exceptions.EntityNotFoundError as e:
-            raise exceptions.StepLogNotFoundError(
-                run_id=run_id, step_name=internal_name
-            ) from e
+        if not parent_branch:
+            # Root-level step - get from RunLog
+            run_log = self.get_run_log_by_id(run_id=run_id)
+            if internal_name not in run_log.steps:
+                raise exceptions.StepLogNotFoundError(
+                    run_id=run_id, step_name=internal_name
+                )
+            return run_log.steps[internal_name]
+        else:
+            # Branch step - get from BranchLog
+            try:
+                branch_log = self.retrieve(
+                    run_id=run_id,
+                    log_type=self.LogTypes.BRANCH_LOG,
+                    name=parent_branch,
+                )
+                if internal_name not in branch_log.steps:
+                    raise exceptions.StepLogNotFoundError(
+                        run_id=run_id, step_name=internal_name
+                    )
+                return branch_log.steps[internal_name]
+            except exceptions.EntityNotFoundError as e:
+                raise exceptions.StepLogNotFoundError(
+                    run_id=run_id, step_name=internal_name
+                ) from e
 
     def add_step_log(self, step_log: StepLog, run_id: str):
         """
