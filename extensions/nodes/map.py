@@ -5,7 +5,7 @@ import sys
 from collections import OrderedDict
 from copy import deepcopy
 from multiprocessing import Pool
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from pydantic import Field
 
@@ -15,7 +15,6 @@ from runnable.datastore import (
     JsonParameter,
     MetricParameter,
     ObjectParameter,
-    Parameter,
 )
 from runnable.defaults import IterableParameterModel, MapVariableModel
 from runnable.graph import Graph, create_graph
@@ -422,52 +421,51 @@ class MapNode(CompositeNode):
         # The final value of the parameter is the result of the reduce function.
         reducer_f = self.get_reducer_function()
 
-        def update_param(
-            params: Dict[str, Parameter], reducer_f: Callable, map_prefix: str = ""
-        ):
-            for branch_return in self.branch_returns:
-                param_name, _ = branch_return
-
-                to_reduce = []
-                for iter_variable in iterate_on:
-                    try:
-                        to_reduce.append(
-                            params[f"{iter_variable}_{param_name}"].get_value()
-                        )
-                    except KeyError as e:
-                        from extensions.pipeline_executor.mocked import MockedExecutor
-
-                        if isinstance(self._context.pipeline_executor, MockedExecutor):
-                            pass
-                        else:
-                            raise Exception(
-                                (
-                                    f"Expected parameter {iter_variable}_{param_name}",
-                                    "not present in Run Log parameters",
-                                    "was it ever set before?",
-                                )
-                            ) from e
-
-                param_name = f"{map_prefix}{param_name}"
-                if to_reduce:
-                    params[param_name].value = reducer_f(*to_reduce)
-                else:
-                    params[param_name].value = ""
-                params[param_name].reduced = True
-
-        if iter_variable and iter_variable.map_variable:
-            # If we are in a map state already, the param should have an index of the map variable.
-            for _, v in iter_variable.map_variable.items():
-                update_param(params, reducer_f, map_prefix=f"{v.value}_")
-        else:
-            update_param(params, reducer_f)
-
-        self._context.run_log_store.set_parameters(
-            parameters=params, run_id=self._context.run_id
+        # Get parent scope for setting reduced parameters
+        current_internal_branch_name = self._resolve_map_placeholders(
+            self.internal_branch_name, iter_variable=iter_variable
+        )
+        parent_params = self._context.run_log_store.get_parameters(
+            self._context.run_id, internal_branch_name=current_internal_branch_name
         )
 
+        for branch_return in self.branch_returns:
+            param_name, _ = branch_return
+
+            to_reduce = []
+            for iteration_variable in iterate_on:
+                effective_branch_name = self._resolve_map_placeholders(
+                    self.internal_name + "." + str(iteration_variable),
+                    iter_variable=iter_variable,
+                )
+                try:
+                    branch_params = self._context.run_log_store.get_parameters(
+                        self._context.run_id, internal_branch_name=effective_branch_name
+                    )
+                    to_reduce.append(branch_params[param_name].get_value())
+                except KeyError as e:
+                    from extensions.pipeline_executor.mocked import MockedExecutor
+
+                    if isinstance(self._context.pipeline_executor, MockedExecutor):
+                        pass
+                    else:
+                        raise Exception(
+                            (
+                                f"Expected parameter {param_name} in branch {effective_branch_name}",
+                                "not present in branch parameters",
+                                "was it ever set before?",
+                            )
+                        ) from e
+
+            if to_reduce:
+                parent_params[param_name].value = reducer_f(*to_reduce)
+            else:
+                parent_params[param_name].value = ""
+
         self._context.run_log_store.set_parameters(
-            parameters=params, run_id=self._context.run_id
+            parameters=parent_params,
+            run_id=self._context.run_id,
+            internal_branch_name=current_internal_branch_name,
         )
 
     async def execute_as_graph_async(
