@@ -58,16 +58,10 @@ class ChunkedRunLogStore(BaseRunLogStore):
         if log_type == self.LogTypes.RUN_LOG:
             return f"{self.LogTypes.RUN_LOG.value}"
 
-        if log_type == self.LogTypes.PARAMETER:
-            return "-".join([self.LogTypes.PARAMETER.value, name])
-
         if not name:
             raise Exception(
                 f"Name should be provided for naming pattern for {log_type}"
             )
-
-        if log_type == self.LogTypes.STEP_LOG:
-            return "-".join([self.LogTypes.STEP_LOG.value, name, "${creation_time}"])
 
         if log_type == self.LogTypes.BRANCH_LOG:
             return "-".join([self.LogTypes.BRANCH_LOG.value, name, "${creation_time}"])
@@ -169,7 +163,6 @@ class ChunkedRunLogStore(BaseRunLogStore):
         # The reason of any is it could be one of Logs or dict or list of the
         if not name and log_type not in [
             self.LogTypes.RUN_LOG,
-            self.LogTypes.PARAMETER,
         ]:
             raise Exception(f"Name is required during retrieval for {log_type}")
 
@@ -519,33 +512,36 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
     def add_step_log(self, step_log: StepLog, run_id: str):
         """
-        Add the step log in the run log as identified by the run_id in the datastore
-
-        The method should:
-             * Call get_run_log_by_id(run_id) to retrieve the run_log
-             * Identify the branch to add the step by decoding the step_logs internal name
-             * Add the step log to the identified branch log
-             * Call put_run_log(run_log) to put the run_log in the datastore
+        Add the step log to its parent (RunLog or BranchLog).
 
         Args:
-            step_log (StepLog): The Step log to add to the database
+            step_log (StepLog): The Step log to add
             run_id (str): The run id of the run
-
-        Raises:
-            RunLogNotFoundError: If the run log for run_id is not found in the datastore
-            BranchLogNotFoundError: If the branch of the step log for internal_name is not found in the datastore
-                                    for run_id
         """
-        logger.info(
-            f"{self.service_name} Adding the step log to DB: {step_log.internal_name}"
-        )
+        logger.info(f"{self.service_name} Adding step log: {step_log.internal_name}")
 
-        self.store(
-            run_id=run_id,
-            log_type=self.LogTypes.STEP_LOG,
-            contents=json.loads(step_log.model_dump_json()),
-            name=step_log.internal_name,
-        )
+        internal_name = step_log.internal_name
+        parent_branch = self._get_parent_branch(internal_name)
+
+        if not parent_branch:
+            # Root-level step - add to RunLog
+            run_log = self.get_run_log_by_id(run_id=run_id)
+            run_log.steps[internal_name] = step_log
+            self.put_run_log(run_log)
+        else:
+            # Branch step - add to BranchLog
+            branch_log = self.retrieve(
+                run_id=run_id,
+                log_type=self.LogTypes.BRANCH_LOG,
+                name=parent_branch,
+            )
+            branch_log.steps[internal_name] = step_log
+            self.store(
+                run_id=run_id,
+                log_type=self.LogTypes.BRANCH_LOG,
+                contents=json.loads(branch_log.model_dump_json()),
+                name=parent_branch,
+            )
 
     def get_branch_log(
         self, internal_branch_name: str, run_id: str
