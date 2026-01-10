@@ -323,6 +323,7 @@ class MapNode(CompositeNode):
 
         # Prepare arguments for each iteration
         iteration_args = []
+        iteration_variables_map = []  # Keep track of iteration variables for failure reporting
 
         for iteration_variable in iterate_on:
             effective_iter_variable = (
@@ -348,6 +349,7 @@ class MapNode(CompositeNode):
                     effective_iter_variable.model_dump_json(),
                 )
             )
+            iteration_variables_map.append(iteration_variable)
 
         # Use multiprocessing Pool to execute iterations in parallel
         with Pool() as pool:
@@ -356,13 +358,9 @@ class MapNode(CompositeNode):
         # Check if any iteration failed
         if not all(results):
             failed_iterations = [
-                iter_variable
-                for (_, _, _, effective_map_variable), result in zip(
-                    iteration_args, results
-                )
+                iteration_var
+                for iteration_var, result in zip(iteration_variables_map, results)
                 if not result
-                for iter_variable in iterate_on
-                if effective_map_variable[self.iterate_as] == iter_variable
             ]
             logger.error(f"The following map iterations failed: {failed_iterations}")
             # Note: The actual failure handling and status update will be done in fan_in()
