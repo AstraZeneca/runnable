@@ -700,11 +700,19 @@ class BaseRunLogStore(ABC, BaseModel):
             return branch.parameters
         return run_log.parameters
 
-    def set_parameters(self, run_id: str, parameters: Dict[str, Parameter]):
+    def set_parameters(
+        self,
+        run_id: str,
+        parameters: Dict[str, Parameter],
+        internal_branch_name: str = "",
+    ):
         """
         Update the parameters of the Run log with the new parameters
 
         This method would over-write the parameters, if the parameter exists in the run log already
+
+        If internal_branch_name is provided, sets parameters on that branch.
+        Otherwise sets root-level parameters.
 
         The method should:
             * Call get_run_log_by_id(run_id) to retrieve the run_log
@@ -714,11 +722,21 @@ class BaseRunLogStore(ABC, BaseModel):
         Args:
             run_id (str): The run_id of the run
             parameters (dict): The parameters to update in the run log
+            internal_branch_name (str): Optional branch name for scoped parameters
         Raises:
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
         """
         run_log = self.get_run_log_by_id(run_id=run_id)
-        run_log.parameters.update(parameters)
+
+        if not internal_branch_name:
+            run_log.parameters.update(parameters)
+        else:
+            branch, _ = run_log.search_branch_by_internal_name(internal_branch_name)
+            if isinstance(branch, BranchLog):
+                branch.parameters.update(parameters)
+            else:
+                run_log.parameters.update(parameters)
+
         self.put_run_log(run_log=run_log)
 
     def get_run_config(self, run_id: str) -> dict:
