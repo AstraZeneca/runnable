@@ -1,9 +1,7 @@
 import json
 import logging
-import time
 from abc import abstractmethod
 from enum import Enum
-from string import Template
 from typing import Any, Dict, Union
 
 from runnable import defaults, exceptions
@@ -60,7 +58,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
             )
 
         if log_type == self.LogTypes.BRANCH_LOG:
-            return "-".join([self.LogTypes.BRANCH_LOG.value, name, "${creation_time}"])
+            return "-".join([self.LogTypes.BRANCH_LOG.value, name])
 
         raise Exception("Unexpected log type")
 
@@ -125,9 +123,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
             contents = dict(existing_contents, **contents)
             name_to_give = match
         else:
-            name_to_give = Template(naming_pattern).safe_substitute(
-                {"creation_time": str(int(time.time_ns()))}
-            )
+            name_to_give = naming_pattern
             insert = True
 
         self._store(run_id=run_id, contents=contents, name=name_to_give, insert=insert)
