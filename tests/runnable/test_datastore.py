@@ -846,3 +846,23 @@ def test_set_parameters_with_internal_branch_name() -> None:
     assert "branch_param" not in run_log.parameters
     assert "branch_param" in branch.parameters
     assert branch.parameters["branch_param"].get_value() == "branch_value"
+
+
+def test_create_branch_log_with_parameters() -> None:
+    """Test create_branch_log can accept initial parameters"""
+    store = BufferRunLogstore(service_name="test_store")
+
+    initial_params = {
+        "param1": JsonParameter(kind="json", value="value1"),
+        "param2": JsonParameter(kind="json", value="value2"),
+    }
+
+    branch = store.create_branch_log(
+        internal_branch_name="step1.branch1",
+        parameters=initial_params
+    )
+
+    assert branch.internal_name == "step1.branch1"
+    assert "param1" in branch.parameters
+    assert "param2" in branch.parameters
+    assert branch.parameters["param1"].get_value() == "value1"

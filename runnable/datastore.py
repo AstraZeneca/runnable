@@ -842,12 +842,17 @@ class BaseRunLogStore(ABC, BaseModel):
         branch.steps[step_log.internal_name] = step_log
         self.put_run_log(run_log=run_log)
 
-    def create_branch_log(self, internal_branch_name: str) -> BranchLog:
+    def create_branch_log(
+        self,
+        internal_branch_name: str,
+        parameters: Optional[Dict[str, Parameter]] = None,
+    ) -> BranchLog:
         """
         Creates a uncommitted branch log object by the internal name given
 
         Args:
             internal_branch_name (str): Creates a branch log by name internal_branch_name
+            parameters (dict, optional): Initial parameters for the branch
 
         Returns:
             BranchLog: Uncommitted and initialized with defaults BranchLog object
@@ -856,7 +861,12 @@ class BaseRunLogStore(ABC, BaseModel):
         logger.info(
             f"{self.service_name} Creating a Branch Log : {internal_branch_name}"
         )
-        return BranchLog(internal_name=internal_branch_name, status=defaults.CREATED)
+        branch_log = BranchLog(
+            internal_name=internal_branch_name, status=defaults.CREATED
+        )
+        if parameters:
+            branch_log.parameters.update(parameters)
+        return branch_log
 
     def get_branch_log(
         self, internal_branch_name: str, run_id: str
