@@ -672,16 +672,18 @@ class BaseRunLogStore(ABC, BaseModel):
         run_log.status = status
         self.put_run_log(run_log)
 
-    def get_parameters(self, run_id: str) -> Dict[str, Parameter]:
+    def get_parameters(
+        self, run_id: str, internal_branch_name: str = ""
+    ) -> Dict[str, Parameter]:
         """
-        Get the parameters from the Run log defined by the run_id
+        Get the parameters from the Run log defined by the run_id.
+
+        If internal_branch_name is provided, returns parameters scoped to that branch.
+        Otherwise returns root-level parameters.
 
         Args:
             run_id (str): The run_id of the run
-
-        The method should:
-            * Call get_run_log_by_id(run_id) to retrieve the run_log
-            * Return the parameters as identified in the run_log
+            internal_branch_name (str): Optional branch name for scoped parameters
 
         Returns:
             dict: A dictionary of the run_log parameters
@@ -689,6 +691,13 @@ class BaseRunLogStore(ABC, BaseModel):
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
         """
         run_log = self.get_run_log_by_id(run_id=run_id)
+
+        if not internal_branch_name:
+            return run_log.parameters
+
+        branch, _ = run_log.search_branch_by_internal_name(internal_branch_name)
+        if isinstance(branch, BranchLog):
+            return branch.parameters
         return run_log.parameters
 
     def set_parameters(self, run_id: str, parameters: Dict[str, Parameter]):

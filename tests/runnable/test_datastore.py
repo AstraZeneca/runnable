@@ -795,3 +795,30 @@ def test_branch_log_has_parameters() -> None:
     branch.parameters["test_param"] = JsonParameter(kind="json", value="test_value")
     assert "test_param" in branch.parameters
     assert branch.parameters["test_param"].get_value() == "test_value"
+
+
+def test_get_parameters_with_internal_branch_name() -> None:
+    """Test get_parameters accepts optional internal_branch_name parameter"""
+    store = BufferRunLogstore(service_name="test_store")
+    run_log = store.create_run_log(run_id="test_run")
+
+    # Create step with branch that has parameters
+    step = StepLog(name="step1", internal_name="step1")
+    branch = BranchLog(internal_name="step1.branch1")
+    branch.parameters["branch_param"] = JsonParameter(kind="json", value="branch_value")
+    step.branches["step1.branch1"] = branch
+    run_log.steps["step1"] = step
+
+    # Set root-level parameter
+    store.set_parameters(run_id="test_run", parameters={
+        "root_param": JsonParameter(kind="json", value="root_value")
+    })
+
+    # Get root parameters (no internal_branch_name)
+    root_params = store.get_parameters(run_id="test_run")
+    assert "root_param" in root_params
+
+    # Get branch parameters (with internal_branch_name)
+    branch_params = store.get_parameters(run_id="test_run", internal_branch_name="step1.branch1")
+    assert "branch_param" in branch_params
+    assert branch_params["branch_param"].get_value() == "branch_value"
