@@ -133,6 +133,7 @@ class BaseTaskType(BaseModel):
     returns: List[TaskReturns] = Field(
         default_factory=list, alias="returns"
     )  # The return values of the task
+    internal_branch_name: str = Field(default="", exclude=True)
 
     model_config = ConfigDict(extra="forbid")
 
