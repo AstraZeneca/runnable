@@ -7,6 +7,7 @@ from runnable.datastore import (
     BranchLog,
     BufferRunLogstore,
     DataCatalog,
+    JsonParameter,
     ObjectParameter,
     RunLog,
     StepLog,
@@ -782,3 +783,15 @@ def test_add_branch_log_multiple_branches():
     assert "step1.branch2" in step.branches
     assert step.branches["step1.branch1"] == branch1
     assert step.branches["step1.branch2"] == branch2
+
+
+def test_branch_log_has_parameters() -> None:
+    """Test that BranchLog has a parameters field"""
+    branch = BranchLog(internal_name="step1.branch1")
+    assert hasattr(branch, "parameters")
+    assert branch.parameters == {}
+
+    # Test setting parameters
+    branch.parameters["test_param"] = JsonParameter(kind="json", value="test_value")
+    assert "test_param" in branch.parameters
+    assert branch.parameters["test_param"].get_value() == "test_value"

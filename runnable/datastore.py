@@ -310,6 +310,7 @@ class BranchLog(BaseModel):
     internal_name: str
     status: str = "FAIL"
     steps: OrderedDict[str, StepLog] = Field(default_factory=OrderedDict)
+    parameters: Dict[str, Parameter] = Field(default_factory=dict)
 
     def get_data_catalogs_by_stage(self, stage="put") -> List[DataCatalog]:
         """
