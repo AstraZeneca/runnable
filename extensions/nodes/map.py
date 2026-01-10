@@ -438,24 +438,14 @@ class MapNode(CompositeNode):
                     self.internal_name + "." + str(iteration_variable),
                     iter_variable=iter_variable,
                 )
-                try:
-                    branch_params = self._context.run_log_store.get_parameters(
-                        self._context.run_id, internal_branch_name=effective_branch_name
-                    )
-                    to_reduce.append(branch_params[param_name].get_value())
-                except KeyError as e:
-                    from extensions.pipeline_executor.mocked import MockedExecutor
+                branch_params = self._context.run_log_store.get_parameters(
+                    self._context.run_id, internal_branch_name=effective_branch_name
+                )
 
-                    if isinstance(self._context.pipeline_executor, MockedExecutor):
-                        pass
-                    else:
-                        raise Exception(
-                            (
-                                f"Expected parameter {param_name} in branch {effective_branch_name}",
-                                "not present in branch parameters",
-                                "was it ever set before?",
-                            )
-                        ) from e
+                # Only add to reduce list if parameter exists
+                # (branch might have taken failure path and not set all returns)
+                if param_name in branch_params:
+                    to_reduce.append(branch_params[param_name].get_value())
 
             if to_reduce:
                 parent_params[param_name].value = reducer_f(*to_reduce)
