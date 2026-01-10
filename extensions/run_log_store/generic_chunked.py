@@ -10,10 +10,6 @@ from runnable import defaults, exceptions
 from runnable.datastore import (
     BaseRunLogStore,
     BranchLog,
-    JsonParameter,
-    MetricParameter,
-    ObjectParameter,
-    Parameter,
     RunLog,
     StepLog,
 )
@@ -384,65 +380,56 @@ class ChunkedRunLogStore(BaseRunLogStore):
             log_type=self.LogTypes.RUN_LOG,
         )
 
-    def get_parameters(self, run_id: str) -> dict:
+    def get_parameters(self, run_id: str, internal_branch_name: str = "") -> dict:
         """
-        Get the parameters from the Run log defined by the run_id
+        Get parameters from RunLog or BranchLog.
 
         Args:
             run_id (str): The run_id of the run
-
-        The method should:
-            * Call get_run_log_by_id(run_id) to retrieve the run_log
-            * Return the parameters as identified in the run_log
+            internal_branch_name (str): If provided, get from that branch
 
         Returns:
-            dict: A dictionary of the run_log parameters
-        Raises:
-            RunLogNotFoundError: If the run log for run_id is not found in the datastore
+            dict: Parameters from the specified scope
         """
-        parameters: Dict[str, Parameter] = {}
-        try:
-            parameters_list = self.retrieve(
-                run_id=run_id, log_type=self.LogTypes.PARAMETER, multiple_allowed=True
+        if internal_branch_name:
+            branch = self.retrieve(
+                run_id=run_id,
+                log_type=self.LogTypes.BRANCH_LOG,
+                name=internal_branch_name,
             )
-            for param in parameters_list:
-                for key, value in param.items():
-                    if value["kind"] == "json":
-                        parameters[key] = JsonParameter(**value)
-                    if value["kind"] == "metric":
-                        parameters[key] = MetricParameter(**value)
-                    if value["kind"] == "object":
-                        parameters[key] = ObjectParameter(**value)
-        except exceptions.EntityNotFoundError:
-            # No parameters are set
-            pass
+            return branch.parameters
 
-        return parameters
+        run_log = self.get_run_log_by_id(run_id=run_id)
+        return run_log.parameters
 
-    def set_parameters(self, run_id: str, parameters: dict):
+    def set_parameters(
+        self, run_id: str, parameters: dict, internal_branch_name: str = ""
+    ):
         """
-        Update the parameters of the Run log with the new parameters
-
-        This method would over-write the parameters, if the parameter exists in the run log already
-
-        The method should:
-            * Call get_run_log_by_id(run_id) to retrieve the run_log
-            * Update the parameters of the run_log
-            * Call put_run_log(run_log) to put the run_log in the datastore
+        Set parameters on RunLog or BranchLog.
 
         Args:
             run_id (str): The run_id of the run
-            parameters (dict): The parameters to update in the run log
-        Raises:
-            RunLogNotFoundError: If the run log for run_id is not found in the datastore
+            parameters (dict): Parameters to set
+            internal_branch_name (str): If provided, set on that branch
         """
-        for key, value in parameters.items():
+        if internal_branch_name:
+            branch = self.retrieve(
+                run_id=run_id,
+                log_type=self.LogTypes.BRANCH_LOG,
+                name=internal_branch_name,
+            )
+            branch.parameters.update(parameters)
             self.store(
                 run_id=run_id,
-                log_type=self.LogTypes.PARAMETER,
-                contents={key: json.loads(value.model_dump_json(by_alias=True))},
-                name=key,
+                log_type=self.LogTypes.BRANCH_LOG,
+                contents=json.loads(branch.model_dump_json()),
+                name=internal_branch_name,
             )
+        else:
+            run_log = self.get_run_log_by_id(run_id=run_id)
+            run_log.parameters.update(parameters)
+            self.put_run_log(run_log)
 
     def get_run_config(self, run_id: str) -> dict:
         """

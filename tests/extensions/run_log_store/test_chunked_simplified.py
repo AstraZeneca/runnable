@@ -60,3 +60,37 @@ def test_add_step_log_stores_within_branch(chunked_store):
     # Verify step is in branch
     retrieved_branch = chunked_store.get_branch_log("parent.branch1", "test_run")
     assert "parent.branch1.nested" in retrieved_branch.steps
+
+
+def test_get_parameters_from_runlog(chunked_store):
+    """Test get_parameters retrieves from RunLog.parameters"""
+    run_log = chunked_store.create_run_log(run_id="test_run")
+
+    chunked_store.set_parameters(
+        run_id="test_run",
+        parameters={"root_param": JsonParameter(kind="json", value="root_value")}
+    )
+
+    params = chunked_store.get_parameters(run_id="test_run")
+    assert "root_param" in params
+    assert params["root_param"].get_value() == "root_value"
+
+
+def test_get_parameters_from_branch(chunked_store):
+    """Test get_parameters with internal_branch_name retrieves from BranchLog.parameters"""
+    run_log = chunked_store.create_run_log(run_id="test_run")
+
+    # Create parent step and branch with parameters
+    parent_step = chunked_store.create_step_log(name="parent", internal_name="parent")
+    chunked_store.add_step_log(parent_step, "test_run")
+
+    branch = chunked_store.create_branch_log(
+        internal_branch_name="parent.branch1",
+        parameters={"branch_param": JsonParameter(kind="json", value="branch_value")}
+    )
+    chunked_store.add_branch_log(branch, "test_run")
+
+    # Get branch parameters
+    params = chunked_store.get_parameters(run_id="test_run", internal_branch_name="parent.branch1")
+    assert "branch_param" in params
+    assert params["branch_param"].get_value() == "branch_value"
