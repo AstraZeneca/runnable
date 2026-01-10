@@ -31,14 +31,10 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
     class LogTypes(Enum):
         RUN_LOG = "RunLog"
-        PARAMETER = "Parameter"
-        STEP_LOG = "StepLog"
         BRANCH_LOG = "BranchLog"
 
     class ModelTypes(Enum):
         RUN_LOG = RunLog
-        PARAMETER = dict
-        STEP_LOG = StepLog
         BRANCH_LOG = BranchLog
 
     def naming_pattern(self, log_type: LogTypes, name: str = "") -> str:
