@@ -309,7 +309,9 @@ class BaseTaskType(BaseModel):
                 parameters_in=parameters_in, context_params=params
             )
             self._context.run_log_store.set_parameters(
-                parameters=diff_parameters, run_id=self._context.run_id
+                parameters=diff_parameters,
+                run_id=self._context.run_id,
+                internal_branch_name=self.internal_branch_name,
             )
 
 
