@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, PrivateAttr
 import runnable.context as context
 from runnable import defaults
 from runnable.datastore import DataCatalog, JobLog, StepAttempt
-from runnable.defaults import IterableParameterModel
+from runnable.defaults import IterableParameterModel, MapVariableType
 
 if TYPE_CHECKING:  # pragma: no cover
     from runnable.graph import Graph
@@ -548,6 +548,7 @@ class BasePipelineExecutor(BaseExecutor):
         self,
         node: "BaseNode",
         iter_variable: Optional[IterableParameterModel] = None,
+        map_variable: MapVariableType = None,
         mock: bool = False,
     ):
         """

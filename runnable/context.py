@@ -31,6 +31,7 @@ from runnable.pickler import BasePickler
 from runnable.secrets import BaseSecrets
 from runnable.tasks import BaseTaskType
 
+
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
