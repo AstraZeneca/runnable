@@ -96,15 +96,15 @@ class ChunkedMinioRunLogStore(ChunkedRunLogStore):
         Args:
             run_id (str): The run id
             contents (dict): The dict to store
-            name (str): The name to store as
+            name (str): The name to store as (without path)
+            insert (bool): Whether this is a new insert (unused, kept for compatibility)
         """
+        run_log_bucket = self.get_run_log_bucket()
+        run_log_bucket.mkdir(parents=True, exist_ok=True)
 
-        if insert:
-            name = str(self.get_run_log_bucket() / name)
-
-        self.get_run_log_bucket().mkdir(parents=True, exist_ok=True)
+        file_path = str(run_log_bucket / name)
         obj = S3Path(
-            name,
+            file_path,
             client=get_minio_client(
                 self.endpoint_url,
                 self.aws_access_key_id.get_secret_value(),
@@ -119,14 +119,17 @@ class ChunkedMinioRunLogStore(ChunkedRunLogStore):
         Does the job of retrieving from the folder.
 
         Args:
-            name (str): the name of the file to retrieve
+            run_id (str): The run id
+            name (str): the name of the file to retrieve (without path)
 
         Returns:
             dict: The contents
         """
+        run_log_bucket = self.get_run_log_bucket()
+        file_path = str(run_log_bucket / name)
 
         obj = S3Path(
-            name,
+            file_path,
             client=get_minio_client(
                 self.endpoint_url,
                 self.aws_access_key_id.get_secret_value(),

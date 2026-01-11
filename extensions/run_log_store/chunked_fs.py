@@ -91,16 +91,15 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
         Args:
             run_id (str): The run id
             contents (dict): The dict to store
-            name (str): The name to store as
+            name (str): The name to store as (without path)
+            insert (bool): Whether this is a new insert (unused, kept for compatibility)
         """
-
         log_folder_with_run_id = self.log_folder_with_run_id(run_id=run_id)
-        if insert:
-            name = str(log_folder_with_run_id / name)
+        file_path = log_folder_with_run_id / name
 
         utils.safe_make_dir(log_folder_with_run_id)
 
-        with open(self.safe_suffix_json(name), "w") as fw:
+        with open(self.safe_suffix_json(file_path), "w") as fw:
             json.dump(contents, fw, ensure_ascii=True, indent=4)
 
     def _retrieve(self, run_id: str, name: str) -> dict:
@@ -108,15 +107,16 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
         Does the job of retrieving from the folder.
 
         Args:
-            name (str): the name of the file to retrieve
+            run_id (str): The run id
+            name (str): the name of the file to retrieve (without path)
 
         Returns:
             dict: The contents
         """
+        log_folder_with_run_id = self.log_folder_with_run_id(run_id=run_id)
+        file_path = log_folder_with_run_id / name
 
-        contents: dict = {}
-
-        with open(self.safe_suffix_json(name), "r") as fr:
+        with open(self.safe_suffix_json(file_path), "r") as fr:
             contents = json.load(fr)
 
         return contents
