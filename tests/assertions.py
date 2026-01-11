@@ -238,3 +238,20 @@ def should_have_notebook_output(name: str):
     path = catalog_location / name
 
     assert path.exists()
+
+
+def should_have_root_parameters(parameters: dict):
+    """Verify parameters exist at run log root level with expected values."""
+    from runnable import defaults
+
+    run_id = os.environ[defaults.ENV_RUN_ID]
+    run_log = load_run_log(run_id)
+
+    for param_name, expected_value in parameters.items():
+        assert (
+            param_name in run_log.parameters
+        ), f"Parameter {param_name} not found in root parameters"
+        actual_value = run_log.parameters[param_name].get_value()
+        assert (
+            actual_value == expected_value
+        ), f"Expected {param_name}={expected_value}, got {actual_value}"

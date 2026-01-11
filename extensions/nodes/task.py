@@ -37,11 +37,6 @@ class TaskNode(ExecutableNode):
             k: v for k, v in config.items() if k in TaskNode.model_fields.keys()
         }
 
-        # Pass internal_branch_name to the task so it knows which branch it belongs to
-        task_config["internal_branch_name"] = node_config.pop(
-            "internal_branch_name", ""
-        )
-
         executable = create_task(task_config)
         return cls(executable=executable, **node_config, **task_config)
 

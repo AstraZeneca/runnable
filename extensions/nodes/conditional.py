@@ -226,6 +226,7 @@ class ConditionalNode(CompositeNode):
 
         step_success_bool: bool = True
         parameter_value = self.get_parameter_value()
+        executed_branch_name = None
 
         for internal_branch_name, _ in self.branches.items():
             result = str(parameter_value) == internal_branch_name.split(".")[-1]
@@ -237,6 +238,7 @@ class ConditionalNode(CompositeNode):
             effective_branch_name = self._resolve_map_placeholders(
                 internal_branch_name, iter_variable=iter_variable
             )
+            executed_branch_name = effective_branch_name
 
             branch_log = self._context.run_log_store.get_branch_log(
                 effective_branch_name, self._context.run_id
@@ -255,6 +257,29 @@ class ConditionalNode(CompositeNode):
             step_log.status = defaults.FAIL
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+
+        # If we failed, return without parameter rollback
+        if not step_log.status == defaults.SUCCESS:
+            return
+
+        # Roll back parameters from executed branch to parent scope
+        if executed_branch_name:
+            parent_params = self._context.run_log_store.get_parameters(
+                self._context.run_id, internal_branch_name=self.internal_branch_name
+            )
+
+            branch_params = self._context.run_log_store.get_parameters(
+                self._context.run_id, internal_branch_name=executed_branch_name
+            )
+
+            # Merge branch parameters into parent (overwrite with branch values)
+            parent_params.update(branch_params)
+
+            self._context.run_log_store.set_parameters(
+                parameters=parent_params,
+                run_id=self._context.run_id,
+                internal_branch_name=self.internal_branch_name,
+            )
 
     async def execute_as_graph_async(
         self,

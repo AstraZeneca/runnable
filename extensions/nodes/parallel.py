@@ -238,6 +238,34 @@ class ParallelNode(CompositeNode):
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
+        # If we failed, return without parameter rollback
+        if not step_log.status == defaults.SUCCESS:
+            return
+
+        # Roll back parameters from all branches to parent scope
+        parent_params = self._context.run_log_store.get_parameters(
+            self._context.run_id, internal_branch_name=self.internal_branch_name
+        )
+
+        for internal_branch_name, _ in self.branches.items():
+            effective_branch_name = self._resolve_map_placeholders(
+                internal_branch_name, iter_variable=iter_variable
+            )
+
+            branch_params = self._context.run_log_store.get_parameters(
+                self._context.run_id, internal_branch_name=effective_branch_name
+            )
+
+            # Merge branch parameters into parent (overwrite with branch values)
+            # If multiple branches set the same parameter, last one wins
+            parent_params.update(branch_params)
+
+        self._context.run_log_store.set_parameters(
+            parameters=parent_params,
+            run_id=self._context.run_id,
+            internal_branch_name=self.internal_branch_name,
+        )
+
     async def execute_as_graph_async(
         self,
         iter_variable: Optional[IterableParameterModel] = None,

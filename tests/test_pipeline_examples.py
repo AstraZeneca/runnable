@@ -262,6 +262,26 @@ python_examples = [
         ],
     ),
     (
+        "02-sequential/conditional_rollback",
+        True,  # no_yaml
+        False,  # fails
+        [],  # ignore_contexts
+        "",  # parameters_file
+        [
+            partial(conditions.should_have_num_steps, 4),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_successful, "decide"),
+            partial(conditions.should_step_be_successful, "conditional"),
+            partial(conditions.should_step_be_successful, "verify"),
+            partial(conditions.should_branch_have_steps, "conditional", "heads", 2),
+            partial(conditions.should_branch_be_successful, "conditional", "heads"),
+            # Verify parameter rolled back to root
+            partial(
+                conditions.should_have_root_parameters, {"branch_param": "heads_value"}
+            ),
+        ],
+    ),
+    (
         "03-parameters/static_parameters_python",
         False,
         False,
@@ -636,6 +656,52 @@ python_examples = [
             partial(conditions.should_branch_have_steps, "parallel_step", "branch2", 3),
             partial(conditions.should_branch_be_successful, "parallel_step", "branch1"),
             partial(conditions.should_branch_be_failed, "parallel_step", "branch2"),
+        ],
+    ),
+    (
+        "06-parallel/parallel_rollback",
+        True,  # no_yaml
+        False,  # fails
+        [],  # ignore_contexts
+        "",  # parameters_file
+        [
+            partial(conditions.should_have_num_steps, 3),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_successful, "parallel"),
+            partial(conditions.should_step_be_successful, "verify"),
+            partial(conditions.should_branch_have_steps, "parallel", "branch1", 2),
+            partial(conditions.should_branch_have_steps, "parallel", "branch2", 2),
+            partial(conditions.should_branch_have_steps, "parallel", "branch3", 2),
+            partial(conditions.should_branch_be_successful, "parallel", "branch1"),
+            partial(conditions.should_branch_be_successful, "parallel", "branch2"),
+            partial(conditions.should_branch_be_successful, "parallel", "branch3"),
+            # Verify all parameters rolled back to root
+            partial(
+                conditions.should_have_root_parameters,
+                {
+                    "result1": "branch1_value",
+                    "result2": "branch2_value",
+                    "result3": "branch3_value",
+                },
+            ),
+        ],
+    ),
+    (
+        "06-parallel/parallel_conflict",
+        True,  # no_yaml
+        False,  # fails
+        [],  # ignore_contexts
+        "",  # parameters_file
+        [
+            partial(conditions.should_have_num_steps, 2),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_step_be_successful, "parallel"),
+            partial(conditions.should_branch_have_steps, "parallel", "branch1", 2),
+            partial(conditions.should_branch_have_steps, "parallel", "branch2", 2),
+            # Verify one of the values is present (last write wins)
+            # We can't assert which specific value because dict iteration order
+            # Just verify the parameter exists at root
+            partial(conditions.should_have_root_parameters, {"shared": "value_b"}),
         ],
     ),
     (

@@ -225,3 +225,59 @@ async def async_process(result: str):
     processed = f"processed_{result}"
     print(f"Processed: {processed}")
     return processed
+
+
+# Helper functions for conditional parameter rollback examples
+def set_conditional_heads_param():
+    """Set parameter when heads branch executes."""
+    return "heads_value"
+
+
+def set_conditional_tails_param():
+    """Set parameter when tails branch executes."""
+    return "tails_value"
+
+
+def set_conditional_multiple():
+    """Set multiple parameters in conditional branch."""
+    return "param1_value", "param2_value", "param3_value"
+
+
+def verify_conditional_rollback(branch_param: str):
+    """Verify rolled back parameter from conditional branch."""
+    assert branch_param in ["heads_value", "tails_value"]
+    return branch_param
+
+
+# Helper functions for parallel parameter rollback examples
+def set_parallel_branch1():
+    """Set parameter in parallel branch 1."""
+    return "branch1_value"
+
+
+def set_parallel_branch2():
+    """Set parameter in parallel branch 2."""
+    return "branch2_value"
+
+
+def set_parallel_branch3():
+    """Set parameter in parallel branch 3."""
+    return "branch3_value"
+
+
+def verify_parallel_rollback(result1: str, result2: str, result3: str):
+    """Verify all parallel branch parameters rolled back."""
+    assert result1 == "branch1_value"
+    assert result2 == "branch2_value"
+    assert result3 == "branch3_value"
+    return "verified"
+
+
+def set_shared_param_a():
+    """Set shared parameter to value A."""
+    return "value_a"
+
+
+def set_shared_param_b():
+    """Set shared parameter to value B."""
+    return "value_b"
