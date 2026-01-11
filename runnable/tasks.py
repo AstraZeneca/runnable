@@ -133,12 +133,12 @@ class BaseTaskType(BaseModel):
     returns: List[TaskReturns] = Field(
         default_factory=list, alias="returns"
     )  # The return values of the task
-    internal_branch_name: str = Field(default="", exclude=True)
+    internal_branch_name: str = Field(default="")
 
     model_config = ConfigDict(extra="forbid")
 
     def get_summary(self) -> Dict[str, Any]:
-        return self.model_dump(by_alias=True, exclude_none=True)
+        return self.model_dump(by_alias=True)
 
     @property
     def _context(self):
@@ -257,21 +257,21 @@ class BaseTaskType(BaseModel):
     ):
         """Resolve the unreduced parameters."""
         params = self._context.run_log_store.get_parameters(
-            run_id=self._context.run_id
+            run_id=self._context.run_id, internal_branch_name=self.internal_branch_name
         ).copy()
 
-        for param_name, param in params.items():
-            if param.reduced is False:
-                assert (
-                    iter_variable and iter_variable.map_variable is not None
-                ), "Parameters in non-map node should always be reduced"
+        # for param_name, param in params.items():
+        #     if param.reduced is False:
+        #         assert (
+        #             iter_variable and iter_variable.map_variable is not None
+        #         ), "Parameters in non-map node should always be reduced"
 
-                context_param = param_name
-                for _, v in iter_variable.map_variable.items():
-                    context_param = f"{v.value}_{context_param}"
+        #         context_param = param_name
+        #         for _, v in iter_variable.map_variable.items():
+        #             context_param = f"{v.value}_{context_param}"
 
-                if context_param in params:
-                    params[param_name].value = params[context_param].value
+        #         if context_param in params:
+        #             params[param_name].value = params[context_param].value
 
         return params
 
@@ -296,6 +296,9 @@ class BaseTaskType(BaseModel):
                 if isinstance(value, JsonParameter)
                 or isinstance(value, MetricParameter)
             }
+
+        print(f"Execution parameters: {params}")
+        print("internal_branch_name:", self.internal_branch_name)
 
         parameters_in = copy.deepcopy(params)
         try:

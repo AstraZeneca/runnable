@@ -38,7 +38,7 @@ class TaskNode(ExecutableNode):
         }
 
         # Pass internal_branch_name to the task so it knows which branch it belongs to
-        task_config["internal_branch_name"] = node_config.get(
+        task_config["internal_branch_name"] = node_config.pop(
             "internal_branch_name", ""
         )
 

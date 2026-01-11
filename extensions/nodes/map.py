@@ -11,11 +11,7 @@ from pydantic import Field
 
 from extensions.nodes.task import TaskNode
 from runnable import console, defaults, exceptions, utils
-from runnable.datastore import (
-    JsonParameter,
-    MetricParameter,
-    ObjectParameter,
-)
+from runnable.datastore import JsonParameter, MetricParameter, ObjectParameter
 from runnable.defaults import IterableParameterModel, MapVariableModel
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode
@@ -445,6 +441,9 @@ class MapNode(CompositeNode):
                 if param_name in branch_params:
                     to_reduce.append(branch_params[param_name].get_value())
 
+            print("----- FAN IN -----")
+            print(f"Reducing parameter {param_name} with values: {to_reduce}")
+            print("branch_name", self.internal_branch_name)
             # Create or update the parameter in parent scope with reduced value
             if to_reduce:
                 reduced_value = reducer_f(*to_reduce)
