@@ -251,37 +251,15 @@ class BaseTaskType(BaseModel):
         if q is not None:
             q.put_nowait(event)
 
-    def resolve_unreduced_parameters(
-        self,
-        iter_variable: Optional[IterableParameterModel] = None,
-    ):
-        """Resolve the unreduced parameters."""
-        params = self._context.run_log_store.get_parameters(
-            run_id=self._context.run_id, internal_branch_name=self.internal_branch_name
-        ).copy()
-
-        # for param_name, param in params.items():
-        #     if param.reduced is False:
-        #         assert (
-        #             iter_variable and iter_variable.map_variable is not None
-        #         ), "Parameters in non-map node should always be reduced"
-
-        #         context_param = param_name
-        #         for _, v in iter_variable.map_variable.items():
-        #             context_param = f"{v.value}_{context_param}"
-
-        #         if context_param in params:
-        #             params[param_name].value = params[context_param].value
-
-        return params
-
     @contextlib.contextmanager
     def execution_context(
         self,
         iter_variable: Optional[IterableParameterModel] = None,
         allow_complex: bool = True,
     ):
-        params = self.resolve_unreduced_parameters(iter_variable=iter_variable)
+        params = self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id, internal_branch_name=self.internal_branch_name
+        ).copy()
         logger.info(f"Parameters available for the execution: {params}")
 
         task_console.log("Parameters available for the execution:")
@@ -296,9 +274,6 @@ class BaseTaskType(BaseModel):
                 if isinstance(value, JsonParameter)
                 or isinstance(value, MetricParameter)
             }
-
-        print(f"Execution parameters: {params}")
-        print("internal_branch_name:", self.internal_branch_name)
 
         parameters_in = copy.deepcopy(params)
         try:
@@ -678,15 +653,6 @@ class NotebookTaskType(BaseTaskType):
                             copy_params[key] = JsonParameter(
                                 kind="json", value=value_model.value
                             )
-
-                    # Remove any {v}_unreduced parameters from the parameters
-                    unprocessed_params = [
-                        k for k, v in copy_params.items() if not v.reduced
-                    ]
-
-                    for key in list(copy_params.keys()):
-                        if any(key.endswith(f"_{k}") for k in unprocessed_params):
-                            del copy_params[key]
 
                     notebook_params = {k: v.get_value() for k, v in copy_params.items()}
 

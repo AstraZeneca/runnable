@@ -100,7 +100,7 @@ class MapNode(CompositeNode):
                         branch_returns.append(
                             (
                                 task_return.name,
-                                JsonParameter(kind="json", value="", reduced=False),
+                                JsonParameter(kind="json", value=""),
                             )
                         )
                     elif task_return.kind == "object":
@@ -109,8 +109,7 @@ class MapNode(CompositeNode):
                                 task_return.name,
                                 ObjectParameter(
                                     kind="object",
-                                    value="Will be reduced",
-                                    reduced=False,
+                                    value="",
                                 ),
                             )
                         )
@@ -118,7 +117,7 @@ class MapNode(CompositeNode):
                         branch_returns.append(
                             (
                                 task_return.name,
-                                MetricParameter(kind="metric", value="", reduced=False),
+                                MetricParameter(kind="metric", value=""),
                             )
                         )
                     else:
@@ -183,23 +182,6 @@ class MapNode(CompositeNode):
 
             branch_log.status = defaults.PROCESSING
             self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
-
-        # Gather all the returns of the task nodes and create parameters in reduced=False state.
-        raw_parameters = {}
-        if iter_variable and iter_variable.map_variable:
-            # If we are in a map state already, the param should have an index of the map variable.
-            for _, v in iter_variable.map_variable.items():
-                for branch_return in self.branch_returns:
-                    param_name, param_type = branch_return
-                    raw_parameters[f"{v.value}_{param_name}"] = param_type.model_copy()
-        else:
-            for branch_return in self.branch_returns:
-                param_name, param_type = branch_return
-                raw_parameters[f"{param_name}"] = param_type.model_copy()
-
-        self._context.run_log_store.set_parameters(
-            parameters=raw_parameters, run_id=self._context.run_id
-        )
 
     def execute_as_graph(
         self,
@@ -417,7 +399,7 @@ class MapNode(CompositeNode):
         # The final value of the parameter is the result of the reduce function.
         reducer_f = self.get_reducer_function()
 
-        # Get parent scope for setting reduced parameters
+        # Get parent scope for setting collected parameters
         # The parent is where the map node itself lives (no placeholder resolution needed)
         parent_params = self._context.run_log_store.get_parameters(
             self._context.run_id, internal_branch_name=self.internal_branch_name
@@ -441,22 +423,17 @@ class MapNode(CompositeNode):
                 if param_name in branch_params:
                     to_reduce.append(branch_params[param_name].get_value())
 
-            print("----- FAN IN -----")
-            print(f"Reducing parameter {param_name} with values: {to_reduce}")
-            print("branch_name", self.internal_branch_name)
-            # Create or update the parameter in parent scope with reduced value
+            # Create or update the parameter in parent scope with collected value
             if to_reduce:
-                reduced_value = reducer_f(*to_reduce)
+                value = reducer_f(*to_reduce)
             else:
-                reduced_value = ""
+                value = ""
 
             # Create parameter if it doesn't exist in parent
             if param_name not in parent_params:
-                parent_params[param_name] = JsonParameter(
-                    kind="json", value=reduced_value
-                )
+                parent_params[param_name] = JsonParameter(kind="json", value=value)
             else:
-                parent_params[param_name].value = reduced_value
+                parent_params[param_name].value = value
 
         self._context.run_log_store.set_parameters(
             parameters=parent_params,
