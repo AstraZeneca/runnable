@@ -447,10 +447,19 @@ class MapNode(CompositeNode):
                 if param_name in branch_params:
                     to_reduce.append(branch_params[param_name].get_value())
 
+            # Create or update the parameter in parent scope with reduced value
             if to_reduce:
-                parent_params[param_name].value = reducer_f(*to_reduce)
+                reduced_value = reducer_f(*to_reduce)
             else:
-                parent_params[param_name].value = ""
+                reduced_value = ""
+
+            # Create parameter if it doesn't exist in parent
+            if param_name not in parent_params:
+                parent_params[param_name] = JsonParameter(
+                    kind="json", value=reduced_value
+                )
+            else:
+                parent_params[param_name].value = reduced_value
 
         self._context.run_log_store.set_parameters(
             parameters=parent_params,
