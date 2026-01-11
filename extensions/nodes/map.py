@@ -422,12 +422,9 @@ class MapNode(CompositeNode):
         reducer_f = self.get_reducer_function()
 
         # Get parent scope for setting reduced parameters
-        # The parent is where the map node itself lives
-        parent_internal_branch_name = self._resolve_map_placeholders(
-            self.internal_branch_name, iter_variable=iter_variable
-        )
+        # The parent is where the map node itself lives (no placeholder resolution needed)
         parent_params = self._context.run_log_store.get_parameters(
-            self._context.run_id, internal_branch_name=parent_internal_branch_name
+            self._context.run_id, internal_branch_name=self.internal_branch_name
         )
 
         for branch_return in self.branch_returns:
@@ -465,7 +462,7 @@ class MapNode(CompositeNode):
         self._context.run_log_store.set_parameters(
             parameters=parent_params,
             run_id=self._context.run_id,
-            internal_branch_name=parent_internal_branch_name,
+            internal_branch_name=self.internal_branch_name,
         )
 
     async def execute_as_graph_async(
