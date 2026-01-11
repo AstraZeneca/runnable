@@ -696,9 +696,8 @@ class BaseRunLogStore(ABC, BaseModel):
             return run_log.parameters
 
         branch, _ = run_log.search_branch_by_internal_name(internal_branch_name)
-        if isinstance(branch, BranchLog):
-            return branch.parameters
-        return run_log.parameters
+        assert isinstance(branch, BranchLog)
+        return branch.parameters
 
     def set_parameters(
         self,
@@ -730,14 +729,13 @@ class BaseRunLogStore(ABC, BaseModel):
 
         if not internal_branch_name:
             run_log.parameters.update(parameters)
+            self.put_run_log(run_log=run_log)
         else:
             branch, _ = run_log.search_branch_by_internal_name(internal_branch_name)
-            if isinstance(branch, BranchLog):
-                branch.parameters.update(parameters)
-            else:
-                run_log.parameters.update(parameters)
-
-        self.put_run_log(run_log=run_log)
+            assert isinstance(branch, BranchLog)
+            branch.parameters.update(parameters)
+            # Update the branch back in the run log for file-based stores
+            self.add_branch_log(branch, run_id)
 
     def get_run_config(self, run_id: str) -> dict:
         """
