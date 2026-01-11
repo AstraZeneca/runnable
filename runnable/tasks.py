@@ -484,12 +484,7 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                             if task_return.kind == "metric":
                                 metrics[task_return.name] = output_parameter
 
-                            param_name = task_return.name
-                            if iter_variable and iter_variable.map_variable:
-                                for _, v in iter_variable.map_variable.items():
-                                    param_name = f"{v.value}_{param_name}"
-
-                            output_parameters[param_name] = output_parameter
+                            output_parameters[task_return.name] = output_parameter
 
                         attempt_log.output_parameters = output_parameters
                         attempt_log.user_defined_metrics = metrics
@@ -731,10 +726,6 @@ class NotebookTaskType(BaseTaskType):
                             param_name = Template(task_return.name).safe_substitute(
                                 template_vars  # type: ignore
                             )
-
-                            if iter_variable and iter_variable.map_variable:
-                                for _, v in iter_variable.map_variable.items():
-                                    param_name = f"{v.value}_{param_name}"
 
                             output_parameters[param_name] = task_return_to_parameter(
                                 task_return=task_return,
@@ -993,12 +984,7 @@ class ShellTaskType(BaseTaskType):
                                 if task_return.kind == "metric":
                                     metrics[task_return.name] = output_parameter
 
-                                param_name = task_return.name
-                                if iter_variable and iter_variable.map_variable:
-                                    for _, v in iter_variable.map_variable.items():
-                                        param_name = f"{v.value}_{param_name}"
-
-                                output_parameters[param_name] = output_parameter
+                                output_parameters[task_return.name] = output_parameter
 
                         attempt_log.output_parameters = output_parameters
                         attempt_log.user_defined_metrics = metrics
@@ -1203,12 +1189,7 @@ class AsyncPythonTaskType(BaseTaskType):
                             if task_return.kind == "metric":
                                 metrics[task_return.name] = output_parameter
 
-                            param_name = task_return.name
-                            if iter_variable and iter_variable.map_variable:
-                                for _, v in iter_variable.map_variable.items():
-                                    param_name = f"{v.value}_{param_name}"
-
-                            output_parameters[param_name] = output_parameter
+                            output_parameters[task_return.name] = output_parameter
 
                         attempt_log.output_parameters = output_parameters
                         attempt_log.user_defined_metrics = metrics
