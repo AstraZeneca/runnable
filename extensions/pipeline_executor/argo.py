@@ -741,6 +741,10 @@ class ArgoExecutor(GenericPipelineExecutor):
             **node_override.model_dump() if node_override else {},
         )
 
+        if iter_variable and iter_variable.map_variable:
+            # Do not cache map tasks as they have different inputs each time
+            container_template.memoize = None
+
         return container_template
 
     def _set_env_vars_to_task(
