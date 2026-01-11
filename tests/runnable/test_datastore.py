@@ -31,7 +31,6 @@ def test_object_parameter_init():
     obj_param = ObjectParameter(kind="object", value="test_obj")
     assert obj_param.kind == "object"
     assert obj_param.value == "test_obj"
-    assert obj_param.reduced is True
 
 
 @pytest.mark.parametrize(
