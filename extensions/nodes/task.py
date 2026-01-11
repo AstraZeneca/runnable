@@ -71,6 +71,9 @@ class TaskNode(ExecutableNode):
             self._get_step_log_name(iter_variable), self._context.run_id
         )
 
+        # Set the branch scope for parameter operations
+        self.executable.internal_branch_name = self._get_branch_log_name(iter_variable)
+
         if not mock:
             # Do not run if we are mocking the execution, could be useful for caching and dry runs
             attempt_log = self.executable.execute_command(iter_variable=iter_variable)
@@ -108,6 +111,9 @@ class TaskNode(ExecutableNode):
         step_log = self._context.run_log_store.get_step_log(
             self._get_step_log_name(iter_variable), self._context.run_id
         )
+
+        # Set the branch scope for parameter operations
+        self.executable.internal_branch_name = self._get_branch_log_name(iter_variable)
 
         if not mock:
             # Get event_callback from executor
