@@ -1,14 +1,14 @@
 import logging
 import os
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 from pydantic import Field, PrivateAttr
 
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
 from runnable.datastore import StepAttempt
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -172,16 +172,22 @@ class LocalContainerExecutor(GenericPipelineExecutor):
 
             logger.debug(f"Added docker image code identity: {docker_digest[:50]}...")
 
-    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_node(
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         We are already in the container, we just execute the node.
         The node is already prepared for execution.
         """
         self._use_volumes()
-        return self._execute_node(node, map_variable)
+        return self._execute_node(node, iter_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         We come into this step via execute from graph, use trigger job to spin up the container.
@@ -190,7 +196,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
 
         Args:
             node (BaseNode): The node we are currently executing
-            map_variable (str, optional): If the node is part of the map branch. Defaults to ''.
+            iter_variable (str, optional): If the node is part of the map branch. Defaults to ''.
         """
         self._mount_volumes()
         executor_config = self._resolve_executor_config(node)
@@ -200,18 +206,18 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         logger.debug(executor_config)
 
         command = self._context.get_node_callable_command(
-            node, map_variable=map_variable
+            node, iter_variable=iter_variable
         )
 
         self._spin_container(
             node=node,
             command=command,
-            map_variable=map_variable,
+            iter_variable=iter_variable,
             auto_remove_container=auto_remove_container,
         )
 
         step_log = self._context.run_log_store.get_step_log(
-            node._get_step_log_name(map_variable), self._context.run_id
+            node._get_step_log_name(iter_variable), self._context.run_id
         )
         if step_log.status != defaults.SUCCESS:
             msg = (
@@ -228,7 +234,7 @@ class LocalContainerExecutor(GenericPipelineExecutor):
         self,
         node: BaseNode,
         command: str,
-        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
         auto_remove_container: bool = True,
     ):
         """

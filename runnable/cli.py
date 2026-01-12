@@ -139,11 +139,11 @@ def execute_single_node(
             help="spec in yaml or python sdk",
         ),
     ] = ExecutionMode.YAML,
-    map_variable: Annotated[
+    iter_variable: Annotated[
         str,
         typer.Option(
-            "--map-variable",
-            help="The map variable dictionary in str",
+            "--iter-variable",
+            help="The iterable variable dictionary in str",
             show_default=True,
         ),
     ] = "",
@@ -154,7 +154,7 @@ def execute_single_node(
         pipeline_file=yaml_or_python_file,
         mode=mode,
         step_name=step_name,
-        map_variable=map_variable,
+        iter_variable=iter_variable,
         run_id=run_id,
         tag=tag,
         parameters_file=parameters_file,
@@ -169,11 +169,11 @@ def fan(
         str, typer.Argument(help="The pipeline definition file")
     ],
     in_or_out: Annotated[str, typer.Argument(help="The fan mode")],
-    map_variable: Annotated[
+    iter_variable: Annotated[
         str,
         typer.Option(
-            "--map-variable",
-            help="The map variable dictionary in str",
+            "--iter-variable",
+            help="The iterable variable dictionary in str",
             show_default=True,
         ),
     ] = "",
@@ -219,7 +219,7 @@ def fan(
         step_name=step_name,
         mode=mode,
         in_or_out=in_or_out,
-        map_variable=map_variable,
+        iter_variable=iter_variable,
         run_id=run_id,
         tag=tag,
         parameters_file=parameters_file,

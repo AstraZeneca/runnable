@@ -11,17 +11,13 @@ import time
 from collections import OrderedDict
 from pathlib import Path
 from string import Template as str_template
-from typing import TYPE_CHECKING, Any, Dict, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 from ruamel.yaml import YAML
 
 import runnable.context as context
 from runnable import console, defaults
-from runnable.defaults import MapVariableType
-
-if TYPE_CHECKING:  # pragma: no cover
-    pass
-
+from runnable.defaults import IterableParameterModel
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 logging.getLogger("stevedore").setLevel(logging.CRITICAL)
@@ -379,7 +375,7 @@ def _compute_large_file_fingerprint(file_name: str, file_size: int) -> str:
     return file_hash.hexdigest()
 
 
-def json_to_ordered_dict(json_str: str) -> MapVariableType:
+def json_to_ordered_dict(json_str: str) -> OrderedDict:
     """Decode a JSON str into OrderedDict.
 
     Args:
@@ -410,12 +406,15 @@ def gather_variables() -> Dict[str, str]:
     return variables
 
 
-def make_log_file_name(name: str, map_variable: MapVariableType) -> str:
+def make_log_file_name(
+    name: str,
+    iter_variable: Optional[IterableParameterModel] = None,
+) -> str:
     random_tag = "".join(random.choices(string.ascii_uppercase + string.digits, k=3))
     log_file_name = name
 
-    if map_variable:
-        for _, value in map_variable.items():
+    if iter_variable and iter_variable.map_variable:
+        for _, value in iter_variable.map_variable.items():
             log_file_name += "_" + str(value)
 
     log_file_name += "_" + random_tag

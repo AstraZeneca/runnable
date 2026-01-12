@@ -10,7 +10,7 @@ class MockTask(BaseTaskType):
     task_type: str = "mock"
     command: str = "test_command"
 
-    def execute_command(self, map_variable=None):
+    def execute_command(self, iter_variable=None):
         return StepAttempt(status=defaults.SUCCESS, start_time=str(datetime.now()))
 
     def get_summary(self):
@@ -130,6 +130,8 @@ def test_task_node_mock_execution(mocker):
 
 def test_task_node_with_map_variable(mocker):
     """Test TaskNode execution with map variable"""
+    from runnable.defaults import IterableParameterModel, MapVariableModel
+
     task = MockTask()
     node = TaskNode(
         name="test_task",
@@ -137,7 +139,10 @@ def test_task_node_with_map_variable(mocker):
         executable=task,
         next_node="next_step",
     )
-    map_variable = {"test_var": "test_value"}
+    # Create IterableParameterModel for testing
+    iter_variable = IterableParameterModel(
+        map_variable={"test_var": MapVariableModel(value="test_value")}
+    )
     mock_context = mocker.Mock()
     mock_context.run_id = "test_run"
     mock_context.run_log_store.get_step_log.return_value = StepLog(
@@ -149,9 +154,9 @@ def test_task_node_with_map_variable(mocker):
         new_callable=mocker.PropertyMock,
         return_value=mock_context,
     )
-    node.execute(map_variable=map_variable)
+    node.execute(iter_variable=iter_variable)
     mock_context.run_log_store.get_step_log.assert_called_once_with(
-        node._get_step_log_name(map_variable), "test_run"
+        node._get_step_log_name(iter_variable), "test_run"
     )
 
 

@@ -2,12 +2,13 @@ import logging
 import shlex
 import subprocess
 import sys
+from typing import Optional
 
 from pydantic import PrivateAttr
 
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import defaults
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.nodes import BaseNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -34,24 +35,26 @@ class Emulator(GenericPipelineExecutor):
     _should_setup_run_log_at_traversal: bool = PrivateAttr(default=True)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         In this mode of execution, we prepare for the node execution and execute the node
 
         Args:
             node (BaseNode): [description]
-            map_variable (str, optional): [description]. Defaults to ''.
+            iter_variable (str, optional): [description]. Defaults to ''.
         """
         command = self._context.get_node_callable_command(
-            node, map_variable=map_variable
+            node, iter_variable=iter_variable
         )
 
         self.run_click_command(command)
         # execute the command in a forked process
 
         step_log = self._context.run_log_store.get_step_log(
-            node._get_step_log_name(map_variable), self._context.run_id
+            node._get_step_log_name(iter_variable), self._context.run_id
         )
         if step_log.status != defaults.SUCCESS:
             msg = "Node execution inside the emulate failed. Please check the logs.\n"
@@ -59,15 +62,19 @@ class Emulator(GenericPipelineExecutor):
             step_log.status = defaults.FAIL
             self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_node(
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         For local execution, we just execute the node.
 
         Args:
             node (BaseNode): _description_
-            map_variable (dict[str, str], optional): _description_. Defaults to None.
+            iter_variable (dict[str, str], optional): _description_. Defaults to None.
         """
-        self._execute_node(node=node, map_variable=map_variable)
+        self._execute_node(node=node, iter_variable=iter_variable)
 
     def run_click_command(self, command: str) -> str:
         """

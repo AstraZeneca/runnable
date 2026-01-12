@@ -3,14 +3,14 @@ import inspect
 import json
 import logging
 import os
-from typing import Any, Dict, Type, get_origin
+from typing import Any, Dict, Optional, Type, get_origin
 
 from pydantic import BaseModel, ConfigDict
 from typing_extensions import Callable
 
 from runnable import defaults
 from runnable.datastore import JsonParameter, ObjectParameter
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.utils import remove_prefix
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
@@ -82,7 +82,7 @@ def return_json_parameters(params: Dict[str, Any]) -> Dict[str, Any]:
 def filter_arguments_for_func(
     func: Callable[..., Any],
     params: Dict[str, Any],
-    map_variable: MapVariableType = None,
+    iter_variable: Optional[IterableParameterModel] = None,
 ) -> Dict[str, Any]:
     """
     Inspects the function to be called as part of the pipeline to find the arguments of the function.
@@ -105,8 +105,10 @@ def filter_arguments_for_func(
     function_args = inspect.signature(func).parameters
 
     # Update parameters with the map variables
-    for key, v in (map_variable or {}).items():
-        params[key] = JsonParameter(kind="json", value=v)
+    for key, v in (
+        (iter_variable.map_variable if iter_variable else None) or {}
+    ).items():
+        params[key] = JsonParameter(kind="json", value=v.value)
 
     bound_args = {}
     var_keyword_param = None

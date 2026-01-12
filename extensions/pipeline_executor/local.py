@@ -7,7 +7,7 @@ from pydantic import Field, PrivateAttr
 from extensions.pipeline_executor import GenericPipelineExecutor
 from runnable import console, defaults
 from runnable.datastore import DataCatalog
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel
 from runnable.graph import Graph
 from runnable.nodes import BaseNode
 
@@ -40,40 +40,52 @@ class LocalExecutor(GenericPipelineExecutor):
 
     _is_local: bool = PrivateAttr(default=True)
 
-    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_from_graph(
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         if not self.object_serialisation:
             self._context.object_serialisation = False
 
-        super().execute_from_graph(node=node, map_variable=map_variable)
+        super().execute_from_graph(node=node, iter_variable=iter_variable)
 
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         In this mode of execution, we prepare for the node execution and execute the node
 
         Args:
             node (BaseNode): [description]
-            map_variable (str, optional): [description]. Defaults to ''.
+            iter_variable (str, optional): [description]. Defaults to ''.
         """
-        self.execute_node(node=node, map_variable=map_variable)
+        self.execute_node(node=node, iter_variable=iter_variable)
 
-    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_node(
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         For local execution, we just execute the node.
 
         Args:
             node (BaseNode): _description_
-            map_variable (dict[str, str], optional): _description_. Defaults to None.
+            iter_variable (dict[str, str], optional): _description_. Defaults to None.
         """
-        self._execute_node(node=node, map_variable=map_variable)
+        self._execute_node(node=node, iter_variable=iter_variable)
 
     # ═══════════════════════════════════════════════════════════════
     # Async Path - implement async methods for local execution
     # ═══════════════════════════════════════════════════════════════
 
     async def execute_graph_async(
-        self, dag: Graph, map_variable: MapVariableType = None
+        self,
+        dag: Graph,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Async graph traversal."""
         current_node = dag.start_at
@@ -84,7 +96,7 @@ class LocalExecutor(GenericPipelineExecutor):
         if dag.internal_branch_name:
             branch_task_name = BaseNode._resolve_map_placeholders(
                 dag.internal_branch_name or "Graph",
-                map_variable,
+                iter_variable,
             )
             console.print(
                 f":runner: Executing the branch {branch_task_name} ... ",
@@ -94,7 +106,7 @@ class LocalExecutor(GenericPipelineExecutor):
         while True:
             working_on = dag.get_node_by_name(current_node)
             task_name = working_on._resolve_map_placeholders(
-                working_on.internal_name, map_variable
+                working_on.internal_name, iter_variable
             )
 
             if previous_node == current_node:
@@ -103,11 +115,11 @@ class LocalExecutor(GenericPipelineExecutor):
 
             try:
                 await self.execute_from_graph_async(
-                    working_on, map_variable=map_variable
+                    working_on, iter_variable=iter_variable
                 )
                 # Sync helper - no await needed
                 status, next_node_name = self._get_status_and_next_node_name(
-                    current_node=working_on, dag=dag, map_variable=map_variable
+                    current_node=working_on, dag=dag, iter_variable=iter_variable
                 )
 
                 if status == defaults.SUCCESS:
@@ -127,47 +139,54 @@ class LocalExecutor(GenericPipelineExecutor):
             current_node = next_node_name
 
         # Sync helper - no await needed
-        self._finalize_graph_execution(working_on, dag, map_variable)
+        self._finalize_graph_execution(working_on, dag, iter_variable)
 
     async def execute_from_graph_async(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Async node execution entry point."""
         if not self.object_serialisation:
             self._context.object_serialisation = False
 
         # Sync helper - no await needed
-        step_log = self._prepare_node_for_execution(node, map_variable)
+        step_log = self._prepare_node_for_execution(node, iter_variable)
         if step_log is None:
             return  # Skipped
 
         logger.info(f"Executing node: {node.get_summary()}")
 
         if node.node_type in ["success", "fail"]:
-            await self._execute_node_async(node, map_variable=map_variable)
+            await self._execute_node_async(node, iter_variable=iter_variable)
             return
 
         if node.is_composite:
-            await node.execute_as_graph_async(map_variable=map_variable)
+            await node.execute_as_graph_async(iter_variable=iter_variable)
             return
 
-        task_name = node._resolve_map_placeholders(node.internal_name, map_variable)
+        task_name = node._resolve_map_placeholders(node.internal_name, iter_variable)
         console.print(
             f":runner: Executing the node {task_name} ... ", style="bold color(208)"
         )
-        await self.trigger_node_execution_async(node=node, map_variable=map_variable)
+        await self.trigger_node_execution_async(node=node, iter_variable=iter_variable)
 
     async def trigger_node_execution_async(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """Async trigger for node execution."""
-        await self._execute_node_async(node=node, map_variable=map_variable)
+        await self._execute_node_async(node=node, iter_variable=iter_variable)
 
     async def _execute_node_async(
-        self, node: BaseNode, map_variable: MapVariableType = None, mock: bool = False
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
+        mock: bool = False,
     ):
         """Async node execution wrapper."""
-        current_attempt_number = self._calculate_attempt_number(node, map_variable)
+        current_attempt_number = self._calculate_attempt_number(node, iter_variable)
         os.environ[defaults.ATTEMPT_NUMBER] = str(current_attempt_number)
 
         logger.info(
@@ -182,7 +201,7 @@ class LocalExecutor(GenericPipelineExecutor):
 
         # ASYNC - execute the node
         step_log = await node.execute_async(
-            map_variable=map_variable,
+            iter_variable=iter_variable,
             attempt_number=current_attempt_number,
             mock=mock,
         )
@@ -200,7 +219,7 @@ class LocalExecutor(GenericPipelineExecutor):
         console.print(step_log.get_summary(), style=defaults.info_style)
 
         self.add_task_log_to_catalog(
-            name=self._context_node.internal_name, map_variable=map_variable
+            name=self._context_node.internal_name, iter_variable=iter_variable
         )
         self._context_node = None
 

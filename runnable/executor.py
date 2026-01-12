@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, PrivateAttr
 import runnable.context as context
 from runnable import defaults
 from runnable.datastore import DataCatalog, JobLog, StepAttempt
-from runnable.defaults import MapVariableType
+from runnable.defaults import IterableParameterModel
 
 if TYPE_CHECKING:  # pragma: no cover
     from runnable.graph import Graph
@@ -69,7 +69,9 @@ class BaseExecutor(ABC, BaseModel):
 
     @abstractmethod
     def _calculate_attempt_number(
-        self, node: "BaseNode", map_variable: MapVariableType = None
+        self,
+        node: "BaseNode",
+        iter_variable: IterableParameterModel | None = None,
     ) -> int:
         """
         Calculate the attempt number for a node based on existing attempts in the run log.
@@ -95,7 +97,9 @@ class BaseExecutor(ABC, BaseModel):
 
     @abstractmethod
     def add_task_log_to_catalog(
-        self, name: str, map_variable: Optional[MapVariableType] = None
+        self,
+        name: str,
+        iter_variable: Optional[IterableParameterModel] = None,
     ): ...
 
 
@@ -116,7 +120,9 @@ class BaseJobExecutor(BaseExecutor):
         ...
 
     def _calculate_attempt_number(
-        self, node: "BaseNode", map_variable: MapVariableType = None
+        self,
+        node: "BaseNode",
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> int:
         """
         Calculate the attempt number for a node.
@@ -231,7 +237,9 @@ class BasePipelineExecutor(BaseExecutor):
 
     @abstractmethod
     def _calculate_attempt_number(
-        self, node: "BaseNode", map_variable: MapVariableType = None
+        self,
+        node: "BaseNode",
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> int:
         """
         Calculate the attempt number for a node based on existing attempts in the run log.
@@ -252,7 +260,7 @@ class BasePipelineExecutor(BaseExecutor):
     def _execute_node(
         self,
         node: BaseNode,
-        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
         mock: bool = False,
     ):
         """
@@ -276,7 +284,11 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def execute_node(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_node(
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         The entry point for all executors apart from local.
         We have already prepared for node execution.
@@ -291,7 +303,11 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def execute_from_graph(self, node: BaseNode, map_variable: MapVariableType = None):
+    def execute_from_graph(
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This is the entry point to from the graph execution.
 
@@ -320,7 +336,10 @@ class BasePipelineExecutor(BaseExecutor):
 
     @abstractmethod
     def _get_status_and_next_node_name(
-        self, current_node: BaseNode, dag: Graph, map_variable: MapVariableType = None
+        self,
+        current_node: BaseNode,
+        dag: Graph,
+        iter_variable: Optional[IterableParameterModel] = None,
     ) -> tuple[str, str]:
         """
         Given the current node and the graph, returns the name of the next node to execute.
@@ -339,7 +358,11 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def execute_graph(self, dag: Graph, map_variable: MapVariableType = None):
+    def execute_graph(
+        self,
+        dag: Graph,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         The parallelization is controlled by the nodes and not by this function.
 
@@ -394,7 +417,11 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def fan_out(self, node: BaseNode, map_variable: MapVariableType = None):
+    def fan_out(
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This method is used to appropriately fan-out the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
@@ -417,7 +444,11 @@ class BasePipelineExecutor(BaseExecutor):
         ...
 
     @abstractmethod
-    def fan_in(self, node: BaseNode, map_variable: MapVariableType = None):
+    def fan_in(
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This method is used to appropriately fan-in after the execution of a composite node.
         This is only useful when we want to execute a composite node during 3rd party orchestrators.
@@ -440,7 +471,9 @@ class BasePipelineExecutor(BaseExecutor):
 
     @abstractmethod
     def trigger_node_execution(
-        self, node: BaseNode, map_variable: MapVariableType = None
+        self,
+        node: BaseNode,
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         Executor specific way of triggering jobs when runnable does both traversal and execution
@@ -463,7 +496,9 @@ class BasePipelineExecutor(BaseExecutor):
     # ═══════════════════════════════════════════════════════════════
 
     async def execute_graph_async(
-        self, dag: "Graph", map_variable: MapVariableType = None
+        self,
+        dag: "Graph",
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         Async graph traversal.
@@ -480,7 +515,9 @@ class BasePipelineExecutor(BaseExecutor):
         )
 
     async def execute_from_graph_async(
-        self, node: "BaseNode", map_variable: MapVariableType = None
+        self,
+        node: "BaseNode",
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         Async node execution entry point.
@@ -493,7 +530,9 @@ class BasePipelineExecutor(BaseExecutor):
         )
 
     async def trigger_node_execution_async(
-        self, node: "BaseNode", map_variable: MapVariableType = None
+        self,
+        node: "BaseNode",
+        iter_variable: Optional[IterableParameterModel] = None,
     ):
         """
         Async trigger for node execution.
@@ -508,7 +547,7 @@ class BasePipelineExecutor(BaseExecutor):
     async def _execute_node_async(
         self,
         node: "BaseNode",
-        map_variable: MapVariableType = None,
+        iter_variable: Optional[IterableParameterModel] = None,
         mock: bool = False,
     ):
         """

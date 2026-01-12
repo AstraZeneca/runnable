@@ -1,19 +1,13 @@
 import json
 import logging
-import time
 from abc import abstractmethod
 from enum import Enum
-from string import Template
 from typing import Any, Dict, Union
 
 from runnable import defaults, exceptions
 from runnable.datastore import (
     BaseRunLogStore,
     BranchLog,
-    JsonParameter,
-    MetricParameter,
-    ObjectParameter,
-    Parameter,
     RunLog,
     StepLog,
 )
@@ -31,63 +25,60 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
     class LogTypes(Enum):
         RUN_LOG = "RunLog"
-        PARAMETER = "Parameter"
-        STEP_LOG = "StepLog"
         BRANCH_LOG = "BranchLog"
 
     class ModelTypes(Enum):
         RUN_LOG = RunLog
-        PARAMETER = dict
-        STEP_LOG = StepLog
         BRANCH_LOG = BranchLog
 
-    def naming_pattern(self, log_type: LogTypes, name: str = "") -> str:
+    def get_file_name(self, log_type: LogTypes, name: str = "") -> str:
         """
-        Naming pattern to store RunLog, Parameter, StepLog or BranchLog.
-
-        The reasoning for name to be defaulted to empty string:
-            Its actually conditionally empty. For RunLog and Parameter it is empty.
-            For StepLog and BranchLog it should be provided.
+        Get the exact file name for a log type.
 
         Args:
-            log_type (LogTypes): One of RunLog, Parameter, StepLog or BranchLog
-            name (str, optional): The name to be included or left. Defaults to ''.
+            log_type (LogTypes): Either RUN_LOG or BRANCH_LOG
+            name (str, optional): The internal_branch_name for BranchLog. Defaults to ''.
 
         Raises:
-            Exception: If log_type is not recognized
+            Exception: If log_type is not recognized or name is missing for BRANCH_LOG
 
         Returns:
-            str: The naming pattern
+            str: The exact file name
         """
         if log_type == self.LogTypes.RUN_LOG:
-            return f"{self.LogTypes.RUN_LOG.value}"
-
-        if log_type == self.LogTypes.PARAMETER:
-            return "-".join([self.LogTypes.PARAMETER.value, name])
-
-        if not name:
-            raise Exception(
-                f"Name should be provided for naming pattern for {log_type}"
-            )
-
-        if log_type == self.LogTypes.STEP_LOG:
-            return "-".join([self.LogTypes.STEP_LOG.value, name, "${creation_time}"])
+            return self.LogTypes.RUN_LOG.value
 
         if log_type == self.LogTypes.BRANCH_LOG:
-            return "-".join([self.LogTypes.BRANCH_LOG.value, name, "${creation_time}"])
+            if not name:
+                raise Exception("Name (internal_branch_name) required for BRANCH_LOG")
+            return f"{self.LogTypes.BRANCH_LOG.value}-{name}"
 
-        raise Exception("Unexpected log type")
+        raise Exception(f"Unexpected log type: {log_type}")
 
     @abstractmethod
-    def get_matches(
-        self, run_id: str, name: str, multiple_allowed: bool = False
-    ) -> None | str | list[str]:
+    def _exists(self, run_id: str, name: str) -> bool:
         """
-        Get contents of persistence layer matching the pattern name*
+        Check if a file exists in the persistence layer.
 
         Args:
             run_id (str): The run id
-            name (str): The suffix of the entity name to check in the run log store.
+            name (str): The exact file name to check
+
+        Returns:
+            bool: True if file exists, False otherwise
+        """
+        ...
+
+    @abstractmethod
+    def _list_branch_logs(self, run_id: str) -> list[str]:
+        """
+        List all branch log file names for a run_id.
+
+        Args:
+            run_id (str): The run id
+
+        Returns:
+            list[str]: List of branch log file names (e.g., ["BranchLog-map.1", "BranchLog-map.2"])
         """
         ...
 
@@ -117,126 +108,53 @@ class ChunkedRunLogStore(BaseRunLogStore):
         ...
 
     def store(self, run_id: str, log_type: LogTypes, contents: dict, name: str = ""):
-        """Store a SINGLE log type in the file system
+        """Store a log in the persistence layer.
 
         Args:
             run_id (str): The run id to store against
-            log_type (LogTypes): The type of log to store
+            log_type (LogTypes): The type of log to store (RUN_LOG or BRANCH_LOG)
             contents (dict): The dict of contents to store
-            name (str, optional): The name against the contents have to be stored. Defaults to ''.
+            name (str, optional): The internal_branch_name for BRANCH_LOG. Defaults to ''.
         """
-        naming_pattern = self.naming_pattern(log_type=log_type, name=name)
-        match = self.get_matches(
-            run_id=run_id, name=naming_pattern, multiple_allowed=False
-        )
-        # The boolean multiple allowed confuses mypy a lot!
-        name_to_give: str = ""
-        insert = False
+        file_name = self.get_file_name(log_type=log_type, name=name)
 
-        if match:
-            assert isinstance(match, str)
-            existing_contents = self._retrieve(run_id=run_id, name=match)
+        # Check if file exists to determine if this is an update or insert
+        insert = not self._exists(run_id=run_id, name=file_name)
+
+        if not insert:
+            # File exists - merge with existing contents
+            existing_contents = self._retrieve(run_id=run_id, name=file_name)
             contents = dict(existing_contents, **contents)
-            name_to_give = match
-        else:
-            name_to_give = Template(naming_pattern).safe_substitute(
-                {"creation_time": str(int(time.time_ns()))}
-            )
-            insert = True
 
-        self._store(run_id=run_id, contents=contents, name=name_to_give, insert=insert)
+        self._store(run_id=run_id, contents=contents, name=file_name, insert=insert)
 
-    def retrieve(
-        self, run_id: str, log_type: LogTypes, name: str = "", multiple_allowed=False
-    ) -> Any:
+    def retrieve(self, run_id: str, log_type: LogTypes, name: str = "") -> Any:
         """
-        Retrieve the model given a log_type and a name.
-        Use multiple_allowed to control if you are expecting multiple of them.
-        eg: There could be multiple of Parameters- but only one of StepLog-stepname
-
-        The reasoning for name to be defaulted to empty string:
-            Its actually conditionally empty. For RunLog and Parameter it is empty.
-            For StepLog and BranchLog it should be provided.
+        Retrieve a log model by type and name.
 
         Args:
             run_id (str): The run id
-            log_type (LogTypes): One of RunLog, Parameter, StepLog, BranchLog
-            name (str, optional): The name to match. Defaults to ''.
-            multiple_allowed (bool, optional): Are multiple allowed. Defaults to False.
+            log_type (LogTypes): Either RUN_LOG or BRANCH_LOG
+            name (str, optional): The internal_branch_name for BRANCH_LOG. Defaults to ''.
 
         Raises:
-            FileNotFoundError: If there is no match found
+            Exception: If name is missing for BRANCH_LOG
+            EntityNotFoundError: If the file is not found
 
         Returns:
-            Any: One of StepLog, BranchLog, Parameter or RunLog
+            Union[RunLog, BranchLog]: The requested log object
         """
-        # The reason of any is it could be one of Logs or dict or list of the
-        if not name and log_type not in [
-            self.LogTypes.RUN_LOG,
-            self.LogTypes.PARAMETER,
-        ]:
-            raise Exception(f"Name is required during retrieval for {log_type}")
+        if log_type == self.LogTypes.BRANCH_LOG and not name:
+            raise Exception("Name (internal_branch_name) required for BRANCH_LOG")
 
-        naming_pattern = self.naming_pattern(log_type=log_type, name=name)
+        file_name = self.get_file_name(log_type=log_type, name=name)
 
-        matches = self.get_matches(
-            run_id=run_id, name=naming_pattern, multiple_allowed=multiple_allowed
-        )
+        if not self._exists(run_id=run_id, name=file_name):
+            raise exceptions.EntityNotFoundError()
 
-        if matches:
-            if not multiple_allowed:
-                assert isinstance(matches, str)
-                contents = self._retrieve(run_id=run_id, name=matches)
-                model = self.ModelTypes[log_type.name].value
-                return model(**contents)
-
-            assert isinstance(matches, list)
-            models = []
-            for match in matches:
-                contents = self._retrieve(run_id=run_id, name=match)
-                model = self.ModelTypes[log_type.name].value
-                models.append(model(**contents))
-            return models
-
-        raise exceptions.EntityNotFoundError()
-
-    def orderly_retrieve(
-        self, run_id: str, log_type: LogTypes
-    ) -> Dict[str, Union[StepLog, BranchLog]]:
-        """Should only be used by prepare full run log.
-
-        Retrieves the StepLog or BranchLog sorted according to creation time.
-
-        Args:
-            run_id (str): _description_
-            log_type (LogTypes): _description_
-        """
-        prefix: str = self.LogTypes.STEP_LOG.value
-
-        if log_type == self.LogTypes.BRANCH_LOG:
-            prefix = self.LogTypes.BRANCH_LOG.value
-
-        matches = self.get_matches(run_id=run_id, name=prefix, multiple_allowed=True)
-
-        if log_type == self.LogTypes.BRANCH_LOG and not matches:
-            # No branch logs are found
-            return {}
-        # Forcing get_matches to always return a list is a better design
-
-        assert isinstance(matches, list)
-        epoch_created = [str(match).split("-")[-1] for match in matches]
-
-        # sort matches by epoch created
-        epoch_created, matches = zip(*sorted(zip(epoch_created, matches)))  # type: ignore
-
-        logs: Dict[str, Union[StepLog, BranchLog]] = {}
-
-        for match in matches:
-            model = self.ModelTypes[log_type.name].value
-            log_model = model(**self._retrieve(run_id=run_id, name=match))
-            logs[log_model.internal_name] = log_model  # type: ignore
-
-        return logs
+        contents = self._retrieve(run_id=run_id, name=file_name)
+        model_class = self.ModelTypes[log_type.name].value
+        return model_class.model_validate(contents)
 
     def _get_parent_branch(self, name: str) -> Union[str, None]:
         """
@@ -276,38 +194,47 @@ class ChunkedRunLogStore(BaseRunLogStore):
 
     def _prepare_full_run_log(self, run_log: RunLog):
         """
-        Populates the run log with the branches and steps.
+        Populate run log with branch logs.
 
-        Args:
-            run_log (RunLog): The partial run log containing empty step logs
+        Since branches now contain their own steps and parameters,
+        we just need to attach branches to their parent steps.
         """
         run_id = run_log.run_id
-        run_log.parameters = self.get_parameters(run_id=run_id)
 
-        ordered_steps = self.orderly_retrieve(
-            run_id=run_id, log_type=self.LogTypes.STEP_LOG
-        )
-        ordered_branches = self.orderly_retrieve(
-            run_id=run_id, log_type=self.LogTypes.BRANCH_LOG
-        )
+        # Get all branch log file names
+        branch_file_names = self._list_branch_logs(run_id=run_id)
+        if not branch_file_names:
+            return
 
-        current_branch: Any = None  # It could be str, None, RunLog
-        for step_internal_name, _ in ordered_steps.items():
-            current_branch = self._get_parent_branch(step_internal_name)
-            step_to_add_branch = self._get_parent_step(step_internal_name)
+        # Load all branch logs
+        branch_logs: Dict[str, BranchLog] = {}
+        for file_name in branch_file_names:
+            contents = self._retrieve(run_id=run_id, name=file_name)
+            branch_log = BranchLog.model_validate(contents)
+            branch_logs[branch_log.internal_name] = branch_log
 
-            if not current_branch:
-                current_branch = run_log
-            else:
-                current_branch = ordered_branches[current_branch]
-                step_to_add_branch = ordered_steps[step_to_add_branch]  # type: ignore
-                step_to_add_branch.branches[current_branch.internal_name] = (  # type: ignore
-                    current_branch
+        # Attach branches to their parent steps
+        for branch_name, branch_log in branch_logs.items():
+            # For a branch like "conditional.heads", parent step is "conditional"
+            # For a branch like "map.a.nested", parent step is "map.a"
+            dot_path = branch_name.split(".")
+            if len(dot_path) < 2:
+                # Branches must have at least step.branch format
+                continue
+
+            parent_step_name = ".".join(dot_path[:-1])
+
+            # Find parent step (could be in run_log or another branch)
+            parent_branch_name = self._get_parent_branch(parent_step_name)
+            if parent_branch_name and parent_branch_name in branch_logs:
+                parent_step = branch_logs[parent_branch_name].steps.get(
+                    parent_step_name
                 )
+            else:
+                parent_step = run_log.steps.get(parent_step_name)
 
-            current_branch.steps[step_internal_name] = ordered_steps[
-                step_internal_name
-            ]  # ty: ignore[invalid-assignment]
+            if parent_step:
+                parent_step.branches[branch_name] = branch_log
 
     def create_run_log(
         self,
@@ -364,9 +291,7 @@ class ChunkedRunLogStore(BaseRunLogStore):
         """
         try:
             logger.info(f"{self.service_name} Getting a Run Log for : {run_id}")
-            run_log = self.retrieve(
-                run_id=run_id, log_type=self.LogTypes.RUN_LOG, multiple_allowed=False
-            )
+            run_log = self.retrieve(run_id=run_id, log_type=self.LogTypes.RUN_LOG)
 
             if full:
                 self._prepare_full_run_log(run_log=run_log)
@@ -395,65 +320,56 @@ class ChunkedRunLogStore(BaseRunLogStore):
             log_type=self.LogTypes.RUN_LOG,
         )
 
-    def get_parameters(self, run_id: str) -> dict:
+    def get_parameters(self, run_id: str, internal_branch_name: str = "") -> dict:
         """
-        Get the parameters from the Run log defined by the run_id
+        Get parameters from RunLog or BranchLog.
 
         Args:
             run_id (str): The run_id of the run
-
-        The method should:
-            * Call get_run_log_by_id(run_id) to retrieve the run_log
-            * Return the parameters as identified in the run_log
+            internal_branch_name (str): If provided, get from that branch
 
         Returns:
-            dict: A dictionary of the run_log parameters
-        Raises:
-            RunLogNotFoundError: If the run log for run_id is not found in the datastore
+            dict: Parameters from the specified scope
         """
-        parameters: Dict[str, Parameter] = {}
-        try:
-            parameters_list = self.retrieve(
-                run_id=run_id, log_type=self.LogTypes.PARAMETER, multiple_allowed=True
+        if internal_branch_name:
+            branch = self.retrieve(
+                run_id=run_id,
+                log_type=self.LogTypes.BRANCH_LOG,
+                name=internal_branch_name,
             )
-            for param in parameters_list:
-                for key, value in param.items():
-                    if value["kind"] == "json":
-                        parameters[key] = JsonParameter(**value)
-                    if value["kind"] == "metric":
-                        parameters[key] = MetricParameter(**value)
-                    if value["kind"] == "object":
-                        parameters[key] = ObjectParameter(**value)
-        except exceptions.EntityNotFoundError:
-            # No parameters are set
-            pass
+            return branch.parameters
 
-        return parameters
+        run_log = self.get_run_log_by_id(run_id=run_id)
+        return run_log.parameters
 
-    def set_parameters(self, run_id: str, parameters: dict):
+    def set_parameters(
+        self, run_id: str, parameters: dict, internal_branch_name: str = ""
+    ):
         """
-        Update the parameters of the Run log with the new parameters
-
-        This method would over-write the parameters, if the parameter exists in the run log already
-
-        The method should:
-            * Call get_run_log_by_id(run_id) to retrieve the run_log
-            * Update the parameters of the run_log
-            * Call put_run_log(run_log) to put the run_log in the datastore
+        Set parameters on RunLog or BranchLog.
 
         Args:
             run_id (str): The run_id of the run
-            parameters (dict): The parameters to update in the run log
-        Raises:
-            RunLogNotFoundError: If the run log for run_id is not found in the datastore
+            parameters (dict): Parameters to set
+            internal_branch_name (str): If provided, set on that branch
         """
-        for key, value in parameters.items():
+        if internal_branch_name:
+            branch = self.retrieve(
+                run_id=run_id,
+                log_type=self.LogTypes.BRANCH_LOG,
+                name=internal_branch_name,
+            )
+            branch.parameters.update(parameters)
             self.store(
                 run_id=run_id,
-                log_type=self.LogTypes.PARAMETER,
-                contents={key: json.loads(value.model_dump_json(by_alias=True))},
-                name=key,
+                log_type=self.LogTypes.BRANCH_LOG,
+                contents=json.loads(branch.model_dump_json()),
+                name=internal_branch_name,
             )
+        else:
+            run_log = self.get_run_log_by_id(run_id=run_id)
+            run_log.parameters.update(parameters)
+            self.put_run_log(run_log)
 
     def get_run_config(self, run_id: str) -> dict:
         """
@@ -503,53 +419,71 @@ class ChunkedRunLogStore(BaseRunLogStore):
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
             StepLogNotFoundError: If the step log for internal_name is not found in the datastore for run_id
         """
-        try:
-            logger.info(
-                f"{self.service_name} Getting the step log: {internal_name} of {run_id}"
-            )
+        logger.info(
+            f"{self.service_name} Getting the step log: {internal_name} of {run_id}"
+        )
 
-            step_log = self.retrieve(
-                run_id=run_id,
-                log_type=self.LogTypes.STEP_LOG,
-                name=internal_name,
-                multiple_allowed=False,
-            )
+        # Determine if step is in a branch or root
+        parent_branch = self._get_parent_branch(internal_name)
 
-            return step_log
-        except exceptions.EntityNotFoundError as e:
-            raise exceptions.StepLogNotFoundError(
-                run_id=run_id, step_name=internal_name
-            ) from e
+        if not parent_branch:
+            # Root-level step - get from RunLog
+            run_log = self.get_run_log_by_id(run_id=run_id)
+            if internal_name not in run_log.steps:
+                raise exceptions.StepLogNotFoundError(
+                    run_id=run_id, step_name=internal_name
+                )
+            return run_log.steps[internal_name]
+        else:
+            # Branch step - get from BranchLog
+            try:
+                branch_log = self.retrieve(
+                    run_id=run_id,
+                    log_type=self.LogTypes.BRANCH_LOG,
+                    name=parent_branch,
+                )
+                if internal_name not in branch_log.steps:
+                    raise exceptions.StepLogNotFoundError(
+                        run_id=run_id, step_name=internal_name
+                    )
+                return branch_log.steps[internal_name]
+            except exceptions.EntityNotFoundError as e:
+                raise exceptions.StepLogNotFoundError(
+                    run_id=run_id, step_name=internal_name
+                ) from e
 
     def add_step_log(self, step_log: StepLog, run_id: str):
         """
-        Add the step log in the run log as identified by the run_id in the datastore
-
-        The method should:
-             * Call get_run_log_by_id(run_id) to retrieve the run_log
-             * Identify the branch to add the step by decoding the step_logs internal name
-             * Add the step log to the identified branch log
-             * Call put_run_log(run_log) to put the run_log in the datastore
+        Add the step log to its parent (RunLog or BranchLog).
 
         Args:
-            step_log (StepLog): The Step log to add to the database
+            step_log (StepLog): The Step log to add
             run_id (str): The run id of the run
-
-        Raises:
-            RunLogNotFoundError: If the run log for run_id is not found in the datastore
-            BranchLogNotFoundError: If the branch of the step log for internal_name is not found in the datastore
-                                    for run_id
         """
-        logger.info(
-            f"{self.service_name} Adding the step log to DB: {step_log.internal_name}"
-        )
+        logger.info(f"{self.service_name} Adding step log: {step_log.internal_name}")
 
-        self.store(
-            run_id=run_id,
-            log_type=self.LogTypes.STEP_LOG,
-            contents=json.loads(step_log.model_dump_json()),
-            name=step_log.internal_name,
-        )
+        internal_name = step_log.internal_name
+        parent_branch = self._get_parent_branch(internal_name)
+
+        if not parent_branch:
+            # Root-level step - add to RunLog
+            run_log = self.get_run_log_by_id(run_id=run_id)
+            run_log.steps[internal_name] = step_log
+            self.put_run_log(run_log)
+        else:
+            # Branch step - add to BranchLog
+            branch_log = self.retrieve(
+                run_id=run_id,
+                log_type=self.LogTypes.BRANCH_LOG,
+                name=parent_branch,
+            )
+            branch_log.steps[internal_name] = step_log
+            self.store(
+                run_id=run_id,
+                log_type=self.LogTypes.BRANCH_LOG,
+                contents=json.loads(branch_log.model_dump_json()),
+                name=parent_branch,
+            )
 
     def get_branch_log(
         self, internal_branch_name: str, run_id: str

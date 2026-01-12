@@ -1,13 +1,14 @@
 import logging
 from copy import deepcopy
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from pydantic import Field, field_serializer, field_validator
 
 from runnable import console, defaults, exceptions
 from runnable.datastore import Parameter
+from runnable.defaults import IterableParameterModel
 from runnable.graph import Graph, create_graph
-from runnable.nodes import CompositeNode, MapVariableType
+from runnable.nodes import CompositeNode
 
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
@@ -124,7 +125,10 @@ class ConditionalNode(CompositeNode):
 
         raise Exception(f"Branch {branch_name} does not exist")
 
-    def fan_out(self, map_variable: MapVariableType = None):
+    def fan_out(
+        self,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This method is restricted to creating branch logs.
         """
@@ -141,7 +145,7 @@ class ConditionalNode(CompositeNode):
                 continue
 
             effective_branch_name = self._resolve_map_placeholders(
-                internal_branch_name, map_variable=map_variable
+                internal_branch_name, iter_variable=iter_variable
             )
 
             hit_once = True
@@ -164,7 +168,10 @@ class ConditionalNode(CompositeNode):
                 "None of the branches were true. Please check your evaluate statements"
             )
 
-    def execute_as_graph(self, map_variable: MapVariableType = None):
+    def execute_as_graph(
+        self,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         This function does the actual execution of the sub-branches of the parallel node.
 
@@ -185,7 +192,7 @@ class ConditionalNode(CompositeNode):
             executor (Executor): The Executor as per the use config
             **kwargs: Optional kwargs passed around
         """
-        self.fan_out(map_variable=map_variable)
+        self.fan_out(iter_variable=iter_variable)
         parameter_value = self.get_parameter_value()
 
         for internal_branch_name, branch in self.branches.items():
@@ -195,12 +202,15 @@ class ConditionalNode(CompositeNode):
                 # if the condition is met, execute the graph
                 logger.debug(f"Executing graph for {branch}")
                 self._context.pipeline_executor.execute_graph(
-                    branch, map_variable=map_variable
+                    branch, iter_variable=iter_variable
                 )
 
-        self.fan_in(map_variable=map_variable)
+        self.fan_in(iter_variable=iter_variable)
 
-    def fan_in(self, map_variable: MapVariableType = None):
+    def fan_in(
+        self,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """
         The general fan in method for a node of type Parallel.
 
@@ -211,11 +221,12 @@ class ConditionalNode(CompositeNode):
             map_variable (dict, optional): If the node is part of a map. Defaults to None.
         """
         effective_internal_name = self._resolve_map_placeholders(
-            self.internal_name, map_variable=map_variable
+            self.internal_name, iter_variable=iter_variable
         )
 
         step_success_bool: bool = True
         parameter_value = self.get_parameter_value()
+        executed_branch_name = None
 
         for internal_branch_name, _ in self.branches.items():
             result = str(parameter_value) == internal_branch_name.split(".")[-1]
@@ -225,8 +236,9 @@ class ConditionalNode(CompositeNode):
                 continue
 
             effective_branch_name = self._resolve_map_placeholders(
-                internal_branch_name, map_variable=map_variable
+                internal_branch_name, iter_variable=iter_variable
             )
+            executed_branch_name = effective_branch_name
 
             branch_log = self._context.run_log_store.get_branch_log(
                 effective_branch_name, self._context.run_id
@@ -246,9 +258,35 @@ class ConditionalNode(CompositeNode):
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    async def execute_as_graph_async(self, map_variable: MapVariableType = None):
+        # If we failed, return without parameter rollback
+        if not step_log.status == defaults.SUCCESS:
+            return
+
+        # Roll back parameters from executed branch to parent scope
+        if executed_branch_name:
+            parent_params = self._context.run_log_store.get_parameters(
+                self._context.run_id, internal_branch_name=self.internal_branch_name
+            )
+
+            branch_params = self._context.run_log_store.get_parameters(
+                self._context.run_id, internal_branch_name=executed_branch_name
+            )
+
+            # Merge branch parameters into parent (overwrite with branch values)
+            parent_params.update(branch_params)
+
+            self._context.run_log_store.set_parameters(
+                parameters=parent_params,
+                run_id=self._context.run_id,
+                internal_branch_name=self.internal_branch_name,
+            )
+
+    async def execute_as_graph_async(
+        self,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ):
         """Async conditional execution."""
-        self.fan_out(map_variable=map_variable)  # sync
+        self.fan_out(iter_variable=iter_variable)  # sync
         parameter_value = self.get_parameter_value()
 
         for internal_branch_name, branch in self.branches.items():
@@ -257,7 +295,7 @@ class ConditionalNode(CompositeNode):
             if result:
                 logger.debug(f"Executing graph for {branch}")
                 await self._context.pipeline_executor.execute_graph_async(
-                    branch, map_variable=map_variable
+                    branch, iter_variable=iter_variable
                 )
 
-        self.fan_in(map_variable=map_variable)  # sync
+        self.fan_in(iter_variable=iter_variable)  # sync

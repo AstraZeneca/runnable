@@ -1,7 +1,6 @@
 import json
 import logging
 from functools import lru_cache
-from string import Template
 from typing import Any, Dict
 
 from cloudpathlib import S3Client, S3Path
@@ -56,31 +55,39 @@ class ChunkedMinioRunLogStore(ChunkedRunLogStore):
             ),
         )
 
-    def get_matches(
-        self, run_id: str, name: str, multiple_allowed: bool = False
-    ) -> None | str | list[str]:
+    def _exists(self, run_id: str, name: str) -> bool:
         """
-        Get contents of files matching the pattern name*
+        Check if a file exists in the Minio bucket.
 
         Args:
             run_id (str): The run id
-            name (str): The suffix of the file name to check in the run log store.
+            name (str): The exact file name to check
+
+        Returns:
+            bool: True if file exists, False otherwise
         """
         run_log_bucket = self.get_run_log_bucket()
-        run_log_bucket.mkdir(parents=True, exist_ok=True)
+        file_path = run_log_bucket / name
+        return file_path.exists()
 
-        sub_name = Template(name).safe_substitute({"creation_time": ""})
-        matches = list(run_log_bucket.glob(f"{sub_name}*"))
+    def _list_branch_logs(self, run_id: str) -> list[str]:
+        """
+        List all branch log file names for a run_id.
 
-        if matches:
-            if not multiple_allowed:
-                if len(matches) > 1:
-                    msg = f"Multiple matches found for {name} while multiple is not allowed"
-                    raise Exception(msg)
-                return str(matches[0])
-            return [str(match) for match in matches]
+        Args:
+            run_id (str): The run id
 
-        return None
+        Returns:
+            list[str]: List of branch log file names (e.g., ["BranchLog-map.1", "BranchLog-map.2"])
+        """
+        run_log_bucket = self.get_run_log_bucket()
+        if not run_log_bucket.exists():
+            return []
+
+        # Find all files starting with "BranchLog-"
+        branch_files = list(run_log_bucket.glob("BranchLog-*"))
+        # Return file names without path (just the name)
+        return [f.name for f in branch_files]
 
     def _store(self, run_id: str, contents: dict, name: str, insert=False):
         """
@@ -89,15 +96,15 @@ class ChunkedMinioRunLogStore(ChunkedRunLogStore):
         Args:
             run_id (str): The run id
             contents (dict): The dict to store
-            name (str): The name to store as
+            name (str): The name to store as (without path)
+            insert (bool): Whether this is a new insert (unused, kept for compatibility)
         """
+        run_log_bucket = self.get_run_log_bucket()
+        run_log_bucket.mkdir(parents=True, exist_ok=True)
 
-        if insert:
-            name = str(self.get_run_log_bucket() / name)
-
-        self.get_run_log_bucket().mkdir(parents=True, exist_ok=True)
+        file_path = str(run_log_bucket / name)
         obj = S3Path(
-            name,
+            file_path,
             client=get_minio_client(
                 self.endpoint_url,
                 self.aws_access_key_id.get_secret_value(),
@@ -112,14 +119,17 @@ class ChunkedMinioRunLogStore(ChunkedRunLogStore):
         Does the job of retrieving from the folder.
 
         Args:
-            name (str): the name of the file to retrieve
+            run_id (str): The run id
+            name (str): the name of the file to retrieve (without path)
 
         Returns:
             dict: The contents
         """
+        run_log_bucket = self.get_run_log_bucket()
+        file_path = str(run_log_bucket / name)
 
         obj = S3Path(
-            name,
+            file_path,
             client=get_minio_client(
                 self.endpoint_url,
                 self.aws_access_key_id.get_secret_value(),

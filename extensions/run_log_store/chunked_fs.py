@@ -1,7 +1,6 @@
 import json
 import logging
 from pathlib import Path
-from string import Template
 from typing import Any, Dict, Union
 
 from extensions.run_log_store.generic_chunked import ChunkedRunLogStore
@@ -24,30 +23,39 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
 
         return summary
 
-    def get_matches(
-        self, run_id: str, name: str, multiple_allowed: bool = False
-    ) -> str | list[str] | None:
+    def _exists(self, run_id: str, name: str) -> bool:
         """
-        Get contents of files matching the pattern name*
+        Check if a file exists in the log folder.
 
         Args:
             run_id (str): The run id
-            name (str): The suffix of the file name to check in the run log store.
+            name (str): The exact file name to check
+
+        Returns:
+            bool: True if file exists, False otherwise
         """
         log_folder = self.log_folder_with_run_id(run_id=run_id)
-        sub_name = Template(name).safe_substitute({"creation_time": ""})
+        file_path = log_folder / self.safe_suffix_json(name)
+        return file_path.exists()
 
-        matches = list(log_folder.glob(f"{sub_name}*"))
+    def _list_branch_logs(self, run_id: str) -> list[str]:
+        """
+        List all branch log file names for a run_id.
 
-        if matches:
-            if not multiple_allowed:
-                if len(matches) > 1:
-                    msg = f"Multiple matches found for {name} while multiple is not allowed"
-                    raise Exception(msg)
-                return str(matches[0])
-            return [str(match) for match in matches]
+        Args:
+            run_id (str): The run id
 
-        return None
+        Returns:
+            list[str]: List of branch log file names without .json extension
+        """
+        log_folder = self.log_folder_with_run_id(run_id=run_id)
+        if not log_folder.exists():
+            return []
+
+        # Find all files starting with "BranchLog-"
+        branch_files = list(log_folder.glob("BranchLog-*.json"))
+        # Return file names without path and without .json extension
+        return [f.stem for f in branch_files]
 
     def log_folder_with_run_id(self, run_id: str) -> Path:
         """
@@ -83,16 +91,15 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
         Args:
             run_id (str): The run id
             contents (dict): The dict to store
-            name (str): The name to store as
+            name (str): The name to store as (without path)
+            insert (bool): Whether this is a new insert (unused, kept for compatibility)
         """
-
         log_folder_with_run_id = self.log_folder_with_run_id(run_id=run_id)
-        if insert:
-            name = str(log_folder_with_run_id / name)
+        file_path = log_folder_with_run_id / name
 
         utils.safe_make_dir(log_folder_with_run_id)
 
-        with open(self.safe_suffix_json(name), "w") as fw:
+        with open(self.safe_suffix_json(file_path), "w") as fw:
             json.dump(contents, fw, ensure_ascii=True, indent=4)
 
     def _retrieve(self, run_id: str, name: str) -> dict:
@@ -100,15 +107,16 @@ class ChunkedFileSystemRunLogStore(ChunkedRunLogStore):
         Does the job of retrieving from the folder.
 
         Args:
-            name (str): the name of the file to retrieve
+            run_id (str): The run id
+            name (str): the name of the file to retrieve (without path)
 
         Returns:
             dict: The contents
         """
+        log_folder_with_run_id = self.log_folder_with_run_id(run_id=run_id)
+        file_path = log_folder_with_run_id / name
 
-        contents: dict = {}
-
-        with open(self.safe_suffix_json(name), "r") as fr:
+        with open(self.safe_suffix_json(file_path), "r") as fr:
             contents = json.load(fr)
 
         return contents

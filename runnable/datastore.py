@@ -23,9 +23,7 @@ from runnable import defaults, exceptions
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
-JSONType = Union[
-    Union[None, bool, str, float, int, List[Any], Dict[str, Any]]
-]  # This is actually JSONType, but pydantic doesn't support TypeAlias yet
+JSONType = Union[Dict[str, Any], List[Any], str, int, float, bool, None]
 
 
 class DataCatalog(BaseModel, extra="allow"):
@@ -55,22 +53,19 @@ class DataCatalog(BaseModel, extra="allow"):
         return other.name == self.name
 
 
-# The theory behind reduced:
-#     parameters returned by steps in map node are only reduced by the end of the map step, fan-in.
-#     If they are accessed within the map step, the value should be the value returned by the step in the map step.
-#     Once the map state is complete, we can set the reduce to true and have the value as
-#     the reduced value. Its either a list or a custom function return.
-
-
 class JsonParameter(BaseModel):
     kind: Literal["json"]
     value: JSONType
-    reduced: bool = True
 
     @computed_field  # type: ignore
     @property
     def description(self) -> JSONType:
-        return self.value
+        # truncate value if its longer than 10 chars
+        return (
+            self.value
+            if not isinstance(self.value, str) or len(self.value) <= 10
+            else f"{self.value[:10]}..."
+        )
 
     def get_value(self) -> JSONType:
         return self.value
@@ -79,12 +74,16 @@ class JsonParameter(BaseModel):
 class MetricParameter(BaseModel):
     kind: Literal["metric"]
     value: JSONType
-    reduced: bool = True
 
     @computed_field  # type: ignore
     @property
     def description(self) -> JSONType:
-        return self.value
+        # truncate value if its longer than 10 chars
+        return (
+            self.value
+            if not isinstance(self.value, str) or len(self.value) <= 10
+            else f"{self.value[:10]}..."
+        )
 
     def get_value(self) -> JSONType:
         return self.value
@@ -93,7 +92,6 @@ class MetricParameter(BaseModel):
 class ObjectParameter(BaseModel):
     kind: Literal["object"]
     value: str  # The name of the pickled object
-    reduced: bool = True
 
     @computed_field  # type: ignore
     @property
@@ -302,6 +300,7 @@ class BranchLog(BaseModel):
     internal_name: str
     status: str = "FAIL"
     steps: OrderedDict[str, StepLog] = Field(default_factory=OrderedDict)
+    parameters: Dict[str, Parameter] = Field(default_factory=dict)
 
     def get_data_catalogs_by_stage(self, stage="put") -> List[DataCatalog]:
         """
@@ -663,16 +662,18 @@ class BaseRunLogStore(ABC, BaseModel):
         run_log.status = status
         self.put_run_log(run_log)
 
-    def get_parameters(self, run_id: str) -> Dict[str, Parameter]:
+    def get_parameters(
+        self, run_id: str, internal_branch_name: str = ""
+    ) -> Dict[str, Parameter]:
         """
-        Get the parameters from the Run log defined by the run_id
+        Get the parameters from the Run log defined by the run_id.
+
+        If internal_branch_name is provided, returns parameters scoped to that branch.
+        Otherwise returns root-level parameters.
 
         Args:
             run_id (str): The run_id of the run
-
-        The method should:
-            * Call get_run_log_by_id(run_id) to retrieve the run_log
-            * Return the parameters as identified in the run_log
+            internal_branch_name (str): Optional branch name for scoped parameters
 
         Returns:
             dict: A dictionary of the run_log parameters
@@ -680,13 +681,27 @@ class BaseRunLogStore(ABC, BaseModel):
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
         """
         run_log = self.get_run_log_by_id(run_id=run_id)
-        return run_log.parameters
 
-    def set_parameters(self, run_id: str, parameters: Dict[str, Parameter]):
+        if not internal_branch_name:
+            return run_log.parameters
+
+        branch, _ = run_log.search_branch_by_internal_name(internal_branch_name)
+        assert isinstance(branch, BranchLog)
+        return branch.parameters
+
+    def set_parameters(
+        self,
+        run_id: str,
+        parameters: Dict[str, Parameter],
+        internal_branch_name: str = "",
+    ):
         """
         Update the parameters of the Run log with the new parameters
 
         This method would over-write the parameters, if the parameter exists in the run log already
+
+        If internal_branch_name is provided, sets parameters on that branch.
+        Otherwise sets root-level parameters.
 
         The method should:
             * Call get_run_log_by_id(run_id) to retrieve the run_log
@@ -696,12 +711,21 @@ class BaseRunLogStore(ABC, BaseModel):
         Args:
             run_id (str): The run_id of the run
             parameters (dict): The parameters to update in the run log
+            internal_branch_name (str): Optional branch name for scoped parameters
         Raises:
             RunLogNotFoundError: If the run log for run_id is not found in the datastore
         """
         run_log = self.get_run_log_by_id(run_id=run_id)
-        run_log.parameters.update(parameters)
-        self.put_run_log(run_log=run_log)
+
+        if not internal_branch_name:
+            run_log.parameters.update(parameters)
+            self.put_run_log(run_log=run_log)
+        else:
+            branch, _ = run_log.search_branch_by_internal_name(internal_branch_name)
+            assert isinstance(branch, BranchLog)
+            branch.parameters.update(parameters)
+            # Update the branch back in the run log for file-based stores
+            self.add_branch_log(branch, run_id)
 
     def get_run_config(self, run_id: str) -> dict:
         """
@@ -806,12 +830,17 @@ class BaseRunLogStore(ABC, BaseModel):
         branch.steps[step_log.internal_name] = step_log
         self.put_run_log(run_log=run_log)
 
-    def create_branch_log(self, internal_branch_name: str) -> BranchLog:
+    def create_branch_log(
+        self,
+        internal_branch_name: str,
+        parameters: Optional[Dict[str, Parameter]] = None,
+    ) -> BranchLog:
         """
         Creates a uncommitted branch log object by the internal name given
 
         Args:
             internal_branch_name (str): Creates a branch log by name internal_branch_name
+            parameters (dict, optional): Initial parameters for the branch
 
         Returns:
             BranchLog: Uncommitted and initialized with defaults BranchLog object
@@ -820,7 +849,12 @@ class BaseRunLogStore(ABC, BaseModel):
         logger.info(
             f"{self.service_name} Creating a Branch Log : {internal_branch_name}"
         )
-        return BranchLog(internal_name=internal_branch_name, status=defaults.CREATED)
+        branch_log = BranchLog(
+            internal_name=internal_branch_name, status=defaults.CREATED
+        )
+        if parameters:
+            branch_log.parameters.update(parameters)
+        return branch_log
 
     def get_branch_log(
         self, internal_branch_name: str, run_id: str
