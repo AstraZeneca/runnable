@@ -46,9 +46,12 @@ process = PythonTask(
     returns=[pickled("result"), json("should_stop")]
 )
 
+# Branch must be a Pipeline (consistent with other composite nodes)
+process_pipeline = Pipeline(steps=[process])
+
 loop = Loop(
     name="retry_loop",
-    branch=process,  # or a Pipeline for multi-step branches
+    branch=process_pipeline,
     max_iterations=5,
     break_on="should_stop",
     index_as="attempt_num"  # env var: attempt_num=0,1,2...
@@ -250,9 +253,11 @@ task = PythonTask(
     returns=[json("success"), json("should_stop")]
 )
 
+retry_pipeline = Pipeline(steps=[task])
+
 retry_loop = Loop(
     name="retry",
-    branch=task,
+    branch=retry_pipeline,
     max_iterations=3,
     break_on="should_stop",
     index_as="attempt_num"
@@ -273,9 +278,11 @@ training = PythonTask(
     returns=[json("loss"), json("converged")]
 )
 
+training_pipeline = Pipeline(steps=[training])
+
 training_loop = Loop(
     name="training",
-    branch=training,
+    branch=training_pipeline,
     max_iterations=100,
     break_on="converged",
     index_as="epoch"
