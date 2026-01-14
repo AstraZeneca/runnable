@@ -372,3 +372,58 @@ def test_executable_node_parse_config():
         "store_copy": True,
     }
     assert node._get_executor_config("local") == "custom_config"
+
+
+def test_resolve_iter_placeholders_map_only():
+    """Test resolving map placeholders works as before."""
+    from runnable.nodes import BaseNode
+    from runnable.defaults import IterableParameterModel, MapVariableModel, MAP_PLACEHOLDER
+    from collections import OrderedDict
+
+    iter_var = IterableParameterModel()
+    iter_var.map_variable = OrderedDict({
+        "chunk": MapVariableModel(value="item_a")
+    })
+
+    name = f"step.{MAP_PLACEHOLDER}.task"
+    result = BaseNode._resolve_iter_placeholders(name, iter_var)
+
+    assert result == "step.item_a.task"
+
+
+def test_resolve_iter_placeholders_loop_only():
+    """Test resolving loop placeholders."""
+    from runnable.nodes import BaseNode
+    from runnable.defaults import IterableParameterModel, LoopIndexModel, LOOP_PLACEHOLDER
+
+    iter_var = IterableParameterModel()
+    iter_var.loop_variable = [LoopIndexModel(value=2)]
+
+    name = f"loop.{LOOP_PLACEHOLDER}.task"
+    result = BaseNode._resolve_iter_placeholders(name, iter_var)
+
+    assert result == "loop.2.task"
+
+
+def test_resolve_iter_placeholders_nested():
+    """Test resolving nested map and loop placeholders."""
+    from runnable.nodes import BaseNode
+    from runnable.defaults import (
+        IterableParameterModel, MapVariableModel, LoopIndexModel,
+        MAP_PLACEHOLDER, LOOP_PLACEHOLDER
+    )
+    from collections import OrderedDict
+
+    iter_var = IterableParameterModel()
+    iter_var.map_variable = OrderedDict({
+        "chunk": MapVariableModel(value="item_a")
+    })
+    iter_var.loop_variable = [
+        LoopIndexModel(value=1),  # outer loop
+        LoopIndexModel(value=3)   # inner loop
+    ]
+
+    name = f"map.{MAP_PLACEHOLDER}.loop.{LOOP_PLACEHOLDER}.inner_loop.{LOOP_PLACEHOLDER}.task"
+    result = BaseNode._resolve_iter_placeholders(name, iter_var)
+
+    assert result == "map.item_a.loop.1.inner_loop.3.task"

@@ -185,6 +185,7 @@ kedro run
 | **Parallel Execution** | `Parallel()` with explicit branching | Automatic dependency resolution |
 | **Conditional Logic** | Native `Conditional()` support | Manual implementation in node logic |
 | **Map/Reduce** | Native `Map()` with custom reducers | Manual implementation required |
+| **Iterative Loops** | Native `Loop()` with break conditions and safety limits | Manual implementation with while loops required |
 
 ### Data Handling
 

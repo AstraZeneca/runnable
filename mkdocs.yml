@@ -141,6 +141,7 @@ nav:
   - "Advanced Patterns":
       - "Parallel Execution": "advanced-patterns/parallel-execution.md"
       - "Map Patterns": "advanced-patterns/map-patterns.md"
+      - "Loop Patterns": "advanced-patterns/loop-patterns.md"
       - "Conditional Workflows": "advanced-patterns/conditional-workflows.md"
       - "Failure Handling": "advanced-patterns/failure-handling.md"
       - "Retry & Recovery": "advanced-patterns/retry-recovery.md"

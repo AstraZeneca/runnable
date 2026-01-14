@@ -89,59 +89,53 @@ class BaseNode(ABC, BaseModel):
         return command_name.replace(defaults.COMMAND_FRIENDLY_CHARACTER, " ")
 
     @classmethod
-    def _resolve_map_placeholders(
+    def _resolve_iter_placeholders(
         cls,
         name: str,
         iter_variable: Optional[IterableParameterModel] = None,
     ) -> str:
         """
-        If there is no map step used, then we just return the name as we find it.
+        Resolve iteration placeholders (map and loop) in node names.
 
-        If there is a map variable being used, replace every occurrence of the map variable placeholder with
-        the value sequentially.
-
-        For example:
-        1). dag:
-              start_at: step1
-              steps:
-                step1:
-                    type: map
-                    iterate_on: y
-                    iterate_as: y_i
-                    branch:
-                        start_at: map_step1
-                        steps:
-                            map_step1: # internal_name step1.placeholder.map_step1
-                                type: task
-                                command: a.map_func
-                                command_type: python
-                                next: map_success
-                            map_success:
-                                type: success
-                            map_failure:
-                                type: fail
-
-            and if y is ['a', 'b', 'c'].
-
-            This method would be called 3 times with map_variable = {'y_i': 'a'}, map_variable = {'y_i': 'b'} and
-            map_variable = {'y_i': 'c'} corresponding to the three branches.
-
-        For nested map branches, we would get the map_variables ordered hierarchically.
+        Replaces MAP_PLACEHOLDER with map variable values and LOOP_PLACEHOLDER
+        with loop iteration indices in order.
 
         Args:
-            name (str): The name to resolve
-            map_variable (dict): The dictionary of map variables
+            name: The name containing placeholders
+            iter_variable: Iteration variables (map and loop)
 
         Returns:
-            [str]: The resolved name
+            str: Name with placeholders resolved
         """
-        if not iter_variable or not iter_variable.map_variable:
+        if not iter_variable:
             return name
 
-        for _, value in iter_variable.map_variable.items():
-            name = name.replace(defaults.MAP_PLACEHOLDER, str(value.value), 1)
+        resolved_name = name
 
-        return name
+        # Resolve map placeholders
+        if iter_variable.map_variable:
+            for _, value in iter_variable.map_variable.items():
+                resolved_name = resolved_name.replace(
+                    defaults.MAP_PLACEHOLDER, str(value.value), 1
+                )
+
+        # Resolve loop placeholders
+        if iter_variable.loop_variable:
+            for loop_index in iter_variable.loop_variable:
+                resolved_name = resolved_name.replace(
+                    defaults.LOOP_PLACEHOLDER, str(loop_index.value), 1
+                )
+
+        return resolved_name
+
+    @classmethod
+    def _resolve_map_placeholders(
+        cls,
+        name: str,
+        iter_variable: Optional[IterableParameterModel] = None,
+    ) -> str:
+        """Deprecated: Use _resolve_iter_placeholders instead."""
+        return cls._resolve_iter_placeholders(name, iter_variable)
 
     def _get_step_log_name(
         self,
