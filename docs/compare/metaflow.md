@@ -163,6 +163,7 @@ python ml_metaflow.py run --max_depth 15
 | **Parallel Execution** | `Parallel()` with explicit branching | `foreach` parameter for fan-out execution |
 | **Conditional Logic** | Native `Conditional()` support | Manual implementation in step logic |
 | **Map/Reduce** | Native `Map()` with custom reducers | `foreach` with join steps for result aggregation |
+| **Iterative Loops** | Native `Loop()` with break conditions and safety limits | Loop decorator support with manual condition management |
 
 ### Data Handling
 

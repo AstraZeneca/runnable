@@ -216,6 +216,7 @@ if __name__ == "__main__":
     - **`examples/04-catalog/`** - File storage and data management
     - **`examples/06-parallel/`** - Parallel execution patterns
     - **`examples/07-map/`** - Iterative processing over data
+    - **`examples/10-loop/`** - Loop workflows with dynamic iteration
     - **`examples/11-jobs/`** - Single job execution examples
     - **`examples/configs/`** - Configuration files for different environments
 
@@ -235,11 +236,15 @@ uv run examples/01-tasks/python_tasks.py
 
 ---
 
-## 🌟 Unique: Batch AND Streaming
+## 🔄 Batch Processing + 🧪 Experimental Streaming
 
-**Runnable natively supports both batch and streaming workflows in a single framework.**
+**Runnable provides robust batch processing with experimental async streaming capabilities.**
 
-While traditional orchestrators (Kedro, Metaflow, Airflow) excel at batch processing, runnable uniquely combines:
+!!! info "Experimental Feature"
+
+    Async and streaming capabilities are **experimental** and currently limited to local execution only. These features are under active development and subject to change.
+
+Runnable offers:
 
 **🔄 Batch Processing** - Traditional data pipelines with full reproducibility
 ```python
@@ -251,7 +256,7 @@ pipeline = Pipeline(steps=[
 pipeline.execute()  # Runs to completion
 ```
 
-**⚡ Real-Time Streaming** - Native async support with live event streaming
+**🧪 Experimental Streaming** - Async support with live event streaming (local execution only)
 ```python
 # Async streaming pipeline for LLM/AI workflows
 pipeline = AsyncPipeline(steps=[
@@ -267,7 +272,7 @@ async for event in pipeline.execute_streaming():
 - Reproducibility and tracking for both workflow types
 - Deploy batch OR streaming pipelines to same infrastructure
 
-**Perfect for**: LLM inference, real-time APIs, FastAPI streaming, progressive data processing
+**Experimental use cases**: LLM inference, real-time APIs, FastAPI streaming, progressive data processing
 
 [:octicons-arrow-right-24: Learn Async & Streaming](advanced-patterns/async-streaming.md)
 

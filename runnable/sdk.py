@@ -21,6 +21,7 @@ from typing_extensions import Self
 
 from extensions.nodes.conditional import ConditionalNode
 from extensions.nodes.fail import FailNode
+from extensions.nodes.loop import LoopNode
 from extensions.nodes.map import MapNode
 from extensions.nodes.parallel import ParallelNode
 from extensions.nodes.stub import StubNode
@@ -42,6 +43,7 @@ StepType = Union[
     "ShellTask",
     "Parallel",
     "Map",
+    "Loop",
     "Conditional",
 ]
 
@@ -51,12 +53,17 @@ AsyncStepType = Union[
     "AsyncPythonTask",
     "Parallel",
     "Map",
+    "Loop",
     "Conditional",
 ]
 
 
 def pickled(name: str) -> TaskReturns:
     return TaskReturns(name=name, kind="object")
+
+
+def json(name: str) -> TaskReturns:
+    return TaskReturns(name=name, kind="json")
 
 
 def metric(name: str) -> TaskReturns:
@@ -661,6 +668,83 @@ class Map(BaseTraversal):
         return node
 
 
+class Loop(BaseTraversal):
+    """
+    A loop node that iterates over a branch until a break condition is met.
+    Please refer to [concepts](concepts/loop.md) for more information.
+
+    The loop executes the branch repeatedly until either:
+    - parameters[break_on] == True
+    - max_iterations is reached (safety limit)
+
+    Attributes:
+        branch (Pipeline | AsyncPipeline): The pipeline to execute repeatedly.
+
+        max_iterations (int): Maximum number of iterations (safety limit).
+
+        break_on (str): The name of the boolean parameter that controls loop exit.
+            When this parameter becomes True, the loop exits.
+
+        index_as (str): The name of the environment variable that will contain
+            the current iteration index (0-based).
+
+    Example:
+        ```python
+        from runnable.sdk import Pipeline, PythonTask, Loop, json
+
+        def process_data(iteration_num):
+            # iteration_num is available as environment variable
+            result = call_api()
+            return {"success": result.ok, "should_stop": result.ok}
+
+        task = PythonTask(
+            name="process",
+            function=process_data,
+            returns=[json("success"), json("should_stop")]
+        )
+
+        process_pipeline = Pipeline(steps=[task])
+
+        loop = Loop(
+            name="retry_loop",
+            branch=process_pipeline,
+            max_iterations=5,
+            break_on="should_stop",
+            index_as="iteration_num"
+        )
+        ```
+    """
+
+    branch: "Pipeline | AsyncPipeline"
+    max_iterations: int
+    break_on: str
+    index_as: str
+
+    @computed_field  # type: ignore
+    @property
+    def graph_branch(self) -> graph.Graph:
+        return self.branch._dag.model_copy()
+
+    def create_node(self) -> LoopNode:
+        if not self.next_node:
+            if not (self.terminate_with_failure or self.terminate_with_success):
+                raise AssertionError(
+                    "A node not being terminated must have a user defined next node"
+                )
+
+        node = LoopNode(
+            name=self.name,
+            branch=self.graph_branch,
+            internal_name="",
+            next_node=self.next_node,
+            max_iterations=self.max_iterations,
+            break_on=self.break_on,
+            index_as=self.index_as,
+        )
+
+        return node
+
+
 class Success(BaseModel):
     """
     A node that represents a successful execution of the pipeline.
@@ -710,7 +794,7 @@ class Pipeline(BaseModel):
     A Pipeline is a sequence of Steps.
 
     Attributes:
-        steps (List[Stub | PythonTask | NotebookTask | ShellTask | Parallel | Map]]):
+        steps (List[Stub | PythonTask | NotebookTask | ShellTask | Parallel | Map | Loop | Conditional]):
             A list of Steps that make up the Pipeline.
 
             The order of steps is important as it determines the order of execution.

@@ -1,12 +1,13 @@
 import logging
+import os
 from copy import deepcopy
 from typing import Any, Dict, Optional, cast
 
-from pydantic import Field, field_validator
+from pydantic import Field, PrivateAttr
 
 from runnable import defaults
 from runnable.datastore import Parameter
-from runnable.defaults import IterableParameterModel, LoopIndexModel, LOOP_PLACEHOLDER
+from runnable.defaults import LOOP_PLACEHOLDER, IterableParameterModel, LoopIndexModel
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode
 
@@ -37,22 +38,7 @@ class LoopNode(CompositeNode):
 
     # Environment variable name for iteration index (no prefix)
     index_as: str
-
-    @field_validator("break_on", mode="after")
-    @classmethod
-    def check_break_on(cls, break_on: str) -> str:
-        """Validate that the break_on parameter name is alphanumeric."""
-        if not break_on.isalnum():
-            raise ValueError(f"Parameter '{break_on}' must be alphanumeric.")
-        return break_on
-
-    @field_validator("index_as", mode="after")
-    @classmethod
-    def check_index_as(cls, index_as: str) -> str:
-        """Validate that the index_as variable name is alphanumeric."""
-        if not index_as.isalnum():
-            raise ValueError(f"Variable '{index_as}' must be alphanumeric.")
-        return index_as
+    _should_exit: bool = PrivateAttr(default=False)
 
     def get_summary(self) -> dict[str, Any]:
         summary = {
@@ -184,22 +170,110 @@ class LoopNode(CompositeNode):
         )
 
     def execute_as_graph(self, iter_variable: Optional[IterableParameterModel] = None):
-        """Execute the loop locally - implementation in next task."""
-        pass
+        """
+        Execute the loop locally.
 
-    def fan_in(self, iter_variable: Optional[IterableParameterModel] = None) -> bool:
+        This function implements the main loop execution logic:
+        1. Call fan_out() to set up iteration 0
+        2. Loop until break condition or max_iterations
+        3. For each iteration:
+           - Set iteration index environment variable
+           - Build iter_variable for current iteration
+           - Execute branch graph
+           - Check termination conditions with fan_in()
+           - Create next iteration if continuing
+
+        Args:
+            iter_variable: Optional iteration context from parent composite nodes
+        """
+        # Initialize with iteration 0
+        iteration = 0
+        iteration_iter_variable = self._build_iteration_iter_variable(
+            iter_variable, iteration
+        )
+
+        # Set up iteration 0
+        self.fan_out(iter_variable=iteration_iter_variable)
+
+        while True:
+            # Set iteration index environment variable
+            os.environ[self.index_as] = str(iteration)
+
+            logger.debug(f"Executing loop iteration {iteration} for {self.name}")
+
+            # Execute the branch for this iteration
+            self._context.pipeline_executor.execute_graph(
+                self.branch, iter_variable=iteration_iter_variable
+            )
+
+            # Check termination conditions
+            self.fan_in(iter_variable=iteration_iter_variable)
+
+            if self._should_exit:
+                logger.debug(f"Loop {self.name} exiting after iteration {iteration}")
+                break
+
+            # Prepare for next iteration
+            iteration += 1
+
+            # Safety check - this should be caught by fan_in, but double-check
+            if iteration >= self.max_iterations:
+                logger.warning(
+                    f"Loop {self.name} hit max_iterations safety limit: {self.max_iterations}"
+                )
+                break
+
+            # Build iter_variable for next iteration and set it up
+            iteration_iter_variable = self._build_iteration_iter_variable(
+                iter_variable, iteration
+            )
+            self.fan_out(iter_variable=iteration_iter_variable)
+
+    def fan_in(self, iter_variable: Optional[IterableParameterModel] = None) -> None:
         """
         Check termination conditions and handle loop completion.
 
+        Checks in order:
+        1. Branch execution failure - if current iteration failed, exit with fail status
+        2. Break condition - if break_on parameter is True, exit with success status
+        3. Max iterations - if reached limit, exit with current branch status
+
         Returns:
-            bool: True if loop should exit, False if should continue
+            None: Sets self._should_exit and handles status/parameter rollback
         """
         # Get current iteration from iter_variable
         current_iteration = 0
         if iter_variable and iter_variable.loop_variable:
             current_iteration = iter_variable.loop_variable[-1].value
 
-        # Check break condition
+        # FIRST: Check if current iteration's branch execution failed
+        current_branch_name = self._get_iteration_branch_name(iter_variable)
+        try:
+            branch_log = self._context.run_log_store.get_branch_log(
+                current_branch_name, self._context.run_id
+            )
+
+            # If branch execution failed, exit immediately with fail status
+            if branch_log.status != defaults.SUCCESS:
+                logger.debug(
+                    f"Loop {self.name} exiting due to branch failure in iteration {current_iteration}"
+                )
+                self._rollback_parameters_to_parent(iter_variable)
+                self._set_step_status_to_fail(iter_variable)
+                self._should_exit = True
+                return
+
+        except Exception:
+            # If we can't get branch log, assume failure
+            logger.warning(
+                f"Loop {self.name} could not get branch log for {current_branch_name}, assuming failure"
+            )
+            self._rollback_parameters_to_parent(iter_variable)
+            self._set_step_status_to_fail(iter_variable)
+            self._should_exit = True
+            return
+
+        # SECOND: Check break condition (only if branch succeeded)
         break_condition_met = False
         try:
             break_condition_met = self.get_break_condition_value(iter_variable)
@@ -207,17 +281,17 @@ class LoopNode(CompositeNode):
             # If break parameter doesn't exist or invalid, continue
             break_condition_met = False
 
-        # Check max iterations (0-indexed, so iteration N means N+1 total iterations)
+        # THIRD: Check max iterations (0-indexed, so iteration N means N+1 total iterations)
         max_iterations_reached = current_iteration >= (self.max_iterations - 1)
 
         should_exit = break_condition_met or max_iterations_reached
 
         if should_exit:
-            # Roll back parameters to parent and set status on exit
+            # Roll back parameters to parent and set status based on branch success
             self._rollback_parameters_to_parent(iter_variable)
             self._set_final_step_status(iter_variable)
 
-        return should_exit
+        self._should_exit = should_exit
 
     def _rollback_parameters_to_parent(
         self, iter_variable: Optional[IterableParameterModel] = None
@@ -266,7 +340,22 @@ class LoopNode(CompositeNode):
 
         self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
-    def _get_branch_by_name(self, branch_name: str) -> Graph:
+    def _set_step_status_to_fail(
+        self, iter_variable: Optional[IterableParameterModel] = None
+    ):
+        """Set the loop node's status to FAIL when branch execution fails."""
+        effective_internal_name = self._resolve_iter_placeholders(
+            self.internal_name, iter_variable=iter_variable
+        )
+
+        step_log = self._context.run_log_store.get_step_log(
+            effective_internal_name, self._context.run_id
+        )
+
+        step_log.status = defaults.FAIL
+        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
+
+    def _get_branch_by_name(self, branch_name: str) -> Graph:  # noqa: ARG002
         """
         Retrieve a branch by name.
 
@@ -274,7 +363,7 @@ class LoopNode(CompositeNode):
         This method takes no responsibility in checking the validity of the naming.
 
         Args:
-            branch_name (str): The name of the branch to retrieve
+            branch_name (str): The name of the branch to retrieve (unused, interface compatibility)
 
         Returns:
             Graph: The loop branch

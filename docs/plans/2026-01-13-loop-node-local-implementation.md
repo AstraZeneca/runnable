@@ -394,7 +394,8 @@ git commit -m "feat: add basic LoopNode class with placeholder support
 def test_get_break_condition_value():
     """Test reading break condition from parameters."""
     from runnable.datastore import Parameter
-    from unittest.mock import Mock
+    from runnable.defaults import IterableParameterModel, LoopIndexModel
+    from unittest.mock import Mock, patch
 
     # Mock context and run_log_store
     mock_context = Mock()
@@ -416,10 +417,18 @@ def test_get_break_condition_value():
         index_as="iteration"
     )
     loop._context = mock_context
+    loop.internal_name = "test_loop"
 
-    result = loop.get_break_condition_value()
+    # Create iter_variable for iteration 1
+    iter_var = IterableParameterModel()
+    iter_var.loop_variable = [LoopIndexModel(value=1)]
+
+    result = loop.get_break_condition_value(iter_var)
     assert result is False
-    mock_run_log_store.get_parameters.assert_called_with(run_id="test-run-123")
+    mock_run_log_store.get_parameters.assert_called_with(
+        run_id="test-run-123",
+        internal_branch_name="test_loop.1"
+    )
 
 
 def test_create_iteration_branch_log():
@@ -470,10 +479,17 @@ Add to `LoopNode` class in `extensions/nodes/loop.py`:
 ```python
 from runnable.datastore import Parameter
 
-def get_break_condition_value(self) -> bool:
-    """Get the break condition parameter value."""
+def get_break_condition_value(
+    self,
+    iter_variable: Optional[IterableParameterModel] = None
+) -> bool:
+    """Get the break condition parameter value from current iteration branch."""
+    # Get parameters from current iteration branch scope
+    current_branch_name = self._get_iteration_branch_name(iter_variable)
+
     parameters: dict[str, Parameter] = self._context.run_log_store.get_parameters(
-        run_id=self._context.run_id
+        run_id=self._context.run_id,
+        internal_branch_name=current_branch_name
     )
 
     if self.break_on not in parameters:
@@ -870,7 +886,7 @@ def fan_in(
     # Check break condition
     break_condition_met = False
     try:
-        break_condition_met = self.get_break_condition_value()
+        break_condition_met = self.get_break_condition_value(iter_variable)
     except (KeyError, ValueError):
         # If break parameter doesn't exist or invalid, continue
         break_condition_met = False

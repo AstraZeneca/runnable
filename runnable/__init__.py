@@ -75,6 +75,7 @@ from runnable.sdk import (  # noqa;
     Catalog,
     Conditional,
     Fail,
+    Loop,
     Map,
     NotebookJob,
     NotebookTask,
@@ -86,6 +87,7 @@ from runnable.sdk import (  # noqa;
     ShellTask,
     Stub,
     Success,
+    json,
     metric,
     pickled,
 )

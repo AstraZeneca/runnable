@@ -783,10 +783,49 @@ python_examples = [
             ),
         ],
     ),
+    # Loop examples
+    (
+        "10-loop/simple_loop",
+        True,
+        False,
+        [],
+        "",
+        [
+            partial(conditions.should_have_num_steps, 2),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_branch_have_steps, "counter_loop", "0", 2),
+            partial(conditions.should_branch_have_steps, "counter_loop", "1", 2),
+            partial(conditions.should_branch_have_steps, "counter_loop", "2", 2),
+            partial(conditions.should_branch_have_steps, "counter_loop", "3", 2),
+        ],
+    ),
+    (
+        "10-loop/max_iterations_loop",
+        True,
+        False,
+        [],
+        "",
+        [
+            partial(conditions.should_have_num_steps, 3),
+            partial(conditions.should_be_successful),
+            partial(conditions.should_branch_have_steps, "max_iter_loop", "0", 2),
+            partial(conditions.should_branch_have_steps, "max_iter_loop", "1", 2),
+            partial(conditions.should_branch_have_steps, "max_iter_loop", "2", 2),
+            partial(
+                conditions.should_step_have_output_parameters,
+                "validate_max_iter",
+                {
+                    "validation_passed": True,
+                    "hit_max_iterations": True,
+                    "final_counter": 2,
+                },
+            ),
+        ],
+    ),
 ]
 
 
-# python_examples = python_examples[21:22]
+# python_examples = python_examples[]
 
 
 @pytest.mark.parametrize("example", list_python_examples())

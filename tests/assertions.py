@@ -135,7 +135,6 @@ def should_step_have_output_parameters(step_name: str, parameters: dict):
         parameter: value.value
         for parameter, value in step.attempts[0].output_parameters.items()
     }
-
     assert parameters == func_parameters
 
 

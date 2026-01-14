@@ -158,6 +158,7 @@ file-system = "extensions.run_log_store.file_system:FileSystemRunLogstore"
 "success" = "extensions.nodes.success:SuccessNode"
 "parallel" = "extensions.nodes.parallel:ParallelNode"
 "map" = "extensions.nodes.map:MapNode"
+"loop" = "extensions.nodes.loop:LoopNode"
 "stub" = "extensions.nodes.stub:StubNode"
 "conditional" = "extensions.nodes.conditional:ConditionalNode"
 
