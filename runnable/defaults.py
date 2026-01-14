@@ -85,6 +85,7 @@ DEFAULT_SERVICES: dict[str, Any] = {
 
 # Map state
 MAP_PLACEHOLDER = "map_variable_placeholder"
+LOOP_PLACEHOLDER = "loop_variable_placeholder"
 
 # Dag node
 DAG_BRANCH_NAME = "dag"
