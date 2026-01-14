@@ -5,7 +5,8 @@ from typing import Any, Dict, Optional, cast
 from pydantic import Field, field_validator
 
 from runnable import defaults
-from runnable.defaults import IterableParameterModel, LOOP_PLACEHOLDER
+from runnable.datastore import Parameter
+from runnable.defaults import IterableParameterModel, LoopIndexModel, LOOP_PLACEHOLDER
 from runnable.graph import Graph, create_graph
 from runnable.nodes import CompositeNode
 
@@ -73,6 +74,67 @@ class LoopNode(CompositeNode):
 
         # Resolve using the refactored method
         return self._resolve_iter_placeholders(branch_template, iter_variable)
+
+    def get_break_condition_value(
+        self, iter_variable: Optional[IterableParameterModel] = None
+    ) -> bool:
+        """Get the break condition parameter value from current iteration branch."""
+        # Get parameters from current iteration branch scope
+        current_branch_name = self._get_iteration_branch_name(iter_variable)
+
+        parameters: dict[str, Parameter] = self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id, internal_branch_name=current_branch_name
+        )
+
+        if self.break_on not in parameters:
+            return False  # Default to continue if parameter doesn't exist
+
+        condition_value = parameters[self.break_on].get_value()
+
+        if not isinstance(condition_value, bool):
+            raise ValueError(
+                f"Break condition '{self.break_on}' must be boolean, "
+                f"got {type(condition_value).__name__}"
+            )
+
+        return condition_value
+
+    def _create_iteration_branch_log(
+        self, iter_variable: Optional[IterableParameterModel] = None
+    ):
+        """Create branch log for the current iteration."""
+        branch_name = self._get_iteration_branch_name(iter_variable)
+
+        try:
+            branch_log = self._context.run_log_store.get_branch_log(
+                branch_name, self._context.run_id
+            )
+            logger.debug(f"Branch log already exists for {branch_name}")
+        except Exception:  # BranchLogNotFoundError
+            branch_log = self._context.run_log_store.create_branch_log(branch_name)
+            logger.debug(f"Branch log created for {branch_name}")
+
+        branch_log.status = defaults.PROCESSING
+        self._context.run_log_store.add_branch_log(branch_log, self._context.run_id)
+        return branch_log
+
+    def _build_iteration_iter_variable(
+        self, parent_iter_variable: Optional[IterableParameterModel], iteration: int
+    ) -> IterableParameterModel:
+        """Build iter_variable for current iteration."""
+        if parent_iter_variable:
+            iter_var = parent_iter_variable.model_copy(deep=True)
+        else:
+            iter_var = IterableParameterModel()
+
+        # Initialize loop_variable if None
+        if iter_var.loop_variable is None:
+            iter_var.loop_variable = []
+
+        # Add current iteration index
+        iter_var.loop_variable.append(LoopIndexModel(value=iteration))
+
+        return iter_var
 
     def fan_out(self, iter_variable: Optional[IterableParameterModel] = None):
         """Create branch log and set up parameters - implementation in next task."""
