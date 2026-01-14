@@ -163,3 +163,99 @@ def test_build_iteration_iter_variable():
     assert len(result.loop_variable) == 2
     assert result.loop_variable[0].value == 1  # Original
     assert result.loop_variable[1].value == 3  # New iteration
+
+
+def test_fan_out_initial_iteration():
+    """Test fan_out creates branch log and copies parent parameters."""
+    from unittest.mock import Mock, patch
+    from runnable.context import PipelineContext
+
+    mock_run_log_store = Mock()
+    mock_context = Mock(spec=PipelineContext)
+    mock_context.run_log_store = mock_run_log_store
+    mock_context.run_id = "test-run-123"
+
+    # Mock parent parameters
+    parent_params = {"param1": Mock()}
+    mock_run_log_store.get_parameters.return_value = parent_params
+
+    loop = LoopNode(
+        name="test_loop",
+        internal_name="test_loop",
+        next_node="success",
+        branch=Graph(start_at="dummy", name="test_branch"),
+        max_iterations=5,
+        break_on="shouldstop",
+        index_as="iteration"
+    )
+    loop.internal_branch_name = "root"
+
+    # Create iter_variable for iteration 0
+    from runnable.defaults import IterableParameterModel, LoopIndexModel
+    iter_var = IterableParameterModel()
+    iter_var.loop_variable = [LoopIndexModel(value=0)]
+
+    with patch("runnable.context.get_run_context", return_value=mock_context), \
+         patch.object(loop, '_create_iteration_branch_log') as mock_create_branch:
+        loop.fan_out(iter_var)
+
+    # Should create branch log
+    mock_create_branch.assert_called_once_with(iter_var)
+
+    # Should copy parent parameters to iteration branch
+    mock_run_log_store.set_parameters.assert_called_once_with(
+        parameters=parent_params,
+        run_id="test-run-123",
+        internal_branch_name="test_loop.0"
+    )
+
+
+def test_fan_out_subsequent_iteration():
+    """Test fan_out copies from previous iteration."""
+    from unittest.mock import Mock, patch
+    from runnable.defaults import IterableParameterModel, LoopIndexModel
+    from runnable.context import PipelineContext
+
+    mock_run_log_store = Mock()
+    mock_context = Mock(spec=PipelineContext)
+    mock_context.run_log_store = mock_run_log_store
+    mock_context.run_id = "test-run-123"
+
+    # Mock previous iteration parameters
+    prev_params = {"param1": Mock(), "result": Mock()}
+    mock_run_log_store.get_parameters.return_value = prev_params
+
+    loop = LoopNode(
+        name="test_loop",
+        internal_name="test_loop",
+        next_node="success",
+        branch=Graph(start_at="dummy", name="test_branch"),
+        max_iterations=5,
+        break_on="shouldstop",
+        index_as="iteration"
+    )
+
+    # Create iter_variable for iteration 2
+    iter_var = IterableParameterModel()
+    iter_var.loop_variable = [LoopIndexModel(value=2)]
+
+    with patch("runnable.context.get_run_context", return_value=mock_context), \
+         patch.object(loop, '_create_iteration_branch_log') as mock_create_branch:
+        loop.fan_out(iter_var)
+
+    # Should get parameters from iteration 1
+    prev_iter_var = IterableParameterModel()
+    prev_iter_var.loop_variable = [LoopIndexModel(value=1)]
+    expected_prev_name = "test_loop.1"
+
+    mock_run_log_store.get_parameters.assert_called_with(
+        run_id="test-run-123",
+        internal_branch_name=expected_prev_name
+    )
+
+    # Should copy to iteration 2 branch
+    mock_run_log_store.set_parameters.assert_called_once_with(
+        parameters=prev_params,
+        run_id="test-run-123",
+        internal_branch_name="test_loop.2"
+    )

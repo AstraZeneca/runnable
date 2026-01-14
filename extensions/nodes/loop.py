@@ -137,8 +137,51 @@ class LoopNode(CompositeNode):
         return iter_var
 
     def fan_out(self, iter_variable: Optional[IterableParameterModel] = None):
-        """Create branch log and set up parameters - implementation in next task."""
-        pass
+        """
+        Create branch log for current iteration and copy parameters.
+
+        For iteration 0: copy from parent scope
+        For iteration N: copy from previous iteration (N-1) scope
+        """
+        # Create branch log for current iteration
+        self._create_iteration_branch_log(iter_variable)
+
+        # Determine current iteration from iter_variable
+        current_iteration = 0
+        if iter_variable and iter_variable.loop_variable:
+            current_iteration = iter_variable.loop_variable[-1].value
+
+        # Determine source of parameters
+        if current_iteration == 0:
+            # Copy from parent scope
+            source_branch_name = self.internal_branch_name
+        else:
+            # Copy from previous iteration
+            prev_iter_var = (
+                iter_variable.model_copy(deep=True)
+                if iter_variable
+                else IterableParameterModel()
+            )
+            if prev_iter_var.loop_variable is None:
+                prev_iter_var.loop_variable = []
+            # Replace last loop index with previous iteration
+            prev_iter_var.loop_variable[-1] = LoopIndexModel(
+                value=current_iteration - 1
+            )
+            source_branch_name = self._get_iteration_branch_name(prev_iter_var)
+
+        # Get source parameters
+        source_params = self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id, internal_branch_name=source_branch_name
+        )
+
+        # Copy to current iteration branch
+        target_branch_name = self._get_iteration_branch_name(iter_variable)
+        self._context.run_log_store.set_parameters(
+            parameters=source_params,
+            run_id=self._context.run_id,
+            internal_branch_name=target_branch_name,
+        )
 
     def execute_as_graph(self, iter_variable: Optional[IterableParameterModel] = None):
         """Execute the loop locally - implementation in next task."""
