@@ -259,3 +259,126 @@ def test_fan_out_subsequent_iteration():
         run_id="test-run-123",
         internal_branch_name="test_loop.2"
     )
+
+
+def test_fan_in_should_continue():
+    """Test fan_in returns False when break condition not met."""
+    from unittest.mock import Mock, patch
+    from runnable.datastore import JsonParameter
+    from runnable.defaults import IterableParameterModel, LoopIndexModel
+    from runnable.context import PipelineContext
+
+    mock_context = Mock(spec=PipelineContext)
+    mock_run_log_store = Mock()
+    mock_context.run_log_store = mock_run_log_store
+    mock_context.run_id = "test-run-123"
+
+    # Break condition is False, should continue
+    parameters = {
+        "shouldstop": JsonParameter(value=False, kind="json")
+    }
+    mock_run_log_store.get_parameters.return_value = parameters
+
+    loop = LoopNode(
+        name="test_loop",
+        internal_name="test_loop",
+        next_node="success",
+        branch=Graph(start_at="dummy", name="test_branch"),
+        max_iterations=5,
+        break_on="shouldstop",
+        index_as="iteration"
+    )
+
+    # Iteration 1 (0-indexed), not at max yet
+    iter_var = IterableParameterModel()
+    iter_var.loop_variable = [LoopIndexModel(value=1)]
+
+    with patch("runnable.context.get_run_context", return_value=mock_context):
+        should_exit = loop.fan_in(iter_var)
+
+    assert should_exit is False  # Should continue looping
+
+
+def test_fan_in_should_exit_break_condition():
+    """Test fan_in returns True when break condition is met."""
+    from unittest.mock import Mock, patch
+    from runnable.datastore import JsonParameter
+    from runnable.defaults import IterableParameterModel, LoopIndexModel
+    from runnable.context import PipelineContext
+
+    mock_context = Mock(spec=PipelineContext)
+    mock_run_log_store = Mock()
+    mock_context.run_log_store = mock_run_log_store
+    mock_context.run_id = "test-run-123"
+
+    # Break condition is True, should exit
+    parameters = {
+        "shouldstop": JsonParameter(value=True, kind="json")
+    }
+    mock_run_log_store.get_parameters.return_value = parameters
+
+    loop = LoopNode(
+        name="test_loop",
+        internal_name="test_loop",
+        next_node="success",
+        branch=Graph(start_at="dummy", name="test_branch"),
+        max_iterations=5,
+        break_on="shouldstop",
+        index_as="iteration"
+    )
+
+    iter_var = IterableParameterModel()
+    iter_var.loop_variable = [LoopIndexModel(value=2)]
+
+    with patch("runnable.context.get_run_context", return_value=mock_context), \
+         patch.object(loop, '_rollback_parameters_to_parent') as mock_rollback, \
+         patch.object(loop, '_set_final_step_status') as mock_set_status:
+
+        should_exit = loop.fan_in(iter_var)
+
+        assert should_exit is True
+        mock_rollback.assert_called_once_with(iter_var)
+        mock_set_status.assert_called_once_with(iter_var)
+
+
+def test_fan_in_should_exit_max_iterations():
+    """Test fan_in returns True when max iterations reached."""
+    from unittest.mock import Mock, patch
+    from runnable.datastore import JsonParameter
+    from runnable.defaults import IterableParameterModel, LoopIndexModel
+    from runnable.context import PipelineContext
+
+    mock_context = Mock(spec=PipelineContext)
+    mock_run_log_store = Mock()
+    mock_context.run_log_store = mock_run_log_store
+    mock_context.run_id = "test-run-123"
+
+    # Break condition is False but max iterations reached
+    parameters = {
+        "shouldstop": JsonParameter(value=False, kind="json")
+    }
+    mock_run_log_store.get_parameters.return_value = parameters
+
+    loop = LoopNode(
+        name="test_loop",
+        internal_name="test_loop",
+        next_node="success",
+        branch=Graph(start_at="dummy", name="test_branch"),
+        max_iterations=3,  # 0, 1, 2 (3 iterations)
+        break_on="shouldstop",
+        index_as="iteration"
+    )
+
+    # Iteration 2 (0-indexed) = 3rd iteration = max reached
+    iter_var = IterableParameterModel()
+    iter_var.loop_variable = [LoopIndexModel(value=2)]
+
+    with patch("runnable.context.get_run_context", return_value=mock_context), \
+         patch.object(loop, '_rollback_parameters_to_parent') as mock_rollback, \
+         patch.object(loop, '_set_final_step_status') as mock_set_status:
+
+        should_exit = loop.fan_in(iter_var)
+
+        assert should_exit is True  # Should exit due to max iterations
+        mock_rollback.assert_called_once_with(iter_var)
+        mock_set_status.assert_called_once_with(iter_var)

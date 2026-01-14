@@ -188,8 +188,83 @@ class LoopNode(CompositeNode):
         pass
 
     def fan_in(self, iter_variable: Optional[IterableParameterModel] = None) -> bool:
-        """Check conditions and return should_exit flag - implementation in next task."""
-        return True
+        """
+        Check termination conditions and handle loop completion.
+
+        Returns:
+            bool: True if loop should exit, False if should continue
+        """
+        # Get current iteration from iter_variable
+        current_iteration = 0
+        if iter_variable and iter_variable.loop_variable:
+            current_iteration = iter_variable.loop_variable[-1].value
+
+        # Check break condition
+        break_condition_met = False
+        try:
+            break_condition_met = self.get_break_condition_value(iter_variable)
+        except (KeyError, ValueError):
+            # If break parameter doesn't exist or invalid, continue
+            break_condition_met = False
+
+        # Check max iterations (0-indexed, so iteration N means N+1 total iterations)
+        max_iterations_reached = current_iteration >= (self.max_iterations - 1)
+
+        should_exit = break_condition_met or max_iterations_reached
+
+        if should_exit:
+            # Roll back parameters to parent and set status on exit
+            self._rollback_parameters_to_parent(iter_variable)
+            self._set_final_step_status(iter_variable)
+
+        return should_exit
+
+    def _rollback_parameters_to_parent(
+        self, iter_variable: Optional[IterableParameterModel] = None
+    ):
+        """Copy parameters from current iteration back to parent scope."""
+        current_branch_name = self._get_iteration_branch_name(iter_variable)
+
+        current_params = self._context.run_log_store.get_parameters(
+            run_id=self._context.run_id, internal_branch_name=current_branch_name
+        )
+
+        # Copy back to parent
+        self._context.run_log_store.set_parameters(
+            parameters=current_params,
+            run_id=self._context.run_id,
+            internal_branch_name=self.internal_branch_name,
+        )
+
+    def _set_final_step_status(
+        self, iter_variable: Optional[IterableParameterModel] = None
+    ):
+        """Set the loop node's final status based on branch execution."""
+        effective_internal_name = self._resolve_iter_placeholders(
+            self.internal_name, iter_variable=iter_variable
+        )
+
+        step_log = self._context.run_log_store.get_step_log(
+            effective_internal_name, self._context.run_id
+        )
+
+        # Check current iteration branch status
+        current_branch_name = self._get_iteration_branch_name(iter_variable)
+        try:
+            current_branch_log = self._context.run_log_store.get_branch_log(
+                current_branch_name, self._context.run_id
+            )
+
+            if current_branch_log.status == defaults.SUCCESS:
+                step_log.status = defaults.SUCCESS
+            else:
+                step_log.status = defaults.FAIL
+
+        except Exception:
+            # If branch log not found, mark as failed
+            step_log.status = defaults.FAIL
+
+        self._context.run_log_store.add_step_log(step_log, self._context.run_id)
 
     def _get_branch_by_name(self, branch_name: str) -> Graph:
         """
