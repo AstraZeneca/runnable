@@ -112,13 +112,6 @@ extra_css:
 
 nav:
   - "Home": "index.md"
-  - "Jobs":
-      - "jobs/index.md"
-      - "Your First Job": "jobs/first-job.md"
-      - "Working with Data": "jobs/working-with-data.md"
-      - "Parameters & Environment": "jobs/parameters.md"
-      - "File Storage": "jobs/file-storage.md"
-      - "Job Types": "jobs/job-types.md"
   - "Tutorial":
       - "tutorial/index.md"
       - "Starting Point": "tutorial/01-starting-point.md"
@@ -128,6 +121,13 @@ nav:
       - "Handling Large Datasets": "tutorial/05-handling-datasets.md"
       - "Sharing Results": "tutorial/06-sharing-results.md"
       - "Running Anywhere": "tutorial/07-running-anywhere.md"
+  - "Jobs":
+      - "jobs/index.md"
+      - "Your First Job": "jobs/first-job.md"
+      - "Working with Data": "jobs/working-with-data.md"
+      - "Parameters & Environment": "jobs/parameters.md"
+      - "File Storage": "jobs/file-storage.md"
+      - "Job Types": "jobs/job-types.md"
   - "Pipelines":
       - "Jobs vs Pipelines": "pipelines/jobs-vs-pipelines.md"
       - "Task Types": "pipelines/task-types.md"

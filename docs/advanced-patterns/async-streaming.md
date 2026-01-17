@@ -1,13 +1,32 @@
-# 🧪 Async & Streaming Execution (Experimental)
+# 🧪 Async & Streaming Execution (Experimental - Proof of Concept)
 
 Execute async functions and stream results in real-time with runnable's experimental async capabilities.
 
-!!! warning "Experimental Feature"
+!!! warning "Not Recommended for Production Agentic Frameworks"
+
+    **These async capabilities are experimental and primarily serve as a proof of possibility.** They are **NOT recommended for production agentic frameworks or complex LLM applications.**
+
+    **For production agentic applications, use mature, purpose-built frameworks:**
+
+    - **[Pydantic AI](https://github.com/pydantic/pydantic-ai)** - Production-ready async agent framework with robust LLM integration
+    - **[LangChain](https://python.langchain.com/)** - Comprehensive framework for LLM applications with extensive tooling
+    - **[CrewAI](https://github.com/joaomdmoura/crewAI)** - Multi-agent orchestration with advanced coordination patterns
+    - **[AutoGen](https://github.com/microsoft/autogen)** - Multi-agent conversation framework by Microsoft
+
+    **Runnable's async features are:**
+
+    - ❌ Limited to local execution only (no containers, no Kubernetes)
+    - ❌ Experimental and subject to breaking changes
+    - ❌ Not optimized for complex agent workflows
+    - ❌ Lacking advanced LLM integration patterns
+
+    **Runnable excels at data pipeline orchestration, not agentic frameworks.**
+
+!!! info "Experimental Feature Details"
 
     **Async and streaming capabilities are experimental** and under active development. Features may change, and stability is not guaranteed for production use.
 
 ## Overview
-
 **Runnable provides experimental async and streaming support** for specialized use cases requiring real-time processing:
 
 - **Batch Processing**: Core production-ready data pipelines with full reproducibility and orchestration

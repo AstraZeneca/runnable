@@ -236,19 +236,27 @@ uv run examples/01-tasks/python_tasks.py
 
 ---
 
-## 🔄 Batch Processing + 🧪 Experimental Streaming
+## 🔄 Batch Processing + 🧪 Experimental Async (Proof of Concept)
 
-**Runnable provides robust batch processing with experimental async streaming capabilities.**
+**Runnable provides robust batch processing with experimental async streaming capabilities as a proof of concept.**
 
-!!! info "Experimental Feature"
+!!! warning "Not Recommended for Production Agentic Frameworks"
 
-    Async and streaming capabilities are **experimental** and currently limited to local execution only. These features are under active development and subject to change.
+    While Runnable includes **experimental async capabilities**, these are primarily a **proof of possibility** rather than production-ready features for agentic frameworks.
 
-Runnable offers:
+    **For production agentic applications, we recommend using mature, purpose-built frameworks like:**
 
-**🔄 Batch Processing** - Traditional data pipelines with full reproducibility
+    - **[Pydantic AI](https://github.com/pydantic/pydantic-ai)** - Production-ready async agent framework
+    - **[LangChain](https://python.langchain.com/)** - Comprehensive LLM application framework
+    - **[CrewAI](https://github.com/joaomdmoura/crewAI)** - Multi-agent orchestration framework
+
+    Runnable's async features are **experimental, local-only, and subject to change** without notice.
+
+Runnable's strength lies in **data pipeline orchestration**:
+
+**🔄 Batch Processing** - Production-ready data pipelines with full reproducibility
 ```python
-# Regular batch pipeline
+# Regular batch pipeline - Runnable's core strength
 pipeline = Pipeline(steps=[
     PythonTask(function=process_data, name="process"),
     PythonTask(function=train_model, name="train")
@@ -256,9 +264,9 @@ pipeline = Pipeline(steps=[
 pipeline.execute()  # Runs to completion
 ```
 
-**🧪 Experimental Streaming** - Async support with live event streaming (local execution only)
+**🧪 Experimental Async** - Proof of concept for streaming (local execution only)
 ```python
-# Async streaming pipeline for LLM/AI workflows
+# Experimental async - NOT recommended for production agents
 pipeline = AsyncPipeline(steps=[
     AsyncPythonTask(function=stream_llm_response, name="llm")
 ])
@@ -266,15 +274,22 @@ async for event in pipeline.execute_streaming():
     print(event)  # {"type": "chunk", "text": "Hello"}
 ```
 
-**🔗 Same Features, Both Modes**:
-- Parameter management works in both batch and streaming
-- Catalog system handles files in both modes
-- Reproducibility and tracking for both workflow types
-- Deploy batch OR streaming pipelines to same infrastructure
+**🎯 Runnable is designed for**:
 
-**Experimental use cases**: LLM inference, real-time APIs, FastAPI streaming, progressive data processing
+- Data processing pipelines
+- ML model training workflows
+- ETL operations
+- Batch job orchestration
+- Scientific computing reproducibility
 
-[:octicons-arrow-right-24: Learn Async & Streaming](advanced-patterns/async-streaming.md)
+**❌ Not recommended for**:
+
+- Production agentic frameworks
+- Complex multi-agent systems
+- Real-time conversational AI
+- Advanced LLM orchestration patterns
+
+[:octicons-arrow-right-24: Learn Async Limitations](advanced-patterns/async-streaming.md)
 
 ---
 
