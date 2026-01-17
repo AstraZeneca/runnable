@@ -250,6 +250,8 @@ uv run examples/01-tasks/python_tasks.py
     - **[LangChain](https://python.langchain.com/)** - Comprehensive LLM application framework
     - **[CrewAI](https://github.com/joaomdmoura/crewAI)** - Multi-agent orchestration framework
 
+    Runnable's async features are **experimental, local-only, and subject to change** without notice.
+
 Runnable's strength lies in **data pipeline orchestration**:
 
 **🔄 Batch Processing** - Production-ready data pipelines with full reproducibility

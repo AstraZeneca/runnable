@@ -89,6 +89,26 @@ uv run examples/01-tasks/python_tasks.py
 - **🧪 Testing**: Mock/patch pipeline steps, test functions normally
 - **💔 Move on**: Easy removal - just delete runnable files, your code stays
 
+## 🎯 Core Strengths & Extensibility
+
+**Runnable excels at data pipeline orchestration:**
+
+- Data processing pipelines
+- ML model training workflows
+- ETL operations
+- Batch job orchestration
+- Scientific computing reproducibility
+
+**🧪 Extensible Architecture & Experimental Features:**
+
+Runnable's plugin-based architecture demonstrates its extensibility through experimental features like:
+
+- **Async streaming capabilities** - Proof of concept for real-time processing (local execution)
+- **Loop workflows** - Dynamic iteration patterns for complex data processing
+- **Custom executors** - Extensible to any infrastructure via plugins
+
+> **For production agentic frameworks**, consider specialized tools like [Pydantic AI](https://github.com/pydantic/pydantic-ai), [LangChain](https://python.langchain.com/), or [CrewAI](https://github.com/joaomdmoura/crewAI), which are purpose-built for complex LLM applications.
+
 ## 📖 Documentation
 
 **[Complete Documentation →](https://astrazeneca.github.io/runnable/)**
