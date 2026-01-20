@@ -10,6 +10,104 @@
 
 ---
 
+## User Workflow
+
+### Step 1: Create Airflow Config Alongside Pipeline
+
+File naming conventions in the same directory as the pipeline:
+- Config: `{pipeline_name}.airflow.yaml` (required)
+- Parameters: `{pipeline_name}.parameters.yaml` (optional)
+
+```
+examples/02-sequential/
+├── traversal.py              # Runnable pipeline
+├── traversal.airflow.yaml    # Airflow-specific config (auto-discovered)
+└── traversal.parameters.yaml # Static parameters (optional, auto-discovered)
+```
+
+The config file serves two purposes:
+1. **At DAG creation time**: Read Docker settings (image, volumes) and per-step overrides
+2. **At runtime**: Provide catalog, run-log-store, secrets configuration
+
+**Config file structure:**
+```yaml
+# Runtime configuration (used by runnable CLI in containers)
+run-log-store:
+  type: file-system
+  config:
+    log_folder: /tmp/run_logs
+
+catalog:
+  type: file-system
+  config:
+    catalog_location: /tmp/catalog
+
+secrets:
+  type: do-nothing
+
+# Airflow/Docker configuration (used by factory at DAG creation time)
+executor:
+  type: airflow
+  config:
+    image: my-runnable-image:latest
+    docker_url: unix://var/run/docker.sock
+    network_mode: bridge
+    auto_remove: success
+    mount_tmp_dir: false
+    volumes:
+      - /host/run_logs:/tmp/run_logs    # Share run log across containers
+      - /host/catalog:/tmp/catalog      # Share catalog across containers
+    environment:
+      KEY: value
+    # Per-step image overrides (optional)
+    overrides:
+      step_name:
+        image: custom-image:latest
+```
+
+**Important:** Volume mounts must map host paths to the same paths used in `run-log-store` and `catalog` configs to share data across containers.
+
+### Step 2: Create DAG Loader in Airflow's DAGs Folder
+
+```python
+# dags/my_dags.py
+from extensions.pipeline_executor.airflow import AirflowDagFactory
+
+factory = AirflowDagFactory(
+    # Only DAG-level defaults - Docker config comes from airflow.yaml
+    default_args={"owner": "runnable", "retries": 1},
+    catchup=False,
+    tags=["runnable"],
+)
+
+# Config auto-discovered: examples/02-sequential/traversal.airflow.yaml
+# All Docker settings (image, volumes) come from the config file
+traversal_dag = factory.create_dag(
+    pipeline_file="examples/02-sequential/traversal.py",
+    dag_id="traversal",
+)
+```
+
+### Step 3: Docker Image Must Contain
+
+- Runnable installed
+- Pipeline files at same paths as host
+- Config files at same paths as host
+- User's actual code (the functions being called)
+
+### How It Works
+
+1. **Airflow scheduler imports** `dags/my_dags.py`
+2. **At import time**, `create_dag()` runs:
+   - Loads pipeline graph via `get_pipeline_spec_from_python()`
+   - Auto-discovers config file (`traversal.airflow.yaml`)
+   - Creates Airflow DAG with DockerOperator per task
+3. **When DAG runs**, each DockerOperator:
+   - Starts container with specified image
+   - Executes `runnable execute-single-node ...` with `--config` pointing to config file
+
+---
+
 ## Key Reference Files
 
 - **Pipeline loading:** `runnable/context.py:52-62` - `get_pipeline_spec_from_python()`
@@ -21,12 +119,101 @@
 
 **execute-single-node:**
 ```
-runnable execute-single-node {run_id} {pipeline_file} {step_name} --mode python [--config {config}] [--iter-variable '{json}']
+runnable execute-single-node {run_id} {pipeline_file} {step_name} --mode python [--config {config}] [--iter-variable '{json}'] [--init-run-log] [--parameters-file {params}]
 ```
 
 **fan:**
 ```
 runnable fan {run_id} {step_name} {pipeline_file} {in|out} --mode python [--config-file {config}] [--iter-variable '{json}']
+```
+
+## Parameters and Run Log Initialization
+
+### Problem
+- The first step must initialize the run log with parameters from `parameters_file`
+- Argo uses `error_on_existing_run_id=true` env var for first container only (in `_set_up_initial_container`)
+- This approach is Argo-specific and doesn't translate well to Airflow
+
+### Solution
+Add `--init-run-log` CLI flag to `execute-single-node` with env var fallback for backward compatibility:
+
+1. **CLI change**: Add `--init-run-log` flag that also reads from `error_on_existing_run_id` env var
+2. **Backward compatible**: Argo continues using env var, Airflow uses CLI flag
+3. **Factory change**: For `graph.start_at` node only, add `--init-run-log --parameters-file {params}`
+4. **Minimal damage**: Existing Argo code continues to work unchanged
+
+**Airflow (CLI flag):**
+```
+runnable execute-single-node {run_id} {pipeline} {step} --mode python --config {config} \
+    --init-run-log --parameters-file {params}
+```
+
+**Argo (env var - continues to work):**
+```
+error_on_existing_run_id=true runnable execute-single-node ...
+```
+
+### Parameters File Convention
+Similar to config: `{pipeline_name}.parameters.yaml` alongside pipeline (optional).
+
+---
+
+### Task 0: Add --init-run-log CLI Flag (Backward Compatible)
+
+**Files:**
+- Modify: `runnable/cli.py`
+
+**Step 1: Add --init-run-log option with envvar fallback**
+
+In `runnable/cli.py`, add to `execute_single_node` function:
+
+```python
+@click.option(
+    "--init-run-log",
+    is_flag=True,
+    default=False,
+    envvar="error_on_existing_run_id",  # Backward compatible with Argo
+    help="Initialize run log (first step only). Also reads from error_on_existing_run_id env var.",
+)
+@click.option(
+    "--parameters-file",
+    default=None,
+    help="Path to parameters YAML file (used with --init-run-log).",
+)
+```
+
+**Step 2: Set env var when flag is present (for downstream code)**
+
+In the `execute_single_node` function body, before any run log setup:
+
+```python
+if init_run_log:
+    os.environ["error_on_existing_run_id"] = "true"
+```
+
+This ensures existing code that checks the env var continues to work.
+
+**Step 3: Pass parameters_file to _set_up_run_log**
+
+Ensure parameters_file is passed to `_set_up_run_log` when `--init-run-log` is set.
+
+**Step 4: Test CLI flag**
+
+Run: `uv run runnable execute-single-node --help`
+
+Expected: Shows `--init-run-log` and `--parameters-file` options
+
+**Step 5: Test env var backward compatibility**
+
+Run: `error_on_existing_run_id=true uv run runnable execute-single-node --help`
+
+Expected: The flag should be recognized from env var
+
+**Step 6: Commit**
+
+```bash
+git add runnable/cli.py
+git commit -m "feat(cli): add --init-run-log flag with envvar fallback for backward compatibility"
 ```
 
 ---
@@ -153,34 +340,99 @@ class AirflowDagFactory(BaseModel):
     """
     Factory for creating Airflow DAGs from Runnable pipelines.
 
+    Config files are auto-discovered using the convention:
+    {pipeline_name}.airflow.yaml in the same directory as the pipeline.
+
+    Docker configuration (image, volumes, etc.) is read from the config file,
+    not from the factory constructor. This keeps per-pipeline config in one place.
+
     Example:
-        factory = AirflowDagFactory(image="my-image:latest")
-        dag = factory.create_dag("pipeline.py", dag_id="my-dag")
+        factory = AirflowDagFactory()
+        dag = factory.create_dag("examples/pipeline.py", dag_id="my-dag")
+        # Auto-discovers: examples/pipeline.airflow.yaml
+        # Docker settings come from executor.config in the YAML
     """
 
-    # Docker configuration
-    image: str
-    docker_url: str = Field(default="unix://var/run/docker.sock")
-    network_mode: str = Field(default="bridge")
-    auto_remove: str = Field(default="success")
-    mount_tmp_dir: bool = Field(default=False)
-    volumes: list[str] = Field(default_factory=list)
-    environment: dict[str, str] = Field(default_factory=dict)
-
-    # Airflow DAG defaults
+    # Airflow DAG defaults only - Docker config comes from per-pipeline YAML
     default_args: dict[str, Any] = Field(default_factory=dict)
     schedule: Optional[str] = Field(default=None)
     catchup: bool = Field(default=False)
     tags: list[str] = Field(default_factory=list)
-
-    # Runnable configuration
-    config_file: Optional[str] = Field(default=None)
 
     model_config = {"arbitrary_types_allowed": True}
 
     def __init__(self, **data):
         _check_airflow_available()
         super().__init__(**data)
+
+    @staticmethod
+    def _get_config_file(pipeline_file: str) -> Optional[str]:
+        """
+        Auto-discover config file for a pipeline.
+
+        Convention: {pipeline_name}.airflow.yaml in same directory.
+        Example: examples/traversal.py -> examples/traversal.airflow.yaml
+        """
+        import os
+
+        base = pipeline_file.rsplit(".", 1)[0]  # Remove .py extension
+        config_path = f"{base}.airflow.yaml"
+
+        if os.path.exists(config_path):
+            return config_path
+
+        logger.warning(f"No config file found at {config_path}")
+        return None
+
+    @staticmethod
+    def _get_parameters_file(pipeline_file: str) -> Optional[str]:
+        """
+        Auto-discover parameters file for a pipeline.
+
+        Convention: {pipeline_name}.parameters.yaml in same directory.
+        Example: examples/traversal.py -> examples/traversal.parameters.yaml
+        """
+        import os
+
+        base = pipeline_file.rsplit(".", 1)[0]  # Remove .py extension
+        params_path = f"{base}.parameters.yaml"
+
+        if os.path.exists(params_path):
+            return params_path
+
+        return None  # Parameters file is optional, no warning
+
+    @staticmethod
+    def _load_docker_config(config_file: str) -> dict[str, Any]:
+        """
+        Load Docker configuration from the airflow config file.
+
+        Reads executor.config section from the YAML.
+        """
+        import yaml
+
+        if not config_file:
+            raise ValueError("Config file is required for Docker settings")
+
+        with open(config_file, "r") as f:
+            config = yaml.safe_load(f)
+
+        executor_config = config.get("executor", {}).get("config", {})
+
+        if not executor_config.get("image"):
+            raise ValueError(f"executor.config.image is required in {config_file}")
+
+        # Return with defaults
+        return {
+            "image": executor_config["image"],
+            "docker_url": executor_config.get("docker_url", "unix://var/run/docker.sock"),
+            "network_mode": executor_config.get("network_mode", "bridge"),
+            "auto_remove": executor_config.get("auto_remove", "success"),
+            "mount_tmp_dir": executor_config.get("mount_tmp_dir", False),
+            "volumes": executor_config.get("volumes", []),
+            "environment": executor_config.get("environment", {}),
+            "overrides": executor_config.get("overrides", {}),
+        }
 ```
 
 **Step 4: Run test to verify it passes**
@@ -265,6 +517,8 @@ Add to `AirflowDagFactory` class in `extensions/pipeline_executor/airflow.py`:
         """
         Create an Airflow DAG from a Runnable pipeline file.
 
+        Config file is auto-discovered: {pipeline_name}.airflow.yaml
+
         Args:
             pipeline_file: Path to the Runnable pipeline Python file
             dag_id: Unique identifier for the DAG
@@ -280,8 +534,15 @@ Add to `AirflowDagFactory` class in `extensions/pipeline_executor/airflow.py`:
         # Load pipeline graph
         graph = get_pipeline_spec_from_python(pipeline_file)
 
-        # Resolve configuration
-        effective_image = image or self.image
+        # Auto-discover config and parameters files
+        config_file = self._get_config_file(pipeline_file)
+        parameters_file = self._get_parameters_file(pipeline_file)
+
+        # Load Docker config from YAML
+        docker_config = self._load_docker_config(config_file)
+
+        # Resolve configuration (allow per-DAG image override)
+        effective_image = image or docker_config["image"]
         effective_schedule = schedule if schedule is not None else self.schedule
 
         # Build DAG configuration
@@ -300,7 +561,10 @@ Add to `AirflowDagFactory` class in `extensions/pipeline_executor/airflow.py`:
                 dag=dag,
                 graph=graph,
                 pipeline_file=pipeline_file,
-                image=effective_image,
+                docker_config=docker_config,
+                config_file=config_file,
+                parameters_file=parameters_file,
+                start_node_name=graph.start_at,  # Track first node
             )
 
         return dag
@@ -311,6 +575,7 @@ Add to `AirflowDagFactory` class in `extensions/pipeline_executor/airflow.py`:
         graph: Any,
         pipeline_file: str,
         image: str,
+        config_file: Optional[str] = None,
     ) -> None:
         """Build Airflow tasks from Runnable graph. Placeholder for now."""
         pass
@@ -402,11 +667,18 @@ Replace the placeholder in `extensions/pipeline_executor/airflow.py`:
         dag: "DAG",
         graph: Any,
         pipeline_file: str,
-        image: str,
+        docker_config: dict[str, Any],
+        config_file: Optional[str] = None,
+        parameters_file: Optional[str] = None,
+        start_node_name: Optional[str] = None,
         iter_variable: Optional[dict] = None,
     ) -> tuple[Any, Any]:
         """
         Build Airflow tasks from Runnable graph.
+
+        Args:
+            docker_config: Docker settings from executor.config in YAML
+            start_node_name: The first node of the top-level graph (for --init-run-log)
 
         Returns:
             Tuple of (first_task, last_task) for dependency chaining
@@ -419,13 +691,24 @@ Replace the placeholder in `extensions/pipeline_executor/airflow.py`:
             node = graph.get_node_by_name(current_node_name)
             task_id = self._sanitize_task_id(node.internal_name)
 
+            # Check if this is the very first node (needs --init-run-log)
+            is_first_node = (current_node_name == start_node_name)
+
+            # Get per-step image override if configured
+            step_overrides = docker_config.get("overrides", {}).get(node.internal_name, {})
+            step_image = step_overrides.get("image", docker_config["image"])
+
             match node.node_type:
                 case "task" | "stub":
                     task = self._create_docker_task(
                         node=node,
                         task_id=task_id,
                         pipeline_file=pipeline_file,
-                        image=image,
+                        docker_config=docker_config,
+                        step_image=step_image,
+                        config_file=config_file,
+                        parameters_file=parameters_file if is_first_node else None,
+                        init_run_log=is_first_node,
                         iter_variable=iter_variable,
                     )
 
@@ -473,7 +756,11 @@ Replace the placeholder in `extensions/pipeline_executor/airflow.py`:
         node: Any,
         task_id: str,
         pipeline_file: str,
-        image: str,
+        docker_config: dict[str, Any],
+        step_image: str,
+        config_file: Optional[str] = None,
+        parameters_file: Optional[str] = None,
+        init_run_log: bool = False,
         iter_variable: Optional[dict] = None,
     ) -> "DockerOperator":
         """Create DockerOperator for a task node."""
@@ -481,24 +768,31 @@ Replace the placeholder in `extensions/pipeline_executor/airflow.py`:
         command = self._build_execute_command(
             node=node,
             pipeline_file=pipeline_file,
+            config_file=config_file,
+            parameters_file=parameters_file,
+            init_run_log=init_run_log,
             iter_variable=iter_variable,
         )
 
         return DockerOperator(
             task_id=task_id,
-            image=image,
+            image=step_image,
             command=command,
-            docker_url=self.docker_url,
-            network_mode=self.network_mode,
-            auto_remove=self.auto_remove,
-            mount_tmp_dir=self.mount_tmp_dir,
-            environment=self.environment,
+            docker_url=docker_config["docker_url"],
+            network_mode=docker_config["network_mode"],
+            auto_remove=docker_config["auto_remove"],
+            mount_tmp_dir=docker_config["mount_tmp_dir"],
+            mounts=docker_config["volumes"],
+            environment=docker_config["environment"],
         )
 
     def _build_execute_command(
         self,
         node: Any,
         pipeline_file: str,
+        config_file: Optional[str] = None,
+        parameters_file: Optional[str] = None,
+        init_run_log: bool = False,
         iter_variable: Optional[dict] = None,
     ) -> str:
         """Build execute-single-node command string."""
@@ -512,8 +806,14 @@ Replace the placeholder in `extensions/pipeline_executor/airflow.py`:
             f"--mode python"
         )
 
-        if self.config_file:
-            cmd += f" --config {self.config_file}"
+        if config_file:
+            cmd += f" --config {config_file}"
+
+        # First node only: initialize run log with parameters
+        if init_run_log:
+            cmd += " --init-run-log"
+            if parameters_file:
+                cmd += f" --parameters-file {parameters_file}"
 
         if iter_variable:
             iter_json = json.dumps({"map_variable": iter_variable})
@@ -634,6 +934,7 @@ Add to the match statement in `_build_dag_from_graph`:
                         task_id=task_id,
                         pipeline_file=pipeline_file,
                         image=image,
+                        config_file=config_file,
                         iter_variable=iter_variable,
                     )
 ```
@@ -648,6 +949,7 @@ Add the helper method:
         task_id: str,
         pipeline_file: str,
         image: str,
+        config_file: Optional[str] = None,
         iter_variable: Optional[dict] = None,
     ) -> "TaskGroup":
         """Create TaskGroup for parallel node with fan-out/fan-in."""
@@ -659,6 +961,7 @@ Add the helper method:
                 mode="out",
                 pipeline_file=pipeline_file,
                 image=image,
+                config_file=config_file,
                 iter_variable=iter_variable,
             )
 
@@ -672,6 +975,7 @@ Add the helper method:
                         graph=branch_graph,
                         pipeline_file=pipeline_file,
                         image=image,
+                        config_file=config_file,
                         iter_variable=iter_variable,
                     )
                     if first:
@@ -686,6 +990,7 @@ Add the helper method:
                 mode="in",
                 pipeline_file=pipeline_file,
                 image=image,
+                config_file=config_file,
                 iter_variable=iter_variable,
                 trigger_rule=TriggerRule.ALL_DONE,
             )
@@ -702,6 +1007,7 @@ Add the helper method:
         mode: str,
         pipeline_file: str,
         image: str,
+        config_file: Optional[str] = None,
         iter_variable: Optional[dict] = None,
         trigger_rule: Optional["TriggerRule"] = None,
     ) -> "DockerOperator":
@@ -710,6 +1016,7 @@ Add the helper method:
             node=node,
             mode=mode,
             pipeline_file=pipeline_file,
+            config_file=config_file,
             iter_variable=iter_variable,
         )
 
@@ -734,6 +1041,7 @@ Add the helper method:
         node: Any,
         mode: str,
         pipeline_file: str,
+        config_file: Optional[str] = None,
         iter_variable: Optional[dict] = None,
     ) -> str:
         """Build fan in/out command string."""
@@ -748,8 +1056,8 @@ Add the helper method:
             f"--mode python"
         )
 
-        if self.config_file:
-            cmd += f" --config-file {self.config_file}"
+        if config_file:
+            cmd += f" --config-file {config_file}"
 
         if iter_variable:
             iter_json = json.dumps({"map_variable": iter_variable})
@@ -864,6 +1172,7 @@ Add to the match statement in `_build_dag_from_graph`:
                         task_id=task_id,
                         pipeline_file=pipeline_file,
                         image=image,
+                        config_file=config_file,
                         iter_variable=iter_variable,
                     )
 ```
@@ -878,6 +1187,7 @@ Add the helper method:
         task_id: str,
         pipeline_file: str,
         image: str,
+        config_file: Optional[str] = None,
         iter_variable: Optional[dict] = None,
     ) -> "TaskGroup":
         """Create TaskGroup for map node with dynamic task mapping."""
@@ -891,6 +1201,7 @@ Add the helper method:
                 mode="out",
                 pipeline_file=pipeline_file,
                 image=image,
+                config_file=config_file,
                 iter_variable=iter_variable,
             )
             # Enable XCom for iteration values
@@ -910,6 +1221,7 @@ Add the helper method:
                 graph=node.branch,
                 pipeline_file=pipeline_file,
                 image=image,
+                config_file=config_file,
                 iter_variable=branch_iter,
             )
 
@@ -923,6 +1235,7 @@ Add the helper method:
                 mode="in",
                 pipeline_file=pipeline_file,
                 image=image,
+                config_file=config_file,
                 iter_variable=iter_variable,
                 trigger_rule=TriggerRule.ALL_DONE,
             )
@@ -1032,6 +1345,7 @@ Add to the match statement:
                         task_id=task_id,
                         pipeline_file=pipeline_file,
                         image=image,
+                        config_file=config_file,
                         iter_variable=iter_variable,
                     )
 ```
@@ -1046,6 +1360,7 @@ Add the helper:
         task_id: str,
         pipeline_file: str,
         image: str,
+        config_file: Optional[str] = None,
         iter_variable: Optional[dict] = None,
     ) -> "TaskGroup":
         """Create TaskGroup for conditional node with BranchPythonOperator."""
@@ -1057,6 +1372,7 @@ Add the helper:
                 mode="out",
                 pipeline_file=pipeline_file,
                 image=image,
+                config_file=config_file,
                 iter_variable=iter_variable,
             )
             fan_out.do_xcom_push = True
@@ -1087,6 +1403,7 @@ Add the helper:
                         graph=branch_graph,
                         pipeline_file=pipeline_file,
                         image=image,
+                        config_file=config_file,
                         iter_variable=iter_variable,
                     )
                     if first:
@@ -1101,6 +1418,7 @@ Add the helper:
                 mode="in",
                 pipeline_file=pipeline_file,
                 image=image,
+                config_file=config_file,
                 iter_variable=iter_variable,
                 trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS,
             )
@@ -1161,7 +1479,7 @@ git commit -m "feat(airflow): add optional airflow dependency group"
 
 **Files:**
 - Create: `examples/airflow/dag_loader.py`
-- Create: `examples/configs/airflow-config.yaml`
+- Create: `examples/02-sequential/traversal.airflow.yaml`
 
 **Step 1: Create directory and example DAG loader**
 
@@ -1174,6 +1492,9 @@ Create `examples/airflow/dag_loader.py`:
 Example Airflow DAG loader for Runnable pipelines.
 
 Place in your Airflow DAGs folder and configure the factory.
+
+Config files are auto-discovered using the convention:
+{pipeline_name}.airflow.yaml in the same directory as the pipeline.
 """
 
 from extensions.pipeline_executor.airflow import AirflowDagFactory
@@ -1184,13 +1505,13 @@ factory = AirflowDagFactory(
         "/tmp/run_logs:/tmp/run_logs",
         "/tmp/catalog:/tmp/catalog",
     ],
-    config_file="examples/configs/airflow-config.yaml",
     default_args={"owner": "runnable", "retries": 1},
     catchup=False,
     tags=["runnable"],
 )
 
 # Create DAG from pipeline
+# Config auto-discovered: examples/02-sequential/traversal.airflow.yaml
 traversal_dag = factory.create_dag(
     pipeline_file="examples/02-sequential/traversal.py",
     dag_id="runnable-traversal",
@@ -1198,11 +1519,15 @@ traversal_dag = factory.create_dag(
 )
 ```
 
-**Step 2: Create config file**
+**Step 2: Create config file alongside pipeline**
 
-Create `examples/configs/airflow-config.yaml`:
+Create `examples/02-sequential/traversal.airflow.yaml`:
 
 ```yaml
+# Airflow-specific config for traversal.py
+# This file is auto-discovered by AirflowDagFactory
+
+# Runtime configuration (used by runnable CLI in containers)
 run-log-store:
   type: file-system
   config:
@@ -1215,16 +1540,35 @@ catalog:
 
 secrets:
   type: do-nothing
+
+# Airflow/Docker configuration (used by factory at DAG creation time)
+executor:
+  type: airflow
+  config:
+    image: your-runnable-image:latest
+    docker_url: unix://var/run/docker.sock
+    network_mode: bridge
+    auto_remove: success
+    mount_tmp_dir: false
+    # Volume mounts - MUST share run-log and catalog across containers
+    volumes:
+      - /tmp/run_logs:/tmp/run_logs
+      - /tmp/catalog:/tmp/catalog
+    environment: {}
+    # Optional: Per-step image overrides
+    # overrides:
+    #   step_name:
+    #     image: custom-image:latest
 ```
 
 **Step 3: Verify files exist**
 
-Run: `ls -la examples/airflow/dag_loader.py examples/configs/airflow-config.yaml`
+Run: `ls -la examples/airflow/dag_loader.py examples/02-sequential/traversal.airflow.yaml`
 
 **Step 4: Commit**
 
 ```bash
-git add examples/airflow/ examples/configs/airflow-config.yaml
+git add examples/airflow/ examples/02-sequential/traversal.airflow.yaml
 git commit -m "docs(airflow): add example DAG loader and config"
 ```
 
@@ -1253,16 +1597,91 @@ git commit -m "style: format airflow module"
 
 ---
 
+## Future Considerations: KubernetesPodOperator Support
+
+Currently implementing DockerOperator only. When KubernetesPodOperator is needed:
+
+### Config Structure Extension
+
+```yaml
+executor:
+  type: airflow
+  config:
+    operator: docker  # or: kubernetes
+    image: my-image:latest
+    environment:
+      KEY: value
+
+    # Docker-specific (ignored if operator: kubernetes)
+    docker:
+      docker_url: unix://var/run/docker.sock
+      network_mode: bridge
+      volumes:
+        - /host/run_logs:/tmp/run_logs
+
+    # Kubernetes-specific (ignored if operator: docker)
+    kubernetes:
+      namespace: airflow
+      service_account_name: runnable
+      in_cluster: true
+      volumes:
+        - name: run-logs
+          persistentVolumeClaim:
+            claimName: run-logs-pvc
+      volume_mounts:
+        - name: run-logs
+          mountPath: /tmp/run_logs
+```
+
+### Code Changes Required
+
+1. **`_load_docker_config`** → **`_load_operator_config`** - returns operator type + config
+2. **`_create_docker_task`** → **`_create_operator_task`** - switches on operator type
+3. **New method**: `_create_kubernetes_task` for K8s-specific logic
+
+### Key Differences
+
+| Aspect | DockerOperator | KubernetesPodOperator |
+|--------|---------------|----------------------|
+| Volumes | `mounts` (bind mounts) | `volumes` + `volume_mounts` (PVC) |
+| Network | `docker_url`, `network_mode` | `namespace`, `in_cluster` |
+| Resources | N/A | `resources` (CPU, memory) |
+
+The abstraction point is `_create_operator_task` - graph traversal and command building stay unchanged.
+
+---
+
+## Implementation Notes
+
+**Composite node handlers** (`_create_parallel_group`, `_create_map_group`, `_create_conditional_group`, `_create_fan_task`) need the same updates:
+- Accept `docker_config: dict[str, Any]` instead of `image: str`
+- Pass `docker_config` to recursive `_build_dag_from_graph` calls
+- Use `docker_config["image"]` for fan tasks (or allow step overrides)
+
+The pattern shown in `_build_dag_from_graph` and `_create_docker_task` should be applied consistently.
+
+---
+
 ## Verification Checklist
 
+- [ ] CLI: `--init-run-log` flag added with `envvar="error_on_existing_run_id"` fallback
+- [ ] CLI: `--parameters-file` flag added
+- [ ] Argo backward compatibility: env var still works
 - [ ] `get_pipeline_spec_from_python` used for loading
 - [ ] All commands include `--mode python`
 - [ ] All commands use `node._command_friendly_name()`
+- [ ] Config file auto-discovered: `{pipeline_name}.airflow.yaml`
+- [ ] Parameters file auto-discovered: `{pipeline_name}.parameters.yaml` (optional)
+- [ ] Docker config loaded from `executor.config` in YAML (not factory constructor)
+- [ ] Volume mounts configured to share run-log and catalog across containers
+- [ ] Config file passed to all CLI commands via `--config` / `--config-file`
+- [ ] First step only: `--init-run-log --parameters-file {params}` added
+- [ ] Per-step image overrides via `executor.config.overrides`
 - [ ] Linear graph traversal works
 - [ ] Parallel nodes create TaskGroup with fan-out/fan-in
 - [ ] Map nodes support dynamic task mapping
 - [ ] Conditional nodes use BranchPythonOperator
 - [ ] `pyproject.toml` has airflow dependency
-- [ ] Example files created
+- [ ] Example files created (dag_loader.py + traversal.airflow.yaml)
 - [ ] All tests pass
 - [ ] Pre-commit passes
