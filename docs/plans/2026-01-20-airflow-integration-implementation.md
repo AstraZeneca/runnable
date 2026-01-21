@@ -1597,6 +1597,29 @@ git commit -m "style: format airflow module"
 
 ---
 
+## Design Gaps to Discuss
+
+The following design issues need resolution before implementation:
+
+### 1. Fan-out as first step
+Fan-out can be the first step sometimes (e.g., pipeline starts with a parallel or map node). The command generation should handle `--init-run-log` for fan-out commands, not just `execute-single-node`.
+
+### 2. Simplify run log existence check
+Remove complexity of checking if run log exists for 2nd step onwards. Instead of `error_on_existing_run_id` flag, remove the "exists OK" flag from `_set_up_run_log` and check for the environment variable within that block.
+
+### 3. Airflow executor in node callable command
+Need to make `airflow` the executor type in the config during `runnable` node callable command. The `execute_node` of the executor should be instructed to create the run log:
+- First step: creates run log
+- Subsequent steps: ignores (uses existing)
+
+### 4. Parameter file discovery differs between local and Airflow
+Parameter file discovery pattern differs from local execution to Airflow execution. One way to overcome: specify parameter file path via the airflow config file rather than auto-discovery.
+
+### 5. Step override implementation concerns
+Current implementation of per-step image overrides in `_build_dag_from_graph` needs review. Not convinced about the approach.
+
+---
+
 ## Future Considerations: KubernetesPodOperator Support
 
 Currently implementing DockerOperator only. When KubernetesPodOperator is needed:
