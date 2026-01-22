@@ -41,6 +41,10 @@ telemetry = [
     "opentelemetry-sdk>=1.20.0",
     "opentelemetry-exporter-otlp>=1.20.0",
 ]
+airflow = [
+    "apache-airflow>=2.8.0,<3.0.0",
+    "apache-airflow-providers-docker>=3.0.0",
+]
 
 
 [dependency-groups]
@@ -122,6 +126,7 @@ include = [
 "local-container" = "extensions.pipeline_executor.local_container:LocalContainerExecutor"
 "emulator" = "extensions.pipeline_executor.emulate:Emulator"
 "argo" = "extensions.pipeline_executor.argo:ArgoExecutor"
+"airflow" = "extensions.pipeline_executor.airflow:AirflowExecutor"
 "mocked" = "extensions.pipeline_executor.mocked:MockedExecutor"
 
 [project.entry-points.'job_executor']

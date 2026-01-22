@@ -434,7 +434,7 @@ class PipelineContext(RunnableContext):
 
             # Prepare for graph execution
             if self.pipeline_executor._should_setup_run_log_at_traversal:
-                self.pipeline_executor._set_up_run_log(exists_ok=False)
+                self.pipeline_executor._set_up_run_log()
 
             try:
                 self.pipeline_executor.execute_graph(dag=self.dag)
@@ -508,7 +508,7 @@ class PipelineContext(RunnableContext):
             console.rule(style="[dark orange]")
 
             if self.pipeline_executor._should_setup_run_log_at_traversal:
-                self.pipeline_executor._set_up_run_log(exists_ok=False)
+                self.pipeline_executor._set_up_run_log()
 
             try:
                 await self.pipeline_executor.execute_graph_async(dag=self.dag)
@@ -572,7 +572,7 @@ class AsyncPipelineContext(RunnableContext):
             console.rule(style="[dark orange]")
 
             if self.pipeline_executor._should_setup_run_log_at_traversal:
-                self.pipeline_executor._set_up_run_log(exists_ok=False)
+                self.pipeline_executor._set_up_run_log()
 
             try:
                 await self.pipeline_executor.execute_graph_async(dag=self.dag)

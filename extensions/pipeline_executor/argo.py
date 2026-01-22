@@ -1140,11 +1140,8 @@ class ArgoExecutor(GenericPipelineExecutor):
         node: BaseNode,
         iter_variable: Optional[IterableParameterModel] = None,
     ):
-        error_on_existing_run_id = os.environ.get("error_on_existing_run_id", "false")
-        exists_ok = error_on_existing_run_id == "false"
-
         self._use_volumes()
-        self._set_up_run_log(exists_ok=exists_ok)
+        self._set_up_run_log()
 
         try:
             # This should only happen during a retry
@@ -1186,9 +1183,7 @@ class ArgoExecutor(GenericPipelineExecutor):
         # This could be the first step of the graph
         self._use_volumes()
 
-        error_on_existing_run_id = os.environ.get("error_on_existing_run_id", "false")
-        exists_ok = error_on_existing_run_id == "false"
-        self._set_up_run_log(exists_ok=exists_ok)
+        self._set_up_run_log()
 
         super().fan_out(node, iter_variable)
 

@@ -217,13 +217,18 @@ class GenericPipelineExecutor(BasePipelineExecutor):
             )
             return False
 
-    def _set_up_run_log(self, exists_ok=False):
+    def _set_up_run_log(self):
         """
         Create a run log and put that in the run log store
 
-        If exists_ok, we allow the run log to be already present in the run log store.
+        Checks error_on_existing_run_id environment variable internally:
+        - If "true": Error if run log already exists (first step behavior)
+        - If "false" or unset: Allow existing run log (subsequent step behavior)
+
         Enhanced to support retry execution with validation only.
         """
+        import os
+
         # For retry runs: validate prerequisites and return early
         if self._context.is_retry:
             logger.info(
@@ -234,6 +239,10 @@ class GenericPipelineExecutor(BasePipelineExecutor):
                 f"Retry validation passed. Reusing existing run log: {self._context.run_id}"
             )
             return  # Don't create new run log, reuse existing one
+
+        # Check environment variable to determine if existing run log is allowed
+        error_on_existing_run_id = os.environ.get("error_on_existing_run_id", "false")
+        exists_ok = error_on_existing_run_id == "false"
 
         # Normal run log creation logic (unchanged)
         try:

@@ -191,6 +191,15 @@ def fan(
             help="Parameters, in yaml,  accessible by the application",
         ),
     ] = "",
+    init_run_log: Annotated[
+        bool,
+        typer.Option(
+            "--init-run-log",
+            envvar="error_on_existing_run_id",
+            help="Initialize run log (first step only). Also reads from error_on_existing_run_id env var.",
+            is_flag=True,
+        ),
+    ] = False,
     log_level: Annotated[
         LogLevel,
         typer.Option(
@@ -223,6 +232,7 @@ def fan(
         run_id=run_id,
         tag=tag,
         parameters_file=parameters_file,
+        init_run_log=init_run_log,
     )
 
 

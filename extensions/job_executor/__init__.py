@@ -70,12 +70,20 @@ class GenericJobExecutor(BaseJobExecutor):
         logger.debug(f"parameters as seen by executor: {params}")
         return params
 
-    def _set_up_run_log(self, exists_ok=False):
+    def _set_up_run_log(self):
         """
         Create a run log and put that in the run log store
 
-        If exists_ok, we allow the run log to be already present in the run log store.
+        Checks error_on_existing_run_id environment variable internally:
+        - If "true": Error if run log already exists (first step behavior)
+        - If "false" or unset: Allow existing run log (subsequent step behavior)
         """
+        import os
+
+        # Check environment variable to determine if existing run log is allowed
+        error_on_existing_run_id = os.environ.get("error_on_existing_run_id", "false")
+        exists_ok = error_on_existing_run_id == "false"
+
         try:
             attempt_run_log = self._context.run_log_store.get_run_log_by_id(
                 run_id=self._context.run_id, full=False

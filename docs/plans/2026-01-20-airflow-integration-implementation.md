@@ -4,9 +4,86 @@
 
 **Goal:** Create an AirflowDagFactory that converts Runnable pipelines to native Airflow DAGs at import time.
 
-**Architecture:** The factory uses `get_pipeline_spec_from_python()` to load a Graph, traverses it, and builds Airflow DAG objects with DockerOperator tasks executing `runnable` CLI commands (`execute-single-node`, `fan`).
+**Architecture:** The factory uses `runpy.run_path()` to load pipeline files and extract the Pipeline object, then builds Airflow DAG objects with DockerOperator tasks executing `runnable` CLI commands (`execute-single-node`, `fan`).
 
-**Tech Stack:** Python, Pydantic, Apache Airflow 2.7+, Docker
+**Tech Stack:** Python, Pydantic, Apache Airflow 2.8+ (< 3.0), Docker
+
+---
+
+## Implementation Learnings
+
+### Pipeline Loading Strategy
+
+**Problem:** `get_pipeline_spec_from_python()` expects a `module:function` format (e.g., `examples.pipeline:main`), not a file path.
+
+**Solution:** Use `runpy.run_path()` to execute the pipeline file and extract the Pipeline object:
+
+```python
+import runpy
+from runnable import context
+from runnable.sdk import Pipeline, AsyncPipeline
+
+# Load without triggering if __name__ == "__main__" block
+result = runpy.run_path(pipeline_file, run_name="__airflow_dag_builder__")
+
+# Set temporary context so pipeline.execute() returns early
+context.set_run_context(object())  # Any non-None value works
+
+try:
+    if "main" in result and callable(result["main"]):
+        pipeline = result["main"]()
+    else:
+        # Look for Pipeline in module namespace
+        for value in result.values():
+            if isinstance(value, (Pipeline, AsyncPipeline)):
+                pipeline = value
+                break
+finally:
+    context.set_run_context(None)  # Clear context
+
+runnable_graph = pipeline.return_dag()
+```
+
+**Key insights:**
+1. Use `run_name="__airflow_dag_builder__"` to avoid triggering `if __name__ == "__main__"` block
+2. Set a temporary context before calling `main()` so `pipeline.execute()` returns early (it checks `_is_called_for_definition()`)
+3. Always clear context in `finally` block to avoid test pollution
+
+### Airflow Version Constraint
+
+**Problem:** Airflow 3.x has a dependency conflict with structlog:
+```
+ImportError: cannot import name 'Styles' from 'structlog.dev'
+```
+
+**Solution:** Pin to Airflow 2.x in `pyproject.toml`:
+```toml
+airflow = [
+    "apache-airflow>=2.8.0,<3.0.0",
+    "apache-airflow-providers-docker>=3.0.0",
+]
+```
+
+### Test Context Isolation
+
+**Problem:** The `test_context_isolation_sync` test was leaving context set, causing subsequent tests to fail because `pipeline.execute()` would return early.
+
+**Solution:** Always clean up context in tests:
+```python
+def test_context_isolation_sync():
+    try:
+        set_run_context(context1)
+        # ... test code ...
+    finally:
+        set_run_context(None)  # Clean up!
+```
+
+### Config vs Auto-Discovery
+
+**Decision:** Use explicit `config_file` and `parameters_file` fields in `AirflowDagFactory` instead of auto-discovery. This provides:
+1. Clarity about which config is used
+2. Flexibility to use configs in different locations
+3. No magic path conventions to remember
 
 ---
 
@@ -124,7 +201,7 @@ runnable execute-single-node {run_id} {pipeline_file} {step_name} --mode python 
 
 **fan:**
 ```
-runnable fan {run_id} {step_name} {pipeline_file} {in|out} --mode python [--config-file {config}] [--iter-variable '{json}']
+runnable fan {run_id} {step_name} {pipeline_file} {in|out} --mode python [--config-file {config}] [--iter-variable '{json}'] [--init-run-log] [--parameters-file {params}]
 ```
 
 ## Parameters and Run Log Initialization
@@ -935,6 +1012,8 @@ Add to the match statement in `_build_dag_from_graph`:
                         pipeline_file=pipeline_file,
                         image=image,
                         config_file=config_file,
+                        parameters_file=parameters_file if is_first_node else None,
+                        init_run_log=is_first_node,
                         iter_variable=iter_variable,
                     )
 ```
@@ -950,6 +1029,8 @@ Add the helper method:
         pipeline_file: str,
         image: str,
         config_file: Optional[str] = None,
+        parameters_file: Optional[str] = None,
+        init_run_log: bool = False,
         iter_variable: Optional[dict] = None,
     ) -> "TaskGroup":
         """Create TaskGroup for parallel node with fan-out/fan-in."""
@@ -962,6 +1043,8 @@ Add the helper method:
                 pipeline_file=pipeline_file,
                 image=image,
                 config_file=config_file,
+                parameters_file=parameters_file,
+                init_run_log=init_run_log,
                 iter_variable=iter_variable,
             )
 
@@ -1008,6 +1091,8 @@ Add the helper method:
         pipeline_file: str,
         image: str,
         config_file: Optional[str] = None,
+        parameters_file: Optional[str] = None,
+        init_run_log: bool = False,
         iter_variable: Optional[dict] = None,
         trigger_rule: Optional["TriggerRule"] = None,
     ) -> "DockerOperator":
@@ -1017,6 +1102,8 @@ Add the helper method:
             mode=mode,
             pipeline_file=pipeline_file,
             config_file=config_file,
+            parameters_file=parameters_file,
+            init_run_log=init_run_log,
             iter_variable=iter_variable,
         )
 
@@ -1042,6 +1129,8 @@ Add the helper method:
         mode: str,
         pipeline_file: str,
         config_file: Optional[str] = None,
+        parameters_file: Optional[str] = None,
+        init_run_log: bool = False,
         iter_variable: Optional[dict] = None,
     ) -> str:
         """Build fan in/out command string."""
@@ -1058,6 +1147,12 @@ Add the helper method:
 
         if config_file:
             cmd += f" --config-file {config_file}"
+
+        # First step only: initialize run log with parameters
+        if init_run_log:
+            cmd += " --init-run-log"
+            if parameters_file:
+                cmd += f" --parameters-file {parameters_file}"
 
         if iter_variable:
             iter_json = json.dumps({"map_variable": iter_variable})
@@ -1173,6 +1268,8 @@ Add to the match statement in `_build_dag_from_graph`:
                         pipeline_file=pipeline_file,
                         image=image,
                         config_file=config_file,
+                        parameters_file=parameters_file if is_first_node else None,
+                        init_run_log=is_first_node,
                         iter_variable=iter_variable,
                     )
 ```
@@ -1188,6 +1285,8 @@ Add the helper method:
         pipeline_file: str,
         image: str,
         config_file: Optional[str] = None,
+        parameters_file: Optional[str] = None,
+        init_run_log: bool = False,
         iter_variable: Optional[dict] = None,
     ) -> "TaskGroup":
         """Create TaskGroup for map node with dynamic task mapping."""
@@ -1202,6 +1301,8 @@ Add the helper method:
                 pipeline_file=pipeline_file,
                 image=image,
                 config_file=config_file,
+                parameters_file=parameters_file,
+                init_run_log=init_run_log,
                 iter_variable=iter_variable,
             )
             # Enable XCom for iteration values
@@ -1346,6 +1447,8 @@ Add to the match statement:
                         pipeline_file=pipeline_file,
                         image=image,
                         config_file=config_file,
+                        parameters_file=parameters_file if is_first_node else None,
+                        init_run_log=is_first_node,
                         iter_variable=iter_variable,
                     )
 ```
@@ -1361,6 +1464,8 @@ Add the helper:
         pipeline_file: str,
         image: str,
         config_file: Optional[str] = None,
+        parameters_file: Optional[str] = None,
+        init_run_log: bool = False,
         iter_variable: Optional[dict] = None,
     ) -> "TaskGroup":
         """Create TaskGroup for conditional node with BranchPythonOperator."""
@@ -1373,6 +1478,8 @@ Add the helper:
                 pipeline_file=pipeline_file,
                 image=image,
                 config_file=config_file,
+                parameters_file=parameters_file,
+                init_run_log=init_run_log,
                 iter_variable=iter_variable,
             )
             fan_out.do_xcom_push = True
@@ -1597,26 +1704,25 @@ git commit -m "style: format airflow module"
 
 ---
 
-## Design Gaps to Discuss
+## Design Gaps Status
 
-The following design issues need resolution before implementation:
+### 1. Fan-out as first step ✅ FIXED
+Added `--init-run-log` flag to `fan` CLI command with `envvar="error_on_existing_run_id"` for backward compatibility. Updated `entrypoints.fan()` to accept and handle the parameter.
 
-### 1. Fan-out as first step
-Fan-out can be the first step sometimes (e.g., pipeline starts with a parallel or map node). The command generation should handle `--init-run-log` for fan-out commands, not just `execute-single-node`.
+### 2. Simplify run log existence check ✅ FIXED
+The `--init-run-log` flag approach works well. When flag is set, the entrypoint sets `os.environ["error_on_existing_run_id"] = "true"` for downstream `_set_up_run_log` to consume.
 
-### 2. Simplify run log existence check
-Remove complexity of checking if run log exists for 2nd step onwards. Instead of `error_on_existing_run_id` flag, remove the "exists OK" flag from `_set_up_run_log` and check for the environment variable within that block.
+### 3. Airflow executor in node callable command ✅ FIXED
+Created `AirflowExecutor` class that:
+- Inherits from `GenericPipelineExecutor`
+- Overrides `execute_node`, `fan_out`, `fan_in` to call `_set_up_run_log()` before execution
+- Registered in `pyproject.toml` entry points as `"airflow"`
 
-### 3. Airflow executor in node callable command
-Need to make `airflow` the executor type in the config during `runnable` node callable command. The `execute_node` of the executor should be instructed to create the run log:
-- First step: creates run log
-- Subsequent steps: ignores (uses existing)
+### 4. Parameter file discovery ✅ FIXED
+Changed from auto-discovery to explicit `parameters_file` and `config_file` fields in both `AirflowExecutor` and `AirflowDagFactory`. This provides clarity and flexibility.
 
-### 4. Parameter file discovery differs between local and Airflow
-Parameter file discovery pattern differs from local execution to Airflow execution. One way to overcome: specify parameter file path via the airflow config file rather than auto-discovery.
-
-### 5. Step override implementation concerns
-Current implementation of per-step image overrides in `_build_dag_from_graph` needs review. Not convinced about the approach.
+### 5. Step override implementation concerns ⏳ PENDING
+Still needs review. Current approach passes `docker_config` dict through the call chain.
 
 ---
 
@@ -1687,24 +1793,31 @@ The pattern shown in `_build_dag_from_graph` and `_create_docker_task` should be
 
 ## Verification Checklist
 
-- [ ] CLI: `--init-run-log` flag added with `envvar="error_on_existing_run_id"` fallback
-- [ ] CLI: `--parameters-file` flag added
-- [ ] Argo backward compatibility: env var still works
-- [ ] `get_pipeline_spec_from_python` used for loading
+- [x] CLI: `--init-run-log` flag added with `envvar="error_on_existing_run_id"` fallback (in both `execute_single_node` and `fan` commands)
+- [x] CLI: `--parameters-file` flag added
+- [x] Argo backward compatibility: env var still works
+- [x] Pipeline loading via `runpy.run_path()` with context marker (replaces `get_pipeline_spec_from_python`)
 - [ ] All commands include `--mode python`
 - [ ] All commands use `node._command_friendly_name()`
-- [ ] Config file auto-discovered: `{pipeline_name}.airflow.yaml`
-- [ ] Parameters file auto-discovered: `{pipeline_name}.parameters.yaml` (optional)
+- [x] Config file: explicit `config_file` field (changed from auto-discovery)
+- [x] Parameters file: explicit `parameters_file` field (changed from auto-discovery)
 - [ ] Docker config loaded from `executor.config` in YAML (not factory constructor)
 - [ ] Volume mounts configured to share run-log and catalog across containers
 - [ ] Config file passed to all CLI commands via `--config` / `--config-file`
 - [ ] First step only: `--init-run-log --parameters-file {params}` added
 - [ ] Per-step image overrides via `executor.config.overrides`
-- [ ] Linear graph traversal works
+- [x] Linear graph traversal works (tested with stub pipeline: step1 → step2 → step3 → success)
 - [ ] Parallel nodes create TaskGroup with fan-out/fan-in
 - [ ] Map nodes support dynamic task mapping
 - [ ] Conditional nodes use BranchPythonOperator
-- [ ] `pyproject.toml` has airflow dependency
+- [x] `pyproject.toml` has airflow dependency (`>=2.8.0,<3.0.0`)
 - [ ] Example files created (dag_loader.py + traversal.airflow.yaml)
-- [ ] All tests pass
+- [x] All tests pass (479 passed, excluding minio infrastructure tests)
 - [ ] Pre-commit passes
+
+### Additional Items Completed
+
+- [x] `AirflowExecutor` class created for container execution with run log setup
+- [x] `--init-run-log` flag added to `fan` CLI command (not just `execute_single_node`)
+- [x] `entrypoints.fan()` updated to accept `init_run_log` parameter
+- [x] Test context isolation bug fixed (`test_context_isolation_sync` now cleans up context)

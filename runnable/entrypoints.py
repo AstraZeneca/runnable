@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from typing import Optional
 
 import runnable.context as context
@@ -261,6 +262,7 @@ def fan(
     run_id: str,
     tag: str = "",
     parameters_file: str = "",
+    init_run_log: bool = False,
 ):
     """
     The entry point to either fan in or out for a composite node. Only 3rd party orchestrators should use this.
@@ -275,8 +277,13 @@ def fan(
         run_id (str): The run id of the run.
         tag (str): If a tag is provided at the run time
         parameters_file (str): The parameters being sent in to the application
+        init_run_log (bool): If True, initialize the run log (first step only)
 
     """
+    # Set environment variable for backward compatibility with _set_up_run_log
+    if init_run_log:
+        os.environ["error_on_existing_run_id"] = "true"
+
     service_configurations = context.ServiceConfigurations(
         configuration_file=configuration_file,
         execution_context=context.ExecutionContext.PIPELINE,

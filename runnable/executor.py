@@ -59,11 +59,13 @@ class BaseExecutor(ABC, BaseModel):
         ...
 
     @abstractmethod
-    def _set_up_run_log(self, exists_ok=False):
+    def _set_up_run_log(self):
         """
         Create a run log and put that in the run log store
 
-        If exists_ok, we allow the run log to be already present in the run log store.
+        Checks error_on_existing_run_id environment variable internally:
+        - If "true": Error if run log already exists (first step behavior)
+        - If "false" or unset: Allow existing run log (subsequent step behavior)
         """
         ...
 
