@@ -141,7 +141,9 @@ class BaseTaskType(BaseModel):
         return self.model_dump(by_alias=True)
 
     @property
-    def _context(self):
+    def _context(
+        self,
+    ):
         current_context = context.get_run_context()
         if current_context is None:
             raise RuntimeError("No run context available in current execution context")
@@ -242,14 +244,6 @@ class BaseTaskType(BaseModel):
             else:
                 serializable[k] = truncate_value(v.get_value())
         return serializable
-
-    def _emit_event(self, event: Dict[str, Any]) -> None:
-        """Push event to stream queue if one is set (for SSE streaming)."""
-        from runnable.telemetry import get_stream_queue
-
-        q = get_stream_queue()
-        if q is not None:
-            q.put_nowait(event)
 
     @contextlib.contextmanager
     def execution_context(
@@ -395,13 +389,6 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     "Task started",
                     inputs=self._safe_serialize_params(params),
                 )
-                self._emit_event(
-                    {
-                        "type": "task_started",
-                        "name": self.command,
-                        "inputs": self._safe_serialize_params(params),
-                    }
-                )
 
                 module, func = utils.get_module_and_attr_names(self.command)
                 sys.path.insert(
@@ -473,23 +460,8 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                             outputs=self._safe_serialize_params(output_parameters),
                             status="success",
                         )
-                        self._emit_event(
-                            {
-                                "type": "task_completed",
-                                "name": self.command,
-                                "outputs": self._safe_serialize_params(
-                                    output_parameters
-                                ),
-                            }
-                        )
                     else:
                         logfire.info("Task completed", status="success")
-                        self._emit_event(
-                            {
-                                "type": "task_completed",
-                                "name": self.command,
-                            }
-                        )
 
                     attempt_log.status = defaults.SUCCESS
                 except Exception as _e:
@@ -498,13 +470,6 @@ class PythonTaskType(BaseTaskType):  # pylint: disable=too-few-public-methods
                     task_console.print_exception(show_locals=False)
                     task_console.log(_e, style=defaults.error_style)
                     logfire.error("Task failed", error=str(_e)[:256])
-                    self._emit_event(
-                        {
-                            "type": "task_error",
-                            "name": self.command,
-                            "error": str(_e)[:256],
-                        }
-                    )
 
         attempt_log.end_time = str(datetime.now())
 
@@ -637,13 +602,6 @@ class NotebookTaskType(BaseTaskType):
                         "Task started",
                         inputs=self._safe_serialize_params(params),
                     )
-                    self._emit_event(
-                        {
-                            "type": "task_started",
-                            "name": self.command,
-                            "inputs": self._safe_serialize_params(params),
-                        }
-                    )
 
                     attempt_log.input_parameters = params.copy()
                     copy_params = copy.deepcopy(params)
@@ -714,23 +672,8 @@ class NotebookTaskType(BaseTaskType):
                             outputs=self._safe_serialize_params(output_parameters),
                             status="success",
                         )
-                        self._emit_event(
-                            {
-                                "type": "task_completed",
-                                "name": self.command,
-                                "outputs": self._safe_serialize_params(
-                                    output_parameters
-                                ),
-                            }
-                        )
                     else:
                         logfire.info("Task completed", status="success")
-                        self._emit_event(
-                            {
-                                "type": "task_completed",
-                                "name": self.command,
-                            }
-                        )
 
                     attempt_log.status = defaults.SUCCESS
 
@@ -742,9 +685,6 @@ class NotebookTaskType(BaseTaskType):
                 logger.exception(msg)
                 logger.exception(e)
                 logfire.error("Task failed", error=str(e)[:256])
-                self._emit_event(
-                    {"type": "task_error", "name": self.command, "error": str(e)[:256]}
-                )
 
                 attempt_log.status = defaults.FAIL
 
@@ -869,13 +809,6 @@ class ShellTaskType(BaseTaskType):
                         "Task started",
                         inputs=self._safe_serialize_params(params),
                     )
-                    self._emit_event(
-                        {
-                            "type": "task_started",
-                            "name": self.command[:100],
-                            "inputs": self._safe_serialize_params(params),
-                        }
-                    )
 
                     subprocess_env.update({k: v.get_value() for k, v in params.items()})
 
@@ -965,23 +898,8 @@ class ShellTaskType(BaseTaskType):
                             outputs=self._safe_serialize_params(output_parameters),
                             status="success",
                         )
-                        self._emit_event(
-                            {
-                                "type": "task_completed",
-                                "name": self.command[:100],
-                                "outputs": self._safe_serialize_params(
-                                    output_parameters
-                                ),
-                            }
-                        )
                     else:
                         logfire.info("Task completed", status="success")
-                        self._emit_event(
-                            {
-                                "type": "task_completed",
-                                "name": self.command[:100],
-                            }
-                        )
 
                     attempt_log.status = defaults.SUCCESS
             except exceptions.CommandCallError as e:
@@ -992,13 +910,6 @@ class ShellTaskType(BaseTaskType):
                 task_console.log(msg, style=defaults.error_style)
                 task_console.log(e, style=defaults.error_style)
                 logfire.error("Task failed", error=str(e)[:256])
-                self._emit_event(
-                    {
-                        "type": "task_error",
-                        "name": self.command[:100],
-                        "error": str(e)[:256],
-                    }
-                )
 
                 attempt_log.status = defaults.FAIL
 
@@ -1060,13 +971,6 @@ class AsyncPythonTaskType(BaseTaskType):
                     "Task started",
                     inputs=self._safe_serialize_params(params),
                 )
-                self._emit_event(
-                    {
-                        "type": "task_started",
-                        "name": self.command,
-                        "inputs": self._safe_serialize_params(params),
-                    }
-                )
 
                 module, func = utils.get_module_and_attr_names(self.command)
                 sys.path.insert(0, os.getcwd())
@@ -1093,10 +997,9 @@ class AsyncPythonTaskType(BaseTaskType):
                                 user_set_parameters = None
                                 async for item in result:
                                     if isinstance(item, dict) and "type" in item:
-                                        # It's an event - emit it
+                                        # It's a domain event - send to AsyncGenerator stream only
                                         if event_callback:
                                             event_callback(item)
-                                        self._emit_event(item)
 
                                         # Extract return values from the final event
                                         # The stream end event contains the actual return values
@@ -1169,23 +1072,8 @@ class AsyncPythonTaskType(BaseTaskType):
                             outputs=self._safe_serialize_params(output_parameters),
                             status="success",
                         )
-                        self._emit_event(
-                            {
-                                "type": "task_completed",
-                                "name": self.command,
-                                "outputs": self._safe_serialize_params(
-                                    output_parameters
-                                ),
-                            }
-                        )
                     else:
                         logfire.info("Task completed", status="success")
-                        self._emit_event(
-                            {
-                                "type": "task_completed",
-                                "name": self.command,
-                            }
-                        )
 
                     attempt_log.status = defaults.SUCCESS
                 except Exception as _e:
@@ -1196,13 +1084,6 @@ class AsyncPythonTaskType(BaseTaskType):
                     task_console.print_exception(show_locals=False)
                     task_console.log(_e, style=defaults.error_style)
                     logfire.error("Task failed", error=str(_e)[:256])
-                    self._emit_event(
-                        {
-                            "type": "task_error",
-                            "name": self.command,
-                            "error": str(_e)[:256],
-                        }
-                    )
 
         attempt_log.end_time = str(datetime.now())
 

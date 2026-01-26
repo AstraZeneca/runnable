@@ -31,7 +31,6 @@ from runnable.pickler import BasePickler
 from runnable.secrets import BaseSecrets
 from runnable.tasks import BaseTaskType
 
-
 logger = logging.getLogger(defaults.LOGGER_NAME)
 
 
@@ -290,7 +289,7 @@ class RunnableContext(BaseModel):
             os.environ[defaults.RUNNABLE_RUN_TAG] = self.tag
 
         # Set the context using contextvars for proper isolation
-        set_run_context(self)
+        set_run_context(self)  # type: ignore
 
     def execute(self):
         "Execute the pipeline or the job"
@@ -698,21 +697,19 @@ else:
     RunnableContextType = Any
 
 _run_context_var: contextvars.ContextVar[
-    Optional["PipelineContext | JobContext | AsyncPipelineContext | RunnableContext"]
+    Optional["PipelineContext | JobContext | AsyncPipelineContext"]
 ] = contextvars.ContextVar("run_context", default=None)
 
 
 def get_run_context() -> (
-    Optional["PipelineContext | JobContext | AsyncPipelineContext | RunnableContext"]
+    Optional["PipelineContext | JobContext | AsyncPipelineContext"]
 ):
     """Get the current run context for this execution context."""
     return _run_context_var.get()
 
 
 def set_run_context(
-    context: Optional[
-        "PipelineContext | JobContext | AsyncPipelineContext | RunnableContext"
-    ],
+    context: Optional["PipelineContext | JobContext | AsyncPipelineContext"],
 ) -> None:
     """Set the run context for this execution context."""
     _run_context_var.set(context)
