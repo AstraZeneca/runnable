@@ -48,7 +48,7 @@ def _check_airflow_available():
         raise ImportError(
             "Airflow is not installed. Install it with: "
             "pip install 'runnable[airflow]' or "
-            "pip install apache-airflow apache-airflow-providers-docker"
+            "pip install 'apache-airflow>=3.0.0' 'apache-airflow-providers-docker>=3.0.0'"
         )
 
 

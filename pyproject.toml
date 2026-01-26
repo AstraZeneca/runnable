@@ -41,11 +41,12 @@ telemetry = [
     "opentelemetry-sdk>=1.20.0",
     "opentelemetry-exporter-otlp>=1.20.0",
 ]
-airflow = [
-    "apache-airflow>=2.8.0,<3.0.0",
-    "apache-airflow-providers-docker>=3.0.0",
-]
 
+airflow = [
+    # Install with constraints: uv sync --extra airflow --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-3.0.0/constraints-3.11.txt"
+    # Adjust Python version in constraint URL (3.10, 3.11, 3.12) as needed
+    "apache-airflow>=3.0.0,<4.0.0",
+]
 
 [dependency-groups]
 dev = [
@@ -104,6 +105,7 @@ torch = [
 torchvision = [
   { index = "pytorch-cpu", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
+
 
 [project.scripts]
 runnable = 'runnable.cli:app'
