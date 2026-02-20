@@ -301,6 +301,55 @@ if unsupported_nodes:
 ### Risk: User Confusion About Limitations
 - **Mitigation**: Provide clear error messages with specific guidance to use Argo for complex patterns
 
+## TODO: Design Decisions to Resolve
+
+### SageMaker Native Features Integration
+**Issue**: SageMaker has native caching and retry capabilities that may conflict with Runnable's systems.
+
+**SageMaker Native Capabilities:**
+- **Step Caching**: Input-based caching with S3 storage for step result reuse
+- **Retry Policies**: Built-in job-level and pipeline-level retry with backoff
+
+**Decision Needed**: How should these integrate with Runnable's memoization and retry systems?
+
+**Options:**
+1. **Runnable-managed** (Recommended): Disable SageMaker caching/retries, use Runnable's systems for consistency across executors
+2. **SageMaker-native**: Use SageMaker's systems, disable Runnable's for SageMaker executor
+3. **Hybrid**: Allow configuration to choose which system handles caching/retries
+
+**Implications:**
+- **Consistency**: Runnable-managed ensures same behavior across local/Argo/SageMaker
+- **Performance**: SageMaker-native may be more efficient for AWS-only workflows
+- **Complexity**: Hybrid approach increases configuration complexity
+
+**Action Required**: Decide on approach before implementation and document in configuration section.
+
+### Testing Strategy for AWS Integration
+**Issue**: SageMaker executor requires AWS resources for complete validation, but testing without AWS credentials is challenging.
+
+**Testing Approach Options:**
+
+1. **Mock-Based Testing** (Current plan):
+   - Pros: Fast, no AWS needed, can test error conditions
+   - Cons: Doesn't validate actual SageMaker integration, may miss SDK changes
+
+2. **SageMaker Local Mode**:
+   - Uses `sagemaker.local.LocalSession()` to run processing jobs locally
+   - Pros: Real SageMaker SDK usage, no AWS credentials needed
+   - Cons: May not support all Pipeline features, doesn't test AWS-specific issues
+
+3. **AWS Integration Tests**:
+   - Real AWS resources with GitHub Actions/CI credentials
+   - Pros: Full end-to-end validation, tests IAM roles and S3 access
+   - Cons: Requires AWS account setup, costs money, slower execution
+
+**Recommended Strategy**: Layered approach:
+- Unit Tests: Mock-based for fast feedback
+- Integration Tests: SageMaker Local Mode for better coverage
+- E2E Tests: Real AWS for full validation (optional)
+
+**Action Required**: Determine which testing levels are needed and update implementation plan with appropriate test infrastructure setup.
+
 ## Success Metrics
 
 1. **Drop-in Compatibility**: Existing simple pipelines work with just executor configuration change
