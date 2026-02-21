@@ -30,9 +30,10 @@ The SageMaker executor follows Runnable's **DAG Transpilation** pattern (Pattern
 ```python
 class SageMakerExecutor(GenericPipelineExecutor):
     service_name: str = "sagemaker"
+    _should_setup_run_log_at_traversal: bool = PrivateAttr(default=False)
 
-    def execute_from_graph(self, dag, map_variable=None):
-        """Main transpilation entry point"""
+    def execute_graph(self, dag: Graph, map_variable=None):
+        """Main transpilation entry point - follows Argo pattern"""
         # Check for unsupported node types
         unsupported_nodes = self._check_for_unsupported_nodes(dag)
         if unsupported_nodes:
@@ -43,35 +44,47 @@ class SageMakerExecutor(GenericPipelineExecutor):
         step_map = {}
 
         for node in self._traverse_dag_in_order(dag):
-            # Find dependencies from already-processed steps
-            depends_on_steps = []
-            for parent in self._get_immediate_parents(node, dag):
-                if parent.internal_name in step_map:
-                    depends_on_steps.append(step_map[parent.internal_name])
+            # Handle different node types
+            match node.node_type:
+                case "task" | "stub":
+                    # Simple task - create single ProcessingStep
+                    step = self._create_task_step(node, step_map)
+                    steps.append(step)
+                    step_map[node.internal_name] = step
 
-            # Create step with inline dependencies
-            processor = self._create_processor(node)
-            step = ProcessingStep(
-                name=node.internal_name,
-                processor=processor,
-                depends_on=depends_on_steps
-            )
+                case "parallel":
+                    # Parallel node - create fan-out/fan-in pattern
+                    parallel_steps, final_step = self._handle_parallel_node(node, step_map)
+                    steps.extend(parallel_steps)
+                    step_map[node.internal_name] = final_step
 
-            steps.append(step)
-            step_map[node.internal_name] = step
+                case "success" | "fail":
+                    # Terminal nodes - create simple step
+                    step = self._create_terminal_step(node, step_map)
+                    steps.append(step)
+                    step_map[node.internal_name] = step
 
-        # Build and submit SageMaker Pipeline
+                case _:
+                    raise exceptions.ExecutorNotSupported(
+                        f"Node type '{node.node_type}' not supported by SageMaker executor"
+                    )
+
+        # Build SageMaker Pipeline
         sg_pipeline = Pipeline(
             name=self._generate_pipeline_name(),
             steps=steps,
             sagemaker_session=self._get_session()
         )
 
-        sg_pipeline.upsert(role_arn=self.config.role_arn)
-        execution = sg_pipeline.start()
+        sg_pipeline.upsert(role_arn=self.role_arn)
+        execution = sg_pipeline.start(
+            parameters={
+                "run_id": self._context.run_id,  # Pass run context
+            }
+        )
 
         # Optional monitoring
-        if self.config.wait_for_completion:
+        if self.wait_for_completion:
             self._monitor_execution(execution)
 
     def trigger_node_execution(self, node, map_variable=None):
@@ -79,7 +92,28 @@ class SageMakerExecutor(GenericPipelineExecutor):
         # Storage already accessible via IAM role
         # Just execute the node using base class
         self._execute_node(node=node, map_variable=map_variable)
+
+    def _create_task_step(self, node, step_map):
+        """Create ProcessingStep for a task node with proper dependencies."""
+        depends_on_steps = []
+        for parent in self._get_immediate_parents(node):
+            if parent.internal_name in step_map:
+                depends_on_steps.append(step_map[parent.internal_name])
+
+        processor = self._create_processor(node)
+        return ProcessingStep(
+            name=self._sanitize_name(node.internal_name),
+            processor=processor,
+            depends_on=depends_on_steps
+        )
+
+    def _sanitize_name(self, name: str) -> str:
+        """Sanitize name for SageMaker (alphanumeric and hyphens, max 256 chars)."""
+        sanitized = name.replace(".", "-").replace("_", "-")
+        return sanitized[:256]
 ```
+
+**Note:** The method is `execute_graph` (matching Argo pattern), not `execute_from_graph`. The implementation must handle different node types via match/case rather than assuming all nodes are simple tasks.
 
 ## Configuration
 
@@ -349,6 +383,110 @@ if unsupported_nodes:
 - E2E Tests: Real AWS for full validation (optional)
 
 **Action Required**: Determine which testing levels are needed and update implementation plan with appropriate test infrastructure setup.
+
+### Output File Generation and Validation
+**Issue**: Argo generates YAML files that can be inspected, linted, and validated before submission. Should SageMaker executor support similar output file generation?
+
+**Questions to Resolve:**
+1. Does AWS publish a JSON Schema for SageMaker Pipeline definitions?
+2. Is there an AWS CLI command for validating pipeline definitions (like `aws sagemaker validate-pipeline`)?
+3. Does the SageMaker SDK have a local validation or dry-run mode?
+4. If no validation exists, is output file generation still valuable for debugging/inspection?
+
+**Options:**
+1. **SDK-only submission**: Skip output file generation, always submit directly via SDK
+2. **Output file with inspection**: Generate JSON for debugging but no validation
+3. **Output file with validation**: If validation mechanism exists, support full lint workflow
+
+**Action Required**: Research SageMaker Pipeline validation capabilities before implementing output file generation.
+
+### Run Context and Configuration Propagation
+**Issue**: Each SageMaker ProcessingJob needs access to Runnable's execution context, but the design doesn't specify how this is propagated.
+
+**Required Context:**
+- `run_id`: Unique identifier for the pipeline execution
+- Configuration file path or serialized configuration
+- Pipeline parameters and initial context
+
+**Argo's Approach:**
+```python
+# Argo uses workflow parameters
+_run_id_as_parameter: str = PrivateAttr(default="{{workflow.parameters.run_id}}")
+```
+
+**Possible SageMaker Approaches:**
+1. **Environment variables**: Pass run_id and config via container environment
+2. **S3 context file**: Write context to S3, containers read at startup
+3. **SageMaker Pipeline parameters**: Use native parameter passing for run_id
+
+**Action Required**: Design and document the context propagation mechanism.
+
+### SDK Dependency Strategy
+**Issue**: Adding `sagemaker>=2.120.0` as a core dependency significantly bloats the base package. The SageMaker SDK has many transitive dependencies.
+
+**Recommendation**: Make SageMaker an optional dependency like Kubernetes:
+```toml
+[project.optional-dependencies]
+sagemaker = ["sagemaker>=2.120.0"]
+```
+
+**Usage:**
+```bash
+pip install runnable[sagemaker]
+```
+
+**Action Required**: Decide on dependency strategy and update pyproject.toml accordingly.
+
+### VPC and Network Configuration
+**Issue**: SageMaker ProcessingJobs often need VPC configuration to access private resources (databases, internal APIs, etc.).
+
+**Required Configuration:**
+```yaml
+pipeline-executor:
+  type: sagemaker
+  config:
+    # ... existing config ...
+    vpc_config:
+      subnets:
+        - "subnet-xxx"
+        - "subnet-yyy"
+      security_group_ids:
+        - "sg-xxx"
+```
+
+**Action Required**: Add VPC configuration to schema and implementation.
+
+### AWS Secrets Manager Integration
+**Issue**: Argo has `secret_from_k8s` for Kubernetes secrets. SageMaker should support AWS Secrets Manager for secure credential handling.
+
+**Proposed Configuration:**
+```yaml
+pipeline-executor:
+  type: sagemaker
+  config:
+    secrets_from_aws:
+      - environment_variable: DB_PASSWORD
+        secret_arn: "arn:aws:secretsmanager:us-east-1:xxx:secret:db-password"
+        secret_key: "password"
+```
+
+**Action Required**: Design secrets integration pattern.
+
+### Resource Tagging
+**Issue**: AWS resources should be tagged for cost tracking and organization. No tagging configuration in current design.
+
+**Proposed Configuration:**
+```yaml
+pipeline-executor:
+  type: sagemaker
+  config:
+    tags:
+      project: "my-ml-project"
+      team: "data-science"
+      environment: "production"
+```
+
+**Action Required**: Add tags to all SageMaker resources created.
 
 ## Success Metrics
 

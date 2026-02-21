@@ -10,6 +10,23 @@
 
 ---
 
+## ⚠️ Design TODOs (Resolve Before Implementation)
+
+The following design decisions need to be resolved before full implementation. See `2026-02-20-sagemaker-executor-design.md` for details:
+
+1. **SageMaker Native Features**: Decide on caching/retry integration with Runnable's systems
+2. **Testing Strategy**: Determine which testing levels are needed (mock, local mode, AWS)
+3. **Output File Generation**: Research SageMaker Pipeline validation capabilities
+4. **Run Context Propagation**: Design mechanism for passing run_id and config to containers
+5. **SDK Dependency Strategy**: Decide if SageMaker SDK should be optional (`runnable[sagemaker]`)
+6. **VPC/Network Configuration**: Design VPC config schema for private resource access
+7. **Secrets Integration**: Design AWS Secrets Manager integration pattern
+8. **Resource Tagging**: Add tags configuration for cost tracking
+
+**Note:** This implementation plan covers the core functionality. Advanced features (VPC, secrets, tags) can be added in subsequent phases after the basic executor works.
+
+---
+
 ## Phase 1: Foundation and Configuration
 
 ### Task 1: Create Basic SageMaker Executor Structure
@@ -116,7 +133,10 @@ class SageMakerExecutor(GenericPipelineExecutor):
     # Per-task overrides (like Argo pattern)
     overrides: Dict[str, Dict[str, Any]] = Field(default_factory=dict, description="Per-task configuration overrides")
 
-    def execute_from_graph(self, dag: Graph, map_variable=None):
+    # NOTE: Method name is execute_graph (not execute_from_graph) to match Argo pattern
+    _should_setup_run_log_at_traversal: bool = PrivateAttr(default=False)
+
+    def execute_graph(self, dag: Graph, map_variable=None):
         """Convert Runnable DAG to SageMaker Pipeline and execute."""
         # TODO: Implement in later tasks
         raise NotImplementedError("SageMaker execution not yet implemented")
