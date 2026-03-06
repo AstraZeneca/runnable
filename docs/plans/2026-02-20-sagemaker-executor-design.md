@@ -58,6 +58,12 @@ class SageMakerExecutor(GenericPipelineExecutor):
                     steps.extend(parallel_steps)
                     step_map[node.internal_name] = final_step
 
+                case "conditional":
+                    # Conditional node - evaluate condition, route to matching branch
+                    conditional_steps, final_step = self._handle_conditional_node(node, step_map)
+                    steps.extend(conditional_steps)
+                    step_map[node.internal_name] = final_step
+
                 case "success" | "fail":
                     # Terminal nodes - create simple step
                     step = self._create_terminal_step(node, step_map)
@@ -236,6 +242,73 @@ def _handle_parallel_node(self, parallel_node):
 
     return all_steps, fan_in_step
 ```
+
+### Conditional Node Support
+
+SageMaker supports simple conditional execution using the same fan-out/fan-in pattern as parallel nodes. The key difference is that the fan-out step evaluates a condition to determine which branch is active, and the fan-in step uses Runnable's existing `ConditionalNode.fan_in()` to resolve status based on the selected branch.
+
+**How it works (following the Argo pattern):**
+
+1. **Fan-out step**: Runs `runnable fan <mode> <node>` which calls `ConditionalNode.fan_out()`. This evaluates the condition and writes the selected branch name to the run log.
+2. **All branches execute**: Unlike Argo (which uses `when` parameters to skip branches), SageMaker runs all branches as ProcessingSteps. Each branch step runs `runnable execute-single-node` which checks the run log to determine if it is the active branch.
+3. **Fan-in step**: Runs `ConditionalNode.fan_in()` which reads the selected branch from the run log and consolidates status from only that branch.
+
+```python
+def _handle_conditional_node(self, conditional_node, step_map):
+    """Convert ConditionalNode using fan-out/fan-in pattern.
+
+    Structurally identical to parallel handling. The condition evaluation
+    and branch selection are handled by Runnable's ConditionalNode.fan_out()
+    and fan_in() methods running inside the containers, not by SageMaker's
+    native ConditionStep.
+    """
+
+    # 1. Fan-out step: evaluates the condition, writes selected branch to run log
+    fan_out_step = ProcessingStep(
+        name=f"{conditional_node.name}_fan_out",
+        processor=self._create_processor_for_fan_out(conditional_node)
+    )
+
+    # 2. Process each branch + add success node
+    # All branches run; fan_in resolves which was active
+    branch_success_steps = []
+    all_steps = [fan_out_step]
+
+    for branch_name, branch_pipeline in conditional_node.branches.items():
+        prev_step = fan_out_step
+
+        for task in branch_pipeline.tasks:
+            step = ProcessingStep(
+                name=f"{branch_name}_{task.name}",
+                processor=self._create_processor(task),
+                depends_on=[prev_step]
+            )
+            all_steps.append(step)
+            prev_step = step
+
+        success_node_internal_name = f"{conditional_node.internal_name}.{branch_name}.success"
+        branch_success_step = ProcessingStep(
+            name=f"{branch_name}_success",
+            processor=self._create_success_processor(success_node_internal_name),
+            depends_on=[prev_step]
+        )
+        all_steps.append(branch_success_step)
+        branch_success_steps.append(branch_success_step)
+
+    # 3. Fan-in depends on ALL branch success nodes
+    fan_in_step = ProcessingStep(
+        name=f"{conditional_node.name}_fan_in",
+        processor=self._create_processor_for_fan_in(conditional_node),
+        depends_on=branch_success_steps
+    )
+    all_steps.append(fan_in_step)
+
+    return all_steps, fan_in_step
+```
+
+**Trade-off: All branches execute.** SageMaker's native `ConditionStep` could skip non-selected branches, but it only supports simple predicate comparisons (`ConditionEquals`, `ConditionGreaterThan`, etc.) and cannot evaluate arbitrary Python logic. Since Runnable's `ConditionalNode` evaluates conditions via user-defined Python code, we run all branches and let Runnable's fan-in logic determine which one counts. This wastes compute on inactive branches but preserves semantic correctness and consistency with Runnable's execution model.
+
+**Future optimization:** If a conditional has only static/simple conditions, a future phase could map them to SageMaker's native `ConditionStep` with `if_steps`/`else_steps` to avoid running inactive branches.
 
 ### Unsupported Node Types
 

@@ -787,7 +787,7 @@ git commit -m "feat: implement proper DAG traversal and dependency resolution
 - Add proper edge detection between nodes for SageMaker dependencies"
 ```
 
-## Phase 4: Parallel Node Support
+## Phase 4: Parallel and Conditional Node Support
 
 ### Task 7: Implement Parallel Node Handling with Fan-out/Fan-in
 
@@ -954,9 +954,163 @@ git commit -m "feat: implement parallel node support with fan-out/fan-in pattern
 - Use minimal resources (t3.micro) for lightweight success nodes"
 ```
 
+### Task 8: Implement Conditional Node Handling
+
+**Files:**
+- Modify: `extensions/pipeline_executor/sagemaker.py`
+- Test: `tests/extensions/pipeline_executor/test_sagemaker.py`
+
+**Context:** Conditional nodes follow the same fan-out/fan-in pattern as parallel nodes. The key difference is that the fan-out step evaluates the condition (via `ConditionalNode.fan_out()`), and the fan-in step uses `ConditionalNode.fan_in()` to resolve status based on only the selected branch. All branches execute as SageMaker ProcessingSteps because SageMaker's native `ConditionStep` cannot evaluate arbitrary Python conditions. See design doc section "Conditional Node Support" for full rationale.
+
+**Step 1: Write tests for conditional node handling**
+
+```python
+# tests/extensions/pipeline_executor/test_sagemaker.py
+def test_handle_conditional_node():
+    """Test that conditional nodes are converted to fan-out/fan-in pattern."""
+    executor = SageMakerExecutor(
+        role_arn="arn:aws:iam::123456789:role/TestRole",
+        region="us-east-1",
+        image="test:latest"
+    )
+
+    # Mock conditional node with two branches (if/else)
+    branch_true = Mock()
+    branch_true.tasks = [Mock(internal_name="branch_true_task1")]
+
+    branch_false = Mock()
+    branch_false.tasks = [Mock(internal_name="branch_false_task1")]
+
+    conditional_node = Mock()
+    conditional_node.internal_name = "check_accuracy"
+    conditional_node.node_type = "conditional"
+    conditional_node.branches = {"high_accuracy": branch_true, "low_accuracy": branch_false}
+
+    # Mock processor creation
+    executor._create_processor_for_fan_out = Mock()
+    executor._create_processor_for_fan_in = Mock()
+    executor._create_processor = Mock()
+    executor._create_success_processor = Mock()
+
+    with patch('sagemaker.processing.ProcessingStep') as mock_step_class:
+        mock_step = Mock()
+        mock_step_class.return_value = mock_step
+
+        steps, final_step = executor._handle_conditional_node(conditional_node)
+
+        # Should create: fan_out + branch_true_task + branch_true_success
+        #              + branch_false_task + branch_false_success + fan_in
+        # Total: 6 steps
+        assert len(steps) == 6
+        assert final_step == mock_step  # fan_in step
+
+
+def test_conditional_node_not_rejected_by_unsupported_check():
+    """Test that conditional nodes pass the unsupported node check."""
+    executor = SageMakerExecutor(
+        role_arn="arn:aws:iam::123456789:role/TestRole",
+        region="us-east-1",
+        image="test:latest"
+    )
+
+    conditional_node = Mock()
+    conditional_node.node_type = "conditional"
+    conditional_node.internal_name = "my_conditional"
+
+    dag = Mock()
+    dag.nodes = [conditional_node]
+
+    unsupported = executor._check_for_unsupported_nodes(dag)
+    assert len(unsupported) == 0
+```
+
+**Step 2: Run tests to verify they fail**
+
+Run: `pytest tests/extensions/pipeline_executor/test_sagemaker.py -k "test_handle_conditional" -v`
+Expected: FAIL with "AttributeError: 'SageMakerExecutor' object has no attribute '_handle_conditional_node'"
+
+**Step 3: Implement conditional node handling**
+
+```python
+# extensions/pipeline_executor/sagemaker.py
+class SageMakerExecutor(GenericPipelineExecutor):
+    # ... existing code ...
+
+    def _handle_conditional_node(self, conditional_node):
+        """Convert ConditionalNode using fan-out/fan-in pattern.
+
+        Structurally identical to _handle_parallel_node. The condition
+        evaluation and branch selection happen inside the containers via
+        Runnable's ConditionalNode.fan_out() and fan_in() methods.
+
+        All branches execute as ProcessingSteps. The fan-in resolves
+        which branch was active and consolidates status accordingly.
+        """
+
+        # 1. Fan-out step: evaluates condition, writes selected branch to run log
+        fan_out_step = ProcessingStep(
+            name=f"{conditional_node.internal_name}_fan_out",
+            processor=self._create_processor_for_fan_out(conditional_node)
+        )
+
+        # 2. Process each branch + add success node
+        branch_success_steps = []
+        all_steps = [fan_out_step]
+
+        for branch_name, branch_pipeline in conditional_node.branches.items():
+            prev_step = fan_out_step
+
+            for task in branch_pipeline.tasks:
+                step = ProcessingStep(
+                    name=f"{branch_name}_{task.internal_name}",
+                    processor=self._create_processor(task),
+                    depends_on=[prev_step]
+                )
+                all_steps.append(step)
+                prev_step = step
+
+            success_node_internal_name = f"{conditional_node.internal_name}.{branch_name}.success"
+            branch_success_step = ProcessingStep(
+                name=f"{branch_name}_success",
+                processor=self._create_success_processor(success_node_internal_name),
+                depends_on=[prev_step]
+            )
+            all_steps.append(branch_success_step)
+            branch_success_steps.append(branch_success_step)
+
+        # 3. Fan-in depends on ALL branch success nodes
+        fan_in_step = ProcessingStep(
+            name=f"{conditional_node.internal_name}_fan_in",
+            processor=self._create_processor_for_fan_in(conditional_node),
+            depends_on=branch_success_steps
+        )
+        all_steps.append(fan_in_step)
+
+        return all_steps, fan_in_step
+```
+
+**Note:** `_create_processor_for_fan_out` and `_create_processor_for_fan_in` are already implemented in Task 7 and work for both parallel and conditional nodes. The fan command (`runnable fan out/in <node>`) dispatches to the correct node type's `fan_out()`/`fan_in()` method automatically.
+
+**Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/extensions/pipeline_executor/test_sagemaker.py -k "test_handle_conditional or test_conditional_node_not_rejected" -v`
+Expected: PASS
+
+**Step 5: Commit**
+
+```bash
+git add extensions/pipeline_executor/sagemaker.py tests/extensions/pipeline_executor/test_sagemaker.py
+git commit -m "feat: implement conditional node support with fan-out/fan-in pattern
+
+- Add _handle_conditional_node mirroring parallel node handling
+- All branches execute; fan-in resolves active branch via run log
+- Reuse existing fan-out/fan-in processors from parallel support
+- Add tests for conditional conversion and unsupported-check passthrough"
+```
+
 ## Phase 5: Integration and Testing
 
-### Task 8: Add Comprehensive Integration Tests
+### Task 9: Add Comprehensive Integration Tests
 
 **Files:**
 - Create: `tests/extensions/pipeline_executor/test_sagemaker_integration.py`
@@ -1106,7 +1260,7 @@ git commit -m "test: add comprehensive SageMaker executor integration tests
 - Add fixture for consistent SageMaker environment mocking"
 ```
 
-### Task 9: Add Configuration Validation Tests
+### Task 10: Add Configuration Validation Tests
 
 **Files:**
 - Modify: `tests/extensions/pipeline_executor/test_sagemaker.py`
@@ -1242,7 +1396,7 @@ git commit -m "feat: add comprehensive configuration validation
 
 ## Phase 6: Documentation and Examples
 
-### Task 10: Add Configuration Documentation and Examples
+### Task 11: Add Configuration Documentation and Examples
 
 **Files:**
 - Create: `docs/production/pipeline-execution/sagemaker.md`
@@ -1882,8 +2036,9 @@ Plan complete and saved to `docs/plans/2026-02-20-sagemaker-executor-implementat
 
 **Implementation Summary:**
 - **Phase 1-2**: Foundation (configuration, entry points, validation)
-- **Phase 3-4**: Core functionality (DAG transpilation, parallel support)
+- **Phase 3-4**: Core functionality (DAG transpilation, parallel and conditional support)
 - **Phase 5-6**: Testing and documentation
+- **11 tasks** total (Tasks 1-8 implementation, Tasks 9-11 testing/docs)
 
 **Two execution options:**
 
