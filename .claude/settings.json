@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | { read -r f; echo \"$f\" | grep -q '\\.py$' && ruff check --fix \"$f\" && ruff format \"$f\"; } 2>/dev/null || true",
+            "statusMessage": "Running ruff fix + format..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -7,13 +7,21 @@ Now let's solve the first major problem: lack of execution tracking. We'll trans
 Instead of calling our function directly, we'll wrap it with Runnable's `PythonJob`:
 
 ```python title="examples/tutorials/getting-started/02_making_it_reproducible.py"
-from runnable import PythonJob
+from runnable import Catalog, PythonJob
 from functions import train_ml_model_basic
 
 def main():
+    # Define a Catalog to specify what files to save from the run
+    catalog = Catalog(put=["model.pkl", "results.json"])
+
     # Same function, now wrapped as a Job
-    job = PythonJob(function=train_ml_model_basic)
+    job = PythonJob(
+        function=train_ml_model_basic,
+        returns=["results"],
+        catalog=catalog,
+    )
     job.execute()
+
     return job
 
 if __name__ == "__main__":
@@ -42,13 +50,13 @@ ls .run_log_store/
 Each run directory contains:
 
 - **Execution metadata**: when it ran, how long it took
-- **Environment info**: Python version, package versions
 - **Results**: function return values
 - **Status**: success/failure with any error details
 
 ### ♻️ **Result Preservation**
 
-Unlike the basic version that overwrote `model.pkl` and `results.json`, each Runnable execution gets its own directory. Your results are never lost.
+Unlike the basic version that overwrote `model.pkl` and `results.json`, each Runnable execution gets its own directory.
+The results are stored in a catalog, ```.catalog``` with the same ```run_id```.
 
 ### 🔍 **Full Reproducibility**
 
@@ -56,8 +64,8 @@ Each run captures everything needed to reproduce it:
 
 - Exact timestamp
 - Code version (if using git)
-- Environment details
 - Input parameters (we'll add those next!)
+- Output from function calls.
 
 ### 🎯 **Zero Code Changes**
 
@@ -73,7 +81,7 @@ uv run examples/tutorials/getting-started/02_making_it_reproducible.py
 uv run examples/tutorials/getting-started/02_making_it_reproducible.py
 ```
 
-Each run creates a separate log entry in `.run_log_store/`. You now have a complete history of all your experiments!
+Each run creates a separate log entry in `.run_log_store/` and `.catalog` . You now have a complete history of all your experiments!
 
 ## Compare: Before vs After
 

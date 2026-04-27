@@ -5,16 +5,15 @@ These functions represent a realistic ML workflow that progressively
 gets wrapped with Runnable patterns throughout the tutorial.
 """
 
-import pandas as pd
-import numpy as np
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report
-import pickle
 import json
 import os
-from pathlib import Path
+import pickle
+
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.model_selection import train_test_split
 
 
 def create_sample_dataset(n_samples=1000, n_features=20, random_state=42):
@@ -25,13 +24,13 @@ def create_sample_dataset(n_samples=1000, n_features=20, random_state=42):
         n_informative=15,
         n_redundant=5,
         n_classes=2,
-        random_state=random_state
+        random_state=random_state,
     )
 
     # Convert to DataFrame for more realistic data handling
     feature_names = [f"feature_{i}" for i in range(n_features)]
     df = pd.DataFrame(X, columns=feature_names)
-    df['target'] = y
+    df["target"] = y
 
     return df
 
@@ -50,8 +49,8 @@ def load_data(data_path="data.csv"):
 def preprocess_data(df, test_size=0.2, random_state=42):
     """Preprocess data for training."""
     # Separate features and target
-    X = df.drop('target', axis=1)
-    y = df['target']
+    X = df.drop("target", axis=1)
+    y = df["target"]
 
     # Train-test split
     X_train, X_test, y_train, y_test = train_test_split(
@@ -63,37 +62,26 @@ def preprocess_data(df, test_size=0.2, random_state=42):
     X_train = X_train.fillna(X_train.mean())
     X_test = X_test.fillna(X_train.mean())  # Use training means
 
-    return {
-        'X_train': X_train,
-        'X_test': X_test,
-        'y_train': y_train,
-        'y_test': y_test
-    }
+    return {"X_train": X_train, "X_test": X_test, "y_train": y_train, "y_test": y_test}
 
 
 def train_model(preprocessed_data, n_estimators=100, random_state=42):
     """Train a Random Forest model."""
-    X_train = preprocessed_data['X_train']
-    y_train = preprocessed_data['y_train']
+    X_train = preprocessed_data["X_train"]
+    y_train = preprocessed_data["y_train"]
 
-    model = RandomForestClassifier(
-        n_estimators=n_estimators,
-        random_state=random_state
-    )
+    model = RandomForestClassifier(n_estimators=n_estimators, random_state=random_state)
 
     model.fit(X_train, y_train)
 
-    return {
-        'model': model,
-        'feature_names': list(X_train.columns)
-    }
+    return {"model": model, "feature_names": list(X_train.columns)}
 
 
 def evaluate_model(model_data, preprocessed_data):
     """Evaluate the trained model."""
-    model = model_data['model']
-    X_test = preprocessed_data['X_test']
-    y_test = preprocessed_data['y_test']
+    model = model_data["model"]
+    X_test = preprocessed_data["X_test"]
+    y_test = preprocessed_data["y_test"]
 
     # Make predictions
     y_pred = model.predict(X_test)
@@ -104,23 +92,23 @@ def evaluate_model(model_data, preprocessed_data):
     report = classification_report(y_test, y_pred, output_dict=True)
 
     return {
-        'accuracy': accuracy,
-        'classification_report': report,
-        'predictions': y_pred.tolist(),
-        'probabilities': y_pred_proba.tolist()
+        "accuracy": accuracy,
+        "classification_report": report,
+        "predictions": y_pred.tolist(),
+        "probabilities": y_pred_proba.tolist(),
     }
 
 
 def save_model(model_data, file_path="model.pkl"):
     """Save trained model to file."""
-    with open(file_path, 'wb') as f:
+    with open(file_path, "wb") as f:
         pickle.dump(model_data, f)
     return file_path
 
 
 def save_results(evaluation_results, file_path="results.json"):
     """Save evaluation results to file."""
-    with open(file_path, 'w') as f:
+    with open(file_path, "w") as f:
         json.dump(evaluation_results, f, indent=2)
     return file_path
 

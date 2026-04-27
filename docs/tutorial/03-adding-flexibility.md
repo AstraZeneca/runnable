@@ -81,19 +81,20 @@ Run different experiments:
 
 ```bash
 # Basic experiment
-uv run examples/tutorials/getting-started/03_adding_flexibility.py --parameters-file experiment_configs/basic.yaml
+RUNNABLE_PARAMETERS_FILE="experiment_configs/basic.yaml" uv run examples/tutorials/getting-started/03_adding_flexibility.py
 
 # Large forest experiment
-uv run examples/tutorials/getting-started/03_adding_flexibility.py --parameters-file experiment_configs/large_forest.yaml
+RUNNABLE_PARAMETERS_FILE="experiment_configs/large_forest.yaml" uv run examples/tutorials/getting-started/03_adding_flexibility.py
 ```
 
 ## Parameter Precedence
 
 Runnable handles parameter conflicts intelligently:
 
-1. **Environment variables** (highest priority): `RUNNABLE_PRM_n_estimators=300`
-2. **Command line config**: `--parameters-file config.yaml`
-3. **Function defaults** (lowest priority): What you defined in the function signature
+1. **Individual overrides** (highest priority): `RUNNABLE_PRM_n_estimators=300`
+2. **Environment file**: `RUNNABLE_PARAMETERS_FILE="config.yaml"`
+3. **Code-specified**: `job.execute(parameters_file="config.yaml")`
+4. **Function defaults** (lowest priority): What you defined in the function signature
 
 This means you can have a base configuration file but override specific values with environment variables.
 
@@ -110,7 +111,7 @@ This means you can have a base configuration file but override specific values w
 Every run gets logged with the exact parameters used:
 
 ```bash
-ls .runnable/run-log-store/
+ls .run_log_store/
 # Each timestamped directory contains the parameters for that run
 ```
 
@@ -138,7 +139,7 @@ uv run 03_adding_flexibility.py
 RUNNABLE_PRM_n_estimators=200 uv run 03_adding_flexibility.py
 
 # Experiment 3: From config file
-uv run 03_adding_flexibility.py --parameters-file experiment_configs/large_forest.yaml
+RUNNABLE_PARAMETERS_FILE="experiment_configs/large_forest.yaml" uv run 03_adding_flexibility.py
 
 # Check the logs - each run preserved with its parameters
 ls .run_log_store/

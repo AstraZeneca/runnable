@@ -20,11 +20,11 @@ PythonTask(
 - Can't easily inspect intermediate results
 - Memory pressure on your system
 
-## The Solution: Catalog for File Storage
+## The Solution: Advanced Catalog Usage
 
-Instead of passing data through memory, save it to files and let Runnable manage them:
+In Chapter 2, we used `Catalog(put=["model.pkl", "results.json"])` to save final results. Now let's expand this for large dataset management - instead of passing data through memory, we'll use catalog's `get=[]` and `put=[]` capabilities to manage intermediate datasets between pipeline steps:
 
-```python title="examples/tutorials/getting-started/05_handling_datasets.py" hl_lines="11 19-20"
+```python title="examples/tutorials/getting-started/05_handling_datasets.py""
 from runnable import Pipeline, PythonTask, Catalog, pickled
 
 def load_data_to_file(data_path="data.csv"):
@@ -48,7 +48,14 @@ PythonTask(
 uv run examples/tutorials/getting-started/05_handling_datasets.py
 ```
 
-## How Catalog Works
+## How Catalog Works for Large Datasets
+
+**Progression from Chapter 2:**
+
+- **Chapter 2**: `Catalog(put=["model.pkl"])` - Save final results only
+- **Chapter 5**: `Catalog(get=["data.csv"], put=["processed.csv"])` - Manage intermediate datasets between steps
+
+The key difference: **`get=[]`** parameter lets tasks retrieve files created by previous tasks.
 
 ### Step 1: Create and Store Files
 
@@ -102,7 +109,7 @@ PythonTask(
 Here's the full pipeline using file storage for large data:
 
 ```python title="examples/tutorials/getting-started/05_handling_datasets.py"
---8<-- "examples/tutorials/getting-started/05_handling_datasets.py:62:119"
+--8<-- "examples/tutorials/getting-started/05_handling_datasets.py:86:125"
 ```
 
 ## What You Get with File-Based Storage
@@ -121,7 +128,7 @@ X_train = pd.read_csv("X_train.csv")  # Maybe 50GB
 
 Runnable handles file locations transparently:
 
-- **`put=["file.parquet"]`** - Stores file safely in `.runnable/` catalog
+- **`put=["file.parquet"]`** - Stores file safely in `.catalog/`
 - **`get=["file.parquet"]`** - Makes file available in your working directory
 - Files appear exactly where your code expects them
 
@@ -131,7 +138,7 @@ All intermediate files are preserved:
 
 ```bash
 # Check what preprocessing produced
-ls .runnable/catalog/
+ls .catalog/
 # X_train.csv  X_test.csv  y_train.csv  y_test.csv
 ```
 
