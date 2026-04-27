@@ -9,7 +9,7 @@
 <a href="https://www.flaticon.com/free-icons/runner" title="runner icons">Runner icons created by Leremy - Flaticon</a>
 </span>
 
-Transform any Python function into a portable, trackable pipeline in seconds.
+Transform Python functions into portable, trackable pipelines.
 
 <hr style="border:2px dotted orange">
 
@@ -47,7 +47,10 @@ def analyze_sales():
 from runnable import PythonJob
 
 def main():
-    job = PythonJob(function=analyze_sales)
+    job = PythonJob(
+        function=analyze_sales,
+        # returns=["total_revenue", "best_product"]  # Optional: track return values
+    )
     job.execute()
     return job  # REQUIRED: Always return the job object
 
@@ -63,7 +66,7 @@ You just made your first function runnable and got:
 - ✅ **Reproducible runs**: full execution history and metadata
 - ✅ **Environment portability**: runs the same on laptop, containers, Kubernetes
 
-**Your code now runs anywhere without changes!**
+**Your code runs consistently across different environments!**
 
 ---
 
@@ -81,7 +84,10 @@ def forecast_growth(revenue, growth_rate):
 from runnable import PythonJob
 
 def main():
-    job = PythonJob(function=forecast_growth)
+    job = PythonJob(
+        function=forecast_growth,
+        # returns=["forecast"]  # Optional: track return values
+    )
     job.execute()
     return job  # REQUIRED: Always return the job object
 
@@ -89,10 +95,7 @@ if __name__ == "__main__":
     main()
 
 # Run different scenarios anywhere:
-# Local: RUNNABLE_PRM_revenue=100000 RUNNABLE_PRM_growth_rate=0.05 python forecast.py
-# Container: same command, same results
-# Kubernetes: same command, same results
-
+# RUNNABLE_PRM_revenue=100000 RUNNABLE_PRM_growth_rate=0.05 python forecast.py
 # ✨ Every run tracked with parameters - reproducible everywhere
 ```
 
@@ -130,8 +133,8 @@ from runnable import Pipeline, PythonTask
 
 def main():
     pipeline = Pipeline(steps=[
-        PythonTask(function=load_customer_data, returns=["customer_data"]),
-        PythonTask(function=analyze_segments, returns=["analysis"])
+        PythonTask(name="load_data", function=load_customer_data, returns=["customer_data"]),
+        PythonTask(name="analyze", function=analyze_segments, returns=["analysis"])
     ])
     pipeline.execute()
     return pipeline  # REQUIRED: Always return the pipeline object

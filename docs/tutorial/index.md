@@ -31,8 +31,6 @@ Each chapter tackles a real problem you'll face moving from "works on my laptop"
 - Familiarity with scikit-learn (we'll use simple examples)
 - Python environment with runnable installed: `pip install runnable[examples]`
 
-**Time Investment**: ~30-45 minutes total, designed for step-by-step learning
-
 ---
 
 **Ready to start?** → [The Starting Point](01-starting-point.md)

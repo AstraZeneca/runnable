@@ -4,8 +4,10 @@ Chapter 3: Adding Flexibility
 Same ML function, now parameterized and configurable without code changes.
 """
 
-from runnable import PythonJob
 from functions_parameterized import train_ml_model_flexible
+
+from runnable import Catalog, PythonJob
+
 
 def main():
     """Show how to run the same function with different parameters."""
@@ -13,8 +15,15 @@ def main():
     print("Chapter 3: Adding Flexibility")
     print("=" * 50)
 
-    # Same function, now accepts parameters from environment or config files
-    job = PythonJob(function=train_ml_model_flexible)
+    # Define a Catalog to specify what files to save from the run
+    catalog = Catalog(put=["model.pkl", "results.json"])
+
+    # Same function, now wrapped as a Job
+    job = PythonJob(
+        function=train_ml_model_flexible,
+        returns=["results"],
+        catalog=catalog,
+    )
     job.execute()
 
     print("\n" + "=" * 50)
@@ -25,10 +34,13 @@ def main():
     print("- 🧪 Run different experiments without code changes")
     print("\nTry these commands:")
     print("RUNNABLE_PRM_n_estimators=200 uv run 03_adding_flexibility.py")
-    print("uv run 03_adding_flexibility.py --parameters-file experiment_configs/basic.yaml")
+    print(
+        'RUNNABLE_PARAMETERS_FILE="experiment_configs/basic.yaml" uv run 03_adding_flexibility.py'
+    )
     print("=" * 50)
 
     return job
+
 
 if __name__ == "__main__":
     main()

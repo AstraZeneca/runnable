@@ -65,16 +65,16 @@ def main():
 uv run examples/tutorials/getting-started/04_connecting_workflow.py
 ```
 
-## How Data Flows Automatically
+## How Data Flow Works Through Run Log
 
-Notice something magical: we didn't write any glue code! Runnable automatically connects the steps:
+Runnable connects pipeline steps through **run log parameter management**:
 
-1. **`load_data()`** returns a DataFrame
-2. **`preprocess_data(df)`** - gets the DataFrame automatically (parameter name matches!)
-3. **`train_model(preprocessed_data)`** - gets preprocessing results automatically
-4. **`evaluate_model(model_data, preprocessed_data)`** - gets both model and data automatically
+1. **`returns=[pickled("df")]`** → Run log stores parameter "df" (binary data in catalog)
+2. **`preprocess_data(df, ...)`** → Run log provides "df" parameter (fetches from catalog if pickled)
+3. **`train_model(preprocessed_data)`** → Run log provides "preprocessed_data" parameter
+4. **`evaluate_model(model_data, preprocessed_data)`** → Run log provides both parameters
 
-**The secret:** Parameter names in your functions determine data flow. If `train_model()` expects a parameter called `preprocessed_data`, and a previous step returns something called `preprocessed_data`, they get connected automatically.
+**The pattern:** Function parameter names must match the names in previous tasks' `returns` declarations because that's how the run log maps parameters.
 
 ## What You Get with Pipelines
 
@@ -94,8 +94,11 @@ evaluate: ✅ Completed in 0.2s
 Each step's output is saved. You can inspect intermediate results without rerunning expensive steps:
 
 ```bash
-# Check what the preprocessing step produced
-ls .runnable/
+# Check run log parameter tracking
+ls .run_log_store/
+
+# Check pickled data storage
+ls .catalog/
 ```
 
 ### 🛠️ **Better Debugging**
@@ -105,6 +108,46 @@ If training fails, you don't lose your preprocessing work. You can debug just th
 ### 📊 **Individual Step Tracking**
 
 See timing and resource usage for each step, helping identify bottlenecks.
+
+## 🔗 Understanding Parameter Naming
+
+For data flow to work correctly, follow this naming pattern:
+
+```python
+# Step 1: Function returns something, run log tracks as "df"
+PythonTask(function=load_data, returns=[pickled("df")])
+
+# Step 2: Function parameter "df" matches run log parameter "df"
+def preprocess_data(df, test_size=0.2):  # Gets "df" from run log
+    return preprocessed_data
+
+# Step 3: Save as "preprocessed_data" in run log
+PythonTask(function=preprocess_data, returns=[pickled("preprocessed_data")])
+
+# Step 4: Parameter names match run log parameter names
+def train_model(preprocessed_data, n_estimators=100):  # Gets from run log
+def evaluate_model(model_data, preprocessed_data):    # Gets both from run log
+```
+
+**Key Rule:** Parameter names in later functions must exactly match the names in earlier `returns` declarations.
+
+## 🚨 Common Parameter Issues
+
+**Problem**: Parameter name doesn't match returns name
+```python
+# Won't work - name mismatch!
+PythonTask(function=load_data, returns=[pickled("dataframe")])
+def preprocess_data(df, test_size=0.2):  # Run log has "dataframe", expects "df"
+```
+
+**Solution**: Make parameter names match returns names
+```python
+# Works - run log has "df", function expects "df"
+PythonTask(function=load_data, returns=[pickled("df")])
+def preprocess_data(df, test_size=0.2):  # Gets "df" from run log
+```
+
+**Debug Tip**: Check run log files in `.run_log_store/` to see actual parameter names stored.
 
 ## Advanced: Parameters in Pipelines
 
@@ -140,7 +183,7 @@ Parameters get passed to the appropriate functions based on their parameter name
 - ✅ Intermediate results preserved
 - ✅ Resume from failed steps
 - ✅ Better debugging and development
-- ✅ Automatic data flow between steps
+- ✅ Parameter-based data flow between steps
 
 ## Your Functions Didn't Change
 
